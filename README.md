@@ -42,4 +42,3 @@ Tested Systems:
 ## 📄 Documentation
 
 For detailed documentation, visit [docs.dokploy.com/docs](https://docs.dokploy.com).
-
