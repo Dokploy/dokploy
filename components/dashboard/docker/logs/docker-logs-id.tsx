@@ -1,0 +1,89 @@
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import React, { useEffect } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "xterm-addon-fit";
+import "@xterm/xterm/css/xterm.css";
+
+interface Props {
+	id: string;
+	containerId: string;
+}
+
+export const DockerLogsId: React.FC<Props> = ({ id, containerId }) => {
+	const [term, setTerm] = React.useState<Terminal>();
+	const [lines, setLines] = React.useState<number>(40);
+
+	const createTerminal = (): Terminal => {
+		const container = document.getElementById(id);
+		if (container) {
+			container.innerHTML = "";
+		}
+		const termi = new Terminal({
+			cursorBlink: true,
+			cols: 80,
+			rows: 30,
+			lineHeight: 1.4,
+
+			convertEol: true,
+			theme: {
+				cursor: "transparent",
+				background: "#19191A",
+			},
+		});
+
+		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+		const wsUrl = `${protocol}//${window.location.host}/docker-container-logs?containerId=${containerId}&tail=${lines}`;
+		const ws = new WebSocket(wsUrl);
+
+		const fitAddon = new FitAddon();
+		termi.loadAddon(fitAddon);
+		// @ts-ignore
+		termi.open(container);
+		fitAddon.fit();
+		termi.focus();
+		setTerm(termi);
+
+		ws.onmessage = (e) => {
+			termi.write(e.data);
+		};
+
+		ws.onclose = (e) => {
+			console.log(e.reason);
+
+			termi.write(`Connection closed!\nReason: ${e.reason}\n`);
+		};
+		return termi;
+	};
+
+	useEffect(() => {
+		createTerminal();
+	}, [lines, containerId]);
+
+	useEffect(() => {
+		term?.clear();
+	}, [lines, term]);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="flex flex-col gap-2">
+				<Label>
+					<span>Number of lines to show</span>
+				</Label>
+				<Input
+					type="text"
+					placeholder="Number of lines to show (Defaults to 35)"
+					value={lines}
+					onChange={(e) => {
+						setLines(Number(e.target.value) || 1);
+					}}
+				/>
+			</div>
+
+			<div className="w-full h-full bg-input rounded-lg p-2 ">
+				<div id={id} className="rounded-xl" />
+			</div>
+		</div>
+	);
+};

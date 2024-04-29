@@ -1,0 +1,180 @@
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import jsyaml from "js-yaml";
+
+const UpdateTraefikConfigSchema = z.object({
+	traefikConfig: z.string(),
+});
+
+type UpdateTraefikConfig = z.infer<typeof UpdateTraefikConfigSchema>;
+
+interface Props {
+	applicationId: string;
+}
+
+export const validateAndFormatYAML = (yamlText: string) => {
+	try {
+		const obj = jsyaml.load(yamlText);
+		const formattedYaml = jsyaml.dump(obj, { indent: 4 });
+		return { valid: true, formattedYaml, error: null };
+	} catch (error) {
+		if (error instanceof jsyaml.YAMLException) {
+			return {
+				valid: false,
+				formattedYaml: yamlText,
+				error: error.message,
+			};
+		}
+		return {
+			valid: false,
+			formattedYaml: yamlText,
+			error: "An unexpected error occurred while processing the YAML.",
+		};
+	}
+};
+
+export const UpdateTraefikConfig = ({ applicationId }: Props) => {
+	const { data, refetch } = api.application.readTraefikConfig.useQuery(
+		{
+			applicationId,
+		},
+		{ enabled: !!applicationId },
+	);
+
+	const { mutateAsync, isLoading, error, isError } =
+		api.application.updateTraefikConfig.useMutation();
+
+	const form = useForm<UpdateTraefikConfig>({
+		defaultValues: {
+			traefikConfig: "",
+		},
+		resolver: zodResolver(UpdateTraefikConfigSchema),
+	});
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				traefikConfig: data || "",
+			});
+		}
+	}, [form, form.reset, data]);
+
+	const onSubmit = async (data: UpdateTraefikConfig) => {
+		const { valid, error } = validateAndFormatYAML(data.traefikConfig);
+		if (!valid) {
+			form.setError("traefikConfig", {
+				type: "manual",
+				message: error || "Invalid YAML",
+			});
+			return;
+		}
+		form.clearErrors("traefikConfig");
+		await mutateAsync({
+			applicationId,
+			traefikConfig: data.traefikConfig,
+		})
+			.then(async () => {
+				toast.success("Traefik config Updated");
+				refetch();
+			})
+			.catch(() => {
+				toast.error("Error to update the traefik config");
+			});
+	};
+
+	return (
+		<Dialog>
+			<DialogTrigger asChild>
+				<Button isLoading={isLoading}>Modify</Button>
+			</DialogTrigger>
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+				<DialogHeader>
+					<DialogTitle>Update traefik config</DialogTitle>
+					<DialogDescription>Update the traefik config</DialogDescription>
+				</DialogHeader>
+				{isError && (
+					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+						<AlertTriangle className="text-red-600 dark:text-red-400" />
+						<span className="text-sm text-red-600 dark:text-red-400">
+							{error?.message}
+						</span>
+					</div>
+				)}
+
+				<Form {...form}>
+					<form
+						id="hook-form-update-traefik-config"
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="grid w-full py-4"
+					>
+						<div className="flex flex-col">
+							<FormField
+								control={form.control}
+								name="traefikConfig"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Traefik config</FormLabel>
+										<FormControl>
+											<Textarea
+												className="h-[35rem]"
+												placeholder={`http:
+routers:
+    router-name:
+        rule: Host('domain.com')
+        service: container-name
+        entryPoints:
+            - web
+        tls: false
+        middlewares: []
+                                                    `}
+												{...field}
+											/>
+										</FormControl>
+
+										<pre>
+											<FormMessage />
+										</pre>
+									</FormItem>
+								)}
+							/>
+						</div>
+					</form>
+
+					<DialogFooter>
+						<Button
+							isLoading={isLoading}
+							form="hook-form-update-traefik-config"
+							type="submit"
+						>
+							Update
+						</Button>
+					</DialogFooter>
+				</Form>
+			</DialogContent>
+		</Dialog>
+	);
+};

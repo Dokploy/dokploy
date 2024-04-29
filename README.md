@@ -5,7 +5,7 @@
 </div>
 
 <div align="center" style="width:100%;">
-<img src="https://raw.githubusercontent.com/Dokploy/dokploy/main/logo.png" alt="Reflex Logo"  style="width:100%;">
+<img src="https://raw.githubusercontent.com/Dokploy/dokploy/main/logo.png" alt="Reflex Logo"  style="width:60%;">
 </div>
 <hr>
 
@@ -42,3 +42,4 @@ Tested Systems:
 ## 📄 Documentation
 
 For detailed documentation, visit [docs.dokploy.com/docs](https://docs.dokploy.com).
+

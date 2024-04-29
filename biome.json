@@ -1,0 +1,17 @@
+{
+    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+    "linter":{
+       "rules": {
+           "correctness":{
+            "useExhaustiveDependencies": "off"
+           },
+           "suspicious":{
+            "noArrayIndexKey": "off"
+           },
+           "a11y":{
+            "noSvgWithoutTitle":"off"
+           }
+       }
+    }
+
+}

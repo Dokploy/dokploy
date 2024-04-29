@@ -1,0 +1,41 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1713262741218,
+      "tag": "0000_reflective_puck",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1713761637676,
+      "tag": "0001_striped_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1713763492341,
+      "tag": "0002_ambiguous_carlie_cooper",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1713947141424,
+      "tag": "0003_square_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1714004732716,
+      "tag": "0004_nice_tenebrous",
+      "breakpoints": true
+    }
+  ]
+}

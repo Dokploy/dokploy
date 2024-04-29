@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "canAccessToDocker" boolean DEFAULT false NOT NULL;
