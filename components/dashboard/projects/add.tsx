@@ -21,7 +21,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -37,10 +38,9 @@ type AddProject = z.infer<typeof AddProjectSchema>;
 
 export const AddProject = () => {
 	const utils = api.useUtils();
-
-	const { mutateAsync, isLoading, error, isError } =
-		api.project.create.useMutation();
-
+	const [isOpen, setIsOpen] = useState(false);
+	const { mutateAsync, error, isError } = api.project.create.useMutation();
+	const router = useRouter();
 	const form = useForm<AddProject>({
 		defaultValues: {
 			description: "",
@@ -61,16 +61,19 @@ export const AddProject = () => {
 			name: data.name,
 			description: data.description,
 		})
-			.then(async () => {
-				toast.success("Project Created");
+			.then(async (data) => {
 				await utils.project.all.invalidate();
+				toast.success("Project Created");
+				setIsOpen(false);
+				router.push(`/dashboard/project/${data.projectId}`);
 			})
 			.catch(() => {
 				toast.error("Error to create a project");
 			});
 	};
+
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button>
 					<PlusIcon className="h-4 w-4" />
@@ -134,7 +137,7 @@ export const AddProject = () => {
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={form.formState.isSubmitting}
 							form="hook-form-add-project"
 							type="submit"
 						>
