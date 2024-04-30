@@ -22,6 +22,20 @@ services:
     networks:
       - "dokploy-network"
 
+  traefik:
+    image: traefik:v2.5
+    container_name: "dokploy-traefik"
+    volumes:
+      - "./.docker/dokploy/traefik.yml:/etc/dokploy/traefik/traefik.yml"
+      - "./.docker/dokploy/traefik/dynamic/:/etc/dokploy/traefik/dynamic"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+      - "443:443"
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - dokploy-network
+
 networks:
   dokploy-network:
     driver: "bridge"
