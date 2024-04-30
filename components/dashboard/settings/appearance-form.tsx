@@ -57,7 +57,7 @@ export function AppearanceForm() {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader>
-				<CardTitle className="text-xl">Appareance</CardTitle>
+				<CardTitle className="text-xl">Appearance</CardTitle>
 				<CardDescription>
 					Customize the theme of your dashboard.
 				</CardDescription>
