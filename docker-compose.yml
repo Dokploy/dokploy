@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: "dokploy-postgres"
+    environment:
+      POSTGRES_DB: dokploy
+      POSTGRES_USER: dokploy
+      POSTGRES_PASSWORD: amukds4wi9001583845717ad2
+    volumes:
+      - ./.docker/postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - "dokploy-network"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.docker/redis_data:/data
+    networks:
+      - "dokploy-network"
+
+networks:
+  dokploy-network:
+    driver: "bridge"
