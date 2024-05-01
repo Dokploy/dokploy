@@ -31,27 +31,9 @@ if ss -tulnp | grep ':443 ' >/dev/null; then
 fi
 
 
-# Network
-network_exists=$(docker network ls | grep dokploy-network)
-
-if [ -z "$network_exists" ]; then
-    docker network create --driver overlay --attachable dokploy-network
-    echo "Network was initialized"
-else
-    echo "Network is already initialized"
-fi
 
 
-# Swarm
-swarm_status=$(docker info --format '{{.Swarm.LocalNodeState}}')
 
-if [ "$swarm_status" = "active" ]; then
-    docker swarm leave --force 1> /dev/null 2> /dev/null || true
-    echo "Swarm is already initialized"
-else
-    docker swarm init --advertise-addr 127.0.0.1 --listen-addr 0.0.0.0
-    echo "Swarm was initialized"
-fi
 
 command_exists() {
   command -v "$@" > /dev/null 2>&1
@@ -62,6 +44,20 @@ if command_exists docker; then
 else
   curl -sSL https://get.docker.com | sh
 fi
+
+docker swarm leave --force 2>/dev/null
+docker swarm init --advertise-addr 127.0.0.1 --listen-addr 0.0.0.0;
+
+echo "Swarm initialized"
+
+docker network rm -f dokploy-network 2>/dev/null
+docker network create --driver overlay --attachable dokploy-network
+
+echo "Network created"
+
+mkdir -p /etc/dokploy
+
+chmod -R 777 /etc/dokploy
 
 docker pull dokploy/dokploy:latest
 
@@ -76,3 +72,18 @@ docker service create \
   --update-parallelism 1 \
   --update-order stop-first \
   dokploy/dokploy:latest
+
+
+public_ip=$(hostname -I | awk '{print $1}')
+
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+NC="\033[0m" # No Color
+
+
+echo ""
+printf "${GREEN}Congratulations, Dokploy is installed!${NC}\n"
+printf "${BLUE}Wait 15 seconds for the server to start${NC}\n"
+printf "${YELLOW}Please go to http://${public_ip}:3000${NC}\n\n"
+echo ""
