@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - main 
+      - canary
 jobs:
   build:
     runs-on: ubuntu-20.04
