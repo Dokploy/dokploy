@@ -10,9 +10,10 @@ const db = drizzle(pg);
 
 const clearDb = async (): Promise<void> => {
 	try {
-		const tablesQuery = sql<string>`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`;
+		const tablesQuery = sql<string>`DROP SCHEMA public CASCADE; CREATE SCHEMA public; DROP schema drizzle CASCADE;`;
 		const tables = await db.execute(tablesQuery);
 		console.log(tables);
+		await pg.end();
 	} catch (error) {
 		console.error("Error to clean database", error);
 	} finally {
