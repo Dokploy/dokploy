@@ -19,13 +19,13 @@ if [ -f /.dockerenv ]; then
 fi
 
 # check if something is running on port 80
-if lsof -i :80 >/dev/null; then
+if ss -tulnp | grep ':80 ' >/dev/null; then
     echo "Error: something is already running on port 80" >&2
     exit 1
 fi
 
 # check if something is running on port 443
-if lsof -i :443 >/dev/null; then
+if ss -tulnp | grep ':443 ' >/dev/null; then
     echo "Error: something is already running on port 443" >&2
     exit 1
 fi
