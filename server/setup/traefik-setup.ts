@@ -133,7 +133,7 @@ export const createDefaultTraefikConfig = () => {
 				},
 			}),
 			file: {
-				directory: DYNAMIC_TRAEFIK_PATH,
+				directory: "/etc/dokploy/traefik/dynamic",
 				watch: true,
 			},
 		},
