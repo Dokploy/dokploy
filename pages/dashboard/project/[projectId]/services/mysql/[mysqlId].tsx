@@ -212,7 +212,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard",
+					destination: "/dashboard/projects",
 				},
 			};
 		}
