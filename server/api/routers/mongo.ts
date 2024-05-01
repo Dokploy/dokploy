@@ -5,7 +5,7 @@ import {
 	apiDeployMongo,
 	apiFindOneMongo,
 	apiResetMongo,
-	apiSaveEnviromentVariablesMongo,
+	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
 } from "@/server/db/schema/mongo";
@@ -148,8 +148,8 @@ export const mongoRouter = createTRPCRouter({
 
 			return mongo;
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariablesMongo)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesMongo)
 		.mutation(async ({ input }) => {
 			const service = await updateMongoById(input.mongoId, {
 				env: input.env,
@@ -158,7 +158,7 @@ export const mongoRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add enviroment variables",
+					message: "Update: Error to add environment variables",
 				});
 			}
 

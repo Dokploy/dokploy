@@ -1,7 +1,7 @@
 import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
 import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
 import { DeletePostgres } from "@/components/dashboard/postgres/delete-postgres";
-import { ShowPostgresEnviroment } from "@/components/dashboard/postgres/enviroment/show-postgres-enviroment";
+import { ShowPostgresEnvironment } from "@/components/dashboard/postgres/environment/show-postgres-environment";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
@@ -111,7 +111,7 @@ const Postgresql = (
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
 					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="enviroment">Enviroment</TabsTrigger>
+						<TabsTrigger value="environment">Environment</TabsTrigger>
 						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 						<TabsTrigger value="backups">Backups</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -133,9 +133,9 @@ const Postgresql = (
 						<ShowExternalPostgresCredentials postgresId={postgresId} />
 					</div>
 				</TabsContent>
-				<TabsContent value="enviroment">
+				<TabsContent value="environment">
 					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowPostgresEnviroment postgresId={postgresId} />
+						<ShowPostgresEnvironment postgresId={postgresId} />
 					</div>
 				</TabsContent>
 				<TabsContent value="monitoring">

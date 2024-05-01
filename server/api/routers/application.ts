@@ -7,7 +7,7 @@ import {
 	apiReloadApplication,
 	apiSaveBuildType,
 	apiSaveDockerProvider,
-	apiSaveEnviromentVariables,
+	apiSaveEnvironmentVariables,
 	apiSaveGitProvider,
 	apiSaveGithubProvider,
 	apiUpdateApplication,
@@ -170,8 +170,8 @@ export const applicationRouter = createTRPCRouter({
 				},
 			);
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariables)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariables)
 		.mutation(async ({ input }) => {
 			await updateApplication(input.applicationId, {
 				env: input.env,
