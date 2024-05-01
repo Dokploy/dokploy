@@ -65,7 +65,7 @@ Is required to have **Docker** installed on your machine.
 
 ### Setup
 
-Now we can run the command that will spin up all the required services and files.
+Run the command that will spin up all the required services and files.
 
 ```bash
 pnpm run setup
