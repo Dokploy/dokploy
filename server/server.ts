@@ -34,31 +34,32 @@ void app.prepare().then(async () => {
 			handle(req, res);
 		});
 
-		setupDirectories();
-		createDefaultMiddlewares();
-		await initializeNetwork();
-		await initializeSwarm();
-		createDefaultTraefikConfig();
-		createDefaultServerTraefikConfig();
-		await initializeTraefik();
-		await initializeRedis();
-		await initializePostgres();
-
 		// WEBSOCKET
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
 		setupDockerStatsMonitoringSocketServer(server);
+
 		if (process.env.NODE_ENV === "production") {
-			// Cron Jobs
+			setupDirectories();
+			createDefaultMiddlewares();
+			await initializeSwarm();
+			await initializeNetwork();
+			createDefaultTraefikConfig();
+			createDefaultServerTraefikConfig();
+			await initializeTraefik();
+			await initializeRedis();
+			await initializePostgres();
 			initCronJobs();
 			welcomeServer();
 
+			// Timeout to wait for the database to be ready
 			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
 		}
 		server.listen(PORT);
+		console.log("Server Started:", PORT);
 		deploymentWorker.run();
 	} catch (e) {
 		console.error("Main Server Error", e);

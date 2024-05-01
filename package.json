@@ -9,12 +9,14 @@
     "start": "node dist/server.mjs",
     "build-server": "tsx esbuild.config.ts",
     "build-next": "next build",
+    "setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
     "reset-password": "node dist/reset-password.mjs",
     "dev": "tsx watch -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
     "migration:generate": "drizzle-kit generate:pg --config ./server/db/drizzle.config.ts",
     "migration:run": "tsx -r dotenv/config migration.ts",
     "migration:drop": "drizzle-kit drop --config ./server/db/drizzle.config.ts",
     "db:push": "drizzle-kit push:pg --config ./server/db/drizzle.config.ts",
+    "db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
     "db:studio": "drizzle-kit studio",
     "lint": "biome lint",
     "db:seed": "dotenv tsx ./server/db/seed.ts",
@@ -127,6 +129,7 @@
     "initVersion": "7.25.2"
   },
   "engines": {
-    "node": "18.x"
-  }
+    "node": "^18.18.0",
+    "pnpm": "^8.15.4"
+}
 }

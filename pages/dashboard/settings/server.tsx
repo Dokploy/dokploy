@@ -38,7 +38,6 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	console.log(user);
 	if (user.rol === "user") {
 		return {
 			redirect: {
