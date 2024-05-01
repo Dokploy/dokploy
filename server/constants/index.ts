@@ -1,6 +1,10 @@
 import Docker from "dockerode";
+import path from "node:path";
 
-export const BASE_PATH = "/etc/dokploy";
+export const BASE_PATH =
+	process.env.NODE_ENV === "production"
+		? "/etc/dokploy"
+		: path.join(process.cwd(), ".docker");
 export const MAIN_TRAEFIK_PATH = `${BASE_PATH}/traefik`;
 export const DYNAMIC_TRAEFIK_PATH = `${BASE_PATH}/traefik/dynamic`;
 export const LOGS_PATH = `${BASE_PATH}/logs`;
