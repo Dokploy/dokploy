@@ -210,7 +210,7 @@ export const AddDomain = ({
 											<div className="space-y-0.5">
 												<FormLabel>HTTPS</FormLabel>
 												<FormDescription>
-													Automatically will have SSL Certificate.
+													Automatically provision SSL Certificate.
 												</FormDescription>
 											</div>
 											<FormControl>
