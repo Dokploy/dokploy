@@ -51,8 +51,6 @@ feat: add new feature
 
 ## Setup
 
-We use Node `18.18.0` and pnpm `8.15.4` to run the project.
-
 ```bash
 git clone https://github.com/dokploy/dokploy.git
 cd dokploy
@@ -66,12 +64,6 @@ Is required to have **Docker** installed on your machine.
 
 
 ### Setup
-
-We need to create the file system of dokploy and give the permissions.
-
-```bash
-sudo mkdir -p /etc/dokploy && sudo chmod 777 /etc/dokploy
-```
 
 Now we can run the command that will spin up all the required services and files.
 
