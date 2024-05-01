@@ -31,6 +31,14 @@ export const generateName = () => {
 		n2[Math.round(Math.random() * (n2.length - 1))]
 	}`;
 };
+function slugify(text: string) {
+	return text
+		.toLowerCase()
+		.replace(/[\s\^&*()+=!]+/g, "-")
+		.replace(/[\$.,*+~()'"!:@^&]+/g, "")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
+}
 
 export const GithubSetup = () => {
 	const [isOrganization, setIsOrganization] = useState(false);
@@ -98,12 +106,17 @@ export const GithubSetup = () => {
 									your GitHub account.
 								</span>
 
-								<Link
-									href={`https://github.com/apps/${data.githubAppName}/installations/new?state=gh_setup:${data?.authId}`}
-									className={buttonVariants({ className: "w-fit" })}
-								>
-									Install Github App
-								</Link>
+								<div className="flex flex-row gap-4">
+									<Link
+										href={`https://github.com/apps/${slugify(
+											data.githubAppName,
+										)}/installations/new?state=gh_setup:${data?.authId}`}
+										className={buttonVariants({ className: "w-fit" })}
+									>
+										Install Github App
+									</Link>
+									<RemoveGithubApp />
+								</div>
 							</div>
 						) : (
 							<div>
