@@ -46,8 +46,8 @@ jobs:
         run: |
 
           chmod +x ./docker/build.sh
-          echo "Building Docker image for ${{ github.head_ref }}"
-          ./docker/build.sh ${{ github.head_ref == 'canary' && 'canary' || '' }}
+          echo "Building Docker image for ${{ github.base_ref }}"
+          ./docker/build.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
   
   build-and-push-docker-on-push:
     if: github.event_name == 'push'
@@ -73,5 +73,5 @@ jobs:
         run: |
           chmod +x ./docker/build.sh
           chmod +x ./docker/push.sh
-          ./docker/build.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
-          ./docker/push.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
+          ./docker/build.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
+          ./docker/push.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
