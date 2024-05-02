@@ -94,7 +94,7 @@ export const apiChangeMongoStatus = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariablesMongo = createSchema
+export const apiSaveEnvironmentVariablesMongo = createSchema
 	.pick({
 		mongoId: true,
 		env: true,

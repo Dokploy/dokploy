@@ -100,7 +100,7 @@ export const apiChangeMySqlStatus = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariablesMySql = createSchema
+export const apiSaveEnvironmentVariablesMySql = createSchema
 	.pick({
 		mysqlId: true,
 		env: true,

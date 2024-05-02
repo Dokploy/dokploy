@@ -90,7 +90,7 @@ export const apiChangeRedisStatus = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariablesRedis = createSchema
+export const apiSaveEnvironmentVariablesRedis = createSchema
 	.pick({
 		redisId: true,
 		env: true,

@@ -96,7 +96,7 @@ export const apiChangePostgresStatus = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariablesPostgres = createSchema
+export const apiSaveEnvironmentVariablesPostgres = createSchema
 	.pick({
 		postgresId: true,
 		env: true,

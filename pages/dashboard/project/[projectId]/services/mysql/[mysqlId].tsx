@@ -1,7 +1,7 @@
 import { ShowAdvancedMysql } from "@/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
 import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
 import { DeleteMysql } from "@/components/dashboard/mysql/delete-mysql";
-import { ShowMysqlEnviroment } from "@/components/dashboard/mysql/enviroment/show-mysql-enviroment";
+import { ShowMysqlEnvironment } from "@/components/dashboard/mysql/environment/show-mysql-environment";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
@@ -110,7 +110,7 @@ const MySql = (
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
 					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="enviroment">Enviroment</TabsTrigger>
+						<TabsTrigger value="environment">Environment</TabsTrigger>
 						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 						<TabsTrigger value="backups">Backups</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -132,9 +132,9 @@ const MySql = (
 						<ShowExternalMysqlCredentials mysqlId={mysqlId} />
 					</div>
 				</TabsContent>
-				<TabsContent value="enviroment" className="w-full">
+				<TabsContent value="environment" className="w-full">
 					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowMysqlEnviroment mysqlId={mysqlId} />
+						<ShowMysqlEnvironment mysqlId={mysqlId} />
 					</div>
 				</TabsContent>
 				<TabsContent value="monitoring">

@@ -5,7 +5,7 @@ import {
 	apiDeployRedis,
 	apiFindOneRedis,
 	apiResetRedis,
-	apiSaveEnviromentVariablesRedis,
+	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
 } from "@/server/db/schema/redis";
@@ -147,8 +147,8 @@ export const redisRouter = createTRPCRouter({
 
 			return redis;
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariablesRedis)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesRedis)
 		.mutation(async ({ input }) => {
 			const redis = await updateRedisById(input.redisId, {
 				env: input.env,
@@ -157,7 +157,7 @@ export const redisRouter = createTRPCRouter({
 			if (!redis) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add enviroment variables",
+					message: "Update: Error to add environment variables",
 				});
 			}
 
