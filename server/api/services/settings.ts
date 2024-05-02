@@ -16,7 +16,7 @@ const updateIsAvailable = async () => {
 };
 
 export const getDokployImage = () => {
-	return "dokploy/dokploy:latest";
+	return `dokploy/dokploy:${process.env.RELEASE_TAG || "latest"}`;
 };
 
 export const pullLatestRelease = async () => {

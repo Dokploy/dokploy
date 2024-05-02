@@ -5,7 +5,7 @@ import {
 	apiDeployPostgres,
 	apiFindOnePostgres,
 	apiResetPostgres,
-	apiSaveEnviromentVariablesPostgres,
+	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
 } from "@/server/db/schema/postgres";
@@ -130,8 +130,8 @@ export const postgresRouter = createTRPCRouter({
 
 			return postgres;
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariablesPostgres)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesPostgres)
 		.mutation(async ({ input }) => {
 			const service = await updatePostgresById(input.postgresId, {
 				env: input.env,
@@ -140,7 +140,7 @@ export const postgresRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add enviroment variables",
+					message: "Update: Error to add environment variables",
 				});
 			}
 

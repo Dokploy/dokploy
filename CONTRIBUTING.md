@@ -49,12 +49,16 @@ feat: add new feature
 ```
 
 
+
+
 ## Setup
+
+Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
 ```bash
 git clone https://github.com/dokploy/dokploy.git
 cd dokploy
-npm install
+pnpm install
 cp .env.example .env
 ```
 
@@ -62,28 +66,40 @@ cp .env.example .env
 
 Is required to have **Docker** installed on your machine.
 
+
+### Setup
+
+Run the command that will spin up all the required services and files.
+
 ```bash
-npm run dev
+pnpm run setup
 ```
+
+Now run the development server.
+
+```bash
+pnpm run dev
+```
+
 
 Go to http://localhost:3000 to see the development server
 
 ## Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ## Docker
 
 To build the docker image
 ```bash
-npm run docker:build
+pnpm run docker:build
 ```
 
 To push the docker image
 ```bash
-npm run docker:push
+pnpm run docker:push
 ```
 
 ## Password Reset

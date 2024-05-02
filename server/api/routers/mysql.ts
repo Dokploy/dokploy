@@ -5,7 +5,7 @@ import {
 	apiDeployMySql,
 	apiFindOneMySql,
 	apiResetMysql,
-	apiSaveEnviromentVariablesMySql,
+	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
 } from "@/server/db/schema/mysql";
@@ -147,8 +147,8 @@ export const mysqlRouter = createTRPCRouter({
 
 			return mongo;
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariablesMySql)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesMySql)
 		.mutation(async ({ input }) => {
 			const service = await updateMySqlById(input.mysqlId, {
 				env: input.env,
@@ -157,7 +157,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add enviroment variables",
+					message: "Update: Error to add environment variables",
 				});
 			}
 

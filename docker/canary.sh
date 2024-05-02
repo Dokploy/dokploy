@@ -59,7 +59,7 @@ mkdir -p /etc/dokploy
 
 chmod -R 777 /etc/dokploy
 
-docker pull dokploy/dokploy:latest
+docker pull dokploy/dokploy:canary
 
 # Installation
 docker service create \
@@ -71,7 +71,8 @@ docker service create \
   --publish published=3000,target=3000,mode=host \
   --update-parallelism 1 \
   --update-order stop-first \
-  dokploy/dokploy:latest
+  -e RELEASE_TAG=canary \
+  dokploy/dokploy:canary
 
 
 public_ip=$(hostname -I | awk '{print $1}')

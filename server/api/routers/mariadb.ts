@@ -5,7 +5,7 @@ import {
 	apiDeployMariaDB,
 	apiFindOneMariaDB,
 	apiResetMariadb,
-	apiSaveEnviromentVariablesMariaDB,
+	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
 } from "@/server/db/schema/mariadb";
@@ -134,8 +134,8 @@ export const mariadbRouter = createTRPCRouter({
 
 			return mongo;
 		}),
-	saveEnviroment: protectedProcedure
-		.input(apiSaveEnviromentVariablesMariaDB)
+	saveEnvironment: protectedProcedure
+		.input(apiSaveEnvironmentVariablesMariaDB)
 		.mutation(async ({ input }) => {
 			const service = await updateMariadbById(input.mariadbId, {
 				env: input.env,
@@ -144,7 +144,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add enviroment variables",
+					message: "Update: Error to add environment variables",
 				});
 			}
 

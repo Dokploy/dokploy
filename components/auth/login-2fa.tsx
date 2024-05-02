@@ -65,7 +65,7 @@ export const Login2FA = ({ authId }: Props) => {
 					duration: 2000,
 				});
 
-				push("/dashboard");
+				push("/dashboard/projects");
 			})
 			.catch(() => {
 				toast.error("Signin failed", {

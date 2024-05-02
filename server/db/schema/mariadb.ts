@@ -102,7 +102,7 @@ export const apiChangeMariaDBStatus = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariablesMariaDB = createSchema
+export const apiSaveEnvironmentVariablesMariaDB = createSchema
 	.pick({
 		mariadbId: true,
 		env: true,

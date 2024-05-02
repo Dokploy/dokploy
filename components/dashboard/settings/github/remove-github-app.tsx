@@ -39,6 +39,7 @@ export const RemoveGithubApp = () => {
 							await mutateAsync()
 								.then(async () => {
 									await refetch();
+									utils.admin.one.invalidate();
 									await utils.admin.haveGithubConfigured.invalidate();
 									toast.success("Github application deleted succesfully.");
 								})

@@ -1,6 +1,6 @@
 import { ShowAdvancedRedis } from "@/components/dashboard/redis/advanced/show-redis-advanced-settings";
 import { DeleteRedis } from "@/components/dashboard/redis/delete-redis";
-import { ShowRedisEnviroment } from "@/components/dashboard/redis/enviroment/show-redis-enviroment";
+import { ShowRedisEnvironment } from "@/components/dashboard/redis/environment/show-redis-environment";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
 import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/general/show-internal-redis-credentials";
@@ -110,7 +110,7 @@ const Redis = (
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
 					<TabsList className="md:grid md:w-fit md:grid-cols-5 max-md:overflow-y-scroll justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="enviroment">Enviroment</TabsTrigger>
+						<TabsTrigger value="environment">Environment</TabsTrigger>
 						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -131,9 +131,9 @@ const Redis = (
 						<ShowExternalRedisCredentials redisId={redisId} />
 					</div>
 				</TabsContent>
-				<TabsContent value="enviroment">
+				<TabsContent value="environment">
 					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowRedisEnviroment redisId={redisId} />
+						<ShowRedisEnvironment redisId={redisId} />
 					</div>
 				</TabsContent>
 				<TabsContent value="monitoring">
@@ -205,7 +205,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard",
+					destination: "/dashboard/projects",
 				},
 			};
 		}

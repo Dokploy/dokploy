@@ -181,7 +181,7 @@ export const apiSaveGitProvider = createSchema
 	})
 	.required();
 
-export const apiSaveEnviromentVariables = createSchema
+export const apiSaveEnvironmentVariables = createSchema
 	.pick({
 		applicationId: true,
 		env: true,

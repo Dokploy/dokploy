@@ -21,53 +21,54 @@ import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
-const addEnviromentSchema = z.object({
-	enviroment: z.string(),
+const addEnvironmentSchema = z.object({
+	environment: z.string(),
 });
 
-type EnviromentSchema = z.infer<typeof addEnviromentSchema>;
+type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
 
 interface Props {
-	redisId: string;
+	applicationId: string;
 }
 
-export const ShowRedisEnviroment = ({ redisId }: Props) => {
-	const { mutateAsync, isLoading } = api.redis.saveEnviroment.useMutation();
+export const ShowEnvironment = ({ applicationId }: Props) => {
+	const { mutateAsync, isLoading } =
+		api.application.saveEnvironment.useMutation();
 
-	const { data, refetch } = api.redis.one.useQuery(
+	const { data, refetch } = api.application.one.useQuery(
 		{
-			redisId,
+			applicationId,
 		},
 		{
-			enabled: !!redisId,
+			enabled: !!applicationId,
 		},
 	);
-	const form = useForm<EnviromentSchema>({
+	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
-			enviroment: "",
+			environment: "",
 		},
-		resolver: zodResolver(addEnviromentSchema),
+		resolver: zodResolver(addEnvironmentSchema),
 	});
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				enviroment: data.env || "",
+				environment: data.env || "",
 			});
 		}
 	}, [form.reset, data, form]);
 
-	const onSubmit = async (data: EnviromentSchema) => {
+	const onSubmit = async (data: EnvironmentSchema) => {
 		mutateAsync({
-			env: data.enviroment,
-			redisId,
+			env: data.environment,
+			applicationId,
 		})
 			.then(async () => {
-				toast.success("Enviroments Added");
+				toast.success("Environments Added");
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to add enviroment");
+				toast.error("Error to add environment");
 			});
 	};
 
@@ -75,9 +76,9 @@ export const ShowRedisEnviroment = ({ redisId }: Props) => {
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
 				<CardHeader>
-					<CardTitle className="text-xl">Enviroment Settings</CardTitle>
+					<CardTitle className="text-xl">Environment Settings</CardTitle>
 					<CardDescription>
-						You can add enviroment variables to your database.
+						You can add environment variables to your resource.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -89,12 +90,12 @@ export const ShowRedisEnviroment = ({ redisId }: Props) => {
 						>
 							<FormField
 								control={form.control}
-								name="enviroment"
+								name="environment"
 								render={({ field }) => (
 									<FormItem className="w-full">
 										<FormControl>
 											<Textarea
-												placeholder="REDIS_PASSWORD=1234567678"
+												placeholder="NODE_ENV=production"
 												className="h-96"
 												{...field}
 											/>
