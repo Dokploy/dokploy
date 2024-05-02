@@ -77,5 +77,5 @@ jobs:
         run: |
           chmod +x ./docker/build.sh
           chmod +x ./docker/push.sh
-          ./docker/build.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
-          ./docker/push.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
+          ./docker/build.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
+          ./docker/push.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
