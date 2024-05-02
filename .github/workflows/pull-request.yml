@@ -49,7 +49,7 @@ jobs:
 
       - name: Run custom Docker build script
         run: |
-
+          cat .env.production
           chmod +x ./docker/build.sh
           echo "Building Docker image for ${{ github.base_ref }}"
           ./docker/build.sh ${{ github.base_ref == 'canary' && 'canary' || '' }}
