@@ -4,6 +4,11 @@ on:
     branches:
       - main 
       - canary
+
+  push:
+    branches:
+      - main
+      - canary
 jobs:
   build-app:
     if: github.event_name == 'pull_request'
