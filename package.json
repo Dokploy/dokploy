@@ -23,6 +23,8 @@
     "db:clean": "dotenv tsx ./server/db/reset.ts",
     "docker:build": "./docker/build.sh",
     "docker:push": "./docker/push.sh",
+    "docker:build:canary": "./docker/build.sh canary",
+    "docker:push:canary": "./docker/push.sh canary",
     "version": "echo $(node -p \"require('./package.json').version\")"
   },
   "dependencies": {
@@ -130,6 +132,6 @@
   },
   "engines": {
     "node": "^18.18.0",
-    "pnpm": "^8.15.4"
-}
+    "pnpm": ">=8.15.4"
+  }
 }
