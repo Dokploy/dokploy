@@ -34,6 +34,9 @@ To get started run the following command in a VPS:
 curl -sSL https://dokploy.com/install.sh | sh
 ```
 
+> [!WARNING]  
+> It's worth noting that if you run this inside a Proxmox CT, it might encounter compatibility issues. For optimal performance, it's recommended to run Dokploy within a Proxmox VM.
+
 Tested Systems:
 
 - Ubuntu 20.04
