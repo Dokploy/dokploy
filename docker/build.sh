@@ -10,9 +10,8 @@ else
     TAG="$VERSION"
 fi
 
-docker build --platform linux/amd64 --pull --rm -f 'Dockerfile' -t "dokploy/dokploy:${TAG}" .
+BUILDER=$(docker buildx create --use)
 
-if [ "$BUILD_TYPE" != "canary" ]; then
-    # Tag the production build as latest
-    docker tag "dokploy/dokploy:${TAG}" "dokploy/dokploy:latest"
-fi
+docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 --pull --rm -t "dokploy/dokploy:${TAG}" -f 'Dockerfile' .
+
+docker buildx rm $BUILDER
