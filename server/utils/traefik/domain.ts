@@ -1,6 +1,7 @@
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
+	removeTraefikConfig,
 	writeTraefikConfig,
 } from "./application";
 import type { ApplicationNested } from "../builders";
@@ -23,7 +24,7 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	writeTraefikConfig(config, appName);
 };
 
-export const removeDomain = (appName: string, uniqueKey: number) => {
+export const removeDomain = async (appName: string, uniqueKey: number) => {
 	const config: FileConfig = loadOrCreateConfig(appName);
 
 	const routerKey = `${appName}-router-${uniqueKey}`;
@@ -35,7 +36,15 @@ export const removeDomain = (appName: string, uniqueKey: number) => {
 		delete config.http.services[serviceKey];
 	}
 
-	writeTraefikConfig(config, appName);
+	// verify if is the last router if so we delete the router
+	if (
+		config?.http?.routers &&
+		Object.keys(config?.http?.routers).length === 0
+	) {
+		await removeTraefikConfig(appName);
+	} else {
+		writeTraefikConfig(config, appName);
+	}
 };
 
 export const createRouterConfig = async (
