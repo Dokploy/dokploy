@@ -75,7 +75,5 @@ jobs:
 
       - name: Build and push Docker image using custom script
         run: |
-          chmod +x ./docker/build.sh
           chmod +x ./docker/push.sh
-          ./docker/build.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
           ./docker/push.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
