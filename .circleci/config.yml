@@ -32,6 +32,10 @@ jobs:
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
       - run:
+          name: env
+          command: |
+            cp .env.production.example .env.production
+      - run:
           name: Build multiarch docker image and push
           command: |
             DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/arm64,linux/amd64 -t test .
