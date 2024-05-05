@@ -66,7 +66,7 @@ export const AddApplication = ({ projectId }: Props) => {
 			description: data.description,
 			projectId,
 		})
-			.then(async (data) => {
+			.then(async () => {
 				toast.success("Service Created");
 				await utils.project.one.invalidate({
 					projectId,
