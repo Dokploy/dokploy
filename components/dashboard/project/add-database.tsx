@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Database } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -109,6 +109,7 @@ interface Props {
 
 export const AddDatabase = ({ projectId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 
 	const { mutateAsync: createPostgresql } = api.postgres.create.useMutation();
 
@@ -213,6 +214,7 @@ export const AddDatabase = ({ projectId }: Props) => {
 					await utils.project.one.invalidate({
 						projectId,
 					});
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to create a database");
@@ -220,7 +222,7 @@ export const AddDatabase = ({ projectId }: Props) => {
 		}
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
