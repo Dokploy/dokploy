@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Folder } from "lucide-react";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,7 +43,6 @@ interface Props {
 export const AddApplication = ({ projectId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const router = useRouter();
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
 
