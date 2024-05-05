@@ -1,0 +1,61 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.0.0
+  docker: circleci/docker@2.1.1
+
+workflows:
+  version: 2
+  build-and-deploy:
+    jobs:
+      - build-app:
+          filters:
+            branches:
+              only:
+                - main
+                - canary
+          context:
+            - pnpm
+      - build-and-push-docker-on-push:
+          filters:
+            branches:
+              only:
+                - main
+                - canary
+          context:
+            - docker
+
+jobs:
+  build-app:
+    docker:
+      - image: cimg/node:18.18.0
+    steps:
+      - checkout
+      - node/install:
+          install-yarn: false
+          install-npm: false
+          node-version: "18.18.0"
+      - run: npm install -g pnpm@8
+      - run: pnpm install
+      - run: pnpm build
+
+  build-and-push-docker-on-push:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - docker/check:
+      - docker/login:
+          username: DOCKERHUB_USERNAME
+          password: DOCKERHUB_TOKEN
+      - run:
+          name: Prepare .env file
+          command: |
+            cp .env.production.example .env.production
+      - run:
+          name: Build and push Docker image using custom script
+          command: |
+            chmod +x ./docker/push.sh
+            ./docker/push.sh ${CIRCLE_BRANCH == 'canary' && echo 'canary' || echo ''}
