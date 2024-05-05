@@ -48,9 +48,9 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
+			await initializePostgres();
 			await initializeTraefik();
 			await initializeRedis();
-			await initializePostgres();
 			initCronJobs();
 			welcomeServer();
 
