@@ -44,6 +44,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Prepare .env file
+        run: |
+          cp .env.production.example .env.production
+
       -
         name: Build and push by digest
         id: build
