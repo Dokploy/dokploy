@@ -50,28 +50,15 @@ jobs:
           cp .env.production.example .env.production
 
       -
-        name: Build and push by digest
-        id: build
+        name: Build and push by tag
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-      -
-        name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-      -
-        name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
-          if-no-files-found: error
-          retention-days: 1
+          push: true
+          tags: ${{ env.REGISTRY_IMAGE }}
+     
 
 #   merge:
 #     runs-on: ubuntu-latest
