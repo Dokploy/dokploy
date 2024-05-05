@@ -12,7 +12,7 @@ on:
 jobs:
   build-app:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     strategy:
       matrix:
         node-version: [18.18.0]
