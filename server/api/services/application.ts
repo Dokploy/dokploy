@@ -36,9 +36,8 @@ export const createApplication = async (
 			});
 		}
 
-		createTraefikConfig(newApplication.appName);
-
 		if (process.env.NODE_ENV === "development") {
+			createTraefikConfig(newApplication.appName);
 			await tx.insert(domains).values({
 				applicationId: newApplication.applicationId,
 				host: `${newApplication.appName}.docker.localhost`,

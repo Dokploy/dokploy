@@ -17,7 +17,7 @@ import { buildPaketo } from "./paketo";
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
 // PAKETO codeDirectory = where is the path of the code directory
-// DOKERFILE codeDirectory = where is the exact path of the (Dockerfile)
+// DOCKERFILE codeDirectory = where is the exact path of the (Dockerfile)
 export type ApplicationNested = InferResultType<
 	"applications",
 	{ mounts: true; security: true; redirects: true; ports: true }

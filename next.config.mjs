@@ -6,11 +6,6 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  logging:{
-    fetches:{
-      fullUrl:false
-    }
-  },
 
   /**
    * If you are using `appDir` then you must comment the below `i18n` config out.
