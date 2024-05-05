@@ -38,10 +38,11 @@ jobs:
       - run:
           name: Build multiarch docker image and push
           command: |
-            DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/arm64,linux/amd64 -t test .
+            DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/arm64 -t test .
 workflows:
   build-and-deploy:
     jobs:
       - build:
           context:
             - DOCKER_HUB
+            

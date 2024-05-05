@@ -13,11 +13,11 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema/application";
-import {
-	cleanQueuesByApplication,
-	type DeploymentJob,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+// import {
+// 	// cleanQueuesByApplication,
+// 	type DeploymentJob,
+// } from "@/server/queues/deployments-queue";
+// import { myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
@@ -156,19 +156,19 @@ export const applicationRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
-			const jobData: DeploymentJob = {
-				applicationId: input.applicationId,
-				titleLog: "Rebuild deployment",
-				type: "redeploy",
-			};
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			// const jobData: DeploymentJob = {
+			// 	applicationId: input.applicationId,
+			// 	titleLog: "Rebuild deployment",
+			// 	type: "redeploy",
+			// };
+			// await myQueue.add(
+			// 	"deployments",
+			// 	{ ...jobData },
+			// 	{
+			// 		removeOnComplete: true,
+			// 		removeOnFail: true,
+			// 	},
+			// );
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
@@ -287,25 +287,25 @@ export const applicationRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
-			const jobData: DeploymentJob = {
-				applicationId: input.applicationId,
-				titleLog: "Manual deployment",
-				type: "deploy",
-			};
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			// const jobData: DeploymentJob = {
+			// 	applicationId: input.applicationId,
+			// 	titleLog: "Manual deployment",
+			// 	type: "deploy",
+			// };
+			// await myQueue.add(
+			// 	"deployments",
+			// 	{ ...jobData },
+			// 	{
+			// 		removeOnComplete: true,
+			// 		removeOnFail: true,
+			// 	},
+			// );
 		}),
 
 	cleanQueues: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
-			await cleanQueuesByApplication(input.applicationId);
+			// await cleanQueuesByApplication(input.applicationId);
 		}),
 
 	readTraefikConfig: protectedProcedure

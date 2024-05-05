@@ -2,7 +2,7 @@ import { updateApplicationStatus } from "@/server/api/services/application";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+// import { myQueue } from "@/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -60,14 +60,14 @@ export default async function handler(
 				titleLog: deploymentTitle,
 				type: "deploy",
 			};
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			// await myQueue.add(
+			// 	"deployments",
+			// 	{ ...jobData },
+			// 	{
+			// 		removeOnComplete: true,
+			// 		removeOnFail: true,
+			// 	},
+			// );
 		} catch (error) {
 			res.status(400).json({ message: "Error To Deploy Application", error });
 			return;
