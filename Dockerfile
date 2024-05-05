@@ -1,65 +1,78 @@
-# Etapa 1: Prepare image for building
-FROM node:18-slim AS base
+FROM node:18-alpine AS base
 
-# Install dependencies
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
-
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package.json and pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
+# Install dependencies based on the preferred package manager
+COPY package.json pnpm-lock.yaml* ./
 
-# Install dependencies only for building
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN apk add --no-cache python3 make g++
 
-# Copy the rest of the source code
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-#  Build the application
-RUN pnpm run build
-
-# Stage 2: Prepare image for production
-FROM node:18-slim AS production
-
-# Install dependencies only for production
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+ENV NEXT_TELEMETRY_DISABLED 1
 
+RUN \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
+  else echo "Lockfile not found." && exit 1; \
+  fi
+
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
 
-#  Copy the rest of the source code
-COPY --from=base /app/.next ./.next
-COPY --from=base /app/dist ./dist
-COPY --from=base /app/next.config.mjs ./next.config.mjs
-COPY --from=base /app/public ./public
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/drizzle ./drizzle
-COPY --from=base /app/.env.production ./.env
-COPY --from=base /app/components.json ./components.json
-
-#  Install dependencies only for production
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
-
-# Install docker
-RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 
 
-# Install Nixpacks and tsx
-# | VERBOSE=1 VERSION=1.21.0 bash
+RUN apk add git curl bash tar openssh
+
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+# COPY THE node modules 
+COPY --from=builder  /app/node_modules ./node_modules
+COPY --from=builder  /app/.next ./.next
+COPY --from=builder  /app/dist ./dist
+COPY --from=builder  /app/next.config.mjs ./next.config.mjs
+COPY --from=builder  /app/public ./public
+COPY --from=builder  /app/package.json ./package.json
+COPY --from=builder  /app/drizzle ./drizzle
+COPY --from=builder  /app/.env.production ./.env
+COPY --from=builder  /app/components.json ./components.json
+
+
+RUN npm install --global pnpm
+
+RUN apk update && apk add --no-cache docker-cli docker-cli-buildx
+
 RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
-    && ./install.sh \
-    && pnpm install -g tsx
+    && ./install.sh
 
-
-# Install buildpacks
+    # Install buildpacks
 RUN curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.32.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 
-# Expose port
+
 EXPOSE 3000
 
+# server.js is created by next build from the standalone output
+# https://nextjs.org/docs/pages/api-reference/next-config-js/output
 CMD ["pnpm", "start"]
