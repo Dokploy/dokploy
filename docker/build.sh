@@ -10,8 +10,8 @@ else
     TAG="$VERSION"
 fi
 
-BUILDER=$(docker buildx create --use)
+# BUILDER=$(docker buildx create --use)
 
-docker buildx build --platform linux/amd64,linux/arm64 --pull --rm -t "dokploy/dokploy:${TAG}" -f 'Dockerfile' .
-
-docker buildx rm $BUILDER
+docker buildx build --platform linux/arm64 --pull --rm -t "dokploy/dokploy:${TAG}" -f 'Dockerfile' .
+# 
+# docker buildx rm $BUILDER

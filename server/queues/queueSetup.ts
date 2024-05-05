@@ -7,20 +7,21 @@ export const redisConfig: ConnectionOptions = {
 // TODO: maybe add a options to clean the queue to the times
 const myQueue = new Queue("deployments", {
 	connection: redisConfig,
+	
 });
 
-process.on("SIGTERM", () => {
-	myQueue.close();
-	process.exit(0);
-});
+// process.on("SIGTERM", () => {
+// 	myQueue.close();
+// 	process.exit(0);
+// });
 
-myQueue.on("error", (error) => {
-	if ((error as any).code === "ECONNREFUSED") {
-		console.error(
-			"Make sure you have installed Redis and it is running.",
-			error,
-		);
-	}
-});
+// myQueue.on("error", (error) => {
+// 	if ((error as any).code === "ECONNREFUSED") {
+// 		console.error(
+// 			"Make sure you have installed Redis and it is running.",
+// 			error,
+// 		);
+// 	}
+// });
 
 export { myQueue };
