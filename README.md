@@ -11,35 +11,34 @@
 
 
 
-Dokploy is a free self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases using Docker and Traefik. Designed to enhance efficiency and security, Dokploy allows you to deploy your applications on any VPS.
+Dokploy 是一个免费的可自行托管的平台即服务（PaaS），它使用 Docker 和 Traefik 简化了应用程序和数据库的部署和管理。 Dokploy 旨在提高效率和安全性，允许您在任何 VPS 上部署应用程序。
 
 
-
-## 🌟 Features
-
-- **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.) with ease.
-- **Databases**: Create  and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, Redis, and more.
-- **Docker Management**: Easily deploy and manage Docker containers.
-- **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
-- **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage.
-- **Database Backups**: Automate backups with support for multiple storage destinations.
+## 🌟 特点
 
 
-## 🚀 Getting Started
+- **应用**:轻松部署任何类型的应用程序（Node.js、PHP、Python、Go、Ruby 等）。
+- **数据库**:创建和管理数据库，支持 MySQL、PostgreSQL、MongoDB、MariaDB、Redis 等。
+- **Docker 管理**: 轻松部署和管理 Docker 容器。
+- **集成特拉菲克**: 自动与特拉菲克集成，用于路由选择和负载平衡。
+- **实时监控**: 监控 CPU、内存、存储和网络使用情况。
+- **数据库备份**: 支持多个存储目的地，实现自动备份。
 
-To get started run the following command in a VPS:
+## 🚀 入门
+
+要开始使用，请在 VPS 中运行以下命令:
 
 
 ```bash
 curl -sSL https://dokploy.com/install.sh | sh
 ```
 
-Tested Systems:
+经过测试的系统:
 
 - Ubuntu 20.04
 - Debian 11
 
-## 📄 Documentation
+## 📄 文件
 
-For detailed documentation, visit [docs.dokploy.com/docs](https://docs.dokploy.com).
+有关详细文档，请访问 [docs.dokploy.com/docs](https://docs.dokploy.com).
 
