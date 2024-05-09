@@ -155,7 +155,7 @@ export const removeService = async (appName: string) => {
 };
 
 export const prepareEnvironmentVariables = (env: string | null) =>
-  Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
+	Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
 
 export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 	if (!mounts || mounts.length === 0) {
