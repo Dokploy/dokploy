@@ -107,7 +107,7 @@ pnpm run docker:push
 In the case you lost your password, you can reset it using the following command
 
 ```bash
-pnpm run build-server
+pnpm run reset-password
 ```
 
 If you want to test the webhooks on development mode using localtunnel, make sure to install `localtunnel`
