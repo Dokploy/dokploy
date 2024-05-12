@@ -40,7 +40,7 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 - Ubuntu 20.04
 - Debian 11
-- 
+  
 ## 📄 文档
 
 如需查看详细的文档资料,请访问[docs.dokploy.com/docs](https://docs.dokploy.com).
