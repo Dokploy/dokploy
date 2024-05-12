@@ -5,6 +5,7 @@ import { APPLICATIONS_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import type { ApplicationNested } from "../builders";
 import { execAsync } from "../process/execAsync";
+import { parse } from "dotenv";
 
 interface RegistryAuth {
 	username: string;
@@ -154,15 +155,7 @@ export const removeService = async (appName: string) => {
 };
 
 export const prepareEnvironmentVariables = (env: string | null) =>
-	env
-		?.split("\n")
-		.map((line) => line.trim()) // Trim whitespace
-		.filter((line) => line && !line.startsWith("#")) // Exclude empty lines and comments
-		.map((envVar) => {
-			let [key, value] = envVar.split("=", 2);
-			value = value?.replace(/^"(.*)"$/, "$1"); // Remove surrounding double quotes
-			return `${key}=${value}`;
-		}) || [];
+	Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
 
 export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 	if (!mounts || mounts.length === 0) {

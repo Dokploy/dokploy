@@ -80,7 +80,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `postgresql://${data?.databasePassword}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
+			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

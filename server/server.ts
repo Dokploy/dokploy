@@ -48,9 +48,9 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
+			await initializePostgres();
 			await initializeTraefik();
 			await initializeRedis();
-			await initializePostgres();
 			initCronJobs();
 			welcomeServer();
 
@@ -74,7 +74,7 @@ async function welcomeServer() {
 			"",
 			"Dokploy server is up and running!",
 			"Please wait for 15 seconds before opening the browser.",
-			`    http://${ip}:3000`,
+			`    http://${ip}:${PORT}`,
 			"",
 			"",
 		].join("\n"),
