@@ -13,15 +13,27 @@
 
 Dokploy 是一个免费的自托管平台即服务 (PaaS)，它使用 Docker 和 Traefik 简化了应用程序和数据库的部署和管理。 Dokploy 旨在提高效率和安全性,允许您在任何 VPS 上部署应用程序。
 
+## 语言 
+**English**:
+
+[github.com/Dokploy/dokploy/blob/canary/README.md]
+(https://github.com/Dokploy/dokploy/blob/canary/README.md)
+
+**Chinese**:[github.com/fxazkwxm/dokploy/blob/canary/README-zh.md](https://github.com/fxazkwxm/dokploy/blob/canary/README-zh.md)
+
+
+
+
+
 ## 🌟 功能
--**应用程序**: 轻松部署任何类型的应用程序(Node.js、PHP、Python、Go、Ruby 等)。-数据库: 创建和管理数据库,支持 MySQL、PostgreSQL、MongoDB、MariaDB、Redis 等。
+**应用程序**: 轻松部署任何类型的应用程序(Node.js、PHP、Python、Go、Ruby 等)。-数据库: 创建和管理数据库,支持 MySQL、PostgreSQL、MongoDB、MariaDB、Redis 等。
 -**Docker 管理**: 轻松部署和管理 Docker 容器。
 -**Traefik 集成**: 自动与 Traefik 集成,用于路由和负载均衡。
 实时监控: 监控 CPU、内存、存储和网络使用情况。
 数据库备份: 支持多种存储目的地自动备份。
 
 ## 🚀 入门
-要开始使用,请在 VPS 上运行以下命令:
+要开始使用 请在VPS 上运行以下命令:
 
 ```bash
 curl -sSL https://dokploy.com/install.sh | sh
