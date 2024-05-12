@@ -14,12 +14,8 @@
 Dokploy 是一个免费的自托管平台即服务 (PaaS)，它使用 Docker 和 Traefik 简化了应用程序和数据库的部署和管理。 Dokploy 旨在提高效率和安全性,允许您在任何 VPS 上部署应用程序。
 
 ## 语言 
-**English**:
-
-[github.com/Dokploy/dokploy/blob/canary/README.md]
-(https://github.com/Dokploy/dokploy/blob/canary/README.md)
-
-**Chinese**:[github.com/fxazkwxm/dokploy/blob/canary/README-zh.md](https://github.com/fxazkwxm/dokploy/blob/canary/README-zh.md)
+[English](README.md) 
+[中文](README-zh.md)
 
 
 
