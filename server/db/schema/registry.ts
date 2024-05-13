@@ -5,6 +5,7 @@ import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { auth } from "./auth";
 import { admins } from "./admin";
 import { z } from "zod";
+import { applications } from "./application";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -19,6 +20,7 @@ export const registry = pgTable("registry", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	registryName: text("registryName").notNull(),
+	imagePrefix: text("imagePrefix"),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
 	registryUrl: text("registryUrl").notNull(),
@@ -31,11 +33,12 @@ export const registry = pgTable("registry", {
 		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
-export const registryRelations = relations(registry, ({ one }) => ({
+export const registryRelations = relations(registry, ({ one, many }) => ({
 	admin: one(admins, {
 		fields: [registry.adminId],
 		references: [admins.adminId],
 	}),
+	applications: many(applications),
 }));
 
 const createSchema = createInsertSchema(registry, {
@@ -45,6 +48,8 @@ const createSchema = createInsertSchema(registry, {
 	registryUrl: z.string().min(1),
 	adminId: z.string().min(1),
 	registryId: z.string().min(1),
+	registryType: z.enum(["selfHosted", "cloud"]),
+	imagePrefix: z.string().nullable().optional(),
 });
 
 export const apiCreateRegistry = createSchema
@@ -53,8 +58,9 @@ export const apiCreateRegistry = createSchema
 		registryName: z.string().min(1),
 		username: z.string().min(1),
 		password: z.string().min(1),
-		registryUrl: z.string().min(1),
-		adminId: z.string().min(1),
+		registryUrl: z.string(),
+		registryType: z.enum(["selfHosted", "cloud"]),
+		imagePrefix: z.string().nullable().optional(),
 	})
 	.required();
 
@@ -82,6 +88,8 @@ export const apiUpdateRegistry = createSchema
 
 export const apiEnableSelfHostedRegistry = createSchema
 	.pick({
-		adminId: true,
+		registryUrl: true,
+		username: true,
+		password: true,
 	})
 	.required();

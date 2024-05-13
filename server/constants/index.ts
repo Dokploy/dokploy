@@ -11,5 +11,6 @@ export const LOGS_PATH = `${BASE_PATH}/logs`;
 export const APPLICATIONS_PATH = `${BASE_PATH}/applications`;
 export const SSH_PATH = `${BASE_PATH}/ssh`;
 export const CERTIFICATES_PATH = `${DYNAMIC_TRAEFIK_PATH}/certificates`;
+export const REGISTRY_PATH = `${DYNAMIC_TRAEFIK_PATH}/registry`;
 export const MONITORING_PATH = `${BASE_PATH}/monitoring`;
 export const docker = new Docker();

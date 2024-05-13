@@ -6,19 +6,36 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Server, ShieldCheck } from "lucide-react";
+import { Server } from "lucide-react";
 import { AddRegistry } from "./add-docker-registry";
-import { AddSelfRegistry } from "./add-self-registry";
+import { AddSelfHostedRegistry } from "./add-self-docker-registry";
+import { DeleteRegistry } from "./delete-registry";
 
 export const ShowRegistry = () => {
-	const { data } = api.certificates.all.useQuery();
+	const { data } = api.registry.all.useQuery();
+
+	const haveSelfHostedRegistry = data?.some(
+		(registry) => registry.registryType === "selfHosted",
+	);
 
 	return (
 		<div className="h-full">
 			<Card className="bg-transparent h-full">
-				<CardHeader>
-					<CardTitle className="text-xl">Clusters</CardTitle>
-					<CardDescription>Add cluster to your application.</CardDescription>
+				<CardHeader className="flex flex-row gap-2 justify-between w-full items-center">
+					<div className="flex flex-col gap-2">
+						<CardTitle className="text-xl">Clusters</CardTitle>
+						<CardDescription>Add cluster to your application.</CardDescription>
+					</div>
+
+					<div className="flex flex-row gap-2">
+						{data && data?.length > 0 && (
+							<>
+								{!haveSelfHostedRegistry && <AddSelfHostedRegistry />}
+
+								<AddRegistry />
+							</>
+						)}
+					</div>
 				</CardHeader>
 				<CardContent className="space-y-2 pt-4 h-full">
 					{data?.length === 0 ? (
@@ -29,29 +46,28 @@ export const ShowRegistry = () => {
 							</span>
 
 							<div className="flex flex-row gap-2">
-								<AddSelfRegistry />
+								<AddSelfHostedRegistry />
 								<AddRegistry />
 							</div>
 
 							{/* <AddCertificate /> */}
 						</div>
 					) : (
-						<div className="flex flex-col gap-6">
-							{data?.map((destination, index) => (
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+							{data?.map((registry, index) => (
 								<div
-									key={destination.certificateId}
-									className="flex items-center justify-between"
+									key={registry.registryId}
+									className="flex items-center justify-between border p-4 rounded-lg hover:bg-muted cursor-pointer"
 								>
 									<span className="text-sm text-muted-foreground">
-										{index + 1}. {destination.name}
+										{index + 1}. {registry.registryName}
 									</span>
 									<div className="flex flex-row gap-3">
-										{/* <DeleteCertificate
-											certificateId={destination.certificateId}
-										/> */}
+										<DeleteRegistry registryId={registry.registryId} />
 									</div>
 								</div>
 							))}
+
 							<div>{/* <AddCertificate /> */}</div>
 						</div>
 					)}

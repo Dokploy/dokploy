@@ -1,3 +1,4 @@
+import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
 import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
@@ -175,6 +176,7 @@ const Service = (
 				<TabsContent value="advanced">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<AddCommand applicationId={applicationId} />
+						<ShowClusterSettings applicationId={applicationId} />
 						<ShowApplicationResources applicationId={applicationId} />
 						<ShowVolumes applicationId={applicationId} />
 						<ShowRedirects applicationId={applicationId} />

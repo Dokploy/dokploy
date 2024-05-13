@@ -12,6 +12,7 @@ import { applicationStatus } from "./shared";
 import { ports } from "./port";
 import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { generateAppName } from "./utils";
+import { registry } from "./registry";
 
 export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
 
@@ -60,6 +61,7 @@ export const applications = pgTable("application", {
 	customGitBuildPath: text("customGitBuildPath"),
 	customGitSSHKey: text("customGitSSHKey"),
 	dockerfile: text("dockerfile"),
+	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -67,6 +69,9 @@ export const applications = pgTable("application", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	registryId: text("registryId").references(() => registry.registryId, {
+		onDelete: "set null",
+	}),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
@@ -85,6 +90,10 @@ export const applicationsRelations = relations(
 		redirects: many(redirects),
 		security: many(security),
 		ports: many(ports),
+		registry: one(registry, {
+			fields: [applications.registryId],
+			references: [registry.registryId],
+		}),
 	}),
 );
 

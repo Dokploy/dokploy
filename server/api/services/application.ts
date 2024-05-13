@@ -61,6 +61,7 @@ export const findApplicationById = async (applicationId: string) => {
 			redirects: true,
 			security: true,
 			ports: true,
+			registry: true,
 		},
 	});
 	if (!application) {

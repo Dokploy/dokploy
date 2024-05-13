@@ -2106,6 +2106,79 @@
           "nullsNotDistinct": false
         }
       }
+    },
+    "public.registry": {
+      "name": "registry",
+      "schema": "",
+      "columns": {
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "registryName": {
+          "name": "registryName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registryUrl": {
+          "name": "registryUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selfHosted": {
+          "name": "selfHosted",
+          "type": "RegistryType",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cloud'"
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "registry_adminId_admin_adminId_fk": {
+          "name": "registry_adminId_admin_adminId_fk",
+          "tableFrom": "registry",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "tableTo": "admin",
+          "columnsTo": [
+            "adminId"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -2201,6 +2274,14 @@
         "letsencrypt",
         "none"
       ]
+    },
+    "public.RegistryType": {
+      "name": "RegistryType",
+      "schema": "public",
+      "values": [
+        "selfHosted",
+        "cloud"
+      ]
     }
   },
   "schemas": {},
@@ -2209,6 +2290,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "7bb4bbcf-791c-4888-919e-f74bc0528b5f",
-  "prevId": "5a1d3f2b-9c31-4125-9645-015170550b51"
+  "id": "92c75e26-64ef-484f-a7d2-72a9422c119f",
+  "prevId": "7bb4bbcf-791c-4888-919e-f74bc0528b5f"
 }

@@ -12,35 +12,44 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
-export const AddSelfRegistry = () => {
+interface Props {
+	registryId: string;
+}
+export const DeleteRegistry = ({ registryId }: Props) => {
+	const { mutateAsync, isLoading } = api.registry.remove.useMutation();
+	const utils = api.useUtils();
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button>Enable Self Hosted Registry</Button>
+				<Button variant="ghost" isLoading={isLoading}>
+					<TrashIcon className="size-4  text-muted-foreground " />
+				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will setup a self hosted registry.
+						This action cannot be undone. This will permanently delete the
+						registry.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							// await mutateAsync({
-							// 	authId,
-							// })
-							// 	.then(async () => {
-							// 		utils.user.all.invalidate();
-							// 		toast.success("User delete succesfully");
-							// 	})
-							// 	.catch(() => {
-							// 		toast.error("Error to delete the user");
-							// 	});
+							await mutateAsync({
+								registryId,
+							})
+								.then(async () => {
+									utils.registry.all.invalidate();
+									toast.success("Registry deleted");
+								})
+								.catch(() => {
+									toast.error("Error to delete the registry");
+								});
 						}}
 					>
 						Confirm

@@ -11,6 +11,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -27,9 +28,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const AddRegistrySchema = z.object({
-	registryName: z.string().min(1, {
-		message: "Registry name is required",
-	}),
 	username: z.string().min(1, {
 		message: "Username is required",
 	}),
@@ -39,62 +37,46 @@ const AddRegistrySchema = z.object({
 	registryUrl: z.string().min(1, {
 		message: "Registry URL is required",
 	}),
-	imagePrefix: z.string(),
 });
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
 
-export const AddRegistry = () => {
+export const AddSelfHostedRegistry = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { mutateAsync, error, isError } = api.registry.create.useMutation();
-	const { mutateAsync: testRegistry, isLoading } =
-		api.registry.testRegistry.useMutation();
+	const { mutateAsync, error, isError, isLoading } =
+		api.registry.enableSelfHostedRegistry.useMutation();
 	const router = useRouter();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
-			username: "",
-			password: "",
-			registryUrl: "",
-			imagePrefix: "",
-			registryName: "",
+			username: "siumauricio",
+			password: "Password123",
+			registryUrl: "https://registry.dokploy.com",
 		},
 		resolver: zodResolver(AddRegistrySchema),
 	});
 
-	console.log(form.formState.errors);
-
-	const password = form.watch("password");
-	const username = form.watch("username");
-	const registryUrl = form.watch("registryUrl");
-	const registryName = form.watch("registryName");
-	const imagePrefix = form.watch("imagePrefix");
-
 	useEffect(() => {
 		form.reset({
-			username: "",
-			password: "",
-			registryUrl: "",
-			imagePrefix: "",
+			registryUrl: "https://registry.dokploy.com",
+			username: "siumauricio",
+			password: "Password123",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (data: AddRegistry) => {
 		await mutateAsync({
-			password: data.password,
-			registryName: data.registryName,
-			username: data.username,
 			registryUrl: data.registryUrl,
-			registryType: "cloud",
-			imagePrefix: data.imagePrefix,
+			username: data.username,
+			password: data.password,
 		})
 			.then(async (data) => {
 				await utils.registry.all.invalidate();
-				toast.success("Registry added");
+				toast.success("Self Hosted Registry Created");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to add a registry");
+				toast.error("Error to create a self hosted registry");
 			});
 	};
 
@@ -103,14 +85,14 @@ export const AddRegistry = () => {
 			<DialogTrigger asChild>
 				<Button>
 					<Container className="h-4 w-4" />
-					Create Registry
+					Enable Self Hosted Registry
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>Add a external registry</DialogTitle>
+					<DialogTitle>Add a self hosted registry</DialogTitle>
 					<DialogDescription>
-						Fill the next fields to add a external registry.
+						Fill the next fields to add a self hosted registry.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && (
@@ -126,22 +108,6 @@ export const AddRegistry = () => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4"
 					>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="registryName"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Registry Name</FormLabel>
-										<FormControl>
-											<Input placeholder="Registry Name" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
@@ -181,67 +147,27 @@ export const AddRegistry = () => {
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
-								name="imagePrefix"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Image Prefix</FormLabel>
-										<FormControl>
-											<Input {...field} placeholder="Image Prefix" />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
 								name="registryUrl"
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Registry URL</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="https://aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
+												placeholder="https://registry.dokploy.com"
 												{...field}
 											/>
 										</FormControl>
+										<FormDescription>
+											Point a DNS record to the VPS IP address.
+										</FormDescription>
 
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
 						</div>
-						<DialogFooter className="flex flex-row w-full sm:justify-between gap-4 flex-wrap">
-							<Button
-								type="button"
-								variant={"secondary"}
-								isLoading={isLoading}
-								onClick={async () => {
-									if (!form.formState.isValid) {
-										toast.error("Please fill all the fields");
-										return;
-									}
-									await testRegistry({
-										username: username,
-										password: password,
-										registryUrl: registryUrl,
-										registryName: registryName,
-										registryType: "cloud",
-										imagePrefix: imagePrefix,
-									}).then((data) => {
-										if (data) {
-											toast.success("Registry Tested Successfully");
-										} else {
-											toast.error("Registry Test Failed");
-										}
-									});
-								}}
-							>
-								Test Registry
-							</Button>
-							<Button isLoading={form.formState.isSubmitting} type="submit">
+						<DialogFooter>
+							<Button isLoading={isLoading} type="submit">
 								Create
 							</Button>
 						</DialogFooter>

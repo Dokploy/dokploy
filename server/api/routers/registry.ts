@@ -7,12 +7,16 @@ import {
 } from "@/server/db/schema";
 import {
 	createRegistry,
+	findAllRegistry,
 	findRegistryById,
 	removeRegistry,
 	updaterRegistry,
 } from "../services/registry";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { manageRegistry } from "@/server/utils/traefik/registry";
+import { initializeRegistry } from "@/server/setup/registry-setup";
+import { docker } from "@/server/constants";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
@@ -42,25 +46,41 @@ export const registryRouter = createTRPCRouter({
 
 			return true;
 		}),
+	all: protectedProcedure.query(async () => {
+		return await findAllRegistry();
+	}),
 	findOne: adminProcedure.input(apiFindOneRegistry).query(async ({ input }) => {
 		return await findRegistryById(input.registryId);
 	}),
+	testRegistry: protectedProcedure
+		.input(apiCreateRegistry)
+		.mutation(async ({ input }) => {
+			try {
+				const result = await docker.checkAuth({
+					username: input.username,
+					password: input.password,
+					serveraddress: input.registryUrl,
+				});
 
-	enableSelfHostedRegistry: protectedProcedure
+				return true;
+			} catch (error) {
+				return false;
+			}
+		}),
+
+	enableSelfHostedRegistry: adminProcedure
 		.input(apiEnableSelfHostedRegistry)
 		.mutation(async ({ input }) => {
-			// return await createRegistry({
-			//     username:"CUSTOM"
-			//     adminId: input.adminId,
-			// });
-			// const application = await findRegistryById(input.registryId);
-			// const result = await db
-			//     .update(registry)
-			//     .set({
-			//         selfHosted: true,
-			//     })
-			//     .where(eq(registry.registryId, input.registryId))
-			//     .returning();
-			// return result[0];
+			const selfHostedRegistry = await createRegistry({
+				...input,
+				registryName: "Self Hosted Registry",
+				registryType: "selfHosted",
+				imagePrefix: null,
+			});
+
+			await manageRegistry(selfHostedRegistry);
+			await initializeRegistry(input.username, input.password);
+
+			return selfHostedRegistry;
 		}),
 });

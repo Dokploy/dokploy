@@ -1,4 +1,6 @@
 {
+  "id": "54b3cce8-c1ab-46ed-bef9-1bb945d965f9",
+  "prevId": "80176730-273b-45e4-a7ca-760e29ad6d02",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -93,6 +95,7 @@
         "sourceType": {
           "name": "sourceType",
           "type": "sourceType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'github'"
@@ -176,9 +179,17 @@
           "primaryKey": false,
           "notNull": false
         },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -186,6 +197,7 @@
         "buildType": {
           "name": "buildType",
           "type": "buildType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
@@ -196,6 +208,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "projectId": {
           "name": "projectId",
           "type": "text",
@@ -205,28 +223,41 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "application_registryId_registry_registryId_fk": {
+          "name": "application_registryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "registryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "application_projectId_project_projectId_fk": {
           "name": "application_projectId_project_projectId_fk",
           "tableFrom": "application",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "application_appName_unique": {
           "name": "application_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -327,6 +358,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -349,25 +381,25 @@
         "postgres_projectId_project_projectId_fk": {
           "name": "postgres_projectId_project_projectId_fk",
           "tableFrom": "postgres",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "postgres_appName_unique": {
           "name": "postgres_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -480,28 +512,28 @@
         "user_adminId_admin_adminId_fk": {
           "name": "user_adminId_admin_adminId_fk",
           "tableFrom": "user",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_authId_auth_id_fk": {
           "name": "user_authId_auth_id_fk",
           "tableFrom": "user",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -538,6 +570,7 @@
         "certificateType": {
           "name": "certificateType",
           "type": "certificateType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
@@ -609,15 +642,15 @@
         "admin_authId_auth_id_fk": {
           "name": "admin_authId_auth_id_fk",
           "tableFrom": "admin",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -648,6 +681,7 @@
         "rol": {
           "name": "rol",
           "type": "Roles",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -683,10 +717,10 @@
       "uniqueConstraints": {
         "auth_email_unique": {
           "name": "auth_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -730,15 +764,15 @@
         "project_adminId_admin_adminId_fk": {
           "name": "project_adminId_admin_adminId_fk",
           "tableFrom": "project",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -802,6 +836,7 @@
         "certificateType": {
           "name": "certificateType",
           "type": "certificateType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
@@ -812,15 +847,15 @@
         "domain_applicationId_application_applicationId_fk": {
           "name": "domain_applicationId_application_applicationId_fk",
           "tableFrom": "domain",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -929,6 +964,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -951,25 +987,25 @@
         "mariadb_projectId_project_projectId_fk": {
           "name": "mariadb_projectId_project_projectId_fk",
           "tableFrom": "mariadb",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mariadb_appName_unique": {
           "name": "mariadb_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -1064,6 +1100,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -1086,25 +1123,25 @@
         "mongo_projectId_project_projectId_fk": {
           "name": "mongo_projectId_project_projectId_fk",
           "tableFrom": "mongo",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mongo_appName_unique": {
           "name": "mongo_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -1211,6 +1248,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -1233,25 +1271,25 @@
         "mysql_projectId_project_projectId_fk": {
           "name": "mysql_projectId_project_projectId_fk",
           "tableFrom": "mysql",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mysql_appName_unique": {
           "name": "mysql_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -1298,6 +1336,7 @@
         "databaseType": {
           "name": "databaseType",
           "type": "databaseType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1331,67 +1370,67 @@
         "backup_destinationId_destination_destinationId_fk": {
           "name": "backup_destinationId_destination_destinationId_fk",
           "tableFrom": "backup",
+          "tableTo": "destination",
           "columnsFrom": [
             "destinationId"
           ],
-          "tableTo": "destination",
           "columnsTo": [
             "destinationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_postgresId_postgres_postgresId_fk": {
           "name": "backup_postgresId_postgres_postgresId_fk",
           "tableFrom": "backup",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mariadbId_mariadb_mariadbId_fk": {
           "name": "backup_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "backup",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mysqlId_mysql_mysqlId_fk": {
           "name": "backup_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "backup",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mongoId_mongo_mongoId_fk": {
           "name": "backup_mongoId_mongo_mongoId_fk",
           "tableFrom": "backup",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1455,15 +1494,15 @@
         "destination_adminId_admin_adminId_fk": {
           "name": "destination_adminId_admin_adminId_fk",
           "tableFrom": "destination",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1488,6 +1527,7 @@
         "status": {
           "name": "status",
           "type": "deploymentStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
           "default": "'running'"
@@ -1516,15 +1556,15 @@
         "deployment_applicationId_application_applicationId_fk": {
           "name": "deployment_applicationId_application_applicationId_fk",
           "tableFrom": "deployment",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1543,6 +1583,7 @@
         "type": {
           "name": "type",
           "type": "mountType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1567,6 +1608,7 @@
         "serviceType": {
           "name": "serviceType",
           "type": "serviceType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'application'"
@@ -1619,80 +1661,80 @@
         "mount_applicationId_application_applicationId_fk": {
           "name": "mount_applicationId_application_applicationId_fk",
           "tableFrom": "mount",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_postgresId_postgres_postgresId_fk": {
           "name": "mount_postgresId_postgres_postgresId_fk",
           "tableFrom": "mount",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mariadbId_mariadb_mariadbId_fk": {
           "name": "mount_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "mount",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mongoId_mongo_mongoId_fk": {
           "name": "mount_mongoId_mongo_mongoId_fk",
           "tableFrom": "mount",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mysqlId_mysql_mysqlId_fk": {
           "name": "mount_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "mount",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_redisId_redis_redisId_fk": {
           "name": "mount_redisId_redis_redisId_fk",
           "tableFrom": "mount",
+          "tableTo": "redis",
           "columnsFrom": [
             "redisId"
           ],
-          "tableTo": "redis",
           "columnsTo": [
             "redisId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1745,10 +1787,10 @@
       "uniqueConstraints": {
         "certificate_certificatePath_unique": {
           "name": "certificate_certificatePath_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "certificatePath"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -1780,15 +1822,15 @@
         "session_user_id_auth_id_fk": {
           "name": "session_user_id_auth_id_fk",
           "tableFrom": "session",
+          "tableTo": "auth",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1847,15 +1889,15 @@
         "redirect_applicationId_application_applicationId_fk": {
           "name": "redirect_applicationId_application_applicationId_fk",
           "tableFrom": "redirect",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1901,26 +1943,26 @@
         "security_applicationId_application_applicationId_fk": {
           "name": "security_applicationId_application_applicationId_fk",
           "tableFrom": "security",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "security_username_applicationId_unique": {
           "name": "security_username_applicationId_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "username",
             "applicationId"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
     },
@@ -1949,6 +1991,7 @@
         "protocol": {
           "name": "protocol",
           "type": "protocolType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1964,15 +2007,15 @@
         "port_applicationId_application_applicationId_fk": {
           "name": "port_applicationId_application_applicationId_fk",
           "tableFrom": "port",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2069,6 +2112,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -2085,27 +2129,101 @@
         "redis_projectId_project_projectId_fk": {
           "name": "redis_projectId_project_projectId_fk",
           "tableFrom": "redis",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "redis_appName_unique": {
           "name": "redis_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       }
+    },
+    "public.registry": {
+      "name": "registry",
+      "schema": "",
+      "columns": {
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "registryName": {
+          "name": "registryName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registryUrl": {
+          "name": "registryUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selfHosted": {
+          "name": "selfHosted",
+          "type": "RegistryType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cloud'"
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "registry_adminId_admin_adminId_fk": {
+          "name": "registry_adminId_admin_adminId_fk",
+          "tableFrom": "registry",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -2201,14 +2319,20 @@
         "letsencrypt",
         "none"
       ]
+    },
+    "public.RegistryType": {
+      "name": "RegistryType",
+      "schema": "public",
+      "values": [
+        "selfHosted",
+        "cloud"
+      ]
     }
   },
   "schemas": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "id": "7bb4bbcf-791c-4888-919e-f74bc0528b5f",
-  "prevId": "5a1d3f2b-9c31-4125-9645-015170550b51"
+    "tables": {}
+  }
 }
