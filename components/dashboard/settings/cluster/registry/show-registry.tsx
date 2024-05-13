@@ -23,8 +23,8 @@ export const ShowRegistry = () => {
 			<Card className="bg-transparent h-full">
 				<CardHeader className="flex flex-row gap-2 justify-between w-full items-center">
 					<div className="flex flex-col gap-2">
-						<CardTitle className="text-xl">Clusters</CardTitle>
-						<CardDescription>Add cluster to your application.</CardDescription>
+						<CardTitle className="text-xl">Registry</CardTitle>
+						<CardDescription>Add registry to your application.</CardDescription>
 					</div>
 
 					<div className="flex flex-row gap-2">

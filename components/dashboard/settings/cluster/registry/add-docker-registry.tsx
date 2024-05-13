@@ -62,8 +62,6 @@ export const AddRegistry = () => {
 		resolver: zodResolver(AddRegistrySchema),
 	});
 
-	console.log(form.formState.errors);
-
 	const password = form.watch("password");
 	const username = form.watch("username");
 	const registryUrl = form.watch("registryUrl");

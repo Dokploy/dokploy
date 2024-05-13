@@ -1,5 +1,6 @@
 import { ShowCertificates } from "@/components/dashboard/settings/certificates/show-certificates";
 import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
+import { ShowCluster } from "@/components/dashboard/settings/cluster/worker/show-workers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { validateRequest } from "@/server/auth/auth";
@@ -10,6 +11,7 @@ const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowRegistry />
+			<ShowCluster />
 		</div>
 	);
 };
