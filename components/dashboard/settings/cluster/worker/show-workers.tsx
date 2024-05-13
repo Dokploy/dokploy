@@ -41,7 +41,7 @@ export const ShowCluster = () => {
 								{worker.Spec.Availability}
 							</span>
 							<span className="text-sm text-muted-foreground">
-								{worker.ManagerStatus.Reachability}
+								{worker?.ManagerStatus?.Reachability || "-"}
 							</span>
 							<span className="text-sm text-muted-foreground">
 								{worker?.Spec?.Role}

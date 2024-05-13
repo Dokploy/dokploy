@@ -238,3 +238,4 @@ export const settingsRouter = createTRPCRouter({
 			return readConfigInPath(input.path);
 		}),
 });
+// apt-get install apache2-utils

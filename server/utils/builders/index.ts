@@ -81,16 +81,31 @@ export const mechanizeDockerContainer = async (
 		cpuLimit,
 		cpuReservation,
 	});
+
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
 	const envVariables = prepareEnvironmentVariables(env);
 
+	const registry = application.registry;
+
+	const image =
+		sourceType === "docker"
+			? dockerImage!
+			: registry
+				? `${registry.registryUrl}/${appName}`
+				: `${appName}:latest`;
+
 	const settings: CreateServiceOptions = {
+		authconfig: {
+			password: registry?.password || "",
+			username: registry?.username || "",
+			serveraddress: registry?.registryUrl || "",
+		},
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
-				Image: sourceType === "docker" ? dockerImage! : `${appName}:latest`,
+				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(command

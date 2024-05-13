@@ -64,6 +64,7 @@ export const registryRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
+				console.log(error);
 				return false;
 			}
 		}),
