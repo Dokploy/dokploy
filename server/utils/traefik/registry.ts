@@ -1,18 +1,19 @@
-import { loadOrCreateConfig } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
 import type { Registry } from "@/server/api/services/registry";
 import { removeDirectoryIfExistsContent } from "../filesystem/directory";
 import { REGISTRY_PATH } from "@/server/constants";
-import { dump } from "js-yaml";
+import { dump, load } from "js-yaml";
 import { join } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 export const manageRegistry = async (registry: Registry) => {
 	if (!existsSync(REGISTRY_PATH)) {
 		mkdirSync(REGISTRY_PATH, { recursive: true });
 	}
+
 	const appName = "dokploy-registry";
-	const config: FileConfig = loadOrCreateConfig(appName);
+	const config: FileConfig = loadOrCreateConfig();
+
 	const serviceName = `${appName}-service`;
 	const routerName = `${appName}-router`;
 
@@ -40,12 +41,8 @@ export const removeSelfHostedRegistry = async () => {
 
 const createRegistryRouterConfig = async (registry: Registry) => {
 	const { registryUrl } = registry;
-	const url =
-		process.env.NODE_ENV === "production"
-			? registryUrl
-			: "dokploy-registry.docker.localhost";
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${url}\`)`,
+		rule: `Host(\`${registryUrl}\`)`,
 		service: "dokploy-registry-service",
 		...(process.env.NODE_ENV === "production"
 			? {
@@ -64,4 +61,16 @@ const createRegistryRouterConfig = async (registry: Registry) => {
 	};
 
 	return routerConfig;
+};
+
+const loadOrCreateConfig = (): FileConfig => {
+	const configPath = join(REGISTRY_PATH, "registry.yml");
+	if (existsSync(configPath)) {
+		const yamlStr = readFileSync(configPath, "utf8");
+		const parsedConfig = (load(yamlStr) as FileConfig) || {
+			http: { routers: {}, services: {} },
+		};
+		return parsedConfig;
+	}
+	return { http: { routers: {}, services: {} } };
 };

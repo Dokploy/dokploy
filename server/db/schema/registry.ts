@@ -64,6 +64,15 @@ export const apiCreateRegistry = createSchema
 	})
 	.required();
 
+export const apiTestRegistry = createSchema.pick({}).extend({
+	registryName: z.string().min(1),
+	username: z.string().min(1),
+	password: z.string().min(1),
+	registryUrl: z.string(),
+	registryType: z.enum(["selfHosted", "cloud"]),
+	imagePrefix: z.string().nullable().optional(),
+});
+
 export const apiRemoveRegistry = createSchema
 	.pick({
 		registryId: true,
@@ -76,15 +85,9 @@ export const apiFindOneRegistry = createSchema
 	})
 	.required();
 
-export const apiUpdateRegistry = createSchema
-	.pick({
-		password: true,
-		registryName: true,
-		username: true,
-		registryUrl: true,
-		registryId: true,
-	})
-	.required();
+export const apiUpdateRegistry = createSchema.partial().extend({
+	registryId: z.string().min(1),
+});
 
 export const apiEnableSelfHostedRegistry = createSchema
 	.pick({

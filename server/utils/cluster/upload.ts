@@ -1,5 +1,4 @@
 import type { ApplicationNested } from "../builders";
-import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import type { WriteStream } from "node:fs";
 
@@ -13,25 +12,20 @@ export const uploadImage = async (
 		throw new Error("Registry not found");
 	}
 
-	const { registryUrl, imagePrefix } = registry;
+	const { registryUrl, imagePrefix, registryType } = registry;
 	const { appName } = application;
 	const imageName = `${appName}:latest`;
 
-	let finalURL = registryUrl;
+	const finalURL =
+		registryType === "selfHosted"
+			? process.env.NODE_ENV === "development"
+				? "localhost:5000"
+				: registryUrl
+			: registryUrl;
 
-	let registryTag = `${registryUrl}/${imageName}`;
-
-	if (imagePrefix) {
-		registryTag = `${registryUrl}/${imagePrefix}/${imageName}`;
-	}
-
-	//  registry.digitalocean.com/<my-registry>/<my-image>
-	//  index.docker.io/siumauricio/app-parse-multi-byte-port-e32uh7:latest
-	if (registry.registryType === "selfHosted") {
-		finalURL =
-			process.env.NODE_ENV === "development" ? "localhost:5000" : registryUrl;
-		registryTag = `${finalURL}/${imageName}`;
-	}
+	const registryTag = imagePrefix
+		? `${registryUrl}/${imagePrefix}/${imageName}`
+		: `${finalURL}/${imageName}`;
 
 	try {
 		console.log(finalURL, registryTag);

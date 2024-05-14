@@ -10,7 +10,7 @@ export const initializeRegistry = async (
 ) => {
 	const imageName = "registry:2.8.3";
 	const containerName = "dokploy-registry";
-	await generatePassword(username, password);
+	await generateRegistryPassword(username, password);
 	const randomPass = await generateRandomPassword();
 	const settings: CreateServiceOptions = {
 		Name: containerName,
@@ -76,7 +76,7 @@ export const initializeRegistry = async (
 	}
 };
 
-const generatePassword = async (username: string, password: string) => {
+const generateRegistryPassword = async (username: string, password: string) => {
 	try {
 		const command = `htpasswd -nbB ${username} "${password}" > ${REGISTRY_PATH}/htpasswd`;
 		const result = await execAsync(command);

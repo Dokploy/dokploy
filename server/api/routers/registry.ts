@@ -3,6 +3,7 @@ import {
 	apiEnableSelfHostedRegistry,
 	apiFindOneRegistry,
 	apiRemoveRegistry,
+	apiTestRegistry,
 	apiUpdateRegistry,
 } from "@/server/db/schema";
 import {
@@ -10,7 +11,7 @@ import {
 	findAllRegistry,
 	findRegistryById,
 	removeRegistry,
-	updaterRegistry,
+	updateRegistry,
 } from "../services/registry";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
@@ -33,7 +34,7 @@ export const registryRouter = createTRPCRouter({
 		.input(apiUpdateRegistry)
 		.mutation(async ({ input }) => {
 			const { registryId, ...rest } = input;
-			const application = await updaterRegistry(registryId, {
+			const application = await updateRegistry(registryId, {
 				...rest,
 			});
 
@@ -49,11 +50,11 @@ export const registryRouter = createTRPCRouter({
 	all: protectedProcedure.query(async () => {
 		return await findAllRegistry();
 	}),
-	findOne: adminProcedure.input(apiFindOneRegistry).query(async ({ input }) => {
+	one: adminProcedure.input(apiFindOneRegistry).query(async ({ input }) => {
 		return await findRegistryById(input.registryId);
 	}),
 	testRegistry: protectedProcedure
-		.input(apiCreateRegistry)
+		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
 				const result = await docker.checkAuth({
@@ -76,6 +77,10 @@ export const registryRouter = createTRPCRouter({
 				...input,
 				registryName: "Self Hosted Registry",
 				registryType: "selfHosted",
+				registryUrl:
+					process.env.NODE_ENV === "production"
+						? input.registryUrl
+						: "dokploy-registry.docker.localhost",
 				imagePrefix: null,
 			});
 

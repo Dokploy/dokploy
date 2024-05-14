@@ -10,6 +10,7 @@ import { Server } from "lucide-react";
 import { AddRegistry } from "./add-docker-registry";
 import { AddSelfHostedRegistry } from "./add-self-docker-registry";
 import { DeleteRegistry } from "./delete-registry";
+import { UpdateDockerRegistry } from "./update-docker-registry";
 
 export const ShowRegistry = () => {
 	const { data } = api.registry.all.useQuery();
@@ -49,8 +50,6 @@ export const ShowRegistry = () => {
 								<AddSelfHostedRegistry />
 								<AddRegistry />
 							</div>
-
-							{/* <AddCertificate /> */}
 						</div>
 					) : (
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -63,12 +62,11 @@ export const ShowRegistry = () => {
 										{index + 1}. {registry.registryName}
 									</span>
 									<div className="flex flex-row gap-3">
+										<UpdateDockerRegistry registryId={registry.registryId} />
 										<DeleteRegistry registryId={registry.registryId} />
 									</div>
 								</div>
 							))}
-
-							<div>{/* <AddCertificate /> */}</div>
 						</div>
 					)}
 				</CardContent>

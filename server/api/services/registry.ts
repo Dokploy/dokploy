@@ -3,8 +3,12 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@/server/db";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
-import { removeSelfHostedRegistry } from "@/server/utils/traefik/registry";
+import {
+	manageRegistry,
+	removeSelfHostedRegistry,
+} from "@/server/utils/traefik/registry";
 import { removeService } from "@/server/utils/docker/utils";
+import { initializeRegistry } from "@/server/setup/registry-setup";
 
 export type Registry = typeof registry.$inferSelect;
 
@@ -59,7 +63,7 @@ export const removeRegistry = async (registryId: string) => {
 	}
 };
 
-export const updaterRegistry = async (
+export const updateRegistry = async (
 	registryId: string,
 	registryData: Partial<Registry>,
 ) => {
@@ -70,9 +74,15 @@ export const updaterRegistry = async (
 				...registryData,
 			})
 			.where(eq(registry.registryId, registryId))
-			.returning();
+			.returning()
+			.then((res) => res[0]);
 
-		return response[0];
+		if (response?.registryType === "selfHosted") {
+			await manageRegistry(response);
+			await initializeRegistry(response.username, response.password);
+		}
+
+		return response;
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -84,6 +94,9 @@ export const updaterRegistry = async (
 export const findRegistryById = async (registryId: string) => {
 	const registryResponse = await db.query.registry.findFirst({
 		where: eq(registry.registryId, registryId),
+		columns: {
+			password: false,
+		},
 	});
 	if (!registryResponse) {
 		throw new TRPCError({

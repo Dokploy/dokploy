@@ -89,12 +89,15 @@ export const mechanizeDockerContainer = async (
 
 	const registry = application.registry;
 
-	const image =
-		sourceType === "docker"
-			? dockerImage!
-			: registry
-				? `${registry.registryUrl}/${appName}`
-				: `${appName}:latest`;
+	let image = sourceType === "docker" ? dockerImage! : `${appName}:latest`;
+
+	if (registry) {
+		image = `${registry.registryUrl}/${appName}`;
+
+		if (registry.imagePrefix) {
+			image = `${registry.registryUrl}/${registry.imagePrefix}/${appName}`;
+		}
+	}
 
 	const settings: CreateServiceOptions = {
 		authconfig: {

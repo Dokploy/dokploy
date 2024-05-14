@@ -217,10 +217,6 @@ export const AddRegistry = () => {
 								variant={"secondary"}
 								isLoading={isLoading}
 								onClick={async () => {
-									if (!form.formState.isValid) {
-										toast.error("Please fill all the fields");
-										return;
-									}
 									await testRegistry({
 										username: username,
 										password: password,
@@ -228,13 +224,17 @@ export const AddRegistry = () => {
 										registryName: registryName,
 										registryType: "cloud",
 										imagePrefix: imagePrefix,
-									}).then((data) => {
-										if (data) {
-											toast.success("Registry Tested Successfully");
-										} else {
-											toast.error("Registry Test Failed");
-										}
-									});
+									})
+										.then((data) => {
+											if (data) {
+												toast.success("Registry Tested Successfully");
+											} else {
+												toast.error("Registry Test Failed");
+											}
+										})
+										.catch(() => {
+											toast.error("Error to test the registry");
+										});
 								}}
 							>
 								Test Registry
