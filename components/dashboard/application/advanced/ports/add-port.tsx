@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -100,14 +100,7 @@ export const AddPort = ({
 						Ports are used to expose your application to the internet.
 					</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form

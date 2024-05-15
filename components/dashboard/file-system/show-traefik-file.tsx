@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -86,14 +87,7 @@ export const ShowTraefikFile = ({ path }: Props) => {
 
 	return (
 		<div>
-			{isError && (
-				<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-					<AlertTriangle className="text-red-600 dark:text-red-400" />
-					<span className="text-sm text-red-600 dark:text-red-400">
-						{error?.message}
-					</span>
-				</div>
-			)}
+			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 			<Form {...form}>
 				<form
@@ -107,7 +101,9 @@ export const ShowTraefikFile = ({ path }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative">
 									<FormLabel>Traefik config</FormLabel>
-									<FormDescription className="font-mono">{path}</FormDescription>
+									<FormDescription className="font-mono">
+										{path}
+									</FormDescription>
 									<FormControl>
 										<Textarea
 											className="h-[35rem] font-mono"
