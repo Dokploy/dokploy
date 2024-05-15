@@ -113,7 +113,7 @@ export const ShowMainTraefikConfig = ({ children }: Props) => {
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
 											<Textarea
-												className="h-[35rem]"
+												className="h-[35rem] font-mono"
 												placeholder={`providers:
     docker:
         defaultRule: 'Host('dokploy.com')'
@@ -136,8 +136,10 @@ export const ShowMainTraefikConfig = ({ children }: Props) => {
 										<pre>
 											<FormMessage />
 										</pre>
-										<div className="flex justify-end absolute z-50 right-6 top-10">
+										<div className="flex justify-end absolute z-50 right-6 top-0">
 											<Button
+												className="shadow-sm"
+												variant="secondary"
 												type="button"
 												onClick={async () => {
 													setCanEdit(!canEdit);

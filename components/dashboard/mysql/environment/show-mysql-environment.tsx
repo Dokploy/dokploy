@@ -95,7 +95,7 @@ export const ShowMysqlEnvironment = ({ mysqlId }: Props) => {
 										<FormControl>
 											<Textarea
 												placeholder="MYSQL_PASSWORD=1234567678"
-												className="h-96"
+												className="h-96 font-mono"
 												{...field}
 											/>
 										</FormControl>

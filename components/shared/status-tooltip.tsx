@@ -17,21 +17,21 @@ export const StatusTooltip = ({ status, className }: Props) => {
 			<Tooltip>
 				<TooltipTrigger>
 					{status === "idle" && (
-						<div className={cn(" size-3.5 rounded-full bg-card", className)} />
+						<div className={cn("size-3.5 rounded-full bg-teal-400", className)} />
 					)}
 					{status === "error" && (
 						<div
-							className={cn(" size-3.5 rounded-full bg-destructive", className)}
+							className={cn("size-3.5 rounded-full bg-destructive", className)}
 						/>
 					)}
 					{status === "done" && (
 						<div
-							className={cn(" size-3.5 rounded-full bg-primary", className)}
+							className={cn("size-3.5 rounded-full bg-primary", className)}
 						/>
 					)}
 					{status === "running" && (
 						<div
-							className={cn(" size-3.5 rounded-full bg-yellow-500", className)}
+							className={cn("size-3.5 rounded-full bg-yellow-500", className)}
 						/>
 					)}
 				</TooltipTrigger>

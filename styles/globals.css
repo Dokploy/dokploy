@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-*,
-html {
-  font-family: "Inter", sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;

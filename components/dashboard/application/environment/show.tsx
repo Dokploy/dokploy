@@ -96,7 +96,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 										<FormControl>
 											<Textarea
 												placeholder="NODE_ENV=production"
-												className="h-96"
+												className="h-96 font-mono"
 												{...field}
 											/>
 										</FormControl>

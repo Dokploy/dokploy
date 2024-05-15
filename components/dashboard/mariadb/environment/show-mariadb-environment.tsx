@@ -95,7 +95,7 @@ export const ShowMariadbEnvironment = ({ mariadbId }: Props) => {
 										<FormControl>
 											<Textarea
 												placeholder="MARIADB_PASSWORD=1234567678"
-												className="h-96"
+												className="h-96 font-mono"
 												{...field}
 											/>
 										</FormControl>
