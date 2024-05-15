@@ -72,6 +72,7 @@
     "dotenv": "16.4.5",
     "drizzle-orm": "^0.30.8",
     "drizzle-zod": "0.5.1",
+    "framer-motion": "^11.2.0",
     "hi-base32": "^0.5.1",
     "input-otp": "^1.2.4",
     "js-yaml": "4.1.0",
@@ -103,7 +104,6 @@
     "zod": "^3.23.4"
   },
   "devDependencies": {
-    "xterm-readline": "1.1.1",
     "@biomejs/biome": "1.7.1",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",
@@ -125,7 +125,8 @@
     "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "xterm-readline": "1.1.1"
   },
   "ct3aMetadata": {
     "initVersion": "7.25.2"
