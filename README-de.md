@@ -13,13 +13,13 @@
 Dokploy ist eine kostenlose und self-hostable Platform as a Service (PaaS), welche das hosten und managen von deinen Projekten und Datenbanken vereinfacht, das geschieht mithilfe von Docker und Treafik. Es ist designt, um deine Leistung und die Sicherheit deiner Projekte zu verbessern. Dokploy erlaubt dir schnell und einfach auf jeder VPS deine Projekte zu verwirklichen.
 
 
-## Explanation
+## Erklärung 
 [English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md)
 
 
 
 
-## 🌟 Features
+## 🌟 Vorteile
 
 - **Projekte**: - **Projekte**: Hoste jegliche Art von Projekt (Node.js, PHP, Python, Go, Ruby, etc.) mit Einfachheit.
 - **Datenbanken**: Erstelle und manage Datenbanken, wie MySQL, PostgreSQL, MongoDB, MariaDB, Redis, und mehr.
@@ -29,7 +29,7 @@ Dokploy ist eine kostenlose und self-hostable Platform as a Service (PaaS),
 - **Database Backups**: Automatische Backups mit Support für mehrere Speicher Systeme.
 
 
-## 🚀 Getting Started
+## 🚀 Loslegen 
 
 Um anzufangen führe einfach den folgende command in einer VPS aus:
 
@@ -42,7 +42,7 @@ Getestete Systems:
 - Ubuntu 20.04
 - Debian 11
 
-## 📄 Documentation
+## 📄 Dokumentation
 
 Für eine detaillierte Dokumentation, siehe [docs.dokploy.com/docs](https://docs.dokploy.com)
 
