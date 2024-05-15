@@ -35,7 +35,7 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 	}, [tab]);
 
 	return (
-		<div className="gap-12 min-h-screen">
+		<div className="gap-12">
 			<header className="mb-6 flex w-full items-center gap-2 justify-between flex-wrap">
 				<div className="flex flex-col gap-2">
 					<h1 className="text-xl font-bold lg:text-3xl">
