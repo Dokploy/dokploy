@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { z } from "zod";
 
-const AddPortchema = z.object({
+const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
 	targetPort: z.number().int().min(1).max(65535),
 	protocol: z.enum(["tcp", "udp"], {
@@ -41,7 +41,7 @@ const AddPortchema = z.object({
 	}),
 });
 
-type AddPort = z.infer<typeof AddPortchema>;
+type AddPort = z.infer<typeof AddPortSchema>;
 
 interface Props {
 	applicationId: string;
@@ -62,7 +62,7 @@ export const AddPort = ({
 			publishedPort: 0,
 			targetPort: 0,
 		},
-		resolver: zodResolver(AddPortchema),
+		resolver: zodResolver(AddPortSchema),
 	});
 
 	useEffect(() => {
