@@ -14,7 +14,7 @@ Dokploy ist eine kostenlose und self-hostable Platform as a Service (PaaS),
 
 
 ## Erklärung 
-[English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md)
+[English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md) | [Русский Язык](README-ru.md)
 
 
 
