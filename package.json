@@ -72,7 +72,6 @@
     "dotenv": "16.4.5",
     "drizzle-orm": "^0.30.8",
     "drizzle-zod": "0.5.1",
-    "framer-motion": "^11.2.0",
     "hi-base32": "^0.5.1",
     "input-otp": "^1.2.4",
     "js-yaml": "4.1.0",

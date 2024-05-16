@@ -2,7 +2,6 @@ import { AddProject } from "@/components/dashboard/projects/add";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
 import { api } from "@/utils/api";
 import type { Auth } from "@/server/api/services/auth";
 import type { User } from "@/server/api/services/user";
@@ -66,7 +65,6 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 	const router = useRouter();
 
 	const { data } = api.auth.get.useQuery();
-	const [hover, setHover] = useState<TabState | "">("");
 	const [activeTab, setActiveTab] = useState<TabState>(tab);
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
@@ -120,34 +118,15 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 									<TabsTrigger
 										key={key}
 										value={key}
-										className="relative py-2.5 md:px-5 data-[state=active]:shadow-none data-[state=active]:bg-transparent"
-										onMouseEnter={() => setHover(key as TabState)}
-										onMouseLeave={() => setHover("")}
+										className="relative py-2.5 md:px-5 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-md hover:bg-zinc-100 hover:dark:bg-zinc-800 data-[state=active]:hover:bg-zinc-100 data-[state=active]:hover:dark:bg-zinc-800"
 									>
 										<span className="relative z-[1] w-full">
 											{tab.tabLabel || tab.label}
 										</span>
 										{key === activeTab && (
-											<motion.div
-												layoutId="indicator"
-												transition={{
-													duration: 0.25,
-												}}
-												className="absolute -bottom-[5.5px] w-full"
-											>
+											<div className="absolute -bottom-[5.5px] w-full">
 												<div className="h-0.5 bg-foreground rounded-t-md" />
-											</motion.div>
-										)}
-										{key === hover && (
-											<motion.div
-												layoutId="bg"
-												transition={{
-													duration: 0.25,
-												}}
-												className="absolute w-full h-full"
-											>
-												<div className="w-full h-full rounded-md bg-zinc-100 dark:bg-zinc-800" />
-											</motion.div>
+											</div>
 										)}
 									</TabsTrigger>
 								);
