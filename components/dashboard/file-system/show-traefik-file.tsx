@@ -101,7 +101,7 @@ export const ShowTraefikFile = ({ path }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative">
 									<FormLabel>Traefik config</FormLabel>
-									<FormDescription className="font-mono">
+									<FormDescription className="break-all">
 										{path}
 									</FormDescription>
 									<FormControl>

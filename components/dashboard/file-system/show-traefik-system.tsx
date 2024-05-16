@@ -13,7 +13,7 @@ export const ShowTraefikSystem = () => {
 	const { data: directories } = api.settings.readDirectories.useQuery();
 
 	return (
-		<div className={cn("mt-6 grid gap-4")}>
+		<div className={cn("mt-6 md:grid gap-4")}>
 			<div className="flex flex-col md:flex-row gap-4 md:gap-10 w-full">
 				{directories?.length === 0 && (
 					<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
