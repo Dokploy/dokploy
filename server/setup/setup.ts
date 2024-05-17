@@ -5,10 +5,7 @@ export const initializeSwarm = async () => {
 	if (swarmInitialized) {
 		console.log("Swarm is already initilized");
 	} else {
-		await docker.swarmInit({
-			AdvertiseAddr: "127.0.0.1",
-			ListenAddr: "0.0.0.0",
-		});
+		await docker.swarmInit({});
 		console.log("Swarm was initilized");
 	}
 };
