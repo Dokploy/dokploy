@@ -17,7 +17,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 			<Tooltip>
 				<TooltipTrigger>
 					{status === "idle" && (
-						<div className={cn("size-3.5 rounded-full bg-teal-400", className)} />
+						<div className={cn("size-3.5 rounded-full bg-muted-foreground dark:bg-card", className)} />
 					)}
 					{status === "error" && (
 						<div

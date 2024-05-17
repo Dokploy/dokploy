@@ -61,7 +61,7 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="w-full h-full bg-input rounded-lg p-2 bg-[#19191A]">
+			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
 				<div id={id} ref={termRef} />
 			</div>
 		</div>
