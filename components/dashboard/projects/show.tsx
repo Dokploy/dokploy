@@ -48,9 +48,9 @@ export const ShowProjects = () => {
 	return (
 		<>
 			{data?.length === 0 && (
-				<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center ">
-					<FolderInput className="size-10 md:size-28 text-muted" />
-					<span className="text-center font-medium  text-muted-foreground">
+				<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
+					<FolderInput className="size-10 md:size-28 text-muted-foreground" />
+					<span className="text-center font-medium text-muted-foreground">
 						No projects added yet. Click on Create project.
 					</span>
 				</div>

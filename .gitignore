@@ -54,3 +54,4 @@ yarn-error.log*
 /.main
 
 *.lockb
+*.rdb

@@ -3,7 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
 	id: string;
@@ -12,7 +12,7 @@ interface Props {
 
 export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 	const termRef = useRef(null);
-	const [activeWay, setActiveWay] = React.useState<string | null>("bash");
+	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	useEffect(() => {
 		const container = document.getElementById(id);
 		if (container) {
@@ -26,7 +26,7 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 			convertEol: true,
 			theme: {
 				cursor: "transparent",
-				background: "#19191A",
+				background: "rgba(0, 0, 0, 0)",
 			},
 		});
 		const addonFit = new FitAddon();
@@ -54,14 +54,15 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 				<span>
 					Select way to connect to <b>{containerId}</b>
 				</span>
-				<div className="flex flex-row gap-4 w-fit">
-					<Button onClick={() => setActiveWay("sh")}>SH</Button>
-					<Button onClick={() => setActiveWay("bash")}>Bash</Button>
-					<Button onClick={() => setActiveWay("sh")}>/bin/sh</Button>
-				</div>
+				<Tabs value={activeWay} onValueChange={setActiveWay}>
+					<TabsList>
+						<TabsTrigger value="bash">Bash</TabsTrigger>
+						<TabsTrigger value="sh">/bin/sh</TabsTrigger>
+					</TabsList>
+				</Tabs>
 			</div>
-			<div className="w-full h-full bg-input rounded-lg p-2 ">
-				<div id={id} ref={termRef} className="rounded-xl" />
+			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
+				<div id={id} ref={termRef} />
 			</div>
 		</div>
 	);
