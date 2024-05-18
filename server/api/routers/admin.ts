@@ -152,11 +152,18 @@ export const adminRouter = createTRPCRouter({
 					installationId: admin.githubInstallationId,
 				},
 			});
-			const branches = await octokit.rest.repos.listBranches({
-				owner: input.owner,
-				repo: input.repo,
-			});
-			return branches.data;
+
+			const branches = (await octokit.paginate(
+				octokit.rest.repos.listBranches,
+				{
+					owner: input.owner,
+					repo: input.repo,
+				},
+			)) as unknown as Awaited<
+				ReturnType<typeof octokit.rest.repos.listBranches>
+			>["data"];
+
+			return branches;
 		}),
 	haveGithubConfigured: protectedProcedure.query(async () => {
 		const adminResponse = await findAdmin();
