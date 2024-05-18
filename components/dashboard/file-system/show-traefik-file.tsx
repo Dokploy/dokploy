@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -86,19 +87,12 @@ export const ShowTraefikFile = ({ path }: Props) => {
 
 	return (
 		<div>
-			{isError && (
-				<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-					<AlertTriangle className="text-red-600 dark:text-red-400" />
-					<span className="text-sm text-red-600 dark:text-red-400">
-						{error?.message}
-					</span>
-				</div>
-			)}
+			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid w-full py-4 relative"
+					className="grid w-full relative"
 				>
 					<div className="flex flex-col">
 						<FormField
@@ -107,10 +101,12 @@ export const ShowTraefikFile = ({ path }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative">
 									<FormLabel>Traefik config</FormLabel>
-									<FormDescription>{path}</FormDescription>
+									<FormDescription className="break-all">
+										{path}
+									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="h-[35rem]"
+											className="h-[35rem] font-mono"
 											placeholder={`http:
 routers:
     router-name:
@@ -128,8 +124,9 @@ routers:
 									<pre>
 										<FormMessage />
 									</pre>
-									<div className="flex justify-end absolute z-50 right-6 top-10">
+									<div className="flex justify-end absolute z-50 right-6 top-8">
 										<Button
+											className="shadow-sm"
 											variant="secondary"
 											type="button"
 											onClick={async () => {

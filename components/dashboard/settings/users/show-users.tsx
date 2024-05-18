@@ -47,7 +47,7 @@ export const ShowUsers = () => {
 										key={user.userId}
 										className="flex gap-2 flex-col justify-start border p-4 rounded-lg"
 									>
-										<span className="text-sm text-muted-foreground">
+										<span className="text-sm text-foreground">
 											{user.auth.email}
 										</span>
 										{!user.isRegistered && (

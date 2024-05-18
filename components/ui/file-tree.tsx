@@ -165,7 +165,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 														aria-hidden="true"
 													/>
 												)}
-												<span className="text-sm truncate">{item.name}</span>
+												<span className="text-sm truncate font-mono">{item.name}</span>
 											</AccordionTrigger>
 											<AccordionContent className="pl-6">
 												{item.children.length === 0 && (
@@ -244,7 +244,7 @@ const Leaf = React.forwardRef<
 					aria-hidden="true"
 				/>
 			)}
-			<p className=" text-sm whitespace-normal">{item.name}</p>
+			<p className=" text-sm whitespace-normal font-mono">{item.name}</p>
 		</div>
 	);
 });

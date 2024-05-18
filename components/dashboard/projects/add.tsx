@@ -19,8 +19,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -85,14 +86,7 @@ export const AddProject = () => {
 					<DialogTitle>Add a project</DialogTitle>
 					<DialogDescription>The home of something big!</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
 						id="hook-form-add-project"
