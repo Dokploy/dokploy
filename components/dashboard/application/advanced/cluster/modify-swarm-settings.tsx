@@ -314,6 +314,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"Retries" : 10
 }`}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -366,6 +367,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"Window" : 10000
 }                                                  `}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -430,6 +432,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	}]
 }                                                `}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -486,6 +489,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"Order" : "start-first"
 }`}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -542,6 +546,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"Order" : "start-first"
 }`}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -604,6 +609,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"GlobalJob" : {}
 }`}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
@@ -650,6 +656,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"com.example.app.version" : "1.0.0"
 }`}
 											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
