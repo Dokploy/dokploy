@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import { Server } from "lucide-react";
+import { AddSwarmSettings } from "./modify-swarm-settings";
 
 interface Props {
 	applicationId: string;
@@ -102,6 +103,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 						Add the registry and the replicas of the application
 					</CardDescription>
 				</div>
+				<AddSwarmSettings applicationId={applicationId} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<Form {...form}>
@@ -186,6 +188,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 								/>
 							</>
 						)}
+
 						<div className="flex justify-end">
 							<Button isLoading={isLoading} type="submit" className="w-fit">
 								Save

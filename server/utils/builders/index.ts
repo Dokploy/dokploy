@@ -5,6 +5,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -72,7 +73,6 @@ export const mechanizeDockerContainer = async (
 		cpuReservation,
 		command,
 		ports,
-		replicas,
 	} = application;
 
 	const resources = calculateResources({
@@ -83,13 +83,29 @@ export const mechanizeDockerContainer = async (
 	});
 
 	const volumesMount = generateVolumeMounts(mounts);
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+	} = generateConfigContainer(application);
+
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
 	const envVariables = prepareEnvironmentVariables(env);
 
 	const registry = application.registry;
 
-	let image = sourceType === "docker" ? dockerImage! : `${appName}:latest`;
+	console.log(Labels);
+
+	let image =
+		sourceType === "docker"
+			? dockerImage || "ERROR-NO-IMAGE-PROVIDED"
+			: `${appName}:latest`;
 
 	if (registry) {
 		image = `${registry.registryUrl}/${appName}`;
@@ -108,6 +124,7 @@ export const mechanizeDockerContainer = async (
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
@@ -117,20 +134,18 @@ export const mechanizeDockerContainer = async (
 							Args: ["-c", command],
 						}
 					: {}),
+				Labels,
 			},
 			Networks: [{ Target: "dokploy-network" }],
-			RestartPolicy: {
-				Condition: "on-failure",
-			},
+			RestartPolicy,
+			Placement,
+
 			Resources: {
 				...resources,
 			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: replicas,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Ports: ports.map((port) => ({
 				Protocol: port.protocol,
@@ -138,10 +153,7 @@ export const mechanizeDockerContainer = async (
 				PublishedPort: port.publishedPort,
 			})),
 		},
-		UpdateConfig: {
-			Parallelism: 1,
-			Order: "start-first",
-		},
+		UpdateConfig,
 	};
 
 	try {
@@ -156,7 +168,7 @@ export const mechanizeDockerContainer = async (
 			},
 		});
 	} catch (error) {
+		console.log(error);
 		await docker.createService(settings);
 	}
-	// await cleanUpUnusedImages();
 };

@@ -85,6 +85,13 @@
       "when": 1715574230599,
       "tag": "0011_petite_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1716015716708,
+      "tag": "0012_chubby_umar",
+      "breakpoints": true
     }
   ]
 }

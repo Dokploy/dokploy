@@ -10,7 +10,14 @@ import { projects } from "./project";
 import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { ports } from "./port";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	json,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { generateAppName } from "./utils";
 import { registry } from "./registry";
 
@@ -22,6 +29,58 @@ export const buildType = pgEnum("buildType", [
 	"paketo_buildpacks",
 	"nixpacks",
 ]);
+
+interface HealthCheckSwarm {
+	Test?: string[] | undefined;
+	Interval?: number | undefined;
+	Timeout?: number | undefined;
+	StartPeriod?: number | undefined;
+	Retries?: number | undefined;
+}
+
+interface RestartPolicySwarm {
+	Condition?: string | undefined;
+	Delay?: number | undefined;
+	MaxAttempts?: number | undefined;
+	Window?: number | undefined;
+}
+
+interface PlacementSwarm {
+	Constraints?: string[] | undefined;
+	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
+	MaxReplicas?: number | undefined;
+	Platforms?:
+		| Array<{
+				Architecture: string;
+				OS: string;
+		  }>
+		| undefined;
+}
+
+interface UpdateConfigSwarm {
+	Parallelism: number;
+	Delay?: number | undefined;
+	FailureAction?: string | undefined;
+	Monitor?: number | undefined;
+	MaxFailureRatio?: number | undefined;
+	Order: string;
+}
+
+interface ServiceModeSwarm {
+	Replicated?: { Replicas?: number | undefined } | undefined;
+	Global?: {} | undefined;
+	ReplicatedJob?:
+		| {
+				MaxConcurrent?: number | undefined;
+				TotalCompletions?: number | undefined;
+		  }
+		| undefined;
+	GlobalJob?: {} | undefined;
+}
+
+interface LabelsSwarm {
+	[name: string]: string;
+}
 
 export const applications = pgTable("application", {
 	applicationId: text("applicationId")
@@ -61,6 +120,15 @@ export const applications = pgTable("application", {
 	customGitBuildPath: text("customGitBuildPath"),
 	customGitSSHKey: text("customGitSSHKey"),
 	dockerfile: text("dockerfile"),
+	// Docker swarm json
+	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
+	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
+	placementSwarm: json("placementSwarm").$type<PlacementSwarm>(),
+	updateConfigSwarm: json("updateConfigSwarm").$type<UpdateConfigSwarm>(),
+	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
+	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
+	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()

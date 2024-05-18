@@ -122,10 +122,10 @@ export const cleanUpInactiveContainers = async () => {
 
 		for (const container of inactiveContainers) {
 			await docker.getContainer(container.Id).remove({ force: true });
-			console.log(`Contenedor eliminado: ${container.Id}`);
+			console.log(`Cleaning up inactive container: ${container.Id}`);
 		}
 	} catch (error) {
-		console.error("Error al limpiar contenedores inactivos:", error);
+		console.error("Error cleaning up inactive containers:", error);
 		throw error;
 	}
 };
@@ -196,6 +196,88 @@ export const calculateResources = ({
 				? (cpuReservation || 1) * 1000 * 1000 * 1000
 				: undefined,
 		},
+	};
+};
+
+export const generateConfigContainer = (application: ApplicationNested) => {
+	const { replicas, mounts } = application;
+
+	const healthCheckSwarm = JSON.parse(
+		(application.healthCheckSwarm as string) || "{}",
+	);
+	const restartPolicySwarm = JSON.parse(
+		(application.restartPolicySwarm as string) || "{}",
+	);
+	const placementSwarm = JSON.parse(
+		(application.placementSwarm as string) || "{}",
+	);
+
+	const updateConfigSwarm = JSON.parse(
+		(application.updateConfigSwarm as unknown as string) || "{}",
+	);
+
+	const rollbackConfigSwarm = JSON.parse(
+		(application.rollbackConfigSwarm as unknown as string) || "{}",
+	);
+	const modeSwarm = JSON.parse((application.modeSwarm as string) || "{}");
+
+	const labelsSwarm = JSON.parse(
+		(application.labelsSwarm as unknown as string) || "{}",
+	);
+
+	const haveMounts = mounts.length > 0;
+
+	return {
+		...(healthCheckSwarm && {
+			HealthCheck: healthCheckSwarm,
+		}),
+		...(restartPolicySwarm
+			? {
+					RestartPolicy: restartPolicySwarm,
+				}
+			: {
+					// if no restartPolicySwarm provided use default
+					RestartPolicy: {
+						Condition: "on-failure",
+					},
+				}),
+		...(placementSwarm
+			? {
+					Placement: placementSwarm,
+				}
+			: {
+					// if app have mounts keep manager as constraint
+					Placement: {
+						Constraints: haveMounts ? ["node.role==manager"] : [],
+					},
+				}),
+		...(labelsSwarm && {
+			Labels: labelsSwarm,
+		}),
+		...(modeSwarm
+			? {
+					Mode: modeSwarm,
+				}
+			: {
+					// use replicas value if no modeSwarm provided
+					Mode: {
+						Replicated: {
+							Replicas: replicas,
+						},
+					},
+				}),
+		...(rollbackConfigSwarm && {
+			RollbackConfig: rollbackConfigSwarm,
+		}),
+		...(updateConfigSwarm
+			? { UpdateConfig: updateConfigSwarm }
+			: {
+					// default config if no updateConfigSwarm provided
+					UpdateConfig: {
+						Parallelism: 1,
+						Order: "start-first",
+					},
+				}),
 	};
 };
 
