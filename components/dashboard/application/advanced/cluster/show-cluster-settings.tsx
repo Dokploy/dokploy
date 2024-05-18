@@ -80,7 +80,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
 			applicationId,
-			registryId: data?.registryId,
+			registryId: data?.registryId === "none" ? null : data?.registryId,
 			replicas: data?.replicas,
 		})
 			.then(async () => {
@@ -177,6 +177,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 																{registry.registryName}
 															</SelectItem>
 														))}
+														<SelectItem value={"none"}>None</SelectItem>
 														<SelectLabel>
 															Registries ({registries?.length})
 														</SelectLabel>
