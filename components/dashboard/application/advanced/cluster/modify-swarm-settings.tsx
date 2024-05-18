@@ -101,35 +101,6 @@ const ServiceModeSwarmSchema = z.object({
 
 const LabelsSwarmSchema = z.record(z.string());
 
-// const stringToJSONSchema = z
-// 	.string()
-// 	.transform((str, ctx) => {
-// 		try {
-// 			return JSON.parse(str);
-// 		} catch (e) {
-// 			ctx.addIssue({ code: "custom", message: "Invalid JSON format" });
-// 			return z.NEVER;
-// 		}
-// 	})
-// 	.superRefine((data, ctx) => {
-// 		const parseResult = HealthCheckSwarmSchema.safeParse(data);
-// 		if (!parseResult.success) {
-// for (const error of parseResult.error.issues) {
-// 	const path = error.path.join(".");
-// 	ctx.addIssue({
-// 		code: z.ZodIssueCode.custom,
-// 		message: `${path} ${error.message}`,
-// 	});
-// }
-// 			// parseResult.error.errors.forEach((error) => {
-// 			// 	const path = error.path.join(".");
-// 			// 	ctx.addIssue({
-// 			// 		code: z.ZodIssueCode.custom,
-// 			// 		message: `${path} ${error.message}`,
-// 			// 	});
-// 			// });
-// 		}
-// 	});
 const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 	return z
 		.string()

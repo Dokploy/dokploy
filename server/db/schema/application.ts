@@ -30,6 +30,7 @@ export const buildType = pgEnum("buildType", [
 	"nixpacks",
 ]);
 
+// TODO: refactor this types
 interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
