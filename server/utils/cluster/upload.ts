@@ -24,7 +24,7 @@ export const uploadImage = async (
 			: registryUrl;
 
 	const registryTag = imagePrefix
-		? `${registryUrl}/${imagePrefix}/${imageName}`
+		? `${finalURL}/${imagePrefix}/${imageName}`
 		: `${finalURL}/${imageName}`;
 
 	try {
@@ -59,3 +59,7 @@ export const uploadImage = async (
 		throw error;
 	}
 };
+// docker:
+// endpoint: "unix:///var/run/docker.sock"
+// exposedByDefault: false
+// swarmMode: true

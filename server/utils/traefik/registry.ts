@@ -44,11 +44,6 @@ const createRegistryRouterConfig = async (registry: Registry) => {
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${registryUrl}\`)`,
 		service: "dokploy-registry-service",
-		...(process.env.NODE_ENV === "production"
-			? {
-					middlewares: ["redirect-to-https"],
-				}
-			: {}),
 		entryPoints: [
 			"web",
 			...(process.env.NODE_ENV === "production" ? ["websecure"] : []),

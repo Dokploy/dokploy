@@ -28,9 +28,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const AddRegistrySchema = z.object({
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
+	username: z
+		.string()
+		.min(1, {
+			message: "Username is required",
+		})
+		.regex(/^[a-zA-Z0-9]+$/, {
+			message: "Username can only contain letters and numbers",
+		}),
 	password: z.string().min(1, {
 		message: "Password is required",
 	}),
@@ -49,18 +54,18 @@ export const AddSelfHostedRegistry = () => {
 	const router = useRouter();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
-			username: "siumauricio",
-			password: "Password123",
-			registryUrl: "https://registry.dokploy.com",
+			username: "",
+			password: "",
+			registryUrl: "",
 		},
 		resolver: zodResolver(AddRegistrySchema),
 	});
 
 	useEffect(() => {
 		form.reset({
-			registryUrl: "https://registry.dokploy.com",
-			username: "siumauricio",
-			password: "Password123",
+			registryUrl: "",
+			username: "",
+			password: "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
