@@ -135,7 +135,7 @@ const Service = (
 						<TabsTrigger value="domains">Domains</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
-					<div className="flex flex-row gap-4">
+					<div className="flex flex-row gap-2">
 						<UpdateApplication applicationId={applicationId} />
 						{(auth?.rol === "admin" || user?.canDeleteServices) && (
 							<DeleteApplication applicationId={applicationId} />

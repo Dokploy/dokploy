@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Props {
 	authId: string;
@@ -24,9 +25,12 @@ export const DeleteUser = ({ authId }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<TrashIcon className="size-4  text-muted-foreground " />
-				</Button>
+				<DropdownMenuItem
+					className="w-full cursor-pointer"
+					onSelect={(e) => e.preventDefault()}
+				>
+					Delete User
+				</DropdownMenuItem>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>

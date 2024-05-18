@@ -23,11 +23,11 @@ import { extractServices } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ListTodo } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 const addPermissions = z.object({
 	accesedProjects: z.array(z.string()).optional(),
@@ -107,9 +107,12 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost">
-					<ListTodo className="size-4  text-muted-foreground " />
-				</Button>
+				<DropdownMenuItem
+					className="w-full cursor-pointer"
+					onSelect={(e) => e.preventDefault()}
+				>
+					Add Permissions
+				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>

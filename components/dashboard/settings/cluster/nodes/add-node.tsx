@@ -27,8 +27,7 @@ export const AddNode = () => {
 					<DialogTitle>Add Node</DialogTitle>
 					<DialogDescription className="flex flex-col gap-2">
 						Follow the steps to add a new node to your cluster, before you start
-						working with this feature, you need to understand how docker swarm
-						works.{" "}
+						using this feature, you need to understand how docker swarm works.{" "}
 						<Link
 							href="https://docs.docker.com/engine/swarm/"
 							target="_blank"

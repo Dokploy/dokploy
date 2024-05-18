@@ -52,16 +52,16 @@ export const ShowRegistry = () => {
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
 							{data?.map((registry, index) => (
 								<div
 									key={registry.registryId}
-									className="flex items-center justify-between border p-4 rounded-lg hover:bg-muted cursor-pointer"
+									className="flex items-center justify-between border p-4 rounded-lg"
 								>
 									<span className="text-sm text-muted-foreground">
 										{index + 1}. {registry.registryName}
 									</span>
-									<div className="flex flex-row gap-3">
+									<div className="flex flex-row gap-1">
 										<UpdateDockerRegistry registryId={registry.registryId} />
 										<DeleteRegistry registryId={registry.registryId} />
 									</div>
