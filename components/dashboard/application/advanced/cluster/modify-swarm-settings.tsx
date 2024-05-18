@@ -25,7 +25,13 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings } from "lucide-react";
+import { HelpCircle, Settings } from "lucide-react";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -269,9 +275,34 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Health Check</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Test?: string[] | undefined;
+	Interval?: number | undefined;
+	Timeout?: number | undefined;
+	StartPeriod?: number | undefined;
+	Retries?: number | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;] min-h-[11.2rem]"
@@ -298,10 +329,33 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Restart Policy</FormLabel>
-									<FormDescription className="break-all">
-										{/* {path} */}
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Condition?: string | undefined;
+	Delay?: number | undefined;
+	MaxAttempts?: number | undefined;
+	Window?: number | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;]  min-h-[11.2rem]"
@@ -327,9 +381,38 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Placement</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Constraints?: string[] | undefined;
+	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
+	MaxReplicas?: number | undefined;
+	Platforms?:
+		| Array<{
+				Architecture: string;
+				OS: string;
+		  }>
+		| undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;]  min-h-[18.7rem]"
@@ -362,9 +445,35 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Update Config</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Parallelism?: number;
+	Delay?: number | undefined;
+	FailureAction?: string | undefined;
+	Monitor?: number | undefined;
+	MaxFailureRatio?: number | undefined;
+	Order: string;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;] min-h-[18.7rem]"
@@ -392,9 +501,35 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Rollback Config</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Parallelism?: number;
+	Delay?: number | undefined;
+	FailureAction?: string | undefined;
+	Monitor?: number | undefined;
+	MaxFailureRatio?: number | undefined;
+	Order: string;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
@@ -422,9 +557,38 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Mode</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="center"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Replicated?: { Replicas?: number | undefined } | undefined;
+	Global?: {} | undefined;
+	ReplicatedJob?:
+		| {
+				MaxConcurrent?: number | undefined;
+				TotalCompletions?: number | undefined;
+		  }
+		| undefined;
+	GlobalJob?: {} | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
@@ -455,9 +619,29 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Labels</FormLabel>
-									<FormDescription className="break-all">
-										Check the interface
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	[name: string]: string;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;]"
