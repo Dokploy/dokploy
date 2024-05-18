@@ -210,6 +210,7 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 		labelsSwarm,
 		replicas,
 		mounts,
+		networkSwarm,
 	} = application;
 
 	const haveMounts = mounts.length > 0;
@@ -264,6 +265,13 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 						Parallelism: 1,
 						Order: "start-first",
 					},
+				}),
+		...(networkSwarm
+			? {
+					Networks: networkSwarm,
+				}
+			: {
+					Networks: [{ Target: "dokploy-network" }],
 				}),
 	};
 };

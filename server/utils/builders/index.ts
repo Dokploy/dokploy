@@ -73,6 +73,7 @@ export const mechanizeDockerContainer = async (
 		cpuReservation,
 		command,
 		ports,
+		networkSwarm,
 	} = application;
 
 	const resources = calculateResources({
@@ -92,6 +93,7 @@ export const mechanizeDockerContainer = async (
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
+		Networks,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -134,7 +136,7 @@ export const mechanizeDockerContainer = async (
 					: {}),
 				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
 			RestartPolicy,
 			Placement,
 			Resources: {

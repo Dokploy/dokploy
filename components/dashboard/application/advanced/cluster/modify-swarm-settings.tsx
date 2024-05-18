@@ -109,6 +109,16 @@ const ServiceModeSwarmSchema = z
 	})
 	.strict();
 
+const NetworkSwarmSchema = z.array(
+	z
+		.object({
+			Target: z.string().optional(),
+			Aliases: z.array(z.string()).optional(),
+			DriverOpts: z.object({}).optional(),
+		})
+		.strict(),
+);
+
 const LabelsSwarmSchema = z.record(z.string());
 
 const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
@@ -165,6 +175,7 @@ const addSwarmSettings = z.object({
 	).nullable(),
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
+	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -195,6 +206,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			rollbackConfigSwarm: null,
 			modeSwarm: null,
 			labelsSwarm: null,
+			networkSwarm: null,
 		},
 		resolver: zodResolver(addSwarmSettings),
 	});
@@ -223,6 +235,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 				labelsSwarm: data.labelsSwarm
 					? JSON.stringify(data.labelsSwarm, null, 2)
 					: null,
+				networkSwarm: data.networkSwarm
+					? JSON.stringify(data.networkSwarm, null, 2)
+					: null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -237,6 +252,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			rollbackConfigSwarm: data.rollbackConfigSwarm,
 			modeSwarm: data.modeSwarm,
 			labelsSwarm: data.labelsSwarm,
+			networkSwarm: data.networkSwarm,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -618,12 +634,69 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
-
+						<FormField
+							control={form.control}
+							name="networkSwarm"
+							render={({ field }) => (
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+									<FormLabel>Network</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`[
+  {
+	"Target" : string | undefined;
+	"Aliases" : string[] | undefined;
+	"DriverOpts" : { [key: string]: string } | undefined;
+  }
+]`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+									<FormControl>
+										<Textarea
+											className="font-mono [field-sizing:content;] min-h-[18.5rem]"
+											placeholder={`[
+ {
+	"Target" : "dokploy-network",
+	"Aliases" : ["dokploy-network"],
+	"DriverOpts" : {
+		"com.docker.network.driver.mtu" : "1500",
+		"com.docker.network.driver.host_binding" : "true",
+		"com.docker.network.driver.mtu" : "1500",
+		"com.docker.network.driver.host_binding" : "true"
+	}
+ }
+]`}
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Labels</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -650,7 +723,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
+											className="font-mono [field-sizing:content;] min-h-[18.5rem]"
 											placeholder={`{
 	"com.example.app.name" : "my-app",
 	"com.example.app.version" : "1.0.0"

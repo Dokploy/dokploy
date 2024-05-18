@@ -79,6 +79,12 @@ interface ServiceModeSwarm {
 	GlobalJob?: {} | undefined;
 }
 
+interface NetworkSwarm {
+	Target?: string | undefined;
+	Aliases?: string[] | undefined;
+	DriverOpts?: { [key: string]: string } | undefined;
+}
+
 interface LabelsSwarm {
 	[name: string]: string;
 }
@@ -129,6 +135,7 @@ export const applications = pgTable("application", {
 	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -242,6 +249,16 @@ const ServiceModeSwarmSchema = z
 	})
 	.strict();
 
+const NetworkSwarmSchema = z.array(
+	z
+		.object({
+			Target: z.string().optional(),
+			Aliases: z.array(z.string()).optional(),
+			DriverOpts: z.object({}).optional(),
+		})
+		.strict(),
+);
+
 const LabelsSwarmSchema = z.record(z.string());
 
 const createSchema = createInsertSchema(applications, {
@@ -287,61 +304,7 @@ const createSchema = createInsertSchema(applications, {
 	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
-	// restartPolicySwarm: z
-	// 	.object({
-	// 		Condition: z.string().optional(),
-	// 		Delay: z.number().optional(),
-	// 		MaxAttempts: z.number().optional(),
-	// 		Window: z.number().optional(),
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
-	// placementSwarm: z
-	// 	.object({
-	// 		Constraints: z.array(z.string()).optional(),
-	// 		Preferences: z.array(PreferenceSchema).optional(),
-	// 		MaxReplicas: z.number().optional(),
-	// 		Platforms: z.array(PlatformSchema).optional(),
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
-	// updateConfigSwarm: z
-	// 	.object({
-	// 		Parallelism: z.number(),
-	// 		Delay: z.number().optional(),
-	// 		FailureAction: z.string().optional(),
-	// 		Monitor: z.number().optional(),
-	// 		MaxFailureRatio: z.number().optional(),
-	// 		Order: z.string(),
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
-	// rollbackConfigSwarm: z
-	// 	.object({
-	// 		Parallelism: z.number(),
-	// 		Delay: z.number().optional(),
-	// 		FailureAction: z.string().optional(),
-	// 		Monitor: z.number().optional(),
-	// 		MaxFailureRatio: z.number().optional(),
-	// 		Order: z.string(),
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
-	// modeSwarm: z
-	// 	.object({
-	// 		Replicated: ReplicatedSchema.optional(),
-	// 		Global: z.object({}).optional(),
-	// 		ReplicatedJob: ReplicatedJobSchema.optional(),
-	// 		GlobalJob: z.object({}).optional(),
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
-	// labelsSwarm: z
-	// 	.object({
-
-	// 	})
-	// 	.strict()
-	// 	.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
