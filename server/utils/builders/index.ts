@@ -100,8 +100,6 @@ export const mechanizeDockerContainer = async (
 
 	const registry = application.registry;
 
-	console.log(Labels);
-
 	let image =
 		sourceType === "docker"
 			? dockerImage || "ERROR-NO-IMAGE-PROVIDED"
@@ -139,7 +137,6 @@ export const mechanizeDockerContainer = async (
 			Networks: [{ Target: "dokploy-network" }],
 			RestartPolicy,
 			Placement,
-
 			Resources: {
 				...resources,
 			},

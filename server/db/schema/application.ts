@@ -166,6 +166,84 @@ export const applicationsRelations = relations(
 	}),
 );
 
+const HealthCheckSwarmSchema = z
+	.object({
+		Test: z.array(z.string()).optional(),
+		Interval: z.number().optional(),
+		Timeout: z.number().optional(),
+		StartPeriod: z.number().optional(),
+		Retries: z.number().optional(),
+	})
+	.strict();
+
+const RestartPolicySwarmSchema = z
+	.object({
+		Condition: z.string().optional(),
+		Delay: z.number().optional(),
+		MaxAttempts: z.number().optional(),
+		Window: z.number().optional(),
+	})
+	.strict();
+
+const PreferenceSchema = z
+	.object({
+		Spread: z.object({
+			SpreadDescriptor: z.string(),
+		}),
+	})
+	.strict();
+
+const PlatformSchema = z
+	.object({
+		Architecture: z.string(),
+		OS: z.string(),
+	})
+	.strict();
+
+const PlacementSwarmSchema = z
+	.object({
+		Constraints: z.array(z.string()).optional(),
+		Preferences: z.array(PreferenceSchema).optional(),
+		MaxReplicas: z.number().optional(),
+		Platforms: z.array(PlatformSchema).optional(),
+	})
+	.strict();
+
+const UpdateConfigSwarmSchema = z
+	.object({
+		Parallelism: z.number(),
+		Delay: z.number().optional(),
+		FailureAction: z.string().optional(),
+		Monitor: z.number().optional(),
+		MaxFailureRatio: z.number().optional(),
+		Order: z.string(),
+	})
+	.strict();
+
+const ReplicatedSchema = z
+	.object({
+		Replicas: z.number().optional(),
+	})
+	.strict();
+
+const ReplicatedJobSchema = z
+	.object({
+		MaxConcurrent: z.number().optional(),
+		TotalCompletions: z.number().optional(),
+	})
+	.strict();
+
+const ServiceModeSwarmSchema = z
+	.object({
+		Replicated: ReplicatedSchema.optional(),
+		Global: z.object({}).optional(),
+		ReplicatedJob: ReplicatedJobSchema.optional(),
+		GlobalJob: z.object({}).optional(),
+	})
+	.strict();
+
+const LabelsSwarmSchema = z.record(z.string());
+
 const createSchema = createInsertSchema(applications, {
 	appName: z.string(),
 	createdAt: z.string(),
@@ -202,6 +280,68 @@ const createSchema = createInsertSchema(applications, {
 		"nixpacks",
 	]),
 	owner: z.string(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	// restartPolicySwarm: z
+	// 	.object({
+	// 		Condition: z.string().optional(),
+	// 		Delay: z.number().optional(),
+	// 		MaxAttempts: z.number().optional(),
+	// 		Window: z.number().optional(),
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
+	// placementSwarm: z
+	// 	.object({
+	// 		Constraints: z.array(z.string()).optional(),
+	// 		Preferences: z.array(PreferenceSchema).optional(),
+	// 		MaxReplicas: z.number().optional(),
+	// 		Platforms: z.array(PlatformSchema).optional(),
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
+	// updateConfigSwarm: z
+	// 	.object({
+	// 		Parallelism: z.number(),
+	// 		Delay: z.number().optional(),
+	// 		FailureAction: z.string().optional(),
+	// 		Monitor: z.number().optional(),
+	// 		MaxFailureRatio: z.number().optional(),
+	// 		Order: z.string(),
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
+	// rollbackConfigSwarm: z
+	// 	.object({
+	// 		Parallelism: z.number(),
+	// 		Delay: z.number().optional(),
+	// 		FailureAction: z.string().optional(),
+	// 		Monitor: z.number().optional(),
+	// 		MaxFailureRatio: z.number().optional(),
+	// 		Order: z.string(),
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
+	// modeSwarm: z
+	// 	.object({
+	// 		Replicated: ReplicatedSchema.optional(),
+	// 		Global: z.object({}).optional(),
+	// 		ReplicatedJob: ReplicatedJobSchema.optional(),
+	// 		GlobalJob: z.object({}).optional(),
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
+	// labelsSwarm: z
+	// 	.object({
+
+	// 	})
+	// 	.strict()
+	// 	.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({

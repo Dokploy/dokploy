@@ -200,30 +200,17 @@ export const calculateResources = ({
 };
 
 export const generateConfigContainer = (application: ApplicationNested) => {
-	const { replicas, mounts } = application;
-
-	const healthCheckSwarm = JSON.parse(
-		(application.healthCheckSwarm as string) || "{}",
-	);
-	const restartPolicySwarm = JSON.parse(
-		(application.restartPolicySwarm as string) || "{}",
-	);
-	const placementSwarm = JSON.parse(
-		(application.placementSwarm as string) || "{}",
-	);
-
-	const updateConfigSwarm = JSON.parse(
-		(application.updateConfigSwarm as unknown as string) || "{}",
-	);
-
-	const rollbackConfigSwarm = JSON.parse(
-		(application.rollbackConfigSwarm as unknown as string) || "{}",
-	);
-	const modeSwarm = JSON.parse((application.modeSwarm as string) || "{}");
-
-	const labelsSwarm = JSON.parse(
-		(application.labelsSwarm as unknown as string) || "{}",
-	);
+	const {
+		healthCheckSwarm,
+		restartPolicySwarm,
+		placementSwarm,
+		updateConfigSwarm,
+		rollbackConfigSwarm,
+		modeSwarm,
+		labelsSwarm,
+		replicas,
+		mounts,
+	} = application;
 
 	const haveMounts = mounts.length > 0;
 

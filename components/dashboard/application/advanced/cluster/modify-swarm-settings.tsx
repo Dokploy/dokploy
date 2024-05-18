@@ -70,14 +70,16 @@ const PlacementSwarmSchema = z
 	})
 	.strict();
 
-const UpdateConfigSwarmSchema = z.object({
-	Parallelism: z.number(),
-	Delay: z.number().optional(),
-	FailureAction: z.string().optional(),
-	Monitor: z.number().optional(),
-	MaxFailureRatio: z.number().optional(),
-	Order: z.string(),
-});
+const UpdateConfigSwarmSchema = z
+	.object({
+		Parallelism: z.number(),
+		Delay: z.number().optional(),
+		FailureAction: z.string().optional(),
+		Monitor: z.number().optional(),
+		MaxFailureRatio: z.number().optional(),
+		Order: z.string(),
+	})
+	.strict();
 
 const ReplicatedSchema = z
 	.object({
@@ -92,12 +94,14 @@ const ReplicatedJobSchema = z
 	})
 	.strict();
 
-const ServiceModeSwarmSchema = z.object({
-	Replicated: ReplicatedSchema.optional(),
-	Global: z.object({}).optional(),
-	ReplicatedJob: ReplicatedJobSchema.optional(),
-	GlobalJob: z.object({}).optional(),
-});
+const ServiceModeSwarmSchema = z
+	.object({
+		Replicated: ReplicatedSchema.optional(),
+		Global: z.object({}).optional(),
+		ReplicatedJob: ReplicatedJobSchema.optional(),
+		GlobalJob: z.object({}).optional(),
+	})
+	.strict();
 
 const LabelsSwarmSchema = z.record(z.string());
 
@@ -191,40 +195,42 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
-			console.log(data.healthCheckSwarm, null);
 			form.reset({
-				healthCheckSwarm: data.healthCheckSwarm || null,
-				restartPolicySwarm: data.restartPolicySwarm || null,
-				placementSwarm: data.placementSwarm || null,
-				updateConfigSwarm: data.updateConfigSwarm || null,
-				rollbackConfigSwarm: data.rollbackConfigSwarm || null,
-				modeSwarm: data.modeSwarm || null,
-				labelsSwarm: data.labelsSwarm || null,
+				healthCheckSwarm: data.healthCheckSwarm
+					? JSON.stringify(data.healthCheckSwarm, null, 2)
+					: null,
+				restartPolicySwarm: data.restartPolicySwarm
+					? JSON.stringify(data.restartPolicySwarm, null, 2)
+					: null,
+				placementSwarm: data.placementSwarm
+					? JSON.stringify(data.placementSwarm, null, 2)
+					: null,
+				updateConfigSwarm: data.updateConfigSwarm
+					? JSON.stringify(data.updateConfigSwarm, null, 2)
+					: null,
+				rollbackConfigSwarm: data.rollbackConfigSwarm
+					? JSON.stringify(data.rollbackConfigSwarm, null, 2)
+					: null,
+				modeSwarm: data.modeSwarm
+					? JSON.stringify(data.modeSwarm, null, 2)
+					: null,
+				labelsSwarm: data.labelsSwarm
+					? JSON.stringify(data.labelsSwarm, null, 2)
+					: null,
 			});
 		}
-	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
+	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: AddSwarmSettings) => {
-		console.log(data.restartPolicySwarm);
 		await mutateAsync({
 			applicationId,
-			healthCheckSwarm: data.healthCheckSwarm
-				? JSON.stringify(data.healthCheckSwarm)
-				: null,
-			restartPolicySwarm: data.restartPolicySwarm
-				? JSON.stringify(data.restartPolicySwarm)
-				: null,
-			placementSwarm: data.placementSwarm
-				? JSON.stringify(data.placementSwarm)
-				: null,
-			updateConfigSwarm: data.updateConfigSwarm
-				? JSON.stringify(data.updateConfigSwarm)
-				: null,
-			rollbackConfigSwarm: data.rollbackConfigSwarm
-				? JSON.stringify(data.rollbackConfigSwarm)
-				: null,
-			modeSwarm: data.modeSwarm ? JSON.stringify(data.modeSwarm) : null,
-			labelsSwarm: data.labelsSwarm ? JSON.stringify(data.labelsSwarm) : null,
+			healthCheckSwarm: data.healthCheckSwarm,
+			restartPolicySwarm: data.restartPolicySwarm,
+			placementSwarm: data.placementSwarm,
+			updateConfigSwarm: data.updateConfigSwarm,
+			rollbackConfigSwarm: data.rollbackConfigSwarm,
+			modeSwarm: data.modeSwarm,
+			labelsSwarm: data.labelsSwarm,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -242,8 +248,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-4xl">
-				<DialogHeader>
+			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
+				<DialogHeader className="p-6">
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
 						Update certain settings using a json object.
@@ -255,22 +261,27 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4"
+						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
 					>
 						<FormField
 							control={form.control}
 							name="healthCheckSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Health Check</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;] min-h-[11.2rem]"
+											placeholder={`{
+	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
+	"Interval" : 10000,
+	"Timeout" : 10000,
+	"StartPeriod" : 10000,
+	"Retries" : 10
+}`}
 											{...field}
 										/>
 									</FormControl>
@@ -285,7 +296,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="restartPolicySwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Restart Policy</FormLabel>
 									<FormDescription className="break-all">
 										{/* {path} */}
@@ -293,9 +304,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;]  min-h-[11.2rem]"
+											placeholder={`{
+	"Condition" : "on-failure",
+	"Delay" : 10000,
+	"MaxAttempts" : 10,
+	"Window" : 10000
+}                                                  `}
 											{...field}
 										/>
 									</FormControl>
@@ -310,16 +325,27 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="placementSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Placement</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;]  min-h-[18.7rem]"
+											placeholder={`{
+	"Constraints" : ["node.role==manager"],
+	"Preferences" : [{
+		"Spread" : {
+			"SpreadDescriptor" : "node.labels.region"
+		}
+	}],
+	"MaxReplicas" : 10,
+	"Platforms" : [{
+		"Architecture" : "amd64",
+		"OS" : "linux"
+	}]
+}                                                `}
 											{...field}
 										/>
 									</FormControl>
@@ -334,16 +360,22 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="updateConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Update Config</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;] min-h-[18.7rem]"
+											placeholder={`{
+	"Parallelism" : 1,
+	"Delay" : 10000,
+	"FailureAction" : "continue",
+	"Monitor" : 10000,
+	"MaxFailureRatio" : 10,
+	"Order" : "start-first"
+}`}
 											{...field}
 										/>
 									</FormControl>
@@ -358,16 +390,22 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Rollback Config</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
+											placeholder={`{
+	"Parallelism" : 1,
+	"Delay" : 10000,
+	"FailureAction" : "continue",
+	"Monitor" : 10000,
+	"MaxFailureRatio" : 10,
+	"Order" : "start-first"
+}`}
 											{...field}
 										/>
 									</FormControl>
@@ -382,16 +420,25 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="modeSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Mode</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
 									</FormDescription>
 									<FormControl>
 										<Textarea
-											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
+											placeholder={`{
+	"Replicated" : {
+		"Replicas" : 1
+	},
+	"Global" : {},
+	"ReplicatedJob" : {
+		"MaxConcurrent" : 1,
+		"TotalCompletions" : 1
+	},
+	"GlobalJob" : {}
+}`}
 											{...field}
 										/>
 									</FormControl>
@@ -406,7 +453,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative">
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Labels</FormLabel>
 									<FormDescription className="break-all">
 										Check the interface
@@ -414,8 +461,10 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									<FormControl>
 										<Textarea
 											className="font-mono [field-sizing:content;]"
-											placeholder={`
-                                                    `}
+											placeholder={`{
+	"com.example.app.name" : "my-app",
+	"com.example.app.version" : "1.0.0"
+}`}
 											{...field}
 										/>
 									</FormControl>
@@ -426,7 +475,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							)}
 						/>
 
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2">
+						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"
