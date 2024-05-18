@@ -22,7 +22,7 @@ export const ShowRegistry = () => {
 	return (
 		<div className="h-full">
 			<Card className="bg-transparent h-full">
-				<CardHeader className="flex flex-row gap-2 justify-between w-full items-center">
+				<CardHeader className="flex flex-row gap-2 flex-wrap justify-between w-full items-center">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl">Registry</CardTitle>
 						<CardDescription>Add registry to your application.</CardDescription>

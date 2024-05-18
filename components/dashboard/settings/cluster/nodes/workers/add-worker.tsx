@@ -1,47 +1,61 @@
-import { Button } from "@/components/ui/button";
+import { CardContent } from "@/components/ui/card";
 import {
-	Dialog,
-	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import copy from "copy-to-clipboard";
+import { CopyIcon } from "lucide-react";
+import { toast } from "sonner";
 
 export const AddWorker = () => {
 	const { data } = api.cluster.addWorker.useQuery();
 
 	return (
-		<Dialog>
-			<DialogTrigger asChild>
-				<DropdownMenuItem
-					className="cursor-pointer flex flex-row gap-2 items-center"
-					onSelect={(e) => e.preventDefault()}
-				>
-					Add Worker
-				</DropdownMenuItem>
-			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl max-h-screen overflow-y-auto ">
+		<div>
+			<CardContent className="sm:max-w-4xl max-h-screen overflow-y-auto flex flex-col gap-4 px-0">
 				<DialogHeader>
 					<DialogTitle>Add a new worker</DialogTitle>
 					<DialogDescription>Add a new worker</DialogDescription>
 				</DialogHeader>
-				<div className="flex flex-col gap-4 text-sm">
+				<div className="flex flex-col gap-2.5 text-sm">
 					<span>1. Go to your new server and run the following command</span>
-					<span className="bg-muted rounded-lg p-2">
+					<span className="bg-muted rounded-lg p-2 flex justify-between">
 						curl https://get.docker.com | sh -s -- --version 24.0
+						<button
+							type="button"
+							className="self-center"
+							onClick={() => {
+								copy("curl https://get.docker.com | sh -s -- --version 24.0");
+								toast.success("Copied to clipboard");
+							}}
+						>
+							<CopyIcon className="h-4 w-4 cursor-pointer" />
+						</button>
 					</span>
 				</div>
 
-				<div className="flex flex-col gap-4 text-sm">
+				<div className="flex flex-col gap-2.5 text-sm">
 					<span>
-						2. Run the following command to add the node(server) to your cluster
+						2. Run the following command to add the node(worker) to your cluster
 					</span>
-					<span className="bg-muted rounded-lg p-2 ">{data}</span>
+
+					<span className="bg-muted rounded-lg p-2  flex">
+						{data}
+						<button
+							type="button"
+							className="self-start"
+							onClick={() => {
+								copy(data || "");
+								toast.success("Copied to clipboard");
+							}}
+						>
+							<CopyIcon className="h-4 w-4 cursor-pointer" />
+						</button>
+					</span>
 				</div>
-			</DialogContent>
-		</Dialog>
+			</CardContent>
+		</div>
 	);
 };
