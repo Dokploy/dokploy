@@ -165,7 +165,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 												defaultValue={field.value}
 											>
 												<SelectTrigger>
-													<SelectValue placeholder="Select a container" />
+													<SelectValue placeholder="Select a registry" />
 												</SelectTrigger>
 												<SelectContent>
 													<SelectGroup>

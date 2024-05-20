@@ -73,7 +73,6 @@ export const mechanizeDockerContainer = async (
 		cpuReservation,
 		command,
 		ports,
-		networkSwarm,
 	} = application;
 
 	const resources = calculateResources({
