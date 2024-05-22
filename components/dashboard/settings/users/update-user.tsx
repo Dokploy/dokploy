@@ -18,11 +18,12 @@ import {
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { api } from "@/utils/api";
 
 const updateUserSchema = z.object({
@@ -100,14 +101,7 @@ export const UpdateUser = ({ authId }: Props) => {
 					<DialogTitle>Update User</DialogTitle>
 					<DialogDescription>Update the user</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">

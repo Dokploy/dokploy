@@ -61,7 +61,7 @@ export const Login2FA = ({ authId }: Props) => {
 			id: authId,
 		})
 			.then(() => {
-				toast.success("Signin succesfully", {
+				toast.success("Signin successfully", {
 					duration: 2000,
 				});
 

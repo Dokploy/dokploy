@@ -235,7 +235,7 @@ export const AddDatabase = ({ projectId }: Props) => {
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>
 				{/* {isError && (
-          <div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+          <div className="flex items-center flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
             <AlertTriangle className="text-red-600 dark:text-red-400" />
             <span className="text-sm text-red-600 dark:text-red-400">
               {error?.message}

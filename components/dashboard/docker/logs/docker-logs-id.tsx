@@ -24,11 +24,12 @@ export const DockerLogsId: React.FC<Props> = ({ id, containerId }) => {
 			cols: 80,
 			rows: 30,
 			lineHeight: 1.4,
+			fontWeight: 400,
 
 			convertEol: true,
 			theme: {
 				cursor: "transparent",
-				background: "#19191A",
+				background: "rgba(0, 0, 0, 0)",
 			},
 		});
 
@@ -81,8 +82,8 @@ export const DockerLogsId: React.FC<Props> = ({ id, containerId }) => {
 				/>
 			</div>
 
-			<div className="w-full h-full bg-input rounded-lg p-2 ">
-				<div id={id} className="rounded-xl" />
+			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
+				<div id={id} />
 			</div>
 		</div>
 	);

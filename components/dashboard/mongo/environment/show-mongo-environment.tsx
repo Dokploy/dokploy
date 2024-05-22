@@ -95,7 +95,7 @@ export const ShowMongoEnvironment = ({ mongoId }: Props) => {
 										<FormControl>
 											<Textarea
 												placeholder="MONGO_PASSWORD=1234567678"
-												className="h-96"
+												className="h-96 font-mono"
 												{...field}
 											/>
 										</FormControl>

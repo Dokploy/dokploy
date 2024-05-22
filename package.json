@@ -103,7 +103,6 @@
     "zod": "^3.23.4"
   },
   "devDependencies": {
-    "xterm-readline": "1.1.1",
     "@biomejs/biome": "1.7.1",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",
@@ -125,7 +124,8 @@
     "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "xterm-readline": "1.1.1"
   },
   "ct3aMetadata": {
     "initVersion": "7.25.2"
