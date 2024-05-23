@@ -10,6 +10,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { ComposeFileEditor } from "./compose-file-editor";
 import { ComposeActions } from "./actions";
+import { RandomizeCompose } from "./randomize-compose";
 interface Props {
 	composeId: string;
 }
@@ -33,7 +34,11 @@ export const ShowGeneralCompose = ({ composeId }: Props) => {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-row gap-4 flex-wrap">
-					<Input placeholder="docker stack deploy -c docker-compose.yml dokploy " />
+					<div className="w-full flex flex-col lg:flex-row gap-4">
+						<Input placeholder="docker stack deploy -c docker-compose.yml dokploy " />
+
+						<RandomizeCompose composeId={composeId} />
+					</div>
 					<div className="w-full flex flex-col lg:flex-row gap-4">
 						<ComposeFileEditor composeId={composeId} />
 					</div>

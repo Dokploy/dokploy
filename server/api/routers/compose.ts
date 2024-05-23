@@ -7,6 +7,7 @@ import {
 	createCompose,
 	findComposeById,
 	loadServices,
+	randomizeCompose,
 	updateCompose,
 } from "../services/compose";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -39,6 +40,12 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input }) => {
 			return await loadServices(input.composeId);
+		}),
+
+	randomizeCompose: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input }) => {
+			return await randomizeCompose(input.composeId);
 		}),
 });
 

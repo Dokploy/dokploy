@@ -115,7 +115,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 											}}
 											highlight={highlight}
 											padding={15}
-											className="editor  max-h-[32rem] "
+											className="editor  min-h-[32rem] "
 											preClassName="pre-editor h-full"
 											placeholder={`version: '3'
 services:

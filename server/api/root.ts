@@ -20,6 +20,7 @@ import { securityRouter } from "./routers/security";
 import { portRouter } from "./routers/port";
 import { adminRouter } from "./routers/admin";
 import { dockerRouter } from "./routers/docker";
+import { composeRouter } from "./routers/compose";
 /**
  * This is the primary router for your server.
  *
@@ -47,6 +48,7 @@ export const appRouter = createTRPCRouter({
 	security: securityRouter,
 	redirects: redirectsRouter,
 	port: portRouter,
+	compose: composeRouter,
 });
 
 // export type definition of API

@@ -25,7 +25,8 @@
     "docker:push": "./docker/push.sh",
     "docker:build:canary": "./docker/build.sh canary",
     "docker:push:canary": "./docker/push.sh canary",
-    "version": "echo $(node -p \"require('./package.json').version\")"
+    "version": "echo $(node -p \"require('./package.json').version\")",
+    "test": "vitest --config __test__/vitest.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.515.0",
@@ -107,6 +108,7 @@
     "zod": "^3.23.4"
   },
   "devDependencies": {
+    "vite-tsconfig-paths":"4.3.2",
     "@biomejs/biome": "1.7.1",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",
@@ -129,6 +131,7 @@
     "tailwindcss": "^3.4.1",
     "tsx": "^4.7.0",
     "typescript": "^5.4.2",
+    "vitest": "^1.6.0",
     "xterm-readline": "1.1.1"
   },
   "ct3aMetadata": {

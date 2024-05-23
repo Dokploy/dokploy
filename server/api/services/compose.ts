@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
+import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -45,11 +46,12 @@ export const findComposeById = async (composeId: string) => {
 
 export const loadServices = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
+
 	// use js-yaml to parse the docker compose file and then extact the services
 	const composeFile = compose.composeFile;
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	if (!composeData.services) {
+	if (!composeData?.services) {
 		return ["All Services"];
 	}
 
@@ -71,4 +73,8 @@ export const updateCompose = async (
 		.returning();
 
 	return composeResult[0];
+};
+
+export const randomizeCompose = async (composeId: string) => {
+	return randomizeComposeFile(composeId);
 };
