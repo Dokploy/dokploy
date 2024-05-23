@@ -4,89 +4,72 @@
 // En la sección links de otros servicios: Para crear enlaces entre servicios.
 // En la sección extends de otros servicios: Para extender la configuración de otro servicio.
 
-import type { ComposeSpecification } from "../types";
+import _ from "lodash";
+import type { ComposeSpecification, DefinitionsService } from "../types";
+type DependsOnObject = NonNullable<
+	Exclude<DefinitionsService["depends_on"], string[]> extends infer T
+		? { [K in keyof T]: T[K] }
+		: never
+>;
 
-export const addPrefixToDependsOn = (
-	services: { [key: string]: any },
+export const addPrefixToServiceNames = (
+	services: { [key: string]: DefinitionsService },
 	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceName, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.depends_on) {
-			newServices[serviceName].depends_on = serviceValue.depends_on.map(
-				(dep: string) => `${dep}-${prefix}`,
-			);
-		}
-	}
-	return newServices;
-};
+): { [key: string]: DefinitionsService } => {
+	const newServices: { [key: string]: DefinitionsService } = {};
 
-export const addPrefixToVolumesFrom = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceName, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.volumes_from) {
-			newServices[serviceName].volumes_from = serviceValue.volumes_from.map(
-				(vol: string) => `${vol}-${prefix}`,
-			);
-		}
-	}
-	return newServices;
-};
-
-export const addPrefixToLinks = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceName, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.links) {
-			newServices[serviceName].links = serviceValue.links.map(
-				(link: string) => `${link}-${prefix}`,
-			);
-		}
-	}
-	return newServices;
-};
-
-export const addPrefixToExtends = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceName, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.extends?.service) {
-			newServices[serviceName].extends.service =
-				`${serviceValue.extends.service}-${prefix}`;
-		}
-	}
-	return newServices;
-};
-
-export const addPrefixToServiceNamesRoot = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices: { [key: string]: any } = {};
-	for (const [serviceName, serviceValue] of Object.entries(services)) {
+	for (const [serviceName, serviceConfig] of Object.entries(services)) {
 		const newServiceName = `${serviceName}-${prefix}`;
-		newServices[newServiceName] = serviceValue;
-	}
-	return newServices;
-};
+		const newServiceConfig = _.cloneDeep(serviceConfig);
 
-export const addPrefixToContainerNames = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.container_name) {
-			serviceValue.container_name = `${serviceValue.container_name}-${prefix}`;
+		// Reemplazar nombres de servicios en depends_on
+		if (newServiceConfig.depends_on) {
+			if (Array.isArray(newServiceConfig.depends_on)) {
+				newServiceConfig.depends_on = newServiceConfig.depends_on.map(
+					(dep) => `${dep}-${prefix}`,
+				);
+			} else {
+				const newDependsOn: DependsOnObject = {};
+				for (const [depName, depConfig] of Object.entries(
+					newServiceConfig.depends_on,
+				)) {
+					newDependsOn[`${depName}-${prefix}`] = depConfig;
+				}
+				newServiceConfig.depends_on = newDependsOn;
+			}
 		}
+
+		// Reemplazar nombre en container_name
+		if (newServiceConfig.container_name) {
+			newServiceConfig.container_name = `${newServiceConfig.container_name}-${prefix}`;
+		}
+
+		// Reemplazar nombres de servicios en links
+		if (newServiceConfig.links) {
+			newServiceConfig.links = newServiceConfig.links.map(
+				(link) => `${link}-${prefix}`,
+			);
+		}
+
+		// Reemplazar nombres de servicios en extends
+		if (newServiceConfig.extends) {
+			if (typeof newServiceConfig.extends === "string") {
+				newServiceConfig.extends = `${newServiceConfig.extends}-${prefix}`;
+			} else {
+				newServiceConfig.extends.service = `${newServiceConfig.extends.service}-${prefix}`;
+			}
+		}
+
+		// Reemplazar nombres de servicios en volumes_from
+		if (newServiceConfig.volumes_from) {
+			newServiceConfig.volumes_from = newServiceConfig.volumes_from.map(
+				(vol) => `${vol}-${prefix}`,
+			);
+		}
+
+		newServices[newServiceName] = newServiceConfig;
 	}
+
 	return newServices;
 };
 
@@ -96,33 +79,33 @@ export const addPrefixToAllServiceNames = (
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
-	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceNamesRoot(
-			updatedComposeData.services,
-			prefix,
-		);
-		updatedComposeData.services = addPrefixToDependsOn(
-			updatedComposeData.services,
-			prefix,
-		);
-		updatedComposeData.services = addPrefixToVolumesFrom(
-			updatedComposeData.services,
-			prefix,
-		);
-		updatedComposeData.services = addPrefixToLinks(
-			updatedComposeData.services,
-			prefix,
-		);
-		updatedComposeData.services = addPrefixToExtends(
-			updatedComposeData.services,
-			prefix,
-		);
+	// if (updatedComposeData.services) {
+	// 	updatedComposeData.services = addPrefixToServiceNamesRoot(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// 	updatedComposeData.services = addPrefixToDependsOn(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// 	updatedComposeData.services = addPrefixToVolumesFrom(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// 	updatedComposeData.services = addPrefixToLinks(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// 	updatedComposeData.services = addPrefixToExtends(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
 
-		updatedComposeData.services = addPrefixToContainerNames(
-			updatedComposeData.services,
-			prefix,
-		);
-	}
+	// 	updatedComposeData.services = addPrefixToContainerNames(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// }
 
 	return updatedComposeData;
 };

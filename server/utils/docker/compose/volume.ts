@@ -1,54 +1,35 @@
-import type { ComposeSpecification } from "../types";
+import _ from "lodash";
+import type {
+	ComposeSpecification,
+	DefinitionsService,
+	DefinitionsVolume,
+} from "../types";
 
 // Función para agregar prefijo a volúmenes
 export const addPrefixToVolumesRoot = (
-	volumes: { [key: string]: any },
+	volumes: { [key: string]: DefinitionsVolume },
 	prefix: string,
-): { [key: string]: any } => {
-	const newVolumes: { [key: string]: any } = {};
-	for (const [key, value] of Object.entries(volumes)) {
-		const newKey = `${key}-${prefix}`;
-		newVolumes[newKey] = value;
-	}
-	return newVolumes;
+): { [key: string]: DefinitionsVolume } => {
+	return _.mapKeys(volumes, (_value, key) => `${key}-${prefix}`);
 };
 
-export const addPrefixToServiceVolumes = (
-	services: { [key: string]: any },
+export const addPrefixToVolumesInServices = (
+	services: { [key: string]: DefinitionsService },
 	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.volumes) {
-			const updatedVolumes = serviceValue.volumes.map((volume: any) => {
-				if (typeof volume === "string") {
-					const parts = volume.split(":");
-					if (
-						parts.length > 1 &&
-						!parts[0].startsWith("./") &&
-						!parts[0].startsWith("${")
-					) {
-						parts[0] = `${parts[0]}-${prefix}`;
-					}
-					return parts.join(":");
+): { [key: string]: DefinitionsService } => {
+	const newServices: { [key: string]: DefinitionsService } = {};
+
+	_.forEach(services, (serviceConfig, serviceName) => {
+		const newServiceConfig = _.cloneDeep(serviceConfig);
+
+		// Reemplazar nombres de volúmenes en volumes
+		if (_.has(newServiceConfig, "volumes")) {
+			newServiceConfig.volumes = _.map(newServiceConfig.volumes, (volume) => {
+				if (_.isString(volume)) {
+					const [volumeName, path] = volume.split(":");
+					return `${volumeName}-${prefix}:${path}`;
 				}
-				return volume;
-			});
-			newServices[serviceKey].volumes = updatedVolumes;
-		}
-	}
-	return newServices;
-};
-
-export const addPrefixToServiceObjectVolumes = (
-	services: { [key: string]: any },
-	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.volumes) {
-			const updatedVolumes = serviceValue.volumes.map((volume: any) => {
-				if (typeof volume === "object" && volume.type === "volume") {
+				if (_.isObject(volume) && volume.type === "volume" && volume.source) {
 					return {
 						...volume,
 						source: `${volume.source}-${prefix}`,
@@ -56,9 +37,11 @@ export const addPrefixToServiceObjectVolumes = (
 				}
 				return volume;
 			});
-			newServices[serviceKey].volumes = updatedVolumes;
 		}
-	}
+
+		newServices[serviceName] = newServiceConfig;
+	});
+
 	return newServices;
 };
 
@@ -68,23 +51,23 @@ export const addPrefixToAllVolumes = (
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
-	if (updatedComposeData.volumes) {
-		updatedComposeData.volumes = addPrefixToVolumesRoot(
-			updatedComposeData.volumes,
-			prefix,
-		);
-	}
+	// if (updatedComposeData.volumes) {
+	// 	updatedComposeData.volumes = addPrefixToVolumesRoot(
+	// 		updatedComposeData.volumes,
+	// 		prefix,
+	// 	);
+	// }
 
-	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceVolumes(
-			updatedComposeData.services,
-			prefix,
-		);
-		updatedComposeData.services = addPrefixToServiceObjectVolumes(
-			updatedComposeData.services,
-			prefix,
-		);
-	}
+	// if (updatedComposeData.services) {
+	// 	updatedComposeData.services = addPrefixToServiceVolumes(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// 	updatedComposeData.services = addPrefixToServiceObjectVolumes(
+	// 		updatedComposeData.services,
+	// 		prefix,
+	// 	);
+	// }
 
 	return updatedComposeData;
 };
