@@ -37,6 +37,7 @@ export const findProjectById = async (projectId: string) => {
 			mysql: true,
 			postgres: true,
 			redis: true,
+			compose: true,
 		},
 	});
 	if (!project) {

@@ -86,13 +86,7 @@
 .xterm .xterm-screen {
   overflow: hidden;
 }
-/* .no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none; */
-/* } */
+
 @layer utilities {
   /* Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
@@ -123,3 +117,20 @@
   outline: none !important;
   outline-offset: 0px !important;
 } */
+/* .editor {
+  font-family: 'Fira code', 'Fira Mono', monospace;
+  font-size: 12px;
+  background-color: #b80000 !important;
+  color: #d4d4d4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: auto;
+  outline: none;
+  padding: 10px;
+} */
+
+
+
+:focus-visible {
+  outline: none;
+}

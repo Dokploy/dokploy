@@ -22,6 +22,7 @@ import {
 } from "../services/user";
 import {
 	applications,
+	compose,
 	mariadb,
 	mongo,
 	mysql,
@@ -64,6 +65,9 @@ export const projectRouter = createTRPCRouter({
 				const service = await db.query.projects.findFirst({
 					where: eq(projects.projectId, input.projectId),
 					with: {
+						compose: {
+							where: buildServiceFilter(compose.composeId, accesedServices),
+						},
 						applications: {
 							where: buildServiceFilter(
 								applications.applicationId,

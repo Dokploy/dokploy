@@ -20,3 +20,4 @@ export * from "./security";
 export * from "./port";
 export * from "./redis";
 export * from "./shared";
+export * from "./compose";
