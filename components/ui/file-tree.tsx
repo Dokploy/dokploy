@@ -88,8 +88,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 		const { ref: refRoot, width, height } = useResizeObserver();
 
 		return (
-			<div ref={refRoot} className={cn("overflow-hidden", className)}>
-				{/* style={{ width, height }} */}
+			<div ref={refRoot} className={cn("overflow-y-auto", className)}>
 				<ScrollArea>
 					<div className="relative p-2">
 						<TreeItem

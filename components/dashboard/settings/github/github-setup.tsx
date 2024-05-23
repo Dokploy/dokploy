@@ -100,7 +100,7 @@ export const GithubSetup = () => {
 					<>
 						{data?.githubAppName ? (
 							<div className="flex w-fit flex-col gap-4">
-								<span className="text-muted-foreground">
+								<span className="text-muted-foreground text-sm">
 									Youve successfully created a GitHub app named
 									{data.githubAppName}! The next step is to install this app in
 									your GitHub account.
@@ -121,7 +121,7 @@ export const GithubSetup = () => {
 						) : (
 							<div>
 								<div className="flex items-center gap-2">
-									<span className="text-muted-foreground">
+									<span className="text-muted-foreground text-sm">
 										To integrate your GitHub account with our services, youll
 										need to create and install a GitHub app. This process is
 										straightforward and only takes a few minutes. Click the

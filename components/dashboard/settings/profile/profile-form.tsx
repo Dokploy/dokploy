@@ -147,11 +147,11 @@ export const ProfileForm = () => {
 												}}
 												defaultValue={field.value}
 												value={field.value}
-												className="flex flex-row flex-wrap gap-2 max-xl:justify-cente"
+												className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 											>
 												{randomImages.map((image) => (
 													<FormItem key={image}>
-														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px">
+														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
 															<FormControl>
 																<RadioGroupItem
 																	value={image}
@@ -163,7 +163,7 @@ export const ProfileForm = () => {
 																key={image}
 																src={image}
 																alt="avatar"
-																className="h-12 w-12 rounded-full border transition-transform"
+																className="h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform"
 															/>
 														</FormLabel>
 													</FormItem>

@@ -97,12 +97,12 @@ interface NavProps {
 
 export const Nav = ({ links }: NavProps) => {
 	const router = useRouter();
+	console.log(router.pathname, links);
 	return (
 		<div className="group flex  flex-col gap-4 py-2 data-[collapsed=true]:py-2 ">
 			<nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
 				{links.map((link, index) => {
 					const isActive = router.pathname === link.href;
-					// biome-ignore lint/correctness/useJsxKeyInIterable: <explanation>
 					return (
 						<Link
 							key={index}
@@ -110,7 +110,7 @@ export const Nav = ({ links }: NavProps) => {
 							className={cn(
 								buttonVariants({ variant: "ghost", size: "sm" }),
 								isActive &&
-									"dark:bg-muted dark:text-white dark:hover:bg-muted dark:hover:text-white",
+									"dark:bg-muted dark:text-white dark:hover:bg-muted dark:hover:text-white bg-muted",
 								"justify-start",
 							)}
 						>
