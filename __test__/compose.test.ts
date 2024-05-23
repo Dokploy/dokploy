@@ -1,158 +1,375 @@
-// import {
-// 	addPrefixToServiceObjectVolumes,
-// 	addPrefixToServiceVolumes,
-// 	addPrefixToVolumesRoot,
-// 	generateRandomHash,
-// } from "@/server/utils/docker/compose";
-// import type { ComposeSpecification } from "@/server/utils/docker/types";
-// import { load } from "js-yaml";
-// import { expect, test } from "vitest";
+import { expect, test } from "vitest";
+import { load } from "js-yaml";
+import { addPrefixToAllProperties } from "@/server/utils/docker/compose";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 
-// const composeFile = `
-// services:
-//   mail:
-//     image: bytemark/smtp
-//     restart: always
+const complexComposeFile = `
+version: "3.8"
 
-//   plausible_db:
-//     image: postgres:14-alpine
-//     restart: always
-//     volumes:
-//       - db-data:/var/lib/postgresql/data
-//     environment:
-//       - POSTGRES_PASSWORD=postgres
+services:
+  app:
+    image: nginx:alpine
+    container_name: app-container
+    configs:
+      - source: app-config
+        target: /etc/nginx/nginx.conf
+    secrets:
+      - source: app-secret
+        target: /run/secrets/app-secret
+    networks:
+       frontend:
+        aliases:
+          - api
+    volumes:
+      - type: volume
+        source: app-volume
+        target: /app/data
 
-//   plausible_events_db:
-//     image: clickhouse/clickhouse-server:23.3.7.5-alpine
-//     restart: always
-//     volumes:
-//       - event-data:/var/lib/clickhouse
-//       - event-logs:/var/log/clickhouse-server
-//       - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-//       - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-//     ulimits:
-//       nofile:
-//         soft: 262144
-//         hard: 262144
+  api:
+    image: node:alpine
+    container_name: api-container
+    configs:
+      - source: api-config
+        target: /usr/src/app/config.json
+    secrets:
+      - source: api-secret
+        target: /run/secrets/api-secret
+    networks:
+      - frontend
+    volumes:
+      - type: volume
+        source: api-volume
+        target: /api/data
 
-//   plausible:
-//     image: plausible/analytics:v2.0
-//     restart: always
-//     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
-//     depends_on:
-//       - plausible_db
-//       - plausible_events_db
-//       - mail
-//     ports:
-//       - 127.0.0.1:8000:8000
-//     env_file:
-//       - plausible-conf.env
-//     volumes:
-//       - type: volume
-//         source: plausible-data
-//         target: /data
+volumes:
+  app-volume:
+    driver: local
+  api-volume:
+    driver: local
 
-//   mysql:
-//     image: mysql:5.7
-//     restart: always
-//     environment:
-//       MYSQL_ROOT_PASSWORD: example
-//     volumes:
-//       - type: volume
-//         source: db-data
-//         target: /var/lib/mysql/data
+networks:
+  frontend:
+    driver: bridge
 
-// volumes:
-//   db-data:
-//     driver: local
-//   event-data:
-//     driver: local
-//   event-logs:
-//     driver: local
-// `;
+configs:
+  app-config:
+    file: ./nginx.conf
+  api-config:
+    file: ./config.json
 
-// test("Generate random hash with 8 characters", () => {
-// 	const hash = generateRandomHash();
+secrets:
+  app-secret:
+    file: ./app-secret.txt
+  api-secret:
+    file: ./api-secret.txt
+`;
 
-// 	expect(hash).toBeDefined();
-// 	expect(hash.length).toBe(8);
-// });
+const expectedComposeFile = load(`
+version: "3.8"
 
-// // Docker compose needs unique names for services, volumes, networks and containers
-// // So base on a input which is a dockercompose file, it should replace the name with a hash and return a new dockercompose file
-// test("Add prefix to volumes root property", () => {
-// 	const composeData = load(composeFile) as ComposeSpecification;
+services:
+  app-testprefix:
+    image: nginx:alpine
+    container_name: app-container-testprefix
+    configs:
+      - source: app-config-testprefix
+        target: /etc/nginx/nginx.conf
+    secrets:
+      - source: app-secret-testprefix
+        target: /run/secrets/app-secret
+    networks:
+       frontend-testprefix:
+        aliases:
+          - api-testprefix
+    volumes:
+      - type: volume
+        source: app-volume-testprefix
+        target: /app/data
 
-// 	const prefix = generateRandomHash();
+  api-testprefix:
+    image: node:alpine
+    container_name: api-container-testprefix
+    configs:
+      - source: api-config-testprefix
+        target: /usr/src/app/config.json
+    secrets:
+      - source: api-secret-testprefix
+        target: /run/secrets/api-secret
+    networks:
+      - frontend-testprefix
+    volumes:
+      - type: volume
+        source: api-volume-testprefix
+        target: /api/data
 
-// 	if (!composeData?.volumes) {
-// 		return;
-// 	}
-// 	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+volumes:
+  app-volume-testprefix:
+    driver: local
+  api-volume-testprefix:
+    driver: local
 
-// 	// {
-// 	// 	'db-data-af045046': { driver: 'local' },
-// 	// 	'event-data-af045046': { driver: 'local' },
-// 	// 	'event-logs-af045046': { driver: 'local' }
-// 	//   }
+networks:
+  frontend-testprefix:
+    driver: bridge
 
-// 	expect(volumes).toBeDefined();
-// 	for (const volumeKey of Object.keys(volumes)) {
-// 		expect(volumeKey).toContain(`-${prefix}`);
-// 	}
-// });
+configs:
+  app-config-testprefix:
+    file: ./nginx.conf
+  api-config-testprefix:
+    file: ./config.json
 
-// test("Add prefix to service volumes", () => {
-// 	const composeData = load(composeFile) as ComposeSpecification;
+secrets:
+  app-secret-testprefix:
+    file: ./app-secret.txt
+  api-secret-testprefix:
+    file: ./api-secret.txt
+`) as ComposeSpecification;
 
-// 	const prefix = generateRandomHash();
+test("Add prefix to all properties in a Docker Compose file", () => {
+	const composeData = load(complexComposeFile) as ComposeSpecification;
 
-// 	if (!composeData?.services) {
-// 		return;
-// 	}
-// 	const volumesServices = addPrefixToServiceVolumes(
-// 		composeData.services,
-// 		prefix,
-// 	);
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+	console.log(updatedComposeData);
+	expect(updatedComposeData).toEqual(expectedComposeFile);
+});
 
-// 	expect(volumesServices).toBeDefined();
-// 	for (const serviceKey of Object.keys(volumesServices)) {
-// 		const service = volumesServices[serviceKey];
-// 		if (service.volumes) {
-// 			for (const volume of service.volumes) {
-// 				if (typeof volume === "string") {
-// 					const parts = volume.split(":");
-// 					if (parts.length > 1 && !parts[0].startsWith("./")) {
-// 						expect(parts[0]).toContain(`-${prefix}`);
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// });
+const complexComposeFile1 = `
+version: "3.8"
 
-// test("Add prefix to service object volumes", () => {
-// 	const composeData = load(composeFile) as ComposeSpecification;
+services:
+  web:
+    image: httpd:alpine
+    container_name: web-container
+    configs:
+      - source: web-config
+        target: /usr/local/apache2/conf/httpd.conf
+    secrets:
+      - source: web-secret
+        target: /run/secrets/web-secret
+    networks:
+      frontend:
+        aliases:
+          - web-alias
+      backend:
+    volumes:
+      - type: volume
+        source: web-volume
+        target: /usr/local/apache2/htdocs
 
-// 	const prefix = generateRandomHash();
+  db:
+    image: mysql:5.7
+    container_name: db-container
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    networks:
+      - backend
+    volumes:
+      - type: volume
+        source: db-volume
+        target: /var/lib/mysql
 
-// 	if (!composeData?.services) {
-// 		return;
-// 	}
-// 	const services = addPrefixToServiceObjectVolumes(
-// 		composeData.services,
-// 		prefix,
-// 	);
+volumes:
+  web-volume:
+    driver: local
+  db-volume:
+    driver: local
 
-// 	expect(services).toBeDefined();
-// 	for (const serviceKey of Object.keys(services)) {
-// 		const service = services[serviceKey];
-// 		if (service.volumes) {
-// 			for (const volume of service.volumes) {
-// 				if (typeof volume === "object" && volume.type === "volume") {
-// 					expect(volume.source).toContain(`-${prefix}`);
-// 				}
-// 			}
-// 		}
-// 	}
-// });
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+configs:
+  web-config:
+    file: ./httpd.conf
+
+secrets:
+  web-secret:
+    file: ./web-secret.txt
+`;
+
+const expectedComposeFile1 = load(`
+version: "3.8"
+
+services:
+  web-testprefix:
+    image: httpd:alpine
+    container_name: web-container-testprefix
+    configs:
+      - source: web-config-testprefix
+        target: /usr/local/apache2/conf/httpd.conf
+    secrets:
+      - source: web-secret-testprefix
+        target: /run/secrets/web-secret
+    networks:
+      frontend-testprefix:
+        aliases:
+          - web-alias-testprefix
+      backend-testprefix:
+    volumes:
+      - type: volume
+        source: web-volume-testprefix
+        target: /usr/local/apache2/htdocs
+
+  db-testprefix:
+    image: mysql:5.7
+    container_name: db-container-testprefix
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    networks:
+      - backend-testprefix
+    volumes:
+      - type: volume
+        source: db-volume-testprefix
+        target: /var/lib/mysql
+
+volumes:
+  web-volume-testprefix:
+    driver: local
+  db-volume-testprefix:
+    driver: local
+
+networks:
+  frontend-testprefix:
+    driver: bridge
+  backend-testprefix:
+    driver: bridge
+
+configs:
+  web-config-testprefix:
+    file: ./httpd.conf
+
+secrets:
+  web-secret-testprefix:
+    file: ./web-secret.txt
+`) as ComposeSpecification;
+
+test("Add prefix to all properties in a Docker Compose file (Case 1)", () => {
+	const composeData = load(complexComposeFile1) as ComposeSpecification;
+
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+
+	expect(updatedComposeData).toEqual(expectedComposeFile1);
+});
+
+const complexComposeFile2 = `
+version: "3.8"
+
+services:
+  app:
+    image: node:14-alpine
+    container_name: app-container
+    environment:
+      NODE_ENV: production
+    configs:
+      - source: app-config
+        target: /usr/src/app/config.json
+    secrets:
+      - source: app-secret
+        target: /run/secrets/app-secret
+    networks:
+      frontend:
+        aliases:
+          - app-alias
+    volumes:
+      - type: volume
+        source: app-volume
+        target: /usr/src/app
+
+  redis:
+    image: redis:alpine
+    container_name: redis-container
+    networks:
+      - backend
+    volumes:
+      - type: volume
+        source: redis-volume
+        target: /data
+
+volumes:
+  app-volume:
+    driver: local
+  redis-volume:
+    driver: local
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+configs:
+  app-config:
+    file: ./config.json
+
+secrets:
+  app-secret:
+    file: ./app-secret.txt
+`;
+
+const expectedComposeFile2 = load(`
+version: "3.8"
+
+services:
+  app-testprefix:
+    image: node:14-alpine
+    container_name: app-container-testprefix
+    environment:
+      NODE_ENV: production
+    configs:
+      - source: app-config-testprefix
+        target: /usr/src/app/config.json
+    secrets:
+      - source: app-secret-testprefix
+        target: /run/secrets/app-secret
+    networks:
+      frontend-testprefix:
+        aliases:
+          - app-alias-testprefix
+    volumes:
+      - type: volume
+        source: app-volume-testprefix
+        target: /usr/src/app
+
+  redis-testprefix:
+    image: redis:alpine
+    container_name: redis-container-testprefix
+    networks:
+      backend-testprefix:
+    volumes:
+      - type: volume
+        source: redis-volume-testprefix
+        target: /data
+
+volumes:
+  app-volume-testprefix:
+    driver: local
+  redis-volume-testprefix:
+    driver: local
+
+networks:
+  frontend-testprefix:
+    driver: bridge
+  backend-testprefix:
+    driver: bridge
+
+configs:
+  app-config-testprefix:
+    file: ./config.json
+
+secrets:
+  app-secret-testprefix:
+    file: ./app-secret.txt
+`) as ComposeSpecification;
+
+test("Add prefix to all properties in a Docker Compose file (Case 2)", () => {
+	const composeData = load(complexComposeFile2) as ComposeSpecification;
+
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+
+	expect(updatedComposeData).toEqual(expectedComposeFile2);
+});

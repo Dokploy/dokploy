@@ -4,7 +4,7 @@
 // En la sección links de otros servicios: Para crear enlaces entre servicios.
 // En la sección extends de otros servicios: Para extender la configuración de otro servicio.
 
-import { ComposeSpecification } from "../types";
+import type { ComposeSpecification } from "../types";
 
 export const addPrefixToDependsOn = (
 	services: { [key: string]: any },

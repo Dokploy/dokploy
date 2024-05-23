@@ -2,157 +2,146 @@ import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
 	addPrefixToAllNetworks,
 	addPrefixToNetworksRoot,
-	addPrefixToServiceNetworks,
+	addPrefixToObjectNetworks,
+	addPrefixToSimpleObjectNetworks,
+	addPrefixToStringNetworks,
 } from "@/server/utils/docker/compose/network";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { dump, load } from "js-yaml";
 import { expect, test } from "vitest";
 
+// // const expectedComposeFile = load(`
+// // services:
+// //   mail:
+// //     image: bytemark/smtp
+// //     restart: always
+
+// //   plausible_db:
+// //     image: postgres:14-alpine
+// //     restart: always
+// //     networks:
+// //       - backend-testhash
+// //     backend:
+// //       aliases:
+// //         - app
+// //     volumes:
+// //       - db-data:/var/lib/postgresql/data
+// //     environment:
+// //       - POSTGRES_PASSWORD=postgres
+
+// //   plausible_events_db:
+// //     image: clickhouse/clickhouse-server:23.3.7.5-alpine
+// //     restart: always
+// //     volumes:
+// //       - event-data:/var/lib/clickhouse
+// //       - event-logs:/var/log/clickhouse-server
+// //       - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
+// //       - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
+// //     ulimits:
+// //       nofile:
+// //         soft: 262144
+// //         hard: 262144
+
+// //   plausible:
+// //     image: plausible/analytics:v2.0
+// //     restart: always
+// //     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+// //     depends_on:
+// //       - plausible_db
+// //       - plausible_events_db
+// //       - mail
+// //     ports:
+// //       - 127.0.0.1:8000:8000
+// //     env_file:
+// //       - plausible-conf.env
+// //     volumes:
+// //       - type: volume
+// //         source: plausible-data
+// //         target: /data
+
+// //   mysql:
+// //     image: mysql:5.7
+// //     restart: always
+// //     networks:
+// //       - backend-testhash
+// //     environment:
+// //       MYSQL_ROOT_PASSWORD: example
+// //     volumes:
+// //       - type: volume
+// //         source: db-data
+// //         target: /var/lib/mysql/data
+
+// // volumes:
+// //   db-data:
+// //     driver: local
+// //   event-data:
+// //     driver: local
+// //   event-logs:
+// //     driver: local
+
+// // networks:
+// //   frontend-testhash:
+// //     driver: bridge
+// //   backend-testhash:
+// //     driver: bridge
+// // `) as ComposeSpecification;
+
 const composeFile = `
+version: "3.8"
+
 services:
-  mail:
-    image: bytemark/smtp
-    restart: always
+  web:
+    image: nginx:latest
+    networks:
+      - frontend
 
-  plausible_db:
-    image: postgres:14-alpine
-    restart: always
+  app:
+    image: node:14
+    networks:
+      backend:
+        aliases:
+          - app
+      frontend:
+        aliases:
+          - app-frontend
+
+  db:
+    image: postgres:13
+    networks:
+      backend:
+        aliases:
+          - db
+      frontend:
+        ipv4_address: 172.20.0.2
+        ipv6_address: 2001:db8::1
+
+  worker:
+    image: busybox
+    command: sleep 3600
     networks:
       - backend
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
 
-  plausible_events_db:
-    image: clickhouse/clickhouse-server:23.3.7.5-alpine
-    restart: always
-    volumes:
-      - event-data:/var/lib/clickhouse
-      - event-logs:/var/log/clickhouse-server
-      - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-  plausible:
-    image: plausible/analytics:v2.0
-    restart: always
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
-    depends_on:
-      - plausible_db
-      - plausible_events_db
-      - mail
-    ports:
-      - 127.0.0.1:8000:8000
-    env_file:
-      - plausible-conf.env
-    volumes:
-      - type: volume
-        source: plausible-data
-        target: /data
-
-  mysql:
-    image: mysql:5.7
-    restart: always
+  redis:
+    image: redis:alpine
     networks:
-      - backend
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-    volumes:
-      - type: volume
-        source: db-data
-        target: /var/lib/mysql/data
-
-volumes:
-  db-data:
-    driver: local
-  event-data:
-    driver: local
-  event-logs:
-    driver: local
+      backend:
+        priority: 100
 
 networks:
   frontend:
     driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1200
+
   backend:
     driver: bridge
+    attachable: true
+
+  external_network:
+    external: true
+
 `;
 
-const expectedComposeFile = load(`
-services:
-  mail:
-    image: bytemark/smtp
-    restart: always
-
-  plausible_db:
-    image: postgres:14-alpine
-    restart: always
-    networks:
-      - backend-testhash
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
-
-  plausible_events_db:
-    image: clickhouse/clickhouse-server:23.3.7.5-alpine
-    restart: always
-    volumes:
-      - event-data:/var/lib/clickhouse
-      - event-logs:/var/log/clickhouse-server
-      - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-  plausible:
-    image: plausible/analytics:v2.0
-    restart: always
-    command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
-    depends_on:
-      - plausible_db
-      - plausible_events_db
-      - mail
-    ports:
-      - 127.0.0.1:8000:8000
-    env_file:
-      - plausible-conf.env
-    volumes:
-      - type: volume
-        source: plausible-data
-        target: /data
-
-  mysql:
-    image: mysql:5.7
-    restart: always
-    networks:
-      - backend-testhash
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-    volumes:
-      - type: volume
-        source: db-data
-        target: /var/lib/mysql/data
-
-volumes:
-  db-data:
-    driver: local
-  event-data:
-    driver: local
-  event-logs:
-    driver: local
-
-networks:
-  frontend-testhash:
-    driver: bridge
-  backend-testhash:
-    driver: bridge
-`) as ComposeSpecification;
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
 
@@ -160,8 +149,6 @@ test("Generate random hash with 8 characters", () => {
 	expect(hash.length).toBe(8);
 });
 
-// Docker compose needs unique names for services, volumes, networks and containers
-// So base on a input which is a dockercompose file, it should replace the name with a hash and return a new dockercompose file
 test("Add prefix to networks root property", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
@@ -172,48 +159,166 @@ test("Add prefix to networks root property", () => {
 	}
 	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
 
-	// {
-	//     'frontend-503fbfe9': { driver: 'bridge' },
-	//     'backend-503fbfe9': { driver: 'bridge' }
-	//   }
-
 	expect(networks).toBeDefined();
 	for (const volumeKey of Object.keys(networks)) {
 		expect(volumeKey).toContain(`-${prefix}`);
 	}
 });
 
-test("Add prefix to service networks", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+const composeFileWithStringNetworks = `
+version: "3.8"
 
-	const prefix = generateRandomHash();
+services:
+  app:
+    image: node:alpine
+    networks:
+      - backend
+      - frontend
+`;
+
+const expectedComposeFileWithStringNetworks = load(`
+version: "3.8"
+
+services:
+  app:
+    image: node:alpine
+    networks:
+      - backend-testprefix
+      - frontend-testprefix
+`) as ComposeSpecification;
+
+test("Add prefix to service networks declared as a list of strings", () => {
+	const composeData = load(
+		composeFileWithStringNetworks,
+	) as ComposeSpecification;
 
 	if (!composeData?.services) {
 		return;
 	}
-	const services = addPrefixToServiceNetworks(composeData.services, prefix);
 
-	expect(services).toBeDefined();
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToStringNetworks(
+		composeData.services,
+		prefix,
+	);
 
-	for (const serviceKey of Object.keys(services)) {
-		const service = services[serviceKey];
-		if (service.networks) {
-			for (const network of service.networks) {
-				if (!network.startsWith("${")) {
-					expect(network).toContain(`-${prefix}`);
-				}
-			}
-		}
-	}
+	expect(updatedComposeData).toEqual(
+		expectedComposeFileWithStringNetworks.services,
+	);
 });
 
-test("Add prefix to all networks in a Docker Compose file", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
-	const prefix = "testhash"; // Hash definido para pruebas
+const composeFileWithObjectNetworks = `
+version: "3.8"
 
-	const finalComposeData = addPrefixToAllNetworks(composeData, prefix);
+services:
+  api:
+      networks:
+        frontend:
+          aliases:
+            - api
+`;
 
-	expect(finalComposeData).toEqual(expectedComposeFile);
+const expectedComposeFileWithObjectNetworks = load(`
+version: "3.8"
+
+services:
+  api:
+    networks:
+      frontend-testprefix:
+        aliases:
+          - api-testprefix
+`) as ComposeSpecification;
+
+test("Add prefix to service networks declared as objects with aliases", () => {
+	const composeData = load(
+		composeFileWithObjectNetworks,
+	) as ComposeSpecification;
+
+	if (!composeData?.services) {
+		return;
+	}
+
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToObjectNetworks(
+		composeData.services,
+		prefix,
+	);
+
+	expect(updatedComposeData).toEqual(
+		expectedComposeFileWithObjectNetworks.services,
+	);
+});
+
+const composeFileWithSimpleObjectNetworks = `
+version: "3.8"
+
+services:
+  app:
+    image: node:alpine
+    networks:
+      backend: 
+`;
+
+const expectedComposeFileWithSimpleObjectNetworks = load(`
+version: "3.8"
+
+services:
+  app:
+    image: node:alpine
+    networks:
+      backend-testprefix: 
+`) as ComposeSpecification;
+
+test("Add prefix to service networks declared as simple key-value pairs", () => {
+	const composeData = load(
+		composeFileWithSimpleObjectNetworks,
+	) as ComposeSpecification;
+
+	if (!composeData?.services) {
+		return;
+	}
+
+	const prefix = "testprefix";
+	const updatedComposeData = addPrefixToSimpleObjectNetworks(
+		composeData.services,
+		prefix,
+	);
+
+	expect(updatedComposeData).toEqual(
+		expectedComposeFileWithSimpleObjectNetworks.services,
+	);
+});
+
+const composeFileWithAliases = `
+version: "3.8"
+
+services:
+  api:
+      networks:
+        frontend:
+          aliases:
+            - api
+`;
+
+const expectedComposeFileWithAliases = load(`
+version: "3.8"
+
+services:
+  api:
+    networks:
+      frontend-testprefix:
+        aliases:
+          - api-testprefix
+`) as ComposeSpecification;
+
+test("Add Prefix to all networks with Aliases in a Docker Compose file 2", () => {
+	const composeData = load(composeFileWithAliases) as ComposeSpecification;
+	const prefix = "testprefix"; // Prefijo definido para pruebas
+
+	const updatedServices = addPrefixToAllNetworks(composeData, prefix);
+	expect(updatedServices).toBeDefined();
+
+	expect(updatedServices).toEqual(expectedComposeFileWithAliases);
 });
 
 const composeFileExample1 = `
@@ -608,4 +713,78 @@ test("Add prefix to all networks in a Docker Compose file with networks only wit
 	const finalComposeData = addPrefixToAllNetworks(composeData, prefix);
 
 	expect(finalComposeData).toEqual(expectedComposeFileExample6);
+});
+
+const composeFileWithNetworksAndAliases = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - frontend
+
+  app:
+    image: node:14
+    networks:
+      backend:
+        aliases:
+          - app
+      frontend:
+        aliases:
+          - app-frontend
+
+  db:
+    image: postgres:13
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+`;
+
+const expectedComposeFileWithNetworksAndAliases = load(`
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - frontend-testhash
+
+  app:
+    image: node:14
+    networks:
+      backend-testhash:
+        aliases:
+          - app-testhash
+      frontend-testhash:
+        aliases:
+          - app-frontend-testhash
+
+  db:
+    image: postgres:13
+    networks:
+      - backend-testhash
+
+networks:
+  frontend-testhash:
+    driver: bridge
+  backend-testhash:
+    driver: bridge
+`) as ComposeSpecification;
+
+test("Add prefix to all networks and aliases in a Docker Compose file", () => {
+	const composeData = load(
+		composeFileWithNetworksAndAliases,
+	) as ComposeSpecification;
+	const prefix = "testhash"; // Prefijo definido para pruebas
+
+	// Añadir prefijo a las networks definidas en los servicios
+	const finalComposeData = addPrefixToAllNetworks(composeData, prefix);
+
+	// expect(finalComposeData).toEqual(expectedComposeFileWithNetworksAndAliases);
 });

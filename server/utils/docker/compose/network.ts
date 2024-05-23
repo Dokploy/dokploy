@@ -35,19 +35,86 @@ export const addPrefixToNetworksRoot = (
 	return newNetworks;
 };
 
-export const addPrefixToServiceNetworks = (
+export const addPrefixToStringNetworks = (
 	services: { [key: string]: any },
 	prefix: string,
 ): { [key: string]: any } => {
 	const newServices = { ...services };
 	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.networks) {
+		if (Array.isArray(serviceValue.networks)) {
 			const updatedNetworks = serviceValue.networks.map((network: string) => {
 				if (!network.startsWith("${")) {
 					return `${network}-${prefix}`;
 				}
 				return network;
 			});
+			newServices[serviceKey].networks = updatedNetworks;
+		}
+	}
+	return newServices;
+};
+
+export const addPrefixToObjectNetworks = (
+	services: { [key: string]: any },
+	prefix: string,
+): { [key: string]: any } => {
+	const newServices = { ...services };
+	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
+		if (
+			serviceValue.networks &&
+			typeof serviceValue.networks === "object" &&
+			!Array.isArray(serviceValue.networks)
+		) {
+			const updatedNetworks = Object.entries(serviceValue.networks).reduce(
+				(acc: any, [networkKey, networkValue]) => {
+					if (networkValue?.aliases) {
+						const updatedNetworkValue = { ...networkValue };
+						updatedNetworkValue.aliases = networkValue.aliases.map(
+							(alias: string) => {
+								if (!alias.startsWith("${")) {
+									return `${alias}-${prefix}`;
+								}
+								return alias;
+							},
+						);
+						acc[`${networkKey}-${prefix}`] = updatedNetworkValue;
+					} else {
+						acc[`${networkKey}-${prefix}`] = networkValue;
+					}
+					return acc;
+				},
+				{},
+			);
+
+			newServices[serviceKey].networks = updatedNetworks;
+		}
+	}
+	return newServices;
+};
+
+export const addPrefixToSimpleObjectNetworks = (
+	services: { [key: string]: any },
+	prefix: string,
+): { [key: string]: any } => {
+	const newServices = { ...services };
+	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
+		if (
+			serviceValue.networks &&
+			typeof serviceValue.networks === "object" &&
+			!Array.isArray(serviceValue.networks)
+		) {
+			const updatedNetworks = Object.entries(serviceValue.networks).reduce(
+				(acc: any, [networkKey, networkValue]) => {
+					// Solo agregar prefijo si networkValue es null o undefined (indica un objeto simple)
+					if (networkValue === null || networkValue === undefined) {
+						acc[`${networkKey}-${prefix}`] = networkValue;
+					} else {
+						acc[networkKey] = networkValue; // mantener la red original si no es un objeto simple
+					}
+					return acc;
+				},
+				{},
+			);
 			newServices[serviceKey].networks = updatedNetworks;
 		}
 	}
@@ -89,11 +156,27 @@ export const addPrefixToAllNetworks = (
 	}
 
 	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceNetworks(
+		updatedComposeData.services = addPrefixToStringNetworks(
 			updatedComposeData.services,
 			prefix,
 		);
 	}
+
+	if (updatedComposeData.services) {
+		updatedComposeData.services = addPrefixToObjectNetworks(
+			updatedComposeData.services,
+			prefix,
+		);
+	}
+
+	if (updatedComposeData.services) {
+		updatedComposeData.services = addPrefixToSimpleObjectNetworks(
+			updatedComposeData.services,
+			prefix,
+		);
+	}
+
+	console.log(updatedComposeData.services);
 
 	return updatedComposeData;
 };
