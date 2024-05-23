@@ -29,7 +29,7 @@ export const Navbar = () => {
 	const { mutateAsync } = api.auth.logout.useMutation();
 	return (
 		<nav className="border-divider sticky inset-x-0 top-0 z-40 flex h-auto w-full items-center justify-center border-b bg-background/70 backdrop-blur-lg backdrop-saturate-150 data-[menu-open=true]:border-none data-[menu-open=true]:backdrop-blur-xl">
-			<header className="relative z-40 flex h-[var(--navbar-height)] w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6">
+			<header className="relative z-40 flex w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6 h-16">
 				<div className="text-medium box-border flex flex-grow basis-0 flex-row flex-nowrap items-center justify-start whitespace-nowrap bg-transparent no-underline">
 					<Link
 						href="/dashboard/projects"

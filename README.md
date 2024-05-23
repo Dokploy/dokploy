@@ -15,6 +15,12 @@ Dokploy is a free self-hostable Platform as a Service (PaaS) that simplifies the
 
 
 
+## Explanation
+[English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md) | [Русский Язык](README-ru.md)
+
+
+
+
 ## 🌟 Features
 
 - **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.) with ease.
@@ -38,6 +44,8 @@ Tested Systems:
 
 - Ubuntu 20.04
 - Debian 11
+- Fedora 40
+- Centos 9
 
 ## 📄 Documentation
 

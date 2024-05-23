@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { z } from "zod";
 
-const AddPortchema = z.object({
+const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
 	targetPort: z.number().int().min(1).max(65535),
 	protocol: z.enum(["tcp", "udp"], {
@@ -41,7 +41,7 @@ const AddPortchema = z.object({
 	}),
 });
 
-type AddPort = z.infer<typeof AddPortchema>;
+type AddPort = z.infer<typeof AddPortSchema>;
 
 interface Props {
 	applicationId: string;
@@ -62,7 +62,7 @@ export const AddPort = ({
 			publishedPort: 0,
 			targetPort: 0,
 		},
-		resolver: zodResolver(AddPortchema),
+		resolver: zodResolver(AddPortSchema),
 	});
 
 	useEffect(() => {
@@ -100,14 +100,7 @@ export const AddPort = ({
 						Ports are used to expose your application to the internet.
 					</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form
