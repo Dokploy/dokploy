@@ -74,6 +74,7 @@ const createSchema = createInsertSchema(postgres, {
 export const apiCreatePostgres = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		databaseName: true,
 		databaseUser: true,
 		databasePassword: true,

@@ -73,6 +73,7 @@ const createSchema = createInsertSchema(mongo, {
 export const apiCreateMongo = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		dockerImage: true,
 		projectId: true,
 		description: true,

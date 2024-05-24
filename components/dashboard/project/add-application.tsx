@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Folder } from "lucide-react";
-import { useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -31,6 +31,15 @@ const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
+	appName: z
+		.string()
+		.min(1, {
+			message: "App name is required",
+		})
+		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+			message:
+				"App name supports letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		}),
 	description: z.string().optional(),
 });
 
@@ -38,10 +47,12 @@ type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
 	projectId: string;
+	projectName?: string;
 }
 
-export const AddApplication = ({ projectId }: Props) => {
+export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+	const [visible, setVisible] = useState(false);
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -49,34 +60,34 @@ export const AddApplication = ({ projectId }: Props) => {
 	const form = useForm<AddTemplate>({
 		defaultValues: {
 			name: "",
+			appName: `${projectName}-`,
 			description: "",
 		},
 		resolver: zodResolver(AddTemplateSchema),
 	});
 
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
-
 	const onSubmit = async (data: AddTemplate) => {
 		await mutateAsync({
 			name: data.name,
+			appName: data.appName,
 			description: data.description,
 			projectId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
+				form.reset();
+				setVisible(false);
 				await utils.project.one.invalidate({
 					projectId,
 				});
 			})
-			.catch(() => {
+			.catch((e) => {
 				toast.error("Error to create the service");
 			});
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -108,22 +119,40 @@ export const AddApplication = ({ projectId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4"
 					>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder="Frontend" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Name</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="Frontend"
+											{...field}
+											onChange={(e) => {
+												const val = e.target.value?.trim() || "";
+												form.setValue("appName", `${projectName}-${val}`);
+												field.onChange(val);
+											}}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="appName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>AppName</FormLabel>
+									<FormControl>
+										<Input placeholder="my-app" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="description"

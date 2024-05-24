@@ -5,11 +5,22 @@ import { buildMysql } from "@/server/utils/databases/mysql";
 import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import { validUniqueServerAppName } from "./project";
 
 export type MySql = typeof mysql.$inferSelect;
 
 export const createMysql = async (input: typeof apiCreateMySql._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
+
 	const newMysql = await db
 		.insert(mysql)
 		.values({

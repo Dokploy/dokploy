@@ -128,6 +128,7 @@ const createSchema = createInsertSchema(applications, {
 
 export const apiCreateApplication = createSchema.pick({
 	name: true,
+	appName: true,
 	description: true,
 	projectId: true,
 });

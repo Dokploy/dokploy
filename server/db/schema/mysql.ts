@@ -77,6 +77,7 @@ const createSchema = createInsertSchema(mysql, {
 export const apiCreateMySql = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		dockerImage: true,
 		projectId: true,
 		description: true,

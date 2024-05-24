@@ -1,5 +1,14 @@
 import { db } from "@/server/db";
-import { type apiCreateProject, projects } from "@/server/db/schema";
+import {
+	type apiCreateProject,
+	applications,
+	mariadb,
+	mongo,
+	mysql,
+	postgres,
+	projects,
+	redis,
+} from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
@@ -72,4 +81,42 @@ export const updateProjectById = async (
 		.then((res) => res[0]);
 
 	return result;
+};
+
+export const validUniqueServerAppName = async (appName: string) => {
+	const query = await db.query.projects.findMany({
+		with: {
+			applications: {
+				where: eq(applications.appName, appName),
+			},
+			mariadb: {
+				where: eq(mariadb.appName, appName),
+			},
+			mongo: {
+				where: eq(mongo.appName, appName),
+			},
+			mysql: {
+				where: eq(mysql.appName, appName),
+			},
+			postgres: {
+				where: eq(postgres.appName, appName),
+			},
+			redis: {
+				where: eq(redis.appName, appName),
+			},
+		},
+	});
+
+	// Filter out items with non-empty fields
+	const nonEmptyProjects = query.filter(
+		(project) =>
+			project.applications.length > 0 ||
+			project.mariadb.length > 0 ||
+			project.mongo.length > 0 ||
+			project.mysql.length > 0 ||
+			project.postgres.length > 0 ||
+			project.redis.length > 0,
+	);
+
+	return nonEmptyProjects.length === 0;
 };

@@ -79,6 +79,7 @@ const createSchema = createInsertSchema(mariadb, {
 export const apiCreateMariaDB = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		dockerImage: true,
 		databaseRootPassword: true,
 		projectId: true,

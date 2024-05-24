@@ -69,6 +69,7 @@ const createSchema = createInsertSchema(redis, {
 export const apiCreateRedis = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		databasePassword: true,
 		dockerImage: true,
 		projectId: true,
