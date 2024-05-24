@@ -1,26 +1,40 @@
-import type { ComposeSpecification } from "../types";
+import _ from "lodash";
+import type {
+	ComposeSpecification,
+	DefinitionsConfig,
+	DefinitionsService,
+} from "../types";
 
 export const addPrefixToConfigsRoot = (
-	configs: { [key: string]: any },
+	configs: { [key: string]: DefinitionsConfig },
 	prefix: string,
-): { [key: string]: any } => {
-	const newConfigs: { [key: string]: any } = {};
-	for (const [key, value] of Object.entries(configs)) {
-		const newKey = `${key}-${prefix}`;
-		newConfigs[newKey] = value;
-	}
+): { [key: string]: DefinitionsConfig } => {
+	const newConfigs: { [key: string]: DefinitionsConfig } = {};
+
+	_.forEach(configs, (config, configName) => {
+		const newConfigName = `${configName}-${prefix}`;
+		newConfigs[newConfigName] = _.cloneDeep(config);
+	});
+
 	return newConfigs;
 };
 
-export const addPrefixToServiceConfigs = (
-	services: { [key: string]: any },
+export const addPrefixToConfigsInServices = (
+	services: { [key: string]: DefinitionsService },
 	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.configs) {
-			const updatedConfigs = serviceValue.configs.map((config: any) => {
-				if (typeof config === "object" && config.source) {
+): { [key: string]: DefinitionsService } => {
+	const newServices: { [key: string]: DefinitionsService } = {};
+
+	_.forEach(services, (serviceConfig, serviceName) => {
+		const newServiceConfig = _.cloneDeep(serviceConfig);
+
+		// Reemplazar nombres de configs en configs
+		if (_.has(newServiceConfig, "configs")) {
+			newServiceConfig.configs = _.map(newServiceConfig.configs, (config) => {
+				if (_.isString(config)) {
+					return `${config}-${prefix}`;
+				}
+				if (_.isObject(config) && config.source) {
 					return {
 						...config,
 						source: `${config.source}-${prefix}`,
@@ -28,9 +42,11 @@ export const addPrefixToServiceConfigs = (
 				}
 				return config;
 			});
-			newServices[serviceKey].configs = updatedConfigs;
 		}
-	}
+
+		newServices[serviceName] = newServiceConfig;
+	});
+
 	return newServices;
 };
 
@@ -38,18 +54,20 @@ export const addPrefixToAllConfigs = (
 	composeData: ComposeSpecification,
 	prefix: string,
 ): ComposeSpecification => {
-	const updatedConfigs = addPrefixToConfigsRoot(
-		composeData.configs || {},
-		prefix,
-	);
-	const updatedServices = addPrefixToServiceConfigs(
-		composeData.services || {},
-		prefix,
-	);
+	const updatedComposeData = { ...composeData };
+	if (composeData?.configs) {
+		updatedComposeData.configs = addPrefixToConfigsRoot(
+			composeData.configs,
+			prefix,
+		);
+	}
 
-	return {
-		...composeData,
-		configs: updatedConfigs,
-		services: updatedServices,
-	};
+	if (composeData?.services) {
+		updatedComposeData.services = addPrefixToConfigsInServices(
+			composeData.services,
+			prefix,
+		);
+	}
+
+	return updatedComposeData;
 };

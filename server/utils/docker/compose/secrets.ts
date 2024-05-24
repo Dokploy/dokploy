@@ -1,26 +1,34 @@
-import type { ComposeSpecification } from "../types";
+import _ from "lodash";
+import type { ComposeSpecification, DefinitionsService } from "../types";
 
 export const addPrefixToSecretsRoot = (
-	secrets: { [key: string]: any },
+	secrets: ComposeSpecification["secrets"],
 	prefix: string,
-): { [key: string]: any } => {
-	const newSecrets: { [key: string]: any } = {};
-	for (const [key, value] of Object.entries(secrets)) {
-		const newKey = `${key}-${prefix}`;
-		newSecrets[newKey] = value;
-	}
+): ComposeSpecification["secrets"] => {
+	const newSecrets: ComposeSpecification["secrets"] = {};
+	_.forEach(secrets, (secretConfig, secretName) => {
+		const newSecretName = `${secretName}-${prefix}`;
+		newSecrets[newSecretName] = _.cloneDeep(secretConfig);
+	});
 	return newSecrets;
 };
 
-export const addPrefixToServiceSecrets = (
-	services: { [key: string]: any },
+export const addPrefixToSecretsInServices = (
+	services: { [key: string]: DefinitionsService },
 	prefix: string,
-): { [key: string]: any } => {
-	const newServices = { ...services };
-	for (const [serviceKey, serviceValue] of Object.entries(newServices)) {
-		if (serviceValue.secrets) {
-			const updatedSecrets = serviceValue.secrets.map((secret: any) => {
-				if (typeof secret === "object" && secret.source) {
+): { [key: string]: DefinitionsService } => {
+	const newServices: { [key: string]: DefinitionsService } = {};
+
+	_.forEach(services, (serviceConfig, serviceName) => {
+		const newServiceConfig = _.cloneDeep(serviceConfig);
+
+		// Replace secret names in secrets
+		if (_.has(newServiceConfig, "secrets")) {
+			newServiceConfig.secrets = _.map(newServiceConfig.secrets, (secret) => {
+				if (_.isString(secret)) {
+					return `${secret}-${prefix}`;
+				}
+				if (_.isObject(secret) && secret.source) {
 					return {
 						...secret,
 						source: `${secret.source}-${prefix}`,
@@ -28,9 +36,11 @@ export const addPrefixToServiceSecrets = (
 				}
 				return secret;
 			});
-			newServices[serviceKey].secrets = updatedSecrets;
 		}
-	}
+
+		newServices[serviceName] = newServiceConfig;
+	});
+
 	return newServices;
 };
 
@@ -38,18 +48,21 @@ export const addPrefixToAllSecrets = (
 	composeData: ComposeSpecification,
 	prefix: string,
 ): ComposeSpecification => {
-	const updatedSecrets = addPrefixToSecretsRoot(
-		composeData.secrets || {},
-		prefix,
-	);
-	const updatedServices = addPrefixToServiceSecrets(
-		composeData.services || {},
-		prefix,
-	);
+	const updatedComposeData = { ...composeData };
 
-	return {
-		...composeData,
-		secrets: updatedSecrets,
-		services: updatedServices,
-	};
+	if (composeData?.secrets) {
+		updatedComposeData.secrets = addPrefixToSecretsRoot(
+			composeData.secrets,
+			prefix,
+		);
+	}
+
+	if (composeData?.services) {
+		updatedComposeData.services = addPrefixToSecretsInServices(
+			composeData.services,
+			prefix,
+		);
+	}
+
+	return updatedComposeData;
 };

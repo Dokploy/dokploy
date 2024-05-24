@@ -1,8 +1,6 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
 	addPrefixToVolumesRoot,
-	addPrefixToServiceVolumes,
-	addPrefixToServiceObjectVolumes,
 	addPrefixToAllVolumes,
 } from "@/server/utils/docker/compose/volume";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
@@ -163,61 +161,6 @@ test("Add prefix to volumes root property", () => {
 	expect(volumes).toBeDefined();
 	for (const volumeKey of Object.keys(volumes)) {
 		expect(volumeKey).toContain(`-${prefix}`);
-	}
-});
-
-test("Add prefix to service volumes", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
-
-	const prefix = generateRandomHash();
-
-	if (!composeData?.services) {
-		return;
-	}
-	const volumesServices = addPrefixToServiceVolumes(
-		composeData.services,
-		prefix,
-	);
-
-	expect(volumesServices).toBeDefined();
-	for (const serviceKey of Object.keys(volumesServices)) {
-		const service = volumesServices[serviceKey];
-		if (service.volumes) {
-			for (const volume of service.volumes) {
-				if (typeof volume === "string") {
-					const parts = volume.split(":");
-					if (parts.length > 1 && !parts[0].startsWith("./")) {
-						expect(parts[0]).toContain(`-${prefix}`);
-					}
-				}
-			}
-		}
-	}
-});
-
-test("Add prefix to service object volumes", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
-
-	const prefix = generateRandomHash();
-
-	if (!composeData?.services) {
-		return;
-	}
-	const services = addPrefixToServiceObjectVolumes(
-		composeData.services,
-		prefix,
-	);
-
-	expect(services).toBeDefined();
-	for (const serviceKey of Object.keys(services)) {
-		const service = services[serviceKey];
-		if (service.volumes) {
-			for (const volume of service.volumes) {
-				if (typeof volume === "object" && volume.type === "volume") {
-					expect(volume.source).toContain(`-${prefix}`);
-				}
-			}
-		}
 	}
 });
 

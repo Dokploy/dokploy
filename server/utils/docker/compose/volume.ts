@@ -27,6 +27,15 @@ export const addPrefixToVolumesInServices = (
 			newServiceConfig.volumes = _.map(newServiceConfig.volumes, (volume) => {
 				if (_.isString(volume)) {
 					const [volumeName, path] = volume.split(":");
+
+					// skip bind mounts and variables (e.g. $PWD)
+					if (
+						volumeName?.startsWith(".") ||
+						volumeName?.startsWith("/") ||
+						volumeName?.startsWith("$")
+					) {
+						return volume;
+					}
 					return `${volumeName}-${prefix}:${path}`;
 				}
 				if (_.isObject(volume) && volume.type === "volume" && volume.source) {
@@ -51,23 +60,18 @@ export const addPrefixToAllVolumes = (
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
-	// if (updatedComposeData.volumes) {
-	// 	updatedComposeData.volumes = addPrefixToVolumesRoot(
-	// 		updatedComposeData.volumes,
-	// 		prefix,
-	// 	);
-	// }
+	if (updatedComposeData.volumes) {
+		updatedComposeData.volumes = addPrefixToVolumesRoot(
+			updatedComposeData.volumes,
+			prefix,
+		);
+	}
 
-	// if (updatedComposeData.services) {
-	// 	updatedComposeData.services = addPrefixToServiceVolumes(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// 	updatedComposeData.services = addPrefixToServiceObjectVolumes(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// }
-
+	if (updatedComposeData.services) {
+		updatedComposeData.services = addPrefixToVolumesInServices(
+			updatedComposeData.services,
+			prefix,
+		);
+	}
 	return updatedComposeData;
 };

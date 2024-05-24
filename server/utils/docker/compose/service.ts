@@ -79,33 +79,12 @@ export const addPrefixToAllServiceNames = (
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
-	// if (updatedComposeData.services) {
-	// 	updatedComposeData.services = addPrefixToServiceNamesRoot(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// 	updatedComposeData.services = addPrefixToDependsOn(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// 	updatedComposeData.services = addPrefixToVolumesFrom(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// 	updatedComposeData.services = addPrefixToLinks(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// 	updatedComposeData.services = addPrefixToExtends(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-
-	// 	updatedComposeData.services = addPrefixToContainerNames(
-	// 		updatedComposeData.services,
-	// 		prefix,
-	// 	);
-	// }
+	if (updatedComposeData.services) {
+		updatedComposeData.services = addPrefixToServiceNames(
+			updatedComposeData.services,
+			prefix,
+		);
+	}
 
 	return updatedComposeData;
 };
