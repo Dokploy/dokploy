@@ -1,0 +1,1 @@
+ALTER TABLE "compose" ALTER COLUMN "appName" SET NOT NULL;

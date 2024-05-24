@@ -22,6 +22,7 @@ import { initializePostgres } from "./setup/postgres-setup";
 import { migration } from "@/server/db/migration";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
+import { composeWorker } from "./queues/compose-queue";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -61,6 +62,7 @@ void app.prepare().then(async () => {
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
 		deploymentWorker.run();
+		composeWorker.run();
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { applications } from "./application";
 import { createInsertSchema } from "drizzle-zod";
 import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { compose } from "./compose";
 
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
@@ -19,9 +20,13 @@ export const deployments = pgTable("deployment", {
 	title: text("title").notNull(),
 	status: deploymentStatus("status").default("running"),
 	logPath: text("logPath").notNull(),
-	applicationId: text("applicationId")
-		.notNull()
-		.references(() => applications.applicationId, { onDelete: "cascade" }),
+	applicationId: text("applicationId").references(
+		() => applications.applicationId,
+		{ onDelete: "cascade" },
+	),
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -32,13 +37,18 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 		fields: [deployments.applicationId],
 		references: [applications.applicationId],
 	}),
+	compose: one(compose, {
+		fields: [deployments.composeId],
+		references: [compose.composeId],
+	}),
 }));
 
 const schema = createInsertSchema(deployments, {
 	title: z.string().min(1),
 	status: z.string().default("running"),
 	logPath: z.string().min(1),
-	applicationId: z.string().min(1),
+	applicationId: z.string(),
+	composeId: z.string(),
 });
 
 export const apiCreateDeployment = schema
@@ -48,10 +58,35 @@ export const apiCreateDeployment = schema
 		logPath: true,
 		applicationId: true,
 	})
-	.required();
+	.extend({
+		applicationId: z.string().min(1),
+	});
+
+export const apiCreateDeploymentCompose = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		composeId: true,
+	})
+	.extend({
+		composeId: z.string().min(1),
+	});
 
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+	})
+	.required();
+
+export const apiFindAllByCompose = schema
+	.pick({
+		composeId: true,
+	})
+	.extend({
+		composeId: z.string().min(1),
 	})
 	.required();

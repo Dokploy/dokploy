@@ -12,6 +12,8 @@ import {
 } from "../services/compose";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { checkServiceAccess } from "../services/user";
+import type { ComposeJob } from "@/server/queues/compose-queue";
+import { myComposeQueue } from "@/server/queues/queueSetup";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -47,32 +49,22 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			return await randomizeCompose(input.composeId);
 		}),
+
+	deploy: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input }) => {
+			const jobData: ComposeJob = {
+				composeId: input.composeId,
+				titleLog: "Manual deployment",
+				type: "deploy",
+			};
+			await myComposeQueue.add(
+				"compose",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+		}),
 });
-
-// Sí, efectivamente, existen principalmente dos formas de definir montajes (volúmenes) desde el host hacia un contenedor en Docker Compose:
-
-// 1. Montaje Simplificado
-// Esta es la forma más sencilla y directa de montar un archivo o directorio desde el host en un contenedor. Utiliza una sintaxis simplificada que Docker interpreta como un volumen de tipo bind.
-
-// Ejemplo
-// yaml
-// Copiar código
-// services:
-//   myservice:
-//     image: myimage
-//     volumes:
-//       - ./host/path:/container/path
-// 2. Montaje Explicito con type: bind
-// Esta forma es más explícita y permite agregar opciones adicionales como read_only y propagation. Utiliza el campo type: bind para especificar que se trata de un volumen de tipo bind.
-
-// Ejemplo Básico
-// yaml
-// Copiar código
-// services:
-//   myservice:
-//     image: myimage
-//     volumes:
-//       - type: bind
-//         source: ./host/path
-//         target: /container/path
-// .ssh

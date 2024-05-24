@@ -1,3 +1,4 @@
+import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
@@ -133,6 +134,18 @@ const Service = (
 				<TabsContent value="environment">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<ShowEnvironmentCompose composeId={composeId} />
+					</div>
+				</TabsContent>
+
+				{/* <TabsContent value="environment">
+					<div className="flex flex-col gap-4 pt-2.5">
+						<ShowLogs composeId={composeId} />
+					</div>
+				</TabsContent> */}
+
+				<TabsContent value="deployments">
+					<div className="flex flex-col gap-4 pt-2.5">
+						<ShowDeploymentsCompose composeId={composeId} />
 					</div>
 				</TabsContent>
 				{/*

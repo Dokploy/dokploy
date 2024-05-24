@@ -59,6 +59,8 @@ export const ComposeActions = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
+	const { mutateAsync } = api.compose.deploy.useMutation();
+
 	const form = useForm<GithubProvider>({
 		defaultValues: {
 			serviceName: "",
@@ -66,26 +68,22 @@ export const ComposeActions = ({ composeId }: Props) => {
 		resolver: zodResolver(GithubProviderSchema),
 	});
 
-	const onSubmit = async (data: GithubProvider) => {
-		// await mutateAsync({
-		// 	branch: data.branch,
-		// 	repository: data.repository.repo,
-		// 	applicationId,
-		// 	owner: data.repository.owner,
-		// 	buildPath: data.buildPath,
-		// })
-		// 	.then(async () => {
-		// 		toast.success("Service Provided Saved");
-		// 		await refetch();
-		// 	})
-		// 	.catch(() => {
-		// 		toast.error("Error to save the github provider");
-		// 	});
+	const onSubmit = async () => {
+		await mutateAsync({
+			composeId,
+		})
+			.then(async () => {
+				toast.success("Compose deploy updated");
+				await refetch();
+			})
+			.catch(() => {
+				toast.error("Error to deploy the compose");
+			});
 	};
 
 	console.log(data);
 	return (
-		<div className="flex flex-col gap-4 w-full lg:max-w-[16rem]">
+		<div className="flex flex-col gap-4 w-full lg:max-w-[12.5rem]">
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
@@ -160,11 +158,22 @@ export const ComposeActions = ({ composeId }: Props) => {
 							)}
 						/>
 					</div>
+					<Button
+						type="button"
+						onClick={() => {
+							onSubmit();
+						}}
+					>
+						Deploy
+					</Button>
+					<Button type="button" variant="secondary">
+						Restart
+					</Button>
+					<Button type="button" variant="destructive">
+						Delete
+					</Button>
 				</form>
 			</Form>
-			<Button>Deploy</Button>
-			<Button variant="secondary">Restart</Button>
-			<Button variant="destructive">Delete</Button>
 		</div>
 	);
 };

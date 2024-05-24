@@ -5,6 +5,9 @@ import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { load } from "js-yaml";
+import { findAdmin } from "./admin";
+import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
+import { buildCompose } from "@/server/utils/builders/compose";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -33,6 +36,7 @@ export const findComposeById = async (composeId: string) => {
 		where: eq(compose.composeId, composeId),
 		with: {
 			project: true,
+			deployments: true,
 		},
 	});
 	if (!result) {
@@ -77,4 +81,26 @@ export const updateCompose = async (
 
 export const randomizeCompose = async (composeId: string) => {
 	return randomizeComposeFile(composeId);
+};
+
+export const deployCompose = async ({
+	composeId,
+	titleLog = "Manual deployment",
+}: {
+	composeId: string;
+	titleLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const admin = await findAdmin();
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+	});
+
+	try {
+		await buildCompose(compose, deployment.logPath);
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		throw error;
+	}
 };

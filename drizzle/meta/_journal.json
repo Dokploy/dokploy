@@ -43,6 +43,41 @@
       "when": 1716436553599,
       "tag": "0005_black_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1716534424442,
+      "tag": "0006_complex_iron_fist",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1716534912601,
+      "tag": "0007_windy_spot",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1716535630498,
+      "tag": "0008_shiny_mordo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1716536837075,
+      "tag": "0009_steep_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1716536890354,
+      "tag": "0010_clever_whizzer",
+      "breakpoints": true
     }
   ]
 }

@@ -9,8 +9,13 @@ const myQueue = new Queue("deployments", {
 	connection: redisConfig,
 });
 
+const myComposeQueue = new Queue("compose", {
+	connection: redisConfig,
+});
+
 process.on("SIGTERM", () => {
 	myQueue.close();
+	myComposeQueue.close();
 	process.exit(0);
 });
 
@@ -23,4 +28,13 @@ myQueue.on("error", (error) => {
 	}
 });
 
-export { myQueue };
+myComposeQueue.on("error", (error) => {
+	if ((error as any).code === "ECONNREFUSED") {
+		console.error(
+			"Make sure you have installed Redis and it is running.",
+			error,
+		);
+	}
+});
+
+export { myQueue, myComposeQueue };

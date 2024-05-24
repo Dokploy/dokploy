@@ -17,6 +17,8 @@ import { validateAndFormatYAML } from "../../application/advanced/traefik/update
 import { toast } from "sonner";
 import { ComposeActions } from "./actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { RandomizeCompose } from "./randomize-compose";
 
 hljs.registerLanguage("yaml", require("highlight.js/lib/languages/yaml"));
 
@@ -26,6 +28,7 @@ interface Props {
 
 const AddComposeFile = z.object({
 	composeFile: z.string(),
+	command: z.string().optional(),
 });
 
 type AddComposeFile = z.infer<typeof AddComposeFile>;
@@ -56,6 +59,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
 			composeFile: "",
+			command: "",
 		},
 		resolver: zodResolver(AddComposeFile),
 	});
@@ -64,6 +68,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		if (data) {
 			form.reset({
 				composeFile: data.composeFile || "",
+				command: data.command || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -81,6 +86,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			composeFile: data.composeFile,
+			command: data.command,
 		})
 			.then(async () => {
 				toast.success("Compose config Updated");
@@ -96,28 +102,37 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	};
 	return (
 		<>
-			<Form {...form}>
-				<form
-					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid w-full relative gap-2"
-				>
-					<FormField
-						control={form.control}
-						name="composeFile"
-						render={({ field }) => (
-							<FormItem>
-								<FormControl>
-									<div className="flex flex-col gap-4 w-full lg:max-w-5xl outline-none focus:outline-none overflow-auto">
-										<Editor
-											value={field.value}
-											onValueChange={(code) => {
-												field.onChange(code);
-											}}
-											highlight={highlight}
-											padding={15}
-											className="editor  min-h-[32rem] "
-											preClassName="pre-editor h-full"
-											placeholder={`version: '3'
+			<div className="w-full flex flex-col lg:flex-row gap-4">
+				<Input
+					placeholder="docker stack deploy -c docker-compose.yml dokploy "
+					{...form.register("command")}
+				/>
+				{/* "docker stack deploy -c docker-compose.yml dokploy " */}
+				<RandomizeCompose composeId={composeId} />
+			</div>
+			<div className="w-full flex flex-col lg:flex-row gap-4">
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="grid w-full relative gap-2"
+					>
+						<FormField
+							control={form.control}
+							name="composeFile"
+							render={({ field }) => (
+								<FormItem>
+									<FormControl>
+										<div className="flex flex-col gap-4 w-full lg:max-w-[65rem] outline-none focus:outline-none overflow-auto">
+											<Editor
+												value={field.value}
+												onValueChange={(code) => {
+													field.onChange(code);
+												}}
+												highlight={highlight}
+												padding={15}
+												className="editor  max-h-[32rem] "
+												preClassName="pre-editor h-full"
+												placeholder={`version: '3'
 services:
     web:
     image: nginx
@@ -125,35 +140,36 @@ services:
         - "80:80"
     
     `}
-											style={{
-												fontFamily: '"Fira code", "Fira Mono", monospace',
-												fontSize: 12,
-												backgroundColor: "#19191A",
-												borderRadius: "6px",
-												overflow: "auto",
-												height: "100%",
-												// minHeight: "500px",
-												// maxHeight: "100%",
-											}}
-										/>
-									</div>
-								</FormControl>
-								<pre>
-									<FormMessage />
-								</pre>
-							</FormItem>
-						)}
-					/>
+												style={{
+													fontFamily: '"Fira code", "Fira Mono", monospace',
+													fontSize: 12,
+													backgroundColor: "#19191A",
+													borderRadius: "6px",
+													overflow: "auto",
+													height: "100%",
+													// minHeight: "500px",
+													// maxHeight: "100%",
+												}}
+											/>
+										</div>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
 
-					<div className="flex justify-end">
-						<Button type="submit" isLoading={isLoading} className="w-fit">
-							Save
-						</Button>
-					</div>
-				</form>
-			</Form>
+						<div className="flex justify-end">
+							<Button type="submit" isLoading={isLoading} className="w-fit">
+								Save
+							</Button>
+						</div>
+					</form>
+				</Form>
 
-			<ComposeActions composeId={composeId} />
+				<ComposeActions composeId={composeId} />
+			</div>
 		</>
 	);
 };
