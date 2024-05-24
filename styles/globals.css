@@ -123,3 +123,22 @@
   outline: none !important;
   outline-offset: 0px !important;
 } */
+
+/* Codemirror */
+.cm-editor {
+  @apply w-full h-full rounded-md p-1 border border-solid border-border outline-none;
+}
+
+.cm-editor .cm-scroller {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.cm-editor.cm-focused {
+  @apply outline-none;
+}
+
+/* fix: placeholder bg */
+.cm-editor .cm-activeLine:has(.cm-placeholder) {
+  background-color: transparent;
+}

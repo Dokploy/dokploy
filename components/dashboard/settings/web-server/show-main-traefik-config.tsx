@@ -16,7 +16,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +23,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import CodeEditor from "@/components/shared/code-editor";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 
 const UpdateMainTraefikConfigSchema = z.object({
@@ -105,8 +105,8 @@ export const ShowMainTraefikConfig = ({ children }: Props) => {
 									<FormItem className="relative">
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
-											<Textarea
-												className="h-[35rem] font-mono"
+											<CodeEditor
+												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`providers:
     docker:
         defaultRule: 'Host('dokploy.com')'

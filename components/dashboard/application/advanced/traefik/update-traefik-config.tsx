@@ -16,7 +16,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +24,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import jsyaml from "js-yaml";
+import CodeEditor from "@/components/shared/code-editor";
 
 const UpdateTraefikConfigSchema = z.object({
 	traefikConfig: z.string(),
@@ -132,8 +132,8 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 									<FormItem>
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
-											<Textarea
-												className="h-[35rem] font-mono"
+											<CodeEditor
+												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`http:
 routers:
     router-name:
