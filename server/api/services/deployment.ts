@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
 import { type Application, findApplicationById } from "./application";
-import { findComposeById } from "./compose";
+import { Compose, findComposeById } from "./compose";
 
 export type Deployment = typeof deployments.$inferSelect;
 type CreateDeploymentInput = Omit<
@@ -161,9 +161,9 @@ const removeLastTenDeployments = async (applicationId: string) => {
 	}
 };
 
-const removeLastTenComposeDeployments = async (applicationId: string) => {
+const removeLastTenComposeDeployments = async (composeId: string) => {
 	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.applicationId, applicationId),
+		where: eq(deployments.composeId, composeId),
 		orderBy: desc(deployments.createdAt),
 	});
 	if (deploymentList.length > 10) {
@@ -183,6 +183,16 @@ export const removeDeployments = async (application: Application) => {
 	const logsPath = path.join(LOGS_PATH, appName);
 	await removeDirectoryIfExistsContent(logsPath);
 	await removeDeploymentsByApplicationId(applicationId);
+};
+
+export const removeDeploymentsByComposeId = async (compose: Compose) => {
+	const { appName } = compose;
+	const logsPath = path.join(LOGS_PATH, appName);
+	await removeDirectoryIfExistsContent(logsPath);
+	await db
+		.delete(deployments)
+		.where(eq(deployments.composeId, compose.composeId))
+		.returning();
 };
 
 export const findAllDeploymentsByApplicationId = async (

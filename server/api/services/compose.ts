@@ -8,6 +8,13 @@ import { load } from "js-yaml";
 import { findAdmin } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { buildCompose } from "@/server/utils/builders/compose";
+import { cloneGithubRepositoryCompose } from "@/server/utils/providers/github";
+import { cloneGitRepositoryCompose } from "@/server/utils/providers/git";
+import { createComposeFile } from "@/server/utils/providers/raw";
+import { execAsync } from "@/server/utils/process/execAsync";
+import { join } from "path";
+import { COMPOSE_PATH } from "@/server/constants";
+import { exec } from "child_process";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -79,10 +86,6 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
-export const randomizeCompose = async (composeId: string) => {
-	return randomizeComposeFile(composeId);
-};
-
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
@@ -98,9 +101,70 @@ export const deployCompose = async ({
 	});
 
 	try {
+		if (compose.sourceType === "github") {
+			await cloneGithubRepositoryCompose(admin, compose, deployment.logPath);
+		} else if (compose.sourceType === "git") {
+			await cloneGitRepositoryCompose(compose, deployment.logPath);
+		} else {
+			await createComposeFile(compose, deployment.logPath);
+		}
 		await buildCompose(compose, deployment.logPath);
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
 		throw error;
 	}
+};
+
+export const rebuildCompose = async ({
+	composeId,
+	titleLog = "Rebuild deployment",
+}: {
+	composeId: string;
+	titleLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+	});
+
+	try {
+		await buildCompose(compose, deployment.logPath);
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		throw error;
+	}
+
+	return true;
+};
+
+export const removeCompose = async (appName: string) => {
+	try {
+		const projectPath = join(COMPOSE_PATH, appName);
+		const { stderr, stdout } = await execAsync("docker compose down", {
+			cwd: projectPath,
+		});
+
+		if (stderr) {
+			throw new Error(stderr);
+		}
+	} catch (error) {
+		throw error;
+	}
+
+	return true;
 };

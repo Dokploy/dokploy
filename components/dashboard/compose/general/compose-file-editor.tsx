@@ -87,6 +87,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			composeId,
 			composeFile: data.composeFile,
 			command: data.command,
+			sourceType: "raw",
 		})
 			.then(async () => {
 				toast.success("Compose config Updated");
@@ -107,7 +108,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 					placeholder="docker stack deploy -c docker-compose.yml dokploy "
 					{...form.register("command")}
 				/>
-				{/* "docker stack deploy -c docker-compose.yml dokploy " */}
 				<RandomizeCompose composeId={composeId} />
 			</div>
 			<div className="w-full flex flex-col lg:flex-row gap-4">
@@ -122,7 +122,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormControl>
-										<div className="flex flex-col gap-4 w-full lg:max-w-[65rem] outline-none focus:outline-none overflow-auto">
+										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
 											<Editor
 												value={field.value}
 												onValueChange={(code) => {
@@ -130,7 +130,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 												}}
 												highlight={highlight}
 												padding={15}
-												className="editor  max-h-[32rem] "
+												className="editor min-h-[20rem] max-h-[32rem] "
 												preClassName="pre-editor h-full"
 												placeholder={`version: '3'
 services:
@@ -168,7 +168,7 @@ services:
 					</form>
 				</Form>
 
-				<ComposeActions composeId={composeId} />
+				{/* <ComposeActions composeId={composeId} /> */}
 			</div>
 		</>
 	);

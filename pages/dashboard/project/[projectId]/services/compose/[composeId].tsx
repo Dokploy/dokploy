@@ -1,6 +1,8 @@
+import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
+import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
@@ -83,6 +85,7 @@ const Service = (
 							<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
 								{data?.name}
 							</h1>
+							<span className="text-sm">{data?.appName}</span>
 						</div>
 
 						{data?.description && (
@@ -93,7 +96,7 @@ const Service = (
 					</div>
 					<div className="relative flex flex-row gap-4">
 						<div className="absolute -right-1  -top-2">
-							{/* <StatusTooltip status={data?.applicationStatus} /> */}
+							<StatusTooltip status={data?.composeStatus} />
 						</div>
 
 						<CircuitBoard className="h-6 w-6 text-muted-foreground" />
@@ -119,10 +122,11 @@ const Service = (
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
 					<div className="flex flex-row gap-2">
-						{/* <UpdateApplication composeId={composeId} />
+						<UpdateCompose composeId={composeId} />
+
 						{(auth?.rol === "admin" || user?.canDeleteServices) && (
-							<DeleteApplication composeId={composeId} />
-						)} */}
+							<DeleteCompose composeId={composeId} />
+						)}
 					</div>
 				</div>
 

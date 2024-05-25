@@ -14,6 +14,7 @@ import React, { useEffect, useState } from "react";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { ShowDeploymentCompose } from "./show-deployment-compose";
+import { RefreshTokenCompose } from "./refresh-token-compose";
 // import { RefreshToken } from "./refresh-token";//
 
 interface Props {
@@ -55,9 +56,9 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 						<span>Webhook URL: </span>
 						<div className="flex flex-row items-center gap-2">
 							<span className="text-muted-foreground">
-								{/* {`${url}/api/deploy/${data?.refreshToken}`} */}
+								{`${url}/api/deploy/compose/${data?.refreshToken}`}
 							</span>
-							{/* <RefreshToken applicationId={applicationId} /> */}
+							<RefreshTokenCompose composeId={composeId} />
 						</div>
 					</div>
 				</div>

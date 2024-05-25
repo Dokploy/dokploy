@@ -127,7 +127,7 @@ export const extractServices = (data: Project | undefined) => {
 			type: "compose",
 			id: item.composeId,
 			createdAt: item.createdAt,
-			status: "idle",
+			status: item.composeStatus,
 			description: item.description,
 		})) || [];
 

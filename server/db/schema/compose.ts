@@ -1,11 +1,18 @@
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { projects } from "./project";
 import { relations } from "drizzle-orm";
 import { deployments } from "./deployment";
 import { generateAppName } from "./utils";
+import { applicationStatus } from "./shared";
+
+export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
+	"git",
+	"github",
+	"raw",
+]);
 
 export const compose = pgTable("compose", {
 	composeId: text("composeId")
@@ -19,7 +26,20 @@ export const compose = pgTable("compose", {
 	description: text("description"),
 	env: text("env"),
 	composeFile: text("composeFile").notNull().default(""),
-	command: text("command").default(""),
+	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
+	sourceType: sourceTypeCompose("sourceType").notNull().default("github"),
+	// Github
+	repository: text("repository"),
+	owner: text("owner"),
+	branch: text("branch"),
+	autoDeploy: boolean("autoDeploy"),
+	// Git
+	customGitUrl: text("customGitUrl"),
+	customGitBranch: text("customGitBranch"),
+	customGitSSHKey: text("customGitSSHKey"),
+	//
+	command: text("command").notNull().default(""),
+	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),

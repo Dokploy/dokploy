@@ -1,7 +1,11 @@
 import fs, { promises as fsPromises } from "node:fs";
 import path from "node:path";
 import type { Application } from "@/server/api/services/application";
-import { APPLICATIONS_PATH, MONITORING_PATH } from "@/server/constants";
+import {
+	APPLICATIONS_PATH,
+	COMPOSE_PATH,
+	MONITORING_PATH,
+} from "@/server/constants";
 import { execAsync } from "../process/execAsync";
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {
@@ -24,6 +28,16 @@ export const removeDirectoryIfExistsContent = async (
 export const removeDirectoryCode = async (appName: string) => {
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
 
+	try {
+		await execAsync(`rm -rf ${directoryPath}`);
+	} catch (error) {
+		console.error(`Error to remove ${directoryPath}: ${error}`);
+		throw error;
+	}
+};
+
+export const removeComposeDirectory = async (appName: string) => {
+	const directoryPath = path.join(COMPOSE_PATH, appName);
 	try {
 		await execAsync(`rm -rf ${directoryPath}`);
 	} catch (error) {

@@ -1,6 +1,6 @@
 import { type Job, Worker } from "bullmq";
 import { myQueue, redisConfig } from "./queueSetup";
-import { deployCompose } from "../api/services/compose";
+import { deployCompose, rebuildCompose } from "../api/services/compose";
 
 interface DeployJob {
 	composeId: string;
@@ -16,6 +16,11 @@ export const composeWorker = new Worker(
 		try {
 			if (job.data.type === "deploy") {
 				await deployCompose({
+					composeId: job.data.composeId,
+					titleLog: job.data.titleLog,
+				});
+			} else if (job.data.type === "redeploy") {
+				await rebuildCompose({
 					composeId: job.data.composeId,
 					titleLog: job.data.titleLog,
 				});

@@ -1,14 +1,5 @@
 import { Button } from "@/components/ui/button";
-import {
-	Calculator,
-	Calendar,
-	CheckIcon,
-	ChevronsUpDown,
-	CreditCard,
-	Settings,
-	Smile,
-	User,
-} from "lucide-react";
+import { CheckIcon, ChevronsUpDown, Hammer } from "lucide-react";
 
 import {
 	Command,
@@ -16,9 +7,6 @@ import {
 	CommandGroup,
 	CommandInput,
 	CommandItem,
-	CommandList,
-	CommandSeparator,
-	CommandShortcut,
 } from "@/components/ui/command";
 import { api } from "@/utils/api";
 import {
@@ -41,6 +29,9 @@ import { z } from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Toggle } from "@/components/ui/toggle";
+import { RedbuildCompose } from "./rebuild-compose";
+import { DeployCompose } from "./deploy-compose";
 
 const GithubProviderSchema = z.object({
 	serviceName: z.string().min(1, "Service name is required"),
@@ -52,44 +43,52 @@ interface Props {
 	composeId: string;
 }
 export const ComposeActions = ({ composeId }: Props) => {
-	const { data, refetch, isLoading } = api.compose.allServices.useQuery(
+	const utils = api.useUtils();
+	// const { data, refetch, isLoading } = api.compose.allServices.useQuery(
+	// 	{
+	// 		composeId,
+	// 	},
+	// 	{ enabled: !!composeId },
+	// );
+	const { data, refetch, isLoading } = api.compose.one.useQuery(
 		{
 			composeId,
 		},
 		{ enabled: !!composeId },
 	);
-
+	const { mutateAsync: update } = api.compose.update.useMutation();
 	const { mutateAsync } = api.compose.deploy.useMutation();
 
-	const form = useForm<GithubProvider>({
-		defaultValues: {
-			serviceName: "",
-		},
-		resolver: zodResolver(GithubProviderSchema),
-	});
+	// const form = useForm<GithubProvider>({
+	// 	defaultValues: {
+	// 		serviceName: "",
+	// 	},
+	// 	resolver: zodResolver(GithubProviderSchema),
+	// });
 
-	const onSubmit = async () => {
-		await mutateAsync({
-			composeId,
-		})
-			.then(async () => {
-				toast.success("Compose deploy updated");
-				await refetch();
-			})
-			.catch(() => {
-				toast.error("Error to deploy the compose");
-			});
-	};
+	// const onSubmit = async () => {
+	// 	await mutateAsync({
+	// 		composeId,
+	// 	})
+	// 		.then(async () => {
+	// 			toast.success("Compose deploy updated");
+	// 			await utils.compose.one.invalidate({
+	// 				composeId,
+	// 			});
+	// 		})
+	// 		.catch(() => {
+	// 			toast.error("Error to deploy the compose");
+	// 		});
+	// };
 
-	console.log(data);
 	return (
-		<div className="flex flex-col gap-4 w-full lg:max-w-[12.5rem]">
-			<Form {...form}>
+		<div className="flex flex-row gap-4 w-full ">
+			{/* <Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid w-full gap-4 py-3"
-				>
-					<div className="grid md:grid-cols-2 gap-4">
+					className="flex w-full gap-4 "
+				> */}
+			{/* <div className="">
 						<FormField
 							control={form.control}
 							name="serviceName"
@@ -157,23 +156,31 @@ export const ComposeActions = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
-					</div>
-					<Button
-						type="button"
-						onClick={() => {
-							onSubmit();
-						}}
-					>
-						Deploy
-					</Button>
-					<Button type="button" variant="secondary">
-						Restart
-					</Button>
-					<Button type="button" variant="destructive">
-						Delete
-					</Button>
-				</form>
-			</Form>
+					</div> */}
+			<DeployCompose composeId={composeId} />
+
+			<Toggle
+				aria-label="Toggle italic"
+				pressed={data?.autoDeploy || false}
+				onPressedChange={async (enabled) => {
+					await update({
+						composeId,
+						autoDeploy: enabled,
+					})
+						.then(async () => {
+							toast.success("Auto Deploy Updated");
+							await refetch();
+						})
+						.catch(() => {
+							toast.error("Error to update Auto Deploy");
+						});
+				}}
+			>
+				Autodeploy
+			</Toggle>
+			<RedbuildCompose composeId={composeId} />
+			{/* </form>
+			</Form> */}
 		</div>
 	);
 };

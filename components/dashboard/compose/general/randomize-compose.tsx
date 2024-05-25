@@ -3,7 +3,6 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -49,10 +48,11 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl max-h-[50rem] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Randomize Compose</DialogTitle>
+					<DialogTitle>Randomize Compose (Experimental)</DialogTitle>
 					<DialogDescription>
-						Use this in case you want to deploy the same compose file, this will
-						randomize unique values for networks, services and volumes
+						Use this in case you want to deploy the same compose file and you
+						have conflicts with some property like volumes, networks, etc, this
+						will add a prefix to the property to avoid conflicts
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
