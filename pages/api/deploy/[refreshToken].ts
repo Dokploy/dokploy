@@ -37,15 +37,19 @@ export default async function handler(
 		const sourceType = application.sourceType;
 
 		if (sourceType === "docker") {
-			const applicationDockerTag = extractImageTagFromApplication(application.dockerImage);
-			if (applicationDockerTag) {
-				const webhookDockerTag = extractImageTagFromRequestEventPayload(req.headers, req.body);
-				if (webhookDockerTag && (webhookDockerTag !== applicationDockerTag)) {
-					res.status(301).json({
-						message: `Application Image Tag(${applicationDockerTag}) doesn't match request event payload Image Tag(${webhookDockerTag}).`
-					});
-					return;
-				}
+			const applicationDockerTag = extractImageTag(application.dockerImage);
+			const webhookDockerTag = extractImageTagFromRequest(
+				req.headers,
+				req.body,
+			);
+			if (
+				applicationDockerTag &&
+				webhookDockerTag &&
+				webhookDockerTag !== applicationDockerTag
+			) {
+				return res.status(301).json({
+					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+				});
 			}
 		}
 		else if (sourceType === "github") {
@@ -101,23 +105,19 @@ export default async function handler(
  * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "version1.0"
  * @link https://docs.docker.com/reference/cli/docker/image/tag/
  */
-function extractImageTagFromApplication(dockerImage: string | null) {
+function extractImageTag(dockerImage: string | null) {
 	if (!dockerImage || typeof dockerImage !== "string") {
 		return null;
 	}
 
-	const partsOfDockerImageName = dockerImage.split(':')
-	if (partsOfDockerImageName.length === 1) {
-		return null;
-	}
-
-	return partsOfDockerImageName[partsOfDockerImageName.length - 1];
+	const tag = dockerImage.split(":").pop();
+	return tag === dockerImage ? "latest" : tag;
 }
 
 /**
  * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
  */
-function extractImageTagFromRequestEventPayload(headers: any, body: any) {
+function extractImageTagFromRequest(headers: any, body: any): string | null {
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
 			return body.push_data.tag;
