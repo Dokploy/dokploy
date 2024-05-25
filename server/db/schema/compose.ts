@@ -18,7 +18,7 @@ export const compose = pgTable("compose", {
 		.$defaultFn(() => generateAppName("compose")),
 	description: text("description"),
 	env: text("env"),
-	composeFile: text("composeFile"),
+	composeFile: text("composeFile").notNull().default(""),
 	command: text("command").default(""),
 	projectId: text("projectId")
 		.notNull()
@@ -40,7 +40,7 @@ const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
 	description: z.string(),
 	env: z.string().optional(),
-	composeFile: z.string(),
+	composeFile: z.string().min(1),
 	projectId: z.string(),
 	command: z.string().optional(),
 });
