@@ -47,9 +47,10 @@ export default async function handler(
 				webhookDockerTag &&
 				webhookDockerTag !== applicationDockerTag
 			) {
-				return res.status(301).json({
+				 res.status(301).json({
 					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
 				});
+				return;
 			}
 		}
 		else if (sourceType === "github") {
