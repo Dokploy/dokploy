@@ -10,6 +10,7 @@ import { api } from "@/utils/api";
 import { AlertTriangle, Package } from "lucide-react";
 import { AddVolumes } from "./add-volumes";
 import { DeleteVolume } from "./delete-volume";
+import { UpdateVolume } from "./update-volume";
 interface Props {
 	applicationId: string;
 }
@@ -114,7 +115,12 @@ export const ShowVolumes = ({ applicationId }: Props) => {
 												</span>
 											</div>
 										</div>
-										<div>
+										<div className="flex flex-row gap-1">
+											<UpdateVolume
+												mountId={mount.mountId}
+												type={mount.type}
+												refetch={refetch}
+											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>
 									</div>

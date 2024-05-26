@@ -3,25 +3,35 @@ import type { InferResultType } from "@/server/types/with";
 import { spawnAsync } from "../process/spawnAsync";
 import { COMPOSE_PATH } from "@/server/constants";
 import { join } from "node:path";
+import { generateFileMountsCompose } from "../docker/utils";
+import boxen from "boxen";
 
-export type ComposeNested = InferResultType<"compose", { project: true }>;
+export type ComposeNested = InferResultType<
+	"compose",
+	{ project: true; mounts: true }
+>;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { sourceType } = compose;
+	const { sourceType, appName, mounts } = compose;
 	try {
-		writeStream.write("\nBuild Compose 🐳");
 		const command = sanitizeCommand(compose.command);
+		generateFileMountsCompose(appName, mounts);
+		const logContent = `
+App Name: ${appName}
+Build Compose 🐳
+Detected: ${mounts.length} mounts 📂
+Command: ${command.startCommand} ${command.restCommand?.join(" ")}
+Source Type: ${sourceType} ✅`;
+		const logBox = boxen(logContent, {
+			padding: {
+				left: 1,
+				right: 1,
+				bottom: 1,
+			},
+			borderStyle: "double",
+		});
+		writeStream.write(`${logBox}\n`);
 
-		writeStream.write(
-			`\nCommand 👀: ${command.startCommand} ${command.restCommand?.join(
-				" ",
-			)}\n`,
-		);
-		writeStream.write(`\nSource Type: ${sourceType}: ✅\n`);
-
-		writeStream.write(
-			"\n=======================================================\n",
-		);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 		await spawnAsync(
 			command.startCommand,

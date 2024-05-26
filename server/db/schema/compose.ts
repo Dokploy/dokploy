@@ -7,6 +7,7 @@ import { relations } from "drizzle-orm";
 import { deployments } from "./deployment";
 import { generateAppName } from "./utils";
 import { applicationStatus } from "./shared";
+import { mounts } from "./mount";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
@@ -54,6 +55,7 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		references: [projects.projectId],
 	}),
 	deployments: many(deployments),
+	mounts: many(mounts),
 }));
 
 const createSchema = createInsertSchema(compose, {

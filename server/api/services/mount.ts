@@ -37,6 +37,9 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 				...(input.serviceType === "redis" && {
 					redisId: serviceId,
 				}),
+				...(input.serviceType === "compose" && {
+					composeId: serviceId,
+				}),
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -49,6 +52,7 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 		}
 		return value;
 	} catch (error) {
+		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create the mount",
@@ -80,12 +84,12 @@ export const findMountById = async (mountId: string) => {
 
 export const updateMount = async (
 	mountId: string,
-	applicationData: Partial<Mount>,
+	mountData: Partial<Mount>,
 ) => {
 	const mount = await db
 		.update(mounts)
 		.set({
-			...applicationData,
+			...mountData,
 		})
 		.where(eq(mounts.mountId, mountId))
 		.returning();

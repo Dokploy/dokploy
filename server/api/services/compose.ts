@@ -12,9 +12,8 @@ import { cloneGithubRepositoryCompose } from "@/server/utils/providers/github";
 import { cloneGitRepositoryCompose } from "@/server/utils/providers/git";
 import { createComposeFile } from "@/server/utils/providers/raw";
 import { execAsync } from "@/server/utils/process/execAsync";
-import { join } from "path";
+import { join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
-import { exec } from "child_process";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -44,6 +43,7 @@ export const findComposeById = async (composeId: string) => {
 		with: {
 			project: true,
 			deployments: true,
+			mounts: true,
 		},
 	});
 	if (!result) {

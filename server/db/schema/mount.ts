@@ -9,6 +9,7 @@ import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { redis } from "./redis";
+import { compose } from "./compose";
 
 export const serviceType = pgEnum("serviceType", [
 	"application",
@@ -17,6 +18,7 @@ export const serviceType = pgEnum("serviceType", [
 	"mariadb",
 	"mongo",
 	"redis",
+	"compose",
 ]);
 
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
@@ -51,6 +53,9 @@ export const mounts = pgTable("mount", {
 	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const MountssRelations = relations(mounts, ({ one }) => ({
@@ -78,6 +83,10 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.redisId],
 		references: [redis.redisId],
 	}),
+	compose: one(compose, {
+		fields: [mounts.composeId],
+		references: [compose.composeId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mounts, {
@@ -89,7 +98,15 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	serviceType: z
-		.enum(["application", "postgres", "mysql", "mariadb", "mongo", "redis"])
+		.enum([
+			"application",
+			"postgres",
+			"mysql",
+			"mariadb",
+			"mongo",
+			"redis",
+			"compose",
+		])
 		.default("application"),
 });
 
@@ -134,3 +151,7 @@ export const apiFindMountByApplicationId = createSchema
 		serviceType: true,
 	})
 	.required();
+
+export const apiUpdateMount = createSchema.partial().extend({
+	mountId: z.string().min(1),
+});

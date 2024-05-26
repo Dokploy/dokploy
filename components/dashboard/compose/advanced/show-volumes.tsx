@@ -8,19 +8,19 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { AlertTriangle, Package } from "lucide-react";
-import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
 import { DeleteVolume } from "../../application/advanced/volumes/delete-volume";
+import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
 import { UpdateVolume } from "../../application/advanced/volumes/update-volume";
 interface Props {
-	postgresId: string;
+	composeId: string;
 }
 
-export const ShowVolumes = ({ postgresId }: Props) => {
-	const { data, refetch } = api.postgres.one.useQuery(
+export const ShowVolumesCompose = ({ composeId }: Props) => {
+	const { data, refetch } = api.compose.one.useQuery(
 		{
-			postgresId,
+			composeId,
 		},
-		{ enabled: !!postgresId },
+		{ enabled: !!composeId },
 	);
 
 	return (
@@ -29,16 +29,16 @@ export const ShowVolumes = ({ postgresId }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Volumes</CardTitle>
 					<CardDescription>
-						If you want to persist data in this postgres database use the
-						following config to setup the volumes
+						If you want to persist data in this compose use the following config
+						to setup the volumes
 					</CardDescription>
 				</div>
 
 				{data && data?.mounts.length > 0 && (
 					<AddVolumes
-						serviceId={postgresId}
+						serviceId={composeId}
 						refetch={refetch}
-						serviceType="postgres"
+						serviceType="compose"
 					>
 						Add Volume
 					</AddVolumes>
@@ -52,9 +52,9 @@ export const ShowVolumes = ({ postgresId }: Props) => {
 							No volumes/mounts configured
 						</span>
 						<AddVolumes
-							serviceId={postgresId}
+							serviceId={composeId}
 							refetch={refetch}
-							serviceType="postgres"
+							serviceType="compose"
 						>
 							Add Volume
 						</AddVolumes>
@@ -75,7 +75,6 @@ export const ShowVolumes = ({ postgresId }: Props) => {
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>

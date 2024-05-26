@@ -1,3 +1,4 @@
+import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
 import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
@@ -152,42 +153,9 @@ const Service = (
 						<ShowDeploymentsCompose composeId={composeId} />
 					</div>
 				</TabsContent>
-				{/*
-				<TabsContent value="environment">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowEnvironment composeId={composeId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="monitoring">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<DockerMonitoring appName={data?.appName || ""} />
-					</div>
-				</TabsContent>
-				<TabsContent value="logs">
-					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs appName={data?.appName || ""} />
-					</div>
-				</TabsContent>
-				<TabsContent value="deployments" className="w-full">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowDeployments composeId={composeId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="domains" className="w-full">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowDomains composeId={composeId} />
-					</div>
-				</TabsContent> */}
 				<TabsContent value="advanced">
 					<div className="flex flex-col gap-4 pt-2.5">
-						{/* <AddCommand composeId={composeId} />
-						<ShowClusterSettings composeId={composeId} />
-						<ShowApplicationResources composeId={composeId} />
-						<ShowVolumes composeId={composeId} />
-						<ShowRedirects composeId={composeId} />
-						<ShowSecurity composeId={composeId} />
-						<ShowPorts composeId={composeId} />
-						<ShowTraefikConfig composeId={composeId} /> */}
+						<ShowVolumesCompose composeId={composeId} />
 					</div>
 				</TabsContent>
 			</Tabs>

@@ -10,6 +10,7 @@ import { api } from "@/utils/api";
 import { AlertTriangle, Package } from "lucide-react";
 import { DeleteVolume } from "../../application/advanced/volumes/delete-volume";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
+import { UpdateVolume } from "../../application/advanced/volumes/update-volume";
 interface Props {
 	mariadbId: string;
 }
@@ -113,7 +114,12 @@ export const ShowVolumes = ({ mariadbId }: Props) => {
 												</span>
 											</div>
 										</div>
-										<div>
+										<div className="flex flex-row gap-1">
+											<UpdateVolume
+												mountId={mount.mountId}
+												type={mount.type}
+												refetch={refetch}
+											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>
 									</div>
