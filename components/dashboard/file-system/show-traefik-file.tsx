@@ -9,7 +9,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../application/advanced/traefik/update-traefik-config";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const UpdateServerMiddlewareConfigSchema = z.object({
 	traefikConfig: z.string(),
@@ -87,13 +87,12 @@ export const ShowTraefikFile = ({ path }: Props) => {
 	return (
 		<div>
 			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid w-full relative"
+					className="grid w-full relative z-[5]"
 				>
-					<div className="flex flex-col">
+					<div className="flex flex-col overflow-auto">
 						<FormField
 							control={form.control}
 							name="traefikConfig"
@@ -104,8 +103,8 @@ export const ShowTraefikFile = ({ path }: Props) => {
 										{path}
 									</FormDescription>
 									<FormControl>
-										<Textarea
-											className="h-[35rem] font-mono"
+										<CodeEditor
+											wrapperClassName="h-[35rem] font-mono"
 											placeholder={`http:
 routers:
     router-name:

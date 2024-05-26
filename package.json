@@ -32,6 +32,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.515.0",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-yaml": "^6.1.1",
     "@faker-js/faker": "^8.4.1",
     "@hookform/resolvers": "^3.3.4",
     "@lucia-auth/adapter-drizzle": "1.0.7",
@@ -60,6 +62,8 @@
     "@trpc/next": "^10.43.6",
     "@trpc/react-query": "^10.43.6",
     "@trpc/server": "^10.43.6",
+    "@uiw/codemirror-theme-github": "^4.22.1",
+    "@uiw/react-codemirror": "^4.22.1",
     "@xterm/addon-attach": "0.10.0",
     "@xterm/xterm": "^5.4.0",
     "bcrypt": "5.1.1",
