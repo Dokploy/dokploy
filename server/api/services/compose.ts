@@ -7,12 +7,12 @@ import { load } from "js-yaml";
 import { findAdmin } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { buildCompose } from "@/server/utils/builders/compose";
-import { cloneGithubRepositoryCompose } from "@/server/utils/providers/github";
-import { cloneGitRepositoryCompose } from "@/server/utils/providers/git";
 import { createComposeFile } from "@/server/utils/providers/raw";
 import { execAsync } from "@/server/utils/process/execAsync";
 import { join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
+import { cloneGithubRepository } from "@/server/utils/providers/github";
+import { cloneGitRepository } from "@/server/utils/providers/git";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -101,9 +101,9 @@ export const deployCompose = async ({
 
 	try {
 		if (compose.sourceType === "github") {
-			await cloneGithubRepositoryCompose(admin, compose, deployment.logPath);
+			await cloneGithubRepository(admin, compose, deployment.logPath, true);
 		} else if (compose.sourceType === "git") {
-			await cloneGitRepositoryCompose(compose, deployment.logPath);
+			await cloneGitRepository(compose, deployment.logPath, true);
 		} else {
 			await createComposeFile(compose, deployment.logPath);
 		}

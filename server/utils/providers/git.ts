@@ -1,19 +1,22 @@
 import { createWriteStream } from "node:fs";
-import path from "node:path";
-import type { Application } from "@/server/api/services/application";
+import path, { join } from "node:path";
 import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
-import type { Compose } from "@/server/api/services/compose";
 
 export const cloneGitRepository = async (
-	application: Application,
+	entity: {
+		appName: string;
+		customGitUrl?: string | null;
+		customGitBranch?: string | null;
+		customGitSSHKey?: string | null;
+	},
 	logPath: string,
+	isCompose = false,
 ) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKey } =
-		application;
+	const { appName, customGitUrl, customGitBranch, customGitSSHKey } = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -24,7 +27,8 @@ export const cloneGitRepository = async (
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const keyPath = path.join(SSH_PATH, `${appName}_rsa`);
-	const outputPath = path.join(APPLICATIONS_PATH, appName);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	try {
@@ -118,66 +122,4 @@ const sanitizeRepoPathSSH = (input: string) => {
 			}${this.repo}.git`;
 		},
 	};
-};
-
-export const cloneGitRepositoryCompose = async (
-	compose: Compose,
-	logPath: string,
-) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKey } = compose;
-
-	if (!customGitUrl || !customGitBranch) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error: Repository not found",
-		});
-	}
-
-	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const keyPath = path.join(SSH_PATH, `${appName}_rsa`);
-	const outputPath = path.join(COMPOSE_PATH, appName);
-	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
-
-	try {
-		await addHostToKnownHosts(customGitUrl);
-		await recreateDirectory(outputPath);
-		// const command = `GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}" git clone --branch ${customGitBranch} --depth 1 ${customGitUrl} ${gitCopyPath} --progress`;
-		// const { stdout, stderr } = await execAsync(command);
-		writeStream.write(
-			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
-		);
-
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				customGitBranch,
-				"--depth",
-				"1",
-				customGitUrl,
-				outputPath,
-				"--progress",
-			],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-			{
-				env: {
-					...process.env,
-					...(customGitSSHKey && {
-						GIT_SSH_COMMAND: `ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}`,
-					}),
-				},
-			},
-		);
-		writeStream.write(`\nCloned Custom Git ${customGitUrl}: ✅\n`);
-	} catch (error) {
-		writeStream.write(`\nERROR Cloning Custom Git: ${error}: ❌\n`);
-		throw error;
-	} finally {
-		writeStream.end();
-	}
 };
