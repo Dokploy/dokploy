@@ -181,7 +181,7 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
-	checkAndUpdateImage: adminProcedure.query(async () => {
+	checkAndUpdateImage: adminProcedure.mutation(async () => {
 		return await pullLatestRelease();
 	}),
 	updateServer: adminProcedure.mutation(async () => {

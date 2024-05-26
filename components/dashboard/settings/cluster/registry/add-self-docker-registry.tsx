@@ -157,10 +157,7 @@ export const AddSelfHostedRegistry = () => {
 									<FormItem>
 										<FormLabel>Registry URL</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="https://registry.dokploy.com"
-												{...field}
-											/>
+											<Input placeholder="registry.dokploy.com" {...field} />
 										</FormControl>
 										<FormDescription>
 											Point a DNS record to the VPS IP address.

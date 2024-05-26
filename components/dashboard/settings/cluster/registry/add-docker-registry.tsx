@@ -201,7 +201,7 @@ export const AddRegistry = () => {
 										<FormLabel>Registry URL</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="https://aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
+												placeholder="aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
 												{...field}
 											/>
 										</FormControl>
