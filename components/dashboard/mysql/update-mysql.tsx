@@ -90,7 +90,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
-					<SquarePen className="size-4" />
+					<SquarePen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">

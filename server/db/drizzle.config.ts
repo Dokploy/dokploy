@@ -1,13 +1,14 @@
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
-console.log("> Generating PG Schema:", process.env.DATABASE_URL);
-export default {
+export default defineConfig({
 	schema: "./server/db/schema/index.ts",
-	driver: "pg",
+	dialect: "postgresql",
 	dbCredentials: {
-		connectionString: process.env.DATABASE_URL || "",
+		url: process.env.DATABASE_URL || "",
 	},
-	verbose: true,
-	strict: true,
 	out: "drizzle",
-} satisfies Config;
+	migrations: {
+		table: "migrations",
+		schema: "public",
+	},
+});

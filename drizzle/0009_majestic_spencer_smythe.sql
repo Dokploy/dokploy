@@ -1,0 +1,1 @@
+ALTER TABLE "application" ALTER COLUMN "replicas" SET NOT NULL;

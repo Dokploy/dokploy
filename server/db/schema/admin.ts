@@ -6,6 +6,7 @@ import { users } from "./user";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { certificateType } from "./shared";
+import { registry } from "./registry";
 
 export const admins = pgTable("admin", {
 	adminId: text("adminId")
@@ -39,6 +40,7 @@ export const adminsRelations = relations(admins, ({ one, many }) => ({
 		references: [auth.id],
 	}),
 	users: many(users),
+	registry: many(registry),
 }));
 
 const createSchema = createInsertSchema(admins, {

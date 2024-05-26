@@ -5,6 +5,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -13,6 +14,7 @@ import { buildCustomDocker } from "./docker-file";
 import { buildHeroku } from "./heroku";
 import { buildNixpacks } from "./nixpacks";
 import { buildPaketo } from "./paketo";
+import { uploadImage } from "../cluster/upload";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -20,7 +22,7 @@ import { buildPaketo } from "./paketo";
 // DOCKERFILE codeDirectory = where is the exact path of the (Dockerfile)
 export type ApplicationNested = InferResultType<
 	"applications",
-	{ mounts: true; security: true; redirects: true; ports: true }
+	{ mounts: true; security: true; redirects: true; ports: true; registry: true }
 >;
 export const buildApplication = async (
 	application: ApplicationNested,
@@ -41,6 +43,10 @@ export const buildApplication = async (
 			await buildPaketo(application, writeStream);
 		} else if (buildType === "dockerfile") {
 			await buildCustomDocker(application, writeStream);
+		}
+
+		if (application.registryId) {
+			await uploadImage(application, writeStream);
 		}
 		await mechanizeDockerContainer(application);
 		writeStream.write("Docker Deployed: ✅");
@@ -75,16 +81,50 @@ export const mechanizeDockerContainer = async (
 		cpuLimit,
 		cpuReservation,
 	});
+
 	const volumesMount = generateVolumeMounts(mounts);
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(application);
+
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
 	const envVariables = prepareEnvironmentVariables(env);
 
+	const registry = application.registry;
+
+	let image =
+		sourceType === "docker"
+			? dockerImage || "ERROR-NO-IMAGE-PROVIDED"
+			: `${appName}:latest`;
+
+	if (registry) {
+		image = `${registry.registryUrl}/${appName}`;
+
+		if (registry.imagePrefix) {
+			image = `${registry.registryUrl}/${registry.imagePrefix}/${appName}`;
+		}
+	}
+
 	const settings: CreateServiceOptions = {
+		authconfig: {
+			password: registry?.password || "",
+			username: registry?.username || "",
+			serveraddress: registry?.registryUrl || "",
+		},
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
-				Image: sourceType === "docker" ? dockerImage! : `${appName}:latest`,
+				HealthCheck,
+				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(command
@@ -93,20 +133,17 @@ export const mechanizeDockerContainer = async (
 							Args: ["-c", command],
 						}
 					: {}),
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
-			RestartPolicy: {
-				Condition: "on-failure",
-			},
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Ports: ports.map((port) => ({
 				Protocol: port.protocol,
@@ -114,10 +151,7 @@ export const mechanizeDockerContainer = async (
 				PublishedPort: port.publishedPort,
 			})),
 		},
-		UpdateConfig: {
-			Parallelism: 1,
-			Order: "start-first",
-		},
+		UpdateConfig,
 	};
 
 	try {
@@ -132,7 +166,7 @@ export const mechanizeDockerContainer = async (
 			},
 		});
 	} catch (error) {
+		console.log(error);
 		await docker.createService(settings);
 	}
-	// await cleanUpUnusedImages();
 };

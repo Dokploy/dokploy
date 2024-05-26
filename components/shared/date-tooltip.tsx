@@ -4,19 +4,26 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface Props {
 	date: string;
 	children?: React.ReactNode;
+	className?: string;
 }
 
-export const DateTooltip = ({ date, children }: Props) => {
+export const DateTooltip = ({ date, children, className }: Props) => {
 	return (
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
 				<TooltipTrigger>
-					<span className="flex items-center text-muted-foreground text-left">
+					<span
+						className={cn(
+							"flex items-center text-muted-foreground text-left",
+							className,
+						)}
+					>
 						{children}{" "}
 						{formatDistanceToNow(new Date(date), {
 							addSuffix: true,

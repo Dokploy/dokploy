@@ -25,6 +25,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { PlusIcon } from "lucide-react";
 
 const addUser = z.object({
 	email: z
@@ -66,7 +67,9 @@ export const AddUser = () => {
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button>Add User</Button>
+				<Button>
+					<PlusIcon className="h-4 w-4" /> Add User
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>

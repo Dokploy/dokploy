@@ -212,7 +212,7 @@ const Project = (
 									}}
 									className="group relative cursor-pointer bg-transparent transition-colors hover:bg-card h-fit"
 								>
-									<div className="absolute -right-1  -top-1">
+									<div className="absolute -right-1 -top-2">
 										<StatusTooltip status={service.status} />
 									</div>
 

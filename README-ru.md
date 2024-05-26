@@ -46,4 +46,4 @@ curl -sSL https://dokploy.com/install.sh | sh
 - Centos 9
 
 ## 📄 Документация
-Для подробной документации посетите docs.dokploy.com/docs.
+Для подробной документации посетите [docs.dokploy.com/docs](https://docs.dokploy.com).

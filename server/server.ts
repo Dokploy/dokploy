@@ -10,7 +10,7 @@ import {
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDirectories } from "./setup/config-paths";
-import { initializeNetwork, initializeSwarm } from "./setup/setup";
+import { initializeNetwork } from "./setup/setup";
 import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
@@ -44,7 +44,6 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production") {
 			setupDirectories();
 			createDefaultMiddlewares();
-			await initializeSwarm();
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();

@@ -181,7 +181,7 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
-	checkAndUpdateImage: adminProcedure.query(async () => {
+	checkAndUpdateImage: adminProcedure.mutation(async () => {
 		return await pullLatestRelease();
 	}),
 	updateServer: adminProcedure.mutation(async () => {
@@ -238,3 +238,4 @@ export const settingsRouter = createTRPCRouter({
 			return readConfigInPath(input.path);
 		}),
 });
+// apt-get install apache2-utils
