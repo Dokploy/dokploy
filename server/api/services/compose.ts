@@ -152,15 +152,18 @@ export const rebuildCompose = async ({
 	return true;
 };
 
-export const removeCompose = async (appName: string) => {
+export const removeCompose = async (compose: Compose) => {
 	try {
-		const projectPath = join(COMPOSE_PATH, appName);
-		const { stderr, stdout } = await execAsync("docker compose down", {
-			cwd: projectPath,
-		});
+		const projectPath = join(COMPOSE_PATH, compose.appName);
 
-		if (stderr) {
-			throw new Error(stderr);
+		if (compose.composeType === "stack") {
+			await execAsync(`docker stack rm ${compose.appName}`, {
+				cwd: projectPath,
+			});
+		} else {
+			await execAsync(`docker compose -p ${compose.appName} down`, {
+				cwd: projectPath,
+			});
 		}
 	} catch (error) {
 		throw error;
@@ -172,9 +175,16 @@ export const removeCompose = async (appName: string) => {
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
-		await execAsync("docker compose stop", {
-			cwd: join(COMPOSE_PATH, compose.appName),
-		});
+		if (compose.composeType === "stack") {
+			await execAsync(`docker stack rm ${compose.appName}`, {
+				cwd: join(COMPOSE_PATH, compose.appName),
+			});
+		} else {
+			await execAsync(`docker compose -p ${compose.appName} stop`, {
+				cwd: join(COMPOSE_PATH, compose.appName),
+			});
+		}
+
 		await updateCompose(composeId, {
 			composeStatus: "idle",
 		});

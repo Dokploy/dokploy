@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const GithubProviderSchema = z.object({
-	command: z.string().min(1, "Command is required").default("/"),
+	composePath: z.string().min(1),
 	repository: z
 		.object({
 			repo: z.string().min(1, "Repo is required"),
@@ -55,7 +55,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 
 	const form = useForm<GithubProvider>({
 		defaultValues: {
-			command: "",
+			composePath: "./docker-compose.yml",
 			repository: {
 				owner: "",
 				repo: "",
@@ -90,19 +90,20 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					repo: data.repository || "",
 					owner: data.owner || "",
 				},
-				command: data.command,
+				composePath: data.composePath,
 			});
 		}
 	}, [form.reset, data, form]);
 
 	const onSubmit = async (data: GithubProvider) => {
+		console.log(data);
 		await mutateAsync({
 			branch: data.branch,
 			repository: data.repository.repo,
 			composeId: composeId,
 			owner: data.repository.owner,
-			command: data.command,
 			sourceType: "github",
+			composePath: data.composePath,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -277,17 +278,15 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
-							name="command"
+							name="composePath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Command</FormLabel>
+									<FormLabel>Compose Path</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="docker compose -f docker-compose.yml up -d"
-											{...field}
-										/>
+										<Input placeholder="docker-compose.yml" {...field} />
 									</FormControl>
 
 									<FormMessage />

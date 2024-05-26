@@ -30,24 +30,13 @@ export const addPrefixToAllProperties = (
 ): ComposeSpecification => {
 	let updatedComposeData = { ...composeData };
 
-	if (updatedComposeData.services) {
-		updatedComposeData = addPrefixToAllServiceNames(updatedComposeData, prefix);
-	}
+	updatedComposeData = addPrefixToAllServiceNames(updatedComposeData, prefix);
 
-	if (updatedComposeData.volumes) {
-		updatedComposeData = addPrefixToAllVolumes(updatedComposeData, prefix);
-	}
+	updatedComposeData = addPrefixToAllVolumes(updatedComposeData, prefix);
 
-	if (updatedComposeData.networks) {
-		updatedComposeData = addPrefixToAllNetworks(updatedComposeData, prefix);
-	}
+	updatedComposeData = addPrefixToAllNetworks(updatedComposeData, prefix);
+	updatedComposeData = addPrefixToAllConfigs(updatedComposeData, prefix);
 
-	if (updatedComposeData.configs) {
-		updatedComposeData = addPrefixToAllConfigs(updatedComposeData, prefix);
-	}
-
-	if (updatedComposeData.secrets) {
-		updatedComposeData = addPrefixToAllSecrets(updatedComposeData, prefix);
-	}
+	updatedComposeData = addPrefixToAllSecrets(updatedComposeData, prefix);
 	return updatedComposeData;
 };

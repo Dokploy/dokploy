@@ -21,15 +21,12 @@ import {
 	readRSAFile,
 	removeRSAFiles,
 } from "@/server/utils/filesystem/ssh";
-import { updateApplication } from "../services/application";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
-import { th } from "@faker-js/faker";
-import { TRPCError } from "@trpc/server";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -67,7 +64,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			const cleanupOperations = [
-				async () => await removeCompose(composeResult.appName),
+				async () => await removeCompose(composeResult),
 				async () => await removeDeploymentsByComposeId(composeResult),
 				async () => await removeComposeDirectory(composeResult.appName),
 				async () => await removeRSAFiles(composeResult.appName),

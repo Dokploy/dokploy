@@ -12,16 +12,18 @@ export type ComposeNested = InferResultType<
 >;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { sourceType, appName, mounts } = compose;
+	const { sourceType, appName, mounts, composeType } = compose;
 	try {
-		const command = sanitizeCommand(compose.command);
+		const command = createCommand(compose);
 		generateFileMountsCompose(appName, mounts);
+
 		const logContent = `
 App Name: ${appName}
 Build Compose 🐳
 Detected: ${mounts.length} mounts 📂
-Command: ${command.startCommand} ${command.restCommand?.join(" ")}
-Source Type: ${sourceType} ✅`;
+Command: docker ${command}
+Source Type: docker ${sourceType} ✅
+Compose Type: ${composeType} ✅`;
 		const logBox = boxen(logContent, {
 			padding: {
 				left: 1,
@@ -34,8 +36,8 @@ Source Type: ${sourceType} ✅`;
 
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 		await spawnAsync(
-			command.startCommand,
-			command.restCommand,
+			"docker",
+			[...command.split(" ")],
 			(data) => {
 				if (writeStream.writable) {
 					writeStream.write(data.toString());
@@ -61,14 +63,29 @@ const sanitizeCommand = (command: string) => {
 
 	const parts = sanitizedCommand.split(/\s+/);
 
-	const startCommand = parts[0];
+	const restCommand = parts.map((arg) => arg.replace(/^"(.*)"$/, "$1"));
 
-	const restCommand = parts
-		.slice(1)
-		.map((arg) => arg.replace(/^"(.*)"$/, "$1"));
+	return restCommand.join(" ");
+};
 
-	return {
-		startCommand: startCommand || "NO COMMAND SET",
-		restCommand,
-	};
+const createCommand = (compose: ComposeNested) => {
+	const { composeType, appName, sourceType } = compose;
+
+	const path =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	let command = "";
+
+	if (composeType === "docker-compose") {
+		command = `compose -p ${appName} -f ${path} up -d`;
+	} else if (composeType === "stack") {
+		command = `stack deploy -c ${path} ${appName} --prune`;
+	}
+
+	const customCommand = sanitizeCommand(compose.command);
+
+	if (customCommand) {
+		command = `${command} ${customCommand}`;
+	}
+
+	return command;
 };

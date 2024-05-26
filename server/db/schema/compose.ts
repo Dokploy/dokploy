@@ -15,6 +15,8 @@ export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"raw",
 ]);
 
+export const composeType = pgEnum("composeType", ["docker-compose", "stack"]);
+
 export const compose = pgTable("compose", {
 	composeId: text("composeId")
 		.notNull()
@@ -29,6 +31,7 @@ export const compose = pgTable("compose", {
 	composeFile: text("composeFile").notNull().default(""),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceTypeCompose("sourceType").notNull().default("github"),
+	composeType: composeType("composeType").notNull().default("docker-compose"),
 	// Github
 	repository: text("repository"),
 	owner: text("owner"),
@@ -40,6 +43,8 @@ export const compose = pgTable("compose", {
 	customGitSSHKey: text("customGitSSHKey"),
 	//
 	command: text("command").notNull().default(""),
+	//
+	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
@@ -65,12 +70,15 @@ const createSchema = createInsertSchema(compose, {
 	composeFile: z.string().min(1),
 	projectId: z.string(),
 	command: z.string().optional(),
+	composePath: z.string().min(1),
+	composeType: z.enum(["docker-compose", "stack"]).optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({
 	name: true,
 	description: true,
 	projectId: true,
+	composeType: true,
 });
 
 export const apiFindCompose = z.object({

@@ -13,7 +13,6 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {

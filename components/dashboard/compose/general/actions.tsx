@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CheckIcon, ChevronsUpDown, Hammer } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, Hammer, Terminal } from "lucide-react";
 
 import {
 	Command,
@@ -33,6 +33,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { RedbuildCompose } from "./rebuild-compose";
 import { DeployCompose } from "./deploy-compose";
 import { StopCompose } from "./stop-compose";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 
 const GithubProviderSchema = z.object({
 	serviceName: z.string().min(1, "Service name is required"),
@@ -83,7 +84,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 	// };
 
 	return (
-		<div className="flex flex-row gap-4 w-full ">
+		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			{/* <Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
@@ -181,6 +182,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
 			<StopCompose composeId={composeId} />
+			<DockerTerminalModal appName={data?.appName || ""}>
+				<Button variant="outline">
+					<Terminal />
+					Open Terminal
+				</Button>
+			</DockerTerminalModal>
 			{/* </form>
 			</Form> */}
 		</div>

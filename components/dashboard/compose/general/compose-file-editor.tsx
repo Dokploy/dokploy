@@ -8,6 +8,7 @@ import {
 	FormControl,
 	FormField,
 	FormItem,
+	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +16,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 import { toast } from "sonner";
-import { ComposeActions } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RandomizeCompose } from "./randomize-compose";
@@ -28,7 +28,6 @@ interface Props {
 
 const AddComposeFile = z.object({
 	composeFile: z.string(),
-	command: z.string().optional(),
 });
 
 type AddComposeFile = z.infer<typeof AddComposeFile>;
@@ -59,7 +58,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
 			composeFile: "",
-			command: "",
 		},
 		resolver: zodResolver(AddComposeFile),
 	});
@@ -68,7 +66,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		if (data) {
 			form.reset({
 				composeFile: data.composeFile || "",
-				command: data.command || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -86,7 +83,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			composeFile: data.composeFile,
-			command: data.command,
 			sourceType: "raw",
 		})
 			.then(async () => {
@@ -104,17 +100,10 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	return (
 		<>
 			<div className="w-full flex flex-col lg:flex-row gap-4">
-				<Input
-					placeholder="docker stack deploy -c docker-compose.yml dokploy "
-					{...form.register("command")}
-				/>
-				<RandomizeCompose composeId={composeId} />
-			</div>
-			<div className="w-full flex flex-col lg:flex-row gap-4">
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full relative gap-2"
+						className="grid w-full relative gap-4"
 					>
 						<FormField
 							control={form.control}
@@ -160,7 +149,10 @@ services:
 							)}
 						/>
 
-						<div className="flex justify-end">
+						<div className="flex justify-between">
+							<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
+								<RandomizeCompose composeId={composeId} />
+							</div>
 							<Button type="submit" isLoading={isLoading} className="w-fit">
 								Save
 							</Button>

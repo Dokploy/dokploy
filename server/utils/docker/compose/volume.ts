@@ -73,5 +73,6 @@ export const addPrefixToAllVolumes = (
 			prefix,
 		);
 	}
+
 	return updatedComposeData;
 };

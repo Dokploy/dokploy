@@ -27,8 +27,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 const AddComposeSchema = z.object({
+	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
@@ -51,6 +59,7 @@ export const AddCompose = ({ projectId }: Props) => {
 		defaultValues: {
 			name: "",
 			description: "",
+			composeType: "docker-compose",
 		},
 		resolver: zodResolver(AddComposeSchema),
 	});
@@ -64,6 +73,7 @@ export const AddCompose = ({ projectId }: Props) => {
 			name: data.name,
 			description: data.description,
 			projectId,
+			composeType: data.composeType,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
@@ -118,6 +128,32 @@ export const AddCompose = ({ projectId }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="composeType"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Compose Type</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a compose type" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											<SelectItem value="docker-compose">
+												Docker Compose
+											</SelectItem>
+											<SelectItem value="stack">Stack</SelectItem>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="description"

@@ -28,11 +28,11 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const GitProviderSchema = z.object({
+	composePath: z.string().min(1),
 	repositoryURL: z.string().min(1, {
 		message: "Repository URL is required",
 	}),
 	branch: z.string().min(1, "Branch required"),
-	command: z.string().min(1, "Command Path required"),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -54,8 +54,8 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 	const form = useForm<GitProvider>({
 		defaultValues: {
 			branch: "",
-			command: "",
 			repositoryURL: "",
+			composePath: "./docker-compose.yml",
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -64,8 +64,8 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 		if (data) {
 			form.reset({
 				branch: data.customGitBranch || "",
-				command: data.command || "",
 				repositoryURL: data.customGitUrl || "",
+				composePath: data.composePath,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -73,10 +73,10 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 	const onSubmit = async (values: GitProvider) => {
 		await mutateAsync({
 			customGitBranch: values.branch,
-			command: values.command,
 			customGitUrl: values.repositoryURL,
 			composeId,
 			sourceType: "git",
+			composePath: values.composePath,
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
@@ -227,25 +227,21 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 							)}
 						/>
 					</div>
-					<div className="space-y-4">
-						<FormField
-							control={form.control}
-							name="command"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Command</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="docker compose -f docker-compose.yml up -d"
-											{...field}
-										/>
-									</FormControl>
 
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="composePath"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Compose Path</FormLabel>
+								<FormControl>
+									<Input placeholder="docker-compose.yml" {...field} />
+								</FormControl>
+
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 				</div>
 
 				<div className="flex flex-row justify-end">

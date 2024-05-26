@@ -41,7 +41,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild onClick={() => onSubmit()}>
-				<Button>
+				<Button className="max-lg:w-full" variant="outline">
 					<Dices className="h-4 w-4" />
 					Randomize Compose
 				</Button>

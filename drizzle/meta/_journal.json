@@ -120,6 +120,13 @@
       "when": 1716678380593,
       "tag": "0016_right_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1716697234956,
+      "tag": "0017_stale_bromley",
+      "breakpoints": true
     }
   ]
 }
