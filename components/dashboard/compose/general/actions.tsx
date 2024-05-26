@@ -32,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Toggle } from "@/components/ui/toggle";
 import { RedbuildCompose } from "./rebuild-compose";
 import { DeployCompose } from "./deploy-compose";
+import { StopCompose } from "./stop-compose";
 
 const GithubProviderSchema = z.object({
 	serviceName: z.string().min(1, "Service name is required"),
@@ -179,6 +180,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 				Autodeploy
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
+			<StopCompose composeId={composeId} />
 			{/* </form>
 			</Form> */}
 		</div>

@@ -9,6 +9,7 @@ import {
 	findComposeById,
 	loadServices,
 	removeCompose,
+	stopCompose,
 	updateCompose,
 } from "../services/compose";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -127,6 +128,11 @@ export const composeRouter = createTRPCRouter({
 				},
 			);
 		}),
+	stop: protectedProcedure.input(apiFindCompose).mutation(async ({ input }) => {
+		await stopCompose(input.composeId);
+
+		return true;
+	}),
 	generateSSHKey: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {

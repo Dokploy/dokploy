@@ -168,3 +168,22 @@ export const removeCompose = async (appName: string) => {
 
 	return true;
 };
+
+export const stopCompose = async (composeId: string) => {
+	const compose = await findComposeById(composeId);
+	try {
+		await execAsync("docker compose stop", {
+			cwd: join(COMPOSE_PATH, compose.appName),
+		});
+		await updateCompose(composeId, {
+			composeStatus: "idle",
+		});
+	} catch (error) {
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		throw error;
+	}
+
+	return true;
+};
