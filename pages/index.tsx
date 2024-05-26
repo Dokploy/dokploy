@@ -193,7 +193,7 @@ export default function Home({ hasAdmin }: Props) {
 							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
 								<Link
 									className="hover:underline text-muted-foreground"
-									href="https://docs.dokploy.com/reset-password"
+									href="https://docs.dokploy.com/get-started/reset-password"
 									target="_blank"
 								>
 									Lost your password?

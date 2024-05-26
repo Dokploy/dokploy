@@ -87,10 +87,10 @@ export const GithubSetup = () => {
 				{haveGithubConfigured ? (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center gap-4">
-							<span className="text-muted-foreground">
+							<span className="text-muted-foreground text-sm">
 								Github account configured succesfully.
 							</span>
-							<BadgeCheck className="size-5 text-green-700" />
+							<BadgeCheck className="size-4 text-green-700" />
 						</div>
 						<div className="flex items-end">
 							<RemoveGithubApp />
@@ -100,10 +100,10 @@ export const GithubSetup = () => {
 					<>
 						{data?.githubAppName ? (
 							<div className="flex w-fit flex-col gap-4">
-								<span className="text-muted-foreground text-sm">
-									Youve successfully created a GitHub app named
-									{data.githubAppName}! The next step is to install this app in
-									your GitHub account.
+								<span className="text-muted-foreground">
+									You've successfully created a github app named{" "}
+									<strong>{data.githubAppName}</strong>! The next step is to
+									install this app in your GitHub account.
 								</span>
 
 								<div className="flex flex-row gap-4">
@@ -121,12 +121,12 @@ export const GithubSetup = () => {
 						) : (
 							<div>
 								<div className="flex items-center gap-2">
-									<span className="text-muted-foreground text-sm">
-										To integrate your GitHub account with our services, youll
+									<p className="text-muted-foreground text-sm">
+										To integrate your GitHub account with our services, you'll
 										need to create and install a GitHub app. This process is
 										straightforward and only takes a few minutes. Click the
 										button below to get started.
-									</span>
+									</p>
 								</div>
 
 								<div className="mt-4 flex flex-col gap-4">

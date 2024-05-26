@@ -59,6 +59,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Users,
 										href: "/dashboard/settings/users",
 									},
+									{
+										title: "Cluster",
+										label: "",
+										icon: Server,
+										href: "/dashboard/settings/cluster",
+									},
 								]
 							: []),
 					]}
@@ -75,6 +81,7 @@ import {
 	Activity,
 	Database,
 	Route,
+	Server,
 	ShieldCheck,
 	User2,
 	Users,

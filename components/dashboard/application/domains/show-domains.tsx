@@ -40,7 +40,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 					</div>
 
 					{data && data?.length > 0 && (
-						<AddDomain applicationId={applicationId} />
+						<AddDomain applicationId={applicationId}>
+							<GlobeIcon className="size-4" /> Add Domain
+						</AddDomain>
 					)}
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
@@ -51,7 +53,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 								To access to the application is required to set at least 1
 								domain
 							</span>
-							<AddDomain applicationId={applicationId}>Add Domain</AddDomain>
+							<AddDomain applicationId={applicationId}>
+								<GlobeIcon className="size-4" /> Add Domain
+							</AddDomain>
 						</div>
 					) : (
 						<div className="flex w-full flex-col gap-4">
@@ -75,8 +79,10 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										<Button variant="outline" disabled>
 											{item.https ? "HTTPS" : "HTTP"}
 										</Button>
-										<UpdateDomain domainId={item.domainId} />
-										<DeleteDomain domainId={item.domainId} />
+										<div className="flex flex-row gap-1">
+											<UpdateDomain domainId={item.domainId} />
+											<DeleteDomain domainId={item.domainId} />
+										</div>
 									</div>
 								);
 							})}
