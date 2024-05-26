@@ -14,7 +14,7 @@ export const ShowTraefikSystem = () => {
 
 	return (
 		<div className={cn("mt-6 md:grid gap-4")}>
-			<div className="flex flex-col md:flex-row gap-4 md:gap-10 w-full">
+			<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
 				{directories?.length === 0 && (
 					<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 						<span className="text-muted-foreground text-lg font-medium">
@@ -27,7 +27,7 @@ export const ShowTraefikSystem = () => {
 					<>
 						<Tree
 							data={directories}
-							className="md:max-w-[19rem] w-full md:h-[660px] border rounded-lg"
+							className="lg:max-w-[19rem] w-full lg:h-[660px] border rounded-lg"
 							onSelectChange={(item) => setFile(item?.id || null)}
 							folderIcon={Folder}
 							itemIcon={Workflow}

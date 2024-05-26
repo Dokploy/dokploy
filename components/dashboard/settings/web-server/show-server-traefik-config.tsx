@@ -23,7 +23,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import CodeEditor from "@/components/shared/code-editor";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 
 const UpdateServerTraefikConfigSchema = z.object({
@@ -98,7 +98,7 @@ export const ShowServerTraefikConfig = ({ children }: Props) => {
 					<form
 						id="hook-form-update-server-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4 relative"
+						className="grid w-full py-4 relative overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField

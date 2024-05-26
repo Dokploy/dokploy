@@ -7,28 +7,39 @@ import { useTheme } from "next-themes";
 
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
-  disabled?: boolean
+	disabled?: boolean;
 }
 
-function CodeEditor({ className, wrapperClassName, ...props }: Props) {
+export const CodeEditor = ({
+	className,
+	wrapperClassName,
+	...props
+}: Props) => {
 	const { resolvedTheme } = useTheme();
 
 	return (
-		<div className={wrapperClassName}>
+		<div className={cn("relative overflow-auto", wrapperClassName)}>
 			<CodeMirror
 				basicSetup={{
-					lineNumbers: false,
-					foldGutter: false,
-          highlightActiveLine: !props.disabled
+					lineNumbers: true,
+					foldGutter: true,
+					highlightSelectionMatches: true,
+					highlightActiveLine: !props.disabled,
+					allowMultipleSelections: true,
 				}}
 				theme={resolvedTheme === "dark" ? githubDark : githubLight}
 				extensions={[yaml(), json()]}
 				{...props}
-        editable={!props.disabled}
-				className={cn("w-full h-full text-sm leading-relaxed", `cm-theme-${resolvedTheme}`, className)}
+				editable={!props.disabled}
+				className={cn(
+					"w-full h-full text-sm leading-relaxed",
+					`cm-theme-${resolvedTheme}`,
+					className,
+				)}
 			/>
+			{props.disabled && (
+				<div className="absolute top-0 left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)]" />
+			)}
 		</div>
 	);
-}
-
-export default CodeEditor;
+};

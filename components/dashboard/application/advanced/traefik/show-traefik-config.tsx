@@ -9,7 +9,7 @@ import {
 import { api } from "@/utils/api";
 import { File } from "lucide-react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
-import CodeEditor from "@/components/shared/code-editor";
+import { CodeEditor } from "@/components/shared/code-editor";
 interface Props {
 	applicationId: string;
 }
