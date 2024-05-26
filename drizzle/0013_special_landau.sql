@@ -1,1 +1,0 @@
-ALTER TYPE "sourceTypeCompose" ADD VALUE 'raw';

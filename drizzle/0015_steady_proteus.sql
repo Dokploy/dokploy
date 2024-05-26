@@ -1,1 +1,0 @@
-ALTER TABLE "compose" ADD COLUMN "composeStatus" "applicationStatus" DEFAULT 'idle' NOT NULL;

@@ -33,7 +33,6 @@ type TabState =
 	| "settings"
 	| "advanced"
 	| "deployments"
-	| "domains"
 	| "monitoring";
 
 const Service = (
@@ -149,12 +148,6 @@ const Service = (
 						<ShowDockerLogsCompose appName={data?.appName || ""} />
 					</div>
 				</TabsContent>
-
-				{/* <TabsContent value="environment">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowLogs composeId={composeId} />
-					</div>
-				</TabsContent> */}
 
 				<TabsContent value="deployments">
 					<div className="flex flex-col gap-4 pt-2.5">
