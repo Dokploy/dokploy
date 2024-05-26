@@ -128,3 +128,7 @@
 }
 
 
+.compose-file-editor .cm-editor {
+  @apply min-h-[25rem];
+
+}

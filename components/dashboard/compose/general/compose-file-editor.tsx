@@ -1,6 +1,4 @@
 import { api } from "@/utils/api";
-import Editor from "react-simple-code-editor";
-import hljs from "highlight.js";
 import "highlight.js/styles/vs2015.css"; // Estilo que prefieras
 import { useEffect } from "react";
 import {
@@ -8,7 +6,6 @@ import {
 	FormControl,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,10 +14,8 @@ import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { RandomizeCompose } from "./randomize-compose";
-
-hljs.registerLanguage("yaml", require("highlight.js/lib/languages/yaml"));
+import { CodeEditor } from "@/components/shared/code-editor";
 
 interface Props {
 	composeId: string;
@@ -31,13 +26,6 @@ const AddComposeFile = z.object({
 });
 
 type AddComposeFile = z.infer<typeof AddComposeFile>;
-
-export const highlightCode = (code: string, language: string) => {
-	if (hljs.getLanguage(language)) {
-		return hljs.highlight(code, { language }).value;
-	}
-	return hljs.highlightAuto(code).value;
-};
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
 	const utils = api.useUtils();
@@ -50,10 +38,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.update.useMutation();
-
-	const highlight = (code: string) => {
-		return highlightCode(code, "yaml");
-	};
 
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
@@ -79,6 +63,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			});
 			return;
 		}
+
 		form.clearErrors("composeFile");
 		await mutateAsync({
 			composeId,
@@ -112,15 +97,11 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 								<FormItem>
 									<FormControl>
 										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
-											<Editor
+											<CodeEditor
+												// disabled
 												value={field.value}
-												onValueChange={(code) => {
-													field.onChange(code);
-												}}
-												highlight={highlight}
-												padding={15}
-												className="editor min-h-[20rem] max-h-[32rem] "
-												preClassName="pre-editor h-full"
+												className="font-mono min-h-[20rem] compose-file-editor"
+												wrapperClassName="min-h-[20rem]"
 												placeholder={`version: '3'
 services:
     web:
@@ -129,15 +110,8 @@ services:
         - "80:80"
     
     `}
-												style={{
-													fontFamily: '"Fira code", "Fira Mono", monospace',
-													fontSize: 12,
-													backgroundColor: "#19191A",
-													borderRadius: "6px",
-													overflow: "auto",
-													height: "100%",
-													// minHeight: "500px",
-													// maxHeight: "100%",
+												onChange={(value) => {
+													field.onChange(value);
 												}}
 											/>
 										</div>
@@ -159,8 +133,6 @@ services:
 						</div>
 					</form>
 				</Form>
-
-				{/* <ComposeActions composeId={composeId} /> */}
 			</div>
 		</>
 	);
