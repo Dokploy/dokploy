@@ -44,6 +44,8 @@ Tested Systems:
 
 - Ubuntu 20.04
 - Debian 11
+- Fedora 40
+- Centos 9
 
 ## 📄 Documentation
 

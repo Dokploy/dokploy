@@ -42,6 +42,8 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 - Ubuntu 20.04
 - Debian 11
+- Fedora 40
+- Centos 9
 
 ## 📄 Документация
-Для подробной документации посетите docs.dokploy.com/docs.
+Для подробной документации посетите [docs.dokploy.com/docs](https://docs.dokploy.com).
