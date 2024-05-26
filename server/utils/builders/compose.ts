@@ -1,9 +1,17 @@
-import { createWriteStream } from "node:fs";
+import {
+	createWriteStream,
+	existsSync,
+	mkdirSync,
+	writeFileSync,
+} from "node:fs";
 import type { InferResultType } from "@/server/types/with";
 import { spawnAsync } from "../process/spawnAsync";
 import { COMPOSE_PATH } from "@/server/constants";
-import { join } from "node:path";
-import { generateFileMountsCompose } from "../docker/utils";
+import { dirname, join } from "node:path";
+import {
+	generateFileMountsCompose,
+	prepareEnvironmentVariables,
+} from "../docker/utils";
 import boxen from "boxen";
 
 export type ComposeNested = InferResultType<
@@ -12,10 +20,13 @@ export type ComposeNested = InferResultType<
 >;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { sourceType, appName, mounts, composeType } = compose;
+	const { sourceType, appName, mounts, composeType, env, composePath } =
+		compose;
 	try {
 		const command = createCommand(compose);
 		generateFileMountsCompose(appName, mounts);
+
+		createEnvFile(compose);
 
 		const logContent = `
 App Name: ${appName}
@@ -30,9 +41,10 @@ Compose Type: ${composeType} ✅`;
 				right: 1,
 				bottom: 1,
 			},
+			width: 80,
 			borderStyle: "double",
 		});
-		writeStream.write(`${logBox}\n`);
+		writeStream.write(`\n${logBox}\n`);
 
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 		await spawnAsync(
@@ -57,7 +69,6 @@ Compose Type: ${composeType} ✅`;
 	}
 };
 
-// this will remove whitespaces, quotes
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
 
@@ -76,7 +87,7 @@ const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d`;
+		command = `compose -p ${appName} -f ${path} up -d --build`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${path} ${appName} --prune`;
 	}
@@ -88,4 +99,19 @@ const createCommand = (compose: ComposeNested) => {
 	}
 
 	return command;
+};
+
+const createEnvFile = (compose: ComposeNested) => {
+	const { env, composePath, appName } = compose;
+	const composeFilePath =
+		join(COMPOSE_PATH, appName, composePath) ||
+		join(COMPOSE_PATH, appName, "docker-compose.yml");
+
+	const envFilePath = join(dirname(composeFilePath), ".env");
+	const envFileContent = prepareEnvironmentVariables(env).join("\n");
+
+	if (!existsSync(dirname(envFilePath))) {
+		mkdirSync(dirname(envFilePath), { recursive: true });
+	}
+	writeFileSync(envFilePath, envFileContent);
 };

@@ -1,7 +1,7 @@
 import http from "node:http";
 import { config } from "dotenv";
 import next from "next";
-import { deploymentWorker } from "./queues/deployments-queue";
+import { applicationWorker } from "./queues/application-queue";
 import { initCronJobs } from "./utils/backups";
 import {
 	getPublicIpWithFallback,
@@ -61,7 +61,7 @@ void app.prepare().then(async () => {
 		}
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		deploymentWorker.run();
+		applicationWorker.run();
 		composeWorker.run();
 	} catch (e) {
 		console.error("Main Server Error", e);

@@ -1,5 +1,5 @@
 import { type Job, Worker } from "bullmq";
-import { myQueue, redisConfig } from "./queueSetup";
+import { myComposeQueue, redisConfig } from "./queueSetup";
 import { deployCompose, rebuildCompose } from "../api/services/compose";
 
 interface DeployJob {
@@ -35,8 +35,8 @@ export const composeWorker = new Worker(
 	},
 );
 
-export const cleanQueuesByApplication = async (composeId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
+export const cleanQueuesByCompose = async (composeId: string) => {
+	const jobs = await myComposeQueue.getJobs(["waiting", "delayed"]);
 
 	for (const job of jobs) {
 		if (job.data.composeId === composeId) {

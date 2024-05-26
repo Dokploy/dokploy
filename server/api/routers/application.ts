@@ -16,7 +16,7 @@ import {
 import {
 	cleanQueuesByApplication,
 	type DeploymentJob,
-} from "@/server/queues/deployments-queue";
+} from "@/server/queues/application-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,

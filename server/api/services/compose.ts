@@ -1,6 +1,5 @@
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -175,11 +174,7 @@ export const removeCompose = async (compose: Compose) => {
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
-		if (compose.composeType === "stack") {
-			await execAsync(`docker stack rm ${compose.appName}`, {
-				cwd: join(COMPOSE_PATH, compose.appName),
-			});
-		} else {
+		if (compose.composeType === "docker-compose") {
 			await execAsync(`docker compose -p ${compose.appName} stop`, {
 				cwd: join(COMPOSE_PATH, compose.appName),
 			});

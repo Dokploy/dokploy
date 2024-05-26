@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
 import { type Application, findApplicationById } from "./application";
-import { Compose, findComposeById } from "./compose";
+import { type Compose, findComposeById } from "./compose";
 
 export type Deployment = typeof deployments.$inferSelect;
 type CreateDeploymentInput = Omit<

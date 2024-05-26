@@ -14,7 +14,10 @@ import {
 } from "../services/compose";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { checkServiceAccess } from "../services/user";
-import type { ComposeJob } from "@/server/queues/compose-queue";
+import {
+	cleanQueuesByCompose,
+	type ComposeJob,
+} from "@/server/queues/compose-queue";
 import { myComposeQueue } from "@/server/queues/queueSetup";
 import {
 	generateSSHKey,
@@ -77,6 +80,11 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			return result[0];
+		}),
+	cleanQueues: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input }) => {
+			await cleanQueuesByCompose(input.composeId);
 		}),
 
 	allServices: protectedProcedure

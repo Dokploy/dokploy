@@ -181,7 +181,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 				Autodeploy
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
-			<StopCompose composeId={composeId} />
+			{data?.composeType === "docker-compose" && (
+				<StopCompose composeId={composeId} />
+			)}
+
 			<DockerTerminalModal appName={data?.appName || ""}>
 				<Button variant="outline">
 					<Terminal />

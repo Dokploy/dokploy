@@ -15,6 +15,7 @@ import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { ShowDeploymentCompose } from "./show-deployment-compose";
 import { RefreshTokenCompose } from "./refresh-token-compose";
+import { CancelQueuesCompose } from "./cancel-queues-compose";
 // import { RefreshToken } from "./refresh-token";//
 
 interface Props {
@@ -44,6 +45,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 						See all the 10 last deployments for this compose
 					</CardDescription>
 				</div>
+				<CancelQueuesCompose composeId={composeId} />
 				{/* <CancelQueues applicationId={applicationId} /> */}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">

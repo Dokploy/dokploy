@@ -3,7 +3,7 @@ import {
 	deployApplication,
 	rebuildApplication,
 } from "../api/services/application";
-import { myQueue, redisConfig } from "./queueSetup";
+import { myApplicationQueue, redisConfig } from "./queueSetup";
 
 interface DeployJob {
 	applicationId: string;
@@ -13,7 +13,7 @@ interface DeployJob {
 
 export type DeploymentJob = DeployJob;
 
-export const deploymentWorker = new Worker(
+export const applicationWorker = new Worker(
 	"deployments",
 	async (job: Job<DeploymentJob>) => {
 		try {
@@ -39,7 +39,7 @@ export const deploymentWorker = new Worker(
 );
 
 export const cleanQueuesByApplication = async (applicationId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
+	const jobs = await myApplicationQueue.getJobs(["waiting", "delayed"]);
 
 	for (const job of jobs) {
 		if (job.data.applicationId === applicationId) {
