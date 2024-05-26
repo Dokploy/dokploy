@@ -116,7 +116,7 @@ const Mariadb = (
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
-					<div className="flex flex-row gap-4">
+					<div className="flex flex-row gap-2">
 						<UpdateMariadb mariadbId={mariadbId} />
 						{(auth?.rol === "admin" || user?.canDeleteServices) && (
 							<DeleteMariadb mariadbId={mariadbId} />

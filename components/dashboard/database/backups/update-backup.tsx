@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, CheckIcon, ChevronsUpDown } from "lucide-react";
+import { Pencil, CheckIcon, ChevronsUpDown, PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -115,7 +115,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
-					<Pencil className="size-4  text-muted-foreground" />
+					<PenBoxIcon className="size-4  text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">

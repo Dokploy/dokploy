@@ -89,9 +89,9 @@ export const ShowProjects = () => {
 										<span className="flex flex-col gap-1.5">
 											<div className="flex items-center gap-2">
 												<BookIcon className="size-4 text-muted-foreground" />
-												<span className="text-base font-medium leading-none">
+												<Link className="text-base font-medium leading-none" href={`/dashboard/project/${project.projectId}`}>
 													{project.name}
-												</span>
+												</Link>
 											</div>
 
 											<span className="text-sm font-medium text-muted-foreground">

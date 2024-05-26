@@ -1,10 +1,10 @@
 {
-  "id": "5ffa26e5-261f-4475-8eb5-112bfde9c42c",
-  "prevId": "74336d75-b6cf-4fb4-ba14-b9823cbccd47",
-  "version": "5",
-  "dialect": "pg",
+  "id": "8ca71247-d512-427d-b115-47a7287ac431",
+  "prevId": "92c75e26-64ef-484f-a7d2-72a9422c119f",
+  "version": "6",
+  "dialect": "postgresql",
   "tables": {
-    "application": {
+    "public.application": {
       "name": "application",
       "schema": "",
       "columns": {
@@ -95,6 +95,7 @@
         "sourceType": {
           "name": "sourceType",
           "type": "sourceType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'github'"
@@ -181,6 +182,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -188,6 +190,7 @@
         "buildType": {
           "name": "buildType",
           "type": "buildType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
@@ -198,6 +201,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "projectId": {
           "name": "projectId",
           "type": "text",
@@ -207,6 +216,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "application_registryId_registry_registryId_fk": {
+          "name": "application_registryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "registryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "application_projectId_project_projectId_fk": {
           "name": "application_projectId_project_projectId_fk",
           "tableFrom": "application",
@@ -232,7 +254,7 @@
         }
       }
     },
-    "postgres": {
+    "public.postgres": {
       "name": "postgres",
       "schema": "",
       "columns": {
@@ -329,6 +351,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -373,7 +396,7 @@
         }
       }
     },
-    "user": {
+    "public.user": {
       "name": "user",
       "schema": "",
       "columns": {
@@ -509,7 +532,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "admin": {
+    "public.admin": {
       "name": "admin",
       "schema": "",
       "columns": {
@@ -540,6 +563,7 @@
         "certificateType": {
           "name": "certificateType",
           "type": "certificateType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
@@ -625,7 +649,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "auth": {
+    "public.auth": {
       "name": "auth",
       "schema": "",
       "columns": {
@@ -650,6 +674,7 @@
         "rol": {
           "name": "rol",
           "type": "Roles",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -692,7 +717,7 @@
         }
       }
     },
-    "project": {
+    "public.project": {
       "name": "project",
       "schema": "",
       "columns": {
@@ -746,7 +771,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "domain": {
+    "public.domain": {
       "name": "domain",
       "schema": "",
       "columns": {
@@ -804,6 +829,7 @@
         "certificateType": {
           "name": "certificateType",
           "type": "certificateType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
@@ -828,7 +854,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "mariadb": {
+    "public.mariadb": {
       "name": "mariadb",
       "schema": "",
       "columns": {
@@ -931,6 +957,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -975,7 +1002,7 @@
         }
       }
     },
-    "mongo": {
+    "public.mongo": {
       "name": "mongo",
       "schema": "",
       "columns": {
@@ -1066,6 +1093,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -1110,7 +1138,7 @@
         }
       }
     },
-    "mysql": {
+    "public.mysql": {
       "name": "mysql",
       "schema": "",
       "columns": {
@@ -1213,6 +1241,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -1257,7 +1286,7 @@
         }
       }
     },
-    "backup": {
+    "public.backup": {
       "name": "backup",
       "schema": "",
       "columns": {
@@ -1300,6 +1329,7 @@
         "databaseType": {
           "name": "databaseType",
           "type": "databaseType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1399,7 +1429,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "destination": {
+    "public.destination": {
       "name": "destination",
       "schema": "",
       "columns": {
@@ -1471,7 +1501,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "deployment": {
+    "public.deployment": {
       "name": "deployment",
       "schema": "",
       "columns": {
@@ -1490,6 +1520,7 @@
         "status": {
           "name": "status",
           "type": "deploymentStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false,
           "default": "'running'"
@@ -1504,13 +1535,7 @@
           "name": "applicationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
-        },
-        "composeId": {
-          "name": "composeId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -1533,25 +1558,12 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "deployment_composeId_compose_composeId_fk": {
-          "name": "deployment_composeId_compose_composeId_fk",
-          "tableFrom": "deployment",
-          "tableTo": "compose",
-          "columnsFrom": [
-            "composeId"
-          ],
-          "columnsTo": [
-            "composeId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "mount": {
+    "public.mount": {
       "name": "mount",
       "schema": "",
       "columns": {
@@ -1564,6 +1576,7 @@
         "type": {
           "name": "type",
           "type": "mountType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1588,6 +1601,7 @@
         "serviceType": {
           "name": "serviceType",
           "type": "serviceType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'application'"
@@ -1719,7 +1733,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "certificate": {
+    "public.certificate": {
       "name": "certificate",
       "schema": "",
       "columns": {
@@ -1773,7 +1787,7 @@
         }
       }
     },
-    "session": {
+    "public.session": {
       "name": "session",
       "schema": "",
       "columns": {
@@ -1815,7 +1829,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "redirect": {
+    "public.redirect": {
       "name": "redirect",
       "schema": "",
       "columns": {
@@ -1882,7 +1896,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "security": {
+    "public.security": {
       "name": "security",
       "schema": "",
       "columns": {
@@ -1945,7 +1959,7 @@
         }
       }
     },
-    "port": {
+    "public.port": {
       "name": "port",
       "schema": "",
       "columns": {
@@ -1970,6 +1984,7 @@
         "protocol": {
           "name": "protocol",
           "type": "protocolType",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -1999,7 +2014,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "redis": {
+    "public.redis": {
       "name": "redis",
       "schema": "",
       "columns": {
@@ -2090,6 +2105,7 @@
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
@@ -2128,42 +2144,36 @@
         }
       }
     },
-    "compose": {
-      "name": "compose",
+    "public.registry": {
+      "name": "registry",
       "schema": "",
       "columns": {
-        "composeId": {
-          "name": "composeId",
+        "registryId": {
+          "name": "registryId",
           "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "name": {
-          "name": "name",
+        "registryName": {
+          "name": "registryName",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "env": {
-          "name": "env",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "composeFile": {
-          "name": "composeFile",
+        "username": {
+          "name": "username",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registryUrl": {
+          "name": "registryUrl",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2173,19 +2183,33 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "selfHosted": {
+          "name": "selfHosted",
+          "type": "RegistryType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cloud'"
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "compose_projectId_project_projectId_fk": {
-          "name": "compose_projectId_project_projectId_fk",
-          "tableFrom": "compose",
-          "tableTo": "project",
+        "registry_adminId_admin_adminId_fk": {
+          "name": "registry_adminId_admin_adminId_fk",
+          "tableFrom": "registry",
+          "tableTo": "admin",
           "columnsFrom": [
-            "projectId"
+            "adminId"
           ],
           "columnsTo": [
-            "projectId"
+            "adminId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2196,88 +2220,106 @@
     }
   },
   "enums": {
-    "buildType": {
+    "public.buildType": {
       "name": "buildType",
-      "values": {
-        "dockerfile": "dockerfile",
-        "heroku_buildpacks": "heroku_buildpacks",
-        "paketo_buildpacks": "paketo_buildpacks",
-        "nixpacks": "nixpacks"
-      }
+      "schema": "public",
+      "values": [
+        "dockerfile",
+        "heroku_buildpacks",
+        "paketo_buildpacks",
+        "nixpacks"
+      ]
     },
-    "sourceType": {
+    "public.sourceType": {
       "name": "sourceType",
-      "values": {
-        "docker": "docker",
-        "git": "git",
-        "github": "github"
-      }
+      "schema": "public",
+      "values": [
+        "docker",
+        "git",
+        "github"
+      ]
     },
-    "Roles": {
+    "public.Roles": {
       "name": "Roles",
-      "values": {
-        "admin": "admin",
-        "user": "user"
-      }
+      "schema": "public",
+      "values": [
+        "admin",
+        "user"
+      ]
     },
-    "databaseType": {
+    "public.databaseType": {
       "name": "databaseType",
-      "values": {
-        "postgres": "postgres",
-        "mariadb": "mariadb",
-        "mysql": "mysql",
-        "mongo": "mongo"
-      }
+      "schema": "public",
+      "values": [
+        "postgres",
+        "mariadb",
+        "mysql",
+        "mongo"
+      ]
     },
-    "deploymentStatus": {
+    "public.deploymentStatus": {
       "name": "deploymentStatus",
-      "values": {
-        "running": "running",
-        "done": "done",
-        "error": "error"
-      }
+      "schema": "public",
+      "values": [
+        "running",
+        "done",
+        "error"
+      ]
     },
-    "mountType": {
+    "public.mountType": {
       "name": "mountType",
-      "values": {
-        "bind": "bind",
-        "volume": "volume",
-        "file": "file"
-      }
+      "schema": "public",
+      "values": [
+        "bind",
+        "volume",
+        "file"
+      ]
     },
-    "serviceType": {
+    "public.serviceType": {
       "name": "serviceType",
-      "values": {
-        "application": "application",
-        "postgres": "postgres",
-        "mysql": "mysql",
-        "mariadb": "mariadb",
-        "mongo": "mongo",
-        "redis": "redis"
-      }
+      "schema": "public",
+      "values": [
+        "application",
+        "postgres",
+        "mysql",
+        "mariadb",
+        "mongo",
+        "redis"
+      ]
     },
-    "protocolType": {
+    "public.protocolType": {
       "name": "protocolType",
-      "values": {
-        "tcp": "tcp",
-        "udp": "udp"
-      }
+      "schema": "public",
+      "values": [
+        "tcp",
+        "udp"
+      ]
     },
-    "applicationStatus": {
+    "public.applicationStatus": {
       "name": "applicationStatus",
-      "values": {
-        "idle": "idle",
-        "running": "running",
-        "done": "done",
-        "error": "error"
-      }
+      "schema": "public",
+      "values": [
+        "idle",
+        "running",
+        "done",
+        "error"
+      ]
     },
-    "certificateType": {
+    "public.certificateType": {
       "name": "certificateType",
-      "values": {
-        "letsencrypt": "letsencrypt",
-        "none": "none"
-      }
+      "schema": "public",
+      "values": [
+        "letsencrypt",
+        "none"
+      ]
+    },
+    "public.RegistryType": {
+      "name": "RegistryType",
+      "schema": "public",
+      "values": [
+        "selfHosted",
+        "cloud"
+      ]
     }
   },
   "schemas": {},

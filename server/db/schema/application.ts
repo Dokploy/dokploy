@@ -10,8 +10,16 @@ import { projects } from "./project";
 import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { ports } from "./port";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	json,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { generateAppName } from "./utils";
+import { registry } from "./registry";
 
 export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
 
@@ -21,6 +29,65 @@ export const buildType = pgEnum("buildType", [
 	"paketo_buildpacks",
 	"nixpacks",
 ]);
+
+// TODO: refactor this types
+interface HealthCheckSwarm {
+	Test?: string[] | undefined;
+	Interval?: number | undefined;
+	Timeout?: number | undefined;
+	StartPeriod?: number | undefined;
+	Retries?: number | undefined;
+}
+
+interface RestartPolicySwarm {
+	Condition?: string | undefined;
+	Delay?: number | undefined;
+	MaxAttempts?: number | undefined;
+	Window?: number | undefined;
+}
+
+interface PlacementSwarm {
+	Constraints?: string[] | undefined;
+	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
+	MaxReplicas?: number | undefined;
+	Platforms?:
+		| Array<{
+				Architecture: string;
+				OS: string;
+		  }>
+		| undefined;
+}
+
+interface UpdateConfigSwarm {
+	Parallelism: number;
+	Delay?: number | undefined;
+	FailureAction?: string | undefined;
+	Monitor?: number | undefined;
+	MaxFailureRatio?: number | undefined;
+	Order: string;
+}
+
+interface ServiceModeSwarm {
+	Replicated?: { Replicas?: number | undefined } | undefined;
+	Global?: {} | undefined;
+	ReplicatedJob?:
+		| {
+				MaxConcurrent?: number | undefined;
+				TotalCompletions?: number | undefined;
+		  }
+		| undefined;
+	GlobalJob?: {} | undefined;
+}
+
+interface NetworkSwarm {
+	Target?: string | undefined;
+	Aliases?: string[] | undefined;
+	DriverOpts?: { [key: string]: string } | undefined;
+}
+
+interface LabelsSwarm {
+	[name: string]: string;
+}
 
 export const applications = pgTable("application", {
 	applicationId: text("applicationId")
@@ -60,6 +127,17 @@ export const applications = pgTable("application", {
 	customGitBuildPath: text("customGitBuildPath"),
 	customGitSSHKey: text("customGitSSHKey"),
 	dockerfile: text("dockerfile"),
+	// Docker swarm json
+	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
+	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
+	placementSwarm: json("placementSwarm").$type<PlacementSwarm>(),
+	updateConfigSwarm: json("updateConfigSwarm").$type<UpdateConfigSwarm>(),
+	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
+	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
+	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	//
+	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -67,6 +145,9 @@ export const applications = pgTable("application", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	registryId: text("registryId").references(() => registry.registryId, {
+		onDelete: "set null",
+	}),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
@@ -85,8 +166,100 @@ export const applicationsRelations = relations(
 		redirects: many(redirects),
 		security: many(security),
 		ports: many(ports),
+		registry: one(registry, {
+			fields: [applications.registryId],
+			references: [registry.registryId],
+		}),
 	}),
 );
+
+const HealthCheckSwarmSchema = z
+	.object({
+		Test: z.array(z.string()).optional(),
+		Interval: z.number().optional(),
+		Timeout: z.number().optional(),
+		StartPeriod: z.number().optional(),
+		Retries: z.number().optional(),
+	})
+	.strict();
+
+const RestartPolicySwarmSchema = z
+	.object({
+		Condition: z.string().optional(),
+		Delay: z.number().optional(),
+		MaxAttempts: z.number().optional(),
+		Window: z.number().optional(),
+	})
+	.strict();
+
+const PreferenceSchema = z
+	.object({
+		Spread: z.object({
+			SpreadDescriptor: z.string(),
+		}),
+	})
+	.strict();
+
+const PlatformSchema = z
+	.object({
+		Architecture: z.string(),
+		OS: z.string(),
+	})
+	.strict();
+
+const PlacementSwarmSchema = z
+	.object({
+		Constraints: z.array(z.string()).optional(),
+		Preferences: z.array(PreferenceSchema).optional(),
+		MaxReplicas: z.number().optional(),
+		Platforms: z.array(PlatformSchema).optional(),
+	})
+	.strict();
+
+const UpdateConfigSwarmSchema = z
+	.object({
+		Parallelism: z.number(),
+		Delay: z.number().optional(),
+		FailureAction: z.string().optional(),
+		Monitor: z.number().optional(),
+		MaxFailureRatio: z.number().optional(),
+		Order: z.string(),
+	})
+	.strict();
+
+const ReplicatedSchema = z
+	.object({
+		Replicas: z.number().optional(),
+	})
+	.strict();
+
+const ReplicatedJobSchema = z
+	.object({
+		MaxConcurrent: z.number().optional(),
+		TotalCompletions: z.number().optional(),
+	})
+	.strict();
+
+const ServiceModeSwarmSchema = z
+	.object({
+		Replicated: ReplicatedSchema.optional(),
+		Global: z.object({}).optional(),
+		ReplicatedJob: ReplicatedJobSchema.optional(),
+		GlobalJob: z.object({}).optional(),
+	})
+	.strict();
+
+const NetworkSwarmSchema = z.array(
+	z
+		.object({
+			Target: z.string().optional(),
+			Aliases: z.array(z.string()).optional(),
+			DriverOpts: z.object({}).optional(),
+		})
+		.strict(),
+);
+
+const LabelsSwarmSchema = z.record(z.string());
 
 const createSchema = createInsertSchema(applications, {
 	appName: z.string(),
@@ -124,6 +297,14 @@ const createSchema = createInsertSchema(applications, {
 		"nixpacks",
 	]),
 	owner: z.string(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
