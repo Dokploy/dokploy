@@ -1,5 +1,4 @@
 import { api } from "@/utils/api";
-import "highlight.js/styles/vs2015.css"; // Estilo que prefieras
 import { useEffect } from "react";
 import {
 	Form,
@@ -84,7 +83,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	};
 	return (
 		<>
-			<div className="w-full flex flex-col lg:flex-row gap-4">
+			<div className="w-full flex flex-col lg:flex-row gap-4 ">
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -94,8 +93,8 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 							control={form.control}
 							name="composeFile"
 							render={({ field }) => (
-								<FormItem>
-									<FormControl>
+								<FormItem className="overflow-auto">
+									<FormControl className="">
 										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
 											<CodeEditor
 												// disabled
@@ -123,11 +122,15 @@ services:
 							)}
 						/>
 
-						<div className="flex justify-between">
+						<div className="flex justify-between flex-col lg:flex-row gap-2">
 							<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
 								<RandomizeCompose composeId={composeId} />
 							</div>
-							<Button type="submit" isLoading={isLoading} className="w-fit">
+							<Button
+								type="submit"
+								isLoading={isLoading}
+								className="lg:w-fit w-full"
+							>
 								Save
 							</Button>
 						</div>

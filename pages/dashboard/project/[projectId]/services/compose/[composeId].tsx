@@ -5,6 +5,7 @@ import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deploymen
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
+import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -116,9 +117,10 @@ const Service = (
 				}}
 			>
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList className="md:grid md:w-fit md:grid-cols-5 max-md:overflow-y-scroll justify-start">
+					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
 						<TabsTrigger value="environment">Environment</TabsTrigger>
+						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="deployments">Deployments</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -140,6 +142,15 @@ const Service = (
 				<TabsContent value="environment">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<ShowEnvironmentCompose composeId={composeId} />
+					</div>
+				</TabsContent>
+
+				<TabsContent value="monitoring">
+					<div className="flex flex-col gap-4 pt-2.5">
+						<ShowMonitoringCompose
+							appName={data?.appName || ""}
+							appType={data?.composeType || "docker-compose"}
+						/>
 					</div>
 				</TabsContent>
 

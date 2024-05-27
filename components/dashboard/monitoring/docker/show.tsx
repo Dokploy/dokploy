@@ -16,6 +16,7 @@ import { api } from "@/utils/api";
 
 interface Props {
 	appName: string;
+	appType: "application" | "stack" | "docker-compose";
 }
 export interface DockerStats {
 	cpu: {
@@ -65,7 +66,10 @@ export type DockerStatsJSON = {
 	disk: DockerStats["disk"][];
 };
 
-export const DockerMonitoring = ({ appName }: Props) => {
+export const DockerMonitoring = ({
+	appName,
+	appType = "application",
+}: Props) => {
 	const { data } = api.application.readAppMonitoring.useQuery(
 		{ appName },
 		{
@@ -128,7 +132,7 @@ export const DockerMonitoring = ({ appName }: Props) => {
 
 	useEffect(() => {
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}`;
+		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {
