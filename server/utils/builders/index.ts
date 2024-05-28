@@ -65,8 +65,6 @@ export const mechanizeDockerContainer = async (
 		appName,
 		env,
 		mounts,
-		sourceType,
-		dockerImage,
 		cpuLimit,
 		memoryLimit,
 		memoryReservation,
@@ -99,27 +97,11 @@ export const mechanizeDockerContainer = async (
 	const filesMount = generateFileMounts(appName, mounts);
 	const envVariables = prepareEnvironmentVariables(env);
 
-	const registry = application.registry;
-
-	let image =
-		sourceType === "docker"
-			? dockerImage || "ERROR-NO-IMAGE-PROVIDED"
-			: `${appName}:latest`;
-
-	if (registry) {
-		image = `${registry.registryUrl}/${appName}`;
-
-		if (registry.imagePrefix) {
-			image = `${registry.registryUrl}/${registry.imagePrefix}/${appName}`;
-		}
-	}
+	const image = getImageName(application);
+	const authConfig = getAuthConfig(application);
 
 	const settings: CreateServiceOptions = {
-		authconfig: {
-			password: registry?.password || "",
-			username: registry?.username || "",
-			serveraddress: registry?.registryUrl || "",
-		},
+		authconfig: authConfig,
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -169,4 +151,40 @@ export const mechanizeDockerContainer = async (
 		console.log(error);
 		await docker.createService(settings);
 	}
+};
+
+const getImageName = (application: ApplicationNested) => {
+	const { appName, sourceType, dockerImage, registry } = application;
+
+	if (sourceType === "docker") {
+		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
+	}
+
+	const registryUrl = registry?.registryUrl || "";
+	const imagePrefix = registry?.imagePrefix ? `${registry.imagePrefix}/` : "";
+	return registry
+		? `${registryUrl}/${imagePrefix}${appName}`
+		: `${appName}:latest`;
+};
+
+const getAuthConfig = (application: ApplicationNested) => {
+	const { registry, username, password, sourceType } = application;
+
+	if (sourceType === "docker") {
+		if (username && password) {
+			return {
+				password,
+				username,
+				serveraddress: "https://index.docker.io/v1/",
+			};
+		}
+	} else if (registry) {
+		return {
+			password: registry.password,
+			username: registry.username,
+			serveraddress: registry.registryUrl,
+		};
+	}
+
+	return undefined;
 };
