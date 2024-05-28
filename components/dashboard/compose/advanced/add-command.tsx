@@ -41,6 +41,14 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
+	const { data: defaultCommand, refetch } =
+		api.compose.getDefaultCommand.useQuery(
+			{
+				composeId,
+			},
+			{ enabled: !!composeId },
+		);
+
 	const utils = api.useUtils();
 
 	const { mutateAsync, isLoading } = api.compose.update.useMutation();
@@ -67,6 +75,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Command Updated");
+				refetch();
 				await utils.compose.one.invalidate({
 					composeId,
 				});
@@ -104,8 +113,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 										</FormControl>
 
 										<FormDescription>
-											Default command (docker stack deploy -c docker-compose.yml{" "}
-											{data?.appName})
+											Default Command ({defaultCommand})
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

@@ -79,7 +79,7 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-const createCommand = (compose: ComposeNested) => {
+export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 
 	const path =

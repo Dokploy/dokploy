@@ -30,6 +30,7 @@ import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
+import { createCommand } from "@/server/utils/builders/compose";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -138,6 +139,13 @@ export const composeRouter = createTRPCRouter({
 
 		return true;
 	}),
+	getDefaultCommand: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
+			const command = createCommand(compose);
+			return `docker ${command}`;
+		}),
 	generateSSHKey: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
