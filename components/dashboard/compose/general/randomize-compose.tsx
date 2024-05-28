@@ -12,6 +12,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Dices } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 interface Props {
 	composeId: string;
@@ -19,6 +20,7 @@ interface Props {
 
 export const RandomizeCompose = ({ composeId }: Props) => {
 	const utils = api.useUtils();
+	const [prefix, setPrefix] = useState<string>("");
 	const [compose, setCompose] = useState<string>("");
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } =
@@ -27,6 +29,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	const onSubmit = async () => {
 		await mutateAsync({
 			composeId,
+			prefix,
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
@@ -51,10 +54,37 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 					<DialogTitle>Randomize Compose (Experimental)</DialogTitle>
 					<DialogDescription>
 						Use this in case you want to deploy the same compose file and you
-						have conflicts with some property like volumes, networks, etc, this
-						will add a prefix to the property to avoid conflicts
+						have conflicts with some property like volumes, networks, etc.
 					</DialogDescription>
 				</DialogHeader>
+				<div className="text-sm text-muted-foreground flex flex-col gap-2">
+					<span>
+						This will randomize the compose file and will add a prefix to the
+						property to avoid conflicts
+					</span>
+					<ul className="list-disc list-inside">
+						<li>volumes</li>
+						<li>networks</li>
+						<li>services</li>
+						<li>configs</li>
+						<li>secrets</li>
+					</ul>
+				</div>
+				<div className="flex flex-col lg:flex-row  gap-2">
+					<Input
+						placeholder="Enter a prefix (Optional, example: prod)"
+						onChange={(e) => setPrefix(e.target.value)}
+					/>
+					<Button
+						type="submit"
+						onClick={async () => {
+							await onSubmit();
+						}}
+						className="lg:w-fit w-full"
+					>
+						Random
+					</Button>
+				</div>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<div className="p-4 bg-secondary rounded-lg">

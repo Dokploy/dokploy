@@ -12,14 +12,17 @@ export const generateRandomHash = (): string => {
 	return crypto.randomBytes(4).toString("hex");
 };
 
-export const randomizeComposeFile = async (composeId: string) => {
+export const randomizeComposeFile = async (
+	composeId: string,
+	prefix?: string,
+) => {
 	const compose = await findComposeById(composeId);
 	const composeFile = compose.composeFile;
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const randomPrefix = prefix || generateRandomHash();
 
-	const newComposeFile = addPrefixToAllProperties(composeData, prefix);
+	const newComposeFile = addPrefixToAllProperties(composeData, randomPrefix);
 
 	return dump(newComposeFile);
 };

@@ -90,3 +90,12 @@ export const apiUpdateCompose = createSchema.partial().extend({
 	composeFile: z.string().optional(),
 	command: z.string().optional(),
 });
+
+export const apiRandomizeCompose = createSchema
+	.pick({
+		composeId: true,
+	})
+	.extend({
+		prefix: z.string().optional(),
+		composeId: z.string().min(1),
+	});

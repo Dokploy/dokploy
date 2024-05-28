@@ -1,6 +1,7 @@
 import {
 	apiCreateCompose,
 	apiFindCompose,
+	apiRandomizeCompose,
 	apiUpdateCompose,
 	compose,
 } from "@/server/db/schema";
@@ -95,9 +96,9 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	randomizeCompose: protectedProcedure
-		.input(apiFindCompose)
+		.input(apiRandomizeCompose)
 		.mutation(async ({ input }) => {
-			return await randomizeComposeFile(input.composeId);
+			return await randomizeComposeFile(input.composeId, input.prefix);
 		}),
 
 	deploy: protectedProcedure
