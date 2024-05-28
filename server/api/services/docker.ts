@@ -111,52 +111,6 @@ export const getContainersByAppNameMatch = async (appName: string) => {
 	return [];
 };
 
-export const getContainerForComposeByAppNameMatch = async (appName: string) => {
-	try {
-		const { stdout, stderr } = await execAsync(
-			`docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}' | grep ${appName}`,
-		);
-
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			return;
-		}
-
-		if (!stdout) return [];
-
-		const lines = stdout.trim().split("\n");
-		const containers = lines.map((line) => {
-			const parts = line.split(" | ");
-			const containerId = parts[0]
-				? parts[0].replace("CONTAINER ID : ", "").trim()
-				: "No container id";
-			let name = parts[1]
-				? parts[1].replace("Name: ", "").trim()
-				: "No container name";
-
-			const state = parts[2]
-				? parts[2].replace("State: ", "").trim()
-				: "No state";
-
-			// Extraer solo la parte del nombre hasta el primer punto
-			if (name.includes(".")) {
-				name = name.split(".")[0];
-			}
-			return {
-				containerId,
-				name,
-				state,
-			};
-		});
-
-		return containers || [];
-	} catch (error) {
-		console.error(`Execution error: ${error}`);
-	}
-
-	return [];
-};
-
 export const getContainersByAppLabel = async (appName: string) => {
 	try {
 		const { stdout, stderr } = await execAsync(

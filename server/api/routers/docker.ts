@@ -5,7 +5,6 @@ import {
 	getContainersByAppLabel,
 	getContainers,
 	getContainersByAppNameMatch,
-	getContainerForComposeByAppNameMatch,
 } from "../services/docker";
 
 export const dockerRouter = createTRPCRouter({
@@ -31,16 +30,6 @@ export const dockerRouter = createTRPCRouter({
 		)
 		.query(async ({ input }) => {
 			return await getContainersByAppNameMatch(input.appName);
-		}),
-
-	getContainerForComposeByAppNameMatch: protectedProcedure
-		.input(
-			z.object({
-				appName: z.string().min(1),
-			}),
-		)
-		.query(async ({ input }) => {
-			return await getContainerForComposeByAppNameMatch(input.appName);
 		}),
 
 	getContainersByAppLabel: protectedProcedure

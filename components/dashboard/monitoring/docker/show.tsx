@@ -50,7 +50,7 @@ const defaultData = {
 
 interface Props {
 	appName: string;
-	appType: "application" | "stack" | "docker-compose";
+	appType?: "application" | "stack" | "docker-compose";
 }
 export interface DockerStats {
 	cpu: {

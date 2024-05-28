@@ -139,6 +139,9 @@ export const projectRouter = createTRPCRouter({
 					redis: {
 						where: buildServiceFilter(redis.redisId, accesedServices),
 					},
+					compose: {
+						where: buildServiceFilter(compose.composeId, accesedServices),
+					},
 				},
 				orderBy: desc(projects.createdAt),
 			});
@@ -153,6 +156,7 @@ export const projectRouter = createTRPCRouter({
 				mysql: true,
 				postgres: true,
 				redis: true,
+				compose: true,
 			},
 			orderBy: desc(projects.createdAt),
 		});

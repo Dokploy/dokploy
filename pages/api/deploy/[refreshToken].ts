@@ -1,8 +1,8 @@
 import { updateApplicationStatus } from "@/server/api/services/application";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import type { DeploymentJob } from "@/server/queues/application-queue";
+import { myApplicationQueue } from "@/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -47,13 +47,12 @@ export default async function handler(
 				webhookDockerTag &&
 				webhookDockerTag !== applicationDockerTag
 			) {
-				 res.status(301).json({
+				res.status(301).json({
 					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
 				});
 				return;
 			}
-		}
-		else if (sourceType === "github") {
+		} else if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
 			if (!branchName || branchName !== application.branch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -78,7 +77,7 @@ export default async function handler(
 				titleLog: deploymentTitle,
 				type: "deploy",
 			};
-			await myQueue.add(
+			await myApplicationQueue.add(
 				"deployments",
 				{ ...jobData },
 				{
