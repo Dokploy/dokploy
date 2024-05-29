@@ -1,8 +1,8 @@
 import { updateApplicationStatus } from "@/server/api/services/application";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/application-queue";
-import { myApplicationQueue } from "@/server/queues/queueSetup";
+import type { DeploymentJob } from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -76,8 +76,9 @@ export default async function handler(
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
 				type: "deploy",
+				applicationType: "application",
 			};
-			await myApplicationQueue.add(
+			await myQueue.add(
 				"deployments",
 				{ ...jobData },
 				{
@@ -117,16 +118,19 @@ function extractImageTag(dockerImage: string | null) {
 /**
  * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
  */
-function extractImageTagFromRequest(headers: any, body: any): string | null {
+export const extractImageTagFromRequest = (
+	headers: any,
+	body: any,
+): string | null => {
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
 			return body.push_data.tag;
 		}
 	}
 	return null;
-}
+};
 
-function extractCommitMessage(headers: any, body: any) {
+export const extractCommitMessage = (headers: any, body: any) => {
 	// GitHub
 	if (headers["x-github-event"]) {
 		return body.head_commit ? body.head_commit.message : "NEW COMMIT";
@@ -160,9 +164,9 @@ function extractCommitMessage(headers: any, body: any) {
 	}
 
 	return "NEW CHANGES";
-}
+};
 
-function extractBranchName(headers: any, body: any) {
+export const extractBranchName = (headers: any, body: any) => {
 	if (headers["x-github-event"] || headers["x-gitea-event"]) {
 		return body?.ref?.replace("refs/heads/", "");
 	}
@@ -176,4 +180,4 @@ function extractBranchName(headers: any, body: any) {
 	}
 
 	return null;
-}
+};

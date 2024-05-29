@@ -5,21 +5,16 @@ export const redisConfig: ConnectionOptions = {
 	port: 6379,
 };
 // TODO: maybe add a options to clean the queue to the times
-const myApplicationQueue = new Queue("deployments", {
-	connection: redisConfig,
-});
-
-const myComposeQueue = new Queue("compose", {
+const myQueue = new Queue("deployments", {
 	connection: redisConfig,
 });
 
 process.on("SIGTERM", () => {
-	myApplicationQueue.close();
-	myComposeQueue.close();
+	myQueue.close();
 	process.exit(0);
 });
 
-myApplicationQueue.on("error", (error) => {
+myQueue.on("error", (error) => {
 	if ((error as any).code === "ECONNREFUSED") {
 		console.error(
 			"Make sure you have installed Redis and it is running.",
@@ -28,13 +23,4 @@ myApplicationQueue.on("error", (error) => {
 	}
 });
 
-myComposeQueue.on("error", (error) => {
-	if ((error as any).code === "ECONNREFUSED") {
-		console.error(
-			"Make sure you have installed Redis and it is running.",
-			error,
-		);
-	}
-});
-
-export { myApplicationQueue, myComposeQueue };
+export { myQueue };

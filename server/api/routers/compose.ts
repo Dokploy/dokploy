@@ -17,9 +17,9 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { checkServiceAccess } from "../services/user";
 import {
 	cleanQueuesByCompose,
-	type ComposeJob,
-} from "@/server/queues/compose-queue";
-import { myComposeQueue } from "@/server/queues/queueSetup";
+	type DeploymentJob,
+} from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
 import {
 	generateSSHKey,
 	readRSAFile,
@@ -104,13 +104,14 @@ export const composeRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
-			const jobData: ComposeJob = {
+			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Manual deployment",
 				type: "deploy",
+				applicationType: "compose",
 			};
-			await myComposeQueue.add(
-				"compose",
+			await myQueue.add(
+				"deployments",
 				{ ...jobData },
 				{
 					removeOnComplete: true,
@@ -121,12 +122,13 @@ export const composeRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
-			const jobData: ComposeJob = {
+			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
+				applicationType: "compose",
 			};
-			await myComposeQueue.add(
+			await myQueue.add(
 				"deployments",
 				{ ...jobData },
 				{

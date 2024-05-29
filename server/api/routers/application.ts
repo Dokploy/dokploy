@@ -16,8 +16,8 @@ import {
 import {
 	cleanQueuesByApplication,
 	type DeploymentJob,
-} from "@/server/queues/application-queue";
-import { myApplicationQueue } from "@/server/queues/queueSetup";
+} from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
@@ -160,8 +160,9 @@ export const applicationRouter = createTRPCRouter({
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
+				applicationType: "application",
 			};
-			await myApplicationQueue.add(
+			await myQueue.add(
 				"deployments",
 				{ ...jobData },
 				{
@@ -291,8 +292,9 @@ export const applicationRouter = createTRPCRouter({
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
 				type: "deploy",
+				applicationType: "application",
 			};
-			await myApplicationQueue.add(
+			await myQueue.add(
 				"deployments",
 				{ ...jobData },
 				{
