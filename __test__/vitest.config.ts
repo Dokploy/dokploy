@@ -11,5 +11,6 @@ export default defineConfig({
 	test: {
 		include: ["__test__/**/*.test.ts"], // Incluir solo los archivos de test en el directorio __test__
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
+		maxConcurrency: 1,
 	},
 });
