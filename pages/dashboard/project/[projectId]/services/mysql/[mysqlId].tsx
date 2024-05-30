@@ -117,7 +117,7 @@ const MySql = (
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
 
-					<div className="flex flex-row gap-4">
+					<div className="flex flex-row gap-2">
 						<UpdateMysql mysqlId={mysqlId} />
 						{(auth?.rol === "admin" || user?.canDeleteServices) && (
 							<DeleteMysql mysqlId={mysqlId} />

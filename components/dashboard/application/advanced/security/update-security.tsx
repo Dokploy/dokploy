@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { PenBoxIcon, Pencil } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -89,7 +89,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
-					<Pencil className="size-4  text-muted-foreground" />
+					<PenBoxIcon className="size-4  text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">

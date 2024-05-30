@@ -12,8 +12,8 @@ export default function Custom404({ statusCode }: Props) {
 				<div className="container mx-auto h-screen items-center justify-center flex">
 					<div className="-mx-4 flex">
 						<div className="w-full px-4">
-							<div className="mx-auto max-w-[400px] text-center">
-								<h2 className="mb-2 text-[50px] font-bold leading-none text-white sm:text-[80px] md:text-[100px]">
+							<div className="mx-auto max-w-[700px] text-center">
+								<h2 className="mb-2 text-[50px] font-bold leading-none text-white sm:text-[80px]">
 									{statusCode
 										? `An error ${statusCode} occurred on server`
 										: "An error occurred on client"}

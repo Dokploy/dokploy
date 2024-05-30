@@ -47,10 +47,7 @@ export const removeDomain = async (appName: string, uniqueKey: number) => {
 	}
 };
 
-export const createRouterConfig = async (
-	app: ApplicationNested,
-	domain: Domain,
-) => {
+const createRouterConfig = async (app: ApplicationNested, domain: Domain) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 

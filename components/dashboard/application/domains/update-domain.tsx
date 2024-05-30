@@ -115,8 +115,8 @@ export const UpdateDomain = ({ domainId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button>
-					<PenBoxIcon className="size-4" />
+				<Button variant="ghost">
+					<PenBoxIcon className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">

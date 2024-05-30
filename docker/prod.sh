@@ -46,7 +46,7 @@ else
 fi
 
 docker swarm leave --force 2>/dev/null
-docker swarm init --advertise-addr 127.0.0.1 --listen-addr 0.0.0.0;
+docker swarm init;
 
 echo "Swarm initialized"
 

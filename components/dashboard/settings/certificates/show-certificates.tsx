@@ -33,21 +33,23 @@ export const ShowCertificates = () => {
 						</div>
 					) : (
 						<div className="flex flex-col gap-6">
-							{data?.map((destination, index) => (
-								<div
-									key={destination.certificateId}
-									className="flex items-center justify-between"
-								>
-									<span className="text-sm text-muted-foreground">
-										{index + 1}. {destination.name}
-									</span>
-									<div className="flex flex-row gap-3">
-										<DeleteCertificate
-											certificateId={destination.certificateId}
-										/>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+								{data?.map((destination, index) => (
+									<div
+										key={destination.certificateId}
+										className="flex items-center justify-between border p-4 rounded-lg"
+									>
+										<span className="text-sm text-muted-foreground">
+											{index + 1}. {destination.name}
+										</span>
+										<div className="flex flex-row gap-3">
+											<DeleteCertificate
+												certificateId={destination.certificateId}
+											/>
+										</div>
 									</div>
-								</div>
-							))}
+								))}
+							</div>
 							<div>
 								<AddCertificate />
 							</div>
