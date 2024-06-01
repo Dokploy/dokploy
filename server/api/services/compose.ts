@@ -36,6 +36,27 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 	return newDestination;
 };
 
+export const createComposeByTemplate = async (
+	input: typeof compose.$inferInsert,
+) => {
+	const newDestination = await db
+		.insert(compose)
+		.values({
+			...input,
+		})
+		.returning()
+		.then((value) => value[0]);
+
+	if (!newDestination) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error input: Inserting compose",
+		});
+	}
+
+	return newDestination;
+};
+
 export const findComposeById = async (composeId: string) => {
 	const result = await db.query.compose.findFirst({
 		where: eq(compose.composeId, composeId),

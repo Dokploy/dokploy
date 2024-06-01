@@ -1,6 +1,7 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
+import { AddTemplate } from "@/components/dashboard/project/add-template";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -212,6 +213,7 @@ const Project = (
 								<AddApplication projectId={projectId} />
 								<AddDatabase projectId={projectId} />
 								<AddCompose projectId={projectId} />
+								<AddTemplate projectId={projectId} />
 							</DropdownMenuContent>
 						</DropdownMenu>
 					)}

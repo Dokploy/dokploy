@@ -74,3 +74,13 @@ export const updateProjectById = async (
 
 	return result;
 };
+
+export const slugifyProjectName = (projectName: string): string => {
+	return projectName
+		.toLowerCase()
+		.replace(/[0-9]/g, "")
+		.replace(/[^a-z\s-]/g, "")
+		.replace(/\s+/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
+};

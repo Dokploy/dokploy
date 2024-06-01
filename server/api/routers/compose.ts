@@ -1,5 +1,6 @@
 import {
 	apiCreateCompose,
+	apiCreateComposeByTemplate,
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiUpdateCompose,
@@ -7,6 +8,7 @@ import {
 } from "@/server/db/schema";
 import {
 	createCompose,
+	createComposeByTemplate,
 	findComposeById,
 	loadServices,
 	removeCompose,
@@ -32,6 +34,15 @@ import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { createCommand } from "@/server/utils/builders/compose";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { loadTemplateModule } from "@/server/templates/utils";
+import { templates } from "@/server/templates/templates";
+import { findAdmin } from "../services/admin";
+import { TRPCError } from "@trpc/server";
+import { findProjectById, slugifyProjectName } from "../services/project";
+import type { TemplatesKeys } from "@/server/templates/types/templates-data.type";
+import { createMount } from "../services/mount";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -183,4 +194,75 @@ export const composeRouter = createTRPCRouter({
 
 			return true;
 		}),
+	deployTemplate: protectedProcedure
+		.input(apiCreateComposeByTemplate)
+		.mutation(async ({ input }) => {
+			const rootPath = process.cwd();
+
+			const composeFile = await readFile(
+				join(
+					rootPath,
+					"server",
+					"templates",
+					input.folder,
+					"docker-compose.yml",
+				),
+				"utf8",
+			);
+
+			const generate = await loadTemplateModule(input.folder as TemplatesKeys);
+
+			const admin = await findAdmin();
+
+			if (!admin.host) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						"You need to have a host to deploy this template in order to generate domains, please configure in settings -> domain",
+				});
+			}
+
+			const project = await findProjectById(input.projectId);
+
+			const projectName = slugifyProjectName(`${project.name}-${input.folder}`);
+			const { envs, mounts } = generate({
+				domain: admin.host,
+				projectName: projectName,
+			});
+
+			const compose = await createComposeByTemplate({
+				...input,
+				composeFile,
+				env: envs.join("\n"),
+				name: input.folder,
+				sourceType: "raw",
+			});
+
+			if (mounts && mounts?.length > 0) {
+				for (const mount of mounts) {
+					await createMount({
+						mountPath: mount.mountPath,
+						content: mount.content,
+						serviceId: compose.composeId,
+						serviceType: "compose",
+						type: "file",
+					});
+				}
+			}
+
+			return compose;
+		}),
+
+	templates: protectedProcedure.query(async () => {
+		const templatesData = templates.map((t) => ({
+			name: t.name,
+			description: t.description,
+			type: t.type,
+			folder: t.folder,
+			links: t.links,
+			logo: t.logo,
+		}));
+
+		return templatesData;
+	}),
 });

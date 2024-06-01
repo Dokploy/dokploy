@@ -81,6 +81,14 @@ export const apiCreateCompose = createSchema.pick({
 	composeType: true,
 });
 
+export const apiCreateComposeByTemplate = createSchema
+	.pick({
+		projectId: true,
+	})
+	.extend({
+		folder: z.string().min(1),
+	});
+
 export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
 });
