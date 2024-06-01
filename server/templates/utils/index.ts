@@ -2,6 +2,8 @@ import { randomBytes } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export interface Schema {
 	domain: string;
@@ -42,4 +44,13 @@ export const loadTemplateModule = async (
 
 	const generate = await templateLoader.load();
 	return generate;
+};
+
+export const readComposeFile = async (folder: string) => {
+	const composeFile = await readFile(
+		join("server", "templates", folder, "docker-compose.yml"),
+		"utf8",
+	);
+
+	return composeFile;
 };

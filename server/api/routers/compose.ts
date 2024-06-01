@@ -34,9 +34,7 @@ import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { createCommand } from "@/server/utils/builders/compose";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { loadTemplateModule } from "@/server/templates/utils";
+import { loadTemplateModule, readComposeFile } from "@/server/templates/utils";
 import { templates } from "@/server/templates/templates";
 import { findAdmin } from "../services/admin";
 import { TRPCError } from "@trpc/server";
@@ -197,18 +195,7 @@ export const composeRouter = createTRPCRouter({
 	deployTemplate: protectedProcedure
 		.input(apiCreateComposeByTemplate)
 		.mutation(async ({ input }) => {
-			const rootPath = process.cwd();
-
-			const composeFile = await readFile(
-				join(
-					rootPath,
-					"server",
-					"templates",
-					input.folder,
-					"docker-compose.yml",
-				),
-				"utf8",
-			);
+			const composeFile = await readComposeFile(input.folder);
 
 			const generate = await loadTemplateModule(input.folder as TemplatesKeys);
 
