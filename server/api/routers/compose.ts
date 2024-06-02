@@ -195,11 +195,11 @@ export const composeRouter = createTRPCRouter({
 	deployTemplate: protectedProcedure
 		.input(apiCreateComposeByTemplate)
 		.mutation(async ({ input }) => {
-			const composeFile = await readComposeFile(input.folder);
+			const composeFile = await readComposeFile(input.id);
 
 			console.log(composeFile);
 
-			const generate = await loadTemplateModule(input.folder as TemplatesKeys);
+			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
 			const admin = await findAdmin();
 
@@ -213,7 +213,7 @@ export const composeRouter = createTRPCRouter({
 
 			const project = await findProjectById(input.projectId);
 
-			const projectName = slugifyProjectName(`${project.name}-${input.folder}`);
+			const projectName = slugifyProjectName(`${project.name}-${input.id}`);
 			const { envs, mounts } = generate({
 				serverIp: admin.serverIp,
 				projectName: projectName,
@@ -223,7 +223,7 @@ export const composeRouter = createTRPCRouter({
 				...input,
 				composeFile: composeFile,
 				env: envs.join("\n"),
-				name: input.folder,
+				name: input.id,
 				sourceType: "raw",
 			});
 
@@ -246,9 +246,9 @@ export const composeRouter = createTRPCRouter({
 		const templatesData = templates.map((t) => ({
 			name: t.name,
 			description: t.description,
-			type: t.type,
-			folder: t.folder,
+			id: t.id,
 			links: t.links,
+			tags: t.tags,
 			logo: t.logo,
 		}));
 

@@ -33,13 +33,13 @@ export const generateHash = (projectName: string): string => {
 };
 
 export const loadTemplateModule = async (
-	folder: TemplatesKeys,
+	id: TemplatesKeys,
 ): Promise<(schema: Schema) => Template> => {
-	const templateLoader = templates.find((t) => t.folder === folder);
+	const templateLoader = templates.find((t) => t.id === id);
 	if (!templateLoader) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Template ${folder} not found or not implemented yet`,
+			message: `Template ${id} not found or not implemented yet`,
 		});
 	}
 
@@ -47,10 +47,10 @@ export const loadTemplateModule = async (
 	return generate;
 };
 
-export const readComposeFile = async (folder: string) => {
+export const readComposeFile = async (id: string) => {
 	const cwd = process.cwd();
 	const composeFile = await readFile(
-		join(cwd, ".next", "templates", folder, "docker-compose.yml"),
+		join(cwd, ".next", "templates", id, "docker-compose.yml"),
 		"utf8",
 	);
 
