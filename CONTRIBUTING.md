@@ -167,6 +167,7 @@ Let's take the example of `plausible` template.
 3. create a `index.ts` file inside the folder with the following code as base:
 
 ```typescript
+// EXAMPLE
 import {
 	generateHash,
 	generateRandomDomain,
@@ -176,8 +177,33 @@ import {
 
 
 export function generate(schema: Schema): Template {
+
 	// do your stuff here, like create a new domain, generate random passwords, mounts.
-	
+	const mainServiceHash = generateHash(schema.projectName);
+	const randomDomain = generateRandomDomain(schema);
+	const secretBase = generateBase64(64);
+	const toptKeyBase = generateBase64(32);
+
+	const envs = [
+		`PLAUSIBLE_HOST=${randomDomain}`,
+		"PLAUSIBLE_PORT=8000",
+		`BASE_URL=http://${randomDomain}`,
+		`SECRET_KEY_BASE=${secretBase}`,
+		`TOTP_VAULT_KEY=${toptKeyBase}`,
+		`HASH=${mainServiceHash}`,
+	];
+
+    const mounts: Template["mounts"] = [
+		{
+			mountPath: "./clickhouse/clickhouse-config.xml",
+			content: `some content......`,
+		},
+	];
+
+	return {
+		envs,
+        mounts,
+	};
 }
 ```
 
