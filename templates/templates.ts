@@ -19,7 +19,7 @@ export const templates: TemplateData[] = [
 		id: "plausible",
 		name: "Plausible",
 		description:
-			"Plausible is a simple, open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
+			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
 		links: {
 			github: "https://github.com/plausible/plausible",
@@ -29,121 +29,19 @@ export const templates: TemplateData[] = [
 		tags: ["analytics"],
 		load: () => import("./plausible/index").then((m) => m.generate),
 	},
-	// {
-	// 	name: "Directus",
-	// 	description:
-	// 		"Directus is a self-hosted headless CMS that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "directus",
-	// 	links: {
-	// 		github: "https://github.com/directus/directus",
-	// 		docs: "https://docs.directus.io/",
-	// 	},
-	// 	logo: "https://directus.io/_nuxt/logo-dark.Bhm22UGW.svg",
-	// 	// load: () => import("./directus/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "ActualBudget",
-	// 	description:
-	// 		"ActualBudget is a self-hosted budgeting app that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "actualbudget",
-	// 	links: {
-	// 		github: "https://github.com/actualbudget/actualbudget",
-	// 		docs: "https://docs.actualbudget.org/",
-	// 	},
-	// 	logo: "https://actualbudget.org/img/actual.png",
-	// 	// load: () => import("./actualbudget/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "Calcom",
-	// 	description:
-	// 		"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
-	// 	type: "docker-compose",
-	// 	folder: "calcom",
-	// 	links: {
-	// 		github: "https://github.com/calcom/cal.com",
-	// 		docs: "https://docs.calcom.com/",
-	// 	},
-	// 	logo: "https://raw.githubusercontent.com/calcom/cal.com/main/apps/web/public/emails/logo.png",
-	// 	// load: () => import("./calcom/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "Directus",
-	// 	description:
-	// 		"Directus is a self-hosted headless CMS that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "directus",
-	// 	links: {
-	// 		github: "https://github.com/directus/directus",
-	// 		docs: "https://docs.directus.io/",
-	// 	},
-	// 	logo: "https://directus.io/_nuxt/logo-dark.Bhm22UGW.svg",
-	// 	// load: () => import("./directus/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "ActualBudget",
-	// 	description:
-	// 		"ActualBudget is a self-hosted budgeting app that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "actualbudget",
-	// 	links: {
-	// 		github: "https://github.com/actualbudget/actualbudget",
-	// 		docs: "https://docs.actualbudget.org/",
-	// 	},
-	// 	logo: "https://actualbudget.org/img/actual.png",
-	// 	// load: () => import("./actualbudget/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "Calcom",
-	// 	description:
-	// 		"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
-	// 	type: "docker-compose",
-	// 	folder: "calcom",
-	// 	links: {
-	// 		github: "https://github.com/calcom/cal.com",
-	// 		docs: "https://docs.calcom.com/",
-	// 	},
-	// 	logo: "https://raw.githubusercontent.com/calcom/cal.com/main/apps/web/public/emails/logo.png",
-	// 	// load: () => import("./calcom/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "Directus",
-	// 	description:
-	// 		"Directus is a self-hosted headless CMS that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "directus",
-	// 	links: {
-	// 		github: "https://github.com/directus/directus",
-	// 		docs: "https://docs.directus.io/",
-	// 	},
-	// 	logo: "https://directus.io/_nuxt/logo-dark.Bhm22UGW.svg",
-	// 	// load: () => import("./directus/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "ActualBudget",
-	// 	description:
-	// 		"ActualBudget is a self-hosted budgeting app that allows you to build and host your own backend services.",
-	// 	type: "docker-compose",
-	// 	folder: "actualbudget",
-	// 	links: {
-	// 		github: "https://github.com/actualbudget/actualbudget",
-	// 		docs: "https://docs.actualbudget.org/",
-	// 	},
-	// 	logo: "https://actualbudget.org/img/actual.png",
-	// 	// load: () => import("./actualbudget/index").then((m) => m.generate),
-	// },
-	// {
-	// 	name: "Calcom",
-	// 	description:
-	// 		"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
-	// 	type: "docker-compose",
-	// 	folder: "calcom",
-	// 	links: {
-	// 		github: "https://github.com/calcom/cal.com",
-	// 		docs: "https://docs.calcom.com/",
-	// 	},
-	// 	logo: "https://raw.githubusercontent.com/calcom/cal.com/main/apps/web/public/emails/logo.png",
-	// 	// load: () => import("./calcom/index").then((m) => m.generate),
-	// },
+	{
+		id: "calcom",
+		name: "Calcom",
+		description:
+			"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
+
+		links: {
+			github: "https://github.com/calcom/cal.com",
+			website: "https://cal.com/",
+			docs: "https://cal.com/docs",
+		},
+		logo: "calcom.jpg",
+		tags: ["scheduling", "booking"],
+		load: () => import("./calcom/index").then((m) => m.generate),
+	},
 ];

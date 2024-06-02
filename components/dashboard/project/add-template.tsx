@@ -168,7 +168,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	})
 																		.then(async () => {
 																			toast.success(
-																				`${template.name} template deleted succesfully`,
+																				`${template.name} template created succesfully`,
 																			);
 
 																			utils.project.one.invalidate({

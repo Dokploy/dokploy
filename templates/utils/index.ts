@@ -32,6 +32,10 @@ export const generateHash = (projectName: string): string => {
 	return `${projectName}-${hash}`;
 };
 
+export const generatePassword = (): string => {
+	return randomBytes(16).toString("hex");
+};
+
 export const loadTemplateModule = async (
 	id: TemplatesKeys,
 ): Promise<(schema: Schema) => Template> => {
