@@ -197,8 +197,6 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const composeFile = await readComposeFile(input.id);
 
-			console.log(composeFile);
-
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
 			const admin = await findAdmin();

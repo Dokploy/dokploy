@@ -34,7 +34,7 @@ interface Props {
 export const AddTemplate = ({ projectId }: Props) => {
 	const [query, setQuery] = useState("");
 	const { data } = api.compose.templates.useQuery();
-
+	const utils = api.useUtils();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.deployTemplate.useMutation();
 
@@ -170,6 +170,10 @@ export const AddTemplate = ({ projectId }: Props) => {
 																			toast.success(
 																				`${template.name} template deleted succesfully`,
 																			);
+
+																			utils.project.one.invalidate({
+																				projectId,
+																			});
 																		})
 																		.catch(() => {
 																			toast.error(
