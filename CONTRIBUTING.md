@@ -185,6 +185,7 @@ export function generate(schema: Schema): Template {
 	const toptKeyBase = generateBase64(32);
 
 	const envs = [
+// If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
 		`PLAUSIBLE_HOST=${randomDomain}`,
 		"PLAUSIBLE_PORT=8000",
 		`BASE_URL=http://${randomDomain}`,
@@ -235,5 +236,6 @@ export function generate(schema: Schema): Template {
 ### Recomendations
 - Use the same name of the folder as the id of the template.
 - The logo should be in the public folder.
+- If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
 - Test first on a vps or a server to make sure the template works.
 
