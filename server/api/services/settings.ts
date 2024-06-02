@@ -21,7 +21,12 @@ export const getDokployImage = () => {
 
 export const pullLatestRelease = async () => {
 	try {
-		await docker.pull(getDokployImage(), {});
+		const stream = await docker.pull(getDokployImage(), {});
+		await new Promise((resolve, reject) => {
+			docker.modem.followProgress(stream, (err, res) =>
+				err ? reject(err) : resolve(res),
+			);
+		});
 		const newUpdateIsAvailable = await updateIsAvailable();
 		return newUpdateIsAvailable;
 	} catch (error) {}

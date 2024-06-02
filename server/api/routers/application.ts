@@ -160,6 +160,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
+				applicationType: "application",
 			};
 			await myQueue.add(
 				"deployments",
@@ -291,6 +292,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
 				type: "deploy",
+				applicationType: "application",
 			};
 			await myQueue.add(
 				"deployments",

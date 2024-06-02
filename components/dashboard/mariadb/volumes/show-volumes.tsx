@@ -10,6 +10,8 @@ import { api } from "@/utils/api";
 import { AlertTriangle, Package } from "lucide-react";
 import { DeleteVolume } from "../../application/advanced/volumes/delete-volume";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
+import { UpdateVolume } from "../../application/advanced/volumes/update-volume";
+import { AlertBlock } from "@/components/shared/alert-block";
 interface Props {
 	mariadbId: string;
 }
@@ -59,15 +61,12 @@ export const ShowVolumes = ({ mariadbId }: Props) => {
 						</AddVolumes>
 					</div>
 				) : (
-					<div className="flex flex-col pt-2">
-						<div className="flex flex-col sm:flex-row items-center gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
-							<AlertTriangle className="text-yellow-600 size-5 sm:size-8 dark:text-yellow-400" />
-							<span className="text-sm text-yellow-600 dark:text-yellow-400">
-								Please remember to click Redeploy after adding, editing, or
-								deleting a mount to apply the changes.
-							</span>
-						</div>
-						<div className="flex flex-col gap-6 pt-6">
+					<div className="flex flex-col pt-2 gap-4">
+						<AlertBlock type="info">
+							Please remember to click Redeploy after adding, editing, or
+							deleting a mount to apply the changes.
+						</AlertBlock>
+						<div className="flex flex-col gap-6">
 							{data?.mounts.map((mount) => (
 								<div key={mount.mountId}>
 									<div
@@ -113,7 +112,12 @@ export const ShowVolumes = ({ mariadbId }: Props) => {
 												</span>
 											</div>
 										</div>
-										<div>
+										<div className="flex flex-row gap-1">
+											<UpdateVolume
+												mountId={mount.mountId}
+												type={mount.type}
+												refetch={refetch}
+											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>
 									</div>

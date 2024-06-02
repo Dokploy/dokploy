@@ -1,18 +1,22 @@
 import { createWriteStream } from "node:fs";
-import path from "node:path";
-import type { Application } from "@/server/api/services/application";
-import { APPLICATIONS_PATH, SSH_PATH } from "@/server/constants";
+import path, { join } from "node:path";
+import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export const cloneGitRepository = async (
-	application: Application,
+	entity: {
+		appName: string;
+		customGitUrl?: string | null;
+		customGitBranch?: string | null;
+		customGitSSHKey?: string | null;
+	},
 	logPath: string,
+	isCompose = false,
 ) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKey } =
-		application;
+	const { appName, customGitUrl, customGitBranch, customGitSSHKey } = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -23,7 +27,8 @@ export const cloneGitRepository = async (
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const keyPath = path.join(SSH_PATH, `${appName}_rsa`);
-	const outputPath = path.join(APPLICATIONS_PATH, appName);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	try {

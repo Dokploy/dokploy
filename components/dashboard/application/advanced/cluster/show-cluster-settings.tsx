@@ -34,6 +34,7 @@ import {
 import Link from "next/link";
 import { Server } from "lucide-react";
 import { AddSwarmSettings } from "./modify-swarm-settings";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	applicationId: string;
@@ -106,6 +107,10 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 				<AddSwarmSettings applicationId={applicationId} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
+				<AlertBlock type="info">
+					Please remember to click Redeploy after modify the cluster settings to
+					apply the changes.
+				</AlertBlock>
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}

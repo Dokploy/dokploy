@@ -37,6 +37,7 @@ export const findProjectById = async (projectId: string) => {
 			mysql: true,
 			postgres: true,
 			redis: true,
+			compose: true,
 		},
 	});
 	if (!project) {
@@ -72,4 +73,14 @@ export const updateProjectById = async (
 		.then((res) => res[0]);
 
 	return result;
+};
+
+export const slugifyProjectName = (projectName: string): string => {
+	return projectName
+		.toLowerCase()
+		.replace(/[0-9]/g, "")
+		.replace(/[^a-z\s-]/g, "")
+		.replace(/\s+/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
 };

@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Badge } from "../ui/badge";
 import { useRouter } from "next/router";
 import { api } from "@/utils/api";
+import { buttonVariants } from "../ui/button";
+import { HeartIcon } from "lucide-react";
 
 export const Navbar = () => {
 	const router = useRouter();
@@ -36,10 +37,22 @@ export const Navbar = () => {
 						className={cn("flex flex-row items-center gap-2")}
 					>
 						<Logo />
-						<span className="text-sm font-semibold text-primary">Dokploy</span>
+						<span className="text-sm font-semibold text-primary max-sm:hidden">
+							Dokploy
+						</span>
 					</Link>
 				</div>
-
+				<Link
+					className={buttonVariants({
+						variant: "outline",
+						className: " flex items-center gap-2 !rounded-full",
+					})}
+					href="https://opencollective.com/dokploy"
+					target="_blank"
+				>
+					<span className="text-sm font-semibold">Support </span>
+					<HeartIcon className="size-4 text-red-500 fill-red-600 animate-heartbeat " />
+				</Link>
 				<ul
 					className="ml-auto flex h-12 max-w-fit flex-row flex-nowrap items-center gap-0 data-[justify=end]:flex-grow data-[justify=start]:flex-grow data-[justify=end]:basis-0 data-[justify=start]:basis-0 data-[justify=start]:justify-start data-[justify=end]:justify-end data-[justify=center]:justify-center"
 					data-justify="end"

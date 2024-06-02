@@ -41,6 +41,9 @@ export const WebServer = () => {
 		mutateAsync: cleanDockerBuilder,
 		isLoading: cleanDockerBuilderIsLoading,
 	} = api.settings.cleanDockerBuilder.useMutation();
+
+	const { mutateAsync: cleanMonitoring, isLoading: cleanMonitoringIsLoading } =
+		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
 		isLoading: cleanUnusedImagesIsLoading,
@@ -252,6 +255,20 @@ export const WebServer = () => {
 									}}
 								>
 									<span>Clean Docker Builder & System</span>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									className="w-full cursor-pointer"
+									onClick={async () => {
+										await cleanMonitoring()
+											.then(async () => {
+												toast.success("Cleaned Monitoring");
+											})
+											.catch(() => {
+												toast.error("Error to clean Monitoring");
+											});
+									}}
+								>
+									<span>Clean Monitoring </span>
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="w-full cursor-pointer"

@@ -27,6 +27,7 @@ import { PlusIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 interface Props {
 	serviceId: string;
 	serviceType:
@@ -36,7 +37,8 @@ interface Props {
 		| "mongo"
 		| "redis"
 		| "mysql"
-		| "mariadb";
+		| "mariadb"
+		| "compose";
 	refetch: () => void;
 	children?: React.ReactNode;
 }
@@ -77,7 +79,7 @@ export const AddVolumes = ({
 	const { mutateAsync } = api.mounts.create.useMutation();
 	const form = useForm<AddMount>({
 		defaultValues: {
-			type: "bind",
+			type: serviceType === "compose" ? "file" : "bind",
 			hostPath: "",
 			mountPath: "",
 		},
@@ -176,41 +178,52 @@ export const AddVolumes = ({
 											defaultValue={field.value}
 											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
 										>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="bind"
-															id="bind"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="bind"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															Bind Mount
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="volume"
-															id="volume"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="volume"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															Volume Mount
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
+											{serviceType !== "compose" && (
+												<FormItem className="flex items-center space-x-3 space-y-0">
+													<FormControl className="w-full">
+														<div>
+															<RadioGroupItem
+																value="bind"
+																id="bind"
+																className="peer sr-only"
+															/>
+															<Label
+																htmlFor="bind"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+															>
+																Bind Mount
+															</Label>
+														</div>
+													</FormControl>
+												</FormItem>
+											)}
+
+											{serviceType !== "compose" && (
+												<FormItem className="flex items-center space-x-3 space-y-0">
+													<FormControl className="w-full">
+														<div>
+															<RadioGroupItem
+																value="volume"
+																id="volume"
+																className="peer sr-only"
+															/>
+															<Label
+																htmlFor="volume"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+															>
+																Volume Mount
+															</Label>
+														</div>
+													</FormControl>
+												</FormItem>
+											)}
+
+											<FormItem
+												className={cn(
+													serviceType === "compose" && "col-span-3",
+													"flex items-center space-x-3 space-y-0",
+												)}
+											>
 												<FormControl className="w-full">
 													<div>
 														<RadioGroupItem
