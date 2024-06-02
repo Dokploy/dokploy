@@ -16,7 +16,7 @@ import {
 	updateCompose,
 } from "../services/compose";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { checkServiceAccess } from "../services/user";
+import { addNewService, checkServiceAccess } from "../services/user";
 import {
 	cleanQueuesByCompose,
 	type DeploymentJob,
@@ -45,8 +45,23 @@ import { templates } from "@/templates/templates";
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateCompose)
-		.mutation(async ({ input }) => {
-			return createCompose(input);
+		.mutation(async ({ ctx, input }) => {
+			try {
+				if (ctx.user.rol === "user") {
+					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				}
+				const newService = await createCompose(input);
+
+				if (ctx.user.rol === "user") {
+					await addNewService(ctx.user.authId, newService.composeId);
+				}
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to create the compose",
+					cause: error,
+				});
+			}
 		}),
 
 	one: protectedProcedure
@@ -194,7 +209,10 @@ export const composeRouter = createTRPCRouter({
 		}),
 	deployTemplate: protectedProcedure
 		.input(apiCreateComposeByTemplate)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			if (ctx.user.rol === "user") {
+				await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+			}
 			const composeFile = await readComposeFile(input.id);
 
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
@@ -224,6 +242,10 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 			});
+
+			if (ctx.user.rol === "user") {
+				await addNewService(ctx.user.authId, compose.composeId);
+			}
 
 			if (mounts && mounts?.length > 0) {
 				for (const mount of mounts) {
