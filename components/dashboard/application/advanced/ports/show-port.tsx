@@ -11,6 +11,7 @@ import { Rss } from "lucide-react";
 import { AddPort } from "./add-port";
 import { DeletePort } from "./delete-port";
 import { UpdatePort } from "./update-port";
+import { AlertBlock } from "@/components/shared/alert-block";
 interface Props {
 	applicationId: string;
 }
@@ -47,7 +48,11 @@ export const ShowPorts = ({ applicationId }: Props) => {
 						<AddPort applicationId={applicationId}>Add Port</AddPort>
 					</div>
 				) : (
-					<div className="flex flex-col pt-2">
+					<div className="flex flex-col pt-2 gap-4">
+						<AlertBlock type="info">
+							Please remember to click Redeploy after adding, editing, or
+							deleting the ports to apply the changes.
+						</AlertBlock>
 						<div className="flex flex-col gap-6">
 							{data?.ports.map((port) => (
 								<div key={port.portId}>
