@@ -4,6 +4,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "pocketbase",
 		name: "Pocketbase",
+		version: "v0.22.12",
 		description:
 			"Pocketbase is a self-hosted alternative to Firebase that allows you to build and host your own backend services.",
 		links: {
@@ -18,6 +19,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
+		version: "v2.1.0",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -32,6 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "calcom",
 		name: "Calcom",
+		version: "2.7.6",
 		description:
 			"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
 

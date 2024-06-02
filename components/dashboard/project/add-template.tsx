@@ -73,7 +73,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 						{templates?.map((template, index) => (
 							<div key={`template-${index}`}>
 								<div
-									key={template.name}
+									key={template.id}
 									className="flex flex-col gap-4 border p-6 rounded-lg h-full"
 								>
 									<div className="flex flex-col gap-4">
@@ -88,9 +88,13 @@ export const AddTemplate = ({ projectId }: Props) => {
 										<div className="flex flex-col gap-2">
 											<div className="flex flex-col gap-2 justify-center items-center">
 												<div className="flex flex-col gap-2 items-center justify-center">
-													<span className="text-sm font-medium">
-														{template.name}
-													</span>
+													<div className="flex flex-row gap-2 flex-wrap">
+														<span className="text-sm font-medium">
+															{template.name}
+														</span>
+														<Badge>{template.version}</Badge>
+													</div>
+
 													<div className="flex flex-row gap-0">
 														<Link
 															href={template.links.github}

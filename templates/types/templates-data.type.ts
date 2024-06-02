@@ -44,6 +44,10 @@ export type TemplateData = {
 		 */
 		website?: string;
 	};
+	/**
+	 * Version of the template.
+	 */
+	version: string;
 
 	/**
 	 * Tags associated with the template.

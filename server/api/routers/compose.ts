@@ -248,6 +248,7 @@ export const composeRouter = createTRPCRouter({
 			links: t.links,
 			tags: t.tags,
 			logo: t.logo,
+			version: t.version,
 		}));
 
 		return templatesData;
