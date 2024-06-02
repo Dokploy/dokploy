@@ -8,26 +8,27 @@ export const templates: TemplateData[] = [
 			"Pocketbase is a self-hosted alternative to Firebase that allows you to build and host your own backend services.",
 		links: {
 			github: "https://github.com/pocketbase/pocketbase",
-			docs: "https://pocketbase.io/docs/",
 			website: "https://pocketbase.io/",
+			docs: "https://pocketbase.io/docs/",
 		},
 		logo: "pocketbase.svg",
 		load: () => import("./pocketbase/index").then((m) => m.generate),
 		tags: ["database", "cms", "headless"],
 	},
-	// {
-	// 	name: "Plausible",
-	// 	description:
-	// 		"Plausible is a simple, open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
-	// 	type: "docker-compose",
-	// 	folder: "plausible",
-	// 	links: {
-	// 		github: "https://github.com/plausible/plausible",
-	// 		docs: "https://plausible.io/docs/docker/",
-	// 	},
-	// 	logo: "https://plausible.io/assets/images/icon/plausible_logo.svg",
-	// 	// load: () => import("./plausible/index").then((m) => m.generate),
-	// },
+	{
+		id: "plausible",
+		name: "Plausible",
+		description:
+			"Plausible is a simple, open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
+		logo: "plausible.svg",
+		links: {
+			github: "https://github.com/plausible/plausible",
+			website: "https://plausible.io/",
+			docs: "https://plausible.io/docs",
+		},
+		tags: ["analytics"],
+		load: () => import("./plausible/index").then((m) => m.generate),
+	},
 	// {
 	// 	name: "Directus",
 	// 	description:
