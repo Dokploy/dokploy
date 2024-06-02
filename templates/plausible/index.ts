@@ -3,16 +3,21 @@ import {
 	generateRandomDomain,
 	type Template,
 	type Schema,
+	generateBase64,
 } from "../utils";
 
-// https://pocketbase.io/docs/
 export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
+	const secretBase = generateBase64(64);
+	const toptKeyBase = generateBase64(32);
 
 	const envs = [
 		`PLAUSIBLE_HOST=${randomDomain}`,
 		"PLAUSIBLE_PORT=8000",
+		`BASE_URL=http://${randomDomain}`,
+		`SECRET_KEY_BASE=${secretBase}`,
+		`TOTP_VAULT_KEY=${toptKeyBase}`,
 		`HASH=${mainServiceHash}`,
 	];
 

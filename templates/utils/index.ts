@@ -27,13 +27,19 @@ export const generateRandomDomain = ({
 	return `${projectName}-${hash}-${slugIp}.traefik.me`;
 };
 
-export const generateHash = (projectName: string): string => {
-	const hash = randomBytes(3).toString("hex");
+export const generateHash = (projectName: string, quantity = 3): string => {
+	const hash = randomBytes(quantity).toString("hex");
 	return `${projectName}-${hash}`;
 };
 
-export const generatePassword = (): string => {
-	return randomBytes(16).toString("hex");
+export const generatePassword = (quantity = 16): string => {
+	return randomBytes(Math.ceil(quantity / 2))
+		.toString("hex")
+		.slice(0, quantity);
+};
+
+export const generateBase64 = (bytes = 32): string => {
+	return randomBytes(bytes).toString("base64");
 };
 
 export const loadTemplateModule = async (
