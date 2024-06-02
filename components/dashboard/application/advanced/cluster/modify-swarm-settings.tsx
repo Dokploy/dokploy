@@ -24,7 +24,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Textarea } from "@/components/ui/textarea";
 import { HelpCircle, Settings } from "lucide-react";
 import {
 	Tooltip,
@@ -32,6 +31,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -320,8 +320,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[11.2rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
 	"Interval" : 10000,
@@ -329,6 +329,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"StartPeriod" : 10000,
 	"Retries" : 10
 }`}
+											className="h-[12rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -374,14 +375,15 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;]  min-h-[11.2rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Condition" : "on-failure",
 	"Delay" : 10000,
 	"MaxAttempts" : 10,
 	"Window" : 10000
 }                                                  `}
+											className="h-[12rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -432,8 +434,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;]  min-h-[18.7rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Constraints" : ["node.role==manager"],
 	"Preferences" : [{
@@ -447,6 +449,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 		"OS" : "linux"
 	}]
 }                                                `}
+											className="h-[21rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -494,8 +497,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[18.7rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
 	"Delay" : 10000,
@@ -504,6 +507,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
+											className="h-[21rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -551,8 +555,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
 	"Delay" : 10000,
@@ -561,6 +565,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
+											className="h-[17rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -611,8 +616,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									</TooltipProvider>
 
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[14.8rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"Replicated" : {
 		"Replicas" : 1
@@ -624,6 +629,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	},
 	"GlobalJob" : {}
 }`}
+											className="h-[17rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -668,8 +674,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 										</Tooltip>
 									</TooltipProvider>
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[18.5rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`[
  {
 	"Target" : "dokploy-network",
@@ -682,6 +688,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	}
  }
 ]`}
+											className="h-[20rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -722,12 +729,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 										</Tooltip>
 									</TooltipProvider>
 									<FormControl>
-										<Textarea
-											className="font-mono [field-sizing:content;] min-h-[18.5rem]"
+										<CodeEditor
+											language="json"
 											placeholder={`{
 	"com.example.app.name" : "my-app",
 	"com.example.app.version" : "1.0.0"
 }`}
+											className="h-[20rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
