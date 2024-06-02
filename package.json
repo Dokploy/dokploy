@@ -12,10 +12,10 @@
     "setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
     "reset-password": "node dist/reset-password.mjs",
     "dev": "tsx watch -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
-    "studio":"drizzle-kit studio --config ./server/db/drizzle.config.ts",
+    "studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
     "migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
     "migration:run": "tsx -r dotenv/config migration.ts",
-    "migration:up":"drizzle-kit up --config ./server/db/drizzle.config.ts",
+    "migration:up": "drizzle-kit up --config ./server/db/drizzle.config.ts",
     "migration:drop": "drizzle-kit drop --config ./server/db/drizzle.config.ts",
     "db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
     "db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
@@ -111,11 +111,14 @@
     "use-resize-observer": "9.1.0",
     "ws": "8.16.0",
     "xterm-addon-fit": "^0.8.0",
-    "zod": "^3.23.4"
+    "zod": "^3.23.4",
+    "copy-webpack-plugin": "^12.0.2"
+
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.1",
     "@types/bcrypt": "5.0.2",
+    "@types/copy-webpack-plugin": "^10.1.0",
     "@types/dockerode": "3.3.23",
     "@types/js-yaml": "4.0.9",
     "@types/lodash": "4.17.4",

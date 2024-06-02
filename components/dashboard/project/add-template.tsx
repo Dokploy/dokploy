@@ -54,14 +54,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 					<DialogDescription>
 						Deploy a open source template to your project
 					</DialogDescription>
-
-					<AlertBlock type="info">
-						{/* <AlertTriangle className="text-info" /> */}
-						<span className="text-sm text-info">
-							In order to generate domains please point a{" "}
-							<strong>* record</strong> to this VPS IP
-						</span>
-					</AlertBlock>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -77,11 +69,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 									className="flex flex-col gap-4 border p-6 rounded-lg hover:bg-card/20 cursor-pointer transition-colors"
 								>
 									<div className="flex flex-col gap-4">
-										<img
-											src={template.logo}
-											className="w-80 h-40 object-contain"
-											alt=""
-										/>
+										<div className="flex flex-col items-center gap-2">
+											<img
+												src={template.logo}
+												className="size-20 object-contain"
+												alt=""
+											/>
+										</div>
+
 										<div className="flex flex-col gap-2">
 											<div className="flex flex-col gap-2">
 												<span>{template.name}</span>
@@ -153,12 +148,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 						</AlertDialog>
 					))}
 				</div>
-
-				<DialogFooter>
-					<Button isLoading={isLoading} form="hook-form" type="submit">
-						Create
-					</Button>
-				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);

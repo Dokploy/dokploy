@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -90,7 +90,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
-					<SquarePen className="size-4" />
+					<SquarePen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">

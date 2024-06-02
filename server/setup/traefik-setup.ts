@@ -147,17 +147,6 @@ export const createDefaultTraefikConfig = () => {
 		entryPoints: {
 			web: {
 				address: ":80",
-				...(process.env.NODE_ENV === "production" && {
-					http: {
-						redirections: {
-							entryPoint: {
-								to: "websecure",
-								scheme: "https",
-								permanent: true,
-							},
-						},
-					},
-				}),
 			},
 			websecure: {
 				address: ":443",

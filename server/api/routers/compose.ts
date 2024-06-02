@@ -34,13 +34,13 @@ import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { createCommand } from "@/server/utils/builders/compose";
-import { loadTemplateModule, readComposeFile } from "@/server/templates/utils";
-import { templates } from "@/server/templates/templates";
+import { loadTemplateModule, readComposeFile } from "@/templates/utils";
 import { findAdmin } from "../services/admin";
 import { TRPCError } from "@trpc/server";
 import { findProjectById, slugifyProjectName } from "../services/project";
-import type { TemplatesKeys } from "@/server/templates/types/templates-data.type";
 import { createMount } from "../services/mount";
+import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+import { templates } from "@/templates/templates";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -197,15 +197,17 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const composeFile = await readComposeFile(input.folder);
 
+			console.log(composeFile);
+
 			const generate = await loadTemplateModule(input.folder as TemplatesKeys);
 
 			const admin = await findAdmin();
 
-			if (!admin.host) {
+			if (!admin.serverIp) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message:
-						"You need to have a host to deploy this template in order to generate domains, please configure in settings -> domain",
+						"You need to have a server IP to deploy this template in order to generate domains",
 				});
 			}
 
@@ -213,13 +215,13 @@ export const composeRouter = createTRPCRouter({
 
 			const projectName = slugifyProjectName(`${project.name}-${input.folder}`);
 			const { envs, mounts } = generate({
-				domain: admin.host,
+				serverIp: admin.serverIp,
 				projectName: projectName,
 			});
 
 			const compose = await createComposeByTemplate({
 				...input,
-				composeFile,
+				composeFile: composeFile,
 				env: envs.join("\n"),
 				name: input.folder,
 				sourceType: "raw",
@@ -237,7 +239,7 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			return compose;
+			return null;
 		}),
 
 	templates: protectedProcedure.query(async () => {
