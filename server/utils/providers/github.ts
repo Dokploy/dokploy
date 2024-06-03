@@ -1,7 +1,6 @@
 import { createWriteStream } from "node:fs";
-import path from "node:path";
-import type { Application } from "@/server/api/services/application";
-import { APPLICATIONS_PATH } from "@/server/constants";
+import { join } from "node:path";
+import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
@@ -49,25 +48,36 @@ export const haveGithubRequirements = (admin: Admin) => {
 	);
 };
 
-const getErrorCloneRequirements = (application: Application) => {
+const getErrorCloneRequirements = (entity: {
+	repository?: string | null;
+	owner?: string | null;
+	branch?: string | null;
+}) => {
 	const reasons: string[] = [];
-	const { repository, owner, branch } = application;
+	const { repository, owner, branch } = entity;
 
 	if (!repository) reasons.push("1. Repository not assigned.");
-	if (!owner) reasons.push("2. Owner not specified .");
+	if (!owner) reasons.push("2. Owner not specified.");
 	if (!branch) reasons.push("3. Branch not defined.");
 
 	return reasons;
 };
+
 export const cloneGithubRepository = async (
 	admin: Admin,
-	application: Application,
+	entity: {
+		appName: string;
+		repository?: string | null;
+		owner?: string | null;
+		branch?: string | null;
+	},
 	logPath: string,
+	isCompose = false,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, repository, owner, branch } = application;
+	const { appName, repository, owner, branch } = entity;
 
-	const requirements = getErrorCloneRequirements(application);
+	const requirements = getErrorCloneRequirements(entity);
 
 	// Check if requirements are met
 	if (requirements.length > 0) {
@@ -82,7 +92,8 @@ export const cloneGithubRepository = async (
 			message: "Error: GitHub repository information is incomplete.",
 		});
 	}
-	const outputPath = path.join(APPLICATIONS_PATH, appName);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName);
 	const octokit = authGithub(admin);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;

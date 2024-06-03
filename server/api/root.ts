@@ -20,6 +20,7 @@ import { securityRouter } from "./routers/security";
 import { portRouter } from "./routers/port";
 import { adminRouter } from "./routers/admin";
 import { dockerRouter } from "./routers/docker";
+import { composeRouter } from "./routers/compose";
 import { registryRouter } from "./routers/registry";
 import { clusterRouter } from "./routers/cluster";
 /**
@@ -49,6 +50,7 @@ export const appRouter = createTRPCRouter({
 	security: securityRouter,
 	redirects: redirectsRouter,
 	port: portRouter,
+	compose: composeRouter,
 	registry: registryRouter,
 	cluster: clusterRouter,
 });

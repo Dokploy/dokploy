@@ -47,13 +47,12 @@ export default async function handler(
 				webhookDockerTag &&
 				webhookDockerTag !== applicationDockerTag
 			) {
-				 res.status(301).json({
+				res.status(301).json({
 					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
 				});
 				return;
 			}
-		}
-		else if (sourceType === "github") {
+		} else if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
 			if (!branchName || branchName !== application.branch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -77,6 +76,7 @@ export default async function handler(
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
 				type: "deploy",
+				applicationType: "application",
 			};
 			await myQueue.add(
 				"deployments",
@@ -118,16 +118,19 @@ function extractImageTag(dockerImage: string | null) {
 /**
  * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
  */
-function extractImageTagFromRequest(headers: any, body: any): string | null {
+export const extractImageTagFromRequest = (
+	headers: any,
+	body: any,
+): string | null => {
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
 			return body.push_data.tag;
 		}
 	}
 	return null;
-}
+};
 
-function extractCommitMessage(headers: any, body: any) {
+export const extractCommitMessage = (headers: any, body: any) => {
 	// GitHub
 	if (headers["x-github-event"]) {
 		return body.head_commit ? body.head_commit.message : "NEW COMMIT";
@@ -161,9 +164,9 @@ function extractCommitMessage(headers: any, body: any) {
 	}
 
 	return "NEW CHANGES";
-}
+};
 
-function extractBranchName(headers: any, body: any) {
+export const extractBranchName = (headers: any, body: any) => {
 	if (headers["x-github-event"] || headers["x-gitea-event"]) {
 		return body?.ref?.replace("refs/heads/", "");
 	}
@@ -177,4 +180,4 @@ function extractBranchName(headers: any, body: any) {
 	}
 
 	return null;
-}
+};

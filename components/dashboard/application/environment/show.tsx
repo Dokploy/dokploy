@@ -20,6 +20,7 @@ import {
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),
@@ -94,8 +95,11 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="w-full">
 										<FormControl>
-											<Textarea
-												placeholder="NODE_ENV=production"
+											<CodeEditor
+												language="properties"
+												placeholder={`NODE_ENV=production
+PORT=3000
+`}
 												className="h-96 font-mono"
 												{...field}
 											/>

@@ -4,19 +4,21 @@ import { json } from "@codemirror/lang-json";
 import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-
+import { StreamLanguage } from "@codemirror/language";
+import { properties } from "@codemirror/legacy-modes/mode/properties";
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
+	language?: "yaml" | "json" | "properties";
 }
 
 export const CodeEditor = ({
 	className,
 	wrapperClassName,
+	language = "yaml",
 	...props
 }: Props) => {
 	const { resolvedTheme } = useTheme();
-
 	return (
 		<div className={cn("relative overflow-auto", wrapperClassName)}>
 			<CodeMirror
@@ -28,7 +30,13 @@ export const CodeEditor = ({
 					allowMultipleSelections: true,
 				}}
 				theme={resolvedTheme === "dark" ? githubDark : githubLight}
-				extensions={[yaml(), json()]}
+				extensions={[
+					language === "yaml"
+						? yaml()
+						: language === "json"
+							? json()
+							: StreamLanguage.define(properties),
+				]}
 				{...props}
 				editable={!props.disabled}
 				className={cn(

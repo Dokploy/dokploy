@@ -151,3 +151,92 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.
 - Once your pull request is merged, you will be automatically added as a contributor to the project.
 
 Thank you for your contribution!
+
+
+
+
+
+## Templates
+
+To add a new template, go to `templates` folder and create a new folder with the name of the template.
+
+Let's take the example of `plausible` template.
+
+1. create a folder in `templates/plausible`
+2. create a `docker-compose.yml` file inside the folder with the content of compose.
+3. create a `index.ts` file inside the folder with the following code as base:
+4. When creating a pull request, please provide a video of the template working in action.
+
+```typescript
+// EXAMPLE
+import {
+	generateHash,
+	generateRandomDomain,
+	type Template,
+	type Schema,
+} from "../utils";
+
+
+export function generate(schema: Schema): Template {
+
+	// do your stuff here, like create a new domain, generate random passwords, mounts.
+	const mainServiceHash = generateHash(schema.projectName);
+	const randomDomain = generateRandomDomain(schema);
+	const secretBase = generateBase64(64);
+	const toptKeyBase = generateBase64(32);
+
+	const envs = [
+// If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
+		`PLAUSIBLE_HOST=${randomDomain}`,
+		"PLAUSIBLE_PORT=8000",
+		`BASE_URL=http://${randomDomain}`,
+		`SECRET_KEY_BASE=${secretBase}`,
+		`TOTP_VAULT_KEY=${toptKeyBase}`,
+		`HASH=${mainServiceHash}`,
+	];
+
+    const mounts: Template["mounts"] = [
+		{
+			mountPath: "./clickhouse/clickhouse-config.xml",
+			content: `some content......`,
+		},
+	];
+
+	return {
+		envs,
+        mounts,
+	};
+}
+```
+
+4. Now you need to add the information about the template to the `templates/templates.ts` is a object with the following properties:
+
+**Make sure the id of the template is the same as the folder name and don't have any spaces, only slugified names and lowercase.**
+
+```typescript
+{
+	id: "plausible",
+	name: "Plausible",
+	version: "v2.1.0",
+	description:
+		"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
+	logo: "plausible.svg", // we defined the name and the extension of the logo
+	links: {
+		github: "https://github.com/plausible/plausible",
+		website: "https://plausible.io/",
+		docs: "https://plausible.io/docs",
+	},
+	tags: ["analytics"],
+	load: () => import("./plausible/index").then((m) => m.generate),
+},
+```
+
+5. Add the logo or image of the template to `public/templates/plausible.svg`
+
+
+### Recomendations
+- Use the same name of the folder as the id of the template.
+- The logo should be in the public folder.
+- If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
+- Test first on a vps or a server to make sure the template works.
+

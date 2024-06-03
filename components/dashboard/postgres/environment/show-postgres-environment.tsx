@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),
@@ -93,8 +93,11 @@ export const ShowPostgresEnvironment = ({ postgresId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="w-full">
 										<FormControl>
-											<Textarea
-												placeholder="POSTGRES_PASSWORD=1234567678"
+											<CodeEditor
+												language="properties"
+												placeholder={`NODE_ENV=production
+PORT=3000
+`}
 												className="h-96 font-mono"
 												{...field}
 											/>
