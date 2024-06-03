@@ -1,6 +1,6 @@
 {
   "name": "dokploy",
-  "version": "v0.1.0",
+  "version": "v0.2.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
