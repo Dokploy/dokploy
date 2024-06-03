@@ -165,6 +165,7 @@ Let's take the example of `plausible` template.
 1. create a folder in `templates/plausible`
 2. create a `docker-compose.yml` file inside the folder with the content of compose.
 3. create a `index.ts` file inside the folder with the following code as base:
+4. When creating a pull request, please provide a video of the template working in action.
 
 ```typescript
 // EXAMPLE
