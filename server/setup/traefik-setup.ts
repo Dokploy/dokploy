@@ -127,11 +127,18 @@ export const createDefaultTraefikConfig = () => {
 	}
 	const configObject: MainTraefikConfig = {
 		providers: {
-			...(process.env.NODE_ENV === "development" && {
-				docker: {
-					defaultRule: "Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
-				},
-			}),
+			...(process.env.NODE_ENV === "development"
+				? {
+						docker: {
+							defaultRule:
+								"Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
+						},
+					}
+				: {
+						docker: {
+							exposedByDefault: false,
+						},
+					}),
 			file: {
 				directory: "/etc/dokploy/traefik/dynamic",
 				watch: true,
@@ -140,17 +147,6 @@ export const createDefaultTraefikConfig = () => {
 		entryPoints: {
 			web: {
 				address: ":80",
-				...(process.env.NODE_ENV === "production" && {
-					http: {
-						redirections: {
-							entryPoint: {
-								to: "websecure",
-								scheme: "https",
-								permanent: true,
-							},
-						},
-					},
-				}),
 			},
 			websecure: {
 				address: ":443",

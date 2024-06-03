@@ -31,6 +31,10 @@ export const setupDockerStatsMonitoringSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const appName = url.searchParams.get("appName");
+		const appType = (url.searchParams.get("appType") || "application") as
+			| "application"
+			| "stack"
+			| "docker-compose";
 		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!appName) {
@@ -47,7 +51,15 @@ export const setupDockerStatsMonitoringSocketServer = (
 			try {
 				const filter = {
 					status: ["running"],
-					label: [`com.docker.swarm.service.name=${appName}`],
+					...(appType === "application" && {
+						label: [`com.docker.swarm.service.name=${appName}`],
+					}),
+					...(appType === "stack" && {
+						label: [`com.docker.swarm.task.name=${appName}`],
+					}),
+					...(appType === "docker-compose" && {
+						name: [appName],
+					}),
 				};
 
 				const containers = await docker.listContainers({

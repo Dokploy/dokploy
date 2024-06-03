@@ -64,6 +64,7 @@ export const ShowProjects = () => {
 						project?.postgres.length === 0 &&
 						project?.redis.length === 0 &&
 						project?.applications.length === 0;
+					project?.compose.length === 0;
 
 					const totalServices =
 						project?.mariadb.length +
@@ -71,7 +72,8 @@ export const ShowProjects = () => {
 						project?.mysql.length +
 						project?.postgres.length +
 						project?.redis.length +
-						project?.applications.length;
+						project?.applications.length +
+						project?.compose.length;
 					return (
 						<div key={project.projectId} className="w-full lg:max-w-md">
 							<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
@@ -89,7 +91,10 @@ export const ShowProjects = () => {
 										<span className="flex flex-col gap-1.5">
 											<div className="flex items-center gap-2">
 												<BookIcon className="size-4 text-muted-foreground" />
-												<Link className="text-base font-medium leading-none" href={`/dashboard/project/${project.projectId}`}>
+												<Link
+													className="text-base font-medium leading-none"
+													href={`/dashboard/project/${project.projectId}`}
+												>
 													{project.name}
 												</Link>
 											</div>

@@ -30,6 +30,8 @@ jobs:
       run: pnpm install
     - name: Run Build
       run: pnpm build
+    - name: Run Tests
+      run: pnpm run test
 
   build-and-push-docker-on-push:
     if: github.event_name == 'push'

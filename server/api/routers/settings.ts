@@ -1,4 +1,4 @@
-import { docker, MAIN_TRAEFIK_PATH } from "@/server/constants";
+import { docker, MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import {
 	cleanStoppedContainers,
@@ -40,6 +40,7 @@ import {
 	readDirectory,
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
+import { recreateDirectory } from "@/server/utils/filesystem/directory";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -83,6 +84,10 @@ export const settingsRouter = createTRPCRouter({
 		await cleanUpUnusedImages();
 		await cleanUpDockerBuilder();
 		await cleanUpSystemPrune();
+		return true;
+	}),
+	cleanMonitoring: adminProcedure.mutation(async () => {
+		await recreateDirectory(MONITORING_PATH);
 		return true;
 	}),
 	saveSSHPrivateKey: adminProcedure

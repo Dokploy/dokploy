@@ -77,8 +77,7 @@ export const getContainersByAppNameMatch = async (appName: string) => {
 		);
 
 		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			return;
+			return [];
 		}
 
 		if (!stdout) return [];
