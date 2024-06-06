@@ -16,7 +16,7 @@ export const lucia = new Lucia(adapter, {
 			secure: false,
 		},
 	},
-	sessionExpiresIn: new TimeSpan(1, "d"),
+	// sessionExpiresIn: new TimeSpan(1, "d"),
 	getUserAttributes: (attributes) => {
 		return {
 			email: attributes.email,
@@ -33,14 +33,17 @@ declare module "lucia" {
 	}
 }
 
+export type ReturnValidateToken = Promise<{
+	user: (User & { authId: string }) | null;
+	session: Session | null;
+}>;
+
 export async function validateRequest(
 	req: IncomingMessage,
 	res: ServerResponse,
-): Promise<{
-	user: (User & { authId: string }) | null;
-	session: Session | null;
-}> {
+): ReturnValidateToken {
 	const sessionId = lucia.readSessionCookie(req.headers.cookie ?? "");
+
 	if (!sessionId) {
 		return {
 			user: null,
@@ -90,3 +93,32 @@ export async function validateWebSocketRequest(
 	const result = await lucia.validateSession(sessionId);
 	return result;
 }
+
+export const validateBearerToken = async (
+	req: IncomingMessage,
+): ReturnValidateToken => {
+	const authorizationHeader = req.headers.authorization;
+	const sessionId = lucia.readBearerToken(authorizationHeader ?? "");
+	if (!sessionId) {
+		return {
+			user: null,
+			session: null,
+		};
+	}
+	const result = await lucia.validateSession(sessionId);
+
+	return {
+		session: result.session,
+		...((result.user && {
+			user: {
+				authId: result.user.id,
+				email: result.user.email,
+				rol: result.user.rol,
+				id: result.user.id,
+				secret: result.user.secret,
+			},
+		}) || {
+			user: null,
+		}),
+	};
+};

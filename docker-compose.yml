@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    image: nginx:latest
+    labels:
+      - 'traefik.http.routers.nginx.rule=Host(`test.docker.localhost`)'
+      - 'traefik.http.routers.nginx.entrypoints=web'
+      - 'traefik.http.services.nginx.loadbalancer.server.port=80'
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+
+

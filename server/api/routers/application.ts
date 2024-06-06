@@ -57,6 +57,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				console.log(input);
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
@@ -65,6 +66,8 @@ export const applicationRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newApplication.applicationId);
 				}
+
+				return newApplication;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

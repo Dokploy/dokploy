@@ -51,6 +51,9 @@ const randomImages = [
 export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
+
+	const { mutateAsync: generateToken, isLoading: isLoadingToken } =
+		api.auth.generateToken.useMutation();
 	const form = useForm<Profile>({
 		defaultValues: {
 			email: data?.email || "",
@@ -182,6 +185,18 @@ export const ProfileForm = () => {
 						</div>
 					</form>
 				</Form>
+				<div className="flex flex-row gap-4 pt-10">
+					<Input placeholder="Token" disabled value={data?.token || ""} />
+					<Button
+						type="button"
+						isLoading={isLoadingToken}
+						onClick={async () => {
+							await generateToken();
+						}}
+					>
+						Save
+					</Button>
+				</div>
 			</CardContent>
 		</Card>
 	);

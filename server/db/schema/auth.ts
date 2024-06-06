@@ -43,6 +43,7 @@ export const auth = pgTable("auth", {
 	rol: roles("rol").notNull(),
 	image: text("image").$defaultFn(() => generateRandomImage()),
 	secret: text("secret"),
+	token: text("token"),
 	is2FAEnabled: boolean("is2FAEnabled").notNull().default(false),
 	createdAt: text("createdAt")
 		.notNull()

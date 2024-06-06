@@ -1,0 +1,31 @@
+### Jerarquía de Comandos
+
+1. **Comandos de Proyecto**:
+    * Crear, listar, eliminar y gestionar proyectos.
+2. **Comandos de Aplicaciones**:
+    * Crear, listar, eliminar y gestionar aplicaciones dentro de un proyecto.
+3. **Comandos de Bases de Datos**:
+    * Crear, listar, eliminar y gestionar bases de datos dentro de un proyecto.
+
+### Estructura de Comandos
+
+#### Proyecto
+
+* `dokploy project create`: Crear un nuevo proyecto.
+* `dokploy project list`: Listar todos los proyectos.
+* `dokploy project delete`: Eliminar un proyecto.
+* `dokploy project info`: Mostrar información detallada de un proyecto.
+
+#### Aplicaciones
+
+* `dokploy app create`: Crear una nueva aplicación dentro de un proyecto.
+* `dokploy app list`: Listar todas las aplicaciones dentro de un proyecto.
+* `dokploy app delete`: Eliminar una aplicación dentro de un proyecto.
+* `dokploy app info`: Mostrar información detallada de una aplicación.
+
+#### Bases de Datos
+
+* `dokploy db create`: Crear una nueva base de datos dentro de un proyecto.
+* `dokploy db list`: Listar todas las bases de datos dentro de un proyecto.
+* `dokploy db delete`: Eliminar una base de datos dentro de un proyecto.
+* `dokploy db info`: Mostrar información detallada de una base de datos.
