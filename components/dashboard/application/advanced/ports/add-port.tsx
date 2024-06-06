@@ -183,8 +183,7 @@ export const AddPort = ({
 														<SelectValue placeholder="Select a protocol" />
 													</SelectTrigger>
 												</FormControl>
-												<SelectContent defaultValue={"none"}>
-													<SelectItem value={"none"}>None</SelectItem>
+												<SelectContent>
 													<SelectItem value={"tcp"}>TCP</SelectItem>
 													<SelectItem value={"udp"}>UDP</SelectItem>
 												</SelectContent>
