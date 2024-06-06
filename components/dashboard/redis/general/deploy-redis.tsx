@@ -50,17 +50,13 @@ export const DeployRedis = ({ redisId }: Props) => {
 								applicationStatus: "running",
 							})
 								.then(async () => {
-									toast.success("Database Deploying....");
+									toast.success("Deploying Database...");
 									await refetch();
 									await deploy({
 										redisId,
-									})
-										.then(() => {
-											toast.success("Database Deployed Succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to deploy Database");
-										});
+									}).catch(() => {
+										toast.error("Error to deploy Database");
+									});
 									await refetch();
 								})
 								.catch((e) => {

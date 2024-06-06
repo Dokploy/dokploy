@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -51,18 +52,14 @@ export const DeployApplication = ({ applicationId }: Props) => {
 								applicationId,
 							})
 								.then(async () => {
-									toast.success("Application Deploying....");
+									toast.success("Deploying Application....");
 
 									await refetch();
 									await deploy({
 										applicationId,
-									})
-										.then(() => {
-											toast.success("Application Deployed Succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to deploy Application");
-										});
+									}).catch(() => {
+										toast.error("Error to deploy Application");
+									});
 
 									await refetch();
 								})
