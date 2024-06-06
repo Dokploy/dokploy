@@ -49,18 +49,14 @@ export const DeployCompose = ({ composeId }: Props) => {
 								composeStatus: "running",
 							})
 								.then(async () => {
-									toast.success("Compose Deploying....");
+									toast.success("Deploying Compose....");
 
 									await refetch();
 									await deploy({
 										composeId,
-									})
-										.then(() => {
-											toast.success("Compose Deployed Succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to deploy Compose");
-										});
+									}).catch(() => {
+										toast.error("Error to deploy Compose");
+									});
 
 									await refetch();
 								})
