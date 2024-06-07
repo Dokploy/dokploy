@@ -108,7 +108,12 @@ const createEnvFile = (compose: ComposeNested) => {
 		join(COMPOSE_PATH, appName, "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
-	const envFileContent = prepareEnvironmentVariables(env).join("\n");
+	let envContent = env || "";
+	if (!envContent.includes("DOCKER_CONFIG")) {
+		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
+	}
+
+	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
 		mkdirSync(dirname(envFilePath), { recursive: true });
