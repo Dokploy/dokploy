@@ -17,7 +17,7 @@ import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { manageRegistry } from "@/server/utils/traefik/registry";
 import { initializeRegistry } from "@/server/setup/registry-setup";
-import { docker } from "@/server/constants";
+import { execAsync } from "@/server/utils/process/execAsync";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
@@ -57,16 +57,12 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const result = await docker.checkAuth({
-					username: input.username,
-					password: input.password,
-					serveraddress: input.registryUrl,
-				});
-
+				const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+				await execAsync(loginCommand);
 				return true;
 			} catch (error) {
-				console.log(error);
-				return false;
+				console.log("Error Registry:", error);
+				return error;
 			}
 		}),
 
