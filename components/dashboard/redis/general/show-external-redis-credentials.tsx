@@ -79,7 +79,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `redis://default:${data?.databasePassword}@${hostname}:${port}`;
+			return `redis://default:${'*'.repeat(data?.databasePassword.length)}@${hostname}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
