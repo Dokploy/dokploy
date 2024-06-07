@@ -39,10 +39,17 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 Getestete Systems:
 
-- Ubuntu 20.04
+- Ubuntu 24.04 LTS (Noble Numbat)
+- Ubuntu 23.10 (Mantic Minotaur)
+- Ubuntu 22.04 LTS (Jammy Jellyfish)
+- Ubuntu 20.04 LTS (Focal Fossa)
+- Ubuntu 18.04 LTS (Bionic Beaver)
+- Debian 12
 - Debian 11
 - Fedora 40
 - Centos 9
+- Centos 8
+
 
 ## 📄 Dokumentation
 
