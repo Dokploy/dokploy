@@ -78,7 +78,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mariadb://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${hostname}:${port}/${data?.databaseName}`;
+			return `mariadb://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${hostname}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

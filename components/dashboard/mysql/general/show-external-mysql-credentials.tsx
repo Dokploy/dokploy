@@ -79,7 +79,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mysql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${hostname}:${port}/${data?.databaseName}`;
+			return `mysql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${hostname}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

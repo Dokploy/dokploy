@@ -60,7 +60,7 @@ export const ShowInternalMysqlCredentials = ({ mysqlId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<Input
 									disabled
-									value={`mysql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${data?.appName}:3306/${data?.databaseName}`}
+									value={`mysql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${data?.appName}:3306/${data?.databaseName}`}
 								/>
 							</div>
 						</div>

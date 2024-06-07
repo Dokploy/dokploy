@@ -50,7 +50,7 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<Input
 									disabled
-									value={`postgresql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${data?.appName}:5432/${data?.databaseName}`}
+									value={`postgresql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${data?.appName}:5432/${data?.databaseName}`}
 								/>
 							</div>
 						</div>
