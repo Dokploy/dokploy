@@ -9,28 +9,35 @@ import {
 } from "@/server/utils/traefik/registry";
 import { removeService } from "@/server/utils/docker/utils";
 import { initializeRegistry } from "@/server/setup/registry-setup";
+import { execAsync } from "@/server/utils/process/execAsync";
 
 export type Registry = typeof registry.$inferSelect;
 
 export const createRegistry = async (input: typeof apiCreateRegistry._type) => {
 	const admin = await findAdmin();
 
-	const newRegistry = await db
-		.insert(registry)
-		.values({
-			...input,
-			adminId: admin.adminId,
-		})
-		.returning()
-		.then((value) => value[0]);
+	return await db.transaction(async (tx) => {
+		const newRegistry = await tx
+			.insert(registry)
+			.values({
+				...input,
+				adminId: admin.adminId,
+			})
+			.returning()
+			.then((value) => value[0]);
 
-	if (!newRegistry) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error input:  Inserting registry",
-		});
-	}
-	return newRegistry;
+		if (!newRegistry) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input:  Inserting registry",
+			});
+		}
+
+		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		await execAsync(loginCommand);
+
+		return newRegistry;
+	});
 };
 
 export const removeRegistry = async (registryId: string) => {
