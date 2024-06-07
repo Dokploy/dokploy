@@ -60,6 +60,8 @@ export const removeRegistry = async (registryId: string) => {
 			await removeService("dokploy-registry");
 		}
 
+		await execAsync(`docker logout ${response.registryUrl}`);
+
 		return response;
 	} catch (error) {
 		throw new TRPCError({
