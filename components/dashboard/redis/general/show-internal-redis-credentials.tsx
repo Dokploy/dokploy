@@ -46,7 +46,7 @@ export const ShowInternalRedisCredentials = ({ redisId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<Input
 									disabled
-									value={`redis://default:${data?.databasePassword}@${data?.appName}:6379`}
+									value={`redis://default:${'*'.repeat(data?.databasePassword.length)}@${data?.appName}:6379`}
 								/>
 							</div>
 						</div>

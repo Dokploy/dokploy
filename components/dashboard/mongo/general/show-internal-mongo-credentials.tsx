@@ -48,7 +48,7 @@ export const ShowInternalMongoCredentials = ({ mongoId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<Input
 									disabled
-									value={`mongodb://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:27017`}
+									value={`mongodb://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${data?.appName}:27017`}
 								/>
 							</div>
 						</div>

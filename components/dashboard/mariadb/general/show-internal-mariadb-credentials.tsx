@@ -60,7 +60,7 @@ export const ShowInternalMariadbCredentials = ({ mariadbId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<Input
 									disabled
-									value={`mariadb://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:3306/${data?.databaseName}`}
+									value={`mariadb://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length)}@${data?.appName}:3306/${data?.databaseName}`}
 								/>
 							</div>
 						</div>
