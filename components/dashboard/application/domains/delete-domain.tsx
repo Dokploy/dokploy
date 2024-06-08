@@ -24,8 +24,8 @@ export const DeleteDomain = ({ domainId }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive" isLoading={isLoading}>
-					<TrashIcon className="size-4 " />
+				<Button variant="ghost" isLoading={isLoading}>
+					<TrashIcon className="size-4  text-muted-foreground " />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>

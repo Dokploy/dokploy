@@ -1,3 +1,4 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,7 +14,6 @@ import {
 	FormItem,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect } from "react";
@@ -93,9 +93,12 @@ export const ShowMongoEnvironment = ({ mongoId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="w-full">
 										<FormControl>
-											<Textarea
-												placeholder="MONGO_PASSWORD=1234567678"
-												className="h-96"
+											<CodeEditor
+												language="properties"
+												placeholder={`NODE_ENV=production
+PORT=3000
+`}
+												className="h-96 font-mono"
 												{...field}
 											/>
 										</FormControl>

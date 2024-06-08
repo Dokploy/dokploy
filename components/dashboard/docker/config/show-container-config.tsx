@@ -32,14 +32,14 @@ export const ShowContainerConfig = ({ containerId }: Props) => {
 					View Config
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"w-full md:w-[70vw] max-w-max"}>
 				<DialogHeader>
 					<DialogTitle>Container Config</DialogTitle>
 					<DialogDescription>
 						See in detail the config of this container
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card">
+				<div className="text-wrap rounded-lg border p-4 text-sm bg-card overflow-y-auto max-h-[80vh]">
 					<code>
 						<pre className="whitespace-pre-wrap break-words">
 							{JSON.stringify(data, null, 2)}

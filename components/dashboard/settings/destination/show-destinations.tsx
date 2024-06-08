@@ -34,16 +34,16 @@ export const ShowDestinations = () => {
 							<AddDestination />
 						</div>
 					) : (
-						<div className="flex flex-col gap-6">
+						<div className="flex flex-col gap-4">
 							{data?.map((destination, index) => (
 								<div
 									key={destination.destinationId}
-									className="flex items-center justify-between"
+									className="flex items-center justify-between border p-3.5 rounded-lg"
 								>
 									<span className="text-sm text-muted-foreground">
 										{index + 1}. {destination.name}
 									</span>
-									<div className="flex flex-row gap-3">
+									<div className="flex flex-row gap-1">
 										<UpdateDestination
 											destinationId={destination.destinationId}
 										/>

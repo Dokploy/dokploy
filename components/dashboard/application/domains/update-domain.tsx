@@ -27,8 +27,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, PenBoxIcon } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -114,8 +115,8 @@ export const UpdateDomain = ({ domainId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button>
-					<PenBoxIcon className="size-4" />
+				<Button variant="ghost">
+					<PenBoxIcon className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
@@ -125,14 +126,7 @@ export const UpdateDomain = ({ domainId }: Props) => {
 						In this section you can add custom domains
 					</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form

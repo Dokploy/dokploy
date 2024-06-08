@@ -21,12 +21,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { extractServices } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, ListTodo } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 const addPermissions = z.object({
 	accesedProjects: z.array(z.string()).optional(),
@@ -106,23 +107,19 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost">
-					<ListTodo className="size-4  text-muted-foreground " />
-				</Button>
+				<DropdownMenuItem
+					className="w-full cursor-pointer"
+					onSelect={(e) => e.preventDefault()}
+				>
+					Add Permissions
+				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Permissions</DialogTitle>
 					<DialogDescription>Add or remove permissions</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form

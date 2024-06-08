@@ -6,7 +6,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { CopyIcon, Users } from "lucide-react";
+import { MoreHorizontal, Users } from "lucide-react";
 import { AddUser } from "./add-user";
 import { DeleteUser } from "./delete-user";
 import { format } from "date-fns";
@@ -14,7 +14,24 @@ import { useEffect, useState } from "react";
 import { AddUserPermissions } from "./add-permissions";
 import copy from "copy-to-clipboard";
 import { toast } from "sonner";
-import { UpdateUser } from "./update-user";
+import {
+	Table,
+	TableBody,
+	TableCaption,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export const ShowUsers = () => {
 	const { data } = api.user.all.useQuery();
@@ -25,82 +42,109 @@ export const ShowUsers = () => {
 
 	return (
 		<div className="h-full col-span-2">
-			<Card className="bg-transparent h-full border-none">
-				<CardHeader>
-					<CardTitle className="text-xl">Users</CardTitle>
-					<CardDescription>Add, manage and delete users.</CardDescription>
+			<Card className="bg-transparent h-full ">
+				<CardHeader className="flex flex-row gap-2 justify-between w-full flex-wrap">
+					<div className="flex flex-col gap-2">
+						<CardTitle className="text-xl">Users</CardTitle>
+						<CardDescription>Add, manage and delete users.</CardDescription>
+					</div>
+
+					{data && data.length > 0 && (
+						<div className="flex flex-col gap-3 items-end">
+							<AddUser />
+						</div>
+					)}
 				</CardHeader>
 				<CardContent className="space-y-2 h-full">
 					{data?.length === 0 ? (
 						<div className="flex flex-col items-center gap-3">
 							<Users className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To create a user is required to add
+								To create a user, you need to add:
 							</span>
 							<AddUser />
 						</div>
 					) : (
 						<div className="flex flex-col gap-6">
-							{data?.map((user) => {
-								return (
-									<div
-										key={user.userId}
-										className="flex gap-2 flex-col justify-start border p-4 rounded-lg"
-									>
-										<span className="text-sm text-muted-foreground">
-											{user.auth.email}
-										</span>
-										{!user.isRegistered && (
-											<span className="text-sm text-muted-foreground">
-												Expire In{" "}
-												{format(new Date(user.expirationDate), "PPpp")}
-											</span>
-										)}
-
-										<span className="text-sm text-muted-foreground">
-											{user.isRegistered ? "Registered" : "Not Registered"}
-										</span>
-										{user.auth.is2FAEnabled && (
-											<span className="text-sm text-muted-foreground">
-												{user.auth.is2FAEnabled
-													? "2FA Enabled"
-													: "2FA Not Enabled"}
-											</span>
-										)}
-
-										<div className="flex flex-wrap flex-row gap-3">
-											{!user.isRegistered && (
-												<div className="overflow-x-auto flex flex-row gap-4 items-center">
-													<div className="overflow-x-auto">
-														<span className="text-sm text-muted-foreground ">
-															{`${url}/invitation?token=${user.token}`}
-														</span>
-													</div>
-													<button
-														type="button"
-														// className="absolute right-2 top-2"
-														onClick={() => {
-															copy(`${url}/invitation?token=${user.token}`);
-															toast.success("Invitation Copied to clipboard");
-														}}
+							<Table>
+								<TableCaption>See all users</TableCaption>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-[100px]">Email</TableHead>
+										<TableHead className="text-center">Status</TableHead>
+										<TableHead className="text-center">2FA</TableHead>
+										<TableHead className="text-center">Expiration</TableHead>
+										<TableHead className="text-right">Actions</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{data?.map((user) => {
+										return (
+											<TableRow key={user.userId}>
+												<TableCell className="w-[100px]">
+													{user.auth.email}
+												</TableCell>
+												<TableCell className="text-center">
+													<Badge
+														variant={
+															user.isRegistered ? "default" : "secondary"
+														}
 													>
-														<CopyIcon className="size-4 text-muted-foreground" />
-													</button>
-												</div>
-											)}
+														{user.isRegistered
+															? "Registered"
+															: "Not Registered"}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-center">
+													{user.auth.is2FAEnabled
+														? "2FA Enabled"
+														: "2FA Not Enabled"}
+												</TableCell>
+												<TableCell className="text-right">
+													<span className="text-sm text-muted-foreground">
+														{format(new Date(user.expirationDate), "PPpp")}
+													</span>
+												</TableCell>
 
-											{user.isRegistered && (
-												<AddUserPermissions userId={user.userId} />
-											)}
-											{user.isRegistered && <UpdateUser authId={user.authId} />}
-											<DeleteUser authId={user.authId} />
-										</div>
-									</div>
-								);
-							})}
-							<div className="flex flex-col justify-end gap-3 w-full items-end">
-								<AddUser />
-							</div>
+												<TableCell className="text-right flex justify-end">
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button variant="ghost" className="h-8 w-8 p-0">
+																<span className="sr-only">Open menu</span>
+																<MoreHorizontal className="h-4 w-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuLabel>Actions</DropdownMenuLabel>
+															{!user.isRegistered && (
+																<DropdownMenuItem
+																	className="w-full cursor-pointer"
+																	onSelect={(e) => {
+																		copy(
+																			`${origin}/invitation?token=${user.token}`,
+																		);
+																		toast.success(
+																			"Invitation Copied to clipboard",
+																		);
+																	}}
+																>
+																	Copy Invitation
+																</DropdownMenuItem>
+															)}
+
+															{user.isRegistered && (
+																<AddUserPermissions userId={user.userId} />
+															)}
+
+															<DeleteUser authId={user.authId} />
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</TableCell>
+											</TableRow>
+										);
+									})}
+								</TableBody>
+							</Table>
 						</div>
 					)}
 				</CardContent>

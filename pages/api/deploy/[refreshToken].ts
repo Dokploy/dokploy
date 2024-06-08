@@ -35,7 +35,24 @@ export default async function handler(
 		const deploymentTitle = extractCommitMessage(req.headers, req.body);
 
 		const sourceType = application.sourceType;
-		if (sourceType === "github") {
+
+		if (sourceType === "docker") {
+			const applicationDockerTag = extractImageTag(application.dockerImage);
+			const webhookDockerTag = extractImageTagFromRequest(
+				req.headers,
+				req.body,
+			);
+			if (
+				applicationDockerTag &&
+				webhookDockerTag &&
+				webhookDockerTag !== applicationDockerTag
+			) {
+				res.status(301).json({
+					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+				});
+				return;
+			}
+		} else if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
 			if (!branchName || branchName !== application.branch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -59,6 +76,7 @@ export default async function handler(
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
 				type: "deploy",
+				applicationType: "application",
 			};
 			await myQueue.add(
 				"deployments",
@@ -79,7 +97,40 @@ export default async function handler(
 		res.status(400).json({ message: "Error To Deploy Application", error });
 	}
 }
-function extractCommitMessage(headers: any, body: any) {
+
+/**
+ * Return the last part of the image name, which is the tag
+ * Example: "my-image" => null
+ * Example: "my-image:latest" => "latest"
+ * Example: "my-image:1.0.0" => "1.0.0"
+ * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "version1.0"
+ * @link https://docs.docker.com/reference/cli/docker/image/tag/
+ */
+function extractImageTag(dockerImage: string | null) {
+	if (!dockerImage || typeof dockerImage !== "string") {
+		return null;
+	}
+
+	const tag = dockerImage.split(":").pop();
+	return tag === dockerImage ? "latest" : tag;
+}
+
+/**
+ * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
+ */
+export const extractImageTagFromRequest = (
+	headers: any,
+	body: any,
+): string | null => {
+	if (headers["user-agent"]?.includes("Go-http-client")) {
+		if (body.push_data && body.repository) {
+			return body.push_data.tag;
+		}
+	}
+	return null;
+};
+
+export const extractCommitMessage = (headers: any, body: any) => {
 	// GitHub
 	if (headers["x-github-event"]) {
 		return body.head_commit ? body.head_commit.message : "NEW COMMIT";
@@ -113,9 +164,9 @@ function extractCommitMessage(headers: any, body: any) {
 	}
 
 	return "NEW CHANGES";
-}
+};
 
-function extractBranchName(headers: any, body: any) {
+export const extractBranchName = (headers: any, body: any) => {
 	if (headers["x-github-event"] || headers["x-gitea-event"]) {
 		return body?.ref?.replace("refs/heads/", "");
 	}
@@ -129,4 +180,4 @@ function extractBranchName(headers: any, body: any) {
 	}
 
 	return null;
-}
+};

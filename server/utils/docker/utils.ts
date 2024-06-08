@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, docker } from "@/server/constants";
+import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import type { ApplicationNested } from "../builders";
 import { execAsync } from "../process/execAsync";
@@ -122,10 +122,10 @@ export const cleanUpInactiveContainers = async () => {
 
 		for (const container of inactiveContainers) {
 			await docker.getContainer(container.Id).remove({ force: true });
-			console.log(`Contenedor eliminado: ${container.Id}`);
+			console.log(`Cleaning up inactive container: ${container.Id}`);
 		}
 	} catch (error) {
-		console.error("Error al limpiar contenedores inactivos:", error);
+		console.error("Error cleaning up inactive containers:", error);
 		throw error;
 	}
 };
@@ -199,6 +199,83 @@ export const calculateResources = ({
 	};
 };
 
+export const generateConfigContainer = (application: ApplicationNested) => {
+	const {
+		healthCheckSwarm,
+		restartPolicySwarm,
+		placementSwarm,
+		updateConfigSwarm,
+		rollbackConfigSwarm,
+		modeSwarm,
+		labelsSwarm,
+		replicas,
+		mounts,
+		networkSwarm,
+	} = application;
+
+	const haveMounts = mounts.length > 0;
+
+	return {
+		...(healthCheckSwarm && {
+			HealthCheck: healthCheckSwarm,
+		}),
+		...(restartPolicySwarm
+			? {
+					RestartPolicy: restartPolicySwarm,
+				}
+			: {
+					// if no restartPolicySwarm provided use default
+					RestartPolicy: {
+						Condition: "on-failure",
+					},
+				}),
+		...(placementSwarm
+			? {
+					Placement: placementSwarm,
+				}
+			: {
+					// if app have mounts keep manager as constraint
+					Placement: {
+						Constraints: haveMounts ? ["node.role==manager"] : [],
+					},
+				}),
+		...(labelsSwarm && {
+			Labels: labelsSwarm,
+		}),
+		...(modeSwarm
+			? {
+					Mode: modeSwarm,
+				}
+			: {
+					// use replicas value if no modeSwarm provided
+					Mode: {
+						Replicated: {
+							Replicas: replicas,
+						},
+					},
+				}),
+		...(rollbackConfigSwarm && {
+			RollbackConfig: rollbackConfigSwarm,
+		}),
+		...(updateConfigSwarm
+			? { UpdateConfig: updateConfigSwarm }
+			: {
+					// default config if no updateConfigSwarm provided
+					UpdateConfig: {
+						Parallelism: 1,
+						Order: "start-first",
+					},
+				}),
+		...(networkSwarm
+			? {
+					Networks: networkSwarm,
+				}
+			: {
+					Networks: [{ Target: "dokploy-network" }],
+				}),
+	};
+};
+
 export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 	if (!mounts || mounts.length === 0) {
 		return [];
@@ -244,6 +321,33 @@ export const generateFileMounts = (
 				Source: filePath,
 				Target: mount.mountPath,
 			};
+		});
+};
+
+export const generateFileMountsCompose = (
+	appName: string,
+	mounts: ApplicationNested["mounts"],
+) => {
+	if (!mounts || mounts.length === 0) {
+		return [];
+	}
+
+	return mounts
+		.filter((mount) => mount.type === "file")
+		.map((mount) => {
+			const fileName = path.basename(mount.mountPath);
+			const directory = path.join(
+				COMPOSE_PATH,
+				appName,
+				path.dirname(mount.mountPath),
+			);
+			fs.mkdirSync(directory, { recursive: true });
+
+			const filePath = path.join(directory, fileName);
+
+			fs.writeFileSync(filePath, mount.content || "");
+
+			return {};
 		});
 };
 

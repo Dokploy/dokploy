@@ -7,6 +7,10 @@ import type { MainTraefikConfig } from "../utils/traefik/types";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { CreateServiceOptions } from "dockerode";
 
+const TRAEFIK_SSL_PORT =
+	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
+const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
+
 export const initializeTraefik = async () => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
@@ -47,12 +51,12 @@ export const initializeTraefik = async () => {
 			Ports: [
 				{
 					TargetPort: 443,
-					PublishedPort: 443,
+					PublishedPort: TRAEFIK_SSL_PORT,
 					PublishMode: "host",
 				},
 				{
 					TargetPort: 80,
-					PublishedPort: 80,
+					PublishedPort: TRAEFIK_PORT,
 					PublishMode: "host",
 				},
 				{
@@ -127,11 +131,18 @@ export const createDefaultTraefikConfig = () => {
 	}
 	const configObject: MainTraefikConfig = {
 		providers: {
-			...(process.env.NODE_ENV === "development" && {
-				docker: {
-					defaultRule: "Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
-				},
-			}),
+			...(process.env.NODE_ENV === "development"
+				? {
+						docker: {
+							defaultRule:
+								"Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
+						},
+					}
+				: {
+						docker: {
+							exposedByDefault: false,
+						},
+					}),
 			file: {
 				directory: "/etc/dokploy/traefik/dynamic",
 				watch: true,
@@ -139,21 +150,10 @@ export const createDefaultTraefikConfig = () => {
 		},
 		entryPoints: {
 			web: {
-				address: ":80",
-				...(process.env.NODE_ENV === "production" && {
-					http: {
-						redirections: {
-							entryPoint: {
-								to: "websecure",
-								scheme: "https",
-								permanent: true,
-							},
-						},
-					},
-				}),
+				address: `:${TRAEFIK_PORT}`,
 			},
 			websecure: {
-				address: ":443",
+				address: `:${TRAEFIK_SSL_PORT}`,
 				...(process.env.NODE_ENV === "production" && {
 					http: {
 						tls: {

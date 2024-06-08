@@ -1,57 +1,98 @@
+import { Logo } from "@/components/shared/logo";
 import { buttonVariants } from "@/components/ui/button";
+import type { NextPageContext } from "next";
 import Link from "next/link";
 
 interface Props {
 	statusCode: number;
+	error?: Error;
 }
 
-export default function Custom404({ statusCode }: Props) {
+export default function Custom404({ statusCode, error }: Props) {
+	const displayStatusCode = statusCode || 400;
+	console.log(error, statusCode);
 	return (
 		<div className="h-screen">
-			<section className="relative z-10 bg-background h-screen items-center justify-center">
-				<div className="container mx-auto h-screen items-center justify-center flex">
-					<div className="-mx-4 flex">
-						<div className="w-full px-4">
-							<div className="mx-auto max-w-[400px] text-center">
-								<h2 className="mb-2 text-[50px] font-bold leading-none text-white sm:text-[80px] md:text-[100px]">
-									{statusCode
-										? `An error ${statusCode} occurred on server`
-										: "An error occurred on client"}
-								</h2>
-								<h4 className="mb-3 text-[22px] font-semibold leading-tight text-white">
-									Oops! That page can’t be found
-								</h4>
-								<p className="mb-8 text-lg text-white">
-									The page you are looking was not found
-								</p>
-								<Link
-									href="/"
-									className={buttonVariants({
-										size: "lg",
-									})}
-								>
-									Go To Home
-								</Link>
+			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
+				<header className="mb-auto flex justify-center z-50 w-full py-4">
+					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
+						<Link
+							href="https://dokploy.com"
+							target="_blank"
+							className="flex flex-row items-center gap-2"
+						>
+							<Logo />
+							<span className="font-medium text-sm">Dokploy</span>
+						</Link>
+					</nav>
+				</header>
+				<main id="content">
+					<div className="text-center py-10 px-4 sm:px-6 lg:px-8">
+						<h1 className="block text-7xl font-bold text-primary sm:text-9xl">
+							{displayStatusCode}
+						</h1>
+						{/* <AlertBlock className="max-w-xs mx-auto">
+							<p className="text-muted-foreground">
+								Oops, something went wrong.
+							</p>
+							<p className="text-muted-foreground">
+								Sorry, we couldn't find your page.
+							</p>
+						</AlertBlock> */}
+						<p className="mt-3 text-muted-foreground">
+							{statusCode === 404
+								? "Sorry, we couldn't find your page."
+								: "Oops, something went wrong."}
+						</p>
+						{error && (
+							<div className="mt-3 text-red-500">
+								<p>{error.message}</p>
 							</div>
+						)}
+
+						<div className="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3">
+							<Link
+								href="/dashboard/projects"
+								className={buttonVariants({
+									variant: "secondary",
+									className: "flex flex-row gap-2",
+								})}
+							>
+								<svg
+									className="flex-shrink-0 size-4"
+									xmlns="http://www.w3.org/2000/svg"
+									width="24"
+									height="24"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<path d="m15 18-6-6 6-6" />
+								</svg>
+								Go to homepage
+							</Link>
 						</div>
 					</div>
-				</div>
+				</main>
 
-				<div className="absolute left-0 top-0 -z-10 flex h-full w-full items-center justify-between space-x-5 md:space-x-8 lg:space-x-14">
-					<div className="h-full w-1/3 bg-gradient-to-t from-[#FFFFFF14] to-[#C4C4C400]" />
-					<div className="flex h-full w-1/3">
-						<div className="h-full w-1/2 bg-gradient-to-b from-[#FFFFFF14] to-[#C4C4C400]" />
-						<div className="h-full w-1/2 bg-gradient-to-t from-[#FFFFFF14] to-[#C4C4C400]" />
+				<footer className="mt-auto text-center py-5">
+					<div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8">
+						<p className="text-sm text-gray-500">
+							Submit Log in issue on Github
+						</p>
 					</div>
-					<div className="h-full w-1/3 bg-gradient-to-b from-[#FFFFFF14] to-[#C4C4C400]" />
-				</div>
-			</section>
+				</footer>
+			</div>
 		</div>
 	);
 }
 
 // @ts-ignore
-Error.getInitialProps = ({ res, err }) => {
+Error.getInitialProps = ({ res, err, ...rest }: NextPageContext) => {
+	console.log(err, rest);
 	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
-	return { statusCode };
+	return { statusCode, error: err };
 };

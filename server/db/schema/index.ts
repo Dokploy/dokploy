@@ -1,6 +1,5 @@
 export * from "./application";
 export * from "./postgres";
-
 export * from "./user";
 export * from "./admin";
 export * from "./auth";
@@ -20,3 +19,5 @@ export * from "./security";
 export * from "./port";
 export * from "./redis";
 export * from "./shared";
+export * from "./compose";
+export * from "./registry";

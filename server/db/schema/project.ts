@@ -11,6 +11,7 @@ import { applications } from "./application";
 import { mongo } from "./mongo";
 import { redis } from "./redis";
 import { admins } from "./admin";
+import { compose } from "./compose";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
@@ -34,6 +35,7 @@ export const projectRelations = relations(projects, ({ many, one }) => ({
 	applications: many(applications),
 	mongo: many(mongo),
 	redis: many(redis),
+	compose: many(compose),
 	admin: one(admins, {
 		fields: [projects.adminId],
 		references: [admins.adminId],

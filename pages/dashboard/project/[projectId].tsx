@@ -1,5 +1,7 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
+import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
+import { AddTemplate } from "@/components/dashboard/project/add-template";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -31,7 +33,7 @@ import type { findProjectById } from "@/server/api/services/project";
 import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { FolderInput, GlobeIcon, PlusIcon } from "lucide-react";
+import { CircuitBoard, FolderInput, GlobeIcon, PlusIcon } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -43,7 +45,14 @@ import superjson from "superjson";
 
 export type Services = {
 	name: string;
-	type: "mariadb" | "application" | "postgres" | "mysql" | "mongo" | "redis";
+	type:
+		| "mariadb"
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mongo"
+		| "redis"
+		| "compose";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -113,7 +122,24 @@ export const extractServices = (data: Project | undefined) => {
 			description: item.description,
 		})) || [];
 
-	applications.push(...mysql, ...redis, ...mongo, ...postgres, ...mariadb);
+	const compose: Services[] =
+		data?.compose.map((item) => ({
+			name: item.name,
+			type: "compose",
+			id: item.composeId,
+			createdAt: item.createdAt,
+			status: item.composeStatus,
+			description: item.description,
+		})) || [];
+
+	applications.push(
+		...mysql,
+		...redis,
+		...mongo,
+		...postgres,
+		...mariadb,
+		...compose,
+	);
 
 	applications.sort((a, b) => {
 		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -144,7 +170,8 @@ const Project = (
 		data?.mysql?.length === 0 &&
 		data?.postgres?.length === 0 &&
 		data?.redis?.length === 0 &&
-		data?.applications?.length === 0;
+		data?.applications?.length === 0 &&
+		data?.compose?.length === 0;
 
 	const applications = extractServices(data);
 
@@ -188,6 +215,8 @@ const Project = (
 									projectName={data?.name}
 								/>
 								<AddDatabase projectId={projectId} projectName={data?.name} />
+								<AddCompose projectId={projectId} />
+								<AddTemplate projectId={projectId} />
 							</DropdownMenuContent>
 						</DropdownMenu>
 					)}
@@ -215,7 +244,7 @@ const Project = (
 									}}
 									className="group relative cursor-pointer bg-transparent transition-colors hover:bg-card h-fit"
 								>
-									<div className="absolute -right-1  -top-1">
+									<div className="absolute -right-1 -top-2">
 										<StatusTooltip status={service.status} />
 									</div>
 
@@ -251,6 +280,9 @@ const Project = (
 													)}
 													{service.type === "application" && (
 														<GlobeIcon className="h-6 w-6" />
+													)}
+													{service.type === "compose" && (
+														<CircuitBoard className="h-6 w-6" />
 													)}
 												</span>
 											</div>

@@ -50,17 +50,13 @@ export const DeployMysql = ({ mysqlId }: Props) => {
 								applicationStatus: "running",
 							})
 								.then(async () => {
-									toast.success("Database Deploying....");
+									toast.success("Deploying Database....");
 									await refetch();
 									await deploy({
 										mysqlId,
-									})
-										.then(() => {
-											toast.success("Database Deployed Succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to deploy Database");
-										});
+									}).catch(() => {
+										toast.error("Error to deploy Database");
+									});
 									await refetch();
 								})
 								.catch((e) => {

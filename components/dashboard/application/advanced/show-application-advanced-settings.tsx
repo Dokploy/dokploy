@@ -21,6 +21,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 const addResourcesApplication = z.object({
 	memoryReservation: z.number().nullable().optional(),
@@ -84,6 +85,10 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
+				<AlertBlock type="info">
+					Please remember to click Redeploy after modify the resources to apply
+					the changes.
+				</AlertBlock>
 				<Form {...form}>
 					<form
 						id="hook-form"

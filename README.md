@@ -15,6 +15,12 @@ Dokploy is a free self-hostable Platform as a Service (PaaS) that simplifies the
 
 
 
+## Explanation
+[English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md) | [Русский Язык](README-ru.md)
+
+
+
+
 ## 🌟 Features
 
 - **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.) with ease.
@@ -36,8 +42,16 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 Tested Systems:
 
-- Ubuntu 20.04
+- Ubuntu 24.04 LTS (Noble Numbat)
+- Ubuntu 23.10 (Mantic Minotaur)
+- Ubuntu 22.04 LTS (Jammy Jellyfish)
+- Ubuntu 20.04 LTS (Focal Fossa)
+- Ubuntu 18.04 LTS (Bionic Beaver)
+- Debian 12
 - Debian 11
+- Fedora 40
+- Centos 9
+- Centos 8
 
 ## 📄 Documentation
 

@@ -26,7 +26,7 @@ FROM node:18-slim AS production
 # Install dependencies only for production
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && apt-get update && apt-get install -y curl && apt-get install -y apache2-utils && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -46,7 +46,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 
 # Install docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
-
 
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash

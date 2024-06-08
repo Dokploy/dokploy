@@ -9,6 +9,7 @@ import {
 import { api } from "@/utils/api";
 import { File } from "lucide-react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
+import { CodeEditor } from "@/components/shared/code-editor";
 interface Props {
 	applicationId: string;
 }
@@ -43,11 +44,13 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 relative">
-						<div className="flex flex-col  gap-6 bg-input p-4 rounded-md max-h-[35rem] min-h-[10rem] overflow-y-auto">
-							<div>
-								<pre className="font-sans">{data || "Empty"}</pre>
-							</div>
-							<div className="flex justify-end absolute z-50 right-6">
+						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem] overflow-y-auto">
+							<CodeEditor
+								value={data || "Empty"}
+								disabled
+								className="font-mono"
+							/>
+							<div className="flex justify-end absolute z-50 right-6 top-6">
 								<UpdateTraefikConfig applicationId={applicationId} />
 							</div>
 						</div>

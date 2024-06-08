@@ -1,4 +1,8 @@
-Copyright 2024-2024 Mauricio Siu.
+# License
+
+## Core License (Apache License 2.0)
+
+Copyright 2024 Mauricio Siu.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -9,27 +13,14 @@ You may obtain a copy of the License at
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+See the License for the specific language governing permissions and limitations under the License.
 
-Appendix:
-In case of a conflict, the terms of this appendix supersede the general apache license.
+## Additional Terms for Specific Features
 
--   Unless provided with a written agreement or permission, the paid features of Dokploy (as a service) cannot be modified.
--   Unless provided with a written agreement or permission, no persons are permitted to redistribute another paid version of Dokploy.
--   Unless provided with a written agreement or permission, no persons are permitted to create the same paid version of Dokploy.
--   Furthermore, any modifications of free features of Dokploy should be distributed as free & opensource software.
+The following additional terms apply to the multi-node support and Docker Compose file support features of Dokploy. In the event of a conflict, these provisions shall take precedence over those in the Apache License:
 
-Appendix B:
+- **Self-Hosted Version Free**: All features of Dokploy, including multi-node support and Docker Compose file support, will always be free to use in the self-hosted version.
+- **Restriction on Resale**: The multi-node support and Docker Compose file support features cannot be sold or offered as a service by any party other than the copyright holder without prior written consent.
+- **Modification Distribution**: Any modifications to the multi-node support and Docker Compose file support features must be distributed freely and cannot be sold or offered as a service.
 
-- **Prohibition of Resale Without Permission:** Notwithstanding any provisions in the main body of the Apache License, Version 2.0, no party is permitted to sell, resell, or otherwise distribute for commercial gain, the software or any of its components, including both original and modified versions, through any form of commercial distribution channels, including but not limited to online marketplaces, software as a service (SaaS) platforms, or physical media distribution, without prior written consent from the copyright holder.
-
-- **Commercial Distribution:** Any form of distribution of Dokploy, whether for direct profit or indirect financial benefit, through commercial channels is strictly prohibited without a separate commercial agreement negotiated with the copyright holder. This includes but is not limited to, offerings on software marketplaces or through third-party distributors.
-
-- **Modification of Paid Features:** The paid features of Dokploy (as a service) may not be modified, integrated into other software, or redistributed in any form without explicit written permission from the copyright holder.
-
-- **Open Source Distribution of Free Features:** Any modifications to the free features of Dokploy must be distributed freely and must not be included in any paid or commercial package without complying with the open-source license terms stipulated in this agreement.
-
-If you have any questions, please feel free to reach out to us.
-
-
+For further inquiries or permissions, please contact us directly.

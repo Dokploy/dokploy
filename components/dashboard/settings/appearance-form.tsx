@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/card";
 
 const appearanceFormSchema = z.object({
-	theme: z.enum(["light", "dark"], {
+	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
 	}),
 });
@@ -34,7 +34,7 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
 
 // This can come from your database or API.
 const defaultValues: Partial<AppearanceFormValues> = {
-	theme: "light",
+	theme: "system",
 };
 
 export function AppearanceForm() {
@@ -46,7 +46,7 @@ export function AppearanceForm() {
 
 	useEffect(() => {
 		form.reset({
-			theme: theme === "light" ? "light" : "dark",
+			theme: (theme ?? "system") as AppearanceFormValues["theme"],
 		});
 	}, [form, theme]);
 	function onSubmit(data: AppearanceFormValues) {
@@ -81,28 +81,15 @@ export function AppearanceForm() {
 											onValueChange={field.onChange}
 											defaultValue={field.value}
 											value={field.value}
-											className="grid max-w-md grid-cols-1 sm:grid-cols-2 gap-8 pt-2"
+											className="grid max-w-md md:max-w-lg grid-cols-1 sm:grid-cols-3 gap-8 pt-2"
 										>
 											<FormItem>
 												<FormLabel className="[&:has([data-state=checked])>div]:border-primary">
 													<FormControl>
 														<RadioGroupItem value="light" className="sr-only" />
 													</FormControl>
-													<div className="items-center rounded-md border-2 border-muted p-1 hover:border-accent">
-														<div className="space-y-2 rounded-sm bg-[#ecedef] p-2">
-															<div className="space-y-2 rounded-md bg-white p-2 shadow-sm">
-																<div className="h-2 w-[80px] rounded-lg bg-[#ecedef]" />
-																<div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-															</div>
-															<div className="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm">
-																<div className="h-4 w-4 rounded-full bg-[#ecedef]" />
-																<div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-															</div>
-															<div className="flex items-center space-x-2 rounded-md bg-white p-2 shadow-sm">
-																<div className="h-4 w-4 rounded-full bg-[#ecedef]" />
-																<div className="h-2 w-[100px] rounded-lg bg-[#ecedef]" />
-															</div>
-														</div>
+													<div className="items-center rounded-md border-2 border-muted p-1 hover:bg-accent transition-colors cursor-pointer">
+														<img src="/images/theme-light.svg" alt="light" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
 														Light
@@ -114,24 +101,27 @@ export function AppearanceForm() {
 													<FormControl>
 														<RadioGroupItem value="dark" className="sr-only" />
 													</FormControl>
-													<div className="items-center rounded-md border-2 border-muted bg-popover p-1 hover:bg-accent hover:text-accent-foreground">
-														<div className="space-y-2 rounded-sm bg-slate-950 p-2">
-															<div className="space-y-2 rounded-md bg-slate-800 p-2 shadow-sm">
-																<div className="h-2 w-[80px] rounded-lg bg-slate-400" />
-																<div className="h-2 w-[100px] rounded-lg bg-slate-400" />
-															</div>
-															<div className="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm">
-																<div className="h-4 w-4 rounded-full bg-slate-400" />
-																<div className="h-2 w-[100px] rounded-lg bg-slate-400" />
-															</div>
-															<div className="flex items-center space-x-2 rounded-md bg-slate-800 p-2 shadow-sm">
-																<div className="h-4 w-4 rounded-full bg-slate-400" />
-																<div className="h-2 w-[100px] rounded-lg bg-slate-400" />
-															</div>
-														</div>
+													<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
+														<img src="/images/theme-dark.svg" alt="dark" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
 														Dark
+													</span>
+												</FormLabel>
+											</FormItem>
+											<FormItem>
+												<FormLabel className="[&:has([data-state=checked])>div]:border-primary">
+													<FormControl>
+														<RadioGroupItem
+															value="system"
+															className="sr-only"
+														/>
+													</FormControl>
+													<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
+														<img src="/images/theme-system.svg" alt="system" />
+													</div>
+													<span className="block w-full p-2 text-center font-normal">
+														System
 													</span>
 												</FormLabel>
 											</FormItem>

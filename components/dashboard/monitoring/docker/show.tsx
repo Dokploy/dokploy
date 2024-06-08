@@ -14,8 +14,43 @@ import { DockerNetworkChart } from "./docker-network-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
 import { api } from "@/utils/api";
 
+const defaultData = {
+	cpu: {
+		value: 0,
+		time: "",
+	},
+	memory: {
+		value: {
+			used: 0,
+			free: 0,
+			usedPercentage: 0,
+			total: 0,
+		},
+		time: "",
+	},
+	block: {
+		value: {
+			readMb: 0,
+			writeMb: 0,
+		},
+		time: "",
+	},
+	network: {
+		value: {
+			inputMb: 0,
+			outputMb: 0,
+		},
+		time: "",
+	},
+	disk: {
+		value: { diskTotal: 0, diskUsage: 0, diskUsedPercentage: 0, diskFree: 0 },
+		time: "",
+	},
+};
+
 interface Props {
 	appName: string;
+	appType?: "application" | "stack" | "docker-compose";
 }
 export interface DockerStats {
 	cpu: {
@@ -65,7 +100,10 @@ export type DockerStatsJSON = {
 	disk: DockerStats["disk"][];
 };
 
-export const DockerMonitoring = ({ appName }: Props) => {
+export const DockerMonitoring = ({
+	appName,
+	appType = "application",
+}: Props) => {
 	const { data } = api.application.readAppMonitoring.useQuery(
 		{ appName },
 		{
@@ -79,39 +117,19 @@ export const DockerMonitoring = ({ appName }: Props) => {
 		network: [],
 		disk: [],
 	});
-	const [currentData, setCurrentData] = useState<DockerStats>({
-		cpu: {
-			value: 0,
-			time: "",
-		},
-		memory: {
-			value: {
-				used: 0,
-				free: 0,
-				usedPercentage: 0,
-				total: 0,
-			},
-			time: "",
-		},
-		block: {
-			value: {
-				readMb: 0,
-				writeMb: 0,
-			},
-			time: "",
-		},
-		network: {
-			value: {
-				inputMb: 0,
-				outputMb: 0,
-			},
-			time: "",
-		},
-		disk: {
-			value: { diskTotal: 0, diskUsage: 0, diskUsedPercentage: 0, diskFree: 0 },
-			time: "",
-		},
-	});
+	const [currentData, setCurrentData] = useState<DockerStats>(defaultData);
+
+	useEffect(() => {
+		setCurrentData(defaultData);
+
+		setAcummulativeData({
+			cpu: [],
+			memory: [],
+			block: [],
+			network: [],
+			disk: [],
+		});
+	}, [appName]);
 
 	useEffect(() => {
 		if (!data) return;
@@ -128,7 +146,7 @@ export const DockerMonitoring = ({ appName }: Props) => {
 
 	useEffect(() => {
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}`;
+		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {

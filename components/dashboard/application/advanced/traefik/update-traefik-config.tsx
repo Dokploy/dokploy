@@ -16,15 +16,15 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import jsyaml from "js-yaml";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const UpdateTraefikConfigSchema = z.object({
 	traefikConfig: z.string(),
@@ -116,20 +116,13 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 					<DialogTitle>Update traefik config</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form
 						id="hook-form-update-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4"
+						className="grid w-full py-4 overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField
@@ -139,8 +132,8 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 									<FormItem>
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
-											<Textarea
-												className="h-[35rem]"
+											<CodeEditor
+												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`http:
 routers:
     router-name:

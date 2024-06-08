@@ -88,8 +88,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 		const { ref: refRoot, width, height } = useResizeObserver();
 
 		return (
-			<div ref={refRoot} className={cn("overflow-hidden", className)}>
-				{/* style={{ width, height }} */}
+			<div ref={refRoot} className={cn("overflow-y-auto", className)}>
 				<ScrollArea>
 					<div className="relative p-2">
 						<TreeItem
@@ -165,7 +164,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 														aria-hidden="true"
 													/>
 												)}
-												<span className="text-sm truncate">{item.name}</span>
+												<span className="text-sm truncate font-mono">{item.name}</span>
 											</AccordionTrigger>
 											<AccordionContent className="pl-6">
 												{item.children.length === 0 && (
@@ -244,7 +243,7 @@ const Leaf = React.forwardRef<
 					aria-hidden="true"
 				/>
 			)}
-			<p className=" text-sm whitespace-normal">{item.name}</p>
+			<p className=" text-sm whitespace-normal font-mono">{item.name}</p>
 		</div>
 	);
 });

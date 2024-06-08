@@ -26,11 +26,11 @@ interface Props {
 	applicationId: string;
 }
 
-const AddRedirectchema = z.object({
+const AddRedirectSchema = z.object({
 	command: z.string(),
 });
 
-type AddCommand = z.infer<typeof AddRedirectchema>;
+type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const AddCommand = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery(
@@ -48,7 +48,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 		defaultValues: {
 			command: "",
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(AddRedirectSchema),
 	});
 
 	useEffect(() => {

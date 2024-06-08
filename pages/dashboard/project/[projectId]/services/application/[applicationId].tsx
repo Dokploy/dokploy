@@ -1,3 +1,4 @@
+import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
 import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
@@ -13,7 +14,6 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
@@ -134,7 +134,7 @@ const Service = (
 						<TabsTrigger value="domains">Domains</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
-					<div className="flex flex-row gap-4">
+					<div className="flex flex-row gap-2">
 						<UpdateApplication applicationId={applicationId} />
 						{(auth?.rol === "admin" || user?.canDeleteServices) && (
 							<DeleteApplication applicationId={applicationId} />
@@ -175,6 +175,7 @@ const Service = (
 				<TabsContent value="advanced">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<AddCommand applicationId={applicationId} />
+						<ShowClusterSettings applicationId={applicationId} />
 						<ShowApplicationResources applicationId={applicationId} />
 						<ShowVolumes applicationId={applicationId} />
 						<ShowRedirects applicationId={applicationId} />

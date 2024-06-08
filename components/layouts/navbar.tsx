@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Badge } from "../ui/badge";
 import { useRouter } from "next/router";
 import { api } from "@/utils/api";
+import { buttonVariants } from "../ui/button";
+import { HeartIcon } from "lucide-react";
 
 export const Navbar = () => {
 	const router = useRouter();
@@ -29,17 +30,29 @@ export const Navbar = () => {
 	const { mutateAsync } = api.auth.logout.useMutation();
 	return (
 		<nav className="border-divider sticky inset-x-0 top-0 z-40 flex h-auto w-full items-center justify-center border-b bg-background/70 backdrop-blur-lg backdrop-saturate-150 data-[menu-open=true]:border-none data-[menu-open=true]:backdrop-blur-xl">
-			<header className="relative z-40 flex h-[var(--navbar-height)] w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6">
+			<header className="relative z-40 flex w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6 h-16">
 				<div className="text-medium box-border flex flex-grow basis-0 flex-row flex-nowrap items-center justify-start whitespace-nowrap bg-transparent no-underline">
 					<Link
 						href="/dashboard/projects"
 						className={cn("flex flex-row items-center gap-2")}
 					>
 						<Logo />
-						<span className="text-sm font-semibold text-primary">Dokploy</span>
+						<span className="text-sm font-semibold text-primary max-sm:hidden">
+							Dokploy
+						</span>
 					</Link>
 				</div>
-
+				<Link
+					className={buttonVariants({
+						variant: "outline",
+						className: " flex items-center gap-2 !rounded-full",
+					})}
+					href="https://opencollective.com/dokploy"
+					target="_blank"
+				>
+					<span className="text-sm font-semibold">Support </span>
+					<HeartIcon className="size-4 text-red-500 fill-red-600 animate-heartbeat " />
+				</Link>
 				<ul
 					className="ml-auto flex h-12 max-w-fit flex-row flex-nowrap items-center gap-0 data-[justify=end]:flex-grow data-[justify=start]:flex-grow data-[justify=end]:basis-0 data-[justify=start]:basis-0 data-[justify=start]:justify-start data-[justify=end]:justify-end data-[justify=center]:justify-center"
 					data-justify="end"

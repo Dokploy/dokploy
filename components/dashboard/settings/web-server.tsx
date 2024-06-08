@@ -27,10 +27,9 @@ import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
 import { ShowMainTraefikConfig } from "./web-server/show-main-traefik-config";
 import { ShowServerTraefikConfig } from "./web-server/show-server-traefik-config";
 import { ShowServerMiddlewareConfig } from "./web-server/show-server-middleware-config";
-import { UpdateWebServer } from "./web-server/update-webserver";
+import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
-	const [fetchAfterFirstRender, setFetchAfterFirstRender] = useState(false);
 	const { data, refetch } = api.admin.one.useQuery();
 	const { mutateAsync: reloadServer, isLoading } =
 		api.settings.reloadServer.useMutation();
@@ -42,6 +41,9 @@ export const WebServer = () => {
 		mutateAsync: cleanDockerBuilder,
 		isLoading: cleanDockerBuilderIsLoading,
 	} = api.settings.cleanDockerBuilder.useMutation();
+
+	const { mutateAsync: cleanMonitoring, isLoading: cleanMonitoringIsLoading } =
+		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,
 		isLoading: cleanUnusedImagesIsLoading,
@@ -61,13 +63,6 @@ export const WebServer = () => {
 
 	const { mutateAsync: updateDockerCleanup } =
 		api.settings.updateDockerCleanup.useMutation();
-	const { data: query } = api.settings.checkAndUpdateImage.useQuery(void 0, {
-		enabled: fetchAfterFirstRender,
-	});
-
-	useEffect(() => {
-		setFetchAfterFirstRender(true);
-	}, []);
 
 	return (
 		<Card className="rounded-lg w-full bg-transparent">
@@ -264,6 +259,20 @@ export const WebServer = () => {
 								<DropdownMenuItem
 									className="w-full cursor-pointer"
 									onClick={async () => {
+										await cleanMonitoring()
+											.then(async () => {
+												toast.success("Cleaned Monitoring");
+											})
+											.catch(() => {
+												toast.error("Error to clean Monitoring");
+											});
+									}}
+								>
+									<span>Clean Monitoring </span>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									className="w-full cursor-pointer"
+									onClick={async () => {
 										await cleanAll()
 											.then(async () => {
 												toast.success("Cleaned all");
@@ -279,7 +288,7 @@ export const WebServer = () => {
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					{query ? <UpdateWebServer /> : null}
+					<UpdateServer />
 				</div>
 
 				<div className="flex items-center flex-wrap justify-between gap-4">

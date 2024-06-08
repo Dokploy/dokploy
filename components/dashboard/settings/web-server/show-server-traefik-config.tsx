@@ -16,14 +16,14 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 
 const UpdateServerTraefikConfigSchema = z.object({
@@ -92,20 +92,13 @@ export const ShowServerTraefikConfig = ({ children }: Props) => {
 					<DialogTitle>Update traefik config</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>
 				</DialogHeader>
-				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
-						</span>
-					</div>
-				)}
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form
 						id="hook-form-update-server-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4 relative"
+						className="grid w-full py-4 relative overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField
@@ -115,8 +108,8 @@ export const ShowServerTraefikConfig = ({ children }: Props) => {
 									<FormItem className="relative">
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
-											<Textarea
-												className="h-[35rem]"
+											<CodeEditor
+												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`http:
 routers:
     router-name:
@@ -134,8 +127,10 @@ routers:
 										<pre>
 											<FormMessage />
 										</pre>
-										<div className="flex justify-end absolute z-50 right-6 top-10">
+										<div className="flex justify-end absolute z-50 right-6 top-0">
 											<Button
+												className="shadow-sm"
+												variant="secondary"
 												type="button"
 												onClick={async () => {
 													setCanEdit(!canEdit);
