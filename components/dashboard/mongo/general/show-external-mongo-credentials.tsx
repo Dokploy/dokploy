@@ -1,3 +1,4 @@
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -136,7 +137,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
 											<Label>External Host</Label>
-											<Input disabled value={connectionUrl} />
+											<ToggleVisibilityInput value={connectionUrl} disabled />
 										</div>
 									</div>
 								)}

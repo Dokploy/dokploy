@@ -55,3 +55,4 @@ yarn-error.log*
 
 *.lockb
 *.rdb
+.idea
