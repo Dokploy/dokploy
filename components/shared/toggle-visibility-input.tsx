@@ -3,14 +3,7 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { Input, type InputProps } from "../ui/input";
 import { Button } from "../ui/button";
 
-interface ToggleVisibilityInputProps extends InputProps {
-	value: string | undefined;
-}
-
-export const ToggleVisibilityInput = ({
-	value,
-	...props
-}: ToggleVisibilityInputProps) => {
+export const ToggleVisibilityInput = ({ ...props }: InputProps) => {
 	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
 	const togglePasswordVisibility = () => {
@@ -20,7 +13,7 @@ export const ToggleVisibilityInput = ({
 	const inputType = isPasswordVisible ? "text" : "password";
 	return (
 		<div className="flex w-full items-center space-x-2">
-			<Input value={value} type={inputType} {...props} />
+			<Input type={inputType} {...props} />
 			<Button onClick={togglePasswordVisibility} variant={"secondary"}>
 				{inputType === "password" ? (
 					<EyeIcon className="size-4 text-muted-foreground" />
