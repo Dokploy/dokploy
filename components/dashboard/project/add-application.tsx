@@ -27,6 +27,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
+import { slugify } from "@/lib/slug";
 
 const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
@@ -54,6 +55,7 @@ interface Props {
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
+	const slug = slugify(projectName);
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -61,7 +63,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 	const form = useForm<AddTemplate>({
 		defaultValues: {
 			name: "",
-			appName: `${projectName}-`,
+			appName: `${slug}-`,
 			description: "",
 		},
 		resolver: zodResolver(AddTemplateSchema),
@@ -106,7 +108,6 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-
 				<Form {...form}>
 					<form
 						id="hook-form"
@@ -125,7 +126,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value?.trim() || "";
-												form.setValue("appName", `${projectName}-${val}`);
+												form.setValue("appName", `${slug}-${val}`);
 												field.onChange(val);
 											}}
 										/>
@@ -165,47 +166,6 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 								</FormItem>
 							)}
 						/>
-
-						{/* <FormField
-              control={form.control}
-              name="buildType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Build Type</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="dockerfile" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Dockerfile
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="nixpacks" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Nixpacks</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="heroku_buildpacks" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Heroku Buildpacks
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
 					</form>
 
 					<DialogFooter>

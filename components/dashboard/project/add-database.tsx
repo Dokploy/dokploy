@@ -27,10 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Database, AlertTriangle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -143,7 +144,7 @@ interface Props {
 export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
-
+	const slug = slugify(projectName);
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
@@ -155,7 +156,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			type: "postgres",
 			dockerImage: "",
 			name: "",
-			appName: `${projectName}-`,
+			appName: `${slug}-`,
 			databasePassword: "",
 			description: "",
 			databaseName: "",
@@ -341,7 +342,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
-														form.setValue("appName", `${projectName}-${val}`);
+														form.setValue("appName", `${slug}-${val}`);
 														field.onChange(val);
 													}}
 												/>
