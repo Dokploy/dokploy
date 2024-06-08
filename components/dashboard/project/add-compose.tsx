@@ -34,12 +34,22 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { slugify } from "@/lib/slug";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
+	appName: z
+		.string()
+		.min(1, {
+			message: "App name is required",
+		})
+		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+			message:
+				"App name supports letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		}),
 	description: z.string().optional(),
 });
 
@@ -47,11 +57,12 @@ type AddCompose = z.infer<typeof AddComposeSchema>;
 
 interface Props {
 	projectId: string;
+	projectName?: string;
 }
 
-export const AddCompose = ({ projectId }: Props) => {
+export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-
+	const slug = slugify(projectName);
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
 
@@ -60,6 +71,7 @@ export const AddCompose = ({ projectId }: Props) => {
 			name: "",
 			description: "",
 			composeType: "docker-compose",
+			appName: `${slug}-`,
 		},
 		resolver: zodResolver(AddComposeSchema),
 	});
@@ -74,6 +86,7 @@ export const AddCompose = ({ projectId }: Props) => {
 			description: data.description,
 			projectId,
 			composeType: data.composeType,
+			appName: data.appName,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
@@ -120,14 +133,34 @@ export const AddCompose = ({ projectId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder="Frontend" {...field} />
+											<Input
+												placeholder="Frontend"
+												{...field}
+												onChange={(e) => {
+													const val = e.target.value?.trim() || "";
+													form.setValue("appName", `${slug}-${val}`);
+													field.onChange(val);
+												}}
+											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="appName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>AppName</FormLabel>
+									<FormControl>
+										<Input placeholder="my-app" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="composeType"

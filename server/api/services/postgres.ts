@@ -5,10 +5,22 @@ import { buildPostgres } from "@/server/utils/databases/postgres";
 import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { validUniqueServerAppName } from "./project";
 
 export type Postgres = typeof postgres.$inferSelect;
 
 export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
+
 	const newPostgres = await db
 		.insert(postgres)
 		.values({

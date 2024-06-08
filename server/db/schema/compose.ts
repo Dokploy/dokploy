@@ -8,6 +8,7 @@ import { deployments } from "./deployment";
 import { generateAppName } from "./utils";
 import { applicationStatus } from "./shared";
 import { mounts } from "./mount";
+import { generatePassword } from "@/templates/utils";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
@@ -74,12 +75,19 @@ const createSchema = createInsertSchema(compose, {
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 });
 
-export const apiCreateCompose = createSchema.pick({
-	name: true,
-	description: true,
-	projectId: true,
-	composeType: true,
-});
+export const apiCreateCompose = createSchema
+	.pick({
+		name: true,
+		description: true,
+		projectId: true,
+		composeType: true,
+		appName: true,
+	})
+	.transform((data) => ({
+		...data,
+		appName:
+			`${data.appName}-${generatePassword(6)}` || generateAppName("compose"),
+	}));
 
 export const apiCreateComposeByTemplate = createSchema
 	.pick({

@@ -8,6 +8,7 @@ import { projects } from "./project";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { generateAppName } from "./utils";
+import { generatePassword } from "@/templates/utils";
 
 export const mysql = pgTable("mysql", {
 	mysqlId: text("mysqlId")
@@ -77,6 +78,7 @@ const createSchema = createInsertSchema(mysql, {
 export const apiCreateMySql = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		dockerImage: true,
 		projectId: true,
 		description: true,
@@ -85,7 +87,12 @@ export const apiCreateMySql = createSchema
 		databasePassword: true,
 		databaseRootPassword: true,
 	})
-	.required();
+	.required()
+	.transform((data) => ({
+		...data,
+		appName:
+			`${data.appName}-${generatePassword(6)}` || generateAppName("mysql"),
+	}));
 
 export const apiFindOneMySql = createSchema
 	.pick({

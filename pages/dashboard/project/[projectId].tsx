@@ -210,9 +210,12 @@ const Project = (
 									Actions
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
-								<AddApplication projectId={projectId} />
-								<AddDatabase projectId={projectId} />
-								<AddCompose projectId={projectId} />
+								<AddApplication
+									projectId={projectId}
+									projectName={data?.name}
+								/>
+								<AddDatabase projectId={projectId} projectName={data?.name} />
+								<AddCompose projectId={projectId} projectName={data?.name} />
 								<AddTemplate projectId={projectId} />
 							</DropdownMenuContent>
 						</DropdownMenu>
