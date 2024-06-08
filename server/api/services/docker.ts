@@ -46,9 +46,7 @@ export const getContainers = async () => {
 			.filter((container) => !container.name.includes("dokploy"));
 
 		return containers;
-	} catch (error) {
-		console.error(`Execution error: ${error}`);
-	}
+	} catch (error) {}
 };
 
 export const getConfig = async (containerId: string) => {
@@ -65,9 +63,7 @@ export const getConfig = async (containerId: string) => {
 		const config = JSON.parse(stdout);
 
 		return config;
-	} catch (error) {
-		console.error(`Execution error: ${error}`);
-	}
+	} catch (error) {}
 };
 
 export const getContainersByAppNameMatch = async (appName: string) => {
@@ -103,9 +99,7 @@ export const getContainersByAppNameMatch = async (appName: string) => {
 		});
 
 		return containers || [];
-	} catch (error) {
-		console.error(`Execution error: ${error}`);
-	}
+	} catch (error) {}
 
 	return [];
 };
@@ -144,9 +138,7 @@ export const getContainersByAppLabel = async (appName: string) => {
 		});
 
 		return containers || [];
-	} catch (error) {
-		console.error(`Execution error: ${error}`);
-	}
+	} catch (error) {}
 
 	return [];
 };

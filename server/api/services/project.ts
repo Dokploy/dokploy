@@ -121,12 +121,3 @@ export const validUniqueServerAppName = async (appName: string) => {
 
 	return nonEmptyProjects.length === 0;
 };
-export const slugifyProjectName = (projectName: string): string => {
-	return projectName
-		.toLowerCase()
-		.replace(/[0-9]/g, "")
-		.replace(/[^a-z\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-+|-+$/g, "");
-};
