@@ -7,6 +7,7 @@ import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { projects } from "./project";
 import { mounts } from "./mount";
 import { generateAppName } from "./utils";
+import { generatePassword } from "@/templates/utils";
 
 export const redis = pgTable("redis", {
 	redisId: text("redisId")
@@ -75,8 +76,12 @@ export const apiCreateRedis = createSchema
 		projectId: true,
 		description: true,
 	})
-
-	.required();
+	.required()
+	.transform((data) => ({
+		...data,
+		appName:
+			`${data.appName}-${generatePassword(6)}` || generateAppName("redis"),
+	}));
 
 export const apiFindOneRedis = createSchema
 	.pick({

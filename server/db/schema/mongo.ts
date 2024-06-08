@@ -8,6 +8,7 @@ import { projects } from "./project";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { generateAppName } from "./utils";
+import { generatePassword } from "@/templates/utils";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -80,7 +81,12 @@ export const apiCreateMongo = createSchema
 		databaseUser: true,
 		databasePassword: true,
 	})
-	.required();
+	.required()
+	.transform((data) => ({
+		...data,
+		appName:
+			`${data.appName}-${generatePassword(6)}` || generateAppName("postgres"),
+	}));
 
 export const apiFindOneMongo = createSchema
 	.pick({
