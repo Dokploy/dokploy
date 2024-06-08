@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import ToggleVisibilityInput from "@/components/shared/toggle-visibility-input";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 
 interface Props {
 	postgresId: string;
@@ -32,6 +32,7 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 								<div className="flex flex-row gap-4">
 									<ToggleVisibilityInput
 										value={data?.databasePassword}
+										disabled
 									/>
 								</div>
 							</div>
@@ -48,6 +49,7 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 							<div className="flex flex-col gap-2">
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
+									disabled
 									value={`postgresql://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:5432/${data?.databaseName}`}
 								/>
 							</div>

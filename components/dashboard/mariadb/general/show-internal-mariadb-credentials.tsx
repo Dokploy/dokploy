@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import ToggleVisibilityInput from "@/components/shared/toggle-visibility-input";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 
 interface Props {
 	mariadbId: string;
@@ -31,6 +31,7 @@ export const ShowInternalMariadbCredentials = ({ mariadbId }: Props) => {
 								<Label>Password</Label>
 								<div className="flex flex-row gap-4">
 									<ToggleVisibilityInput
+										disabled
 										value={data?.databasePassword}
 									/>
 								</div>
@@ -39,6 +40,7 @@ export const ShowInternalMariadbCredentials = ({ mariadbId }: Props) => {
 								<Label>Root Password</Label>
 								<div className="flex flex-row gap-4">
 									<ToggleVisibilityInput
+										disabled
 										value={data?.databaseRootPassword}
 									/>
 								</div>
@@ -56,6 +58,7 @@ export const ShowInternalMariadbCredentials = ({ mariadbId }: Props) => {
 							<div className="flex flex-col gap-2 md:col-span-2">
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
+									disabled
 									value={`mariadb://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:3306/${data?.databaseName}`}
 								/>
 							</div>

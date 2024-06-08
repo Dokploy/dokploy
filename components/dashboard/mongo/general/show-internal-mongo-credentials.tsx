@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import ToggleVisibilityInput from "@/components/shared/toggle-visibility-input";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 
 interface Props {
 	mongoId: string;
@@ -28,6 +28,7 @@ export const ShowInternalMongoCredentials = ({ mongoId }: Props) => {
 								<Label>Password</Label>
 								<div className="flex flex-row gap-4">
 									<ToggleVisibilityInput
+										disabled
 										value={data?.databasePassword}
 									/>
 								</div>
@@ -46,6 +47,7 @@ export const ShowInternalMongoCredentials = ({ mongoId }: Props) => {
 							<div className="flex flex-col gap-2 md:col-span-2">
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
+									disabled
 									value={`mongodb://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:27017`}
 								/>
 							</div>
