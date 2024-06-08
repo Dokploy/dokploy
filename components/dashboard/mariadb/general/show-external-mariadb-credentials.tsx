@@ -22,6 +22,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import ToggleVisiblityInput from "@/components/shared/toggle-visibility-input"
 
 const DockerProviderSchema = z.object({
 	externalPort: z.preprocess((a) => {
@@ -78,7 +79,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mariadb://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${hostname}:${port}/${data?.databaseName}`;
+			return `mariadb://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -136,7 +137,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 										<div className="flex flex-col gap-3">
 											{/* jdbc:mariadb://5.161.59.207:3306/pixel-calculate?user=mariadb&password=HdVXfq6hM7W7F1 */}
 											<Label>External Host</Label>
-											<Input disabled value={connectionUrl} />
+											<ToggleVisiblityInput value={connectionUrl} />
 										</div>
 									</div>
 								)}

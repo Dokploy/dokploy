@@ -1,3 +1,4 @@
+import ToggleVisibilityInput from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -79,7 +80,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mysql://${data?.databaseUser}:${'*'.repeat(data?.databasePassword.length || 8)}@${hostname}:${port}/${data?.databaseName}`;
+			return `mysql://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -136,7 +137,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
 											<Label>External Host</Label>
-											<Input disabled value={connectionUrl} />
+											<ToggleVisibilityInput value={connectionUrl} />
 										</div>
 									</div>
 								)}
