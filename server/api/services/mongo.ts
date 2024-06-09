@@ -5,10 +5,22 @@ import { buildMongo } from "@/server/utils/databases/mongo";
 import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { validUniqueServerAppName } from "./project";
 
 export type Mongo = typeof mongo.$inferSelect;
 
 export const createMongo = async (input: typeof apiCreateMongo._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
+
 	const newMongo = await db
 		.insert(mongo)
 		.values({

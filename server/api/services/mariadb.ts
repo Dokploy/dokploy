@@ -5,10 +5,22 @@ import { buildMariadb } from "@/server/utils/databases/mariadb";
 import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { validUniqueServerAppName } from "./project";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
 export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
+
 	const newMariadb = await db
 		.insert(mariadb)
 		.values({

@@ -50,6 +50,9 @@ export const mysqlRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error input: Inserting mysql database",

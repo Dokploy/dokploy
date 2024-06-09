@@ -34,13 +34,18 @@ import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { createCommand } from "@/server/utils/builders/compose";
-import { loadTemplateModule, readComposeFile } from "@/templates/utils";
+import {
+	generatePassword,
+	loadTemplateModule,
+	readComposeFile,
+} from "@/templates/utils";
 import { findAdmin } from "../services/admin";
 import { TRPCError } from "@trpc/server";
-import { findProjectById, slugifyProjectName } from "../services/project";
+import { findProjectById } from "../services/project";
 import { createMount } from "../services/mount";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import { templates } from "@/templates/templates";
+import { slugify } from "@/lib/slug";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -229,7 +234,7 @@ export const composeRouter = createTRPCRouter({
 
 			const project = await findProjectById(input.projectId);
 
-			const projectName = slugifyProjectName(`${project.name}-${input.id}`);
+			const projectName = slugify(`${project.name} ${input.id}`);
 			const { envs, mounts } = generate({
 				serverIp: admin.serverIp,
 				projectName: projectName,
@@ -241,6 +246,7 @@ export const composeRouter = createTRPCRouter({
 				env: envs.join("\n"),
 				name: input.id,
 				sourceType: "raw",
+				appName: `${projectName}-${generatePassword(6)}`,
 			});
 
 			if (ctx.user.rol === "user") {

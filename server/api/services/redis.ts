@@ -5,11 +5,23 @@ import { buildRedis } from "@/server/utils/databases/redis";
 import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { validUniqueServerAppName } from "./project";
 
 export type Redis = typeof redis.$inferSelect;
 
 // https://github.com/drizzle-team/drizzle-orm/discussions/1483#discussioncomment-7523881
 export const createRedis = async (input: typeof apiCreateRedis._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
+
 	const newRedis = await db
 		.insert(redis)
 		.values({

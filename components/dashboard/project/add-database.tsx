@@ -27,10 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Database } from "lucide-react";
-import { useEffect } from "react";
+import { Database, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -58,6 +59,15 @@ const databasesUserDefaultPlaceholder: Record<
 
 const baseDatabaseSchema = z.object({
 	name: z.string().min(1, "Name required"),
+	appName: z
+		.string()
+		.min(1, {
+			message: "App name is required",
+		})
+		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+			message:
+				"App name supports letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		}),
 	databasePassword: z.string(),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
@@ -101,30 +111,52 @@ const mySchema = z.discriminatedUnion("type", [
 		.merge(baseDatabaseSchema),
 ]);
 
+const databasesMap = {
+	postgres: {
+		icon: <PostgresqlIcon />,
+		label: "PostgreSQL",
+	},
+	mongo: {
+		icon: <MongodbIcon />,
+		label: "MongoDB",
+	},
+	mariadb: {
+		icon: <MariadbIcon />,
+		label: "MariaDB",
+	},
+	mysql: {
+		icon: <MysqlIcon />,
+		label: "MySQL",
+	},
+	redis: {
+		icon: <RedisIcon />,
+		label: "Redis",
+	},
+};
+
 type AddDatabase = z.infer<typeof mySchema>;
 
 interface Props {
 	projectId: string;
+	projectName?: string;
 }
 
-export const AddDatabase = ({ projectId }: Props) => {
+export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-
-	const { mutateAsync: createPostgresql } = api.postgres.create.useMutation();
-
-	const { mutateAsync: createMongo } = api.mongo.create.useMutation();
-
-	const { mutateAsync: createRedis } = api.redis.create.useMutation();
-
-	const { mutateAsync: createMariadb } = api.mariadb.create.useMutation();
-
-	const { mutateAsync: createMysql } = api.mysql.create.useMutation();
+	const [visible, setVisible] = useState(false);
+	const slug = slugify(projectName);
+	const postgresMutation = api.postgres.create.useMutation();
+	const mongoMutation = api.mongo.create.useMutation();
+	const redisMutation = api.redis.create.useMutation();
+	const mariadbMutation = api.mariadb.create.useMutation();
+	const mysqlMutation = api.mysql.create.useMutation();
 
 	const form = useForm<AddDatabase>({
 		defaultValues: {
 			type: "postgres",
 			dockerImage: "",
 			name: "",
+			appName: `${slug}-`,
 			databasePassword: "",
 			description: "",
 			databaseName: "",
@@ -133,76 +165,65 @@ export const AddDatabase = ({ projectId }: Props) => {
 		resolver: zodResolver(mySchema),
 	});
 	const type = form.watch("type");
-
-	useEffect(() => {
-		form.reset({
-			type: "postgres",
-			dockerImage: "",
-			name: "",
-			databasePassword: "",
-			description: "",
-			databaseName: "",
-			databaseUser: "",
-		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	const activeMutation = {
+		postgres: postgresMutation,
+		mongo: mongoMutation,
+		redis: redisMutation,
+		mariadb: mariadbMutation,
+		mysql: mysqlMutation,
+	};
 
 	const onSubmit = async (data: AddDatabase) => {
 		const defaultDockerImage =
 			data.dockerImage || dockerImageDefaultPlaceholder[data.type];
 
 		let promise: Promise<unknown> | null = null;
+		const commonParams = {
+			name: data.name,
+			appName: data.appName,
+			dockerImage: defaultDockerImage,
+			projectId,
+			description: data.description,
+		};
+
 		if (data.type === "postgres") {
-			promise = createPostgresql({
-				name: data.name,
-				dockerImage: defaultDockerImage,
+			promise = postgresMutation.mutateAsync({
+				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseName: data.databaseName,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				projectId,
-				description: data.description,
 			});
 		} else if (data.type === "mongo") {
-			promise = createMongo({
-				name: data.name,
-				dockerImage: defaultDockerImage,
+			promise = mongoMutation.mutateAsync({
+				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				projectId,
-				description: data.description,
 			});
 		} else if (data.type === "redis") {
-			promise = createRedis({
-				name: data.name,
-				dockerImage: defaultDockerImage,
+			promise = redisMutation.mutateAsync({
+				...commonParams,
 				databasePassword: data.databasePassword,
 				projectId,
-				description: data.description,
 			});
 		} else if (data.type === "mariadb") {
-			promise = createMariadb({
-				name: data.name,
-				dockerImage: defaultDockerImage,
+			promise = mariadbMutation.mutateAsync({
+				...commonParams,
 				databasePassword: data.databasePassword,
-				projectId,
 				databaseRootPassword: data.databaseRootPassword,
 				databaseName: data.databaseName,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				description: data.description,
 			});
 		} else if (data.type === "mysql") {
-			promise = createMysql({
-				name: data.name,
-				dockerImage: defaultDockerImage,
+			promise = mysqlMutation.mutateAsync({
+				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseName: data.databaseName,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				projectId,
 				databaseRootPassword: data.databaseRootPassword,
-				description: data.description,
 			});
 		}
 
@@ -210,6 +231,17 @@ export const AddDatabase = ({ projectId }: Props) => {
 			await promise
 				.then(async () => {
 					toast.success("Database Created");
+					form.reset({
+						type: "postgres",
+						dockerImage: "",
+						name: "",
+						appName: `${projectName}-`,
+						databasePassword: "",
+						description: "",
+						databaseName: "",
+						databaseUser: "",
+					});
+					setVisible(false);
 					await utils.project.one.invalidate({
 						projectId,
 					});
@@ -220,7 +252,7 @@ export const AddDatabase = ({ projectId }: Props) => {
 		}
 	};
 	return (
-		<Dialog>
+		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -230,18 +262,10 @@ export const AddDatabase = ({ projectId }: Props) => {
 					<span>Database</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>
-				{/* {isError && (
-          <div className="flex items-center flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-            <AlertTriangle className="text-red-600 dark:text-red-400" />
-            <span className="text-sm text-red-600 dark:text-red-400">
-              {error?.message}
-            </span>
-          </div>
-        )} */}
 
 				<Form {...form}>
 					<form
@@ -264,99 +288,40 @@ export const AddDatabase = ({ projectId }: Props) => {
 											defaultValue={field.value}
 											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
 										>
-											<FormItem className="flex w-full items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="postgres"
-															id="postgres"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="postgres"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															<PostgresqlIcon />
-															Postgresql
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="mysql"
-															id="mysql"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="mysql"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															<MysqlIcon />
-															Mysql
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="mariadb"
-															id="mariadb"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="mariadb"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															<MariadbIcon />
-															Mariadb
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="mongo"
-															id="mongo"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="mongo"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															<MongodbIcon />
-															Mongo
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
-											<FormItem className="flex items-center space-x-3 space-y-0">
-												<FormControl className="w-full">
-													<div>
-														<RadioGroupItem
-															value="redis"
-															id="redis"
-															className="peer sr-only"
-														/>
-														<Label
-															htmlFor="redis"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-														>
-															<RedisIcon />
-															Redis
-														</Label>
-													</div>
-												</FormControl>
-											</FormItem>
+											{Object.entries(databasesMap).map(([key, value]) => (
+												<FormItem
+													key={key}
+													className="flex w-full items-center space-x-3 space-y-0"
+												>
+													<FormControl className="w-full">
+														<div>
+															<RadioGroupItem
+																value={key}
+																id={key}
+																className="peer sr-only"
+															/>
+															<Label
+																htmlFor={key}
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+															>
+																{value.icon}
+																{value.label}
+															</Label>
+														</div>
+													</FormControl>
+												</FormItem>
+											))}
 										</RadioGroup>
 									</FormControl>
 									<FormMessage />
+									{activeMutation[field.value].isError && (
+										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+											<AlertTriangle className="text-red-600 dark:text-red-400" />
+											<span className="text-sm text-red-600 dark:text-red-400">
+												{activeMutation[field.value].error?.message}
+											</span>
+										</div>
+									)}
 								</FormItem>
 							)}
 						/>
@@ -372,9 +337,30 @@ export const AddDatabase = ({ projectId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Name" {...field} />
+												<Input
+													placeholder="Name"
+													{...field}
+													onChange={(e) => {
+														const val = e.target.value?.trim() || "";
+														form.setValue("appName", `${slug}-${val}`);
+														field.onChange(val);
+													}}
+												/>
 											</FormControl>
 
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="appName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>AppName</FormLabel>
+											<FormControl>
+												<Input placeholder="my-app" {...field} />
+											</FormControl>
 											<FormMessage />
 										</FormItem>
 									)}
