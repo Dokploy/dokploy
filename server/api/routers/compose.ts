@@ -234,7 +234,7 @@ export const composeRouter = createTRPCRouter({
 
 			const project = await findProjectById(input.projectId);
 
-			const projectName = slugify(`${project.name}-${input.id}`);
+			const projectName = slugify(`${project.name} ${input.id}`);
 			const { envs, mounts } = generate({
 				serverIp: admin.serverIp,
 				projectName: projectName,
