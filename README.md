@@ -55,5 +55,5 @@ Tested Systems:
 
 ## 📄 Documentation
 
-For detailed documentation, visit [docs.dokploy.com/docs](https://docs.dokploy.com).
+For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 

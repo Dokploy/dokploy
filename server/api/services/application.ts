@@ -15,11 +15,23 @@ import { findAdmin } from "./admin";
 import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { docker } from "@/server/constants";
 import { getAdvancedStats } from "@/server/monitoring/utilts";
+import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
 ) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Application with this 'AppName' already exists",
+			});
+		}
+	}
+
 	return await db.transaction(async (tx) => {
 		const newApplication = await tx
 			.insert(applications)

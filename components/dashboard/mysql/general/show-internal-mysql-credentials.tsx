@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 
 interface Props {
 	mysqlId: string;
@@ -29,20 +30,18 @@ export const ShowInternalMysqlCredentials = ({ mysqlId }: Props) => {
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
 								<div className="flex flex-row gap-4">
-									<Input
+									<ToggleVisibilityInput
 										disabled
 										value={data?.databasePassword}
-										type="password"
 									/>
 								</div>
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Root Password</Label>
 								<div className="flex flex-row gap-4">
-									<Input
+									<ToggleVisibilityInput
 										disabled
 										value={data?.databaseRootPassword}
-										type="password"
 									/>
 								</div>
 							</div>
@@ -58,7 +57,7 @@ export const ShowInternalMysqlCredentials = ({ mysqlId }: Props) => {
 
 							<div className="flex flex-col gap-2 md:col-span-2">
 								<Label>Internal Connection URL </Label>
-								<Input
+								<ToggleVisibilityInput
 									disabled
 									value={`mysql://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:3306/${data?.databaseName}`}
 								/>

@@ -22,16 +22,26 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Folder } from "lucide-react";
-import { useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
+import { slugify } from "@/lib/slug";
 
 const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
+	appName: z
+		.string()
+		.min(1, {
+			message: "App name is required",
+		})
+		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+			message:
+				"App name supports letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+		}),
 	description: z.string().optional(),
 });
 
@@ -39,10 +49,13 @@ type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
 	projectId: string;
+	projectName?: string;
 }
 
-export const AddApplication = ({ projectId }: Props) => {
+export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+	const [visible, setVisible] = useState(false);
+	const slug = slugify(projectName);
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -50,34 +63,34 @@ export const AddApplication = ({ projectId }: Props) => {
 	const form = useForm<AddTemplate>({
 		defaultValues: {
 			name: "",
+			appName: `${slug}-`,
 			description: "",
 		},
 		resolver: zodResolver(AddTemplateSchema),
 	});
 
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
-
 	const onSubmit = async (data: AddTemplate) => {
 		await mutateAsync({
 			name: data.name,
+			appName: data.appName,
 			description: data.description,
 			projectId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
+				form.reset();
+				setVisible(false);
 				await utils.project.one.invalidate({
 					projectId,
 				});
 			})
-			.catch(() => {
+			.catch((e) => {
 				toast.error("Error to create the service");
 			});
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -95,29 +108,46 @@ export const AddApplication = ({ projectId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-
 				<Form {...form}>
 					<form
 						id="hook-form"
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4"
 					>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder="Frontend" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Name</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="Frontend"
+											{...field}
+											onChange={(e) => {
+												const val = e.target.value?.trim() || "";
+												form.setValue("appName", `${slug}-${val}`);
+												field.onChange(val);
+											}}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="appName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>AppName</FormLabel>
+									<FormControl>
+										<Input placeholder="my-app" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="description"
@@ -136,47 +166,6 @@ export const AddApplication = ({ projectId }: Props) => {
 								</FormItem>
 							)}
 						/>
-
-						{/* <FormField
-              control={form.control}
-              name="buildType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>Build Type</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex flex-col space-y-1"
-                    >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="dockerfile" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Dockerfile
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="nixpacks" />
-                        </FormControl>
-                        <FormLabel className="font-normal">Nixpacks</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="heroku_buildpacks" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Heroku Buildpacks
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
 					</form>
 
 					<DialogFooter>

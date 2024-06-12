@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
 	Card,
 	CardContent,
@@ -20,6 +20,8 @@ import {
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { Toggle } from "@/components/ui/toggle";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),
@@ -32,6 +34,7 @@ interface Props {
 }
 
 export const ShowEnvironmentCompose = ({ composeId }: Props) => {
+	const [isEnvVisible, setIsEnvVisible] = useState(true);
 	const { mutateAsync, isLoading } = api.compose.update.useMutation();
 
 	const { data, refetch } = api.compose.one.useQuery(
@@ -71,14 +74,50 @@ export const ShowEnvironmentCompose = ({ composeId }: Props) => {
 			});
 	};
 
+	useEffect(() => {
+		if (isEnvVisible) {
+			if (data?.env) {
+				const maskedLines = data.env
+					.split("\n")
+					.map((line) => "*".repeat(line.length))
+					.join("\n");
+				form.reset({
+					environment: maskedLines,
+				});
+			} else {
+				form.reset({
+					environment: "",
+				});
+			}
+		} else {
+			form.reset({
+				environment: data?.env || "",
+			});
+		}
+	}, [form.reset, data, form, isEnvVisible]);
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
-				<CardHeader>
-					<CardTitle className="text-xl">Environment Settings</CardTitle>
-					<CardDescription>
-						You can add environment variables to your resource.
-					</CardDescription>
+				<CardHeader className="flex flex-row w-full items-center justify-between">
+					<div>
+						<CardTitle className="text-xl">Environment Settings</CardTitle>
+						<CardDescription>
+							You can add environment variables to your resource.
+						</CardDescription>
+					</div>
+
+					<Toggle
+						aria-label="Toggle bold"
+						pressed={isEnvVisible}
+						onPressedChange={setIsEnvVisible}
+					>
+						{isEnvVisible ? (
+							<EyeOffIcon className="h-4 w-4 text-muted-foreground" />
+						) : (
+							<EyeIcon className="h-4 w-4 text-muted-foreground" />
+						)}
+					</Toggle>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
@@ -95,6 +134,7 @@ export const ShowEnvironmentCompose = ({ composeId }: Props) => {
 										<FormControl>
 											<CodeEditor
 												language="properties"
+												disabled={isEnvVisible}
 												placeholder={`NODE_ENV=production
 PORT=3000
 `}
@@ -109,7 +149,12 @@ PORT=3000
 							/>
 
 							<div className="flex flex-row justify-end">
-								<Button isLoading={isLoading} className="w-fit" type="submit">
+								<Button
+									disabled={isEnvVisible}
+									isLoading={isLoading}
+									className="w-fit"
+									type="submit"
+								>
 									Save
 								</Button>
 							</div>

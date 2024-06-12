@@ -13,10 +13,21 @@ import { join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
 import { cloneGitRepository } from "@/server/utils/providers/git";
+import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
 	const newDestination = await db
 		.insert(compose)
 		.values({
@@ -39,6 +50,16 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 export const createComposeByTemplate = async (
 	input: typeof compose.$inferInsert,
 ) => {
+	if (input.appName) {
+		const valid = await validUniqueServerAppName(input.appName);
+
+		if (!valid) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "Service with this 'AppName' already exists",
+			});
+		}
+	}
 	const newDestination = await db
 		.insert(compose)
 		.values({

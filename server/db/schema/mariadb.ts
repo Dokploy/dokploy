@@ -8,6 +8,7 @@ import { projects } from "./project";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { generateAppName } from "./utils";
+import { generatePassword } from "@/templates/utils";
 
 export const mariadb = pgTable("mariadb", {
 	mariadbId: text("mariadbId")
@@ -79,6 +80,7 @@ const createSchema = createInsertSchema(mariadb, {
 export const apiCreateMariaDB = createSchema
 	.pick({
 		name: true,
+		appName: true,
 		dockerImage: true,
 		databaseRootPassword: true,
 		projectId: true,
@@ -87,7 +89,12 @@ export const apiCreateMariaDB = createSchema
 		databaseUser: true,
 		databasePassword: true,
 	})
-	.required();
+	.required()
+	.transform((data) => ({
+		...data,
+		appName:
+			`${data.appName}-${generatePassword(6)}` || generateAppName("mariadb"),
+	}));
 
 export const apiFindOneMariaDB = createSchema
 	.pick({

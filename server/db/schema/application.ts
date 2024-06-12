@@ -20,6 +20,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { generateAppName } from "./utils";
 import { registry } from "./registry";
+import { generatePassword } from "@/templates/utils";
 
 export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
 
@@ -307,11 +308,17 @@ const createSchema = createInsertSchema(applications, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
-export const apiCreateApplication = createSchema.pick({
-	name: true,
-	description: true,
-	projectId: true,
-});
+export const apiCreateApplication = createSchema
+	.pick({
+		name: true,
+		appName: true,
+		description: true,
+		projectId: true,
+	})
+	.transform((data) => ({
+		...data,
+		appName: `${data.appName}-${generatePassword(6)}` || generateAppName("app"),
+	}));
 
 export const apiFindOneApplication = createSchema
 	.pick({
