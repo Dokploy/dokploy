@@ -95,7 +95,7 @@ export const ShowMainTraefikConfig = ({ children }: Props) => {
 					<form
 						id="hook-form-update-main-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4 relative"
+						className="w-full space-y-4 relative"
 					>
 						<div className="flex flex-col">
 							<FormField

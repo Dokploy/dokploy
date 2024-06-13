@@ -87,7 +87,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full relative gap-4"
+						className="w-full relative space-y-4"
 					>
 						<FormField
 							control={form.control}
@@ -99,8 +99,8 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 											<CodeEditor
 												// disabled
 												value={field.value}
-												className="font-mono min-h-[20rem] compose-file-editor"
-												wrapperClassName="min-h-[20rem]"
+												className="font-mono"
+												wrapperClassName="compose-file-editor"
 												placeholder={`version: '3'
 services:
     web:

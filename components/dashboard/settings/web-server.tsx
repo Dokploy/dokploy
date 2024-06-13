@@ -194,7 +194,7 @@ export const WebServer = () => {
 								Space
 							</Button>
 						</DropdownMenuTrigger>
-						<DropdownMenuContent className="w-56" align="start">
+						<DropdownMenuContent className="w-64" align="start">
 							<DropdownMenuLabel>Actions</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuGroup>
