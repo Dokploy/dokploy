@@ -3,11 +3,13 @@
    <h1 align="center">Dokploy</h1>
    <div>
   <img style="object-fit: cover; border-radius:20px;" align="center" width="50%"src="https://raw.githubusercontent.com/Dokploy/docs/main/public/logo.png" >
-</div>
-<p align="center" style="padding-top:20px; max-width:700px;">
-Dokploy is a free self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.</p>
+
 </div>
 
+</div>
+
+<br />
+Dokploy is a free self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
 
 
 ### Features
