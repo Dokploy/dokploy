@@ -46,7 +46,7 @@ export const CodeEditor = ({
 				)}
 			/>
 			{props.disabled && (
-				<div className="absolute top-0 left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)]" />
+				<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)]" />
 			)}
 		</div>
 	);

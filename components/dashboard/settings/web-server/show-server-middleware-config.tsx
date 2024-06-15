@@ -98,7 +98,7 @@ export const ShowServerMiddlewareConfig = ({ children }: Props) => {
 					<form
 						id="hook-form-update-server-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4 relative overflow-auto"
+						className="w-full space-y-4 relative overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField
