@@ -49,7 +49,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ## Video Tutorial
 <a href="https://youtu.be/mznYKPvhcfw">
-  <img src="https://i9.ytimg.com/vi_webp/mznYKPvhcfw/maxresdefault.webp?v=662f1303&sqp=CMTAtbMG&rs=AOn4CLCwStfJOyHvVBq5VPOLopMFq1h7tA" alt="Watch the video" width="400" style="border-radius:20px;"/>
+  <img src="https://dokploy.com/banner.webp" alt="Watch the video" width="400" style="border-radius:20px;"/>
 </a>
 
 
