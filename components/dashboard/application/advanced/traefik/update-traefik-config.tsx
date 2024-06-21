@@ -19,7 +19,7 @@ import {
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -58,6 +58,7 @@ export const validateAndFormatYAML = (yamlText: string) => {
 };
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
+	const [open, setOpen] = useState(false);
 	const { data, refetch } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
@@ -81,7 +82,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 				traefikConfig: data || "",
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [data]);
 
 	const onSubmit = async (data: UpdateTraefikConfig) => {
 		const { valid, error } = validateAndFormatYAML(data.traefikConfig);
@@ -100,6 +101,8 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			.then(async () => {
 				toast.success("Traefik config Updated");
 				refetch();
+				setOpen(false);
+				form.reset();
 			})
 			.catch(() => {
 				toast.error("Error to update the traefik config");
@@ -107,7 +110,12 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={(open) => {
+			setOpen(open)
+			if (!open) {
+				form.reset();
+			}
+		}}>
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>
@@ -122,7 +130,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 					<form
 						id="hook-form-update-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full py-4 overflow-auto"
+						className="w-full space-y-4 overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField

@@ -124,7 +124,7 @@ export const ShowEnvironmentCompose = ({ composeId }: Props) => {
 						<form
 							id="hook-form"
 							onSubmit={form.handleSubmit(onSubmit)}
-							className="grid w-full gap-4 "
+							className="w-full space-y-4"
 						>
 							<FormField
 								control={form.control}

@@ -8,7 +8,7 @@ import { getServiceContainer } from "../docker/utils";
 
 // mongodb://mongo:Bqh7AQl-PRbnBu@localhost:27017/?tls=false&directConnection=true
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
-	const { appName, databasePassword } = mongo;
+	const { appName, databasePassword, databaseUser } = mongo;
 	const { prefix, database } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.dump.gz`;
@@ -23,7 +23,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		);
 
 		await execAsync(
-			`docker exec ${containerId} sh -c "mongodump -d '${database}' -u 'mongo' -p '${databasePassword}' --authenticationDatabase=admin --archive=${containerPath} --gzip"`,
+			`docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase=admin --archive=${containerPath} --gzip"`,
 		);
 		await execAsync(`docker cp ${containerId}:${containerPath} ${hostPath}`);
 		await uploadToS3(destination, bucketDestination, hostPath);
