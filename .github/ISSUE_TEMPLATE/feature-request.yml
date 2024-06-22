@@ -1,0 +1,33 @@
+name: Feature Request
+description: Suggest a new feature or improvement to the project
+labels: ['enhancement']
+body:
+  - type: textarea
+    attributes:
+      label: What problem will this feature address?
+      description: A clear and concise description of what the problem is.
+      placeholder: |
+        I'm always frustrated when I can't do X
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      description: A clear and concise description of what you want to happen.
+      placeholder: Add X to the core
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe alternatives you've considered
+      description: A clear and concise description of any alternative solutions or features you've considered.
+      placeholder: |
+        Maybe use Y as a workaround?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request here.
+    validations:
+      required: false

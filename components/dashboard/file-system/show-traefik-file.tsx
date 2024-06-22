@@ -90,7 +90,7 @@ export const ShowTraefikFile = ({ path }: Props) => {
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid w-full relative z-[5]"
+					className="w-full relative z-[5]"
 				>
 					<div className="flex flex-col overflow-auto">
 						<FormField
