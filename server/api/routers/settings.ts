@@ -41,7 +41,7 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
-import { doc } from "../root";
+import { openApiDocument } from "../root";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -245,20 +245,12 @@ export const settingsRouter = createTRPCRouter({
 		}),
 
 	getOpenApiDocument: protectedProcedure.query((): unknown => {
-		doc.components = {
-			securitySchemes: {
-				bearerAuth: {
-					type: "http",
-					scheme: "bearer",
-					bearerFormat: "JWT",
-				},
-			},
-		};
-		doc.info = {
+		openApiDocument.info = {
 			title: "Dokploy API",
 			description: "Endpoints for dokploy",
 			version: getDokployVersion(),
 		};
-		return doc;
+
+		return openApiDocument;
 	}),
 });
