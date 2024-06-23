@@ -185,18 +185,6 @@ export const ProfileForm = () => {
 						</div>
 					</form>
 				</Form>
-				<div className="flex flex-row gap-4 pt-10">
-					<Input placeholder="Token" disabled value={data?.token || ""} />
-					<Button
-						type="button"
-						isLoading={isLoadingToken}
-						onClick={async () => {
-							await generateToken();
-						}}
-					>
-						Save
-					</Button>
-				</div>
 			</CardContent>
 		</Card>
 	);
