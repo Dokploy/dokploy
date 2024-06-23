@@ -142,7 +142,6 @@ export const startService = async (appName: string) => {
 	try {
 		await execAsync(`docker service scale ${appName}=1 `);
 	} catch (error) {
-		// Cambiar esto para que no erroje un error
 		throw error;
 	}
 };

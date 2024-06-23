@@ -114,7 +114,6 @@
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
     "tar-fs": "3.0.5",
-    "trpc-openapi": "^1.2.0",
     "use-resize-observer": "9.1.0",
     "ws": "8.16.0",
     "xterm-addon-fit": "^0.8.0",
