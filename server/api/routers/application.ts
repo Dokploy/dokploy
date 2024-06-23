@@ -57,7 +57,6 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				console.log(input);
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
