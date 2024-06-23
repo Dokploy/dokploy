@@ -38,6 +38,7 @@ const addPermissions = z.object({
 	canDeleteServices: z.boolean().optional().default(false),
 	canAccessToTraefikFiles: z.boolean().optional().default(false),
 	canAccessToDocker: z.boolean().optional().default(false),
+	canAccessToAPI: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -80,6 +81,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canDeleteServices: data.canDeleteServices,
 				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 				canAccessToDocker: data.canAccessToDocker,
+				canAccessToAPI: data.canAccessToAPI,
 			});
 		}
 	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
@@ -95,6 +97,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accesedProjects: data.accesedProjects || [],
 			accesedServices: data.accesedServices || [],
 			canAccessToDocker: data.canAccessToDocker,
+			canAccessToAPI: data.canAccessToAPI,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
@@ -236,6 +239,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Access to Docker</FormLabel>
 										<FormDescription>
 											Allow the user to access to the Docker Tab
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canAccessToAPI"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Access to API/CLI</FormLabel>
+										<FormDescription>
+											Allow the user to access to the API/CLI
 										</FormDescription>
 									</div>
 									<FormControl>

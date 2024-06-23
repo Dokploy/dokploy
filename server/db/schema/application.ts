@@ -308,17 +308,12 @@ const createSchema = createInsertSchema(applications, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
-export const apiCreateApplication = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		description: true,
-		projectId: true,
-	})
-	.transform((data) => ({
-		...data,
-		appName: `${data.appName}-${generatePassword(6)}` || generateAppName("app"),
-	}));
+export const apiCreateApplication = createSchema.pick({
+	name: true,
+	appName: true,
+	description: true,
+	projectId: true,
+});
 
 export const apiFindOneApplication = createSchema
 	.pick({

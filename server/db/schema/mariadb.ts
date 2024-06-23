@@ -89,12 +89,7 @@ export const apiCreateMariaDB = createSchema
 		databaseUser: true,
 		databasePassword: true,
 	})
-	.required()
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("mariadb"),
-	}));
+	.required();
 
 export const apiFindOneMariaDB = createSchema
 	.pick({

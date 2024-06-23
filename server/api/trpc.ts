@@ -15,6 +15,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { validateRequest } from "../auth/auth";
 import type { Session, User } from "lucia";
+import type { OperationMeta } from "openapi-trpc";
+import { validateBearerToken } from "../auth/token";
 
 /**
  * 1. CONTEXT
@@ -59,9 +61,15 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  */
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
-	// const sessionId = lucia.readSessionCookie(req.headers.cookie ?? "");
-	const { session, user } = await validateRequest(req, res);
-	user;
+
+	let { session, user } = await validateBearerToken(req);
+
+	if (!session) {
+		const cookieResult = await validateRequest(req, res);
+		session = cookieResult.session;
+		user = cookieResult.user;
+	}
+
 	return createInnerTRPCContext({
 		req,
 		res,
@@ -88,19 +96,22 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  * errors on the backend.
  */
 
-const t = initTRPC.context<typeof createTRPCContext>().create({
-	transformer: superjson,
-	errorFormatter({ shape, error }) {
-		return {
-			...shape,
-			data: {
-				...shape.data,
-				zodError:
-					error.cause instanceof ZodError ? error.cause.flatten() : null,
-			},
-		};
-	},
-});
+const t = initTRPC
+	.meta<OperationMeta>()
+	.context<typeof createTRPCContext>()
+	.create({
+		transformer: superjson,
+		errorFormatter({ shape, error }) {
+			return {
+				...shape,
+				data: {
+					...shape.data,
+					zodError:
+						error.cause instanceof ZodError ? error.cause.flatten() : null,
+				},
+			};
+		},
+	});
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
@@ -135,6 +146,20 @@ export const publicProcedure = t.procedure;
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	if (!ctx.session || !ctx.user) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	return next({
+		ctx: {
+			// infers the `session` as non-nullable
+			session: ctx.session,
+			user: ctx.user,
+			// session: { ...ctx.session, user: ctx.user },
+		},
+	});
+});
+
+export const cliProcedure = t.procedure.use(({ ctx, next }) => {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({

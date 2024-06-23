@@ -6,10 +6,14 @@ import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { generatePassword } from "@/templates/utils";
+import { generateAppName } from "@/server/db/schema/utils";
 
 export type Postgres = typeof postgres.$inferSelect;
 
 export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

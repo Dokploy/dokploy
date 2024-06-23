@@ -33,14 +33,17 @@ declare module "lucia" {
 	}
 }
 
+export type ReturnValidateToken = Promise<{
+	user: (User & { authId: string }) | null;
+	session: Session | null;
+}>;
+
 export async function validateRequest(
 	req: IncomingMessage,
 	res: ServerResponse,
-): Promise<{
-	user: (User & { authId: string }) | null;
-	session: Session | null;
-}> {
+): ReturnValidateToken {
 	const sessionId = lucia.readSessionCookie(req.headers.cookie ?? "");
+
 	if (!sessionId) {
 		return {
 			user: null,

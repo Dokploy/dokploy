@@ -14,10 +14,14 @@ import { COMPOSE_PATH } from "@/server/constants";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
 import { cloneGitRepository } from "@/server/utils/providers/git";
 import { validUniqueServerAppName } from "./project";
+import { generateAppName } from "@/server/db/schema/utils";
+import { generatePassword } from "@/templates/utils";
 
 export type Compose = typeof compose.$inferSelect;
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("compose");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

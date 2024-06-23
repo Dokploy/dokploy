@@ -75,19 +75,13 @@ const createSchema = createInsertSchema(compose, {
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 });
 
-export const apiCreateCompose = createSchema
-	.pick({
-		name: true,
-		description: true,
-		projectId: true,
-		composeType: true,
-		appName: true,
-	})
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("compose"),
-	}));
+export const apiCreateCompose = createSchema.pick({
+	name: true,
+	description: true,
+	projectId: true,
+	composeType: true,
+	appName: true,
+});
 
 export const apiCreateComposeByTemplate = createSchema
 	.pick({

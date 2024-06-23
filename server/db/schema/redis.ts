@@ -76,12 +76,7 @@ export const apiCreateRedis = createSchema
 		projectId: true,
 		description: true,
 	})
-	.required()
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("redis"),
-	}));
+	.required();
 
 export const apiFindOneRedis = createSchema
 	.pick({

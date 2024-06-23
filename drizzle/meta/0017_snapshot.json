@@ -1,0 +1,2620 @@
+{
+  "id": "7610c85e-c3e4-4a32-8ce9-7f48b298f956",
+  "prevId": "2d8d7670-b942-4573-9c44-6e81d2a2fa16",
+  "version": "6",
+  "dialect": "postgresql",
+  "tables": {
+    "public.application": {
+      "name": "application",
+      "schema": "",
+      "columns": {
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refreshToken": {
+          "name": "refreshToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "sourceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'github'"
+        },
+        "repository": {
+          "name": "repository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner": {
+          "name": "owner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildPath": {
+          "name": "buildPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
+        },
+        "autoDeploy": {
+          "name": "autoDeploy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitUrl": {
+          "name": "customGitUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitBranch": {
+          "name": "customGitBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitBuildPath": {
+          "name": "customGitBuildPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitSSHKey": {
+          "name": "customGitSSHKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dockerfile": {
+          "name": "dockerfile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "buildType": {
+          "name": "buildType",
+          "type": "buildType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nixpacks'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "application_registryId_registry_registryId_fk": {
+          "name": "application_registryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "registryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_projectId_project_projectId_fk": {
+          "name": "application_projectId_project_projectId_fk",
+          "tableFrom": "application",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "application_appName_unique": {
+          "name": "application_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.postgres": {
+      "name": "postgres",
+      "schema": "",
+      "columns": {
+        "postgresId": {
+          "name": "postgresId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databaseName": {
+          "name": "databaseName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databaseUser": {
+          "name": "databaseUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databasePassword": {
+          "name": "databasePassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "postgres_projectId_project_projectId_fk": {
+          "name": "postgres_projectId_project_projectId_fk",
+          "tableFrom": "postgres",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "postgres_appName_unique": {
+          "name": "postgres_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isRegistered": {
+          "name": "isRegistered",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "expirationDate": {
+          "name": "expirationDate",
+          "type": "timestamp(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "canCreateProjects": {
+          "name": "canCreateProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canCreateServices": {
+          "name": "canCreateServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteProjects": {
+          "name": "canDeleteProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteServices": {
+          "name": "canDeleteServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToDocker": {
+          "name": "canAccessToDocker",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToAPI": {
+          "name": "canAccessToAPI",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToTraefikFiles": {
+          "name": "canAccessToTraefikFiles",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "accesedProjects": {
+          "name": "accesedProjects",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "accesedServices": {
+          "name": "accesedServices",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authId": {
+          "name": "authId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_adminId_admin_adminId_fk": {
+          "name": "user_adminId_admin_adminId_fk",
+          "tableFrom": "user",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_authId_auth_id_fk": {
+          "name": "user_authId_auth_id_fk",
+          "tableFrom": "user",
+          "tableTo": "auth",
+          "columnsFrom": [
+            "authId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.admin": {
+      "name": "admin",
+      "schema": "",
+      "columns": {
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "githubAppId": {
+          "name": "githubAppId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubAppName": {
+          "name": "githubAppName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serverIp": {
+          "name": "serverIp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "certificateType": {
+          "name": "certificateType",
+          "type": "certificateType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "host": {
+          "name": "host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubClientId": {
+          "name": "githubClientId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubClientSecret": {
+          "name": "githubClientSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubInstallationId": {
+          "name": "githubInstallationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubPrivateKey": {
+          "name": "githubPrivateKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "letsEncryptEmail": {
+          "name": "letsEncryptEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sshPrivateKey": {
+          "name": "sshPrivateKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enableDockerCleanup": {
+          "name": "enableDockerCleanup",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "authId": {
+          "name": "authId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "admin_authId_auth_id_fk": {
+          "name": "admin_authId_auth_id_fk",
+          "tableFrom": "admin",
+          "tableTo": "auth",
+          "columnsFrom": [
+            "authId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.auth": {
+      "name": "auth",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rol": {
+          "name": "rol",
+          "type": "Roles",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is2FAEnabled": {
+          "name": "is2FAEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "auth_email_unique": {
+          "name": "auth_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      }
+    },
+    "public.project": {
+      "name": "project",
+      "schema": "",
+      "columns": {
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_adminId_admin_adminId_fk": {
+          "name": "project_adminId_admin_adminId_fk",
+          "tableFrom": "project",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.domain": {
+      "name": "domain",
+      "schema": "",
+      "columns": {
+        "domainId": {
+          "name": "domainId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "host": {
+          "name": "host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "https": {
+          "name": "https",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "port": {
+          "name": "port",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 80
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
+        },
+        "uniqueConfigKey": {
+          "name": "uniqueConfigKey",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "certificateType": {
+          "name": "certificateType",
+          "type": "certificateType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "domain_applicationId_application_applicationId_fk": {
+          "name": "domain_applicationId_application_applicationId_fk",
+          "tableFrom": "domain",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.mariadb": {
+      "name": "mariadb",
+      "schema": "",
+      "columns": {
+        "mariadbId": {
+          "name": "mariadbId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "databaseName": {
+          "name": "databaseName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databaseUser": {
+          "name": "databaseUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databasePassword": {
+          "name": "databasePassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rootPassword": {
+          "name": "rootPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mariadb_projectId_project_projectId_fk": {
+          "name": "mariadb_projectId_project_projectId_fk",
+          "tableFrom": "mariadb",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mariadb_appName_unique": {
+          "name": "mariadb_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.mongo": {
+      "name": "mongo",
+      "schema": "",
+      "columns": {
+        "mongoId": {
+          "name": "mongoId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "databaseUser": {
+          "name": "databaseUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databasePassword": {
+          "name": "databasePassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mongo_projectId_project_projectId_fk": {
+          "name": "mongo_projectId_project_projectId_fk",
+          "tableFrom": "mongo",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mongo_appName_unique": {
+          "name": "mongo_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.mysql": {
+      "name": "mysql",
+      "schema": "",
+      "columns": {
+        "mysqlId": {
+          "name": "mysqlId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "databaseName": {
+          "name": "databaseName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databaseUser": {
+          "name": "databaseUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databasePassword": {
+          "name": "databasePassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rootPassword": {
+          "name": "rootPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mysql_projectId_project_projectId_fk": {
+          "name": "mysql_projectId_project_projectId_fk",
+          "tableFrom": "mysql",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "mysql_appName_unique": {
+          "name": "mysql_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.backup": {
+      "name": "backup",
+      "schema": "",
+      "columns": {
+        "backupId": {
+          "name": "backupId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "schedule": {
+          "name": "schedule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "database": {
+          "name": "database",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destinationId": {
+          "name": "destinationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "databaseType": {
+          "name": "databaseType",
+          "type": "databaseType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "postgresId": {
+          "name": "postgresId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mariadbId": {
+          "name": "mariadbId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mysqlId": {
+          "name": "mysqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mongoId": {
+          "name": "mongoId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "backup_destinationId_destination_destinationId_fk": {
+          "name": "backup_destinationId_destination_destinationId_fk",
+          "tableFrom": "backup",
+          "tableTo": "destination",
+          "columnsFrom": [
+            "destinationId"
+          ],
+          "columnsTo": [
+            "destinationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_postgresId_postgres_postgresId_fk": {
+          "name": "backup_postgresId_postgres_postgresId_fk",
+          "tableFrom": "backup",
+          "tableTo": "postgres",
+          "columnsFrom": [
+            "postgresId"
+          ],
+          "columnsTo": [
+            "postgresId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_mariadbId_mariadb_mariadbId_fk": {
+          "name": "backup_mariadbId_mariadb_mariadbId_fk",
+          "tableFrom": "backup",
+          "tableTo": "mariadb",
+          "columnsFrom": [
+            "mariadbId"
+          ],
+          "columnsTo": [
+            "mariadbId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_mysqlId_mysql_mysqlId_fk": {
+          "name": "backup_mysqlId_mysql_mysqlId_fk",
+          "tableFrom": "backup",
+          "tableTo": "mysql",
+          "columnsFrom": [
+            "mysqlId"
+          ],
+          "columnsTo": [
+            "mysqlId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "backup_mongoId_mongo_mongoId_fk": {
+          "name": "backup_mongoId_mongo_mongoId_fk",
+          "tableFrom": "backup",
+          "tableTo": "mongo",
+          "columnsFrom": [
+            "mongoId"
+          ],
+          "columnsTo": [
+            "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.destination": {
+      "name": "destination",
+      "schema": "",
+      "columns": {
+        "destinationId": {
+          "name": "destinationId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accessKey": {
+          "name": "accessKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "secretAccessKey": {
+          "name": "secretAccessKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket": {
+          "name": "bucket",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "destination_adminId_admin_adminId_fk": {
+          "name": "destination_adminId_admin_adminId_fk",
+          "tableFrom": "destination",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.deployment": {
+      "name": "deployment",
+      "schema": "",
+      "columns": {
+        "deploymentId": {
+          "name": "deploymentId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "deploymentStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'running'"
+        },
+        "logPath": {
+          "name": "logPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "deployment_applicationId_application_applicationId_fk": {
+          "name": "deployment_applicationId_application_applicationId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_composeId_compose_composeId_fk": {
+          "name": "deployment_composeId_compose_composeId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.mount": {
+      "name": "mount",
+      "schema": "",
+      "columns": {
+        "mountId": {
+          "name": "mountId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "mountType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hostPath": {
+          "name": "hostPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "volumeName": {
+          "name": "volumeName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serviceType": {
+          "name": "serviceType",
+          "type": "serviceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
+        },
+        "mountPath": {
+          "name": "mountPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postgresId": {
+          "name": "postgresId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mariadbId": {
+          "name": "mariadbId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mongoId": {
+          "name": "mongoId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mysqlId": {
+          "name": "mysqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redisId": {
+          "name": "redisId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "mount_applicationId_application_applicationId_fk": {
+          "name": "mount_applicationId_application_applicationId_fk",
+          "tableFrom": "mount",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_postgresId_postgres_postgresId_fk": {
+          "name": "mount_postgresId_postgres_postgresId_fk",
+          "tableFrom": "mount",
+          "tableTo": "postgres",
+          "columnsFrom": [
+            "postgresId"
+          ],
+          "columnsTo": [
+            "postgresId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_mariadbId_mariadb_mariadbId_fk": {
+          "name": "mount_mariadbId_mariadb_mariadbId_fk",
+          "tableFrom": "mount",
+          "tableTo": "mariadb",
+          "columnsFrom": [
+            "mariadbId"
+          ],
+          "columnsTo": [
+            "mariadbId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_mongoId_mongo_mongoId_fk": {
+          "name": "mount_mongoId_mongo_mongoId_fk",
+          "tableFrom": "mount",
+          "tableTo": "mongo",
+          "columnsFrom": [
+            "mongoId"
+          ],
+          "columnsTo": [
+            "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_mysqlId_mysql_mysqlId_fk": {
+          "name": "mount_mysqlId_mysql_mysqlId_fk",
+          "tableFrom": "mount",
+          "tableTo": "mysql",
+          "columnsFrom": [
+            "mysqlId"
+          ],
+          "columnsTo": [
+            "mysqlId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_redisId_redis_redisId_fk": {
+          "name": "mount_redisId_redis_redisId_fk",
+          "tableFrom": "mount",
+          "tableTo": "redis",
+          "columnsFrom": [
+            "redisId"
+          ],
+          "columnsTo": [
+            "redisId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mount_composeId_compose_composeId_fk": {
+          "name": "mount_composeId_compose_composeId_fk",
+          "tableFrom": "mount",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.certificate": {
+      "name": "certificate",
+      "schema": "",
+      "columns": {
+        "certificateId": {
+          "name": "certificateId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "certificateData": {
+          "name": "certificateData",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "privateKey": {
+          "name": "privateKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "certificatePath": {
+          "name": "certificatePath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "autoRenew": {
+          "name": "autoRenew",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "certificate_certificatePath_unique": {
+          "name": "certificate_certificatePath_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "certificatePath"
+          ]
+        }
+      }
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "session_user_id_auth_id_fk": {
+          "name": "session_user_id_auth_id_fk",
+          "tableFrom": "session",
+          "tableTo": "auth",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.redirect": {
+      "name": "redirect",
+      "schema": "",
+      "columns": {
+        "redirectId": {
+          "name": "redirectId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "regex": {
+          "name": "regex",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "replacement": {
+          "name": "replacement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permanent": {
+          "name": "permanent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "uniqueConfigKey": {
+          "name": "uniqueConfigKey",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "redirect_applicationId_application_applicationId_fk": {
+          "name": "redirect_applicationId_application_applicationId_fk",
+          "tableFrom": "redirect",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.security": {
+      "name": "security",
+      "schema": "",
+      "columns": {
+        "securityId": {
+          "name": "securityId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "security_applicationId_application_applicationId_fk": {
+          "name": "security_applicationId_application_applicationId_fk",
+          "tableFrom": "security",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "security_username_applicationId_unique": {
+          "name": "security_username_applicationId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username",
+            "applicationId"
+          ]
+        }
+      }
+    },
+    "public.port": {
+      "name": "port",
+      "schema": "",
+      "columns": {
+        "portId": {
+          "name": "portId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "publishedPort": {
+          "name": "publishedPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "targetPort": {
+          "name": "targetPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol": {
+          "name": "protocol",
+          "type": "protocolType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "port_applicationId_application_applicationId_fk": {
+          "name": "port_applicationId_application_applicationId_fk",
+          "tableFrom": "port",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.redis": {
+      "name": "redis",
+      "schema": "",
+      "columns": {
+        "redisId": {
+          "name": "redisId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dockerImage": {
+          "name": "dockerImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "externalPort": {
+          "name": "externalPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applicationStatus": {
+          "name": "applicationStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "redis_projectId_project_projectId_fk": {
+          "name": "redis_projectId_project_projectId_fk",
+          "tableFrom": "redis",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "redis_appName_unique": {
+          "name": "redis_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      }
+    },
+    "public.compose": {
+      "name": "compose",
+      "schema": "",
+      "columns": {
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "env": {
+          "name": "env",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeFile": {
+          "name": "composeFile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "refreshToken": {
+          "name": "refreshToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sourceType": {
+          "name": "sourceType",
+          "type": "sourceTypeCompose",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'github'"
+        },
+        "composeType": {
+          "name": "composeType",
+          "type": "composeType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'docker-compose'"
+        },
+        "repository": {
+          "name": "repository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner": {
+          "name": "owner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "autoDeploy": {
+          "name": "autoDeploy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitUrl": {
+          "name": "customGitUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitBranch": {
+          "name": "customGitBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customGitSSHKey": {
+          "name": "customGitSSHKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "composePath": {
+          "name": "composePath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'./docker-compose.yml'"
+        },
+        "composeStatus": {
+          "name": "composeStatus",
+          "type": "applicationStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'idle'"
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "compose_projectId_project_projectId_fk": {
+          "name": "compose_projectId_project_projectId_fk",
+          "tableFrom": "compose",
+          "tableTo": "project",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.registry": {
+      "name": "registry",
+      "schema": "",
+      "columns": {
+        "registryId": {
+          "name": "registryId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "registryName": {
+          "name": "registryName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imagePrefix": {
+          "name": "imagePrefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registryUrl": {
+          "name": "registryUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selfHosted": {
+          "name": "selfHosted",
+          "type": "RegistryType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cloud'"
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "registry_adminId_admin_adminId_fk": {
+          "name": "registry_adminId_admin_adminId_fk",
+          "tableFrom": "registry",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "public.buildType": {
+      "name": "buildType",
+      "schema": "public",
+      "values": [
+        "dockerfile",
+        "heroku_buildpacks",
+        "paketo_buildpacks",
+        "nixpacks"
+      ]
+    },
+    "public.sourceType": {
+      "name": "sourceType",
+      "schema": "public",
+      "values": [
+        "docker",
+        "git",
+        "github"
+      ]
+    },
+    "public.Roles": {
+      "name": "Roles",
+      "schema": "public",
+      "values": [
+        "admin",
+        "user"
+      ]
+    },
+    "public.databaseType": {
+      "name": "databaseType",
+      "schema": "public",
+      "values": [
+        "postgres",
+        "mariadb",
+        "mysql",
+        "mongo"
+      ]
+    },
+    "public.deploymentStatus": {
+      "name": "deploymentStatus",
+      "schema": "public",
+      "values": [
+        "running",
+        "done",
+        "error"
+      ]
+    },
+    "public.mountType": {
+      "name": "mountType",
+      "schema": "public",
+      "values": [
+        "bind",
+        "volume",
+        "file"
+      ]
+    },
+    "public.serviceType": {
+      "name": "serviceType",
+      "schema": "public",
+      "values": [
+        "application",
+        "postgres",
+        "mysql",
+        "mariadb",
+        "mongo",
+        "redis",
+        "compose"
+      ]
+    },
+    "public.protocolType": {
+      "name": "protocolType",
+      "schema": "public",
+      "values": [
+        "tcp",
+        "udp"
+      ]
+    },
+    "public.applicationStatus": {
+      "name": "applicationStatus",
+      "schema": "public",
+      "values": [
+        "idle",
+        "running",
+        "done",
+        "error"
+      ]
+    },
+    "public.certificateType": {
+      "name": "certificateType",
+      "schema": "public",
+      "values": [
+        "letsencrypt",
+        "none"
+      ]
+    },
+    "public.composeType": {
+      "name": "composeType",
+      "schema": "public",
+      "values": [
+        "docker-compose",
+        "stack"
+      ]
+    },
+    "public.sourceTypeCompose": {
+      "name": "sourceTypeCompose",
+      "schema": "public",
+      "values": [
+        "git",
+        "github",
+        "raw"
+      ]
+    },
+    "public.RegistryType": {
+      "name": "RegistryType",
+      "schema": "public",
+      "values": [
+        "selfHosted",
+        "cloud"
+      ]
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
