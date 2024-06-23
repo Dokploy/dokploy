@@ -27,15 +27,13 @@ import { createAppAuth } from "@octokit/auth-app";
 import { haveGithubRequirements } from "@/server/utils/providers/github";
 
 export const adminRouter = createTRPCRouter({
-	one: adminProcedure
-		.meta({ openapi: { method: "GET", path: "/say-hello" } })
-		.query(async () => {
-			const { sshPrivateKey, ...rest } = await findAdmin();
-			return {
-				haveSSH: !!sshPrivateKey,
-				...rest,
-			};
-		}),
+	one: adminProcedure.query(async () => {
+		const { sshPrivateKey, ...rest } = await findAdmin();
+		return {
+			haveSSH: !!sshPrivateKey,
+			...rest,
+		};
+	}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
 		.mutation(async ({ input }) => {
