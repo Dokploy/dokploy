@@ -163,4 +163,9 @@
     background-color: white;
   }
 
+  .swagger-ui .info{
+    margin: 0px !important;
+    padding-top: 1rem !important;
+  }
+
 }

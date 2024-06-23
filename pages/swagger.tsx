@@ -11,12 +11,12 @@ const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 
 const Home: NextPage = () => {
 	const { data } = api.settings.getOpenApiDocument.useQuery();
-	console.log(data);
 
-	if (!data) {
-		return <div>Loading...</div>;
-	}
-	return <SwaggerUI spec={data} />;
+	return (
+		<div className="h-screen bg-white">
+			<SwaggerUI spec={data || {}} />
+		</div>
+	);
 };
 
 export default Home;
@@ -31,7 +31,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			},
 		};
 	}
-	// Fetch data from external API
 	const helpers = createServerSideHelpers({
 		router: appRouter,
 		ctx: {
