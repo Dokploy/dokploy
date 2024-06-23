@@ -22,30 +22,6 @@ import { initializePostgres } from "./setup/postgres-setup";
 import { migration } from "@/server/db/migration";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
-import { generateOpenAPIDocumentFromTRPCRouter } from "openapi-trpc";
-import { appRouter } from "./api/root";
-import { getDokployVersion } from "./api/services/settings";
-
-export const doc = generateOpenAPIDocumentFromTRPCRouter(appRouter, {
-	pathPrefix: "/api/trpc",
-	processOperation(op) {
-		op.security = [{ bearerAuth: [] }];
-	},
-});
-doc.components = {
-	securitySchemes: {
-		bearerAuth: {
-			type: "http",
-			scheme: "bearer",
-			bearerFormat: "JWT",
-		},
-	},
-};
-doc.info = {
-	title: "Dokploy API",
-	description: "Endpoints for dokploy",
-	version: getDokployVersion(),
-};
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -55,81 +31,6 @@ const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
 		const server = http.createServer((req, res) => {
-			if (req.method === "GET" && req.url === "/trpc.json") {
-				res.setHeader("Content-Type", "application/json");
-				res.end(JSON.stringify(doc)); // Asegúrate de definir `doc`
-				return;
-			}
-			if (req.method === "GET" && req.url === "/trpc") {
-				res.setHeader("Content-Type", "text/html");
-				res.end(`<!DOCTYPE html>
-					<html lang="en">
-					  <head>
-						<meta charset="utf-8" />
-						<meta name="viewport" content="width=device-width, initial-scale=1" />
-						<meta name="description" content="SwaggerUI" />
-						<title>SwaggerUI</title>
-						<link href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui.min.css" rel="stylesheet" />
-						<link href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.17.0/favicon-32x32.png" rel="icon" />
-					  </head>
-					  <body>
-						<div id="swagger-ui"></div>
-						<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
-						<script>
-						  window.onload = () => {
-							const ui = SwaggerUIBundle({
-							  url: '/trpc.json',
-							  dom_id: '#swagger-ui',
-							  presets: [
-								SwaggerUIBundle.presets.apis,
-								SwaggerUIBundle.SwaggerUIStandalonePreset
-							  ],
-							  layout: "BaseLayout",
-							  requestInterceptor: (request) => {
-								const token = localStorage.getItem('bearerToken');
-								if (token) {
-								  request.headers['Authorization'] = 'Bearer ' + token;
-								}
-								return request;
-							  }
-							});
-	
-							ui.initOAuth({
-							  persistAuthorization: true
-							});
-	
-							// Store the token in local storage when set in Swagger UI
-							ui.authActions.authorize({
-							  bearerAuth: {
-								name: "bearerAuth",
-								value: localStorage.getItem('bearerToken') || '',
-								schema: {
-								  type: "http",
-								  scheme: "bearer",
-								  bearerFormat: "JWT"
-								}
-							  }
-							});
-	
-							ui.authSelectors.oauth().authorize({
-							  bearerAuth: {
-								token: localStorage.getItem('bearerToken') || ''
-							  }
-							});
-	
-							window.ui = ui;
-	
-							// Save token to localStorage
-							const tokenInput = document.querySelector('input[placeholder="Bearer token"]');
-							tokenInput.addEventListener('change', (event) => {
-							  localStorage.setItem('bearerToken', event.target.value);
-							});
-						  };
-						</script>
-					  </body>
-					</html>`);
-				return;
-			}
 			handle(req, res);
 		});
 
