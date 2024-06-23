@@ -31,7 +31,6 @@ export const validateBearerToken = async (
 		};
 	}
 	const result = await luciaToken.validateSession(sessionId);
-	console.log(result);
 	return {
 		session: result.session,
 		...((result.user && {
