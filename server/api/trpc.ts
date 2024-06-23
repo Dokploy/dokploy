@@ -15,8 +15,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { validateRequest } from "../auth/auth";
 import type { Session, User } from "lucia";
-import type { OperationMeta } from "openapi-trpc";
 import { validateBearerToken } from "../auth/token";
+import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 
 /**
  * 1. CONTEXT
@@ -97,7 +97,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  */
 
 const t = initTRPC
-	.meta<OperationMeta>()
+	.meta<OpenApiMeta>()
 	.context<typeof createTRPCContext>()
 	.create({
 		transformer: superjson,
