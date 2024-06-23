@@ -23,6 +23,8 @@ import { dockerRouter } from "./routers/docker";
 import { composeRouter } from "./routers/compose";
 import { registryRouter } from "./routers/registry";
 import { clusterRouter } from "./routers/cluster";
+import { generateOpenAPIDocumentFromTRPCRouter } from "openapi-trpc";
+
 /**
  * This is the primary router for your server.
  *
@@ -39,6 +41,7 @@ export const appRouter = createTRPCRouter({
 	redis: redisRouter,
 	mongo: mongoRouter,
 	mariadb: mariadbRouter,
+	compose: composeRouter,
 	user: userRouter,
 	domain: domainRouter,
 	destination: destinationRouter,
@@ -50,10 +53,15 @@ export const appRouter = createTRPCRouter({
 	security: securityRouter,
 	redirects: redirectsRouter,
 	port: portRouter,
-	compose: composeRouter,
 	registry: registryRouter,
 	cluster: clusterRouter,
 });
 
 // export type definition of API
 export type AppRouter = typeof appRouter;
+export const doc = generateOpenAPIDocumentFromTRPCRouter(appRouter, {
+	pathPrefix: "/api/trpc",
+	processOperation(op) {
+		op.security = [{ bearerAuth: [] }];
+	},
+});

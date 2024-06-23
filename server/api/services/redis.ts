@@ -6,11 +6,15 @@ import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { generateAppName } from "@/server/db/schema/utils";
+import { generatePassword } from "@/templates/utils";
 
 export type Redis = typeof redis.$inferSelect;
 
 // https://github.com/drizzle-team/drizzle-orm/discussions/1483#discussioncomment-7523881
 export const createRedis = async (input: typeof apiCreateRedis._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("redis");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

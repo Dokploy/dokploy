@@ -16,11 +16,15 @@ import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { docker } from "@/server/constants";
 import { getAdvancedStats } from "@/server/monitoring/utilts";
 import { validUniqueServerAppName } from "./project";
+import { generatePassword } from "@/templates/utils";
+import { generateAppName } from "@/server/db/schema/utils";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
 ) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("app");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

@@ -6,10 +6,14 @@ import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { generateAppName } from "@/server/db/schema/utils";
+import { generatePassword } from "@/templates/utils";
 
 export type Mongo = typeof mongo.$inferSelect;
 
 export const createMongo = async (input: typeof apiCreateMongo._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

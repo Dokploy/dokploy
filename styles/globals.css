@@ -158,3 +158,9 @@
 .animate-heartbeat {
   animation: heartbeat 2.5s infinite;
 }
+@media (prefers-color-scheme: dark) {
+  .swagger-ui {
+    background-color: white;
+  }
+
+}

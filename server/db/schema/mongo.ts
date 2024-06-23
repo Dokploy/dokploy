@@ -81,12 +81,7 @@ export const apiCreateMongo = createSchema
 		databaseUser: true,
 		databasePassword: true,
 	})
-	.required()
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("postgres"),
-	}));
+	.required();
 
 export const apiFindOneMongo = createSchema
 	.pick({

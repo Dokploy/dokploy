@@ -6,10 +6,15 @@ import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { generatePassword } from "@/templates/utils";
+import { generateAppName } from "@/server/db/schema/utils";
 
 export type MySql = typeof mysql.$inferSelect;
 
 export const createMysql = async (input: typeof apiCreateMySql._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("mysql");
+
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

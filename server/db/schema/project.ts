@@ -53,11 +53,6 @@ export const apiCreateProject = createSchema.pick({
 	description: true,
 });
 
-export const apiCreateCLI = createSchema.pick({
-	name: true,
-	description: true,
-});
-
 export const apiFindOneProject = createSchema
 	.pick({
 		projectId: true,

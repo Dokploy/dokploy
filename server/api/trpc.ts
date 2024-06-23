@@ -15,6 +15,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { validateBearerToken, validateRequest } from "../auth/auth";
 import type { Session, User } from "lucia";
+import type { OperationMeta } from "openapi-trpc";
 
 /**
  * 1. CONTEXT
@@ -94,19 +95,22 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  * errors on the backend.
  */
 
-const t = initTRPC.context<typeof createTRPCContext>().create({
-	transformer: superjson,
-	errorFormatter({ shape, error }) {
-		return {
-			...shape,
-			data: {
-				...shape.data,
-				zodError:
-					error.cause instanceof ZodError ? error.cause.flatten() : null,
-			},
-		};
-	},
-});
+const t = initTRPC
+	.meta<OperationMeta>()
+	.context<typeof createTRPCContext>()
+	.create({
+		transformer: superjson,
+		errorFormatter({ shape, error }) {
+			return {
+				...shape,
+				data: {
+					...shape.data,
+					zodError:
+						error.cause instanceof ZodError ? error.cause.flatten() : null,
+				},
+			};
+		},
+	});
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)

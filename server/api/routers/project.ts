@@ -59,29 +59,6 @@ export const projectRouter = createTRPCRouter({
 			}
 		}),
 
-	createCLI: protectedProcedure
-		.input(apiCreateProject)
-		.mutation(async ({ ctx, input }) => {
-			try {
-				console.log(ctx);
-				if (ctx.user.rol === "user") {
-					await checkProjectAccess(ctx.user.authId, "create");
-				}
-				const project = await createProject(input);
-				if (ctx.user.rol === "user") {
-					await addNewProject(ctx.user.authId, project.projectId);
-				}
-
-				return project;
-			} catch (error) {
-				console.log(error);
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to create the project",
-					cause: error,
-				});
-			}
-		}),
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
