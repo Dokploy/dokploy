@@ -16,7 +16,7 @@ export const lucia = new Lucia(adapter, {
 			secure: false,
 		},
 	},
-	// sessionExpiresIn: new TimeSpan(1, "d"),
+	sessionExpiresIn: new TimeSpan(1, "d"),
 	getUserAttributes: (attributes) => {
 		return {
 			email: attributes.email,
@@ -93,32 +93,3 @@ export async function validateWebSocketRequest(
 	const result = await lucia.validateSession(sessionId);
 	return result;
 }
-
-export const validateBearerToken = async (
-	req: IncomingMessage,
-): ReturnValidateToken => {
-	const authorizationHeader = req.headers.authorization;
-	const sessionId = lucia.readBearerToken(authorizationHeader ?? "");
-	if (!sessionId) {
-		return {
-			user: null,
-			session: null,
-		};
-	}
-	const result = await lucia.validateSession(sessionId);
-
-	return {
-		session: result.session,
-		...((result.user && {
-			user: {
-				authId: result.user.id,
-				email: result.user.email,
-				rol: result.user.rol,
-				id: result.user.id,
-				secret: result.user.secret,
-			},
-		}) || {
-			user: null,
-		}),
-	};
-};

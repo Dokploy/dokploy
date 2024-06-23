@@ -26,7 +26,7 @@ import {
 	updateAuthById,
 	verify2FA,
 } from "../services/auth";
-import { TimeSpan } from "lucia";
+import { luciaToken } from "@/server/auth/token";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
@@ -143,9 +143,9 @@ export const authRouter = createTRPCRouter({
 		const auth = await findAuthById(ctx.user.authId);
 
 		if (auth.token) {
-			await lucia.invalidateSession(auth.token);
+			await luciaToken.invalidateSession(auth.token);
 		}
-		const session = await lucia.createSession(auth?.id || "", {
+		const session = await luciaToken.createSession(auth?.id || "", {
 			expiresIn: 60 * 60 * 24 * 30,
 		});
 

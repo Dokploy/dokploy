@@ -13,9 +13,10 @@ import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { validateBearerToken, validateRequest } from "../auth/auth";
+import { validateRequest } from "../auth/auth";
 import type { Session, User } from "lucia";
 import type { OperationMeta } from "openapi-trpc";
+import { validateBearerToken } from "../auth/token";
 
 /**
  * 1. CONTEXT
