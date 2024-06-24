@@ -63,6 +63,9 @@ export const buildMongo = async (mongo: MongoWithMounts) => {
 			Resources: {
 				...resources,
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {

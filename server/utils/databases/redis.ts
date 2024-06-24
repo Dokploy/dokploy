@@ -61,6 +61,9 @@ export const buildRedis = async (redis: RedisWithMounts) => {
 			Resources: {
 				...resources,
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {
