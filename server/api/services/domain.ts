@@ -47,7 +47,7 @@ export const generateDomain = async (
 			serverIp: admin.serverIp || "",
 			projectName: application.appName,
 		}),
-		port: process.env.NODE_ENV === "development" ? 3000 : 80,
+		port: 3000,
 		certificateType: "none",
 		https: false,
 		path: "/",
