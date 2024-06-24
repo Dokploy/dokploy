@@ -69,6 +69,9 @@ export const buildMysql = async (mysql: MysqlWithMounts) => {
 			Resources: {
 				...resources,
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {
