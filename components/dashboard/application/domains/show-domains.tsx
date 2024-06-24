@@ -6,7 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { ExternalLink, GlobeIcon } from "lucide-react";
+import { ExternalLink, GlobeIcon, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { DeleteDomain } from "./delete-domain";
 import Link from "next/link";
 import { AddDomain } from "./add-domain";
 import { UpdateDomain } from "./update-domain";
+import { GenerateDomain } from "./generate-domain";
 
 interface Props {
 	applicationId: string;
@@ -31,7 +32,7 @@ export const ShowDomains = ({ applicationId }: Props) => {
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
-				<CardHeader className="flex flex-row items-center justify-between">
+				<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
 					<div className="flex flex-col gap-1">
 						<CardTitle className="text-xl">Domains</CardTitle>
 						<CardDescription>
@@ -39,11 +40,16 @@ export const ShowDomains = ({ applicationId }: Props) => {
 						</CardDescription>
 					</div>
 
-					{data && data?.length > 0 && (
-						<AddDomain applicationId={applicationId}>
-							<GlobeIcon className="size-4" /> Add Domain
-						</AddDomain>
-					)}
+					<div className="flex flex-row gap-4 flex-wrap">
+						{data && data?.length > 0 && (
+							<AddDomain applicationId={applicationId}>
+								<GlobeIcon className="size-4" /> Add Domain
+							</AddDomain>
+						)}
+						{data && data?.length > 0 && (
+							<GenerateDomain applicationId={applicationId} />
+						)}
+					</div>
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
 					{data?.length === 0 ? (
@@ -53,9 +59,13 @@ export const ShowDomains = ({ applicationId }: Props) => {
 								To access to the application is required to set at least 1
 								domain
 							</span>
-							<AddDomain applicationId={applicationId}>
-								<GlobeIcon className="size-4" /> Add Domain
-							</AddDomain>
+							<div className="flex flex-row gap-4 flex-wrap">
+								<AddDomain applicationId={applicationId}>
+									<GlobeIcon className="size-4" /> Add Domain
+								</AddDomain>
+
+								<GenerateDomain applicationId={applicationId} />
+							</div>
 						</div>
 					) : (
 						<div className="flex w-full flex-col gap-4">
