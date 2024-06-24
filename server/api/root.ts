@@ -23,7 +23,6 @@ import { dockerRouter } from "./routers/docker";
 import { composeRouter } from "./routers/compose";
 import { registryRouter } from "./routers/registry";
 import { clusterRouter } from "./routers/cluster";
-import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 
 /**
  * This is the primary router for your server.
@@ -59,35 +58,3 @@ export const appRouter = createTRPCRouter({
 
 // export type definition of API
 export type AppRouter = typeof appRouter;
-
-export const openApiDocument = generateOpenApiDocument(appRouter, {
-	title: "tRPC OpenAPI",
-	version: "1.0.0",
-	baseUrl: "http://localhost:3000/api/trpc",
-	docsUrl: "http://localhost:3000/api/trpc/settings.getOpenApiDocument",
-	tags: [
-		"admin",
-		"docker",
-		"compose",
-		"registry",
-		"cluster",
-		"user",
-		"domain",
-		"destination",
-		"backup",
-		"deployment",
-		"mounts",
-		"certificates",
-		"settings",
-		"security",
-		"redirects",
-		"port",
-		"project",
-		"application",
-		"mysql",
-		"postgres",
-		"redis",
-		"mongo",
-		"mariadb",
-	],
-});

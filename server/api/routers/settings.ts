@@ -41,7 +41,8 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
-import { openApiDocument } from "../root";
+import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
+import { appRouter } from "../root";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -244,13 +245,49 @@ export const settingsRouter = createTRPCRouter({
 			return readConfigInPath(input.path);
 		}),
 
-	getOpenApiDocument: protectedProcedure.query((): unknown => {
-		openApiDocument.info = {
-			title: "Dokploy API",
-			description: "Endpoints for dokploy",
-			version: getDokployVersion(),
-		};
+	getOpenApiDocument: protectedProcedure.query(
+		async ({ ctx }): Promise<unknown> => {
+			const protocol = ctx.req.headers["x-forwarded-proto"];
+			const url = `${protocol}://${ctx.req.headers.host}/api/trpc`;
+			const openApiDocument = generateOpenApiDocument(appRouter, {
+				title: "tRPC OpenAPI",
+				version: "1.0.0",
+				baseUrl: url,
+				docsUrl: `${url}/settings.getOpenApiDocument`,
+				tags: [
+					"admin",
+					"docker",
+					"compose",
+					"registry",
+					"cluster",
+					"user",
+					"domain",
+					"destination",
+					"backup",
+					"deployment",
+					"mounts",
+					"certificates",
+					"settings",
+					"security",
+					"redirects",
+					"port",
+					"project",
+					"application",
+					"mysql",
+					"postgres",
+					"redis",
+					"mongo",
+					"mariadb",
+				],
+			});
 
-		return openApiDocument;
-	}),
+			openApiDocument.info = {
+				title: "Dokploy API",
+				description: "Endpoints for dokploy",
+				version: getDokployVersion(),
+			};
+
+			return openApiDocument;
+		},
+	),
 });

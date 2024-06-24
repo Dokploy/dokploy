@@ -47,7 +47,11 @@ export const GenerateToken = () => {
 					<div className="grid w-full gap-8">
 						<div className="flex flex-col gap-2">
 							<Label>Token</Label>
-							<ToggleVisibilityInput value={data?.token || ""} disabled />
+							<ToggleVisibilityInput
+								placeholder="Token"
+								value={data?.token || ""}
+								disabled
+							/>
 						</div>
 					</div>
 					<Button

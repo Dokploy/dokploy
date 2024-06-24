@@ -10,7 +10,7 @@ import { RedbuildApplication } from "../rebuild-application";
 import { StartApplication } from "../start-application";
 import { StopApplication } from "../stop-application";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { Terminal } from "lucide-react";
+import { CheckCircle2, Terminal } from "lucide-react";
 import { DeployApplication } from "./deploy-application";
 import { ResetApplication } from "./reset-application";
 interface Props {
@@ -55,8 +55,10 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									toast.error("Error to update Auto Deploy");
 								});
 						}}
+						className="flex flex-row gap-2 items-center"
 					>
 						Autodeploy
+						{data?.autoDeploy && <CheckCircle2 className="size-4" />}
 					</Toggle>
 					<RedbuildApplication applicationId={applicationId} />
 					{data?.applicationStatus === "idle" ? (
