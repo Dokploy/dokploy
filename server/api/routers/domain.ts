@@ -12,6 +12,7 @@ import {
 	createDomain,
 	findDomainById,
 	findDomainsByApplicationId,
+	generateDomain,
 	removeDomainById,
 	updateDomainById,
 } from "../services/domain";
@@ -34,6 +35,11 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomainByApplication)
 		.query(async ({ input }) => {
 			return await findDomainsByApplicationId(input.applicationId);
+		}),
+	generateDomain: protectedProcedure
+		.input(apiFindDomainByApplication)
+		.mutation(async ({ input }) => {
+			return generateDomain(input);
 		}),
 	update: protectedProcedure
 		.input(apiUpdateDomain)
