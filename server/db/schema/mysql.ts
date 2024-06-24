@@ -87,12 +87,7 @@ export const apiCreateMySql = createSchema
 		databasePassword: true,
 		databaseRootPassword: true,
 	})
-	.required()
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("mysql"),
-	}));
+	.required();
 
 export const apiFindOneMySql = createSchema
 	.pick({

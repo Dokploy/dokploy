@@ -6,10 +6,14 @@ import { pullImage } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { generateAppName } from "@/server/db/schema/utils";
+import { generatePassword } from "@/templates/utils";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
 export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
+	input.appName =
+		`${input.appName}-${generatePassword(6)}` || generateAppName("mariadb");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 

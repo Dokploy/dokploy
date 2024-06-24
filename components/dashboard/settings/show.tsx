@@ -32,7 +32,6 @@ export const ShowSettings = () => {
 					<ShowCertificates />
 					<WebDomain />
 					<WebServer />
-
 					<ShowUsers />
 				</>
 			)}

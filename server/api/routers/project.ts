@@ -1,4 +1,8 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	cliProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateProject,
@@ -54,6 +58,7 @@ export const projectRouter = createTRPCRouter({
 				});
 			}
 		}),
+
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {

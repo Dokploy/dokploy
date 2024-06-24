@@ -83,12 +83,7 @@ export const apiCreatePostgres = createSchema
 		projectId: true,
 		description: true,
 	})
-	.required()
-	.transform((data) => ({
-		...data,
-		appName:
-			`${data.appName}-${generatePassword(6)}` || generateAppName("postgres"),
-	}));
+	.required();
 
 export const apiFindOnePostgres = createSchema
 	.pick({

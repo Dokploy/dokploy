@@ -26,6 +26,7 @@ import {
 	updateAuthById,
 	verify2FA,
 } from "../services/auth";
+import { luciaToken } from "@/server/auth/token";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
@@ -138,6 +139,23 @@ export const authRouter = createTRPCRouter({
 			return auth;
 		}),
 
+	generateToken: protectedProcedure.mutation(async ({ ctx, input }) => {
+		const auth = await findAuthById(ctx.user.authId);
+
+		if (auth.token) {
+			await luciaToken.invalidateSession(auth.token);
+		}
+		const session = await luciaToken.createSession(auth?.id || "", {
+			expiresIn: 60 * 60 * 24 * 30,
+		});
+
+		await updateAuthById(auth.id, {
+			token: session.id,
+		});
+
+		return auth;
+	}),
+
 	one: adminProcedure.input(apiFindOneAuth).query(async ({ input }) => {
 		const auth = await findAuthById(input.id);
 		return auth;
@@ -195,5 +213,8 @@ export const authRouter = createTRPCRouter({
 			secret: null,
 		});
 		return auth;
+	}),
+	verifyToken: protectedProcedure.mutation(async () => {
+		return true;
 	}),
 });
