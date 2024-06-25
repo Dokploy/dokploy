@@ -13,6 +13,7 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	generateDomain,
+	generateWildcard,
 	removeDomainById,
 	updateDomainById,
 } from "../services/domain";
@@ -40,6 +41,11 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomainByApplication)
 		.mutation(async ({ input }) => {
 			return generateDomain(input);
+		}),
+	generateWildcard: protectedProcedure
+		.input(apiFindDomainByApplication)
+		.mutation(async ({ input }) => {
+			return generateWildcard(input);
 		}),
 	update: protectedProcedure
 		.input(apiUpdateDomain)
