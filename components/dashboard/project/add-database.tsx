@@ -143,7 +143,7 @@ interface Props {
 
 export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-	const [visible, setVisible] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
 	const slug = slugify(projectName);
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
@@ -231,20 +231,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			await promise
 				.then(async () => {
 					toast.success("Database Created");
-					form.reset({
-						type: "postgres",
-						dockerImage: "",
-						name: "",
-						appName: `${projectName}-`,
-						databasePassword: "",
-						description: "",
-						databaseName: "",
-						databaseUser: "",
-					});
-					setVisible(false);
-					await utils.project.one.invalidate({
-						projectId,
-					});
+					await utils.project.one.invalidate({ projectId });
+					setIsOpen(false);
+					form.reset();
 				})
 				.catch(() => {
 					toast.error("Error to create a database");
@@ -252,7 +241,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 		}
 	};
 	return (
-		<Dialog open={visible} onOpenChange={setVisible}>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"

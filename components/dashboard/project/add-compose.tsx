@@ -21,8 +21,8 @@ import { Input } from "@/components/ui/input";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircuitBoard, Folder } from "lucide-react";
-import { useEffect } from "react";
+import { CircuitBoard } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -62,6 +62,7 @@ interface Props {
 
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const slug = slugify(projectName);
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
@@ -76,10 +77,6 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 		resolver: zodResolver(AddComposeSchema),
 	});
 
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
-
 	const onSubmit = async (data: AddCompose) => {
 		await mutateAsync({
 			name: data.name,
@@ -93,6 +90,8 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 				await utils.project.one.invalidate({
 					projectId,
 				});
+				setIsOpen(false);
+				form.reset();
 			})
 			.catch(() => {
 				toast.error("Error to create the compose");
@@ -100,7 +99,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"

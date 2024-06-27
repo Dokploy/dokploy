@@ -29,8 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
-import { useEffect } from "react";
+import { PenBoxIcon, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -56,13 +56,10 @@ interface Props {
 
 export const UpdateDomain = ({ domainId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const { data, refetch } = api.domain.one.useQuery(
-		{
-			domainId,
-		},
-		{
-			enabled: !!domainId,
-		},
+		{ domainId },
+		{ enabled: isOpen },
 	);
 	const { mutateAsync, isError, error } = api.domain.update.useMutation();
 
@@ -78,7 +75,7 @@ export const UpdateDomain = ({ domainId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				host: data.host || "",
 				port: data.port || 3000,
@@ -87,7 +84,7 @@ export const UpdateDomain = ({ domainId }: Props) => {
 				certificateType: data.certificateType,
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [isOpen, form.reset, data]);
 
 	const onSubmit = async (data: UpdateDomain) => {
 		await mutateAsync({
@@ -107,13 +104,14 @@ export const UpdateDomain = ({ domainId }: Props) => {
 				await utils.application.readTraefikConfig.invalidate({
 					applicationId: data?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the domain");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
 				<Button variant="ghost">
 					<PenBoxIcon className="size-4 text-muted-foreground" />
@@ -121,7 +119,12 @@ export const UpdateDomain = ({ domainId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Domain</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Domain</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>
 						In this section you can add custom domains
 					</DialogDescription>

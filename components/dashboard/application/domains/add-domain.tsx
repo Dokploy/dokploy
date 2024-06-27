@@ -30,7 +30,7 @@ import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -57,6 +57,7 @@ export const AddDomain = ({
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 
 	const { mutateAsync, isError, error } = api.domain.create.useMutation();
 
@@ -72,8 +73,10 @@ export const AddDomain = ({
 	});
 
 	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (isOpen) {
+			form.reset();
+		}
+	}, [isOpen, form.reset]);
 
 	const onSubmit = async (data: AddDomain) => {
 		await mutateAsync({
@@ -90,14 +93,15 @@ export const AddDomain = ({
 					applicationId,
 				});
 				await utils.application.readTraefikConfig.invalidate({ applicationId });
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to create the domain");
 			});
 	};
 	return (
-		<Dialog>
-			<DialogTrigger className="" asChild>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">

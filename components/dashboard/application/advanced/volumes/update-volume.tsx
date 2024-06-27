@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { Pencil, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -61,18 +61,13 @@ interface Props {
 }
 
 export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
-	const utils = api.useUtils();
-	const { data } = api.mounts.one.useQuery(
-		{
-			mountId,
-		},
-		{
-			enabled: !!mountId,
-		},
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, isLoading } = api.mounts.one.useQuery(
+		{ mountId },
+		{ enabled: isOpen },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.mounts.update.useMutation();
+	const { mutateAsync, error, isError } = api.mounts.update.useMutation();
 
 	const form = useForm<UpdateMount>({
 		defaultValues: {
@@ -86,7 +81,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 	const typeForm = form.watch("type");
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			if (typeForm === "bind") {
 				form.reset({
 					hostPath: data.hostPath || "",
@@ -107,7 +102,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 				});
 			}
 		}
-	}, [form, form.reset, data]);
+	}, [isOpen, form.reset, data]);
 
 	const onSubmit = async (data: UpdateMount) => {
 		if (data.type === "bind") {
@@ -119,6 +114,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the Bind mount");
@@ -132,6 +128,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the Volume mount");
@@ -145,6 +142,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the File mount");
@@ -154,7 +152,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<Pencil className="size-4  text-muted-foreground" />
@@ -162,7 +160,12 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Update</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Update</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>Update the mount</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -248,7 +251,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 						</div>
 						<DialogFooter>
 							<Button
-								isLoading={isLoading}
+								isLoading={form.formState.isSubmitting}
 								form="hook-form-update-volume"
 								type="submit"
 							>

@@ -20,10 +20,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { SquarePen, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
@@ -43,30 +43,27 @@ interface Props {
 
 export const UpdateProject = ({ projectId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.project.update.useMutation();
-	const { data } = api.project.one.useQuery(
-		{
-			projectId,
-		},
-		{
-			enabled: !!projectId,
-		},
+	const { data, isLoading } = api.project.one.useQuery(
+		{ projectId },
+		{ enabled: isOpen },
 	);
 	const form = useForm<UpdateProject>({
 		defaultValues: {
-			description: data?.description ?? "",
-			name: data?.name ?? "",
+			description: "",
+			name: "",
 		},
 		resolver: zodResolver(updateProjectSchema),
 	});
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				description: data.description ?? "",
 				name: data.name,
 			});
 		}
-	}, [data, form, form.reset]);
+	}, [data, isOpen, form.reset]);
 
 	const onSubmit = async (formData: UpdateProject) => {
 		await mutateAsync({
@@ -74,9 +71,10 @@ export const UpdateProject = ({ projectId }: Props) => {
 			projectId: projectId,
 			description: formData.description || "",
 		})
-			.then(() => {
+			.then(async () => {
 				toast.success("Project updated succesfully");
-				utils.project.all.invalidate();
+				await utils.project.all.invalidate();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the project");
@@ -85,7 +83,7 @@ export const UpdateProject = ({ projectId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -97,7 +95,10 @@ export const UpdateProject = ({ projectId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify project</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Modify project</div>
+						 {isLoading && <Loader2 className="inline-block w-4 h-4 animate-spin" />}
+					</DialogTitle>
 					<DialogDescription>
 						Update the details of the project
 					</DialogDescription>
@@ -145,7 +146,11 @@ export const UpdateProject = ({ projectId }: Props) => {
 									)}
 								/>
 								<DialogFooter>
-									<Button form="hook-form-update-project" type="submit">
+									<Button
+										isLoading={form.formState.isSubmitting}
+										form="hook-form-update-project"
+										type="submit"
+									>
 										Update
 									</Button>
 								</DialogFooter>
