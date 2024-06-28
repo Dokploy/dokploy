@@ -162,6 +162,7 @@ export const applicationRouter = createTRPCRouter({
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
+				descriptionLog: "",
 				type: "redeploy",
 				applicationType: "application",
 			};
@@ -294,6 +295,7 @@ export const applicationRouter = createTRPCRouter({
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
+				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
 			};

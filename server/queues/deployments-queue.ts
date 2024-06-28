@@ -10,12 +10,14 @@ type DeployJob =
 	| {
 			applicationId: string;
 			titleLog: string;
+			descriptionLog: string;
 			type: "deploy" | "redeploy";
 			applicationType: "application";
 	  }
 	| {
 			composeId: string;
 			titleLog: string;
+			descriptionLog: string;
 			type: "deploy" | "redeploy";
 			applicationType: "compose";
 	  };
@@ -31,11 +33,13 @@ export const deploymentWorker = new Worker(
 					await rebuildApplication({
 						applicationId: job.data.applicationId,
 						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
 					});
 				} else if (job.data.type === "deploy") {
 					await deployApplication({
 						applicationId: job.data.applicationId,
 						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
 					});
 				}
 			} else if (job.data.applicationType === "compose") {
@@ -43,11 +47,13 @@ export const deploymentWorker = new Worker(
 					await deployCompose({
 						composeId: job.data.composeId,
 						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
 					});
 				} else if (job.data.type === "redeploy") {
 					await rebuildCompose({
 						composeId: job.data.composeId,
 						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
 					});
 				}
 			}

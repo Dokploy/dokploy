@@ -1,5 +1,5 @@
 {
-  "id": "7610c85e-c3e4-4a32-8ce9-7f48b298f956",
+  "id": "ec852f38-886a-43b4-9295-73984ed8ef45",
   "prevId": "2d8d7670-b942-4573-9c44-6e81d2a2fa16",
   "version": "6",
   "dialect": "postgresql",
@@ -465,7 +465,7 @@
           "name": "token",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "isRegistered": {
           "name": "isRegistered",
@@ -1584,6 +1584,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",

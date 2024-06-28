@@ -4,7 +4,11 @@ import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { extractBranchName, extractCommitMessage } from "../[refreshToken]";
+import {
+	extractBranchName,
+	extractCommitMessage,
+	extractHash,
+} from "../[refreshToken]";
 import { updateCompose } from "@/server/api/services/compose";
 
 export default async function handler(
@@ -34,7 +38,7 @@ export default async function handler(
 		}
 
 		const deploymentTitle = extractCommitMessage(req.headers, req.body);
-
+		const deploymentHash = extractHash(req.headers, req.body);
 		const sourceType = composeResult.sourceType;
 
 		if (sourceType === "github") {
@@ -61,6 +65,7 @@ export default async function handler(
 				titleLog: deploymentTitle,
 				type: "deploy",
 				applicationType: "compose",
+				descriptionLog: `Hash: ${deploymentHash}`,
 			};
 			await myQueue.add(
 				"deployments",

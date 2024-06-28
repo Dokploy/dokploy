@@ -130,15 +130,18 @@ export const updateApplicationStatus = async (
 export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
+	descriptionLog = "",
 }: {
 	applicationId: string;
 	titleLog: string;
+	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const admin = await findAdmin();
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
+		description: descriptionLog,
 	});
 
 	try {
@@ -173,14 +176,17 @@ export const deployApplication = async ({
 export const rebuildApplication = async ({
 	applicationId,
 	titleLog = "Rebuild deployment",
+	descriptionLog = "",
 }: {
 	applicationId: string;
 	titleLog: string;
+	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
+		description: descriptionLog,
 	});
 
 	try {

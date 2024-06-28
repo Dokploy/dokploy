@@ -60,6 +60,7 @@ export const createDeployment = async (
 				title: deployment.title || "Deployment",
 				status: "running",
 				logPath: logFilePath,
+				description: deployment.description || "",
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -100,6 +101,7 @@ export const createDeploymentCompose = async (
 			.values({
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
+				description: deployment.description || "",
 				status: "running",
 				logPath: logFilePath,
 			})

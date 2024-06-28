@@ -33,6 +33,7 @@ export default async function handler(
 		}
 
 		const deploymentTitle = extractCommitMessage(req.headers, req.body);
+		const deploymentHash = extractHash(req.headers, req.body);
 
 		const sourceType = application.sourceType;
 
@@ -75,6 +76,7 @@ export default async function handler(
 			const jobData: DeploymentJob = {
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
+				descriptionLog: `Hash: ${deploymentHash}`,
 				type: "deploy",
 				applicationType: "application",
 			};
@@ -164,6 +166,37 @@ export const extractCommitMessage = (headers: any, body: any) => {
 	}
 
 	return "NEW CHANGES";
+};
+
+export const extractHash = (headers: any, body: any) => {
+	// GitHub
+	if (headers["x-github-event"]) {
+		return body.head_commit ? body.head_commit.id : "";
+	}
+
+	// GitLab
+	if (headers["x-gitlab-event"]) {
+		return (
+			body.checkout_sha ||
+			(body.commits && body.commits.length > 0
+				? body.commits[0].id
+				: "NEW COMMIT")
+		);
+	}
+
+	// Bitbucket
+	if (headers["x-event-key"]?.includes("repo:push")) {
+		return body.push.changes && body.push.changes.length > 0
+			? body.push.changes[0].new.target.hash
+			: "NEW COMMIT";
+	}
+
+	// Gitea
+	if (headers["x-gitea-event"]) {
+		return body.after || "NEW COMMIT";
+	}
+
+	return "";
 };
 
 export const extractBranchName = (headers: any, body: any) => {
