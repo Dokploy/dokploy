@@ -86,6 +86,11 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 									<span className="text-sm text-muted-foreground">
 										{deployment.title}
 									</span>
+									{deployment.description && (
+										<span className="text-sm text-muted-foreground">
+											{deployment.description}
+										</span>
+									)}
 								</div>
 								<div className="flex flex-col items-end gap-2">
 									<div className="text-sm capitalize text-muted-foreground">
