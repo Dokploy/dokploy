@@ -55,7 +55,7 @@ export const GenerateDomain = ({ applicationId }: Props) => {
 								</div>
 							</div>
 						</li>
-						<li className="flex flex-row items-center gap-4">
+						{/* <li className="flex flex-row items-center gap-4">
 							<div className="flex flex-col gap-2">
 								<div className="text-base font-bold">
 									2. Use Wildcard Domain
@@ -66,11 +66,11 @@ export const GenerateDomain = ({ applicationId }: Props) => {
 									*.yourdomain.com.
 								</div>
 							</div>
-						</li>
+						</li> */}
 					</ul>
 					<div className="flex flex-row gap-4 w-full">
 						<GenerateTraefikMe applicationId={applicationId} />
-						<GenerateWildCard applicationId={applicationId} />
+						{/* <GenerateWildCard applicationId={applicationId} /> */}
 					</div>
 				</div>
 			</DialogContent>
