@@ -1,69 +1,79 @@
-import React from "react";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { RefreshCcw } from "lucide-react";
+import { GenerateTraefikMe } from "./generate-traefikme";
+import { GenerateWildCard } from "./generate-wildcard";
+import Link from "next/link";
 import { api } from "@/utils/api";
-import { RefreshCcw, TrashIcon } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	applicationId: string;
 }
+
 export const GenerateDomain = ({ applicationId }: Props) => {
-	const { mutateAsync, isLoading } = api.domain.generateDomain.useMutation();
-	const utils = api.useUtils();
 	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>
-				<Button variant="secondary" isLoading={isLoading}>
+		<Dialog>
+			<DialogTrigger className="" asChild>
+				<Button variant="secondary">
 					Generate Domain
 					<RefreshCcw className="size-4  text-muted-foreground " />
 				</Button>
-			</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>
-						Are you sure to generate a new domain?
-					</AlertDialogTitle>
-					<AlertDialogDescription>
-						This will generate a new domain and will be used to access to the
-						application
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={async () => {
-							await mutateAsync({
-								applicationId,
-							})
-								.then((data) => {
-									utils.domain.byApplicationId.invalidate({
-										applicationId: applicationId,
-									});
-									utils.application.readTraefikConfig.invalidate({
-										applicationId: applicationId,
-									});
-									toast.success("Generated Domain succesfully");
-								})
-								.catch(() => {
-									toast.error("Error to generate Domain");
-								});
-						}}
-					>
-						Confirm
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+			</DialogTrigger>
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+				<DialogHeader>
+					<DialogTitle>Generate Domain</DialogTitle>
+					<DialogDescription>
+						Generate Domains for your applications
+					</DialogDescription>
+				</DialogHeader>
+
+				<div className="flex flex-col gap-4 w-full">
+					<ul className="flex flex-col gap-4">
+						<li className="flex flex-row items-center gap-4">
+							<div className="flex flex-col gap-2">
+								<div className="text-base font-bold">
+									1. Generate TraefikMe Domain
+								</div>
+								<div className="text-sm text-muted-foreground">
+									This option generates a free domain provided by{" "}
+									<Link
+										href="https://traefik.me"
+										className="text-primary"
+										target="_blank"
+									>
+										TraefikMe
+									</Link>
+									. We recommend using this for quick domain testing or if you
+									don't have a domain yet.
+								</div>
+							</div>
+						</li>
+						{/* <li className="flex flex-row items-center gap-4">
+							<div className="flex flex-col gap-2">
+								<div className="text-base font-bold">
+									2. Use Wildcard Domain
+								</div>
+								<div className="text-sm text-muted-foreground">
+									To use this option, you need to set up an 'A' record in your
+									domain provider. For example, create a record for
+									*.yourdomain.com.
+								</div>
+							</div>
+						</li> */}
+					</ul>
+					<div className="flex flex-row gap-4 w-full">
+						<GenerateTraefikMe applicationId={applicationId} />
+						{/* <GenerateWildCard applicationId={applicationId} /> */}
+					</div>
+				</div>
+			</DialogContent>
+		</Dialog>
 	);
 };
