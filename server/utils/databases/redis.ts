@@ -50,16 +50,18 @@ export const buildRedis = async (redis: RedisWithMounts) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				Command: ["/bin/sh"],
+				Args: [
+					"-c",
+					command ? command : `redis-server --requirepass ${databasePassword}`,
+				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
 			Resources: {
 				...resources,
+			},
+			Placement: {
+				Constraints: ["node.role==manager"],
 			},
 		},
 		Mode: {

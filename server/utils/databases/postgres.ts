@@ -63,6 +63,9 @@ export const buildPostgres = async (postgres: PostgresWithMounts) => {
 			Resources: {
 				...resources,
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {

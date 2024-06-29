@@ -134,15 +134,18 @@ export const updateCompose = async (
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
+	descriptionLog = "",
 }: {
 	composeId: string;
 	titleLog: string;
+	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
 	const admin = await findAdmin();
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
+		description: descriptionLog,
 	});
 
 	try {
@@ -170,14 +173,17 @@ export const deployCompose = async ({
 export const rebuildCompose = async ({
 	composeId,
 	titleLog = "Rebuild deployment",
+	descriptionLog = "",
 }: {
 	composeId: string;
 	titleLog: string;
+	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
+		description: descriptionLog,
 	});
 
 	try {

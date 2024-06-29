@@ -138,6 +138,7 @@ export const composeRouter = createTRPCRouter({
 				titleLog: "Manual deployment",
 				type: "deploy",
 				applicationType: "compose",
+				descriptionLog: "",
 			};
 			await myQueue.add(
 				"deployments",
@@ -156,6 +157,7 @@ export const composeRouter = createTRPCRouter({
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
 				applicationType: "compose",
+				descriptionLog: "",
 			};
 			await myQueue.add(
 				"deployments",

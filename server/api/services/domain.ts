@@ -1,9 +1,15 @@
 import { db } from "@/server/db";
-import { type apiCreateDomain, domains } from "@/server/db/schema";
+import {
+	type apiCreateDomain,
+	type apiFindDomainByApplication,
+	domains,
+} from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findApplicationById } from "./application";
 import { manageDomain } from "@/server/utils/traefik/domain";
+import { findAdmin } from "./admin";
+import { generateRandomDomain } from "@/templates/utils";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -29,6 +35,58 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 		await manageDomain(application, domain);
 	});
 };
+
+export const generateDomain = async (
+	input: typeof apiFindDomainByApplication._type,
+) => {
+	const application = await findApplicationById(input.applicationId);
+	const admin = await findAdmin();
+	const domain = await createDomain({
+		applicationId: application.applicationId,
+		host: generateRandomDomain({
+			serverIp: admin.serverIp || "",
+			projectName: application.appName,
+		}),
+		port: 3000,
+		certificateType: "none",
+		https: false,
+		path: "/",
+	});
+
+	return domain;
+};
+
+export const generateWildcard = async (
+	input: typeof apiFindDomainByApplication._type,
+) => {
+	const application = await findApplicationById(input.applicationId);
+	const admin = await findAdmin();
+
+	if (!admin.host) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "We need a host to generate a wildcard domain",
+		});
+	}
+	const domain = await createDomain({
+		applicationId: application.applicationId,
+		host: generateWildcardDomain(application.appName, admin.host || ""),
+		port: 3000,
+		certificateType: "none",
+		https: false,
+		path: "/",
+	});
+
+	return domain;
+};
+
+export const generateWildcardDomain = (
+	appName: string,
+	serverDomain: string,
+) => {
+	return `${appName}-${serverDomain}`;
+};
+
 export const findDomainById = async (domainId: string) => {
 	const domain = await db.query.domains.findFirst({
 		where: eq(domains.domainId, domainId),

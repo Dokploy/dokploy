@@ -76,8 +76,8 @@ export const ShowProjects = () => {
 						project?.compose.length;
 					return (
 						<div key={project.projectId} className="w-full lg:max-w-md">
-							<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
-								<Link href={`/dashboard/project/${project.projectId}`}>
+							<Link href={`/dashboard/project/${project.projectId}`}>
+								<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
 									<Button
 										className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
 										size="sm"
@@ -85,113 +85,122 @@ export const ShowProjects = () => {
 									>
 										<ExternalLinkIcon className="size-3.5" />
 									</Button>
-								</Link>
-								<CardHeader>
-									<CardTitle className="flex items-center justify-between gap-2">
-										<span className="flex flex-col gap-1.5">
-											<div className="flex items-center gap-2">
-												<BookIcon className="size-4 text-muted-foreground" />
-												<Link
-													className="text-base font-medium leading-none"
-													href={`/dashboard/project/${project.projectId}`}
-												>
-													{project.name}
-												</Link>
-											</div>
+									<CardHeader>
+										<CardTitle className="flex items-center justify-between gap-2">
+											<span className="flex flex-col gap-1.5">
+												<div className="flex items-center gap-2">
+													<BookIcon className="size-4 text-muted-foreground" />
+													<span className="text-base font-medium leading-none">
+														{project.name}
+													</span>
+												</div>
 
-											<span className="text-sm font-medium text-muted-foreground">
-												{project.description}
+												<span className="text-sm font-medium text-muted-foreground">
+													{project.description}
+												</span>
 											</span>
-										</span>
-										<div className="flex self-start space-x-1">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button variant="ghost" size="icon" className="px-2">
-														<MoreHorizontalIcon className="size-5" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent className="w-[200px] space-y-2">
-													<DropdownMenuLabel className="font-normal">
-														Actions
-													</DropdownMenuLabel>
+											<div className="flex self-start space-x-1">
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="px-2"
+														>
+															<MoreHorizontalIcon className="size-5" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent className="w-[200px] space-y-2">
+														<DropdownMenuLabel className="font-normal">
+															Actions
+														</DropdownMenuLabel>
 
-													<UpdateProject projectId={project.projectId} />
+														<div onClick={(e) => e.stopPropagation()}>
+															<UpdateProject projectId={project.projectId} />
+														</div>
 
-													{(auth?.rol === "admin" ||
-														user?.canDeleteProjects) && (
-														<AlertDialog>
-															<AlertDialogTrigger className="w-full">
-																<DropdownMenuItem
-																	className="w-full cursor-pointer  space-x-3"
-																	onSelect={(e) => e.preventDefault()}
-																>
-																	<TrashIcon className="size-4" />
-																	<span>Delete</span>
-																</DropdownMenuItem>
-															</AlertDialogTrigger>
-															<AlertDialogContent>
-																<AlertDialogHeader>
-																	<AlertDialogTitle>
-																		Are you sure to delete this project?
-																	</AlertDialogTitle>
-																	{!emptyServices ? (
-																		<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
-																			<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
-																			<span className="text-sm text-yellow-600 dark:text-yellow-400">
-																				You have active services, please delete
-																				them first
-																			</span>
-																		</div>
-																	) : (
-																		<AlertDialogDescription>
-																			This action cannot be undone
-																		</AlertDialogDescription>
-																	)}
-																</AlertDialogHeader>
-																<AlertDialogFooter>
-																	<AlertDialogCancel>Cancel</AlertDialogCancel>
-																	<AlertDialogAction
-																		disabled={!emptyServices}
-																		onClick={async () => {
-																			await mutateAsync({
-																				projectId: project.projectId,
-																			})
-																				.then(() => {
-																					toast.success(
-																						"Project delete succesfully",
-																					);
-																				})
-																				.catch(() => {
-																					toast.error(
-																						"Error to delete this project",
-																					);
-																				})
-																				.finally(() => {
-																					utils.project.all.invalidate();
-																				});
-																		}}
-																	>
-																		Delete
-																	</AlertDialogAction>
-																</AlertDialogFooter>
-															</AlertDialogContent>
-														</AlertDialog>
-													)}
-												</DropdownMenuContent>
-											</DropdownMenu>
+														<div onClick={(e) => e.stopPropagation()}>
+															{(auth?.rol === "admin" ||
+																user?.canDeleteProjects) && (
+																<AlertDialog>
+																	<AlertDialogTrigger className="w-full">
+																		<DropdownMenuItem
+																			className="w-full cursor-pointer  space-x-3"
+																			onSelect={(e) => e.preventDefault()}
+																		>
+																			<TrashIcon className="size-4" />
+																			<span>Delete</span>
+																		</DropdownMenuItem>
+																	</AlertDialogTrigger>
+																	<AlertDialogContent>
+																		<AlertDialogHeader>
+																			<AlertDialogTitle>
+																				Are you sure to delete this project?
+																			</AlertDialogTitle>
+																			{!emptyServices ? (
+																				<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
+																					<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
+																					<span className="text-sm text-yellow-600 dark:text-yellow-400">
+																						You have active services, please
+																						delete them first
+																					</span>
+																				</div>
+																			) : (
+																				<AlertDialogDescription>
+																					This action cannot be undone
+																				</AlertDialogDescription>
+																			)}
+																		</AlertDialogHeader>
+																		<AlertDialogFooter>
+																			<AlertDialogCancel>
+																				Cancel
+																			</AlertDialogCancel>
+																			<AlertDialogAction
+																				disabled={!emptyServices}
+																				onClick={async () => {
+																					await mutateAsync({
+																						projectId: project.projectId,
+																					})
+																						.then(() => {
+																							toast.success(
+																								"Project delete succesfully",
+																							);
+																						})
+																						.catch(() => {
+																							toast.error(
+																								"Error to delete this project",
+																							);
+																						})
+																						.finally(() => {
+																							utils.project.all.invalidate();
+																						});
+																				}}
+																			>
+																				Delete
+																			</AlertDialogAction>
+																		</AlertDialogFooter>
+																	</AlertDialogContent>
+																</AlertDialog>
+															)}
+														</div>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</div>
+										</CardTitle>
+									</CardHeader>
+									<CardFooter className="pt-4">
+										<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+											<DateTooltip date={project.createdAt}>
+												Created
+											</DateTooltip>
+											<span>
+												{totalServices}{" "}
+												{totalServices === 1 ? "service" : "services"}
+											</span>
 										</div>
-									</CardTitle>
-								</CardHeader>
-								<CardFooter className="pt-4">
-									<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
-										<DateTooltip date={project.createdAt}>Created</DateTooltip>
-										<span>
-											{totalServices}{" "}
-											{totalServices === 1 ? "service" : "services"}
-										</span>
-									</div>
-								</CardFooter>
-							</Card>
+									</CardFooter>
+								</Card>
+							</Link>
 						</div>
 					);
 				})}

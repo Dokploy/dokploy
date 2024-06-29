@@ -141,7 +141,13 @@ export const DockerMonitoring = ({
 			network: data.network[data.network.length - 1] ?? currentData.network,
 			disk: data.disk[data.disk.length - 1] ?? currentData.disk,
 		});
-		setAcummulativeData(data);
+		setAcummulativeData({
+			block: data?.block || [],
+			cpu: data?.cpu || [],
+			disk: data?.disk || [],
+			memory: data?.memory || [],
+			network: data?.network || [],
+		});
 	}, [data]);
 
 	useEffect(() => {

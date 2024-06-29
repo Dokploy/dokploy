@@ -6,15 +6,32 @@ import type { GetServerSidePropsContext, NextPage } from "next";
 import dynamic from "next/dynamic";
 import "swagger-ui-react/swagger-ui.css";
 import superjson from "superjson";
+import { useEffect, useState } from "react";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 
 const Home: NextPage = () => {
 	const { data } = api.settings.getOpenApiDocument.useQuery();
+	const [spec, setSpec] = useState({});
+
+	useEffect(() => {
+		// Esto solo se ejecutará en el cliente
+		if (data) {
+			const protocolAndHost = `${window.location.protocol}//${window.location.host}/api`;
+			const newSpec = {
+				...data,
+				servers: [{ url: protocolAndHost }],
+				externalDocs: {
+					url: `${protocolAndHost}/settings.getOpenApiDocument`,
+				},
+			};
+			setSpec(newSpec);
+		}
+	}, [data]);
 
 	return (
 		<div className="h-screen bg-white">
-			<SwaggerUI spec={data || {}} />
+			<SwaggerUI spec={spec} />
 		</div>
 	);
 };

@@ -63,6 +63,9 @@ export const buildMariadb = async (mariadb: MariadbWithMounts) => {
 			Resources: {
 				...resources,
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {
