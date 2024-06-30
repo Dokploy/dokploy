@@ -152,4 +152,19 @@ export const templates: TemplateData[] = [
 		tags: ["cms"],
 		load: () => import("./wordpress/index").then((m) => m.generate),
 	},
+	{
+		id: "odoo",
+		name: "Odoo",
+		version: "16.0",
+		description:
+			"Odoo is a free and open source business management software that helps you manage your company's operations.",
+		logo: "odoo.png",
+		links: {
+			github: "https://github.com/odoo/odoo",
+			website: "https://odoo.com/",
+			docs: "https://www.odoo.com/documentation/",
+		},
+		tags: ["cms"],
+		load: () => import("./odoo/index").then((m) => m.generate),
+	},
 ];
