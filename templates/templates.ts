@@ -182,4 +182,19 @@ export const templates: TemplateData[] = [
 		tags: ["cms"],
 		load: () => import("./appsmith/index").then((m) => m.generate),
 	},
+	{
+		id: "excalidraw",
+		name: "Excalidraw",
+		version: "latest",
+		description:
+			"Excalidraw is a free and open source online diagramming tool that lets you easily create and share beautiful diagrams.",
+		logo: "excalidraw.jpg",
+		links: {
+			github: "https://github.com/excalidraw/excalidraw",
+			website: "https://excalidraw.com/",
+			docs: "https://docs.excalidraw.com/",
+		},
+		tags: ["drawing"],
+		load: () => import("./excalidraw/index").then((m) => m.generate),
+	},
 ];
