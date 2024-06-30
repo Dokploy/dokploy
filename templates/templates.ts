@@ -63,4 +63,20 @@ export const templates: TemplateData[] = [
 		tags: ["document-signing"],
 		load: () => import("./documenso/index").then((m) => m.generate),
 	},
+	{
+		id: "nocodb",
+		name: "NocoDB",
+		version: "0.250.2",
+		description:
+			"NocoDB is an opensource Airtable alternative that turns any MySQL, PostgreSQL, SQL Server, SQLite & MariaDB into a smart spreadsheet.",
+
+		links: {
+			github: "https://github.com/nocodb/nocodb",
+			website: "https://nocodb.com/",
+			docs: "https://docs.nocodb.com/",
+		},
+		logo: "nocodb.png",
+		tags: ["database", "spreadsheet", "low-code", 'nocode'],
+		load: () => import("./nocodb/index").then((m) => m.generate),
+	},
 ];
