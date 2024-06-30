@@ -6,7 +6,7 @@ services:
     image: grafana/grafana-enterprise:9.5.20
     restart: unless-stopped
     ports:
-     - '3000'
+     - ${GRAFANA_PORT}
     labels:
       - traefik.enable=true
       - traefik.http.routers.${HASH}.rule=Host(`${GRAFANA_HOST}`)

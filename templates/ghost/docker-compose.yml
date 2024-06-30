@@ -7,7 +7,7 @@ services:
     networks:
       - dokploy-network
     ports:
-      - 2368
+      - ${GHOST_PORT}
     environment:
       database__client: mysql
       database__connection__host: db

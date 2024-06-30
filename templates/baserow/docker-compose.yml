@@ -7,7 +7,7 @@ services:
     environment:
       BASEROW_PUBLIC_URL: "http://${BASEROW_HOST}"
     ports:
-      - "80"
+      - ${BASEROW_PORT}
     labels:
       - traefik.enable=true
       - traefik.http.routers.${HASH}.rule=Host(`${BASEROW_HOST}`)

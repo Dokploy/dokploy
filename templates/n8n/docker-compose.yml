@@ -6,7 +6,7 @@ services:
     networks:
       - dokploy-network
     ports:
-      - "5678"
+      - ${N8N_PORT}
     labels:
       - traefik.enable=true
       - traefik.http.routers.${HASH}.rule=Host(`${N8N_HOST}`)

@@ -6,7 +6,7 @@ services:
     image: louislam/uptime-kuma:1
     restart: always
     ports:
-      - "3001"
+      - ${UPTIME_KUMA_PORT}
     volumes:
       - uptime-kuma-data:/app/data
     labels:
