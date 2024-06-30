@@ -34,7 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "calcom",
 		name: "Calcom",
-		version: "2.7.6",
+		version: "v2.7.6",
 		description:
 			"Calcom is a open source alternative to Calendly that allows to create scheduling and booking services.",
 
@@ -46,5 +46,21 @@ export const templates: TemplateData[] = [
 		logo: "calcom.jpg",
 		tags: ["scheduling", "booking"],
 		load: () => import("./calcom/index").then((m) => m.generate),
+	},
+    {
+		id: "documenso",
+		name: "Documenso",
+		version: "v1.5.6",
+		description:
+			"Documenso is the open source alternative to DocuSign for signing documents digitally",
+
+		links: {
+			github: "https://github.com/documenso/documenso",
+			website: "https://documenso.com/",
+			docs: "https://documenso.com/docs",
+		},
+		logo: "documenso.png",
+		tags: ["document-signing"],
+		load: () => import("./documenso/index").then((m) => m.generate),
 	},
 ];
