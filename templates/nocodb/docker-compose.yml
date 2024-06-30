@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   nocodb:
-    image: nocodb/nocodb:latest
+    image: nocodb/nocodb:0.251.0
     restart: always
     networks:
       - dokploy-network
@@ -19,7 +19,7 @@ services:
       - nc_data:/usr/app/data
 
   root_db:
-    image: postgres
+    image: postgres:14.7
     restart: always
     networks:
       - dokploy-network
