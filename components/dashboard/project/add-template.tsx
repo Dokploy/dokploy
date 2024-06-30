@@ -54,7 +54,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl p-0">
-				<div className="sticky top-0 z-10 flex flex-col gap-4 bg-black p-6 border-b">
+				<div className="sticky top-0 z-10 flex flex-col gap-4 dark:bg-black p-6 border-b">
 					<DialogHeader>
 						<DialogTitle>Create Template</DialogTitle>
 						<DialogDescription>
