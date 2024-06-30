@@ -18,7 +18,7 @@ export function generate(schema: Schema): Template {
 		"CALCOM_PORT=3000",
 		`HASH=${mainServiceHash}`,
         `NEXTAUTH_SECRET=${nextAuthSecret}`,
-        `CALCOM_ENCRYPTION_KEY=${calcomEncryptionKey}`,
+        `CALENDSO_ENCRYPTION_KEY=${calcomEncryptionKey}`,
 	];
 
 	return {
