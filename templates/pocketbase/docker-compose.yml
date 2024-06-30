@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.8"
 services:
   pocketbase:
     image: spectado/pocketbase:0.22.12

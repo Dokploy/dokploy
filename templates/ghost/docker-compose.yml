@@ -1,5 +1,4 @@
-version: '3.1'
-
+version: "3.8"
 services:
 
   ghost:
@@ -10,16 +9,12 @@ services:
     ports:
       - 2368
     environment:
-      # see https://ghost.org/docs/config/#configuration-options
       database__client: mysql
       database__connection__host: db
       database__connection__user: root
       database__connection__password: example
       database__connection__database: ghost
-      # this url value is just an example, and is likely wrong for your environment!
       url: http://${GHOST_HOST}
-      # contrary to the default mentioned in the linked documentation, this image defaults to NODE_ENV=production (so development mode needs to be explicitly specified if desired)
-      #NODE_ENV: development
     labels:
       - traefik.enable=true
       - traefik.http.routers.${HASH}.rule=Host(`${GHOST_HOST}`)

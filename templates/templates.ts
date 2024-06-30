@@ -167,4 +167,19 @@ export const templates: TemplateData[] = [
 		tags: ["cms"],
 		load: () => import("./odoo/index").then((m) => m.generate),
 	},
+	{
+		id: "appsmith",
+		name: "Appsmith",
+		version: "v1.29",
+		description:
+			"Appsmith is a free and open source platform for building internal tools and applications.",
+		logo: "appsmith.png",
+		links: {
+			github: "https://github.com/appsmithorg/appsmith",
+			website: "https://appsmith.com/",
+			docs: "https://docs.appsmith.com/",
+		},
+		tags: ["cms"],
+		load: () => import("./appsmith/index").then((m) => m.generate),
+	},
 ];

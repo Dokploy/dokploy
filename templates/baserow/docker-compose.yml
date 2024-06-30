@@ -1,4 +1,4 @@
-version: "3.4"
+version: "3.8"
 services:
   baserow:
     image: baserow/baserow:1.25.2

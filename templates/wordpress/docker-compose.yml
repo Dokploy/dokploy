@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   wordpress:
     image: wordpress:5.8.3

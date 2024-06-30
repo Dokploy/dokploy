@@ -1,7 +1,6 @@
+version: "3.8"
 services:
   plausible_db:
-    # Plausible v2.1.0 was tested against PostgreSQL versions 15 and 16
-    # https://github.com/plausible/analytics/blob/v2.1.0/.github/workflows/elixir.yml#L21-L32
     image: postgres:16-alpine
     restart: always
     networks:

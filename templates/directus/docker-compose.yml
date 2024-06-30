@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
   database:
     image: postgis/postgis:13-master
