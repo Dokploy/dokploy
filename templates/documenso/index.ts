@@ -4,6 +4,7 @@ import {
 	type Template,
 	type Schema,
 	generateBase64,
+    generatePassword,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
@@ -11,8 +12,8 @@ export function generate(schema: Schema): Template {
 	const randomDomain = generateRandomDomain(schema);
 
 	const nextAuthSecret = generateBase64(32);
-	const documensoEncryptionKey = generateBase64(32);
-	const documensoSecondaryEncryptionKey = generateBase64(32);
+	const documensoEncryptionKey = generatePassword(32);
+	const documensoSecondaryEncryptionKey = generatePassword(64);
 
 	const envs = [
 		`DOCUMENSO_HOST=${randomDomain}`,
@@ -20,7 +21,7 @@ export function generate(schema: Schema): Template {
 		`HASH=${mainServiceHash}`,
 		`NEXTAUTH_SECRET=${nextAuthSecret}`,
 		`NEXT_PRIVATE_ENCRYPTION_KEY=${documensoEncryptionKey}`,
-		`NEXT_PRIVATE_SECONDARY_ENCRYPTION_KEY=${documensoSecondaryEncryptionKey}`,
+		`NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=${documensoSecondaryEncryptionKey}`,
 	];
 
 	return {
