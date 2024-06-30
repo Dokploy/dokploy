@@ -137,4 +137,19 @@ export const templates: TemplateData[] = [
 		tags: ["automation"],
 		load: () => import("./n8n/index").then((m) => m.generate),
 	},
+	{
+		id: "wordpress",
+		name: "Wordpress",
+		version: "5.8.3",
+		description:
+			"Wordpress is a free and open source content management system (CMS) for publishing and managing websites.",
+		logo: "wordpress.png",
+		links: {
+			github: "https://github.com/WordPress/WordPress",
+			website: "https://wordpress.org/",
+			docs: "https://wordpress.org/documentation/",
+		},
+		tags: ["cms"],
+		load: () => import("./wordpress/index").then((m) => m.generate),
+	},
 ];
