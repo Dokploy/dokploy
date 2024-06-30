@@ -1,0 +1,46 @@
+version: '3.1'
+
+services:
+
+  ghost:
+    image: ghost:5-alpine
+    restart: always
+    networks:
+      - dokploy-network
+    ports:
+      - 2368
+    environment:
+      # see https://ghost.org/docs/config/#configuration-options
+      database__client: mysql
+      database__connection__host: db
+      database__connection__user: root
+      database__connection__password: example
+      database__connection__database: ghost
+      # this url value is just an example, and is likely wrong for your environment!
+      url: http://${GHOST_HOST}
+      # contrary to the default mentioned in the linked documentation, this image defaults to NODE_ENV=production (so development mode needs to be explicitly specified if desired)
+      #NODE_ENV: development
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.${HASH}.rule=Host(`${GHOST_HOST}`)
+      - traefik.http.services.${HASH}.loadbalancer.server.port=${GHOST_PORT}
+    volumes:
+      - ghost:/var/lib/ghost/content
+
+  db:
+    image: mysql:8.0
+    restart: always
+    networks:
+      - dokploy-network
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes:
+      - db:/var/lib/mysql
+
+volumes:
+  ghost:
+  db:
+  
+networks:
+  dokploy-network:
+    external: true
