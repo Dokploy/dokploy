@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import jsyaml from "js-yaml";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -58,15 +59,13 @@ export const validateAndFormatYAML = (yamlText: string) => {
 };
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
-	const [open, setOpen] = useState(false);
-	const { data, refetch } = api.application.readTraefikConfig.useQuery(
-		{
-			applicationId,
-		},
-		{ enabled: !!applicationId },
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, isLoading, refetch } = api.application.readTraefikConfig.useQuery(
+		{ applicationId },
+		{ enabled: isOpen },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
+	const { mutateAsync, error, isError } =
 		api.application.updateTraefikConfig.useMutation();
 
 	const form = useForm<UpdateTraefikConfig>({
@@ -77,12 +76,12 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				traefikConfig: data || "",
 			});
 		}
-	}, [data]);
+	}, [data, isOpen, form.reset]);
 
 	const onSubmit = async (data: UpdateTraefikConfig) => {
 		const { valid, error } = validateAndFormatYAML(data.traefikConfig);
@@ -101,8 +100,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			.then(async () => {
 				toast.success("Traefik config Updated");
 				refetch();
-				setOpen(false);
-				form.reset();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the traefik config");
@@ -110,18 +108,18 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(open) => {
-			setOpen(open)
-			if (!open) {
-				form.reset();
-			}
-		}}>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update traefik config</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Update traefik config</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -167,7 +165,7 @@ routers:
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={form.formState.isSubmitting}
 							form="hook-form-update-traefik-config"
 							type="submit"
 						>

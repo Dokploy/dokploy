@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { PenBoxIcon, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -50,17 +50,13 @@ interface Props {
 
 export const UpdatePort = ({ portId }: Props) => {
 	const utils = api.useUtils();
-	const { data } = api.port.one.useQuery(
-		{
-			portId,
-		},
-		{
-			enabled: !!portId,
-		},
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, isLoading } = api.port.one.useQuery(
+		{ portId },
+		{ enabled: isOpen },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.port.update.useMutation();
+	const { mutateAsync, error, isError } = api.port.update.useMutation();
 
 	const form = useForm<UpdatePort>({
 		defaultValues: {},
@@ -68,14 +64,14 @@ export const UpdatePort = ({ portId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				publishedPort: data.publishedPort,
 				targetPort: data.targetPort,
 				protocol: data.protocol,
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [form.reset, data, isOpen]);
 
 	const onSubmit = async (data: UpdatePort) => {
 		await mutateAsync({
@@ -89,6 +85,7 @@ export const UpdatePort = ({ portId }: Props) => {
 				await utils.application.one.invalidate({
 					applicationId: response?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the port");
@@ -96,15 +93,20 @@ export const UpdatePort = ({ portId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
+				<Button variant="ghost" isLoading={form.formState.isSubmitting}>
 					<PenBoxIcon className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Update</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Update</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>Update the port</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -208,7 +210,7 @@ export const UpdatePort = ({ portId }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={form.formState.isSubmitting}
 							form="hook-form-update-redirect"
 							type="submit"
 						>

@@ -20,10 +20,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { SquarePen } from "lucide-react";
+import { SquarePen, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -42,15 +42,11 @@ interface Props {
 
 export const UpdateCompose = ({ composeId }: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
-		api.compose.update.useMutation();
-	const { data } = api.compose.one.useQuery(
-		{
-			composeId,
-		},
-		{
-			enabled: !!composeId,
-		},
+	const [isOpen, setIsOpen] = useState(false);
+	const { mutateAsync, error, isError } = api.compose.update.useMutation();
+	const { data, isLoading } = api.compose.one.useQuery(
+		{ composeId },
+		{ enabled: isOpen },
 	);
 	const form = useForm<UpdateCompose>({
 		defaultValues: {
@@ -60,13 +56,13 @@ export const UpdateCompose = ({ composeId }: Props) => {
 		resolver: zodResolver(updateComposeSchema),
 	});
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				description: data.description ?? "",
 				name: data.name,
 			});
 		}
-	}, [data, form, form.reset]);
+	}, [data, isOpen, form.reset]);
 
 	const onSubmit = async (formData: UpdateCompose) => {
 		await mutateAsync({
@@ -74,11 +70,12 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			composeId: composeId,
 			description: formData.description || "",
 		})
-			.then(() => {
+			.then(async () => {
 				toast.success("Compose updated succesfully");
-				utils.compose.one.invalidate({
+				await utils.compose.one.invalidate({
 					composeId: composeId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the Compose");
@@ -87,7 +84,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<SquarePen className="size-4 text-muted-foreground" />
@@ -95,7 +92,12 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Compose</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Modify Compose</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>Update the compose data</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -142,7 +144,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 								/>
 								<DialogFooter>
 									<Button
-										isLoading={isLoading}
+										isLoading={form.formState.isSubmitting}
 										form="hook-form-update-compose"
 										type="submit"
 									>

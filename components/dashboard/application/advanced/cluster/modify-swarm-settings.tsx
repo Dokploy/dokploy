@@ -20,11 +20,11 @@ import {
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { HelpCircle, Settings } from "lucide-react";
+import { HelpCircle, Settings, Loader2 } from "lucide-react";
 import {
 	Tooltip,
 	TooltipContent,
@@ -185,17 +185,13 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, isLoading } = api.application.one.useQuery(
+		{ applicationId },
+		{ enabled: isOpen },
 	);
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.application.update.useMutation();
+	const { mutateAsync, isError, error } = api.application.update.useMutation();
 
 	const form = useForm<AddSwarmSettings>({
 		defaultValues: {
@@ -212,7 +208,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				healthCheckSwarm: data.healthCheckSwarm
 					? JSON.stringify(data.healthCheckSwarm, null, 2)
@@ -240,7 +236,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					: null,
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [form.reset, data, isOpen]);
 
 	const onSubmit = async (data: AddSwarmSettings) => {
 		await mutateAsync({
@@ -254,16 +250,17 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
 		})
-			.then(async () => {
+			.then(() => {
 				toast.success("Swarm settings updated");
-				refetch();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the swarm settings");
 			});
 	};
+
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="cursor-pointer w-fit">
 					<Settings className="size-4 text-muted-foreground" />
@@ -272,7 +269,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
 				<DialogHeader className="p-6">
-					<DialogTitle>Swarm Settings</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Swarm Settings</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>
 						Update certain settings using a json object.
 					</DialogDescription>
@@ -749,7 +751,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
 							<Button
-								isLoading={isLoading}
+								isLoading={form.formState.isSubmitting}
 								form="hook-form-add-permissions"
 								type="submit"
 							>

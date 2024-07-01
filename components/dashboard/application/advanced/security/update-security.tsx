@@ -20,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { PenBoxIcon, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -39,17 +39,13 @@ interface Props {
 
 export const UpdateSecurity = ({ securityId }: Props) => {
 	const utils = api.useUtils();
-	const { data } = api.security.one.useQuery(
-		{
-			securityId,
-		},
-		{
-			enabled: !!securityId,
-		},
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, isLoading } = api.security.one.useQuery(
+		{ securityId },
+		{ enabled: isOpen },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.security.update.useMutation();
+	const { mutateAsync, error, isError } = api.security.update.useMutation();
 
 	const form = useForm<UpdateSecurity>({
 		defaultValues: {
@@ -60,13 +56,13 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				username: data.username || "",
 				password: data.password || "",
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [isOpen, form.reset, data]);
 
 	const onSubmit = async (data: UpdateSecurity) => {
 		await mutateAsync({
@@ -79,6 +75,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 				await utils.application.one.invalidate({
 					applicationId: response?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the security");
@@ -86,7 +83,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<PenBoxIcon className="size-4  text-muted-foreground" />
@@ -94,7 +91,12 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Update</DialogTitle>
+					<DialogTitle className="flex items-center space-x-2">
+						<div>Update</div>
+						{isLoading && (
+							<Loader2 className="inline-block w-4 h-4 animate-spin" />
+						)}
+					</DialogTitle>
 					<DialogDescription>Update the security</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -139,7 +141,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={form.formState.isSubmitting}
 							form="hook-form-update-security"
 							type="submit"
 						>

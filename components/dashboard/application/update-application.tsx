@@ -20,10 +20,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { SquarePen, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -42,31 +42,28 @@ interface Props {
 
 export const UpdateApplication = ({ applicationId }: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
+	const [isOpen, setIsOpen] = useState(false);
+	const { mutateAsync, error, isError } =
 		api.application.update.useMutation();
-	const { data } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
+	const { data, isLoading } = api.application.one.useQuery(
+		{ applicationId },
+		{ enabled: isOpen },
 	);
 	const form = useForm<UpdateApplication>({
 		defaultValues: {
-			description: data?.description ?? "",
-			name: data?.name ?? "",
+			description: "",
+			name: "",
 		},
 		resolver: zodResolver(updateApplicationSchema),
 	});
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				description: data.description ?? "",
 				name: data.name,
 			});
 		}
-	}, [data, form, form.reset]);
+	}, [data, form.reset, isOpen]);
 
 	const onSubmit = async (formData: UpdateApplication) => {
 		await mutateAsync({
@@ -74,11 +71,12 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			applicationId: applicationId,
 			description: formData.description || "",
 		})
-			.then(() => {
+			.then(async () => {
 				toast.success("Application updated succesfully");
-				utils.application.one.invalidate({
+				await utils.application.one.invalidate({
 					applicationId: applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the application");
@@ -87,7 +85,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<SquarePen className="size-4 text-muted-foreground" />
@@ -95,7 +93,10 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Application</DialogTitle>
+				<DialogTitle className="flex items-center space-x-2">
+						<div>Modify Application</div>
+						 {isLoading && <Loader2 className="inline-block w-4 h-4 animate-spin" />}
+					</DialogTitle>
 					<DialogDescription>Update the application data</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -142,7 +143,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 								/>
 								<DialogFooter>
 									<Button
-										isLoading={isLoading}
+										isLoading={form.formState.isSubmitting}
 										form="hook-form-update-application"
 										type="submit"
 									>

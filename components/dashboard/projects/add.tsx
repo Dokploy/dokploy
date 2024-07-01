@@ -51,11 +51,10 @@ export const AddProject = () => {
 	});
 
 	useEffect(() => {
-		form.reset({
-			description: "",
-			name: "",
-		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (isOpen) {
+			form.reset();
+		}
+	}, [isOpen, form.reset]);
 
 	const onSubmit = async (data: AddProject) => {
 		await mutateAsync({
@@ -63,8 +62,8 @@ export const AddProject = () => {
 			description: data.description,
 		})
 			.then(async (data) => {
-				await utils.project.all.invalidate();
 				toast.success("Project Created");
+				await utils.project.all.invalidate();
 				setIsOpen(false);
 				router.push(`/dashboard/project/${data.projectId}`);
 			})

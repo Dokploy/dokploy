@@ -54,7 +54,7 @@ interface Props {
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-	const [visible, setVisible] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
 	const slug = slugify(projectName);
 
 	const { mutateAsync, isLoading, error, isError } =
@@ -78,11 +78,9 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Service Created");
+				await utils.project.one.invalidate({ projectId });
+				setIsOpen(false);
 				form.reset();
-				setVisible(false);
-				await utils.project.one.invalidate({
-					projectId,
-				});
 			})
 			.catch((e) => {
 				toast.error("Error to create the service");
@@ -90,7 +88,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 	};
 
 	return (
-		<Dialog open={visible} onOpenChange={setVisible}>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"

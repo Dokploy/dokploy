@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { PlusIcon } from "lucide-react";
@@ -43,9 +43,9 @@ export const AddSecurity = ({
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.security.create.useMutation();
+	const { mutateAsync, error, isError } = api.security.create.useMutation();
 
 	const form = useForm<AddSecurity>({
 		defaultValues: {
@@ -56,8 +56,10 @@ export const AddSecurity = ({
 	});
 
 	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (isOpen) {
+			form.reset();
+		}
+	}, [isOpen, form.reset]);
 
 	const onSubmit = async (data: AddSecurity) => {
 		await mutateAsync({
@@ -72,6 +74,7 @@ export const AddSecurity = ({
 				await utils.application.readTraefikConfig.invalidate({
 					applicationId,
 				});
+				form.reset();
 			})
 			.catch(() => {
 				toast.error("Error to create the security");
@@ -79,7 +82,7 @@ export const AddSecurity = ({
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
@@ -132,7 +135,7 @@ export const AddSecurity = ({
 
 					<DialogFooter>
 						<Button
-							isLoading={isLoading}
+							isLoading={form.formState.isSubmitting}
 							form="hook-form-add-security"
 							type="submit"
 						>
