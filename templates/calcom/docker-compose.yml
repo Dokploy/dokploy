@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,8 +16,8 @@ services:
     depends_on:
       - postgres
     environment:
-      - NEXTAUTH_SECRET=asklmdaklsmdklasmdklasd
-      - CALENDSO_ENCRYPTION_KEY=asklmdaklsmdklasmdklasd
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - CALENDSO_ENCRYPTION_KEY=${CALENDSO_ENCRYPTION_KEY}
       - DATABASE_URL=postgres://postgres:password@postgres:5432/db
       - NEXT_PUBLIC_WEBAPP_URL=http://${CALCOM_HOST}
       - NEXTAUTH_URL=http://${CALCOM_HOST}/api/auth

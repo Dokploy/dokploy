@@ -1,24 +1,25 @@
+// EXAMPLE
 import {
 	generateHash,
 	generateRandomDomain,
+	generateBase64,
 	type Template,
 	type Schema,
-    generateBase64,
 } from "../utils";
 
-// https://cal.com/
+
 export function generate(schema: Schema): Template {
+
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
-    const calcomEncryptionKey = generateBase64(32);
-    const nextAuthSecret = generateBase64(32);
+	const secretBase = generateBase64(64);
+	const toptKeyBase = generateBase64(32);
 
 	const envs = [
-		`CALCOM_HOST=${randomDomain}`,
-		"CALCOM_PORT=3000",
+		`NOCODB_HOST=${randomDomain}`,
+		"NOCODB_PORT=8000",
+		`NC_AUTH_JWT_SECRET=${secretBase}`,
 		`HASH=${mainServiceHash}`,
-        `NEXTAUTH_SECRET=${nextAuthSecret}`,
-        `CALENDSO_ENCRYPTION_KEY=${calcomEncryptionKey}`,
 	];
 
 	return {
