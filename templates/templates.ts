@@ -304,4 +304,18 @@ export const templates: TemplateData[] = [
 		tags: ["database", "dashboard"],
 		load: () => import("./metabase/index").then((m) => m.generate),
 	},
+	{
+		id: "glitchtip",
+		name: "Glitchtip",
+		version: "v4.0",
+		description: "Glitchtip is simple, open source error tracking",
+		logo: "glitchtip.png",
+		links: {
+			github: "https://github.com/glitchtip/glitchtip",
+			website: "https://glitchtip.com/",
+			docs: "https://glitchtip.com/documentation",
+		},
+		tags: ["hosting"],
+		load: () => import("./glitchtip/index").then((m) => m.generate),
+	},
 ];
