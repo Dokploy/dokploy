@@ -229,4 +229,49 @@ export const templates: TemplateData[] = [
 		tags: ["database", "spreadsheet", "low-code", "nocode"],
 		load: () => import("./nocodb/index").then((m) => m.generate),
 	},
+	{
+		id: "meilisearch",
+		name: "Meilisearch",
+		version: "v1.8.3",
+		description:
+			"Meilisearch is a free and open-source search engine that allows you to easily add search functionality to your web applications.",
+		logo: "meilisearch.png",
+		links: {
+			github: "https://github.com/meilisearch/meilisearch",
+			website: "https://www.meilisearch.com/",
+			docs: "https://docs.meilisearch.com/",
+		},
+		tags: ["search"],
+		load: () => import("./meilisearch/index").then((m) => m.generate),
+	},
+	{
+		id: "phpmyadmin",
+		name: "Phpmyadmin",
+		version: "5.2.1",
+		description:
+			"Phpmyadmin is a free and open-source web interface for MySQL and MariaDB that allows you to manage your databases.",
+		logo: "phpmyadmin.png",
+		links: {
+			github: "https://github.com/phpmyadmin/phpmyadmin",
+			website: "https://www.phpmyadmin.net/",
+			docs: "https://www.phpmyadmin.net/docs/",
+		},
+		tags: ["database"],
+		load: () => import("./phpmyadmin/index").then((m) => m.generate),
+	},
+	{
+		id: "rocketchat",
+		name: "Rocketchat",
+		version: "6.9.2",
+		description:
+			"Rocket.Chat is a free and open-source web chat platform that allows you to build and manage your own chat applications.",
+		logo: "rocketchat.png",
+		links: {
+			github: "https://github.com/RocketChat/Rocket.Chat",
+			website: "https://rocket.chat/",
+			docs: "https://rocket.chat/docs/",
+		},
+		tags: ["chat"],
+		load: () => import("./rocketchat/index").then((m) => m.generate),
+	},
 ];
