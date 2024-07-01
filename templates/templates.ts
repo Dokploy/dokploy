@@ -274,4 +274,19 @@ export const templates: TemplateData[] = [
 		tags: ["chat"],
 		load: () => import("./rocketchat/index").then((m) => m.generate),
 	},
+	{
+		id: "minio",
+		name: "Minio",
+		description:
+			"Minio is an open source object storage server compatible with Amazon S3 cloud storage service.",
+		logo: "minio.png",
+		version: "latest",
+		links: {
+			github: "https://github.com/minio/minio",
+			website: "https://minio.io/",
+			docs: "https://docs.minio.io/",
+		},
+		tags: ["storage"],
+		load: () => import("./minio/index").then((m) => m.generate),
+	},
 ];
