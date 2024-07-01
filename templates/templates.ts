@@ -289,4 +289,19 @@ export const templates: TemplateData[] = [
 		tags: ["storage"],
 		load: () => import("./minio/index").then((m) => m.generate),
 	},
+	{
+		id: "metabase",
+		name: "Metabase",
+		version: "v0.50.8",
+		description:
+			"Metabase is an open source business intelligence tool that allows you to ask questions and visualize data.",
+		logo: "metabase.png",
+		links: {
+			github: "https://github.com/metabase/metabase",
+			website: "https://www.metabase.com/",
+			docs: "https://www.metabase.com/docs/",
+		},
+		tags: ["database", "dashboard"],
+		load: () => import("./metabase/index").then((m) => m.generate),
+	},
 ];
