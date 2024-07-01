@@ -62,11 +62,11 @@ export const StopCompose = ({ composeId }: Props) => {
 											toast.success("Compose rebuild succesfully");
 										})
 										.catch(() => {
-											toast.error("Error to rebuild the compose");
+											toast.error("Error to stop the compose");
 										});
 								})
 								.catch(() => {
-									toast.error("Error to rebuild the compose");
+									toast.error("Error to stop the compose");
 								});
 						}}
 					>

@@ -10,8 +10,8 @@ export function generate(schema: Schema): Template {
 	const randomDomain = generateRandomDomain(schema);
 
 	const envs = [
-		`POCKETBASE_HOST=${randomDomain}`,
-		"POCKETBASE_PORT=80",
+		`ROCKETCHAT_HOST=${randomDomain}`,
+		"ROCKETCHAT_PORT=3000",
 		`HASH=${mainServiceHash}`,
 	];
 

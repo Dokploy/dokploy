@@ -8,10 +8,9 @@ import {
 export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
-
 	const envs = [
-		`POCKETBASE_HOST=${randomDomain}`,
-		"POCKETBASE_PORT=80",
+		`ODOO_HOST=${randomDomain}`,
+		"ODOO_PORT=8069",
 		`HASH=${mainServiceHash}`,
 	];
 

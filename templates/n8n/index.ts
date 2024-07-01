@@ -8,11 +8,11 @@ import {
 export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
-
 	const envs = [
-		`POCKETBASE_HOST=${randomDomain}`,
-		"POCKETBASE_PORT=80",
+		`N8N_HOST=${randomDomain}`,
+		"N8N_PORT=5678",
 		`HASH=${mainServiceHash}`,
+		"GENERIC_TIMEZONE=Europe/Berlin",
 	];
 
 	return {

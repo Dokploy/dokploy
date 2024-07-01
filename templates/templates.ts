@@ -47,7 +47,157 @@ export const templates: TemplateData[] = [
 		tags: ["scheduling", "booking"],
 		load: () => import("./calcom/index").then((m) => m.generate),
 	},
-    {
+	{
+		id: "grafana",
+		name: "Grafana",
+		version: "9.5.20",
+		description:
+			"Grafana is an open source platform for data visualization and monitoring.",
+		logo: "grafana.svg",
+		links: {
+			github: "https://github.com/grafana/grafana",
+			website: "https://grafana.com/",
+			docs: "https://grafana.com/docs/",
+		},
+		tags: ["monitoring"],
+		load: () => import("./grafana/index").then((m) => m.generate),
+	},
+	{
+		id: "directus",
+		name: "Directus",
+		version: "10.12.1",
+		description:
+			"Directus is an open source headless CMS that provides an API-first solution for building custom backends.",
+		logo: "directus.jpg",
+		links: {
+			github: "https://github.com/directus/directus",
+			website: "https://directus.io/",
+			docs: "https://docs.directus.io/",
+		},
+		tags: ["cms"],
+		load: () => import("./directus/index").then((m) => m.generate),
+	},
+	{
+		id: "baserow",
+		name: "Baserow",
+		version: "1.25.2",
+		description:
+			"Baserow is an open source database management tool that allows you to create and manage databases.",
+		logo: "baserow.webp",
+		links: {
+			github: "https://github.com/Baserow/baserow",
+			website: "https://baserow.io/",
+			docs: "https://baserow.io/docs/index",
+		},
+		tags: ["database"],
+		load: () => import("./baserow/index").then((m) => m.generate),
+	},
+	{
+		id: "ghost",
+		name: "Ghost",
+		version: "5.0.0",
+		description:
+			"Ghost is a free and open source, professional publishing platform built on a modern Node.js technology stack.",
+		logo: "ghost.jpeg",
+		links: {
+			github: "https://github.com/TryGhost/Ghost",
+			website: "https://ghost.org/",
+			docs: "https://ghost.org/docs/",
+		},
+		tags: ["cms"],
+		load: () => import("./ghost/index").then((m) => m.generate),
+	},
+	{
+		id: "uptime-kuma",
+		name: "Uptime Kuma",
+		version: "1.21.4",
+		description:
+			"Uptime Kuma is a free and open source monitoring tool that allows you to monitor your websites and applications.",
+		logo: "uptime-kuma.png",
+		links: {
+			github: "https://github.com/louislam/uptime-kuma",
+			website: "https://uptime.kuma.pet/",
+			docs: "https://github.com/louislam/uptime-kuma/wiki",
+		},
+		tags: ["monitoring"],
+		load: () => import("./uptime-kuma/index").then((m) => m.generate),
+	},
+	{
+		id: "n8n",
+		name: "n8n",
+		version: "1.48.1",
+		description:
+			"n8n is an open source low-code platform for automating workflows and integrations.",
+		logo: "n8n.png",
+		links: {
+			github: "https://github.com/n8n-io/n8n",
+			website: "https://n8n.io/",
+			docs: "https://docs.n8n.io/",
+		},
+		tags: ["automation"],
+		load: () => import("./n8n/index").then((m) => m.generate),
+	},
+	{
+		id: "wordpress",
+		name: "Wordpress",
+		version: "5.8.3",
+		description:
+			"Wordpress is a free and open source content management system (CMS) for publishing and managing websites.",
+		logo: "wordpress.png",
+		links: {
+			github: "https://github.com/WordPress/WordPress",
+			website: "https://wordpress.org/",
+			docs: "https://wordpress.org/documentation/",
+		},
+		tags: ["cms"],
+		load: () => import("./wordpress/index").then((m) => m.generate),
+	},
+	{
+		id: "odoo",
+		name: "Odoo",
+		version: "16.0",
+		description:
+			"Odoo is a free and open source business management software that helps you manage your company's operations.",
+		logo: "odoo.png",
+		links: {
+			github: "https://github.com/odoo/odoo",
+			website: "https://odoo.com/",
+			docs: "https://www.odoo.com/documentation/",
+		},
+		tags: ["cms"],
+		load: () => import("./odoo/index").then((m) => m.generate),
+	},
+	{
+		id: "appsmith",
+		name: "Appsmith",
+		version: "v1.29",
+		description:
+			"Appsmith is a free and open source platform for building internal tools and applications.",
+		logo: "appsmith.png",
+		links: {
+			github: "https://github.com/appsmithorg/appsmith",
+			website: "https://appsmith.com/",
+			docs: "https://docs.appsmith.com/",
+		},
+		tags: ["cms"],
+		load: () => import("./appsmith/index").then((m) => m.generate),
+	},
+	{
+		id: "excalidraw",
+		name: "Excalidraw",
+		version: "latest",
+		description:
+			"Excalidraw is a free and open source online diagramming tool that lets you easily create and share beautiful diagrams.",
+		logo: "excalidraw.jpg",
+		links: {
+			github: "https://github.com/excalidraw/excalidraw",
+			website: "https://excalidraw.com/",
+			docs: "https://docs.excalidraw.com/",
+		},
+		tags: ["drawing"],
+		load: () => import("./excalidraw/index").then((m) => m.generate),
+	},
+	{
 		id: "documenso",
 		name: "Documenso",
 		version: "v1.5.6",
@@ -76,7 +226,82 @@ export const templates: TemplateData[] = [
 			docs: "https://docs.nocodb.com/",
 		},
 		logo: "nocodb.png",
-		tags: ["database", "spreadsheet", "low-code", 'nocode'],
+		tags: ["database", "spreadsheet", "low-code", "nocode"],
 		load: () => import("./nocodb/index").then((m) => m.generate),
+	},
+	{
+		id: "meilisearch",
+		name: "Meilisearch",
+		version: "v1.8.3",
+		description:
+			"Meilisearch is a free and open-source search engine that allows you to easily add search functionality to your web applications.",
+		logo: "meilisearch.png",
+		links: {
+			github: "https://github.com/meilisearch/meilisearch",
+			website: "https://www.meilisearch.com/",
+			docs: "https://docs.meilisearch.com/",
+		},
+		tags: ["search"],
+		load: () => import("./meilisearch/index").then((m) => m.generate),
+	},
+	{
+		id: "phpmyadmin",
+		name: "Phpmyadmin",
+		version: "5.2.1",
+		description:
+			"Phpmyadmin is a free and open-source web interface for MySQL and MariaDB that allows you to manage your databases.",
+		logo: "phpmyadmin.png",
+		links: {
+			github: "https://github.com/phpmyadmin/phpmyadmin",
+			website: "https://www.phpmyadmin.net/",
+			docs: "https://www.phpmyadmin.net/docs/",
+		},
+		tags: ["database"],
+		load: () => import("./phpmyadmin/index").then((m) => m.generate),
+	},
+	{
+		id: "rocketchat",
+		name: "Rocketchat",
+		version: "6.9.2",
+		description:
+			"Rocket.Chat is a free and open-source web chat platform that allows you to build and manage your own chat applications.",
+		logo: "rocketchat.png",
+		links: {
+			github: "https://github.com/RocketChat/Rocket.Chat",
+			website: "https://rocket.chat/",
+			docs: "https://rocket.chat/docs/",
+		},
+		tags: ["chat"],
+		load: () => import("./rocketchat/index").then((m) => m.generate),
+	},
+	{
+		id: "minio",
+		name: "Minio",
+		description:
+			"Minio is an open source object storage server compatible with Amazon S3 cloud storage service.",
+		logo: "minio.png",
+		version: "latest",
+		links: {
+			github: "https://github.com/minio/minio",
+			website: "https://minio.io/",
+			docs: "https://docs.minio.io/",
+		},
+		tags: ["storage"],
+		load: () => import("./minio/index").then((m) => m.generate),
+	},
+	{
+		id: "metabase",
+		name: "Metabase",
+		version: "v0.50.8",
+		description:
+			"Metabase is an open source business intelligence tool that allows you to ask questions and visualize data.",
+		logo: "metabase.png",
+		links: {
+			github: "https://github.com/metabase/metabase",
+			website: "https://www.metabase.com/",
+			docs: "https://www.metabase.com/docs/",
+		},
+		tags: ["database", "dashboard"],
+		load: () => import("./metabase/index").then((m) => m.generate),
 	},
 ];
