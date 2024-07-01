@@ -1,8 +1,8 @@
 {
   "name": "dokploy",
-  "version": "v0.2.5",
+  "version": "v0.3.0",
   "private": true,
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "build": "npm run build-server && npm run build-next",
@@ -19,7 +19,7 @@
     "migration:drop": "drizzle-kit drop --config ./server/db/drizzle.config.ts",
     "db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
     "db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
-    "db:studio": "drizzle-kit studio",
+    "db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
     "lint": "biome lint",
     "db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
     "db:clean": "tsx -r dotenv/config ./server/db/reset.ts",

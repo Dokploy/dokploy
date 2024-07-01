@@ -3,15 +3,17 @@ import {
 	generateRandomDomain,
 	type Template,
 	type Schema,
+	generateBase64,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
-
+	const secretKey = generateBase64(32);
 	const envs = [
-		`POCKETBASE_HOST=${randomDomain}`,
-		"POCKETBASE_PORT=80",
+		`GLITCHTIP_HOST=${randomDomain}`,
+		"GLITCHTIP_PORT=8000",
+		`SECRET_KEY=${secretKey}`,
 		`HASH=${mainServiceHash}`,
 	];
 
