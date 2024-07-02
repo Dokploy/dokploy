@@ -25,8 +25,7 @@ export const RedbuildApplication = ({ applicationId }: Props) => {
 		},
 		{ enabled: !!applicationId },
 	);
-	const { mutateAsync: markRunning } =
-		api.application.markRunning.useMutation();
+
 	const { mutateAsync } = api.application.redeploy.useMutation();
 	const utils = api.useUtils();
 	return (
@@ -54,22 +53,14 @@ export const RedbuildApplication = ({ applicationId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await markRunning({
+							toast.success("Redeploying Application....");
+							await mutateAsync({
 								applicationId,
 							})
 								.then(async () => {
-									await mutateAsync({
+									await utils.application.one.invalidate({
 										applicationId,
-									})
-										.then(async () => {
-											await utils.application.one.invalidate({
-												applicationId,
-											});
-											toast.success("Application rebuild succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to rebuild the application");
-										});
+									});
 								})
 								.catch(() => {
 									toast.error("Error to rebuild the application");

@@ -9,14 +9,11 @@ import {
 import { api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
-// import { CancelQueues } from "./cancel-queues";
-// import { ShowDeployment } from "./show-deployment-compose";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { ShowDeploymentCompose } from "./show-deployment-compose";
 import { RefreshTokenCompose } from "./refresh-token-compose";
 import { CancelQueuesCompose } from "./cancel-queues-compose";
-// import { RefreshToken } from "./refresh-token";//
 
 interface Props {
 	composeId: string;
@@ -90,6 +87,11 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 									<span className="text-sm text-muted-foreground">
 										{deployment.title}
 									</span>
+									{deployment.description && (
+										<span className="text-sm text-muted-foreground">
+											{deployment.description}
+										</span>
+									)}
 								</div>
 								<div className="flex flex-col items-end gap-2">
 									<div className="text-sm capitalize text-muted-foreground">

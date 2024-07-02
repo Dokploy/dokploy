@@ -9,7 +9,6 @@ import {
 	extractCommitMessage,
 	extractHash,
 } from "../[refreshToken]";
-import { updateCompose } from "@/server/api/services/compose";
 
 export default async function handler(
 	req: NextApiRequest,
@@ -56,10 +55,6 @@ export default async function handler(
 		}
 
 		try {
-			await updateCompose(composeResult.composeId, {
-				composeStatus: "running",
-			});
-
 			const jobData: DeploymentJob = {
 				composeId: composeResult.composeId as string,
 				titleLog: deploymentTitle,

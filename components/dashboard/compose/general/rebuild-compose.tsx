@@ -25,7 +25,6 @@ export const RedbuildCompose = ({ composeId }: Props) => {
 		},
 		{ enabled: !!composeId },
 	);
-	const { mutateAsync: markRunning } = api.compose.update.useMutation();
 	const { mutateAsync } = api.compose.redeploy.useMutation();
 	const utils = api.useUtils();
 	return (
@@ -53,23 +52,14 @@ export const RedbuildCompose = ({ composeId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await markRunning({
+							toast.success("Redeploying Compose....");
+							await mutateAsync({
 								composeId,
-								composeStatus: "running",
 							})
 								.then(async () => {
-									await mutateAsync({
+									await utils.compose.one.invalidate({
 										composeId,
-									})
-										.then(async () => {
-											await utils.compose.one.invalidate({
-												composeId,
-											});
-											toast.success("Compose rebuild succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to rebuild the compose");
-										});
+									});
 								})
 								.catch(() => {
 									toast.error("Error to rebuild the compose");
