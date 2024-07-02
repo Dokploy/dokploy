@@ -93,8 +93,18 @@ export const GithubSetup = () => {
 							</span>
 							<BadgeCheck className="size-4 text-green-700" />
 						</div>
-						<div className="flex items-end">
+						<div className="flex items-end gap-4 flex-wrap">
 							<RemoveGithubApp />
+							<Link
+								href={`https://github.com/settings/apps/${data?.githubAppName}`}
+								target="_blank"
+								className={buttonVariants({
+									className: "w-fit",
+									variant: "secondary",
+								})}
+							>
+								<span className="text-sm">Manage Github App</span>
+							</Link>
 						</div>
 					</div>
 				) : (

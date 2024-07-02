@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+	TooltipProvider,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 
 export const RemoveGithubApp = () => {
 	const { refetch } = api.auth.get.useQuery();
@@ -22,7 +29,20 @@ export const RemoveGithubApp = () => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive">Remove Current Github App</Button>
+				<Button variant="destructive">
+					Remove Current Github App
+					<TooltipProvider delayDuration={0}>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<InfoIcon className="size-4 fill-muted-destructive text-muted-destructive" />
+							</TooltipTrigger>
+							<TooltipContent>
+								We recommend deleting the GitHub app first, and then removing
+								the current one from here.
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
+				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
