@@ -1,16 +1,38 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
+import { Webhooks } from "@octokit/webhooks";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications, compose } from "@/server/db/schema";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 
-export default async function handler(
-	req: NextApiRequest,
-	res: NextApiResponse,
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+	const admin = await db.query.admins.findFirst({});
+
+	if (!admin) {
+		res.status(200).json({ message: "Could not find admin" });
+		return;
+	}
+
+	if (!admin.githubWebhookSecret) {
+		res.status(200).json({ message: "Github Webhook Secret not set" });
+		return;
+	}
+
+	const webhooks = new Webhooks({
+		secret: admin.githubWebhookSecret,
+	});
+
+	const signature = req.headers["x-hub-signature-256"];
 	const github = req.body;
+
+	const verified = await webhooks.verify(JSON.stringify(github), signature as string);
+
+	if (!verified) {
+		res.status(401).json({ message: "Unauthorized" });
+		return;
+	}
 
 	if (req.headers["x-github-event"] === "ping") {
 		res.status(200).json({ message: "Ping received, webhook is active" });
@@ -33,7 +55,7 @@ export default async function handler(
 				eq(applications.sourceType, "github"),
 				eq(applications.autoDeploy, true),
 				eq(applications.branch, branchName),
-				eq(applications.repository, repository),
+				eq(applications.repository, repository)
 			),
 		});
 
@@ -51,17 +73,12 @@ export default async function handler(
 				{
 					removeOnComplete: true,
 					removeOnFail: true,
-				},
+				}
 			);
 		}
 
 		const composeApps = await db.query.compose.findMany({
-			where: and(
-				eq(compose.sourceType, "github"),
-				eq(compose.autoDeploy, true),
-				eq(compose.branch, branchName),
-				eq(compose.repository, repository),
-			),
+			where: and(eq(compose.sourceType, "github"), eq(compose.autoDeploy, true), eq(compose.branch, branchName), eq(compose.repository, repository)),
 		});
 
 		for (const composeApp of composeApps) {
@@ -79,7 +96,7 @@ export default async function handler(
 				{
 					removeOnComplete: true,
 					removeOnFail: true,
-				},
+				}
 			);
 		}
 
