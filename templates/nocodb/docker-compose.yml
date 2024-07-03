@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   nocodb:
-    image: nocodb/nocodb:0.251.0
+    image: nocodb/nocodb:0.251.1
     restart: always
     networks:
       - dokploy-network
