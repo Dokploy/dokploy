@@ -48,6 +48,7 @@ export const GithubSetup = () => {
 	const [organizationName, setOrganization] = useState<string>("");
 	const { data } = api.admin.one.useQuery();
 	useEffect(() => {
+		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
 				redirect_url: `${origin}/api/redirect?authId=${data?.authId}`,
@@ -55,7 +56,7 @@ export const GithubSetup = () => {
 				url: origin,
 				hook_attributes: {
 					// JUST FOR TESTING
-					url: "https://webhook.site/b6a167c0-ceb5-4f0c-a257-97c0fd163977",
+					url: `${url}/api/deploy/github`,
 					// url: `${origin}/api/webhook`, // Aquí especificas la URL del endpoint de tu webhook
 				},
 				callback_urls: [`${origin}/api/redirect`], // Los URLs de callback para procesos de autenticación
@@ -92,8 +93,18 @@ export const GithubSetup = () => {
 							</span>
 							<BadgeCheck className="size-4 text-green-700" />
 						</div>
-						<div className="flex items-end">
+						<div className="flex items-end gap-4 flex-wrap">
 							<RemoveGithubApp />
+							<Link
+								href={`https://github.com/settings/apps/${data?.githubAppName}`}
+								target="_blank"
+								className={buttonVariants({
+									className: "w-fit",
+									variant: "secondary",
+								})}
+							>
+								<span className="text-sm">Manage Github App</span>
+							</Link>
 						</div>
 					</div>
 				) : (

@@ -1,4 +1,3 @@
-import { updateApplicationStatus } from "@/server/api/services/application";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
@@ -68,11 +67,6 @@ export default async function handler(
 		}
 
 		try {
-			await updateApplicationStatus(
-				application.applicationId as string,
-				"running",
-			);
-
 			const jobData: DeploymentJob = {
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
