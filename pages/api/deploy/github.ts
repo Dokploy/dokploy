@@ -6,9 +6,13 @@ import { applications, compose } from "@/server/db/schema";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { findAdmin } from "@/server/api/services/admin";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-	const admin = await db.query.admins.findFirst({});
+export default async function handler(
+	req: NextApiRequest,
+	res: NextApiResponse,
+) {
+	const admin = await findAdmin();
 
 	if (!admin) {
 		res.status(200).json({ message: "Could not find admin" });
@@ -27,7 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 	const signature = req.headers["x-hub-signature-256"];
 	const github = req.body;
 
-	const verified = await webhooks.verify(JSON.stringify(github), signature as string);
+	const verified = await webhooks.verify(
+		JSON.stringify(github),
+		signature as string,
+	);
 
 	if (!verified) {
 		res.status(401).json({ message: "Unauthorized" });
@@ -55,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				eq(applications.sourceType, "github"),
 				eq(applications.autoDeploy, true),
 				eq(applications.branch, branchName),
-				eq(applications.repository, repository)
+				eq(applications.repository, repository),
 			),
 		});
 
@@ -73,12 +80,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				{
 					removeOnComplete: true,
 					removeOnFail: true,
-				}
+				},
 			);
 		}
 
 		const composeApps = await db.query.compose.findMany({
-			where: and(eq(compose.sourceType, "github"), eq(compose.autoDeploy, true), eq(compose.branch, branchName), eq(compose.repository, repository)),
+			where: and(
+				eq(compose.sourceType, "github"),
+				eq(compose.autoDeploy, true),
+				eq(compose.branch, branchName),
+				eq(compose.repository, repository),
+			),
 		});
 
 		for (const composeApp of composeApps) {
@@ -96,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				{
 					removeOnComplete: true,
 					removeOnFail: true,
-				}
+				},
 			);
 		}
 
