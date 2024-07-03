@@ -38,6 +38,7 @@ export default async function handler(
 				githubAppName: data.name,
 				githubClientId: data.client_id,
 				githubClientSecret: data.client_secret,
+				githubWebhookSecret: data.webhook_secret,
 				githubPrivateKey: data.pem,
 			})
 			.where(eq(admins.authId, authId as string))
