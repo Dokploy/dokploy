@@ -216,7 +216,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "nocodb",
 		name: "NocoDB",
-		version: "0.251.0",
+		version: "0.251.1",
 		description:
 			"NocoDB is an opensource Airtable alternative that turns any MySQL, PostgreSQL, SQL Server, SQLite & MariaDB into a smart spreadsheet.",
 
