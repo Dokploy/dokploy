@@ -4,7 +4,6 @@ services:
   ollama:
     volumes:
       - ollama:/root/.ollama
-    container_name: ollama
     networks:
       - dokploy-network
     pull_policy: always
@@ -14,7 +13,6 @@ services:
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
-    container_name: open-webui
     networks:
       - dokploy-network
     volumes:
