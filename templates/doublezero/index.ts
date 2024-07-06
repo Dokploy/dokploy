@@ -17,7 +17,7 @@ export function generate(schema: Schema): Template {
 		`HASH=${mainServiceHash}`,
 		`SECRET_KEY_BASE=${secretKeyBase}`,
 		"AWS_ACCESS_KEY_ID=your-aws-access-key",
-		"AWS_SECRET_ACCESS_KEY=your-aws-secret-key,
+		"AWS_SECRET_ACCESS_KEY=your-aws-secret-key",
 		"AWS_REGION=your-aws-region",
 		"SQS_URL=your-aws-sqs-url",
 		"SYSTEM_EMAIL=",
