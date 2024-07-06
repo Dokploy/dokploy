@@ -336,7 +336,7 @@ export const templates: TemplateData[] = [
 		id: 'doublezero',
 		name: 'Double Zero',
 		version: 'v0.0',
-		description: 'A markdown email micro service for the people! 00 is a bring your own SES email monitoring service you self-host.',
+		description: '00 is a self hostable SES dashboard for sending and monitoring emails with AWS',
 		logo: 'doublezero.svg',
 		links: {
 			github: 'https://github.com/technomancy-dev/00',
