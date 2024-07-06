@@ -346,6 +346,7 @@ export const templates: TemplateData[] = [
 		tags: ['email', 'newsletter', 'mailing-list'],
 		load: () => import('./listmonk/index').then((m) => m.generate),
   },
+	{
 		id: 'doublezero',
 		name: 'Double Zero',
 		version: 'v0.2.1',
