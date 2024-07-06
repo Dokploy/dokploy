@@ -23,6 +23,7 @@ export const admins = pgTable("admin", {
 	githubClientSecret: text("githubClientSecret"),
 	githubInstallationId: text("githubInstallationId"),
 	githubPrivateKey: text("githubPrivateKey"),
+	githubWebhookSecret: text("githubWebhookSecret"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),

@@ -33,8 +33,10 @@ export const createRegistry = async (input: typeof apiCreateRegistry._type) => {
 			});
 		}
 
-		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
-		await execAsync(loginCommand);
+		if (newRegistry.registryType === "cloud") {
+			const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+			await execAsync(loginCommand);
+		}
 
 		return newRegistry;
 	});

@@ -25,7 +25,6 @@ export const StopCompose = ({ composeId }: Props) => {
 		},
 		{ enabled: !!composeId },
 	);
-	const { mutateAsync: markRunning } = api.compose.update.useMutation();
 	const { mutateAsync, isLoading } = api.compose.stop.useMutation();
 	const utils = api.useUtils();
 	return (
@@ -47,23 +46,14 @@ export const StopCompose = ({ composeId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await markRunning({
+							await mutateAsync({
 								composeId,
-								composeStatus: "running",
 							})
 								.then(async () => {
-									await mutateAsync({
+									await utils.compose.one.invalidate({
 										composeId,
-									})
-										.then(async () => {
-											await utils.compose.one.invalidate({
-												composeId,
-											});
-											toast.success("Compose rebuild succesfully");
-										})
-										.catch(() => {
-											toast.error("Error to stop the compose");
-										});
+									});
+									toast.success("Compose stopped succesfully");
 								})
 								.catch(() => {
 									toast.error("Error to stop the compose");

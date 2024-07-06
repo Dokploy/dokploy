@@ -2,9 +2,14 @@ import { type Job, Worker } from "bullmq";
 import {
 	deployApplication,
 	rebuildApplication,
+	updateApplicationStatus,
 } from "../api/services/application";
 import { myQueue, redisConfig } from "./queueSetup";
-import { deployCompose, rebuildCompose } from "../api/services/compose";
+import {
+	deployCompose,
+	rebuildCompose,
+	updateCompose,
+} from "../api/services/compose";
 
 type DeployJob =
 	| {
@@ -29,6 +34,7 @@ export const deploymentWorker = new Worker(
 	async (job: Job<DeploymentJob>) => {
 		try {
 			if (job.data.applicationType === "application") {
+				await updateApplicationStatus(job.data.applicationId, "running");
 				if (job.data.type === "redeploy") {
 					await rebuildApplication({
 						applicationId: job.data.applicationId,
@@ -43,6 +49,9 @@ export const deploymentWorker = new Worker(
 					});
 				}
 			} else if (job.data.applicationType === "compose") {
+				await updateCompose(job.data.composeId, {
+					composeStatus: "running",
+				});
 				if (job.data.type === "deploy") {
 					await deployCompose({
 						composeId: job.data.composeId,

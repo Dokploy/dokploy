@@ -35,6 +35,9 @@ dependencies:
   '@octokit/auth-app':
     specifier: ^6.0.4
     version: 6.0.4
+  '@octokit/webhooks':
+    specifier: ^13.2.7
+    version: 13.2.7
   '@radix-ui/react-accordion':
     specifier: 1.1.2
     version: 1.1.2(@types/react-dom@18.2.22)(@types/react@18.2.66)(react-dom@18.2.0)(react@18.2.0)
@@ -2604,6 +2607,14 @@ packages:
     resolution: {integrity: sha512-EtqRBEjp1dL/15V7WiX5LJMIxxkdiGJnabzYx5Apx4FkQIFgAfKumXeYAqqJCj1s+BMX4cPFIFC4OLCR6stlnA==}
     dev: false
 
+  /@octokit/openapi-types@22.2.0:
+    resolution: {integrity: sha512-QBhVjcUa9W7Wwhm6DBFu6ZZ+1/t/oYxqc2tp81Pi41YNuJinbFRx8B133qVOrAaBbF7D/m0Et6f9/pZt9Rc+tg==}
+    dev: false
+
+  /@octokit/openapi-webhooks-types@8.2.1:
+    resolution: {integrity: sha512-msAU1oTSm0ZmvAE0xDemuF4tVs5i0xNnNGtNmr4EuATi+1Rn8cZDetj6NXioSf5LwnxEc209COa/WOSbjuhLUA==}
+    dev: false
+
   /@octokit/plugin-paginate-graphql@4.0.1(@octokit/core@5.1.0):
     resolution: {integrity: sha512-R8ZQNmrIKKpHWC6V2gum4x9LG2qF1RxRjo27gjQcG3j+vf2tLsEfE7I/wRWEPzYMaenr1M+qDAtNcwZve1ce1A==}
     engines: {node: '>= 18'}
@@ -2665,6 +2676,13 @@ packages:
       once: 1.4.0
     dev: false
 
+  /@octokit/request-error@6.1.1:
+    resolution: {integrity: sha512-1mw1gqT3fR/WFvnoVpY/zUM2o/XkMs/2AszUUG9I69xn0JFLv6PGkPhNk5lbfvROs79wiS0bqiJNxfCZcRJJdg==}
+    engines: {node: '>= 18'}
+    dependencies:
+      '@octokit/types': 13.5.0
+    dev: false
+
   /@octokit/request@8.2.0:
     resolution: {integrity: sha512-exPif6x5uwLqv1N1irkLG1zZNJkOtj8bZxuVHd71U5Ftuxf2wGNvAJyNBcPbPC+EBzwYEbBDdSFb8EPcjpYxPQ==}
     engines: {node: '>= 18'}
@@ -2681,8 +2699,19 @@ packages:
       '@octokit/openapi-types': 20.0.0
     dev: false
 
+  /@octokit/types@13.5.0:
+    resolution: {integrity: sha512-HdqWTf5Z3qwDVlzCrP8UJquMwunpDiMPt5er+QjGzL4hqr/vBVY/MauQgS1xWxCDT1oMx1EULyqxncdCY/NVSQ==}
+    dependencies:
+      '@octokit/openapi-types': 22.2.0
+    dev: false
+
   /@octokit/webhooks-methods@4.1.0:
     resolution: {integrity: sha512-zoQyKw8h9STNPqtm28UGOYFE7O6D4Il8VJwhAtMHFt2C4L0VQT1qGKLeefUOqHNs1mNRYSadVv7x0z8U2yyeWQ==}
+    engines: {node: '>= 18'}
+    dev: false
+
+  /@octokit/webhooks-methods@5.1.0:
+    resolution: {integrity: sha512-yFZa3UH11VIxYnnoOYCVoJ3q4ChuSOk2IVBBQ0O3xtKX4x9bmKb/1t+Mxixv2iUhzMdOl1qeWJqEhouXXzB3rQ==}
     engines: {node: '>= 18'}
     dev: false
 
@@ -2698,6 +2727,16 @@ packages:
       '@octokit/webhooks-methods': 4.1.0
       '@octokit/webhooks-types': 7.3.2
       aggregate-error: 3.1.0
+    dev: false
+
+  /@octokit/webhooks@13.2.7:
+    resolution: {integrity: sha512-sPHCyi9uZuCs1gg0yF53FFocM+GsiiBEhQQV/itGzzQ8gjyv2GMJ1YvgdDY4lC0ePZeiV3juEw4GbS6w1VHhRw==}
+    engines: {node: '>= 18'}
+    dependencies:
+      '@octokit/openapi-webhooks-types': 8.2.1
+      '@octokit/request-error': 6.1.1
+      '@octokit/webhooks-methods': 5.1.0
+      aggregate-error: 5.0.0
     dev: false
 
   /@pkgjs/parseargs@0.11.0:
@@ -5566,6 +5605,14 @@ packages:
       indent-string: 5.0.0
     dev: false
 
+  /aggregate-error@5.0.0:
+    resolution: {integrity: sha512-gOsf2YwSlleG6IjRYG2A7k0HmBMEo6qVNk9Bp/EaLgAJT5ngH6PXbqa4ItvnEwCm/velL5jAnQgsHsWnjhGmvw==}
+    engines: {node: '>=18'}
+    dependencies:
+      clean-stack: 5.2.0
+      indent-string: 5.0.0
+    dev: false
+
   /ajv-formats@2.1.1(ajv@8.14.0):
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
@@ -6068,6 +6115,13 @@ packages:
   /clean-stack@4.2.0:
     resolution: {integrity: sha512-LYv6XPxoyODi36Dp976riBtSY27VmFo+MKqEU9QCCWyTrdEPDog+RWA7xQWHi6Vbp61j5c4cdzzX1NidnwtUWg==}
     engines: {node: '>=12'}
+    dependencies:
+      escape-string-regexp: 5.0.0
+    dev: false
+
+  /clean-stack@5.2.0:
+    resolution: {integrity: sha512-TyUIUJgdFnCISzG5zu3291TAsE77ddchd0bepon1VVQrKLGKFED4iXFEDQ24mIPdPBbyE16PK3F8MYE1CmcBEQ==}
+    engines: {node: '>=14.16'}
     dependencies:
       escape-string-regexp: 5.0.0
     dev: false

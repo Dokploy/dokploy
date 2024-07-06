@@ -216,7 +216,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "nocodb",
 		name: "NocoDB",
-		version: "0.251.0",
+		version: "0.251.1",
 		description:
 			"NocoDB is an opensource Airtable alternative that turns any MySQL, PostgreSQL, SQL Server, SQLite & MariaDB into a smart spreadsheet.",
 
@@ -318,4 +318,18 @@ export const templates: TemplateData[] = [
 		tags: ["hosting"],
 		load: () => import("./glitchtip/index").then((m) => m.generate),
 	},
+	{
+		id: 'open-webui',
+		name: 'Open WebUI',
+		version: 'v0.3.7',
+		description: 'Open WebUI is a free and open source chatgpt alternative. Open WebUI is an extensible, feature-rich, and user-friendly self-hosted WebUI designed to operate entirely offline. It supports various LLM runners, including Ollama and OpenAI-compatible APIs. The template include ollama and webui services.',
+		logo: 'open-webui.png',
+		links: {
+			github: 'https://github.com/open-webui/open-webui',
+			website: 'https://openwebui.com/',
+			docs: 'https://docs.openwebui.com/',
+		},
+		tags: ['chat'],
+		load: () => import('./open-webui/index').then((m) => m.generate),
+	}
 ];

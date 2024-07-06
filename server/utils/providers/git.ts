@@ -87,7 +87,6 @@ const addHostToKnownHosts = async (repositoryURL: string) => {
 		throw error;
 	}
 };
-
 const sanitizeRepoPathSSH = (input: string) => {
 	const SSH_PATH_RE = new RegExp(
 		[
@@ -113,7 +112,7 @@ const sanitizeRepoPathSSH = (input: string) => {
 	return {
 		user: found.groups?.user ?? "git",
 		domain: found.groups?.domain,
-		port: Number(found.groups?.port ?? 22),
+		port: 22,
 		owner: found.groups?.owner ?? "",
 		repo: found.groups?.repo,
 		get repoPath() {

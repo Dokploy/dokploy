@@ -25,7 +25,6 @@ export const DeployCompose = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
-	const { mutateAsync: markRunning } = api.compose.update.useMutation();
 	const { mutateAsync: deploy } = api.compose.deploy.useMutation();
 
 	return (
@@ -44,25 +43,16 @@ export const DeployCompose = ({ composeId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await markRunning({
+							toast.success("Deploying Compose....");
+
+							await refetch();
+							await deploy({
 								composeId,
-								composeStatus: "running",
-							})
-								.then(async () => {
-									toast.success("Deploying Compose....");
+							}).catch(() => {
+								toast.error("Error to deploy Compose");
+							});
 
-									await refetch();
-									await deploy({
-										composeId,
-									}).catch(() => {
-										toast.error("Error to deploy Compose");
-									});
-
-									await refetch();
-								})
-								.catch((e) => {
-									toast.error(e.message || "Error to deploy Compose");
-								});
+							await refetch();
 						}}
 					>
 						Confirm
