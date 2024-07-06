@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:13
     ports:
-      - "4432:5432"
+      - 5432
     networks:
       - dokploy-network
     environment:
