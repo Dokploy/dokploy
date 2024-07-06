@@ -20,8 +20,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${HASH}.rule=Host(`${DOUBLEZERO_HOST}`)"
-      - "traefik.http.routers.${HASH}.entrypoints=websecure"
-      - "traefik.http.routers.${HASH}.tls.certResolver=letsencrypt"
       - "traefik.http.services.${HASH}.loadbalancer.server.port=${DOUBLEZERO_PORT}"
       
 volumes:
