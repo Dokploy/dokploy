@@ -94,6 +94,7 @@ export const cleanUpUnusedImages = async () => {
 		await execAsync("docker image prune --all --force");
 	} catch (error) {
 		console.error(error);
+		throw error;
 	}
 };
 
@@ -102,6 +103,7 @@ export const cleanStoppedContainers = async () => {
 		await execAsync("docker container prune --force");
 	} catch (error) {
 		console.error(error);
+		throw error;
 	}
 };
 
@@ -110,6 +112,7 @@ export const cleanUpUnusedVolumes = async () => {
 		await execAsync("docker volume prune --force");
 	} catch (error) {
 		console.error(error);
+		throw error;
 	}
 };
 
@@ -143,6 +146,7 @@ export const startService = async (appName: string) => {
 		await execAsync(`docker service scale ${appName}=1 `);
 	} catch (error) {
 		console.error(error);
+		throw error;
 	}
 };
 
