@@ -331,5 +331,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ['chat'],
 		load: () => import('./open-webui/index').then((m) => m.generate),
+	},
+	{
+		id: 'listmonk',
+		name: 'Listmonk',
+		version: 'v3.0.0',
+		description: 'High performance, self-hosted, newsletter and mailing list manager with a modern dashboard.',
+		logo: 'listmonk.png',
+		links: {
+			github: 'https://github.com/knadh/listmonk',
+			website: 'https://listmonk.app/',
+			docs: 'https://listmonk.app/docs/',
+		},
+		tags: ['email', 'newsletter', 'mailing-list'],
+		load: () => import('./listmonk/index').then((m) => m.generate),
 	}
 ];
