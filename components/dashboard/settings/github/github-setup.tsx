@@ -95,7 +95,7 @@ export const GithubSetup = () => {
 						</div>
 						<div className="flex items-end gap-4 flex-wrap">
 							<RemoveGithubApp />
-							<Link
+							{/* <Link
 								href={`https://github.com/settings/apps/${data?.githubAppName}`}
 								target="_blank"
 								className={buttonVariants({
@@ -104,7 +104,7 @@ export const GithubSetup = () => {
 								})}
 							>
 								<span className="text-sm">Manage Github App</span>
-							</Link>
+							</Link> */}
 						</div>
 					</div>
 				) : (
