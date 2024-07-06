@@ -16,10 +16,10 @@ export function generate(schema: Schema): Template {
 		"DOUBLEZERO_PORT=4000",
 		`HASH=${mainServiceHash}`,
 		`SECRET_KEY_BASE=${secretKeyBase}`,
-		"AWS_ACCESS_KEY_ID=",
-		"AWS_SECRET_ACCESS_KEY=",
-		"AWS_REGION=",
-		"SQS_URL=",
+		"AWS_ACCESS_KEY_ID=your-aws-access-key",
+		"AWS_SECRET_ACCESS_KEY=your-aws-secret-key,
+		"AWS_REGION=your-aws-region",
+		"SQS_URL=your-aws-sqs-url",
 		"SYSTEM_EMAIL=",
 	];
 
