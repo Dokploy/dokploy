@@ -335,7 +335,7 @@ export const templates: TemplateData[] = [
 	{
 		id: 'doublezero',
 		name: 'Double Zero',
-		version: 'v0.0',
+		version: 'v0.2.1',
 		description: '00 is a self hostable SES dashboard for sending and monitoring emails with AWS',
 		logo: 'doublezero.svg',
 		links: {

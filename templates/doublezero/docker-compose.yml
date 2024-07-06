@@ -1,9 +1,9 @@
 services:
   doublezero:
     restart: always
-    image: liltechnomancer/double-zero:latest
+    image: liltechnomancer/double-zero:0.2.1
     ports:
-      - 4000:4000
+      - ${DOUBLEZERO_PORT}
     networks:
       - dokploy-network
     volumes:
