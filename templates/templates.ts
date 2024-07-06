@@ -331,5 +331,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ['chat'],
 		load: () => import('./open-webui/index').then((m) => m.generate),
+	},
+	{
+		id: 'doublezero',
+		name: 'Double Zero',
+		version: 'v0.0',
+		description: 'A markdown email micro service for the people! 00 is a bring your own SES email monitoring service you self-host.',
+		logo: 'doublezero.svg',
+		links: {
+			github: 'https://github.com/technomancy-dev/00',
+			website: 'https://www.double-zero.cloud/',
+			docs: 'https://github.com/technomancy-dev/00',
+		},
+		tags: ['email'],
+		load: () => import('./doublezero/index').then((m) => m.generate),
 	}
 ];

@@ -1,0 +1,33 @@
+services:
+  doublezero:
+    restart: always
+    image: liltechnomancer/double-zero:latest
+    ports:
+      - 4000:4000
+    networks:
+      - dokploy-network
+    volumes:
+      - db-data:/var/lib/doublezero/data
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      SQS_URL: ${SQS_URL}
+      SYSTEM_EMAIL: ${SYSTEM_EMAIL}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      PHX_HOST: ${DOUBLEZERO_HOST}
+      DATABASE_PATH: ./00.db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${HASH}.rule=Host(`${DOUBLEZERO_HOST}`)"
+      - "traefik.http.routers.${HASH}.entrypoints=websecure"
+      - "traefik.http.routers.${HASH}.tls.certResolver=letsencrypt"
+      - "traefik.http.services.${HASH}.loadbalancer.server.port=${DOUBLEZERO_PORT}"
+      
+volumes:
+  db-data:
+    driver: local
+    
+networks:
+  dokploy-network:
+    external: true
