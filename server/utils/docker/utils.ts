@@ -64,8 +64,8 @@ export const containerExists = async (containerName: string) => {
 export const stopService = async (appName: string) => {
 	try {
 		await execAsync(`docker service scale ${appName}=0 `);
-		console.log("Service stopped ✅");
 	} catch (error) {
+		console.error(error);
 		return error;
 	}
 };
@@ -93,7 +93,7 @@ export const cleanUpUnusedImages = async () => {
 	try {
 		await execAsync("docker image prune --all --force");
 	} catch (error) {
-		throw error;
+		console.error(error);
 	}
 };
 
@@ -101,7 +101,7 @@ export const cleanStoppedContainers = async () => {
 	try {
 		await execAsync("docker container prune --force");
 	} catch (error) {
-		throw error;
+		console.error(error);
 	}
 };
 
@@ -109,7 +109,7 @@ export const cleanUpUnusedVolumes = async () => {
 	try {
 		await execAsync("docker volume prune --force");
 	} catch (error) {
-		throw error;
+		console.error(error);
 	}
 };
 
@@ -142,7 +142,7 @@ export const startService = async (appName: string) => {
 	try {
 		await execAsync(`docker service scale ${appName}=1 `);
 	} catch (error) {
-		throw error;
+		console.error(error);
 	}
 };
 
