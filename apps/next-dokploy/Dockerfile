@@ -36,14 +36,14 @@ RUN corepack enable && apt-get update && apt-get install -y curl && apt-get inst
 WORKDIR /app
 
 #  Copy the rest of the source code
-COPY --from=base /app/apps/dokploy/build ./build
-# COPY --from=base /app/apps/dokploy/dist ./dist
-# COPY --from=base /app/apps/dokploy/next.config.js ./next.config.js
-# COPY --from=base /app/apps/dokploy/public ./public
-# COPY --from=base /app/apps/dokploy/package.json ./package.json
-# COPY --from=base /app/apps/dokploy/drizzle ./drizzle
-# COPY --from=base /app/apps/dokploy/.env.production ./.env
-# COPY --from=base /app/apps/dokploy/components.json ./components.json
+COPY --from=base /app/apps/dokploy/.next ./.next
+COPY --from=base /app/apps/dokploy/dist ./dist
+COPY --from=base /app/apps/dokploy/next.config.js ./next.config.js
+COPY --from=base /app/apps/dokploy/public ./public
+COPY --from=base /app/apps/dokploy/package.json ./package.json
+COPY --from=base /app/apps/dokploy/drizzle ./drizzle
+COPY --from=base /app/apps/dokploy/.env.production ./.env
+COPY --from=base /app/apps/dokploy/components.json ./components.json
 
 #  Install dependencies only for production
 COPY package.json pnpm-lock.yaml ./

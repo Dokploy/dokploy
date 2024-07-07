@@ -13,6 +13,10 @@
     "docker:build:canary": {
       "outputs": []
     },
+    "start": {
+      "dependsOn": ["^start"],
+      "cache": false
+    },
     "lint": {
       "dependsOn": ["^lint"]
     },
