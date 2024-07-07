@@ -52,7 +52,7 @@ jobs:
 
       - name: Prepare .env file
         run: |
-          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+          cp ./apps/dokploy/.env.production.example ./apps/dokploy/.env.production
 
       - name: Build and push Docker image using custom script
         run: |
