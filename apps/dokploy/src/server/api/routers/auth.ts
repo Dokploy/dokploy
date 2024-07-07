@@ -35,10 +35,10 @@ export const authRouter = createTRPCRouter({
 			try {
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
-				ctx.res.appendHeader(
-					"Set-Cookie",
-					lucia.createSessionCookie(session.id).serialize(),
-				);
+				// ctx.res.appendHeader(
+				// 	"Set-Cookie",
+				// 	lucia.createSessionCookie(session.id).serialize(),
+				// );
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -54,10 +54,10 @@ export const authRouter = createTRPCRouter({
 			try {
 				const newUser = await createUser(input);
 				const session = await lucia.createSession(newUser?.authId || "", {});
-				ctx.res.appendHeader(
-					"Set-Cookie",
-					lucia.createSessionCookie(session.id).serialize(),
-				);
+				// ctx.res.appendHeader(
+				// 	"Set-Cookie",
+				// 	lucia.createSessionCookie(session.id).serialize(),
+				// );
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -93,10 +93,10 @@ export const authRouter = createTRPCRouter({
 
 			const session = await lucia.createSession(auth?.id || "", {});
 
-			ctx.res.appendHeader(
-				"Set-Cookie",
-				lucia.createSessionCookie(session.id).serialize(),
-			);
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
 			return {
 				is2FAEnabled: false,
 				authId: auth?.id,
@@ -117,11 +117,11 @@ export const authRouter = createTRPCRouter({
 
 	logout: protectedProcedure.mutation(async ({ ctx }) => {
 		const { req, res } = ctx;
-		const { session } = await validateRequest(req, res);
-		if (!session) return false;
+		// const { session } = await validateRequest(req, res);
+		// if (!session) return false;
 
-		await lucia.invalidateSession(session.id);
-		res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+		// await lucia.invalidateSession(session.id);
+		// res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
 		return true;
 	}),
 
@@ -199,10 +199,10 @@ export const authRouter = createTRPCRouter({
 
 			const session = await lucia.createSession(auth.id, {});
 
-			ctx.res.appendHeader(
-				"Set-Cookie",
-				lucia.createSessionCookie(session.id).serialize(),
-			);
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
 
 			return auth;
 		}),

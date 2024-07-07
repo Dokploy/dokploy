@@ -4,17 +4,25 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "npm run build-server && npm run build-next",
+    "start": "node dist/server.mjs",
+    "build-server": "tsx esbuild.config.ts",
+    "build-next": "next build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "dev": "next dev",
+    "db:studio": "drizzle-kit studio --config ./src/server/db/drizzle.config.ts",
+    "dev": "tsx watch -r dotenv/config ./src/server/server.ts  --project tsconfig.server.json ",
     "lint": "next lint",
-    "start": "next start"
+    "docker:build:canary": "./docker/build.sh canary",
+    "docker:push:canary": "./docker/push.sh canary"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.515.0",
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-yaml": "^6.1.1",
+    "@codemirror/language": "^6.10.1",
+    "@codemirror/legacy-modes": "6.4.0",
     "@t3-oss/env-nextjs": "^0.10.1",
     "@tanstack/react-query": "^5.39.0",
     "@trpc/client": "next",
@@ -26,6 +34,7 @@
     "postgres": "^3.4.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "dotenv": "16.4.5",
     "server-only": "^0.0.1",
     "superjson": "^2.2.1",
     "zod": "^3.23.3",
@@ -84,10 +93,20 @@
     "use-resize-observer": "9.1.0",
     "otpauth": "^9.2.3",
     "@lucia-auth/adapter-drizzle": "1.0.7",
-    "stmux": "1.8.9"
+    "stmux": "1.8.9",
+    "tailwind-merge":"2.3.0",
+    "tailwindcss-animate":"1.0.7",
+    "next-themes":"0.3.0",
+    "@uiw/codemirror-theme-github": "^4.22.1",
+    "@uiw/react-codemirror": "^4.22.1"
     },
   "devDependencies": {
+    "@types/node-os-utils": "1.3.4",
+    "@types/node-schedule": "2.1.6",
     "@types/bcrypt": "5.0.2",
+    "@types/dockerode": "3.3.23",
+    "@types/js-yaml": "4.0.9",
+    "@types/lodash": "4.17.4",
     "@types/node": "^20.11.20",
     "@types/react": "^18.2.57",
     "@types/react-dom": "^18.2.19",
@@ -95,8 +114,13 @@
     "postcss": "^8.4.34",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.2",
+    "@types/tar-fs": "2.0.4",
+    "@types/qrcode": "^1.5.5",
     "vitest": "^1.6.0",
-    "@types/ws": "8.5.10"
+    "@types/ws": "8.5.10",
+    "autoprefixer": "^10.4.14",
+    "esbuild": "0.20.2",
+    "tsx": "^4.7.0"
   },
   "ct3aMetadata": {
     "initVersion": "7.36.0"

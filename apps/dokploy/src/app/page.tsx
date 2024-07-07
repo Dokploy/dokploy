@@ -1,53 +1,242 @@
+"use client";
 import Link from "next/link";
+import {
+	CardTitle,
+	CardDescription,
+	CardContent,
+	Card,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { type ReactElement, useEffect, useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { toast } from "sonner";
+import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import type { GetServerSidePropsContext } from "next";
+import { validateRequest } from "@/server/auth/auth";
+import { isAdminPresent } from "@/server/api/services/admin";
+import { Logo } from "@/components/shared/logo";
+import { Login2FA } from "@/components/auth/login-2fa";
+import { api } from "@/trpc/react";
+import { useRouter } from "next/navigation";
 
-import { LatestPost } from "@/app/_components/post";
-import { api, HydrateClient } from "@/trpc/server";
+const loginSchema = z.object({
+	email: z
+		.string()
+		.min(1, {
+			message: "Email is required",
+		})
+		.email({
+			message: "Email must be a valid email",
+		}),
 
-export default async function Home() {
-	// const hello = await api.admin.f({ text: "from tRPC" });
+	password: z
+		.string()
+		.min(1, {
+			message: "Password is required",
+		})
+		.min(8, {
+			message: "Password must be at least 8 characters",
+		}),
+});
 
-	// void api.post.getLatest.prefetch();
+type Login = z.infer<typeof loginSchema>;
 
+// interface Props {
+// 	hasAdmin: boolean;
+// }
+
+type AuthResponse = {
+	is2FAEnabled: boolean;
+	authId: string;
+};
+
+export default function Index() {
+	const [temp, setTemp] = useState<AuthResponse>({
+		is2FAEnabled: false,
+		authId: "",
+	});
+	const { mutateAsync, isPending } = api.auth.login.useMutation();
+	const router = useRouter();
+	const form = useForm<Login>({
+		defaultValues: {
+			email: "",
+			password: "",
+		},
+		resolver: zodResolver(loginSchema),
+	});
+
+	useEffect(() => {
+		form.reset();
+	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+
+	const onSubmit = async (values: Login) => {
+		await mutateAsync({
+			email: values.email,
+			password: values.password,
+		})
+			.then((data) => {
+				if (data.is2FAEnabled) {
+					setTemp(data);
+				} else {
+					toast.success("Signin succesfully", {
+						duration: 2000,
+					});
+					router.push("/dashboard/projects");
+				}
+			})
+			.catch(() => {
+				toast.error("Signin failed", {
+					duration: 2000,
+				});
+			});
+	};
 	return (
-		<HydrateClient>
-			<main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-				<div className="container flex flex-col items-center justify-center gap-12 px-4 py-16 ">
-					<h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-						Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-					</h1>
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-						<Link
-							className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-							href="https://create.t3.gg/en/usage/first-steps"
-							target="_blank"
-						>
-							<h3 className="text-2xl font-bold">First Steps →</h3>
-							<div className="text-lg">
-								Just the basics - Everything you need to know to set up your
-								database and authentication.
-							</div>
-						</Link>
-						<Link
-							className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-							href="https://create.t3.gg/en/introduction"
-							target="_blank"
-						>
-							<h3 className="text-2xl font-bold">Documentation →</h3>
-							<div className="text-lg">
-								Learn more about Create T3 App, the libraries it uses, and how
-								to deploy it.
-							</div>
-						</Link>
-					</div>
-					<div className="flex flex-col items-center gap-2">
-						<p className="text-2xl text-white">
-							{/* {hello ? hello.greeting : "Loading tRPC query..."} */}
-						</p>
-					</div>
+		<div className="flex  h-screen w-full items-center justify-center ">
+			<div className="flex flex-col items-center gap-4 w-full">
+				<Link
+					href="https://dokploy.com"
+					target="_blank"
+					className="flex flex-row items-center gap-2"
+				>
+					<Logo />
+					<span className="font-medium text-sm">Dokploy</span>
+				</Link>
+				<CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+				<CardDescription>
+					Enter your credentials to access your account
+				</CardDescription>
+				<Card className="mx-auto w-full max-w-lg bg-transparent ">
+					<div className="p-3.5" />
+					<CardContent>
+						{!temp.is2FAEnabled ? (
+							<Form {...form}>
+								<form
+									onSubmit={form.handleSubmit(onSubmit)}
+									className="grid gap-4"
+								>
+									<div className="space-y-4">
+										<FormField
+											control={form.control}
+											name="email"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Email</FormLabel>
+													<FormControl>
+														<Input placeholder="Email" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="password"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Password</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="Password"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 
-					<LatestPost />
-				</div>
-			</main>
-		</HydrateClient>
+										<Button
+											type="submit"
+											isLoading={isPending}
+											className="w-full"
+										>
+											Login
+										</Button>
+									</div>
+								</form>
+							</Form>
+						) : (
+							<Login2FA authId={temp.authId} />
+						)}
+
+						{/* {!hasAdmin && (
+							<div className="mt-4 text-center text-sm">
+								Dont have an account?
+								<Link className="underline" href="/register">
+									Sign up
+								</Link>
+							</div>
+						)} */}
+						<div className="flex flex-row justify-between flex-wrap">
+							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+								Need help?
+								<Link
+									className="underline"
+									href="https://dokploy.com"
+									target="_blank"
+								>
+									Contact us
+								</Link>
+							</div>
+
+							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
+								<Link
+									className="hover:underline text-muted-foreground"
+									href="https://docs.dokploy.com/get-started/reset-password"
+									target="_blank"
+								>
+									Lost your password?
+								</Link>
+							</div>
+						</div>
+						<div className="p-2" />
+					</CardContent>
+				</Card>
+			</div>
+		</div>
 	);
 }
+
+// Home.getLayout = (page: ReactElement) => {
+// 	return <OnboardingLayout>{page}</OnboardingLayout>;
+// };
+// export async function getServerSideProps(context: GetServerSidePropsContext) {
+// 	const hasAdmin = await isAdminPresent();
+
+// 	if (!hasAdmin) {
+// 		return {
+// 			redirect: {
+// 				permanent: true,
+// 				destination: "/register",
+// 			},
+// 		};
+// 	}
+
+// 	const { user } = await validateRequest(context.req, context.res);
+
+// 	if (user) {
+// 		return {
+// 			redirect: {
+// 				permanent: true,
+// 				destination: "/dashboard/projects",
+// 			},
+// 		};
+// 	}
+// 	return {
+// 		props: {
+// 			hasAdmin,
+// 		},
+// 	};
+// }

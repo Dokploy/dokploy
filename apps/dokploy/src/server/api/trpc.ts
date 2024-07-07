@@ -11,10 +11,14 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import type { Session, User } from "lucia";
 import { db } from "@/server/db";
-import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
+// import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import { validateBearerToken } from "../auth/token";
 import { validateRequest } from "../auth/auth";
-
+import {
+	type NextRequest,
+	NextResponse,
+	type NextFetchEvent,
+} from "next/server";
 /**
  * 1. CONTEXT
  *
@@ -31,8 +35,8 @@ import { validateRequest } from "../auth/auth";
 interface CreateContextOptions {
 	user: (User & { authId: string }) | null;
 	session: Session | null;
-	req: CreateNextContextOptions["req"];
-	res: CreateNextContextOptions["res"];
+	req: NextRequest;
+	res: NextResponse;
 }
 // export const createTRPCContext = async (opts: { headers: Headers }) => {
 // 	return {
@@ -51,7 +55,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 	};
 };
 
-export const createTRPCContext = async (opts: CreateNextContextOptions) => {
+export const createTRPCContext = async (opts: any) => {
 	const { req, res } = opts;
 
 	let { session, user } = await validateBearerToken(req);
@@ -146,6 +150,20 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	return next({
+		ctx: {
+			// infers the `session` as non-nullable
+			session: ctx.session,
+			user: ctx.user,
+			// session: { ...ctx.session, user: ctx.user },
+		},
+	});
+});
+
+export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
