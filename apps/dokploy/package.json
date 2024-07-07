@@ -18,6 +18,7 @@
     "docker:push:canary": "./docker/push.sh canary"
   },
   "dependencies": {
+    "nanoid": "3",
     "@aws-sdk/client-s3": "3.515.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-yaml": "^6.1.1",

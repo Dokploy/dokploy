@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo build",
     "dokploy#dev": "turbo run dev --filter=dokploy",
+    "dokploy#build": "turbo run build --filter=dokploy",
     "docker:build:canary": "./apps/dokploy/docker/build.sh canary",
     "dev": "turbo dev",
     "lint": "turbo lint",

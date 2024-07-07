@@ -18,7 +18,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 
 #  Build the application
-RUN pnpm run build
+RUN turbo run build --filter=dokploy
 
 # Stage 2: Prepare image for production
 FROM node:18-slim AS production
