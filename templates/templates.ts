@@ -359,5 +359,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ['email'],
 		load: () => import('./doublezero/index').then((m) => m.generate),
+	},
+	{
+		id: 'formbricks',
+		name: 'Formbricks',
+		version: 'v2.3.0',
+		description: 'Formbricks provides a free and open source surveying platform. Gather feedback at every point in the user journey with beautiful in-app, website, link and email surveys.',
+		logo: 'formbricks.svg',
+		links: {
+			github: 'https://github.com/formbricks/formbricks',
+			website: 'https://formbricks.com/',
+			docs: 'https://formbricks.com/docs/',
+		},
+		tags: ['survey', 'feedback'],
+		load: () => import('./formbricks/index').then((m) => m.generate),
 	}
 ];
