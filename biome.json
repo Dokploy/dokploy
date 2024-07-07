@@ -7,6 +7,9 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
+			"style": {
+				"useImportType": "off"
+			},
 			"correctness": {
 				"useExhaustiveDependencies": "off"
 			},
