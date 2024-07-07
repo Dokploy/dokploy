@@ -245,49 +245,45 @@ export const settingsRouter = createTRPCRouter({
 			return readConfigInPath(input.path);
 		}),
 
-	getOpenApiDocument: protectedProcedure.query(
-		async ({ ctx }): Promise<unknown> => {
-			const protocol = ctx.req.headers["x-forwarded-proto"];
-			const url = `${protocol}://${ctx.req.headers.host}/api`;
-			const openApiDocument = generateOpenApiDocument(appRouter, {
-				title: "tRPC OpenAPI",
-				version: "1.0.0",
-				baseUrl: url,
-				docsUrl: `${url}/settings.getOpenApiDocument`,
-				tags: [
-					"admin",
-					"docker",
-					"compose",
-					"registry",
-					"cluster",
-					"user",
-					"domain",
-					"destination",
-					"backup",
-					"deployment",
-					"mounts",
-					"certificates",
-					"settings",
-					"security",
-					"redirects",
-					"port",
-					"project",
-					"application",
-					"mysql",
-					"postgres",
-					"redis",
-					"mongo",
-					"mariadb",
-				],
-			});
-
-			openApiDocument.info = {
-				title: "Dokploy API",
-				description: "Endpoints for dokploy",
-				version: getDokployVersion(),
-			};
-
-			return openApiDocument;
-		},
-	),
+	getOpenApiDocument: protectedProcedure.query(async ({ ctx }) => {
+		// const protocol = ctx.req.headers["x-forwarded-proto"];
+		// const url = `${protocol}://${ctx.req.headers.host}/api`;
+		// const openApiDocument = generateOpenApiDocument(appRouter, {
+		// 	title: "tRPC OpenAPI",
+		// 	version: "1.0.0",
+		// 	baseUrl: url,
+		// 	docsUrl: `${url}/settings.getOpenApiDocument`,
+		// 	tags: [
+		// 		"admin",
+		// 		"docker",
+		// 		"compose",
+		// 		"registry",
+		// 		"cluster",
+		// 		"user",
+		// 		"domain",
+		// 		"destination",
+		// 		"backup",
+		// 		"deployment",
+		// 		"mounts",
+		// 		"certificates",
+		// 		"settings",
+		// 		"security",
+		// 		"redirects",
+		// 		"port",
+		// 		"project",
+		// 		"application",
+		// 		"mysql",
+		// 		"postgres",
+		// 		"redis",
+		// 		"mongo",
+		// 		"mariadb",
+		// 	],
+		// });
+		// openApiDocument.info = {
+		// 	title: "Dokploy API",
+		// 	description: "Endpoints for dokploy",
+		// 	version: getDokployVersion(),
+		// };
+		// return openApiDocument;
+	}),
 });

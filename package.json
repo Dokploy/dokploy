@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo build",
     "dokploy#dev": "turbo run dev --filter=dokploy",
+    "docker:build:canary": "./apps/dokploy/docker/build.sh canary",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

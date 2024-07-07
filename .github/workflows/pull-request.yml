@@ -1,0 +1,60 @@
+name: Pull request
+on:
+  pull_request:
+    branches:
+      - main 
+      - canary
+
+  push:
+    branches:
+      - main
+      - canary
+      - feat/monorepo
+jobs:
+  build-app:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        node-version: [18.18.0]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: pnpm/action-setup@v3
+      with:
+        version: 8
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'pnpm'
+    - name: Install dependencies
+      run: pnpm install
+    - name: Run Build
+      run: pnpm build
+    - name: Run Tests
+      run: pnpm run test
+
+  build-and-push-docker-on-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Prepare .env file
+        run: |
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Build and push Docker image using custom script
+        run: |
+          chmod +x ./apps/dokploy/docker/build.sh
+          ./apps/dokploy/docker/build.sh ${{ github.ref_name == 'canary' && 'canary' || '' }}
