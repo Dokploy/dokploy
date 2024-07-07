@@ -1,17 +1,31 @@
 {
-    "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-    "linter":{
-       "rules": {
-           "correctness":{
-            "useExhaustiveDependencies": "off"
-           },
-           "suspicious":{
-            "noArrayIndexKey": "off"
-           },
-           "a11y":{
-            "noSvgWithoutTitle":"off"
-           }
-       }
-    }
-
+	"$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+	"organizeImports": {
+		"enabled": false
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"useExhaustiveDependencies": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off"
+			},
+			"a11y": {
+				"noSvgWithoutTitle": "off"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true,
+		"ignore": [
+			"node_modules/*",
+			"*.config.*",
+			"*.json",
+			"tsconfig.json",
+			".turbo"
+		]
+	}
 }
