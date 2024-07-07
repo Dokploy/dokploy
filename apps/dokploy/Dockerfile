@@ -40,7 +40,7 @@ COPY --from=base /app/apps/dokploy/build ./build
 # COPY --from=base /app/apps/dokploy/dist ./dist
 # COPY --from=base /app/apps/dokploy/next.config.js ./next.config.js
 # COPY --from=base /app/apps/dokploy/public ./public
-# COPY --from=base /app/apps/dokploy/package.json ./package.json
+COPY --from=base /app/apps/dokploy/package.json ./package.json
 # COPY --from=base /app/apps/dokploy/drizzle ./drizzle
 # COPY --from=base /app/apps/dokploy/.env.production ./.env
 # COPY --from=base /app/apps/dokploy/components.json ./components.json
@@ -66,4 +66,4 @@ RUN curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack
 # Expose port
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["turbo", "run", "start", "--filter=dokploy"]
