@@ -91,7 +91,6 @@
     "use-resize-observer": "9.1.0",
     "otpauth": "^9.2.3",
     "@lucia-auth/adapter-drizzle": "1.0.7",
-    "stmux": "1.8.9",
     "tailwind-merge":"2.3.0",
     "tailwindcss-animate":"1.0.7",
     "next-themes":"0.3.0",
