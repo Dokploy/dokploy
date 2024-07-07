@@ -8,7 +8,6 @@ import {
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import { eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import encode from "hi-base32";
@@ -37,13 +36,13 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 			});
 		}
 
-		await tx
-			.insert(admins)
-			.values({
-				authId: newAuth.id,
-				serverIp: await getPublicIpWithFallback(),
-			})
-			.returning();
+		// await tx
+		// 	.insert(admins)
+		// 	.values({
+		// 		authId: newAuth.id,
+		// 		serverIp: await getPublicIpWithFallback(),
+		// 	})
+		// 	.returning();
 
 		return newAuth;
 	});

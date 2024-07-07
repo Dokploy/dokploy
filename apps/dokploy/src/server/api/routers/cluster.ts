@@ -1,6 +1,5 @@
 import { docker } from "@/server/constants";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import type { DockerNode } from "../services/cluster";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
@@ -35,14 +34,14 @@ export const clusterRouter = createTRPCRouter({
 		}),
 	addWorker: protectedProcedure.query(async ({ input }) => {
 		const result = await docker.swarmInspect();
-		return `docker swarm join --token ${
-			result.JoinTokens.Worker
-		} ${await getPublicIpWithFallback()}:2377`;
+		// return `docker swarm join --token ${
+		// 	result.JoinTokens.Worker
+		// } ${await getPublicIpWithFallback()}:2377`;
 	}),
 	addManager: protectedProcedure.query(async ({ input }) => {
-		const result = await docker.swarmInspect();
-		return `docker swarm join --token ${
-			result.JoinTokens.Manager
-		} ${await getPublicIpWithFallback()}:2377`;
+		// const result = await docker.swarmInspect();
+		// return `docker swarm join --token ${
+		// 	result.JoinTokens.Manager
+		// } ${await getPublicIpWithFallback()}:2377`;
 	}),
 });

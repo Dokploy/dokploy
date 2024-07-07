@@ -3,12 +3,7 @@ import { config } from "dotenv";
 import next from "next";
 import { deploymentWorker } from "./queues/deployments-queue";
 import { initCronJobs } from "./utils/backups";
-import {
-	getPublicIpWithFallback,
-	setupTerminalWebSocketServer,
-} from "./wss/terminal";
-import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
-import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
+
 import { setupDirectories } from "./setup/config-paths";
 import { initializeNetwork } from "./setup/setup";
 import {
@@ -20,8 +15,6 @@ import {
 import { initializeRedis } from "./setup/redis-setup";
 import { initializePostgres } from "./setup/postgres-setup";
 import { migration } from "@/server/db/migration";
-import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
-import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -35,11 +28,6 @@ void app.prepare().then(async () => {
 		});
 
 		// WEBSOCKET
-		setupDeploymentLogsWebSocketServer(server);
-		setupDockerContainerLogsWebSocketServer(server);
-		setupDockerContainerTerminalWebSocketServer(server);
-		setupTerminalWebSocketServer(server);
-		setupDockerStatsMonitoringSocketServer(server);
 
 		if (process.env.NODE_ENV === "production") {
 			setupDirectories();
@@ -66,14 +54,13 @@ void app.prepare().then(async () => {
 });
 
 async function welcomeServer() {
-	const ip = await getPublicIpWithFallback();
 	console.log(
 		[
 			"",
 			"",
 			"Dokploy server is up and running!",
 			"Please wait for 15 seconds before opening the browser.",
-			`    http://${ip}:${PORT}`,
+			// `    http://${ip}:${PORT}`,
 			"",
 			"",
 		].join("\n"),

@@ -240,9 +240,6 @@ importers:
       node-os-utils:
         specifier: 1.3.7
         version: 1.3.7
-      node-pty:
-        specifier: 1.0.0
-        version: 1.0.0
       node-schedule:
         specifier: 2.1.1
         version: 2.1.1
