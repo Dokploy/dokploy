@@ -5,14 +5,17 @@
 
 /** @type {import("next").NextConfig} */
 const config = {
-    experimental:{
-        esmExternals:"loose",
-        // serverComponentsExternalPackages: ['node-pty'],
-    },
-    webpack: (config) => {
-        // config.externals = [...config.externals, { dockerode: "dockerode" }]; 
-        return config;
-      },
+  experimental: {
+    esmExternals: "loose",
+    // serverComponentsExternalPackages: ['node-pty'],
+  },
+  webpack: (config) => {
+    // config.externals = [...config.externals, { dockerode: "dockerode" }];
+    return config;
+  },
 };
+process.on("unhandledRejection", (error) => {
+  console.log("unhandledRejection", error);
+});
 
 export default config;
