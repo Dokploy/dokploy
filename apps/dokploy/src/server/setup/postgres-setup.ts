@@ -1,10 +1,9 @@
-import { docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
-import type { CreateServiceOptions } from "dockerode";
+// import type { CreateServiceOptions } from "dockerode";
 export const initializePostgres = async () => {
 	const imageName = "postgres:16";
 	const containerName = "dokploy-postgres";
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: containerName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -47,16 +46,16 @@ export const initializePostgres = async () => {
 	try {
 		await pullImage(imageName);
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
+		// const service = docker.getService(containerName);
+		// const inspect = await service.inspect();
+		// await service.update({
+		// 	version: Number.parseInt(inspect.Version.Index),
+		// 	...settings,
+		// });
 
 		console.log("Postgres Started ✅");
 	} catch (error) {
-		await docker.createService(settings);
+		// await docker.createService(settings);
 		console.log("Postgres Not Found: Starting ✅");
 	}
 };

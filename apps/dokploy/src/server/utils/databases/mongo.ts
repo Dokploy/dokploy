@@ -1,6 +1,6 @@
 import type { Mongo } from "@/server/api/services/mongo";
-import { docker } from "@/server/constants";
-import type { CreateServiceOptions } from "dockerode";
+// import { docker } from "@/server/constants";
+// import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -45,7 +45,7 @@ export const buildMongo = async (mongo: MongoWithMounts) => {
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
 
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -86,14 +86,14 @@ export const buildMongo = async (mongo: MongoWithMounts) => {
 				: [],
 		},
 	};
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
-	} catch (error) {
-		await docker.createService(settings);
-	}
+	// try {
+	// 	const service = docker.getService(appName);
+	// 	const inspect = await service.inspect();
+	// 	await service.update({
+	// 		version: Number.parseInt(inspect.Version.Index),
+	// 		...settings,
+	// 	});
+	// } catch (error) {
+	// 	await docker.createService(settings);
+	// }
 };

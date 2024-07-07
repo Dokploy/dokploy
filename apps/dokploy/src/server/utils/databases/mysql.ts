@@ -6,8 +6,8 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { docker } from "@/server/constants";
-import type { CreateServiceOptions } from "dockerode";
+// import { docker } from "@/server/constants";
+// import type { CreateServiceOptions } from "dockerode";
 import type { Mount } from "@/server/api/services/mount";
 
 type MysqlWithMounts = MySql & {
@@ -51,7 +51,7 @@ export const buildMysql = async (mysql: MysqlWithMounts) => {
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
 
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -92,14 +92,14 @@ export const buildMysql = async (mysql: MysqlWithMounts) => {
 				: [],
 		},
 	};
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
-	} catch (error) {
-		await docker.createService(settings);
-	}
+	// try {
+	// 	const service = docker.getService(appName);
+	// 	const inspect = await service.inspect();
+	// 	await service.update({
+	// 		version: Number.parseInt(inspect.Version.Index),
+	// 		...settings,
+	// 	});
+	// } catch (error) {
+	// 	await docker.createService(settings);
+	// }
 };

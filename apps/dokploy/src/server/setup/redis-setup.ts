@@ -1,12 +1,11 @@
-import type { CreateServiceOptions } from "dockerode";
-import { docker } from "../constants";
+// import { docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 
 export const initializeRedis = async () => {
 	const imageName = "redis:7";
 	const containerName = "dokploy-redis";
 
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: containerName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -44,15 +43,15 @@ export const initializeRedis = async () => {
 	try {
 		await pullImage(imageName);
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
+		// const service = docker.getService(containerName);
+		// const inspect = await service.inspect();
+		// await service.update({
+		// 	version: Number.parseInt(inspect.Version.Index),
+		// 	...settings,
+		// });
 		console.log("Redis Started ✅");
 	} catch (error) {
-		await docker.createService(settings);
+		// await docker.createService(settings);
 		console.log("Redis Not Found: Starting ✅");
 	}
 };

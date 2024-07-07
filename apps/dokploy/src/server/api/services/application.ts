@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { findAdmin } from "./admin";
 import { createTraefikConfig } from "@/server/utils/traefik/application";
-import { docker } from "@/server/constants";
+// import { docker } from "@/server/constants";
 import { getAdvancedStats } from "@/server/monitoring/utilts";
 import { validUniqueServerAppName } from "./project";
 import { generatePassword } from "@/templates/utils";
@@ -214,16 +214,16 @@ export const getApplicationStats = async (appName: string) => {
 		label: [`com.docker.swarm.service.name=${appName}`],
 	};
 
-	const containers = await docker.listContainers({
-		filters: JSON.stringify(filter),
-	});
+	// const containers = await docker.listContainers({
+	// 	filters: JSON.stringify(filter),
+	// });
 
-	const container = containers[0];
-	if (!container || container?.State !== "running") {
-		return null;
-	}
+	// const container = containers[0];
+	// if (!container || container?.State !== "running") {
+	// 	return null;
+	// }
 
-	const data = await getAdvancedStats(appName);
+	// const data = await getAdvancedStats(appName);
 
-	return data;
+	// return data;
 };

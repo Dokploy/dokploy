@@ -1,4 +1,4 @@
-import { docker, MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import {
 	cleanStoppedContainers,

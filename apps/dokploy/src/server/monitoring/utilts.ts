@@ -1,6 +1,6 @@
 import { promises } from "node:fs";
 import { MONITORING_PATH } from "../constants";
-import dockerstats from "dockerstats";
+// import dockerstats from "dockerstats";
 import osUtils from "node-os-utils";
 
 export const recordAdvancedStats = async (
@@ -9,40 +9,40 @@ export const recordAdvancedStats = async (
 ) => {
 	await promises.mkdir(`${MONITORING_PATH}/${appName}`, { recursive: true });
 
-	const result = await dockerstats.dockerContainerStats(containerId);
+	// const result = await dockerstats.dockerContainerStats(containerId);
 
-	if (!result || result.length === 0 || !result[0]) return;
+	// if (!result || result.length === 0 || !result[0]) return;
 
-	const { memoryStats, cpuStats, precpuStats, netIO, blockIO } = result[0];
+	// const { memoryStats, cpuStats, precpuStats, netIO, blockIO } = result[0];
 
-	const memoryUsage = memoryStats.usage / 1024 / 1024;
-	const memoryTotal = memoryStats.limit / 1024 / 1024;
-	const memoryFree = memoryTotal - memoryUsage;
-	const memoryUsedPercentage = (memoryUsage / memoryTotal) * 100;
+	// const memoryUsage = memoryStats.usage / 1024 / 1024;
+	// const memoryTotal = memoryStats.limit / 1024 / 1024;
+	// const memoryFree = memoryTotal - memoryUsage;
+	// const memoryUsedPercentage = (memoryUsage / memoryTotal) * 100;
 
-	const cpuDelta =
-		cpuStats.cpu_usage.total_usage - precpuStats.cpu_usage.total_usage;
-	const systemDelta = cpuStats.system_cpu_usage - precpuStats.system_cpu_usage;
-	const onlineCpus = cpuStats.online_cpus;
+	// const cpuDelta =
+	// 	cpuStats.cpu_usage.total_usage - precpuStats.cpu_usage.total_usage;
+	// const systemDelta = cpuStats.system_cpu_usage - precpuStats.system_cpu_usage;
+	// const onlineCpus = cpuStats.online_cpus;
 
-	// Calcular el porcentaje de uso del CPU
-	const cpuPercent = (cpuDelta / systemDelta) * onlineCpus * 100;
+	// // Calcular el porcentaje de uso del CPU
+	// const cpuPercent = (cpuDelta / systemDelta) * onlineCpus * 100;
 
-	// Extraer los valores de entrada y salida del objeto netIO
-	const networkInBytes = netIO.rx;
-	const networkOutBytes = netIO.wx;
+	// // Extraer los valores de entrada y salida del objeto netIO
+	// const networkInBytes = netIO.rx;
+	// const networkOutBytes = netIO.wx;
 
-	// Convertir bytes a Megabytes
-	const networkInMB = networkInBytes / 1024 / 1024;
-	const networkOutMB = networkOutBytes / 1024 / 1024;
+	// // Convertir bytes a Megabytes
+	// const networkInMB = networkInBytes / 1024 / 1024;
+	// const networkOutMB = networkOutBytes / 1024 / 1024;
 
-	// BlockIO
+	// // BlockIO
 
-	const blockRead = blockIO.r;
-	const blockWrite = blockIO.w;
+	// const blockRead = blockIO.r;
+	// const blockWrite = blockIO.w;
 
-	const blockInMBBlocks = blockRead / 1024 / 1024;
-	const blockOutMBBlocks = blockWrite / 1024 / 1024;
+	// const blockInMBBlocks = blockRead / 1024 / 1024;
+	// const blockOutMBBlocks = blockWrite / 1024 / 1024;
 
 	// Disk
 	const disk = await osUtils.drive.info("/");
@@ -52,21 +52,21 @@ export const recordAdvancedStats = async (
 	const diskUsedPercentage = disk.usedPercentage;
 	const diskFree = disk.freeGb;
 
-	await updateStatsFile(appName, "cpu", cpuPercent);
-	await updateStatsFile(appName, "memory", {
-		used: memoryUsage,
-		free: memoryFree,
-		usedPercentage: memoryUsedPercentage,
-		total: memoryTotal,
-	});
-	await updateStatsFile(appName, "block", {
-		readMb: blockInMBBlocks,
-		writeMb: blockOutMBBlocks,
-	});
-	await updateStatsFile(appName, "network", {
-		inputMb: networkInMB,
-		outputMb: networkOutMB,
-	});
+	// await updateStatsFile(appName, "cpu", cpuPercent);
+	// await updateStatsFile(appName, "memory", {
+	// 	used: memoryUsage,
+	// 	free: memoryFree,
+	// 	usedPercentage: memoryUsedPercentage,
+	// 	total: memoryTotal,
+	// });
+	// await updateStatsFile(appName, "block", {
+	// 	readMb: blockInMBBlocks,
+	// 	writeMb: blockOutMBBlocks,
+	// });
+	// await updateStatsFile(appName, "network", {
+	// 	inputMb: networkInMB,
+	// 	outputMb: networkOutMB,
+	// });
 
 	if (appName === "dokploy") {
 		await updateStatsFile(appName, "disk", {

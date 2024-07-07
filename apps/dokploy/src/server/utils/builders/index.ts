@@ -1,7 +1,6 @@
 import { createWriteStream } from "node:fs";
-import { docker } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
-import type { CreateServiceOptions } from "dockerode";
+// import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -100,7 +99,7 @@ export const mechanizeDockerContainer = async (
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
 
-	const settings: CreateServiceOptions = {
+	const settings = {
 		authconfig: authConfig,
 		Name: appName,
 		TaskTemplate: {
@@ -136,20 +135,20 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 	};
 
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
-			},
-		});
-	} catch (error) {
-		await docker.createService(settings);
-	}
+	// try {
+	// 	const service = docker.getService(appName);
+	// 	const inspect = await service.inspect();
+	// 	await service.update({
+	// 		version: Number.parseInt(inspect.Version.Index),
+	// 		...settings,
+	// 		TaskTemplate: {
+	// 			...settings.TaskTemplate,
+	// 			ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+	// 		},
+	// 	});
+	// } catch (error) {
+	// 	await docker.createService(settings);
+	// }
 };
 
 const getImageName = (application: ApplicationNested) => {

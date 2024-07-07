@@ -1,4 +1,4 @@
-import { docker } from "@/server/constants";
+// import { docker } from "@/server/constants";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import type { DockerNode } from "../services/cluster";
 import { z } from "zod";
@@ -7,9 +7,8 @@ import { execAsync } from "@/server/utils/process/execAsync";
 
 export const clusterRouter = createTRPCRouter({
 	getNodes: protectedProcedure.query(async () => {
-		const workers: DockerNode[] = await docker.listNodes();
-
-		return workers;
+		// const workers: DockerNode[] = await docker.listNodes();
+		// return workers;
 	}),
 	removeWorker: protectedProcedure
 		.input(
@@ -33,7 +32,7 @@ export const clusterRouter = createTRPCRouter({
 			}
 		}),
 	addWorker: protectedProcedure.query(async ({ input }) => {
-		const result = await docker.swarmInspect();
+		// const result = await docker.swarmInspect();
 		// return `docker swarm join --token ${
 		// 	result.JoinTokens.Worker
 		// } ${await getPublicIpWithFallback()}:2377`;

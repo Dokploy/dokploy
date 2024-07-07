@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
-import type { ContainerInfo, ResourceRequirements } from "dockerode";
+import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+// import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import type { ApplicationNested } from "../builders";
 import { execAsync } from "../process/execAsync";
 import { parse } from "dotenv";
@@ -23,38 +23,38 @@ export const pullImage = async (
 			throw new Error("Docker image not found");
 		}
 
-		await new Promise((resolve, reject) => {
-			docker.pull(dockerImage, { authconfig: authConfig }, (err, stream) => {
-				if (err) {
-					reject(err);
-					return;
-				}
+		// await new Promise((resolve, reject) => {
+		// 	docker.pull(dockerImage, { authconfig: authConfig }, (err, stream) => {
+		// 		if (err) {
+		// 			reject(err);
+		// 			return;
+		// 		}
 
-				docker.modem.followProgress(
-					stream as Readable,
-					(err: Error | null, res) => {
-						if (!err) {
-							resolve(res);
-						}
-						if (err) {
-							reject(err);
-						}
-					},
-					(event) => {
-						onData?.(event);
-					},
-				);
-			});
-		});
+		// 		docker.modem.followProgress(
+		// 			stream as Readable,
+		// 			(err: Error | null, res) => {
+		// 				if (!err) {
+		// 					resolve(res);
+		// 				}
+		// 				if (err) {
+		// 					reject(err);
+		// 				}
+		// 			},
+		// 			(event) => {
+		// 				onData?.(event);
+		// 			},
+		// 		);
+		// 	});
+		// });
 	} catch (error) {
 		throw error;
 	}
 };
 
 export const containerExists = async (containerName: string) => {
-	const container = docker.getContainer(containerName);
+	// const container = docker.getContainer(containerName);
 	try {
-		await container.inspect();
+		// await container.inspect();
 		return true;
 	} catch (error) {
 		return false;
@@ -70,7 +70,7 @@ export const stopService = async (appName: string) => {
 	}
 };
 
-export const getContainerByName = (name: string): Promise<ContainerInfo> => {
+export const getContainerByName = (name: string): Promise<any> => {
 	const opts = {
 		limit: 1,
 		filters: {
@@ -78,15 +78,15 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 		},
 	};
 	return new Promise((resolve, reject) => {
-		docker.listContainers(opts, (err, containers) => {
-			if (err) {
-				reject(err);
-			} else if (containers?.length === 0) {
-				reject(new Error(`No container found with name: ${name}`));
-			} else if (containers && containers?.length > 0 && containers[0]) {
-				resolve(containers[0]);
-			}
-		});
+		// docker.listContainers(opts, (err, containers) => {
+		// 	if (err) {
+		// 		reject(err);
+		// 	} else if (containers?.length === 0) {
+		// 		reject(new Error(`No container found with name: ${name}`));
+		// 	} else if (containers && containers?.length > 0 && containers[0]) {
+		// 		resolve(containers[0]);
+		// 	}
+		// });
 	});
 };
 export const cleanUpUnusedImages = async () => {
@@ -118,18 +118,17 @@ export const cleanUpUnusedVolumes = async () => {
 
 export const cleanUpInactiveContainers = async () => {
 	try {
-		const containers = await docker.listContainers({ all: true });
-		const inactiveContainers = containers.filter(
-			(container) => container.State !== "running",
-		);
-
-		for (const container of inactiveContainers) {
-			await docker.getContainer(container.Id).remove({ force: true });
-			console.log(`Cleaning up inactive container: ${container.Id}`);
-		}
+		// const containers = await docker.listContainers({ all: true });
+		// const inactiveContainers = containers.filter(
+		// 	(container) => container.State !== "running",
+		// );
+		// for (const container of inactiveContainers) {
+		// 	await docker.getContainer(container.Id).remove({ force: true });
+		// 	console.log(`Cleaning up inactive container: ${container.Id}`);
+		// }
 	} catch (error) {
-		console.error("Error cleaning up inactive containers:", error);
-		throw error;
+		// console.error("Error cleaning up inactive containers:", error);
+		// throw error;
 	}
 };
 
@@ -186,7 +185,7 @@ export const calculateResources = ({
 	memoryReservation,
 	cpuLimit,
 	cpuReservation,
-}: Resources): ResourceRequirements => {
+}: Resources) => {
 	return {
 		Limits: {
 			MemoryBytes: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
@@ -362,17 +361,19 @@ export const getServiceContainer = async (appName: string) => {
 			label: [`com.docker.swarm.service.name=${appName}`],
 		};
 
-		const containers = await docker.listContainers({
-			filters: JSON.stringify(filter),
-		});
+		// const containers = await docker.listContainers({
+		// 	filters: JSON.stringify(filter),
+		// });
 
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
+		// if (containers.length === 0 || !containers[0]) {
+		// 	throw new Error(`No container found with name: ${appName}`);
+		// }
 
-		const container = containers[0];
+		// const container = containers[0];
 
-		return container;
+		return {
+			Id: "123",
+		};
 	} catch (error) {
 		throw error;
 	}

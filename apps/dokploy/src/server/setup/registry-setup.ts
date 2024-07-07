@@ -1,8 +1,7 @@
-import type { CreateServiceOptions } from "dockerode";
-import { docker, REGISTRY_PATH } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 import { execAsync } from "../utils/process/execAsync";
 import { generateRandomPassword } from "../auth/random-password";
+import { REGISTRY_PATH } from "../constants";
 
 export const initializeRegistry = async (
 	username: string,
@@ -12,7 +11,7 @@ export const initializeRegistry = async (
 	const containerName = "dokploy-registry";
 	await generateRegistryPassword(username, password);
 	const randomPass = await generateRandomPassword();
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: containerName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -63,15 +62,15 @@ export const initializeRegistry = async (
 	try {
 		await pullImage(imageName);
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
-		console.log("Registry Started ✅");
+		// const service = docker.getService(containerName);
+		// const inspect = await service.inspect();
+		// await service.update({
+		// 	version: Number.parseInt(inspect.Version.Index),
+		// 	...settings,
+		// });
+		// console.log("Registry Started ✅");
 	} catch (error) {
-		await docker.createService(settings);
+		// await docker.createService(settings);
 		console.log("Registry Not Found: Starting ✅");
 	}
 };

@@ -1,11 +1,11 @@
 import path from "node:path";
-import { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH, docker } from "../constants";
+import { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dump } from "js-yaml";
 import type { MainTraefikConfig } from "../utils/traefik/types";
 import type { FileConfig } from "../utils/traefik/file-types";
-import type { CreateServiceOptions } from "dockerode";
+// import type { CreateServiceOptions } from "dockerode";
 
 const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
@@ -14,7 +14,7 @@ const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 export const initializeTraefik = async () => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
-	const settings: CreateServiceOptions = {
+	const settings = {
 		Name: containerName,
 		TaskTemplate: {
 			ContainerSpec: {
@@ -70,16 +70,16 @@ export const initializeTraefik = async () => {
 	try {
 		await pullImage(imageName);
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
+		// const service = docker.getService(containerName);
+		// const inspect = await service.inspect();
+		// await service.update({
+		// 	version: Number.parseInt(inspect.Version.Index),
+		// 	...settings,
+		// });
 
 		console.log("Traefik Started ✅");
 	} catch (error) {
-		await docker.createService(settings);
+		// await docker.createService(settings);
 		console.log("Traefik Not Found: Starting ✅");
 	}
 };

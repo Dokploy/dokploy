@@ -1,4 +1,4 @@
-import { docker } from "@/server/constants";
+// import { docker } from "@/server/constants";
 import packageInfo from "../../../../package.json";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -8,8 +8,8 @@ const updateIsAvailable = async () => {
 	try {
 		const service = await getServiceContainer("dokploy");
 
-		const localImage = await docker.getImage(getDokployImage()).inspect();
-		return localImage.Id !== service?.ImageID;
+		// const localImage = await docker.getImage(getDokployImage()).inspect();
+		// return localImage.Id !== service?.ImageID;
 	} catch (error) {
 		return false;
 	}
@@ -21,12 +21,12 @@ export const getDokployImage = () => {
 
 export const pullLatestRelease = async () => {
 	try {
-		const stream = await docker.pull(getDokployImage(), {});
-		await new Promise((resolve, reject) => {
-			docker.modem.followProgress(stream, (err, res) =>
-				err ? reject(err) : resolve(res),
-			);
-		});
+		// const stream = await docker.pull(getDokployImage(), {});
+		// await new Promise((resolve, reject) => {
+		// 	docker.modem.followProgress(stream, (err, res) =>
+		// 		err ? reject(err) : resolve(res),
+		// 	);
+		// });
 		const newUpdateIsAvailable = await updateIsAvailable();
 		return newUpdateIsAvailable;
 	} catch (error) {}

@@ -1,4 +1,4 @@
-import Docker from "dockerode";
+// import Docker from "dockerode";
 import path from "node:path";
 
 export const BASE_PATH =
@@ -14,4 +14,4 @@ export const SSH_PATH = `${BASE_PATH}/ssh`;
 export const CERTIFICATES_PATH = `${DYNAMIC_TRAEFIK_PATH}/certificates`;
 export const REGISTRY_PATH = `${DYNAMIC_TRAEFIK_PATH}/registry`;
 export const MONITORING_PATH = `${BASE_PATH}/monitoring`;
-export const docker = new Docker();
+// export const docker = new Docker();

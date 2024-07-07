@@ -10,7 +10,7 @@ const config = {
         // serverComponentsExternalPackages: ['node-pty'],
     },
     webpack: (config) => {
-        config.externals = [...config.externals, { dockerode: "dockerode" }]; 
+        // config.externals = [...config.externals, { dockerode: "dockerode" }]; 
         return config;
       },
 };
