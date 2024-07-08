@@ -29,7 +29,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 					<CardTitle className="text-xl">Traefik</CardTitle>
 					<CardDescription>
 						Modify the traefik config, in rare cases you may need to add
-						specific config, becarefull because modifying incorrectly can break
+						specific config, be careful because modifying incorrectly can break
 						traefik and your application
 					</CardDescription>
 				</div>
