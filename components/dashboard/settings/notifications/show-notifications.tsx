@@ -8,6 +8,7 @@ import {
 import { api } from "@/utils/api";
 import { BellRing } from "lucide-react";
 import { AddNotification } from "./add-notification";
+import { DeleteNotification } from "./delete-notification";
 
 export const ShowNotifications = () => {
 	const { data } = api.notification.all.useQuery();
@@ -41,14 +42,14 @@ export const ShowNotifications = () => {
 									<span className="text-sm text-muted-foreground">
 										{index + 1}. {destination.name}
 									</span>
-									{/* <div className="flex flex-row gap-1">
-										<UpdateDestination
+									<div className="flex flex-row gap-1">
+										{/* <UpdateDestination
 											destinationId={destination.destinationId}
+										/> */}
+										<DeleteNotification
+											notificationId={destination.notificationId}
 										/>
-										<DeleteDestination
-											destinationId={destination.destinationId}
-										/>
-									</div> */}
+									</div>
 								</div>
 							))}
 							<div>

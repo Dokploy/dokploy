@@ -16,10 +16,10 @@ import { TrashIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
-	destinationId: string;
+	notificationId: string;
 }
-export const DeleteDestination = ({ destinationId }: Props) => {
-	const { mutateAsync, isLoading } = api.destination.remove.useMutation();
+export const DeleteNotification = ({ notificationId }: Props) => {
+	const { mutateAsync, isLoading } = api.notification.remove.useMutation();
 	const utils = api.useUtils();
 	return (
 		<AlertDialog>
@@ -33,7 +33,7 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 					<AlertDialogDescription>
 						This action cannot be undone. This will permanently delete the
-						destination
+						notification
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
@@ -41,14 +41,14 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
-								destinationId,
+								notificationId,
 							})
 								.then(() => {
-									utils.destination.all.invalidate();
-									toast.success("Destination delete succesfully");
+									utils.notification.all.invalidate();
+									toast.success("Notification delete succesfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete destination");
+									toast.error("Error to delete notification");
 								});
 						}}
 					>

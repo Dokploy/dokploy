@@ -78,7 +78,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	removeNotification: adminProcedure
+	remove: adminProcedure
 		.input(apiFindOneNotification)
 		.mutation(async ({ input }) => {
 			try {
