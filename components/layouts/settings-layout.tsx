@@ -65,6 +65,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Server,
 										href: "/dashboard/settings/cluster",
 									},
+									{
+										title: "Notifications",
+										label: "",
+										icon: Bell,
+										href: "/dashboard/settings/notifications",
+									},
 								]
 							: []),
 					]}
@@ -79,6 +85,7 @@ export const SettingsLayout = ({ children }: Props) => {
 import Link from "next/link";
 import {
 	Activity,
+	Bell,
 	Database,
 	Route,
 	Server,

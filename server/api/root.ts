@@ -23,6 +23,7 @@ import { dockerRouter } from "./routers/docker";
 import { composeRouter } from "./routers/compose";
 import { registryRouter } from "./routers/registry";
 import { clusterRouter } from "./routers/cluster";
+import { notificationRouter } from "./routers/notification";
 
 /**
  * This is the primary router for your server.
@@ -54,6 +55,7 @@ export const appRouter = createTRPCRouter({
 	port: portRouter,
 	registry: registryRouter,
 	cluster: clusterRouter,
+	notification: notificationRouter,
 });
 
 // export type definition of API

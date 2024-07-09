@@ -134,6 +134,13 @@
       "when": 1719928377858,
       "tag": "0018_careful_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1720507012671,
+      "tag": "0019_careless_hardball",
+      "breakpoints": true
     }
   ]
 }
