@@ -43,6 +43,9 @@ export const initializeRegistry = async (
 			RestartPolicy: {
 				Condition: "on-failure",
 			},
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {
