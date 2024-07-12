@@ -1,0 +1,1 @@
+ALTER TABLE "email" ADD COLUMN "fromAddress" text NOT NULL;

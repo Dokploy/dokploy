@@ -45,6 +45,7 @@ export const createSlackNotification = async (
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
+				notificationType: "slack",
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -90,6 +91,7 @@ export const createTelegramNotification = async (
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
+				notificationType: "telegram",
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -134,6 +136,7 @@ export const createDiscordNotification = async (
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
+				notificationType: "discord",
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -182,6 +185,7 @@ export const createEmailNotification = async (
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
+				notificationType: "email",
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -238,4 +242,23 @@ export const updateDestinationById = async (
 		.returning();
 
 	return result[0];
+};
+
+export const sendNotification = async (
+	notificationData: Partial<Notification>,
+) => {
+	// if(notificationData.notificationType === "slack"){
+	// 	const { webhookUrl, channel } = notificationData;
+	// 	try {
+	// 		const response = await fetch(webhookUrl, {
+	// 			method: "POST",
+	// 			headers: {
+	// 				"Content-Type": "application/json",
+	// 			},
+	// 			body: JSON.stringify({ text: "Test notification", channel }),
+	// 		});
+	// 	} catch (err) {
+	// 		console.log(err);
+	// 	}
+	// }
 };

@@ -1,8 +1,15 @@
 import { nanoid } from "nanoid";
-import { boolean, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
+
+export const notificationType = pgEnum("notificationType", [
+	"slack",
+	"telegram",
+	"discord",
+	"email",
+]);
 
 export const notifications = pgTable("notification", {
 	notificationId: text("notificationId")
@@ -15,6 +22,7 @@ export const notifications = pgTable("notification", {
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -67,6 +75,7 @@ export const email = pgTable("email", {
 	smtpPort: text("smtpPort").notNull(),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
+	fromAddress: text("fromAddress").notNull(),
 	toAddresses: text("toAddress").array().notNull(),
 });
 
@@ -149,6 +158,7 @@ export const apiCreateEmail = notificationsSchema
 		smtpPort: z.string().min(1),
 		username: z.string().min(1),
 		password: z.string().min(1),
+		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
 	.required();
@@ -158,3 +168,18 @@ export const apiFindOneNotification = notificationsSchema
 		notificationId: true,
 	})
 	.required();
+
+export const apiSendTest = notificationsSchema
+	.extend({
+		botToken: z.string(),
+		chatId: z.string(),
+		webhookUrl: z.string(),
+		channel: z.string(),
+		smtpServer: z.string(),
+		smtpPort: z.string(),
+		fromAddress: z.string(),
+		username: z.string(),
+		password: z.string(),
+		toAddresses: z.array(z.string()),
+	})
+	.partial();

@@ -19,10 +19,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -72,6 +71,7 @@ const mySchema = z.discriminatedUnion("type", [
 			smtpPort: z.string().min(1),
 			username: z.string().min(1),
 			password: z.string().min(1),
+			fromAddress: z.string().min(1),
 			toAddresses: z.array(z.string()).min(1),
 		})
 		.merge(baseDatabaseSchema),
@@ -101,6 +101,8 @@ type AddNotification = z.infer<typeof mySchema>;
 export const AddNotification = () => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
+	const { mutateAsync: testConnection, isLoading: isLoadingConnection } =
+		api.notification.testConnection.useMutation();
 	const slackMutation = api.notification.createSlack.useMutation();
 	const telegramMutation = api.notification.createTelegram.useMutation();
 	const discordMutation = api.notification.createDiscord.useMutation();
@@ -114,11 +116,23 @@ export const AddNotification = () => {
 		},
 		resolver: zodResolver(mySchema),
 	});
+	const type = form.watch("type");
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "toAddresses",
+	});
+
+	useEffect(() => {
+		if (type === "email") {
+			append("");
+		}
+	}, [type, append]);
+
 	useEffect(() => {
 		form.reset();
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
-	const type = form.watch("type");
 	const activeMutation = {
 		slack: slackMutation,
 		telegram: telegramMutation,
@@ -178,6 +192,7 @@ export const AddNotification = () => {
 				smtpPort: data.smtpPort,
 				username: data.username,
 				password: data.password,
+				fromAddress: data.fromAddress,
 				toAddresses: data.toAddresses,
 				name: data.name,
 			});
@@ -339,7 +354,7 @@ export const AddNotification = () => {
 													<FormLabel>Bot Token</FormLabel>
 													<FormControl>
 														<Input
-															placeholder="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+															placeholder="6660491268:AAFMGmajZOVewpMNZCgJr5H7cpXpoZPgvXw"
 															{...field}
 														/>
 													</FormControl>
@@ -356,7 +371,7 @@ export const AddNotification = () => {
 												<FormItem>
 													<FormLabel>Chat ID</FormLabel>
 													<FormControl>
-														<Input placeholder="Chat ID" {...field} />
+														<Input placeholder="431231869" {...field} />
 													</FormControl>
 
 													<FormMessage />
@@ -452,8 +467,21 @@ export const AddNotification = () => {
 												</FormItem>
 											)}
 										/>
-
 										<FormField
+											control={form.control}
+											name="fromAddress"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>From Address</FormLabel>
+													<FormControl>
+														<Input placeholder="from@example.com" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										{/* <FormField
 											control={form.control}
 											name="toAddresses"
 											render={({ field }) => (
@@ -466,7 +494,54 @@ export const AddNotification = () => {
 													<FormMessage />
 												</FormItem>
 											)}
-										/>
+										/> */}
+										<div className="flex flex-col gap-2 pt-2">
+											<FormLabel>To Addresses</FormLabel>
+
+											{fields.map((field, index) => (
+												<div
+													key={field.id}
+													className="flex flex-row gap-2 w-full"
+												>
+													<FormField
+														control={form.control}
+														name={`toAddresses.${index}`}
+														render={({ field }) => (
+															<FormItem className="w-full">
+																<FormControl>
+																	<Input
+																		placeholder="email@example.com"
+																		className="w-full"
+																		{...field}
+																	/>
+																</FormControl>
+
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<Button
+														variant="outline"
+														type="button"
+														onClick={() => {
+															remove(index);
+														}}
+													>
+														Remove
+													</Button>
+												</div>
+											))}
+										</div>
+
+										<Button
+											variant="outline"
+											type="button"
+											onClick={() => {
+												append("");
+											}}
+										>
+											Add
+										</Button>
 									</>
 								)}
 							</div>
@@ -561,7 +636,35 @@ export const AddNotification = () => {
 						</div>
 					</form>
 
-					<DialogFooter>
+					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+						<Button
+							isLoading={isLoadingConnection}
+							variant="secondary"
+							onClick={async () => {
+								await testConnection({
+									webhookUrl: form.getValues("webhookUrl"),
+									channel: form.getValues("channel"),
+									notificationType: type,
+									botToken: form.getValues("botToken"),
+									chatId: form.getValues("chatId"),
+									//
+									smtpPort: form.getValues("smtpPort"),
+									smtpServer: form.getValues("smtpServer"),
+									username: form.getValues("username"),
+									password: form.getValues("password"),
+									toAddresses: form.getValues("toAddresses"),
+									fromAddress: form.getValues("fromAddress"),
+								})
+									.then(async () => {
+										toast.success("Connection Success");
+									})
+									.catch(() => {
+										toast.error("Error to connect the provider");
+									});
+							}}
+						>
+							Send Test
+						</Button>
 						<Button
 							isLoading={form.formState.isSubmitting}
 							form="hook-form"

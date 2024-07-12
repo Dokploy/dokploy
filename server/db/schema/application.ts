@@ -20,7 +20,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { generateAppName } from "./utils";
 import { registry } from "./registry";
-import { generatePassword } from "@/templates/utils";
 
 export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
 
