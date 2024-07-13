@@ -1,0 +1,59 @@
+services:
+  postgres:
+    restart: always
+    image: postgres:15-alpine
+    ports:
+      - 5432
+    networks:
+      - dokploy-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=formbricks
+
+  formbricks:
+    restart: always
+    image: formbricks/formbricks:2.3.0
+    networks:
+      - dokploy-network
+    depends_on:
+      - postgres
+    ports:
+      - ${FORMBRICKS_PORT}:3000
+    environment:
+      WEBAPP_URL: ${FORMBRICKS_HOST}
+      DATABASE_URL: "postgresql://postgres:formbricks@postgres:5432/formbricks?schema=public"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${FORMBRICKS_HOST}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+
+      # Email Configuration
+      MAIL_FROM: ${MAIL_FROM}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE_ENABLED: ${SMTP_SECURE_ENABLED}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+
+      EMAIL_AUTH_DISABLED: ${EMAIL_AUTH_DISABLED}
+      PASSWORD_RESET_DISABLED: ${PASSWORD_RESET_DISABLED}
+      EMAIL_VERIFICATION_DISABLED: ${EMAIL_VERIFICATION_DISABLED}
+      TELEMETRY_DISABLED: ${TELEMETRY_DISABLED}
+
+      SIGNUP_DISABLED: ${SIGNUP_DISABLED}
+
+      GITHUB_AUTH_ENABLED: ${GITHUB_AUTH_ENABLED}
+      GITHUB_ID: ${GITHUB_ID}
+      GITHUB_SECRET: ${GITHUB_SECRET}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${HASH}.rule=Host(`${FORMBRICKS_HOST}`)"
+      - "traefik.http.services.${HASH}.loadbalancer.server.port=${FORMBRICKS_PORT}"
+      
+volumes:
+  postgres-data:
+    driver: local
+    
+networks:
+  dokploy-network:
+    external: true
