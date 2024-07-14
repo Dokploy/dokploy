@@ -1,8 +1,8 @@
 import type { CreateServiceOptions } from "dockerode";
-import { docker, REGISTRY_PATH } from "../constants";
+import { generateRandomPassword } from "../auth/random-password";
+import { REGISTRY_PATH, docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 import { execAsync } from "../utils/process/execAsync";
-import { generateRandomPassword } from "../auth/random-password";
 
 export const initializeRegistry = async (
 	username: string,

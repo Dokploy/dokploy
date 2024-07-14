@@ -6,6 +6,10 @@ import {
 	apiTestRegistry,
 	apiUpdateRegistry,
 } from "@/server/db/schema";
+import { initializeRegistry } from "@/server/setup/registry-setup";
+import { execAsync } from "@/server/utils/process/execAsync";
+import { manageRegistry } from "@/server/utils/traefik/registry";
+import { TRPCError } from "@trpc/server";
 import {
 	createRegistry,
 	findAllRegistry,
@@ -14,10 +18,6 @@ import {
 	updateRegistry,
 } from "../services/registry";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { TRPCError } from "@trpc/server";
-import { manageRegistry } from "@/server/utils/traefik/registry";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { execAsync } from "@/server/utils/process/execAsync";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure

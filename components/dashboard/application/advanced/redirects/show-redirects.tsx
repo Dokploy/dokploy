@@ -1,4 +1,3 @@
-import React from "react";
 import {
 	Card,
 	CardContent,
@@ -8,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Split } from "lucide-react";
+import React from "react";
 import { AddRedirect } from "./add-redirect";
 import { DeleteRedirect } from "./delete-redirect";
 import { UpdateRedirect } from "./update-redirect";

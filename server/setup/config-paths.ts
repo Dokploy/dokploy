@@ -3,11 +3,11 @@ import {
 	APPLICATIONS_PATH,
 	BASE_PATH,
 	CERTIFICATES_PATH,
+	DYNAMIC_TRAEFIK_PATH,
 	LOGS_PATH,
+	MAIN_TRAEFIK_PATH,
 	MONITORING_PATH,
 	SSH_PATH,
-	DYNAMIC_TRAEFIK_PATH,
-	MAIN_TRAEFIK_PATH,
 } from "../constants";
 
 const createDirectoryIfNotExist = (dirPath: string) => {

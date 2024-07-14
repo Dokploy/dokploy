@@ -1,4 +1,7 @@
+import type { Mount } from "@/server/api/services/mount";
 import type { Redis } from "@/server/api/services/redis";
+import { docker } from "@/server/constants";
+import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -6,9 +9,6 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { docker } from "@/server/constants";
-import type { CreateServiceOptions } from "dockerode";
-import type { Mount } from "@/server/api/services/mount";
 
 type RedisWithMounts = Redis & {
 	mounts: Mount[];

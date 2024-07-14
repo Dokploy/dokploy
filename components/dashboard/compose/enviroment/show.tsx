@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { CodeEditor } from "@/components/shared/code-editor";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -6,10 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Form,
 	FormControl,
@@ -17,11 +14,14 @@ import {
 	FormItem,
 	FormMessage,
 } from "@/components/ui/form";
-import { api } from "@/utils/api";
-import { toast } from "sonner";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Toggle } from "@/components/ui/toggle";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),

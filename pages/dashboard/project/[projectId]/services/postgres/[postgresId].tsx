@@ -1,3 +1,5 @@
+import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
 import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
 import { DeletePostgres } from "@/components/dashboard/postgres/delete-postgres";
@@ -5,8 +7,11 @@ import { ShowPostgresEnvironment } from "@/components/dashboard/postgres/environ
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
+import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -25,11 +30,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
-import { ProjectLayout } from "@/components/layouts/project-layout";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 

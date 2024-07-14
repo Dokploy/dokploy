@@ -1,9 +1,9 @@
+import { createWriteStream } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import { COMPOSE_PATH } from "@/server/constants";
-import { createWriteStream } from "node:fs";
-import { join } from "node:path";
 import { recreateDirectory } from "../filesystem/directory";
-import { writeFile } from "node:fs/promises";
 
 export const createComposeFile = async (compose: Compose, logPath: string) => {
 	const { appName, composeFile } = compose;

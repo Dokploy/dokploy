@@ -1,17 +1,17 @@
-import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { Security } from "@/server/api/services/security";
 import * as bcrypt from "bcrypt";
+import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import type {
+	BasicAuthMiddleware,
+	FileConfig,
+	HttpMiddleware,
+} from "./file-types";
 import {
 	addMiddleware,
 	deleteMiddleware,
 	loadMiddlewares,
 	writeMiddleware,
 } from "./middleware";
-import type {
-	BasicAuthMiddleware,
-	FileConfig,
-	HttpMiddleware,
-} from "./file-types";
 
 export const createSecurityMiddleware = async (
 	appName: string,

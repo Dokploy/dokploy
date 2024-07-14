@@ -1,4 +1,3 @@
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
 	apiCreateRedirect,
 	apiFindOneRedirect,
@@ -10,6 +9,7 @@ import {
 	removeRedirectById,
 	updateRedirectById,
 } from "../services/redirect";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const redirectsRouter = createTRPCRouter({
 	create: protectedProcedure

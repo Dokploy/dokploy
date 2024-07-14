@@ -7,11 +7,11 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { api } from "@/utils/api";
 import { RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import { GenerateTraefikMe } from "./generate-traefikme";
 import { GenerateWildCard } from "./generate-wildcard";
-import Link from "next/link";
-import { api } from "@/utils/api";
 
 interface Props {
 	applicationId: string;

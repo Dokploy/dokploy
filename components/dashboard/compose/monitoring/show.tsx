@@ -5,8 +5,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -16,7 +15,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { api } from "@/utils/api";
+import { useEffect, useState } from "react";
 import { DockerMonitoring } from "../../monitoring/docker/show";
 
 interface Props {

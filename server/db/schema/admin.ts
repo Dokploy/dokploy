@@ -1,12 +1,12 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
-import { nanoid } from "nanoid";
-import { auth } from "./auth";
-import { users } from "./user";
 import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
 import { z } from "zod";
-import { certificateType } from "./shared";
+import { auth } from "./auth";
 import { registry } from "./registry";
+import { certificateType } from "./shared";
+import { users } from "./user";
 
 export const admins = pgTable("admin", {
 	adminId: text("adminId")

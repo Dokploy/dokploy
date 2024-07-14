@@ -1,3 +1,5 @@
+import { slugify } from "@/lib/slug";
+import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
@@ -7,6 +9,30 @@ import {
 	compose,
 } from "@/server/db/schema";
 import {
+	type DeploymentJob,
+	cleanQueuesByCompose,
+} from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
+import { createCommand } from "@/server/utils/builders/compose";
+import { randomizeComposeFile } from "@/server/utils/docker/compose";
+import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
+import {
+	generateSSHKey,
+	readRSAFile,
+	removeRSAFiles,
+} from "@/server/utils/filesystem/ssh";
+import { templates } from "@/templates/templates";
+import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+import {
+	generatePassword,
+	loadTemplateModule,
+	readComposeFile,
+} from "@/templates/utils";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { findAdmin } from "../services/admin";
+import {
 	createCompose,
 	createComposeByTemplate,
 	findComposeById,
@@ -15,37 +41,11 @@ import {
 	stopCompose,
 	updateCompose,
 } from "../services/compose";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { addNewService, checkServiceAccess } from "../services/user";
-import {
-	cleanQueuesByCompose,
-	type DeploymentJob,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
-import {
-	generateSSHKey,
-	readRSAFile,
-	removeRSAFiles,
-} from "@/server/utils/filesystem/ssh";
-import { eq } from "drizzle-orm";
-import { db } from "@/server/db";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
-import { nanoid } from "nanoid";
 import { removeDeploymentsByComposeId } from "../services/deployment";
-import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
-import { createCommand } from "@/server/utils/builders/compose";
-import {
-	generatePassword,
-	loadTemplateModule,
-	readComposeFile,
-} from "@/templates/utils";
-import { findAdmin } from "../services/admin";
-import { TRPCError } from "@trpc/server";
-import { findProjectById } from "../services/project";
 import { createMount } from "../services/mount";
-import type { TemplatesKeys } from "@/templates/types/templates-data.type";
-import { templates } from "@/templates/templates";
-import { slugify } from "@/lib/slug";
+import { findProjectById } from "../services/project";
+import { addNewService, checkServiceAccess } from "../services/user";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure

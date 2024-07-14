@@ -76,22 +76,22 @@ export const SettingsLayout = ({ children }: Props) => {
 	);
 };
 
-import Link from "next/link";
 import {
 	Activity,
 	Database,
+	type LucideIcon,
 	Route,
 	Server,
 	ShieldCheck,
 	User2,
 	Users,
-	type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
-import { useRouter } from "next/router";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useRouter } from "next/router";
 
 interface NavProps {
 	links: {

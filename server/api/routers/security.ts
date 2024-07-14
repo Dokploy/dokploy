@@ -1,4 +1,3 @@
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
 	apiCreateSecurity,
 	apiFindOneSecurity,
@@ -10,6 +9,7 @@ import {
 	findSecurityById,
 	updateSecurityById,
 } from "../services/security";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const securityRouter = createTRPCRouter({
 	create: protectedProcedure

@@ -1,7 +1,7 @@
 import type http from "node:http";
+import { spawn } from "node-pty";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
-import { spawn } from "node-pty";
 import { getShell } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (

@@ -1,5 +1,12 @@
-import { docker, MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
+import {
+	apiAssignDomain,
+	apiModifyTraefikConfig,
+	apiReadTraefikConfig,
+	apiSaveSSHKey,
+	apiTraefikConfig,
+	apiUpdateDockerCleanup,
+} from "@/server/db/schema";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -9,40 +16,33 @@ import {
 	startService,
 	stopService,
 } from "@/server/utils/docker/utils";
-import {
-	apiAssignDomain,
-	apiModifyTraefikConfig,
-	apiReadTraefikConfig,
-	apiSaveSSHKey,
-	apiTraefikConfig,
-	apiUpdateDockerCleanup,
-} from "@/server/db/schema";
-import { scheduledJobs, scheduleJob } from "node-schedule";
-import {
-	readMainConfig,
-	updateLetsEncryptEmail,
-	updateServerTraefik,
-	writeMainConfig,
-} from "@/server/utils/traefik/web-server";
+import { recreateDirectory } from "@/server/utils/filesystem/directory";
+import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
 	readConfigInPath,
 	writeConfig,
 	writeTraefikConfigInPath,
 } from "@/server/utils/traefik/application";
-import { spawnAsync } from "@/server/utils/process/spawnAsync";
-import { findAdmin, updateAdmin } from "../services/admin";
-import { TRPCError } from "@trpc/server";
 import {
-	getDokployVersion,
+	readMainConfig,
+	updateLetsEncryptEmail,
+	updateServerTraefik,
+	writeMainConfig,
+} from "@/server/utils/traefik/web-server";
+import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
+import { TRPCError } from "@trpc/server";
+import { scheduleJob, scheduledJobs } from "node-schedule";
+import { appRouter } from "../root";
+import { findAdmin, updateAdmin } from "../services/admin";
+import {
 	getDokployImage,
+	getDokployVersion,
 	pullLatestRelease,
 	readDirectory,
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
-import { recreateDirectory } from "@/server/utils/filesystem/directory";
-import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
-import { appRouter } from "../root";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {

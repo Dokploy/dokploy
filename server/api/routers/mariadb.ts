@@ -22,8 +22,8 @@ import {
 	removeMariadbById,
 	updateMariadbById,
 } from "../services/mariadb";
-import { addNewService, checkServiceAccess } from "../services/user";
 import { createMount } from "../services/mount";
+import { addNewService, checkServiceAccess } from "../services/user";
 
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure

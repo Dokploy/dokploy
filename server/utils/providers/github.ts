@@ -1,12 +1,12 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
+import type { Admin } from "@/server/api/services/admin";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import type { Admin } from "@/server/api/services/admin";
 
 export const authGithub = (admin: Admin) => {
 	if (!haveGithubRequirements(admin)) {

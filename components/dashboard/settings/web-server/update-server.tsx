@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -8,11 +9,10 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import Link from "next/link";
 import { UpdateWebServer } from "./update-webserver";
 
 export const UpdateServer = () => {

@@ -1,12 +1,12 @@
+import { CardContent } from "@/components/ui/card";
 import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { CardContent } from "@/components/ui/card";
-import { CopyIcon } from "lucide-react";
 import copy from "copy-to-clipboard";
+import { CopyIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const AddManager = () => {

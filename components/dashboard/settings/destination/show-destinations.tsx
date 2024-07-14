@@ -8,8 +8,8 @@ import {
 import { api } from "@/utils/api";
 import { FolderUp } from "lucide-react";
 import { AddDestination } from "./add-destination";
-import { UpdateDestination } from "./update-destination";
 import { DeleteDestination } from "./delete-destination";
+import { UpdateDestination } from "./update-destination";
 
 export const ShowDestinations = () => {
 	const { data } = api.destination.all.useQuery();
