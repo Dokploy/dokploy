@@ -1,0 +1,1 @@
+ALTER TABLE "email" ALTER COLUMN "smtpServer" SET DATA TYPE integer;

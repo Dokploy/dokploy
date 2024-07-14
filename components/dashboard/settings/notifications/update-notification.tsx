@@ -20,96 +20,35 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Mail, PenBoxIcon } from "lucide-react";
+import { useEffect } from "react";
+import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { AlertTriangle, Mail } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
+	TelegramIcon,
 	DiscordIcon,
 	SlackIcon,
-	TelegramIcon,
 } from "@/components/icons/notification-icons";
-import { Switch } from "@/components/ui/switch";
+import {
+	notificationSchema,
+	type NotificationSchema,
+} from "./add-notification";
 
-const notificationBaseSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appDeploy: z.boolean().default(false),
-	userJoin: z.boolean().default(false),
-	appBuilderError: z.boolean().default(false),
-	databaseBackup: z.boolean().default(false),
-	dokployRestart: z.boolean().default(false),
-});
+interface Props {
+	notificationId: string;
+}
 
-export const notificationSchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("slack"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("telegram"),
-			botToken: z.string().min(1, { message: "Bot Token is required" }),
-			chatId: z.string().min(1, { message: "Chat ID is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("discord"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("email"),
-			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
-			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z
-				.array(
-					z.string().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
-		})
-		.merge(notificationBaseSchema),
-]);
-
-export const notificationsMap = {
-	slack: {
-		icon: <SlackIcon />,
-		label: "Slack",
-	},
-	telegram: {
-		icon: <TelegramIcon />,
-		label: "Telegram",
-	},
-	discord: {
-		icon: <DiscordIcon />,
-		label: "Discord",
-	},
-	email: {
-		icon: <Mail size={29} className="text-muted-foreground" />,
-		label: "Email",
-	},
-};
-
-export type NotificationSchema = z.infer<typeof notificationSchema>;
-
-export const AddNotification = () => {
+export const UpdateNotification = ({ notificationId }: Props) => {
 	const utils = api.useUtils();
-	const [visible, setVisible] = useState(false);
-
+	const { data, refetch } = api.notification.one.useQuery(
+		{
+			notificationId,
+		},
+		{
+			enabled: !!notificationId,
+		},
+	);
 	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
 
@@ -119,17 +58,16 @@ export const AddNotification = () => {
 		api.notification.testDiscordConnection.useMutation();
 	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
-	const slackMutation = api.notification.createSlack.useMutation();
-	const telegramMutation = api.notification.createTelegram.useMutation();
-	const discordMutation = api.notification.createDiscord.useMutation();
-	const emailMutation = api.notification.createEmail.useMutation();
+	const slackMutation = api.notification.updateSlack.useMutation();
+	const telegramMutation = api.notification.updateTelegram.useMutation();
+	const discordMutation = api.notification.updateDiscord.useMutation();
+	const emailMutation = api.notification.updateEmail.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
 			type: "slack",
 			webhookUrl: "",
 			channel: "",
-			name: "",
 		},
 		resolver: zodResolver(notificationSchema),
 	});
@@ -141,106 +79,152 @@ export const AddNotification = () => {
 	});
 
 	useEffect(() => {
-		if (type === "email") {
-			append("");
+		if (data) {
+			if (data.notificationType === "slack") {
+				form.reset({
+					appBuilderError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					userJoin: data.userJoin,
+					webhookUrl: data.slack?.webhookUrl,
+					channel: data.slack?.channel || "",
+					name: data.name,
+					type: data.notificationType,
+				});
+			} else if (data.notificationType === "telegram") {
+				form.reset({
+					appBuilderError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					userJoin: data.userJoin,
+					botToken: data.telegram?.botToken,
+					chatId: data.telegram?.chatId,
+					type: data.notificationType,
+					name: data.name,
+				});
+			} else if (data.notificationType === "discord") {
+				form.reset({
+					appBuilderError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					userJoin: data.userJoin,
+					type: data.notificationType,
+					webhookUrl: data.discord?.webhookUrl,
+					name: data.name,
+				});
+			} else if (data.notificationType === "email") {
+				form.reset({
+					appBuilderError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					type: data.notificationType,
+					userJoin: data.userJoin,
+					smtpServer: data.email?.smtpServer,
+					smtpPort: data.email?.smtpPort,
+					username: data.email?.username,
+					password: data.email?.password,
+					toAddresses: data.email?.toAddresses,
+					fromAddress: data.email?.fromAddress,
+					name: data.name,
+				});
+			}
 		}
-	}, [type, append]);
+	}, [form, form.reset, data]);
 
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
-
-	const activeMutation = {
-		slack: slackMutation,
-		telegram: telegramMutation,
-		discord: discordMutation,
-		email: emailMutation,
-	};
-
-	const onSubmit = async (data: NotificationSchema) => {
+	const onSubmit = async (formData: NotificationSchema) => {
 		const {
 			appBuilderError,
 			appDeploy,
 			dokployRestart,
 			databaseBackup,
 			userJoin,
-		} = data;
+		} = formData;
 		let promise: Promise<unknown> | null = null;
-		if (data.type === "slack") {
+		if (formData?.type === "slack" && data?.slackId) {
 			promise = slackMutation.mutateAsync({
 				appBuildError: appBuilderError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				userJoin: userJoin,
-				webhookUrl: data.webhookUrl,
-				channel: data.channel,
-				name: data.name,
+				webhookUrl: formData.webhookUrl,
+				channel: formData.channel,
+				name: formData.name,
+				notificationId: notificationId,
+				slackId: data?.slackId,
 			});
-		} else if (data.type === "telegram") {
+		} else if (formData.type === "telegram" && data?.telegramId) {
 			promise = telegramMutation.mutateAsync({
 				appBuildError: appBuilderError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				userJoin: userJoin,
-				botToken: data.botToken,
-				chatId: data.chatId,
-				name: data.name,
+				botToken: formData.botToken,
+				chatId: formData.chatId,
+				name: formData.name,
+				notificationId: notificationId,
+				telegramId: data?.telegramId,
 			});
-		} else if (data.type === "discord") {
+		} else if (formData.type === "discord" && data?.discordId) {
 			promise = discordMutation.mutateAsync({
 				appBuildError: appBuilderError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				userJoin: userJoin,
-				webhookUrl: data.webhookUrl,
-				name: data.name,
+				webhookUrl: formData.webhookUrl,
+				name: formData.name,
+				notificationId: notificationId,
+				discordId: data?.discordId,
 			});
-		} else if (data.type === "email") {
+		} else if (formData.type === "email" && data?.emailId) {
 			promise = emailMutation.mutateAsync({
 				appBuildError: appBuilderError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				userJoin: userJoin,
-				smtpServer: data.smtpServer,
-				smtpPort: data.smtpPort,
-				username: data.username,
-				password: data.password,
-				fromAddress: data.fromAddress,
-				toAddresses: data.toAddresses,
-				name: data.name,
+				smtpServer: formData.smtpServer,
+				smtpPort: formData.smtpPort,
+				username: formData.username,
+				password: formData.password,
+				fromAddress: formData.fromAddress,
+				toAddresses: formData.toAddresses,
+				name: formData.name,
+				notificationId: notificationId,
+				emailId: data?.emailId,
 			});
 		}
 
 		if (promise) {
 			await promise
 				.then(async () => {
-					toast.success("Notification Created");
-					form.reset({
-						type: "slack",
-						webhookUrl: "",
-					});
-					setVisible(false);
+					toast.success("Notification Updated");
 					await utils.notification.all.invalidate();
+					refetch();
 				})
 				.catch(() => {
-					toast.error("Error to create a notification");
+					toast.error("Error to update a notification");
 				});
 		}
 	};
 	return (
-		<Dialog open={visible} onOpenChange={setVisible}>
+		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button>Add Notification</Button>
+				<Button variant="ghost">
+					<PenBoxIcon className="size-4  text-muted-foreground" />
+				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Notification</DialogTitle>
+					<DialogTitle>Update Notification</DialogTitle>
 					<DialogDescription>
-						Create new notifications providers for multiple
+						Update the current notification config
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -249,63 +233,36 @@ export const AddNotification = () => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-8 "
 					>
-						<FormField
-							control={form.control}
-							defaultValue={form.control._defaultValues.type}
-							name="type"
-							render={({ field }) => (
-								<FormItem className="space-y-3">
-									<FormLabel className="text-muted-foreground">
-										Select a provider
+						<div className="flex flex-col gap-4 ">
+							<div className="flex flex-row gap-2 w-full items-center">
+								<div className="flex flex-row gap-2 items-center w-full ">
+									<FormLabel className="text-lg font-semibold leading-none tracking-tight flex">
+										{data?.notificationType === "slack"
+											? "Slack"
+											: data?.notificationType === "telegram"
+												? "Telegram"
+												: data?.notificationType === "discord"
+													? "Discord"
+													: "Email"}
 									</FormLabel>
-									<FormControl>
-										<RadioGroup
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
-										>
-											{Object.entries(notificationsMap).map(([key, value]) => (
-												<FormItem
-													key={key}
-													className="flex w-full items-center space-x-3 space-y-0"
-												>
-													<FormControl className="w-full">
-														<div>
-															<RadioGroupItem
-																value={key}
-																id={key}
-																className="peer sr-only"
-															/>
-															<Label
-																htmlFor={key}
-																className="flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-															>
-																{value.icon}
-																{value.label}
-															</Label>
-														</div>
-													</FormControl>
-												</FormItem>
-											))}
-										</RadioGroup>
-									</FormControl>
-									<FormMessage />
-									{activeMutation[field.value].isError && (
-										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-											<AlertTriangle className="text-red-600 dark:text-red-400" />
-											<span className="text-sm text-red-600 dark:text-red-400">
-												{activeMutation[field.value].error?.message}
-											</span>
-										</div>
-									)}
-								</FormItem>
-							)}
-						/>
+								</div>
+								{data?.notificationType === "slack" && (
+									<SlackIcon className="text-muted-foreground size-6 flex-shrink-0" />
+								)}
+								{data?.notificationType === "telegram" && (
+									<TelegramIcon className="text-muted-foreground size-8 flex-shrink-0" />
+								)}
+								{data?.notificationType === "discord" && (
+									<DiscordIcon className="text-muted-foreground size-7 flex-shrink-0" />
+								)}
+								{data?.notificationType === "email" && (
+									<Mail
+										size={29}
+										className="text-muted-foreground size-6 flex-shrink-0"
+									/>
+								)}
+							</div>
 
-						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
-							</FormLabel>
 							<div className="flex flex-col gap-2">
 								<FormField
 									control={form.control}
@@ -417,7 +374,6 @@ export const AddNotification = () => {
 										/>
 									</>
 								)}
-
 								{type === "email" && (
 									<>
 										<div className="flex md:flex-row flex-col gap-2 w-full">
@@ -442,20 +398,7 @@ export const AddNotification = () => {
 													<FormItem className="w-full">
 														<FormLabel>SMTP Port</FormLabel>
 														<FormControl>
-															<Input
-																placeholder="587"
-																{...field}
-																onChange={(e) => {
-																	const value = e.target.value;
-																	if (value) {
-																		const port = Number.parseInt(value);
-																		if (port > 0 && port < 65536) {
-																			field.onChange(port);
-																		}
-																	}
-																}}
-																type="number"
-															/>
+															<Input placeholder="587" {...field} />
 														</FormControl>
 
 														<FormMessage />
@@ -578,10 +521,11 @@ export const AddNotification = () => {
 							<div className="grid md:grid-cols-2 gap-4">
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.appDeploy}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div className="">
+										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
 													Trigger the action when a app is deployed.
@@ -598,6 +542,7 @@ export const AddNotification = () => {
 								/>
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.userJoin}
 									name="userJoin"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
@@ -619,6 +564,7 @@ export const AddNotification = () => {
 								<FormField
 									control={form.control}
 									name="databaseBackup"
+									defaultValue={form.control._defaultValues.databaseBackup}
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
@@ -636,9 +582,9 @@ export const AddNotification = () => {
 										</FormItem>
 									)}
 								/>
-
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.dokployRestart}
 									name="dokployRestart"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
@@ -659,6 +605,7 @@ export const AddNotification = () => {
 								/>
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.appBuilderError}
 									name="appBuilderError"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
@@ -729,7 +676,7 @@ export const AddNotification = () => {
 							form="hook-form"
 							type="submit"
 						>
-							Create
+							Update
 						</Button>
 					</DialogFooter>
 				</Form>

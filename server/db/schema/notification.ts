@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 import { createInsertSchema } from "drizzle-zod";
@@ -46,7 +46,7 @@ export const slack = pgTable("slack", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
-	channel: text("channel").notNull(),
+	channel: text("channel"),
 });
 
 export const telegram = pgTable("telegram", {
@@ -72,7 +72,7 @@ export const email = pgTable("email", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	smtpServer: text("smtpServer").notNull(),
-	smtpPort: text("smtpPort").notNull(),
+	smtpPort: integer("smtpPort").notNull(),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
 	fromAddress: text("fromAddress").notNull(),
@@ -111,9 +111,19 @@ export const apiCreateSlack = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
-		channel: z.string().min(1),
+		channel: z.string(),
 	})
 	.required();
+
+export const apiUpdateSlack = apiCreateSlack.partial().extend({
+	notificationId: z.string().min(1),
+	slackId: z.string(),
+});
+
+export const apiTestSlackConnection = apiCreateSlack.pick({
+	webhookUrl: true,
+	channel: true,
+});
 
 export const apiCreateTelegram = notificationsSchema
 	.pick({
@@ -130,6 +140,16 @@ export const apiCreateTelegram = notificationsSchema
 	})
 	.required();
 
+export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
+	notificationId: z.string().min(1),
+	telegramId: z.string().min(1),
+});
+
+export const apiTestTelegramConnection = apiCreateTelegram.pick({
+	botToken: true,
+	chatId: true,
+});
+
 export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -144,6 +164,15 @@ export const apiCreateDiscord = notificationsSchema
 	})
 	.required();
 
+export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
+	notificationId: z.string().min(1),
+	discordId: z.string().min(1),
+});
+
+export const apiTestDiscordConnection = apiCreateDiscord.pick({
+	webhookUrl: true,
+});
+
 export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -155,13 +184,27 @@ export const apiCreateEmail = notificationsSchema
 	})
 	.extend({
 		smtpServer: z.string().min(1),
-		smtpPort: z.string().min(1),
+		smtpPort: z.number().min(1),
 		username: z.string().min(1),
 		password: z.string().min(1),
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
 	.required();
+
+export const apiUpdateEmail = apiCreateEmail.partial().extend({
+	notificationId: z.string().min(1),
+	emailId: z.string().min(1),
+});
+
+export const apiTestEmailConnection = apiCreateEmail.pick({
+	smtpServer: true,
+	smtpPort: true,
+	username: true,
+	password: true,
+	toAddresses: true,
+	fromAddress: true,
+});
 
 export const apiFindOneNotification = notificationsSchema
 	.pick({
@@ -176,7 +219,7 @@ export const apiSendTest = notificationsSchema
 		webhookUrl: z.string(),
 		channel: z.string(),
 		smtpServer: z.string(),
-		smtpPort: z.string(),
+		smtpPort: z.number(),
 		fromAddress: z.string(),
 		username: z.string(),
 		password: z.string(),
