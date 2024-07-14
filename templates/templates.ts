@@ -359,5 +359,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ['email'],
 		load: () => import('./doublezero/index').then((m) => m.generate),
+	},
+	{
+		id: 'umami',
+		name: 'Umami',
+		version: 'v2.12.1',
+		description: 'Umami is a simple, fast, privacy-focused alternative to Google Analytics.',
+		logo: 'umami.png',
+		links: {
+			github: 'https://github.com/umami-software/umami',
+			website: 'https://umami.is',
+			docs: 'https://umami.is/docs',
+		},
+		tags: ['analytics'],
+		load: () => import('./umami/index').then((m) => m.generate),
 	}
 ];
