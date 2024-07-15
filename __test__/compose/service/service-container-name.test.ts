@@ -42,7 +42,7 @@ test("Add prefix to service names with container_name in compose file", () => {
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	// Verificar que el nombre del contenedor ha cambiado correctamente
-	expect(actualComposeData.services[`web-${prefix}`].container_name).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.container_name).toBe(
 		`web_container-${prefix}`,
 	);
 	// Verificar que la nueva clave del servicio tiene el prefijo y la vieja clave no existe
@@ -50,10 +50,10 @@ test("Add prefix to service names with container_name in compose file", () => {
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services[`web-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 });

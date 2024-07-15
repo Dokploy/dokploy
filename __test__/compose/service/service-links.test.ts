@@ -50,27 +50,27 @@ test("Add prefix to service names with links in compose file", () => {
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services[`web-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que los nombres en links tienen el prefijo
-	expect(actualComposeData.services[`web-${prefix}`].links).toContain(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.links).toContain(
 		`db-${prefix}`,
 	);
 
 	// Verificar que los servicios `db` y `api` también tienen el prefijo
 	expect(actualComposeData.services).toHaveProperty(`db-${prefix}`);
 	expect(actualComposeData.services).not.toHaveProperty("db");
-	expect(actualComposeData.services[`db-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`db-${prefix}`]?.image).toBe(
 		"postgres:latest",
 	);
 	expect(actualComposeData.services).toHaveProperty(`api-${prefix}`);
 	expect(actualComposeData.services).not.toHaveProperty("api");
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 });
