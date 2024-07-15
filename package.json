@@ -23,6 +23,7 @@
 		"check": "biome check",
 		"format": "biome format",
 		"lint": "biome lint",
+		"typecheck": "tsc",
 		"db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
 		"db:clean": "tsx -r dotenv/config ./server/db/reset.ts",
 		"docker:build": "./docker/build.sh",
@@ -124,7 +125,7 @@
 		"zod": "^3.23.4"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.8.3",
+		"@biomejs/biome": "1.8.3",
 		"@types/bcrypt": "5.0.2",
 		"@types/dockerode": "3.3.23",
 		"@types/js-yaml": "4.0.9",
