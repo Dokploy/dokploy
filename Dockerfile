@@ -1,15 +1,16 @@
 # Etapa 1: Prepare image for building
 FROM node:18-slim AS base
 
-# Disable husky
-ENV HUSKY=0
-
 # Install dependencies
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Disable husky
+ENV HUSKY=0
+COPY .husky/install.mjs ./.husky/install.mjs
 
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
@@ -35,6 +36,12 @@ ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && apt-get update && apt-get install -y curl && apt-get install -y apache2-utils && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+ENV NODE_ENV production
+
+# Disable husky
+ENV HUSKY=0
+COPY --from=base /app/.husky/install.mjs ./.husky/install.mjs
 
 #  Copy the rest of the source code
 COPY --from=base /app/.next ./.next
