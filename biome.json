@@ -1,7 +1,7 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"ignore": ["node_modules/**", ".next/**", "drizzle/**",".docker"]
+		"ignore": ["node_modules/**", ".next/**", "drizzle/**", ".docker"]
 	},
 	"organizeImports": {
 		"enabled": true
