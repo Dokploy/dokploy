@@ -1,6 +1,9 @@
 # Etapa 1: Prepare image for building
 FROM node:18-slim AS base
 
+# Disable husky
+ENV HUSKY=0
+
 # Install dependencies
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -22,6 +25,9 @@ RUN pnpm run build
 
 # Stage 2: Prepare image for production
 FROM node:18-slim AS production
+
+# Disable husky
+ENV HUSKY=0
 
 # Install dependencies only for production
 ENV PNPM_HOME="/pnpm"

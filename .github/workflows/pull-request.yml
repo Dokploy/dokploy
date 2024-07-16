@@ -9,6 +9,8 @@ on:
     branches:
       - main
       - canary
+env:
+  HUSKY: 0
 jobs:
   build-app:
     if: github.event_name == 'pull_request'
