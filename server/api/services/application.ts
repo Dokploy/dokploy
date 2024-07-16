@@ -17,6 +17,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
+import { sendBuildErrorNotifications } from "./notification";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
