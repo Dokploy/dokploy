@@ -507,38 +507,6 @@ export const sendEmailTestNotification = async (
 	console.log("Email notification sent successfully");
 };
 
-// export const sendInvitationEmail = async (
-// 	emailTestConnection: typeof apiTestEmailConnection._type,
-// 	inviteLink: string,
-// 	toEmail: string,
-// ) => {
-// 	const { smtpServer, smtpPort, username, password, fromAddress } =
-// 		emailTestConnection;
-// 	const transporter = nodemailer.createTransport({
-// 		host: smtpServer,
-// 		port: smtpPort,
-// 		secure: smtpPort === 465,
-// 		auth: {
-// 			user: username,
-// 			pass: password,
-// 		},
-// 	} as SMTPTransport.Options);
-// 	// need to add a valid from address
-// 	const mailOptions = {
-// 		from: fromAddress,
-// 		to: toEmail,
-// 		subject: "Invitation to join Dokploy",
-// 		html: InvitationTemplate({
-// 			inviteLink: inviteLink,
-// 			toEmail: toEmail,
-// 		}),
-// 	};
-
-// 	await transporter.sendMail(mailOptions);
-
-// 	console.log("Email notification sent successfully");
-// };
-
 export const sendBuildFailedEmail = async ({
 	projectName,
 	applicationName,
@@ -597,6 +565,213 @@ export const sendBuildFailedEmail = async ({
 				),
 			};
 			await transporter.sendMail(mailOptions);
+		}
+	}
+};
+
+// export const
+
+export const sendBuildErrorNotifications = async ({
+	projectName,
+	applicationName,
+	applicationType,
+	errorMessage,
+	buildLink,
+}: {
+	projectName: string;
+	applicationName: string;
+	applicationType: string;
+	errorMessage: string;
+	buildLink: string;
+}) => {
+	const date = new Date();
+	const notificationList = await db.query.notifications.findMany({
+		where: eq(notifications.appBuildError, true),
+		with: {
+			email: true,
+			discord: true,
+			telegram: true,
+			slack: true,
+		},
+	});
+
+	for (const notification of notificationList) {
+		const { email, discord, telegram, slack } = notification;
+		if (email) {
+			const {
+				smtpServer,
+				smtpPort,
+				username,
+				password,
+				fromAddress,
+				toAddresses,
+			} = email;
+			const transporter = nodemailer.createTransport({
+				host: smtpServer,
+				port: smtpPort,
+				secure: smtpPort === 465,
+				auth: {
+					user: username,
+					pass: password,
+				},
+			} as SMTPTransport.Options);
+			const mailOptions = {
+				from: fromAddress,
+				to: toAddresses?.join(", "),
+				subject: "Build failed for dokploy",
+				html: render(
+					BuildFailedEmail({
+						projectName,
+						applicationName,
+						applicationType,
+						errorMessage,
+						buildLink,
+					}),
+				),
+			};
+			await transporter.sendMail(mailOptions);
+		}
+
+		if (discord) {
+			const { webhookUrl } = discord;
+			const embed = {
+				title: "⚠️ Build Failed",
+				color: 0xff0000, // Rojo
+				fields: [
+					{
+						name: "Project",
+						value: projectName,
+						inline: true,
+					},
+					{
+						name: "Application",
+						value: applicationName,
+						inline: true,
+					},
+					{
+						name: "Type",
+						value: applicationType,
+						inline: true,
+					},
+					{
+						name: "Error",
+						value: errorMessage,
+					},
+					{
+						name: "Build Link",
+						value: buildLink,
+					},
+				],
+				timestamp: date.toISOString(),
+				footer: {
+					text: "Dokploy Build Notification",
+				},
+			};
+			const response = await fetch(webhookUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					embeds: [embed],
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error("Error to send test notification");
+			}
+		}
+
+		if (telegram) {
+			const { botToken, chatId } = telegram;
+			const messageText = `
+			<b>⚠️ Build Failed</b>
+			
+			<b>Project:</b> ${projectName}
+			<b>Application:</b> ${applicationName}
+			<b>Type:</b> ${applicationType}
+			<b>Time:</b> ${date.toLocaleString()}
+			
+			<b>Error:</b>
+			<pre>${errorMessage}</pre>
+			
+			<b>Build Details:</b> ${buildLink}
+			`;
+			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+			const response = await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					chat_id: chatId,
+					text: messageText,
+					parse_mode: "HTML",
+					disable_web_page_preview: true,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error("Error to send test notification");
+			}
+		}
+
+		if (slack) {
+			const { webhookUrl, channel } = slack;
+			const message = {
+				channel: channel,
+				attachments: [
+					{
+						color: "#FF0000",
+						pretext: ":warning: *Build Failed*",
+						fields: [
+							{
+								title: "Project",
+								value: projectName,
+								short: true,
+							},
+							{
+								title: "Application",
+								value: applicationName,
+								short: true,
+							},
+							{
+								title: "Type",
+								value: applicationType,
+								short: true,
+							},
+							{
+								title: "Time",
+								value: date.toLocaleString(),
+								short: true,
+							},
+							{
+								title: "Error",
+								value: `\`\`\`${errorMessage}\`\`\``,
+								short: false,
+							},
+						],
+						actions: [
+							{
+								type: "button",
+								text: "View Build Details",
+								url: "https://doks.dev/build-details",
+							},
+						],
+					},
+				],
+			};
+			const response = await fetch(webhookUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(message),
+			});
+
+			if (!response.ok) {
+				throw new Error("Error to send test notification");
+			}
 		}
 	}
 };

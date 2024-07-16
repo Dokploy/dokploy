@@ -398,7 +398,19 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 													<FormItem className="w-full">
 														<FormLabel>SMTP Port</FormLabel>
 														<FormControl>
-															<Input placeholder="587" {...field} />
+															<Input
+																placeholder="587"
+																{...field}
+																onChange={(e) => {
+																	const value = e.target.value;
+																	if (value) {
+																		const port = Number.parseInt(value);
+																		if (port > 0 && port < 65536) {
+																			field.onChange(port);
+																		}
+																	}
+																}}
+															/>
 														</FormControl>
 
 														<FormMessage />

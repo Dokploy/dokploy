@@ -18,7 +18,7 @@ import { getAdvancedStats } from "@/server/monitoring/utilts";
 import { validUniqueServerAppName } from "./project";
 import { generatePassword } from "@/templates/utils";
 import { generateAppName } from "@/server/db/schema/utils";
-import { sendBuildFailedEmail } from "./notification";
+import { sendBuildErrorNotifications } from "./notification";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -161,7 +161,7 @@ export const deployApplication = async ({
 		console.log("Error on build", error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
-		await sendBuildFailedEmail({
+		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.appName,
 			applicationType: "application",
