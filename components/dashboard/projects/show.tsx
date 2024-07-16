@@ -1,3 +1,4 @@
+import { DateTooltip } from "@/components/shared/date-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -30,7 +31,6 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { UpdateProject } from "./update";
-import { DateTooltip } from "@/components/shared/date-tooltip";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();

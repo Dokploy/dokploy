@@ -1,10 +1,10 @@
 import { AddProject } from "@/components/dashboard/projects/add";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
-import { api } from "@/utils/api";
 import type { Auth } from "@/server/api/services/auth";
 import type { User } from "@/server/api/services/user";
+import { api } from "@/utils/api";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 interface TabInfo {
 	label: string;

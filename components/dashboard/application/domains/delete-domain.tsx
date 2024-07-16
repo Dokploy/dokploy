@@ -1,4 +1,3 @@
-import React from "react";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -13,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { TrashIcon } from "lucide-react";
+import React from "react";
 import { toast } from "sonner";
 
 interface Props {

@@ -1,3 +1,4 @@
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -22,7 +23,6 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 
 const DockerProviderSchema = z.object({
 	externalPort: z.preprocess((a) => {

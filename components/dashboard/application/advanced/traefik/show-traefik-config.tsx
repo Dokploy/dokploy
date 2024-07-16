@@ -1,4 +1,4 @@
-import React from "react";
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Card,
 	CardContent,
@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { File } from "lucide-react";
+import React from "react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
-import { CodeEditor } from "@/components/shared/code-editor";
 interface Props {
 	applicationId: string;
 }
@@ -29,7 +29,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 					<CardTitle className="text-xl">Traefik</CardTitle>
 					<CardDescription>
 						Modify the traefik config, in rare cases you may need to add
-						specific config, becarefull because modifying incorrectly can break
+						specific config, be careful because modifying incorrectly can break
 						traefik and your application
 					</CardDescription>
 				</div>

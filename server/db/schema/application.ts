@@ -1,15 +1,5 @@
+import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { deployments } from "./deployment";
-import { mounts } from "./mount";
-import { redirects } from "./redirects";
-import { domains } from "./domain";
-import { projects } from "./project";
-import { security } from "./security";
-import { applicationStatus } from "./shared";
-import { ports } from "./port";
 import {
 	boolean,
 	integer,
@@ -18,8 +8,19 @@ import {
 	pgTable,
 	text,
 } from "drizzle-orm/pg-core";
-import { generateAppName } from "./utils";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { deployments } from "./deployment";
+import { domains } from "./domain";
+import { mounts } from "./mount";
+import { ports } from "./port";
+import { projects } from "./project";
+import { redirects } from "./redirects";
 import { registry } from "./registry";
+import { security } from "./security";
+import { applicationStatus } from "./shared";
+import { generateAppName } from "./utils";
 
 export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
 

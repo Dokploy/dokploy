@@ -1,8 +1,8 @@
-import { expect, test } from "vitest";
-import { load, dump } from "js-yaml";
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { addPrefixToSecretsRoot } from "@/server/utils/docker/compose/secrets";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { dump, load } from "js-yaml";
+import { expect, test } from "vitest";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();

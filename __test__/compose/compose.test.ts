@@ -1,7 +1,7 @@
-import { expect, test } from "vitest";
-import { load } from "js-yaml";
 import { addPrefixToAllProperties } from "@/server/utils/docker/compose";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { load } from "js-yaml";
+import { expect, test } from "vitest";
 
 const composeFile1 = `
 version: "3.8"

@@ -1,3 +1,5 @@
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,14 +19,12 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { zodResolver } from "@hookform/resolvers/zod";
+import jsyaml from "js-yaml";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import jsyaml from "js-yaml";
-import { CodeEditor } from "@/components/shared/code-editor";
 
 const UpdateTraefikConfigSchema = z.object({
 	traefikConfig: z.string(),
@@ -110,12 +110,15 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(open) => {
-			setOpen(open)
-			if (!open) {
-				form.reset();
-			}
-		}}>
+		<Dialog
+			open={open}
+			onOpenChange={(open) => {
+				setOpen(open);
+				if (!open) {
+					form.reset();
+				}
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>

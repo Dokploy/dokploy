@@ -20,8 +20,8 @@ export const initializeRedis = async () => {
 				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
-			RestartPolicy: {
-				Condition: "on-failure",
+			Placement: {
+				Constraints: ["node.role==manager"],
 			},
 		},
 		Mode: {

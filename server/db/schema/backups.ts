@@ -1,12 +1,4 @@
 import { relations } from "drizzle-orm";
-import { destinations } from "./destination";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { postgres } from "./postgres";
-import { mariadb } from "./mariadb";
-import { mysql } from "./mysql";
-import { mongo } from "./mongo";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -14,6 +6,14 @@ import {
 	pgTable,
 	text,
 } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { destinations } from "./destination";
+import { mariadb } from "./mariadb";
+import { mongo } from "./mongo";
+import { mysql } from "./mysql";
+import { postgres } from "./postgres";
 
 export const databaseType = pgEnum("databaseType", [
 	"postgres",

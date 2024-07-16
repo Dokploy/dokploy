@@ -1,8 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Form,
 	FormControl,
@@ -11,9 +7,13 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useEffect } from "react";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const DockerProviderSchema = z.object({
 	dockerImage: z.string().min(1, {

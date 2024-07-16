@@ -1,14 +1,14 @@
+import { format } from "date-fns";
 import {
-	AreaChart,
 	Area,
-	YAxis,
+	AreaChart,
 	CartesianGrid,
-	Tooltip,
-	ResponsiveContainer,
 	Legend,
+	ResponsiveContainer,
+	Tooltip,
+	YAxis,
 } from "recharts";
 import type { DockerStatsJSON } from "./show";
-import { format } from "date-fns";
 
 interface Props {
 	acummulativeData: DockerStatsJSON["cpu"];

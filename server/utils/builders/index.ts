@@ -2,6 +2,7 @@ import { createWriteStream } from "node:fs";
 import { docker } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { uploadImage } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -14,7 +15,6 @@ import { buildCustomDocker } from "./docker-file";
 import { buildHeroku } from "./heroku";
 import { buildNixpacks } from "./nixpacks";
 import { buildPaketo } from "./paketo";
-import { uploadImage } from "../cluster/upload";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory

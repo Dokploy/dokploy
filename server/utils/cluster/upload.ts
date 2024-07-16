@@ -1,6 +1,6 @@
+import type { WriteStream } from "node:fs";
 import type { ApplicationNested } from "../builders";
 import { spawnAsync } from "../process/spawnAsync";
-import type { WriteStream } from "node:fs";
 
 export const uploadImage = async (
 	application: ApplicationNested,

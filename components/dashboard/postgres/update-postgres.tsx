@@ -1,3 +1,5 @@
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,7 +9,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -16,16 +17,15 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, SquarePen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, SquarePen } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const updatePostgresSchema = z.object({
 	name: z.string().min(1, {

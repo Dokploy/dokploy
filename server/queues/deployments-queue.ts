@@ -4,12 +4,12 @@ import {
 	rebuildApplication,
 	updateApplicationStatus,
 } from "../api/services/application";
-import { myQueue, redisConfig } from "./queueSetup";
 import {
 	deployCompose,
 	rebuildCompose,
 	updateCompose,
 } from "../api/services/compose";
+import { myQueue, redisConfig } from "./queueSetup";
 
 type DeployJob =
 	| {

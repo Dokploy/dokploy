@@ -1,11 +1,11 @@
-import { join } from "node:path";
-import type { MainTraefikConfig } from "./types";
-import { loadOrCreateConfig, writeTraefikConfig } from "./application";
-import { MAIN_TRAEFIK_PATH } from "@/server/constants";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dump, load } from "js-yaml";
-import type { FileConfig } from "./file-types";
+import { join } from "node:path";
 import type { Admin } from "@/server/api/services/admin";
+import { MAIN_TRAEFIK_PATH } from "@/server/constants";
+import { dump, load } from "js-yaml";
+import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import type { FileConfig } from "./file-types";
+import type { MainTraefikConfig } from "./types";
 
 export const updateServerTraefik = (
 	admin: Admin | null,

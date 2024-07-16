@@ -14,8 +14,8 @@ import {
 	applications,
 } from "@/server/db/schema/application";
 import {
-	cleanQueuesByApplication,
 	type DeploymentJob,
+	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import {
@@ -37,8 +37,11 @@ import {
 	removeTraefikConfig,
 	writeConfig,
 } from "@/server/utils/traefik/application";
+import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import {
 	createApplication,
 	findApplicationById,
@@ -47,9 +50,6 @@ import {
 	updateApplicationStatus,
 } from "../services/application";
 import { removeDeployments } from "../services/deployment";
-import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { addNewService, checkServiceAccess } from "../services/user";
 
 export const applicationRouter = createTRPCRouter({

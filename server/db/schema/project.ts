@@ -1,17 +1,17 @@
 import { relations } from "drizzle-orm";
 
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { pgTable, text } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { admins } from "./admin";
+import { applications } from "./application";
+import { compose } from "./compose";
+import { mariadb } from "./mariadb";
+import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
-import { mariadb } from "./mariadb";
-import { applications } from "./application";
-import { mongo } from "./mongo";
 import { redis } from "./redis";
-import { admins } from "./admin";
-import { compose } from "./compose";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")

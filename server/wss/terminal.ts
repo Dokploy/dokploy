@@ -1,12 +1,12 @@
+import { writeFileSync } from "node:fs";
 import type http from "node:http";
-import { WebSocketServer } from "ws";
-import { validateWebSocketRequest } from "../auth/auth";
-import { spawn } from "node-pty";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeFileSync } from "node:fs";
+import { spawn } from "node-pty";
 import { publicIpv4, publicIpv6 } from "public-ip";
+import { WebSocketServer } from "ws";
 import { findAdmin } from "../api/services/admin";
+import { validateWebSocketRequest } from "../auth/auth";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,11 +8,10 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { ExternalLink, PlusIcon } from "lucide-react";
-import { AddWorker } from "./workers/add-worker";
-import { AddManager } from "./manager/add-manager";
 import Link from "next/link";
+import { AddManager } from "./manager/add-manager";
+import { AddWorker } from "./workers/add-worker";
 
 export const AddNode = () => {
 	return (

@@ -8,13 +8,13 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+import { HeartIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { useRouter } from "next/router";
-import { api } from "@/utils/api";
 import { buttonVariants } from "../ui/button";
-import { HeartIcon } from "lucide-react";
 
 export const Navbar = () => {
 	const router = useRouter();

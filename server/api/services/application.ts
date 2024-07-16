@@ -1,24 +1,23 @@
+import { docker } from "@/server/constants";
 import { db } from "@/server/db";
 import {
 	type apiCreateApplication,
 	applications,
 	domains,
 } from "@/server/db/schema";
+import { generateAppName } from "@/server/db/schema/utils";
+import { getAdvancedStats } from "@/server/monitoring/utilts";
 import { buildApplication } from "@/server/utils/builders";
 import { buildDocker } from "@/server/utils/providers/docker";
 import { cloneGitRepository } from "@/server/utils/providers/git";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
+import { createTraefikConfig } from "@/server/utils/traefik/application";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { findAdmin } from "./admin";
-import { createTraefikConfig } from "@/server/utils/traefik/application";
-import { docker } from "@/server/constants";
-import { getAdvancedStats } from "@/server/monitoring/utilts";
+import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { generatePassword } from "@/templates/utils";
-import { generateAppName } from "@/server/db/schema/utils";
-import { sendBuildErrorNotifications } from "./notification";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (

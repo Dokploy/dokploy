@@ -1,9 +1,9 @@
 import { relations } from "drizzle-orm";
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { applications } from "./application";
-import { createInsertSchema } from "drizzle-zod";
 import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { applications } from "./application";
 import { compose } from "./compose";
 
 export const deploymentStatus = pgEnum("deploymentStatus", [

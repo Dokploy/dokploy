@@ -1,15 +1,13 @@
 // EXAMPLE
 import {
+	type Schema,
+	type Template,
+	generateBase64,
 	generateHash,
 	generateRandomDomain,
-	generateBase64,
-	type Template,
-	type Schema,
 } from "../utils";
 
-
 export function generate(schema: Schema): Template {
-
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
 	const secretBase = generateBase64(64);

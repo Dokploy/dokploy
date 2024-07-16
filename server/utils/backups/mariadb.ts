@@ -1,10 +1,10 @@
 import { unlink } from "node:fs/promises";
 import path from "node:path";
-import { execAsync } from "../process/execAsync";
-import { uploadToS3 } from "./utils";
 import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Mariadb } from "@/server/api/services/mariadb";
 import { getServiceContainer } from "../docker/utils";
+import { execAsync } from "../process/execAsync";
+import { uploadToS3 } from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,

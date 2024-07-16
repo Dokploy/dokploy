@@ -1,12 +1,12 @@
+import { readFile } from "node:fs/promises";
 import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Destination } from "@/server/api/services/destination";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { scheduleJob, scheduledJobs } from "node-schedule";
-import { readFile } from "node:fs/promises";
-import { runPostgresBackup } from "./postgres";
-import { runMySqlBackup } from "./mysql";
-import { runMongoBackup } from "./mongo";
 import { runMariadbBackup } from "./mariadb";
+import { runMongoBackup } from "./mongo";
+import { runMySqlBackup } from "./mysql";
+import { runPostgresBackup } from "./postgres";
 
 export const uploadToS3 = async (
 	destination: Destination,

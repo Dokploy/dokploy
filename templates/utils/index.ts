@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 export interface Schema {
 	serverIp: string;

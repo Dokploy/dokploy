@@ -1,11 +1,11 @@
-import { createInsertSchema } from "drizzle-zod";
-import { nanoid } from "nanoid";
 import { relations, sql } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { auth } from "./auth";
-import { admins } from "./admin";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
 import { z } from "zod";
+import { admins } from "./admin";
 import { applications } from "./application";
+import { auth } from "./auth";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.

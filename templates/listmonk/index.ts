@@ -1,9 +1,9 @@
 import {
-	generateHash,
-	generateRandomDomain,
-	type Template,
 	type Schema,
+	type Template,
+	generateHash,
 	generatePassword,
+	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
@@ -19,7 +19,7 @@ export function generate(schema: Schema): Template {
 		"# check config.toml in Advanced / Volumes for more options",
 	];
 
-    const mounts: Template["mounts"] = [
+	const mounts: Template["mounts"] = [
 		{
 			mountPath: "./config.toml",
 			content: `[app]
@@ -47,6 +47,6 @@ params = ""
 
 	return {
 		envs,
-        mounts,
+		mounts,
 	};
 }

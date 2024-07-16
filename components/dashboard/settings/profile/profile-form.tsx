@@ -6,10 +6,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Form,
 	FormControl,
@@ -18,12 +14,16 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useEffect } from "react";
-import { api } from "@/utils/api";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Enable2FA } from "./enable-2fa";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
+import { Enable2FA } from "./enable-2fa";
 
 const profileSchema = z.object({
 	email: z.string(),

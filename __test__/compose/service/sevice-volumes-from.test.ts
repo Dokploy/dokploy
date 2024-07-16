@@ -54,23 +54,25 @@ test("Add prefix to service names with volumes_from in compose file", () => {
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services[`web-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que los nombres en volumes_from tienen el prefijo
-	expect(actualComposeData.services[`web-${prefix}`].volumes_from).toContain(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.volumes_from).toContain(
 		`shared-${prefix}`,
 	);
-	expect(actualComposeData.services[`api-${prefix}`].volumes_from).toContain(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.volumes_from).toContain(
 		`shared-${prefix}`,
 	);
 
 	// Verificar que el servicio shared también tiene el prefijo
 	expect(actualComposeData.services).toHaveProperty(`shared-${prefix}`);
 	expect(actualComposeData.services).not.toHaveProperty("shared");
-	expect(actualComposeData.services[`shared-${prefix}`].image).toBe("busybox");
+	expect(actualComposeData.services?.[`shared-${prefix}`]?.image).toBe(
+		"busybox",
+	);
 });
