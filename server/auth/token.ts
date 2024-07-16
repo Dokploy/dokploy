@@ -1,7 +1,7 @@
-import { Lucia } from "lucia/dist/core.js";
 import type { IncomingMessage } from "node:http";
 import { TimeSpan } from "lucia";
-import { adapter, type ReturnValidateToken } from "./auth";
+import { Lucia } from "lucia/dist/core.js";
+import { type ReturnValidateToken, adapter } from "./auth";
 
 export const luciaToken = new Lucia(adapter, {
 	sessionCookie: {

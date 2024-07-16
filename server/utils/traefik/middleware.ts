@@ -1,7 +1,7 @@
-import { dump, load } from "js-yaml";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dump, load } from "js-yaml";
 import type { ApplicationNested } from "../builders";
 import type { FileConfig } from "./file-types";
 

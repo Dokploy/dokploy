@@ -1,10 +1,10 @@
-import type { FileConfig, HttpRouter } from "./file-types";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Registry } from "@/server/api/services/registry";
-import { removeDirectoryIfExistsContent } from "../filesystem/directory";
 import { REGISTRY_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
-import { join } from "node:path";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { removeDirectoryIfExistsContent } from "../filesystem/directory";
+import type { FileConfig, HttpRouter } from "./file-types";
 
 export const manageRegistry = async (registry: Registry) => {
 	if (!existsSync(REGISTRY_PATH)) {

@@ -1,7 +1,7 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
-	addPrefixToVolumesRoot,
 	addPrefixToAllVolumes,
+	addPrefixToVolumesRoot,
 } from "@/server/utils/docker/compose/volume";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";

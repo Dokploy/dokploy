@@ -1,4 +1,5 @@
 import type { Mariadb } from "@/server/api/services/mariadb";
+import type { Mount } from "@/server/api/services/mount";
 import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
@@ -8,7 +9,6 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import type { Mount } from "@/server/api/services/mount";
 
 type MariadbWithMounts = Mariadb & {
 	mounts: Mount[];

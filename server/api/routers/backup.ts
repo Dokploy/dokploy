@@ -9,6 +9,10 @@ import { runMariadbBackup } from "@/server/utils/backups/mariadb";
 import { runMongoBackup } from "@/server/utils/backups/mongo";
 import { runMySqlBackup } from "@/server/utils/backups/mysql";
 import { runPostgresBackup } from "@/server/utils/backups/postgres";
+import {
+	removeScheduleBackup,
+	scheduleBackup,
+} from "@/server/utils/backups/utils";
 import { TRPCError } from "@trpc/server";
 import {
 	createBackup,
@@ -20,10 +24,6 @@ import { findMariadbByBackupId } from "../services/mariadb";
 import { findMongoByBackupId } from "../services/mongo";
 import { findMySqlByBackupId } from "../services/mysql";
 import { findPostgresByBackupId } from "../services/postgres";
-import {
-	removeScheduleBackup,
-	scheduleBackup,
-} from "@/server/utils/backups/utils";
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure

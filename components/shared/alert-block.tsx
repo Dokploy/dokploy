@@ -4,7 +4,7 @@ interface Props extends React.ComponentPropsWithoutRef<"div"> {
 }
 
 import { cn } from "@/lib/utils";
-import { AlertTriangle, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 
 const iconMap = {
 	info: {

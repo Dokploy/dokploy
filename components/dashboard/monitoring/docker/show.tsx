@@ -6,13 +6,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import React, { useEffect, useState } from "react";
-import { DockerCpuChart } from "./docker-cpu-chart";
-import { DockerMemoryChart } from "./docker-memory-chart";
-import { DockerBlockChart } from "./docker-block-chart";
-import { DockerNetworkChart } from "./docker-network-chart";
-import { DockerDiskChart } from "./docker-disk-chart";
 import { api } from "@/utils/api";
+import React, { useEffect, useState } from "react";
+import { DockerBlockChart } from "./docker-block-chart";
+import { DockerCpuChart } from "./docker-cpu-chart";
+import { DockerDiskChart } from "./docker-disk-chart";
+import { DockerMemoryChart } from "./docker-memory-chart";
+import { DockerNetworkChart } from "./docker-network-chart";
 
 const defaultData = {
 	cpu: {
@@ -210,9 +210,7 @@ export const DockerMonitoring = ({
 								<span className="text-sm text-muted-foreground">
 									{`Used:  ${(currentData.memory.value.used / 1024).toFixed(
 										2,
-									)} GB / Limit: ${(
-										currentData.memory.value.total / 1024
-									).toFixed(2)} GB`}
+									)} GB / Limit: ${(currentData.memory.value.total / 1024).toFixed(2)} GB`}
 								</span>
 								<Progress
 									value={currentData.memory.value.usedPercentage}

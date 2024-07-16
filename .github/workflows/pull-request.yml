@@ -2,7 +2,7 @@ name: Pull request
 on:
   pull_request:
     branches:
-      - main 
+      - main
       - canary
 
   push:
@@ -12,24 +12,37 @@ on:
 jobs:
   build-app:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [18.18.0]
     steps:
-    - uses: actions/checkout@v3
-    - uses: pnpm/action-setup@v3
+    - name: Check out the code
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
       with:
         version: 8
+
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'pnpm'
+
     - name: Install dependencies
       run: pnpm install
+
+    - name: Run format and lint
+      run: pnpm biome ci
+
+    - name: Run type check
+      run: pnpm typecheck
+
     - name: Run Build
       run: pnpm build
+
     - name: Run Tests
       run: pnpm run test
 
@@ -38,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

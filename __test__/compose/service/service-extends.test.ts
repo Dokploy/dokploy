@@ -49,22 +49,22 @@ test("Add prefix to service names with extends (string) in compose file", () => 
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services[`web-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que el nombre en extends tiene el prefijo
-	expect(actualComposeData.services[`web-${prefix}`].extends).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.extends).toBe(
 		`base_service-${prefix}`,
 	);
 
 	// Verificar que el servicio `base_service` también tiene el prefijo
 	expect(actualComposeData.services).toHaveProperty(`base_service-${prefix}`);
 	expect(actualComposeData.services).not.toHaveProperty("base_service");
-	expect(actualComposeData.services[`base_service-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`base_service-${prefix}`]?.image).toBe(
 		"base:latest",
 	);
 });
@@ -109,23 +109,23 @@ test("Add prefix to service names with extends (object) in compose file", () => 
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services[`web-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services[`api-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que el nombre en extends.service tiene el prefijo
-	const webExtends = actualComposeData.services[`web-${prefix}`].extends;
+	const webExtends = actualComposeData.services?.[`web-${prefix}`]?.extends;
 	if (typeof webExtends !== "string") {
-		expect(webExtends.service).toBe(`base_service-${prefix}`);
+		expect(webExtends?.service).toBe(`base_service-${prefix}`);
 	}
 
 	// Verificar que el servicio `base_service` también tiene el prefijo
 	expect(actualComposeData.services).toHaveProperty(`base_service-${prefix}`);
 	expect(actualComposeData.services).not.toHaveProperty("base_service");
-	expect(actualComposeData.services[`base_service-${prefix}`].image).toBe(
+	expect(actualComposeData.services?.[`base_service-${prefix}`]?.image).toBe(
 		"base:latest",
 	);
 });

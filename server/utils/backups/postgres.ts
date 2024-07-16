@@ -1,10 +1,10 @@
-import path from "node:path";
-import { execAsync } from "../process/execAsync";
 import { unlink } from "node:fs/promises";
-import { uploadToS3 } from "./utils";
+import path from "node:path";
 import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Postgres } from "@/server/api/services/postgres";
 import { getServiceContainer } from "../docker/utils";
+import { execAsync } from "../process/execAsync";
+import { uploadToS3 } from "./utils";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,

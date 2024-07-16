@@ -20,7 +20,10 @@
 		"db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
 		"db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
 		"db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
+		"check": "biome check",
+		"format": "biome format",
 		"lint": "biome lint",
+		"typecheck": "tsc",
 		"db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
 		"db:clean": "tsx -r dotenv/config ./server/db/reset.ts",
 		"docker:build": "./docker/build.sh",
@@ -28,7 +31,8 @@
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
-		"test": "vitest --config __test__/vitest.config.ts"
+		"test": "vitest --config __test__/vitest.config.ts",
+		"prepare": "husky"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "3.515.0",
@@ -121,7 +125,7 @@
 		"zod": "^3.23.4"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.7.1",
+		"@biomejs/biome": "1.8.3",
 		"@types/bcrypt": "5.0.2",
 		"@types/dockerode": "3.3.23",
 		"@types/js-yaml": "4.0.9",
@@ -138,6 +142,8 @@
 		"autoprefixer": "^10.4.14",
 		"drizzle-kit": "^0.21.1",
 		"esbuild": "0.20.2",
+		"husky": "^9.0.11",
+		"lint-staged": "^15.2.7",
 		"localtunnel": "2.0.2",
 		"postcss": "^8.4.31",
 		"prettier": "^3.2.4",
@@ -155,5 +161,10 @@
 	"engines": {
 		"node": "^18.18.0",
 		"pnpm": ">=8.15.4"
+	},
+	"lint-staged": {
+		"*": [
+			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+		]
 	}
 }

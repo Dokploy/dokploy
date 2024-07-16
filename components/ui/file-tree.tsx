@@ -1,13 +1,13 @@
 "use client";
 
-import React from "react";
+import { cn } from "@/lib/utils";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import React from "react";
 import useResizeObserver from "use-resize-observer";
 import { ScrollArea } from "./scroll-area";
-import { cn } from "@/lib/utils";
 
 interface TreeDataItem {
 	id: string;
@@ -164,7 +164,9 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 														aria-hidden="true"
 													/>
 												)}
-												<span className="text-sm truncate font-mono">{item.name}</span>
+												<span className="text-sm truncate font-mono">
+													{item.name}
+												</span>
 											</AccordionTrigger>
 											<AccordionContent className="pl-6">
 												{item.children.length === 0 && (

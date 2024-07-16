@@ -1,5 +1,5 @@
-import { api } from "@/utils/api";
-import { useEffect } from "react";
+import { CodeEditor } from "@/components/shared/code-editor";
+import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -7,14 +7,14 @@ import {
 	FormItem,
 	FormMessage,
 } from "@/components/ui/form";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { RandomizeCompose } from "./randomize-compose";
-import { CodeEditor } from "@/components/shared/code-editor";
 
 interface Props {
 	composeId: string;

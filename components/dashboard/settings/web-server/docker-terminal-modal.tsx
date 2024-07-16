@@ -1,5 +1,3 @@
-import type React from "react";
-import { useEffect, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -8,8 +6,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import dynamic from "next/dynamic";
-import { api } from "@/utils/api";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -19,7 +16,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { api } from "@/utils/api";
+import dynamic from "next/dynamic";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 const Terminal = dynamic(
 	() =>

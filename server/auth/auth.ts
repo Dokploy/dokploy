@@ -1,11 +1,11 @@
-import { Lucia } from "lucia/dist/core.js";
 import { webcrypto } from "node:crypto";
-import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
-import type { Session, User } from "lucia/dist/core.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { auth, type DatabaseUser, sessionTable } from "../db/schema";
-import { db } from "../db";
+import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
 import { TimeSpan } from "lucia";
+import { Lucia } from "lucia/dist/core.js";
+import type { Session, User } from "lucia/dist/core.js";
+import { db } from "../db";
+import { type DatabaseUser, auth, sessionTable } from "../db/schema";
 
 globalThis.crypto = webcrypto as Crypto;
 export const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable, auth);

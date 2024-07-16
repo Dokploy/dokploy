@@ -1,22 +1,17 @@
-import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "../trpc";
 import { lucia, validateRequest } from "@/server/auth/auth";
+import { luciaToken } from "@/server/auth/token";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
 	apiFindOneAuth,
-	apiUpdateAuthByAdmin,
 	apiLogin,
 	apiUpdateAuth,
+	apiUpdateAuthByAdmin,
 	apiVerify2FA,
 	apiVerifyLogin2FA,
 } from "@/server/db/schema";
+import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
 import {
 	createAdmin,
 	createUser,
@@ -26,7 +21,12 @@ import {
 	updateAuthById,
 	verify2FA,
 } from "../services/auth";
-import { luciaToken } from "@/server/auth/token";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../trpc";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure

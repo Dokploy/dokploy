@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { Input, type InputProps } from "../ui/input";
+import { useState } from "react";
 import { Button } from "../ui/button";
+import { Input, type InputProps } from "../ui/input";
 
 export const ToggleVisibilityInput = ({ ...props }: InputProps) => {
 	const [isPasswordVisible, setIsPasswordVisible] = useState(false);

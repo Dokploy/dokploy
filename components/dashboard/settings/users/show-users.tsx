@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -5,15 +7,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { MoreHorizontal, Users } from "lucide-react";
-import { AddUser } from "./add-user";
-import { DeleteUser } from "./delete-user";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
-import { AddUserPermissions } from "./add-permissions";
-import copy from "copy-to-clipboard";
-import { toast } from "sonner";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Table,
 	TableBody,
@@ -23,15 +23,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { api } from "@/utils/api";
+import copy from "copy-to-clipboard";
+import { format } from "date-fns";
+import { MoreHorizontal, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { AddUserPermissions } from "./add-permissions";
+import { AddUser } from "./add-user";
+import { DeleteUser } from "./delete-user";
 
 export const ShowUsers = () => {
 	const { data } = api.user.all.useQuery();

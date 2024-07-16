@@ -1,11 +1,11 @@
+import type { Domain } from "@/server/api/services/domain";
+import type { ApplicationNested } from "../builders";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
 	removeTraefikConfig,
 	writeTraefikConfig,
 } from "./application";
-import type { ApplicationNested } from "../builders";
-import type { Domain } from "@/server/api/services/domain";
 import type { FileConfig, HttpRouter } from "./file-types";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {

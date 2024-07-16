@@ -1,4 +1,4 @@
-import React from "react";
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Card,
 	CardContent,
@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { File } from "lucide-react";
+import React from "react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
-import { CodeEditor } from "@/components/shared/code-editor";
 interface Props {
 	applicationId: string;
 }

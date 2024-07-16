@@ -1,13 +1,13 @@
 import { generateRandomPassword } from "@/server/auth/random-password";
 import { db } from "@/server/db";
 import { type apiCreateMySql, backups, mysql } from "@/server/db/schema";
+import { generateAppName } from "@/server/db/schema/utils";
 import { buildMysql } from "@/server/utils/databases/mysql";
 import { pullImage } from "@/server/utils/docker/utils";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { generatePassword } from "@/templates/utils";
-import { generateAppName } from "@/server/db/schema/utils";
 
 export type MySql = typeof mysql.$inferSelect;
 

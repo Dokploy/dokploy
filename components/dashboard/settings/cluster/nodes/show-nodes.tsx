@@ -1,4 +1,6 @@
-import React from "react";
+import { DateTooltip } from "@/components/shared/date-tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -6,10 +8,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { Badge } from "@/components/ui/badge";
-import { DeleteWorker } from "./workers/delete-worker";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Table,
 	TableBody,
@@ -19,22 +23,18 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ShowNodeData } from "./show-node-data";
-import { AddNode } from "./add-node";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
+import { HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
+import React from "react";
+import { AddNode } from "./add-node";
+import { ShowNodeData } from "./show-node-data";
+import { DeleteWorker } from "./workers/delete-worker";
 
 export const ShowNodes = () => {
 	const { data, isLoading } = api.cluster.getNodes.useQuery();

@@ -1,4 +1,6 @@
 import type { Mongo } from "@/server/api/services/mongo";
+import type { Mount } from "@/server/api/services/mount";
+import type { Postgres } from "@/server/api/services/postgres";
 import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
@@ -8,8 +10,6 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import type { Postgres } from "@/server/api/services/postgres";
-import type { Mount } from "@/server/api/services/mount";
 
 type MongoWithMounts = Mongo & {
 	mounts: Mount[];

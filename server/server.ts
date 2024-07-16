@@ -1,15 +1,11 @@
 import http from "node:http";
+import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
 import { deploymentWorker } from "./queues/deployments-queue";
-import { initCronJobs } from "./utils/backups";
-import {
-	getPublicIpWithFallback,
-	setupTerminalWebSocketServer,
-} from "./wss/terminal";
-import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
-import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDirectories } from "./setup/config-paths";
+import { initializePostgres } from "./setup/postgres-setup";
+import { initializeRedis } from "./setup/redis-setup";
 import { initializeNetwork } from "./setup/setup";
 import {
 	createDefaultMiddlewares,
@@ -17,11 +13,15 @@ import {
 	createDefaultTraefikConfig,
 	initializeTraefik,
 } from "./setup/traefik-setup";
-import { initializeRedis } from "./setup/redis-setup";
-import { initializePostgres } from "./setup/postgres-setup";
-import { migration } from "@/server/db/migration";
+import { initCronJobs } from "./utils/backups";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
+import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
+import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
+import {
+	getPublicIpWithFallback,
+	setupTerminalWebSocketServer,
+} from "./wss/terminal";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);

@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
@@ -6,6 +7,11 @@ import {
 	apiRemoveUser,
 	users,
 } from "@/server/db/schema";
+import { haveGithubRequirements } from "@/server/utils/providers/github";
+import { createAppAuth } from "@octokit/auth-app";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { Octokit } from "octokit";
 import {
 	createInvitation,
 	findAdmin,
@@ -19,12 +25,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { db } from "@/server/db";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { Octokit } from "octokit";
-import { createAppAuth } from "@octokit/auth-app";
-import { haveGithubRequirements } from "@/server/utils/providers/github";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async () => {

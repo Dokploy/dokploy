@@ -76,9 +76,11 @@ test("Add prefix to networks in services and root (combined case)", () => {
 	);
 
 	// Caso 2: Objeto con aliases
-	const apiNetworks = actualComposeData.services?.api?.networks;
+	const apiNetworks = actualComposeData.services?.api?.networks as {
+		[key: string]: { aliases?: string[] };
+	};
 	expect(apiNetworks).toHaveProperty(`frontend-${prefix}`);
-	expect(apiNetworks[`frontend-${prefix}`]?.aliases).toContain("api");
+	expect(apiNetworks?.[`frontend-${prefix}`]?.aliases).toContain("api");
 	expect(apiNetworks).not.toHaveProperty("frontend");
 
 	// Caso 3: Objeto con redes simples

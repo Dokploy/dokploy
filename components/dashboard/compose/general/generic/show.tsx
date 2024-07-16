@@ -4,9 +4,9 @@ import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
+import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 
 type TabState = "github" | "git" | "raw";
 interface Props {
