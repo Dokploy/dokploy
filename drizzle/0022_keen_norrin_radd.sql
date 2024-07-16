@@ -1,1 +1,0 @@
-ALTER TABLE "slack" ALTER COLUMN "channel" DROP NOT NULL;

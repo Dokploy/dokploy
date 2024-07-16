@@ -1,5 +1,5 @@
 {
-  "id": "66d1d683-ad31-4ef4-873d-e672ff707a6d",
+  "id": "7c8f815f-4fec-4505-b9c7-c28bac3451f0",
   "prevId": "3d47456f-03b7-4b45-87f2-057df7e9cb0b",
   "version": "6",
   "dialect": "postgresql",
@@ -2541,7 +2541,7 @@
         },
         "smtpPort": {
           "name": "smtpPort",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -2553,6 +2553,12 @@
         },
         "password": {
           "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fromAddress": {
+          "name": "fromAddress",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2619,6 +2625,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "notificationType": {
+          "name": "notificationType",
+          "type": "notificationType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -2729,7 +2742,7 @@
           "name": "channel",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2884,6 +2897,16 @@
       "values": [
         "selfHosted",
         "cloud"
+      ]
+    },
+    "public.notificationType": {
+      "name": "notificationType",
+      "schema": "public",
+      "values": [
+        "slack",
+        "telegram",
+        "discord",
+        "email"
       ]
     }
   },

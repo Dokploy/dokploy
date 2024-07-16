@@ -1,3 +1,9 @@
+DO $$ BEGIN
+ CREATE TYPE "public"."notificationType" AS ENUM('slack', 'telegram', 'discord', 'email');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "discord" (
 	"discordId" text PRIMARY KEY NOT NULL,
 	"webhookUrl" text NOT NULL
@@ -6,9 +12,10 @@ CREATE TABLE IF NOT EXISTS "discord" (
 CREATE TABLE IF NOT EXISTS "email" (
 	"emailId" text PRIMARY KEY NOT NULL,
 	"smtpServer" text NOT NULL,
-	"smtpPort" text NOT NULL,
+	"smtpPort" integer NOT NULL,
 	"username" text NOT NULL,
 	"password" text NOT NULL,
+	"fromAddress" text NOT NULL,
 	"toAddress" text[] NOT NULL
 );
 --> statement-breakpoint
@@ -20,6 +27,7 @@ CREATE TABLE IF NOT EXISTS "notification" (
 	"appBuildError" boolean DEFAULT false NOT NULL,
 	"databaseBackup" boolean DEFAULT false NOT NULL,
 	"dokployRestart" boolean DEFAULT false NOT NULL,
+	"notificationType" "notificationType" NOT NULL,
 	"createdAt" text NOT NULL,
 	"slackId" text,
 	"telegramId" text,
@@ -30,7 +38,7 @@ CREATE TABLE IF NOT EXISTS "notification" (
 CREATE TABLE IF NOT EXISTS "slack" (
 	"slackId" text PRIMARY KEY NOT NULL,
 	"webhookUrl" text NOT NULL,
-	"channel" text NOT NULL
+	"channel" text
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "telegram" (
