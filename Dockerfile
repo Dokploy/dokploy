@@ -8,6 +8,10 @@ RUN corepack enable && apt-get update && apt-get install -y python3 make g++ git
 
 WORKDIR /app
 
+# Disable husky
+ENV HUSKY=0
+COPY .husky/install.mjs ./.husky/install.mjs
+
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
@@ -23,12 +27,21 @@ RUN pnpm run build
 # Stage 2: Prepare image for production
 FROM node:18-slim AS production
 
+# Disable husky
+ENV HUSKY=0
+
 # Install dependencies only for production
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && apt-get update && apt-get install -y curl && apt-get install -y apache2-utils && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+ENV NODE_ENV production
+
+# Disable husky
+ENV HUSKY=0
+COPY --from=base /app/.husky/install.mjs ./.husky/install.mjs
 
 #  Copy the rest of the source code
 COPY --from=base /app/.next ./.next
