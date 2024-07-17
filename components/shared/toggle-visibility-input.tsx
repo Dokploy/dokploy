@@ -19,7 +19,6 @@ export const ToggleVisibilityInput = ({ ...props }: InputProps) => {
     const text = inputElement.value;
 
     inputElement.select();
-    inputElement.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(text);
 
     toast.success("Value is copied to clipboard");
