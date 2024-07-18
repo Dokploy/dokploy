@@ -18,6 +18,8 @@ jobs:
     steps:
     - name: Check out the code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
@@ -30,6 +32,9 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install
+
+    - name: Run commitlint
+      run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
     - name: Run format and lint
       run: pnpm biome ci
