@@ -1,8 +1,8 @@
+import { db } from "@/server/db";
+import { admins } from "@/server/db/schema";
+import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
-import { db } from "@/server/db";
-import { eq } from "drizzle-orm";
-import { admins } from "@/server/db/schema";
 
 type Query = {
 	code: string;

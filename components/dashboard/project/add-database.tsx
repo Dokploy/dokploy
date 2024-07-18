@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Database, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Database } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -66,7 +66,7 @@ const baseDatabaseSchema = z.object({
 		})
 		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
 			message:
-				"App name supports letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	databasePassword: z.string(),
 	dockerImage: z.string(),

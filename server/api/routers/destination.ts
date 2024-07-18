@@ -12,13 +12,13 @@ import {
 } from "@/server/db/schema";
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { TRPCError } from "@trpc/server";
+import { findAdmin } from "../services/admin";
 import {
 	createDestintation,
 	findDestinationById,
 	removeDestinationById,
 	updateDestinationById,
 } from "../services/destination";
-import { findAdmin } from "../services/admin";
 
 export const destinationRouter = createTRPCRouter({
 	create: adminProcedure

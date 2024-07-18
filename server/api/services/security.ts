@@ -1,13 +1,13 @@
 import { db } from "@/server/db";
 import { type apiCreateSecurity, security } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import type { z } from "zod";
-import { findApplicationById } from "./application";
 import {
 	createSecurityMiddleware,
 	removeSecurityMiddleware,
 } from "@/server/utils/traefik/security";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import type { z } from "zod";
+import { findApplicationById } from "./application";
 export type Security = typeof security.$inferSelect;
 
 export const findSecurityById = async (securityId: string) => {

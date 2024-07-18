@@ -1,7 +1,7 @@
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { boolean, pgTable, text } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { generateAppName } from "./utils";
 
 export const certificates = pgTable("certificate", {

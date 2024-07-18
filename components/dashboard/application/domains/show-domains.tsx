@@ -1,4 +1,4 @@
-import React from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -6,15 +6,15 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { ExternalLink, GlobeIcon, RefreshCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { api } from "@/utils/api";
 import { Input } from "@/components/ui/input";
-import { DeleteDomain } from "./delete-domain";
+import { api } from "@/utils/api";
+import { ExternalLink, GlobeIcon, RefreshCcw } from "lucide-react";
 import Link from "next/link";
+import React from "react";
 import { AddDomain } from "./add-domain";
-import { UpdateDomain } from "./update-domain";
+import { DeleteDomain } from "./delete-domain";
 import { GenerateDomain } from "./generate-domain";
+import { UpdateDomain } from "./update-domain";
 
 interface Props {
 	applicationId: string;

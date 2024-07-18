@@ -3,9 +3,9 @@ import path from "node:path";
 import type { Readable } from "node:stream";
 import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
+import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
 import { execAsync } from "../process/execAsync";
-import { parse } from "dotenv";
 
 interface RegistryAuth {
 	username: string;

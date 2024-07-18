@@ -1,5 +1,3 @@
-import { api } from "@/utils/api";
-import React from "react";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -12,14 +10,16 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipTrigger,
 	TooltipProvider,
+	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
 import { InfoIcon } from "lucide-react";
+import React from "react";
+import { toast } from "sonner";
 
 export const RemoveGithubApp = () => {
 	const { refetch } = api.auth.get.useQuery();

@@ -1,13 +1,13 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { StopMongo } from "./stop-mongo";
-import { StartMongo } from "../start-mongo";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { Terminal } from "lucide-react";
+import React from "react";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartMongo } from "../start-mongo";
 import { DeployMongo } from "./deploy-mongo";
 import { ResetMongo } from "./reset-mongo";
+import { StopMongo } from "./stop-mongo";
 interface Props {
 	mongoId: string;
 }

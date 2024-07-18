@@ -1,16 +1,13 @@
-import Link from "next/link";
-import {
-	CardTitle,
-	CardDescription,
-	CardContent,
-	Card,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Login2FA } from "@/components/auth/login-2fa";
+import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import { type ReactElement, useEffect, useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -19,15 +16,18 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useRouter } from "next/router";
-import { toast } from "sonner";
-import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
-import type { GetServerSidePropsContext } from "next";
+import { Input } from "@/components/ui/input";
+import { isAdminPresent } from "@/server/api/services/admin";
 import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
-import { isAdminPresent } from "@/server/api/services/admin";
-import { Logo } from "@/components/shared/logo";
-import { Login2FA } from "@/components/auth/login-2fa";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { GetServerSidePropsContext } from "next";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const loginSchema = z.object({
 	email: z

@@ -1,13 +1,13 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { StopMariadb } from "./stop-mariadb";
-import { StartMariadb } from "../start-mariadb";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { Terminal } from "lucide-react";
+import React from "react";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartMariadb } from "../start-mariadb";
 import { DeployMariadb } from "./deploy-mariadb";
 import { ResetMariadb } from "./reset-mariadb";
+import { StopMariadb } from "./stop-mariadb";
 
 interface Props {
 	mariadbId: string;

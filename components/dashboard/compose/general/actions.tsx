@@ -1,12 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Globe, Terminal } from "lucide-react";
-import { api } from "@/utils/api";
-import { toast } from "sonner";
-import { Toggle } from "@/components/ui/toggle";
-import { RedbuildCompose } from "./rebuild-compose";
-import { DeployCompose } from "./deploy-compose";
-import { StopCompose } from "./stop-compose";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,7 +8,15 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Toggle } from "@/components/ui/toggle";
+import { api } from "@/utils/api";
+import { ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { DeployCompose } from "./deploy-compose";
+import { RedbuildCompose } from "./rebuild-compose";
+import { StopCompose } from "./stop-compose";
 
 interface Props {
 	composeId: string;

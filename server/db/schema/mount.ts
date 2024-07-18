@@ -1,15 +1,15 @@
-import { nanoid } from "nanoid";
-import { applications } from "./application";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { postgres } from "./postgres";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { applications } from "./application";
+import { compose } from "./compose";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
+import { postgres } from "./postgres";
 import { redis } from "./redis";
-import { compose } from "./compose";
 
 export const serviceType = pgEnum("serviceType", [
 	"application",

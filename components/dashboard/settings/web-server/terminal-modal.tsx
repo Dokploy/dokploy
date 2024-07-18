@@ -1,4 +1,4 @@
-import type React from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,7 +7,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -17,18 +17,18 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import dynamic from "next/dynamic";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { api } from "@/utils/api";
-import { toast } from "sonner";
-import { z } from "zod";
-import { useEffect, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { RemoveSSHPrivateKey } from "./remove-ssh-private-key";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import dynamic from "next/dynamic";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { RemoveSSHPrivateKey } from "./remove-ssh-private-key";
 
 const Terminal = dynamic(() => import("./terminal").then((e) => e.Terminal), {
 	ssr: false,

@@ -1,7 +1,7 @@
 import { promises } from "node:fs";
-import { MONITORING_PATH } from "../constants";
 import dockerstats from "dockerstats";
 import osUtils from "node-os-utils";
+import { MONITORING_PATH } from "../constants";
 
 export const recordAdvancedStats = async (
 	appName: string,

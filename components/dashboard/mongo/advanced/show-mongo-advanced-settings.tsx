@@ -1,11 +1,5 @@
-import React, { useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/utils/api";
-import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -14,9 +8,15 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { ShowMongoResources } from "./show-mongo-resources";
+import { toast } from "sonner";
+import { z } from "zod";
 import { ShowVolumes } from "../volumes/show-volumes";
+import { ShowMongoResources } from "./show-mongo-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),

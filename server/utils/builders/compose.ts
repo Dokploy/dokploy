@@ -4,15 +4,15 @@ import {
 	mkdirSync,
 	writeFileSync,
 } from "node:fs";
-import type { InferResultType } from "@/server/types/with";
-import { spawnAsync } from "../process/spawnAsync";
-import { COMPOSE_PATH } from "@/server/constants";
 import { dirname, join } from "node:path";
+import { COMPOSE_PATH } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
+import boxen from "boxen";
 import {
 	generateFileMountsCompose,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import boxen from "boxen";
+import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
 	"compose",

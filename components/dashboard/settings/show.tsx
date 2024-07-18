@@ -1,14 +1,14 @@
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import React from "react";
-import { ProfileForm } from "./profile/profile-form";
-import { GithubSetup } from "./github/github-setup";
 import { AppearanceForm } from "./appearance-form";
-import { ShowDestinations } from "./destination/show-destinations";
 import { ShowCertificates } from "./certificates/show-certificates";
+import { ShowDestinations } from "./destination/show-destinations";
+import { GithubSetup } from "./github/github-setup";
+import { ProfileForm } from "./profile/profile-form";
+import { ShowUsers } from "./users/show-users";
 import { WebDomain } from "./web-domain";
 import { WebServer } from "./web-server";
-import { api } from "@/utils/api";
-import { ShowUsers } from "./users/show-users";
-import { cn } from "@/lib/utils";
 
 export const ShowSettings = () => {
 	const { data } = api.auth.get.useQuery();

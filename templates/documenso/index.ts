@@ -1,10 +1,10 @@
 import {
-	generateHash,
-	generateRandomDomain,
-	type Template,
 	type Schema,
+	type Template,
 	generateBase64,
-    generatePassword,
+	generateHash,
+	generatePassword,
+	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {

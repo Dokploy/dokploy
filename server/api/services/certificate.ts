@@ -3,11 +3,11 @@ import path from "node:path";
 import { CERTIFICATES_PATH } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCertificate, certificates } from "@/server/db/schema";
+import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import type { z } from "zod";
 import { dump } from "js-yaml";
-import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
+import type { z } from "zod";
 
 export type Certificate = typeof certificates.$inferSelect;
 

@@ -1,14 +1,14 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import React from "react";
 
-import { StopRedis } from "./stop-redis";
-import { StartRedis } from "../start-redis";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { Terminal } from "lucide-react";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartRedis } from "../start-redis";
 import { DeployRedis } from "./deploy-redis";
 import { ResetRedis } from "./reset-redis";
+import { StopRedis } from "./stop-redis";
 interface Props {
 	redisId: string;
 }

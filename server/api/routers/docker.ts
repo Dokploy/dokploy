@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 import {
 	getConfig,
-	getContainersByAppLabel,
 	getContainers,
+	getContainersByAppLabel,
 	getContainersByAppNameMatch,
 } from "../services/docker";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: protectedProcedure.query(async () => {

@@ -1,8 +1,8 @@
 import { relations } from "drizzle-orm";
+import { boolean, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { boolean, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { applications } from "./application";
 
 export const redirects = pgTable("redirect", {

@@ -1,8 +1,8 @@
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { applications } from "./application";
 
 export const protocolType = pgEnum("protocolType", ["tcp", "udp"]);

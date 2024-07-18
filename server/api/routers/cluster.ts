@@ -1,10 +1,10 @@
 import { docker } from "@/server/constants";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
-import type { DockerNode } from "../services/cluster";
-import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { execAsync } from "@/server/utils/process/execAsync";
+import { getPublicIpWithFallback } from "@/server/wss/terminal";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import type { DockerNode } from "../services/cluster";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const clusterRouter = createTRPCRouter({
 	getNodes: protectedProcedure.query(async () => {

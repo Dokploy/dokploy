@@ -3,12 +3,12 @@ import path from "node:path";
 import { APPLICATIONS_PATH } from "@/server/constants";
 import { db } from "@/server/db";
 import {
+	type ServiceType,
 	type apiCreateMount,
 	mounts,
-	type ServiceType,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq, sql, type SQL } from "drizzle-orm";
+import { type SQL, eq, sql } from "drizzle-orm";
 
 export type Mount = typeof mounts.$inferSelect;
 

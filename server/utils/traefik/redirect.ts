@@ -1,12 +1,12 @@
 import type { Redirect } from "@/server/api/services/redirect";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import type { FileConfig } from "./file-types";
 import {
 	addMiddleware,
 	deleteMiddleware,
 	loadMiddlewares,
 	writeMiddleware,
 } from "./middleware";
-import type { FileConfig } from "./file-types";
 
 export const updateRedirectMiddleware = (appName: string, data: Redirect) => {
 	const config = loadMiddlewares<FileConfig>();

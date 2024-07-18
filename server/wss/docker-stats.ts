@@ -1,11 +1,11 @@
 import type http from "node:http";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
+import { docker } from "../constants";
 import {
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
 } from "../monitoring/utilts";
-import { docker } from "../constants";
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

@@ -79,10 +79,11 @@ test("Add prefix to networks in services with aliases", () => {
 		`frontend-${prefix}`,
 	);
 
-	const networkConfig =
-		actualComposeData?.services?.api?.networks[`frontend-${prefix}`];
-	expect(networkConfig).toBeDefined();
-	expect(networkConfig?.aliases).toContain("api");
+	const networkConfig = actualComposeData?.services?.api?.networks as {
+		[key: string]: { aliases?: string[] };
+	};
+	expect(networkConfig[`frontend-${prefix}`]).toBeDefined();
+	expect(networkConfig[`frontend-${prefix}`]?.aliases).toContain("api");
 
 	expect(actualComposeData.services?.api?.networks).not.toHaveProperty(
 		"frontend-ash",
@@ -169,7 +170,9 @@ test("Add prefix to networks in services (combined case)", () => {
 	);
 
 	// Caso 2: Objeto con aliases
-	const apiNetworks = actualComposeData.services?.api?.networks;
+	const apiNetworks = actualComposeData.services?.api?.networks as {
+		[key: string]: unknown;
+	};
 	expect(apiNetworks).toHaveProperty(`frontend-${prefix}`);
 	expect(apiNetworks[`frontend-${prefix}`]).toBeDefined();
 	expect(apiNetworks).not.toHaveProperty("frontend");

@@ -1,11 +1,11 @@
-import path from "node:path";
-import { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH, docker } from "../constants";
-import { pullImage } from "../utils/docker/utils";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dump } from "js-yaml";
-import type { MainTraefikConfig } from "../utils/traefik/types";
-import type { FileConfig } from "../utils/traefik/file-types";
+import path from "node:path";
 import type { CreateServiceOptions } from "dockerode";
+import { dump } from "js-yaml";
+import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH, docker } from "../constants";
+import { pullImage } from "../utils/docker/utils";
+import type { FileConfig } from "../utils/traefik/file-types";
+import type { MainTraefikConfig } from "../utils/traefik/types";
 
 const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
@@ -38,9 +38,6 @@ export const initializeTraefik = async () => {
 				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
-			RestartPolicy: {
-				Condition: "on-failure",
-			},
 			Placement: {
 				Constraints: ["node.role==manager"],
 			},

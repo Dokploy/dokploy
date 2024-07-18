@@ -1,15 +1,15 @@
-import { type apiCreateRegistry, registry } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
 import { db } from "@/server/db";
-import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
+import { type apiCreateRegistry, registry } from "@/server/db/schema";
+import { initializeRegistry } from "@/server/setup/registry-setup";
+import { removeService } from "@/server/utils/docker/utils";
+import { execAsync } from "@/server/utils/process/execAsync";
 import {
 	manageRegistry,
 	removeSelfHostedRegistry,
 } from "@/server/utils/traefik/registry";
-import { removeService } from "@/server/utils/docker/utils";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { execAsync } from "@/server/utils/process/execAsync";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { findAdmin } from "./admin";
 
 export type Registry = typeof registry.$inferSelect;
 

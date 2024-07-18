@@ -1,3 +1,5 @@
+import { DateTooltip } from "@/components/shared/date-tooltip";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -10,10 +12,8 @@ import { api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
-import { ShowDeployment } from "./show-deployment";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { DateTooltip } from "@/components/shared/date-tooltip";
 import { RefreshToken } from "./refresh-token";
+import { ShowDeployment } from "./show-deployment";
 
 interface Props {
 	applicationId: string;

@@ -1,7 +1,4 @@
-import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
 	Card,
 	CardContent,
@@ -9,6 +6,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import React, { useEffect, useState } from "react";
 
 import {
 	DropdownMenu,
@@ -21,12 +21,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
-import { ShowModalLogs } from "./web-server/show-modal-logs";
-import { TerminalModal } from "./web-server/terminal-modal";
 import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
 import { ShowMainTraefikConfig } from "./web-server/show-main-traefik-config";
-import { ShowServerTraefikConfig } from "./web-server/show-server-traefik-config";
+import { ShowModalLogs } from "./web-server/show-modal-logs";
 import { ShowServerMiddlewareConfig } from "./web-server/show-server-middleware-config";
+import { ShowServerTraefikConfig } from "./web-server/show-server-traefik-config";
+import { TerminalModal } from "./web-server/terminal-modal";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {

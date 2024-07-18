@@ -1,8 +1,8 @@
 import React from "react";
 
-import { api } from "@/utils/api";
-import { Workflow, Folder, FileIcon } from "lucide-react";
 import { Tree } from "@/components/ui/file-tree";
+import { api } from "@/utils/api";
+import { FileIcon, Folder, Workflow } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ShowTraefikFile } from "./show-traefik-file";

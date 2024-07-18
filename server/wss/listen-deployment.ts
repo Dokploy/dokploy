@@ -1,7 +1,7 @@
+import { spawn } from "node:child_process";
 import type http from "node:http";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
-import { spawn } from "node:child_process";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

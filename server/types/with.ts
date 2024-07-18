@@ -1,8 +1,8 @@
 import type * as schema from "@/server/db/schema";
-import {
-  type BuildQueryResult,
-  type DBQueryConfig,
-  type ExtractTablesWithRelations,
+import type {
+	BuildQueryResult,
+	DBQueryConfig,
+	ExtractTablesWithRelations,
 } from "drizzle-orm";
 import { z } from "zod";
 /*
@@ -14,27 +14,27 @@ type Schema = typeof schema;
 type TSchema = ExtractTablesWithRelations<Schema>;
 
 export type IncludeRelation<TableName extends keyof TSchema> = DBQueryConfig<
-  "one" | "many",
-  boolean,
-  TSchema,
-  TSchema[TableName]
+	"one" | "many",
+	boolean,
+	TSchema,
+	TSchema[TableName]
 >["with"];
 
 export type InferResultType<
-  TableName extends keyof TSchema,
-  With extends IncludeRelation<TableName> | undefined = undefined,
+	TableName extends keyof TSchema,
+	With extends IncludeRelation<TableName> | undefined = undefined,
 > = BuildQueryResult<
-  TSchema,
-  TSchema[TableName],
-  {
-    with: With;
-  }
+	TSchema,
+	TSchema[TableName],
+	{
+		with: With;
+	}
 >;
 
 type AnyObj = Record<PropertyKey, unknown>;
 
 type ZodObj<T extends AnyObj> = {
-  [key in keyof T]: z.ZodType<T[key]>;
+	[key in keyof T]: z.ZodType<T[key]>;
 };
 const zObject = <T extends AnyObj>(arg: ZodObj<T>) => z.object(arg);
 

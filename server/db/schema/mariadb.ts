@@ -1,14 +1,14 @@
+import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import { applicationStatus } from "./shared";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
-import { projects } from "./project";
+import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { backups } from "./backups";
 import { mounts } from "./mount";
+import { projects } from "./project";
+import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
-import { generatePassword } from "@/templates/utils";
 
 export const mariadb = pgTable("mariadb", {
 	mariadbId: text("mariadbId")

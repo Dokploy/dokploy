@@ -1,13 +1,13 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { StopPostgres } from "./stop-postgres";
-import { StartPostgres } from "../start-postgres";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { Terminal } from "lucide-react";
+import React from "react";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartPostgres } from "../start-postgres";
 import { DeployPostgres } from "./deploy-postgres";
 import { ResetPostgres } from "./reset-postgres";
+import { StopPostgres } from "./stop-postgres";
 interface Props {
 	postgresId: string;
 }

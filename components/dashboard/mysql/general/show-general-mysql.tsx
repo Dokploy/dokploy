@@ -1,13 +1,13 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { StopMysql } from "./stop-mysql";
-import { StartMysql } from "../start-mysql";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { Terminal } from "lucide-react";
+import React from "react";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartMysql } from "../start-mysql";
 import { DeployMysql } from "./deploy-mysql";
 import { ResetMysql } from "./reset-mysql";
+import { StopMysql } from "./stop-mysql";
 interface Props {
 	mysqlId: string;
 }

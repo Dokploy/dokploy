@@ -4,12 +4,12 @@ import {
 	type apiFindDomainByApplication,
 	domains,
 } from "@/server/db/schema";
+import { manageDomain } from "@/server/utils/traefik/domain";
+import { generateRandomDomain } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findApplicationById } from "./application";
-import { manageDomain } from "@/server/utils/traefik/domain";
 import { findAdmin } from "./admin";
-import { generateRandomDomain } from "@/templates/utils";
+import { findApplicationById } from "./application";
 
 export type Domain = typeof domains.$inferSelect;
 

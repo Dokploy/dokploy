@@ -1,13 +1,13 @@
 import { generateRandomPassword } from "@/server/auth/random-password";
 import { db } from "@/server/db";
 import { type apiCreateMariaDB, backups, mariadb } from "@/server/db/schema";
+import { generateAppName } from "@/server/db/schema/utils";
 import { buildMariadb } from "@/server/utils/databases/mariadb";
 import { pullImage } from "@/server/utils/docker/utils";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { generateAppName } from "@/server/db/schema/utils";
-import { generatePassword } from "@/templates/utils";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
