@@ -126,6 +126,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
+		"@commitlint/cli": "^19.3.0",
+		"@commitlint/config-conventional": "^19.2.2",
 		"@types/bcrypt": "5.0.2",
 		"@types/dockerode": "3.3.23",
 		"@types/js-yaml": "4.0.9",
@@ -167,5 +169,8 @@
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
 		]
+	},
+	"commitlint": {
+		"extends": ["@commitlint/config-conventional"]
 	}
 }
