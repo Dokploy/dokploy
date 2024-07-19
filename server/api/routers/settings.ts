@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { appRouter } from "../root";
 import { findAdmin, updateAdmin } from "../services/admin";
+import { sendDockerCleanupNotifications } from "../services/notification";
 import {
 	getDokployImage,
 	getDokployVersion,
@@ -86,6 +87,7 @@ export const settingsRouter = createTRPCRouter({
 		await cleanUpUnusedImages();
 		await cleanUpDockerBuilder();
 		await cleanUpSystemPrune();
+
 		return true;
 	}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
@@ -144,6 +146,7 @@ export const settingsRouter = createTRPCRouter({
 					await cleanUpUnusedImages();
 					await cleanUpDockerBuilder();
 					await cleanUpSystemPrune();
+					await sendDockerCleanupNotifications();
 				});
 			} else {
 				const currentJob = scheduledJobs["docker-cleanup"];

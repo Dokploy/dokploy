@@ -1,8 +1,8 @@
-import { nanoid } from "nanoid";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { z } from "zod";
+import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -18,10 +18,10 @@ export const notifications = pgTable("notification", {
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	appDeploy: boolean("appDeploy").notNull().default(false),
-	userJoin: boolean("userJoin").notNull().default(false),
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -107,7 +107,7 @@ export const apiCreateSlack = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
-		userJoin: true,
+		dockerCleanup: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -132,7 +132,7 @@ export const apiCreateTelegram = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
-		userJoin: true,
+		dockerCleanup: true,
 	})
 	.extend({
 		botToken: z.string().min(1),
@@ -157,7 +157,7 @@ export const apiCreateDiscord = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
-		userJoin: true,
+		dockerCleanup: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -180,7 +180,7 @@ export const apiCreateEmail = notificationsSchema
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
-		userJoin: true,
+		dockerCleanup: true,
 	})
 	.extend({
 		smtpServer: z.string().min(1),

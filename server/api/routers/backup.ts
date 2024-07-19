@@ -23,6 +23,7 @@ import {
 import { findMariadbByBackupId } from "../services/mariadb";
 import { findMongoByBackupId } from "../services/mongo";
 import { findMySqlByBackupId } from "../services/mysql";
+import { sendDatabaseBackupNotifications } from "../services/notification";
 import { findPostgresByBackupId } from "../services/postgres";
 
 export const backupRouter = createTRPCRouter({
@@ -90,6 +91,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const postgres = await findPostgresByBackupId(backup.backupId);
 				await runPostgresBackup(postgres, backup);
+
 				return true;
 			} catch (error) {
 				console.log(error);

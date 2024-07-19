@@ -2,6 +2,7 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
+import { sendDokployRestartNotifications } from "./api/services/notification";
 import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";
@@ -57,6 +58,8 @@ void app.prepare().then(async () => {
 			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
 		}
+		await sendDokployRestartNotifications();
+
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
 		deploymentWorker.run();

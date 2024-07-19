@@ -141,6 +141,20 @@
       "when": 1721110706912,
       "tag": "0019_heavy_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1721363861686,
+      "tag": "0020_fantastic_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1721370423752,
+      "tag": "0021_premium_sebastian_shaw",
+      "breakpoints": true
     }
   ]
 }

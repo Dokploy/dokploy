@@ -1,3 +1,8 @@
+import {
+	DiscordIcon,
+	SlackIcon,
+	TelegramIcon,
+} from "@/components/icons/notification-icons";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -18,21 +23,16 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
 import {
-	TelegramIcon,
-	DiscordIcon,
-	SlackIcon,
-} from "@/components/icons/notification-icons";
-import {
-	notificationSchema,
 	type NotificationSchema,
+	notificationSchema,
 } from "./add-notification";
 
 interface Props {
@@ -82,11 +82,11 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 		if (data) {
 			if (data.notificationType === "slack") {
 				form.reset({
-					appBuilderError: data.appBuildError,
+					appBuildError: data.appBuildError,
 					appDeploy: data.appDeploy,
 					dokployRestart: data.dokployRestart,
 					databaseBackup: data.databaseBackup,
-					userJoin: data.userJoin,
+					dockerCleanup: data.dockerCleanup,
 					webhookUrl: data.slack?.webhookUrl,
 					channel: data.slack?.channel || "",
 					name: data.name,
@@ -94,35 +94,34 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				});
 			} else if (data.notificationType === "telegram") {
 				form.reset({
-					appBuilderError: data.appBuildError,
+					appBuildError: data.appBuildError,
 					appDeploy: data.appDeploy,
 					dokployRestart: data.dokployRestart,
 					databaseBackup: data.databaseBackup,
-					userJoin: data.userJoin,
 					botToken: data.telegram?.botToken,
 					chatId: data.telegram?.chatId,
 					type: data.notificationType,
 					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
 			} else if (data.notificationType === "discord") {
 				form.reset({
-					appBuilderError: data.appBuildError,
+					appBuildError: data.appBuildError,
 					appDeploy: data.appDeploy,
 					dokployRestart: data.dokployRestart,
 					databaseBackup: data.databaseBackup,
-					userJoin: data.userJoin,
 					type: data.notificationType,
 					webhookUrl: data.discord?.webhookUrl,
 					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
 			} else if (data.notificationType === "email") {
 				form.reset({
-					appBuilderError: data.appBuildError,
+					appBuildError: data.appBuildError,
 					appDeploy: data.appDeploy,
 					dokployRestart: data.dokployRestart,
 					databaseBackup: data.databaseBackup,
 					type: data.notificationType,
-					userJoin: data.userJoin,
 					smtpServer: data.email?.smtpServer,
 					smtpPort: data.email?.smtpPort,
 					username: data.email?.username,
@@ -130,6 +129,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					toAddresses: data.email?.toAddresses,
 					fromAddress: data.email?.fromAddress,
 					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
 			}
 		}
@@ -137,58 +137,57 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 
 	const onSubmit = async (formData: NotificationSchema) => {
 		const {
-			appBuilderError,
+			appBuildError,
 			appDeploy,
 			dokployRestart,
 			databaseBackup,
-			userJoin,
+			dockerCleanup,
 		} = formData;
 		let promise: Promise<unknown> | null = null;
 		if (formData?.type === "slack" && data?.slackId) {
 			promise = slackMutation.mutateAsync({
-				appBuildError: appBuilderError,
+				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				userJoin: userJoin,
 				webhookUrl: formData.webhookUrl,
 				channel: formData.channel,
 				name: formData.name,
 				notificationId: notificationId,
 				slackId: data?.slackId,
+				dockerCleanup: dockerCleanup,
 			});
 		} else if (formData.type === "telegram" && data?.telegramId) {
 			promise = telegramMutation.mutateAsync({
-				appBuildError: appBuilderError,
+				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				userJoin: userJoin,
 				botToken: formData.botToken,
 				chatId: formData.chatId,
 				name: formData.name,
 				notificationId: notificationId,
 				telegramId: data?.telegramId,
+				dockerCleanup: dockerCleanup,
 			});
 		} else if (formData.type === "discord" && data?.discordId) {
 			promise = discordMutation.mutateAsync({
-				appBuildError: appBuilderError,
+				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				userJoin: userJoin,
 				webhookUrl: formData.webhookUrl,
 				name: formData.name,
 				notificationId: notificationId,
 				discordId: data?.discordId,
+				dockerCleanup: dockerCleanup,
 			});
 		} else if (formData.type === "email" && data?.emailId) {
 			promise = emailMutation.mutateAsync({
-				appBuildError: appBuilderError,
+				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				userJoin: userJoin,
 				smtpServer: formData.smtpServer,
 				smtpPort: formData.smtpPort,
 				username: formData.username,
@@ -198,6 +197,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				name: formData.name,
 				notificationId: notificationId,
 				emailId: data?.emailId,
+				dockerCleanup: dockerCleanup,
 			});
 		}
 
@@ -554,14 +554,14 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								/>
 								<FormField
 									control={form.control}
-									defaultValue={form.control._defaultValues.userJoin}
-									name="userJoin"
+									defaultValue={form.control._defaultValues.appBuildError}
+									name="appBuildError"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>User Join</FormLabel>
+												<FormLabel>App Builder Error</FormLabel>
 												<FormDescription>
-													Trigger the action when a user joins the app.
+													Trigger the action when the build fails.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -573,6 +573,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 										</FormItem>
 									)}
 								/>
+
 								<FormField
 									control={form.control}
 									name="databaseBackup"
@@ -596,14 +597,14 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								/>
 								<FormField
 									control={form.control}
-									defaultValue={form.control._defaultValues.dokployRestart}
-									name="dokployRestart"
+									name="dockerCleanup"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>Deploy Restart</FormLabel>
+												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
-													Trigger the action when a deploy is restarted.
+													Trigger the action when the docker cleanup is
+													performed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -617,14 +618,14 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								/>
 								<FormField
 									control={form.control}
-									defaultValue={form.control._defaultValues.appBuilderError}
-									name="appBuilderError"
+									defaultValue={form.control._defaultValues.dokployRestart}
+									name="dokployRestart"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>App Builder Error</FormLabel>
+												<FormLabel>Dokploy Restart</FormLabel>
 												<FormDescription>
-													Trigger the action when the build fails.
+													Trigger the action when a dokploy is restarted.
 												</FormDescription>
 											</div>
 											<FormControl>
