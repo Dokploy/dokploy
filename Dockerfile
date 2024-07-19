@@ -1,15 +1,37 @@
-# Etapa 1: Prepare image for building
 FROM node:18-slim AS base
 
-# Install dependencies
+# Disable husky
+ENV HUSKY=0
+
+# Set pnpm home
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
+# Enable corepack
+RUN corepack enable
+
+# Set workdir
 WORKDIR /app
+
+FROM base AS base-deps
+# Install dependencies only for production
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
+
+# Copy install script for husky
+COPY .husky/install.mjs ./.husky/install.mjs
 
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
+
+FROM base-deps AS prod-deps
+
+# Set production
+ENV NODE_ENV=production
+
+# Install dependencies only for production
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+
+FROM base-deps AS build
 
 # Install dependencies only for building
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -17,32 +39,27 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 
-#  Build the application
-RUN pnpm run build
+# Build the application
+RUN pnpm build
 
-# Stage 2: Prepare image for production
-FROM node:18-slim AS production
+FROM base AS production
+
+# Set production
+ENV NODE_ENV=production
 
 # Install dependencies only for production
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apt-get update && apt-get install -y curl && apt-get install -y apache2-utils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl apache2-utils && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
-#  Copy the rest of the source code
-COPY --from=base /app/.next ./.next
-COPY --from=base /app/dist ./dist
-COPY --from=base /app/next.config.mjs ./next.config.mjs
-COPY --from=base /app/public ./public
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/drizzle ./drizzle
-COPY --from=base /app/.env.production ./.env
-COPY --from=base /app/components.json ./components.json
-
-#  Install dependencies only for production
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+# Copy the rest of the source code
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/next.config.mjs ./next.config.mjs
+COPY --from=build /app/public ./public
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/.env.production ./.env
+COPY --from=build /app/components.json ./components.json
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Install docker
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
@@ -53,7 +70,6 @@ RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
     && ./install.sh \
     && pnpm install -g tsx
-
 
 # Install buildpacks
 RUN curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.32.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack

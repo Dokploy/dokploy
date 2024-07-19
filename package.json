@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.3.2",
+	"version": "v0.3.3",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -31,7 +31,8 @@
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
-		"test": "vitest --config __test__/vitest.config.ts"
+		"test": "vitest --config __test__/vitest.config.ts",
+		"prepare": "node .husky/install.mjs"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "3.515.0",
@@ -128,6 +129,8 @@
 	"devDependencies": {
 		"@types/nodemailer": "^6.4.15",
 		"@biomejs/biome": "1.8.3",
+		"@commitlint/cli": "^19.3.0",
+		"@commitlint/config-conventional": "^19.2.2",
 		"@types/bcrypt": "5.0.2",
 		"@types/dockerode": "3.3.23",
 		"@types/js-yaml": "4.0.9",
@@ -160,6 +163,7 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
+	"packageManager": "pnpm@8.15.4",
 	"engines": {
 		"node": "^18.18.0",
 		"pnpm": ">=8.15.4"
@@ -168,5 +172,8 @@
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
 		]
+	},
+	"commitlint": {
+		"extends": ["@commitlint/config-conventional"]
 	}
 }
