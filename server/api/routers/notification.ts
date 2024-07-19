@@ -21,6 +21,7 @@ import {
 	notifications,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
+import { desc } from "drizzle-orm";
 import {
 	createDiscordNotification,
 	createEmailNotification,
@@ -28,16 +29,15 @@ import {
 	createTelegramNotification,
 	findNotificationById,
 	removeNotificationById,
-	sendDiscordTestNotification,
-	sendEmailTestNotification,
-	sendSlackTestNotification,
-	sendTelegramTestNotification,
+	sendDiscordNotification,
+	sendEmailNotification,
+	sendSlackNotification,
+	sendTelegramNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
 } from "../services/notification";
-import { desc } from "drizzle-orm";
 
 export const notificationRouter = createTRPCRouter({
 	createSlack: adminProcedure
@@ -71,7 +71,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestSlackConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendSlackTestNotification(input);
+				await sendSlackNotification(input, {
+					channel: input.channel,
+					text: "Hi, From Dokploy 👋",
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -112,7 +115,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestTelegramConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendTelegramTestNotification(input);
+				await sendTelegramNotification(input, "Hi, From Dokploy 👋");
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -126,6 +129,12 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateDiscord)
 		.mutation(async ({ input }) => {
 			try {
+				// go to your discord server
+				// go to settings
+				// go to integrations
+				// add a new integration
+				// select webhook
+				// copy the webhook url
 				return await createDiscordNotification(input);
 			} catch (error) {
 				throw new TRPCError({
@@ -154,7 +163,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestDiscordConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendDiscordTestNotification(input);
+				await sendDiscordNotification(input, {
+					title: "Test Notification",
+					description: "Hi, From Dokploy 👋",
+				});
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -195,7 +207,11 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestEmailConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendEmailTestNotification(input);
+				await sendEmailNotification(
+					input,
+					"Test Email",
+					"<p>Hi, From Dokploy 👋</p>",
+				);
 				return true;
 			} catch (error) {
 				throw new TRPCError({

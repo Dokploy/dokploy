@@ -420,97 +420,6 @@ export const updateDestinationById = async (
 	return result[0];
 };
 
-export const sendSlackTestNotification = async (
-	slackTestConnection: typeof apiTestSlackConnection._type,
-) => {
-	const { webhookUrl, channel } = slackTestConnection;
-
-	const response = await fetch(webhookUrl, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ text: "Hi, From Dokploy 👋", channel }),
-	});
-
-	if (!response.ok) {
-		throw new Error("Error to send test notification");
-	}
-};
-
-export const sendTelegramTestNotification = async (
-	telegramTestConnection: typeof apiTestTelegramConnection._type,
-) => {
-	const { botToken, chatId } = telegramTestConnection;
-	const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-	const response = await fetch(url, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			chat_id: chatId,
-			text: "Hi, From Dokploy 👋",
-		}),
-	});
-
-	if (!response.ok) {
-		throw new Error("Error to send test notification");
-	}
-};
-
-export const sendDiscordTestNotification = async (
-	discordTestConnection: typeof apiTestDiscordConnection._type,
-) => {
-	const { webhookUrl } = discordTestConnection;
-	// go to your discord server
-	// go to settings
-	// go to integrations
-	// add a new integration
-	// select webhook
-	// copy the webhook url
-	const response = await fetch(webhookUrl, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			content: "Hi, From Dokploy 👋",
-		}),
-	});
-
-	if (!response.ok) {
-		throw new Error("Error to send test notification");
-	}
-};
-
-export const sendEmailTestNotification = async (
-	emailTestConnection: typeof apiTestEmailConnection._type,
-) => {
-	const { smtpServer, smtpPort, username, password, toAddresses, fromAddress } =
-		emailTestConnection;
-	const transporter = nodemailer.createTransport({
-		host: smtpServer,
-		port: smtpPort,
-		secure: smtpPort === 465,
-		auth: {
-			user: username,
-			pass: password,
-		},
-	} as SMTPTransport.Options);
-	// need to add a valid from address
-	const mailOptions = {
-		from: fromAddress,
-		to: toAddresses?.join(", "),
-		subject: "Test email",
-		text: "Hi, From Dokploy 👋",
-	};
-
-	await transporter.sendMail(mailOptions);
-
-	console.log("Email notification sent successfully");
-};
-
 interface BuildFailedEmailProps {
 	projectName: string;
 	applicationName: string;
@@ -540,28 +449,10 @@ export const sendBuildErrorNotifications = async ({
 	for (const notification of notificationList) {
 		const { email, discord, telegram, slack } = notification;
 		if (email) {
-			const {
-				smtpServer,
-				smtpPort,
-				username,
-				password,
-				fromAddress,
-				toAddresses,
-			} = email;
-			const transporter = nodemailer.createTransport({
-				host: smtpServer,
-				port: smtpPort,
-				secure: smtpPort === 465,
-				auth: {
-					user: username,
-					pass: password,
-				},
-			} as SMTPTransport.Options);
-			const mailOptions = {
-				from: fromAddress,
-				to: toAddresses?.join(", "),
-				subject: "Build failed for dokploy",
-				html: render(
+			await sendEmailNotification(
+				email,
+				"Build failed for dokploy",
+				render(
 					BuildFailedEmail({
 						projectName,
 						applicationName,
@@ -571,13 +462,12 @@ export const sendBuildErrorNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				),
-			};
-			await transporter.sendMail(mailOptions);
+			);
 		}
 
 		if (discord) {
 			const { webhookUrl } = discord;
-			const embed = {
+			await sendDiscordNotification(discord, {
 				title: "⚠️ Build Failed",
 				color: 0xff0000,
 				fields: [
@@ -609,59 +499,31 @@ export const sendBuildErrorNotifications = async ({
 				footer: {
 					text: "Dokploy Build Notification",
 				},
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					embeds: [embed],
-				}),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 
 		if (telegram) {
-			const { botToken, chatId } = telegram;
-			const messageText = `
-			<b>⚠️ Build Failed</b>
-			
-			<b>Project:</b> ${projectName}
-			<b>Application:</b> ${applicationName}
-			<b>Type:</b> ${applicationType}
-			<b>Time:</b> ${date.toLocaleString()}
-			
-			<b>Error:</b>
-			<pre>${errorMessage}</pre>
-			
-			<b>Build Details:</b> ${buildLink}
-			`;
-			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					chat_id: chatId,
-					text: messageText,
-					parse_mode: "HTML",
-					disable_web_page_preview: true,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
+			await sendTelegramNotification(
+				telegram,
+				`
+				<b>⚠️ Build Failed</b>
+				
+				<b>Project:</b> ${projectName}
+				<b>Application:</b> ${applicationName}
+				<b>Type:</b> ${applicationType}
+				<b>Time:</b> ${date.toLocaleString()}
+				
+				<b>Error:</b>
+				<pre>${errorMessage}</pre>
+				
+				<b>Build Details:</b> ${buildLink}
+				`,
+			);
 		}
 
 		if (slack) {
-			const { webhookUrl, channel } = slack;
-			const message = {
+			const { channel } = slack;
+			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
 					{
@@ -703,18 +565,7 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				],
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(message),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 	}
 };
@@ -747,28 +598,10 @@ export const sendBuildSuccessNotifications = async ({
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			const {
-				smtpServer,
-				smtpPort,
-				username,
-				password,
-				fromAddress,
-				toAddresses,
-			} = email;
-			const transporter = nodemailer.createTransport({
-				host: smtpServer,
-				port: smtpPort,
-				secure: smtpPort === 465,
-				auth: {
-					user: username,
-					pass: password,
-				},
-			} as SMTPTransport.Options);
-			const mailOptions = {
-				from: fromAddress,
-				to: toAddresses?.join(", "),
-				subject: "Build success for dokploy",
-				html: render(
+			await sendEmailNotification(
+				email,
+				"Build success for dokploy",
+				render(
 					BuildSuccessEmail({
 						projectName,
 						applicationName,
@@ -777,13 +610,11 @@ export const sendBuildSuccessNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				),
-			};
-			await transporter.sendMail(mailOptions);
+			);
 		}
 
 		if (discord) {
-			const { webhookUrl } = discord;
-			const embed = {
+			await sendDiscordNotification(discord, {
 				title: "✅ Build Success",
 				color: 0x00ff00,
 				fields: [
@@ -811,56 +642,28 @@ export const sendBuildSuccessNotifications = async ({
 				footer: {
 					text: "Dokploy Build Notification",
 				},
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					embeds: [embed],
-				}),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 
 		if (telegram) {
-			const { botToken, chatId } = telegram;
-			const messageText = `
-			<b>✅ Build Success</b>
-			
-			<b>Project:</b> ${projectName}
-			<b>Application:</b> ${applicationName}
-			<b>Type:</b> ${applicationType}
-			<b>Time:</b> ${date.toLocaleString()}
-			
-			<b>Build Details:</b> ${buildLink}
-			`;
-			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					chat_id: chatId,
-					text: messageText,
-					parse_mode: "HTML",
-					disable_web_page_preview: true,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
+			await sendTelegramNotification(
+				telegram,
+				`
+				<b>✅ Build Success</b>
+				
+				<b>Project:</b> ${projectName}
+				<b>Application:</b> ${applicationName}
+				<b>Type:</b> ${applicationType}
+				<b>Time:</b> ${date.toLocaleString()}
+				
+				<b>Build Details:</b> ${buildLink}
+				`,
+			);
 		}
 
 		if (slack) {
 			const { webhookUrl, channel } = slack;
-			const message = {
+			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
 					{
@@ -901,18 +704,7 @@ export const sendBuildSuccessNotifications = async ({
 						],
 					},
 				],
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(message),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 	}
 };
@@ -945,28 +737,10 @@ export const sendDatabaseBackupNotifications = async ({
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			const {
-				smtpServer,
-				smtpPort,
-				username,
-				password,
-				fromAddress,
-				toAddresses,
-			} = email;
-			const transporter = nodemailer.createTransport({
-				host: smtpServer,
-				port: smtpPort,
-				secure: smtpPort === 465,
-				auth: {
-					user: username,
-					pass: password,
-				},
-			} as SMTPTransport.Options);
-			const mailOptions = {
-				from: fromAddress,
-				to: toAddresses?.join(", "),
-				subject: "Database backup for dokploy",
-				html: render(
+			await sendEmailNotification(
+				email,
+				"Database backup for dokploy",
+				render(
 					DatabaseBackupEmail({
 						projectName,
 						applicationName,
@@ -976,13 +750,11 @@ export const sendDatabaseBackupNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				),
-			};
-			await transporter.sendMail(mailOptions);
+			);
 		}
 
 		if (discord) {
-			const { webhookUrl } = discord;
-			const embed = {
+			await sendDiscordNotification(discord, {
 				title:
 					type === "success"
 						? "✅ Database Backup Successful"
@@ -1013,36 +785,23 @@ export const sendDatabaseBackupNotifications = async ({
 						name: "Type",
 						value: type,
 					},
+					...(type === "error" && errorMessage
+						? [
+								{
+									name: "Error Message",
+									value: errorMessage,
+								},
+							]
+						: []),
 				],
 				timestamp: date.toISOString(),
 				footer: {
 					text: "Dokploy Database Backup Notification",
 				},
-			};
-
-			if (type === "error" && errorMessage) {
-				embed.fields.push({
-					name: "Error Message",
-					value: errorMessage as unknown as string,
-				});
-			}
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					embeds: [embed],
-				}),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 
 		if (telegram) {
-			const { botToken, chatId } = telegram;
 			const statusEmoji = type === "success" ? "✅" : "❌";
 			const messageText = `
 				<b>${statusEmoji} Database Backup ${type === "success" ? "Successful" : "Failed"}</b>
@@ -1055,28 +814,12 @@ export const sendDatabaseBackupNotifications = async ({
 			<b>Status:</b> ${type === "success" ? "Successful" : "Failed"}
 			${type === "error" && errorMessage ? `<b>Error:</b> ${errorMessage}` : ""}
 			`;
-			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					chat_id: chatId,
-					text: messageText,
-					parse_mode: "HTML",
-					disable_web_page_preview: true,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
+			await sendTelegramNotification(telegram, messageText);
 		}
 
 		if (slack) {
-			const { webhookUrl, channel } = slack;
-			const message = {
+			const { channel } = slack;
+			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
 					{
@@ -1086,6 +829,15 @@ export const sendDatabaseBackupNotifications = async ({
 								? ":white_check_mark: *Database Backup Successful*"
 								: ":x: *Database Backup Failed*",
 						fields: [
+							...(type === "error" && errorMessage
+								? [
+										{
+											title: "Error Message",
+											value: errorMessage,
+											short: false,
+										},
+									]
+								: []),
 							{
 								title: "Project",
 								value: projectName,
@@ -1124,25 +876,7 @@ export const sendDatabaseBackupNotifications = async ({
 						],
 					},
 				],
-			};
-
-			if (type === "error" && errorMessage) {
-				message.attachments[0].fields.push({
-					title: "Error Message",
-					value: errorMessage,
-				});
-			}
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(message),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 	}
 };
@@ -1165,40 +899,15 @@ export const sendDockerCleanupNotifications = async (
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			const {
-				smtpServer,
-				smtpPort,
-				username,
-				password,
-				fromAddress,
-				toAddresses,
-			} = email;
-			const transporter = nodemailer.createTransport({
-				host: smtpServer,
-				port: smtpPort,
-				secure: smtpPort === 465,
-				auth: {
-					user: username,
-					pass: password,
-				},
-			} as SMTPTransport.Options);
-			const mailOptions = {
-				from: fromAddress,
-				to: toAddresses?.join(", "),
-				subject: "Docker cleanup for dokploy",
-				html: render(
-					DockerCleanupEmail({
-						message,
-						date: date.toLocaleString(),
-					}),
-				),
-			};
-			await transporter.sendMail(mailOptions);
+			await sendEmailNotification(
+				email,
+				"Docker cleanup for dokploy",
+				render(DockerCleanupEmail({ message, date: date.toLocaleString() })),
+			);
 		}
 
 		if (discord) {
-			const { webhookUrl } = discord;
-			const embed = {
+			await sendDiscordNotification(discord, {
 				title: "✅ Docker Cleanup",
 				color: 0x00ff00,
 				fields: [
@@ -1211,51 +920,23 @@ export const sendDockerCleanupNotifications = async (
 				footer: {
 					text: "Dokploy Docker Cleanup Notification",
 				},
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					embeds: [embed],
-				}),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 
 		if (telegram) {
-			const { botToken, chatId } = telegram;
-			const messageText = `
-			<b>✅ Docker Cleanup</b>
-			<b>Message:</b> ${message}
-			<b>Time:</b> ${date.toLocaleString()}
-			`;
-			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					chat_id: chatId,
-					text: messageText,
-					parse_mode: "HTML",
-					disable_web_page_preview: true,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
+			await sendTelegramNotification(
+				telegram,
+				`
+				<b>✅ Docker Cleanup</b>
+				<b>Message:</b> ${message}
+				<b>Time:</b> ${date.toLocaleString()}
+			`,
+			);
 		}
 
 		if (slack) {
-			const { webhookUrl, channel } = slack;
-			const messageResponse = {
+			const { channel } = slack;
+			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
 					{
@@ -1281,24 +962,13 @@ export const sendDockerCleanupNotifications = async (
 						],
 					},
 				],
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(messageResponse),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 	}
 };
 
 export const sendEmailNotification = async (
-	connection: typeof email.$inferSelect,
+	connection: typeof email.$inferInsert,
 	subject: string,
 	htmlContent: string,
 ) => {
@@ -1320,7 +990,7 @@ export const sendEmailNotification = async (
 };
 
 export const sendDiscordNotification = async (
-	connection: typeof discord.$inferSelect,
+	connection: typeof discord.$inferInsert,
 	embed: any,
 ) => {
 	const response = await fetch(connection.webhookUrl, {
@@ -1333,7 +1003,7 @@ export const sendDiscordNotification = async (
 };
 
 export const sendTelegramNotification = async (
-	connection: typeof telegram.$inferSelect,
+	connection: typeof telegram.$inferInsert,
 	messageText: string,
 ) => {
 	const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
@@ -1352,7 +1022,7 @@ export const sendTelegramNotification = async (
 };
 
 export const sendSlackNotification = async (
-	connection: typeof slack.$inferSelect,
+	connection: typeof slack.$inferInsert,
 	message: any,
 ) => {
 	const response = await fetch(connection.webhookUrl, {
@@ -1380,41 +1050,17 @@ export const sendDokployRestartNotifications = async () => {
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			const {
-				smtpServer,
-				smtpPort,
-				username,
-				password,
-				fromAddress,
-				toAddresses,
-			} = email;
-			const transporter = nodemailer.createTransport({
-				host: smtpServer,
-				port: smtpPort,
-				secure: smtpPort === 465,
-				auth: {
-					user: username,
-					pass: password,
-				},
-			} as SMTPTransport.Options);
-			const mailOptions = {
-				from: fromAddress,
-				to: toAddresses?.join(", "),
-				subject: "Dokploy Server Restarted",
-				html: render(
-					DokployRestartEmail({
-						date: date.toLocaleString(),
-					}),
-				),
-			};
-			await transporter.sendMail(mailOptions);
+			await sendEmailNotification(
+				email,
+				"Dokploy Server Restarted",
+				render(DokployRestartEmail({ date: date.toLocaleString() })),
+			);
 		}
 
 		if (discord) {
-			const { webhookUrl } = discord;
-			const embed = {
+			await sendDiscordNotification(discord, {
 				title: "✅ Dokploy Server Restarted",
-				color: 0xff0000,
+				color: 0x00ff00,
 				fields: [
 					{
 						name: "Time",
@@ -1426,50 +1072,22 @@ export const sendDokployRestartNotifications = async () => {
 				footer: {
 					text: "Dokploy Restart Notification",
 				},
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					embeds: [embed],
-				}),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 
 		if (telegram) {
-			const { botToken, chatId } = telegram;
-			const messageText = `
-			<b>✅ Dokploy Serverd Restarted</b>
-			<b>Time:</b> ${date.toLocaleString()}
-			`;
-			const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-			const response = await fetch(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					chat_id: chatId,
-					text: messageText,
-					parse_mode: "HTML",
-					disable_web_page_preview: true,
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
+			await sendTelegramNotification(
+				telegram,
+				`
+				<b>✅ Dokploy Serverd Restarted</b>
+				<b>Time:</b> ${date.toLocaleString()}
+			`,
+			);
 		}
 
 		if (slack) {
-			const { webhookUrl, channel } = slack;
-			const message = {
+			const { channel } = slack;
+			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
 					{
@@ -1491,18 +1109,7 @@ export const sendDokployRestartNotifications = async () => {
 						],
 					},
 				],
-			};
-			const response = await fetch(webhookUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(message),
 			});
-
-			if (!response.ok) {
-				throw new Error("Error to send test notification");
-			}
 		}
 	}
 };

@@ -57,9 +57,8 @@ void app.prepare().then(async () => {
 			// Timeout to wait for the database to be ready
 			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
+			await sendDokployRestartNotifications();
 		}
-		await sendDokployRestartNotifications();
-
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
 		deploymentWorker.run();
