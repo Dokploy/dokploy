@@ -2,7 +2,6 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
-import { sendDokployRestartNotifications } from "./api/services/notification";
 import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";
@@ -15,6 +14,7 @@ import {
 	initializeTraefik,
 } from "./setup/traefik-setup";
 import { initCronJobs } from "./utils/backups";
+import { sendDokployRestartNotifications } from "./utils/notifications/dokploy-restart";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";

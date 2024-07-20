@@ -17,10 +17,9 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
-import {
-	sendBuildErrorNotifications,
-	sendBuildSuccessNotifications,
-} from "./notification";
+
+import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
+import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
@@ -168,7 +167,6 @@ export const deployApplication = async ({
 			buildLink: deployment.logPath,
 		});
 	} catch (error) {
-		console.log("Error on build", error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		await sendBuildErrorNotifications({

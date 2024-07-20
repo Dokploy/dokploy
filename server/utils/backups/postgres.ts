@@ -1,10 +1,10 @@
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import type { BackupSchedule } from "@/server/api/services/backup";
-import { sendDatabaseBackupNotifications } from "@/server/api/services/notification";
 import type { Postgres } from "@/server/api/services/postgres";
 import { findProjectById } from "@/server/api/services/project";
 import { getServiceContainer } from "../docker/utils";
+import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync } from "../process/execAsync";
 import { uploadToS3 } from "./utils";
 
