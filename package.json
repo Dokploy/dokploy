@@ -20,7 +20,7 @@
 		"db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
 		"db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
 		"db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
-		"check": "biome check",
+		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
 		"format": "biome format --write",
 		"lint": "biome lint",
 		"typecheck": "tsc",

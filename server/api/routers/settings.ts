@@ -58,8 +58,13 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 	reloadTraefik: adminProcedure.mutation(async () => {
-		await stopService("dokploy-traefik");
-		await startService("dokploy-traefik");
+		try {
+			await stopService("dokploy-traefik");
+			await startService("dokploy-traefik");
+		} catch (err) {
+			console.error(err);
+		}
+
 		return true;
 	}),
 	cleanUnusedImages: adminProcedure.mutation(async () => {
