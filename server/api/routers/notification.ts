@@ -20,6 +20,12 @@ import {
 	apiUpdateTelegram,
 	notifications,
 } from "@/server/db/schema";
+import {
+	sendDiscordNotification,
+	sendEmailNotification,
+	sendSlackNotification,
+	sendTelegramNotification,
+} from "@/server/utils/notifications/utils";
 import { TRPCError } from "@trpc/server";
 import { desc } from "drizzle-orm";
 import {
@@ -29,10 +35,6 @@ import {
 	createTelegramNotification,
 	findNotificationById,
 	removeNotificationById,
-	sendDiscordNotification,
-	sendEmailNotification,
-	sendSlackNotification,
-	sendTelegramNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
 	updateSlackNotification,

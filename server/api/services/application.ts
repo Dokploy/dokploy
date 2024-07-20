@@ -15,7 +15,7 @@ import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
+import { findAdmin, getDokployUrl } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
 
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
@@ -140,6 +140,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const admin = await findAdmin();
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -164,7 +165,7 @@ export const deployApplication = async ({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			buildLink: deployment.logPath,
+			buildLink,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -173,8 +174,9 @@ export const deployApplication = async ({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
+			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
-			buildLink: deployment.logPath,
+			buildLink,
 		});
 
 		console.log(

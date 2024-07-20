@@ -1,7 +1,7 @@
 import BuildSuccessEmail from "@/emails/emails/build-success";
 import { db } from "@/server/db";
 import { notifications } from "@/server/db/schema";
-import { render } from "@react-email/components";
+import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -38,19 +38,16 @@ export const sendBuildSuccessNotifications = async ({
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			await sendEmailNotification(
-				email,
-				"Build success for dokploy",
-				render(
-					BuildSuccessEmail({
-						projectName,
-						applicationName,
-						applicationType,
-						buildLink,
-						date: date.toLocaleString(),
-					}),
-				),
-			);
+			const template = await renderAsync(
+				BuildSuccessEmail({
+					projectName,
+					applicationName,
+					applicationType,
+					buildLink,
+					date: date.toLocaleString(),
+				}),
+			).catch();
+			await sendEmailNotification(email, "Build success for dokploy", template);
 		}
 
 		if (discord) {
@@ -130,16 +127,12 @@ export const sendBuildSuccessNotifications = async ({
 								value: date.toLocaleString(),
 								short: true,
 							},
-							{
-								title: "Build Link",
-								value: buildLink,
-							},
 						],
 						actions: [
 							{
 								type: "button",
 								text: "View Build Details",
-								url: "https://doks.dev/build-details",
+								url: buildLink,
 							},
 						],
 					},

@@ -1,7 +1,7 @@
 import DokployRestartEmail from "@/emails/emails/dokploy-restart";
 import { db } from "@/server/db";
 import { notifications } from "@/server/db/schema";
-import { render } from "@react-email/components";
+import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -26,17 +26,16 @@ export const sendDokployRestartNotifications = async () => {
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
-			await sendEmailNotification(
-				email,
-				"Dokploy Server Restarted",
-				render(DokployRestartEmail({ date: date.toLocaleString() })),
-			);
+			const template = await renderAsync(
+				DokployRestartEmail({ date: date.toLocaleString() }),
+			).catch();
+			await sendEmailNotification(email, "Dokploy Server Restarted", template);
 		}
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
 				title: "✅ Dokploy Server Restarted",
-				color: 0x00ff00,
+				color: 0xff0000,
 				fields: [
 					{
 						name: "Time",
@@ -67,20 +66,13 @@ export const sendDokployRestartNotifications = async () => {
 				channel: channel,
 				attachments: [
 					{
-						color: "#FF0000",
+						color: "#00FF00",
 						pretext: ":white_check_mark: *Dokploy Server Restarted*",
 						fields: [
 							{
 								title: "Time",
 								value: date.toLocaleString(),
 								short: true,
-							},
-						],
-						actions: [
-							{
-								type: "button",
-								text: "View Build Details",
-								url: "https://doks.dev/build-details",
 							},
 						],
 					},

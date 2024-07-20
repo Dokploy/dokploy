@@ -59,6 +59,7 @@ void app.prepare().then(async () => {
 			await migration();
 			await sendDokployRestartNotifications();
 		}
+
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
 		deploymentWorker.run();

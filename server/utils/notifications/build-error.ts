@@ -1,7 +1,7 @@
 import BuildFailedEmail from "@/emails/emails/build-failed";
 import { db } from "@/server/db";
 import { notifications } from "@/server/db/schema";
-import { render } from "@react-email/components";
+import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -39,20 +39,17 @@ export const sendBuildErrorNotifications = async ({
 	for (const notification of notificationList) {
 		const { email, discord, telegram, slack } = notification;
 		if (email) {
-			await sendEmailNotification(
-				email,
-				"Build failed for dokploy",
-				render(
-					BuildFailedEmail({
-						projectName,
-						applicationName,
-						applicationType,
-						errorMessage,
-						buildLink,
-						date: date.toLocaleString(),
-					}),
-				),
-			);
+			const template = await renderAsync(
+				BuildFailedEmail({
+					projectName,
+					applicationName,
+					applicationType,
+					errorMessage: errorMessage,
+					buildLink,
+					date: date.toLocaleString(),
+				}),
+			).catch();
+			await sendEmailNotification(email, "Build failed for dokploy", template);
 		}
 
 		if (discord) {
@@ -149,7 +146,7 @@ export const sendBuildErrorNotifications = async ({
 							{
 								type: "button",
 								text: "View Build Details",
-								url: "https://doks.dev/build-details",
+								url: buildLink,
 							},
 						],
 					},

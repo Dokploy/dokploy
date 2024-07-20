@@ -1,7 +1,7 @@
 import DockerCleanupEmail from "@/emails/emails/docker-cleanup";
 import { db } from "@/server/db";
 import { notifications } from "@/server/db/schema";
-import { render } from "@react-email/components";
+import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -28,10 +28,14 @@ export const sendDockerCleanupNotifications = async (
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
+			const template = await renderAsync(
+				DockerCleanupEmail({ message, date: date.toLocaleString() }),
+			).catch();
+
 			await sendEmailNotification(
 				email,
 				"Docker cleanup for dokploy",
-				render(DockerCleanupEmail({ message, date: date.toLocaleString() })),
+				template,
 			);
 		}
 
@@ -80,13 +84,6 @@ export const sendDockerCleanupNotifications = async (
 								title: "Time",
 								value: date.toLocaleString(),
 								short: true,
-							},
-						],
-						actions: [
-							{
-								type: "button",
-								text: "View Build Details",
-								url: "https://doks.dev/build-details",
 							},
 						],
 					},

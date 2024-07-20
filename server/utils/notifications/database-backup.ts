@@ -1,7 +1,7 @@
 import DatabaseBackupEmail from "@/emails/emails/database-backup";
 import { db } from "@/server/db";
 import { notifications } from "@/server/db/schema";
-import { render } from "@react-email/components";
+import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -38,19 +38,20 @@ export const sendDatabaseBackupNotifications = async ({
 		const { email, discord, telegram, slack } = notification;
 
 		if (email) {
+			const template = await renderAsync(
+				DatabaseBackupEmail({
+					projectName,
+					applicationName,
+					databaseType,
+					type,
+					errorMessage,
+					date: date.toLocaleString(),
+				}),
+			).catch();
 			await sendEmailNotification(
 				email,
 				"Database backup for dokploy",
-				render(
-					DatabaseBackupEmail({
-						projectName,
-						applicationName,
-						databaseType,
-						type,
-						errorMessage,
-						date: date.toLocaleString(),
-					}),
-				),
+				template,
 			);
 		}
 
@@ -166,13 +167,6 @@ export const sendDatabaseBackupNotifications = async ({
 							{
 								title: "Status",
 								value: type === "success" ? "Successful" : "Failed",
-							},
-						],
-						actions: [
-							{
-								type: "button",
-								text: "View Build Details",
-								url: "https://doks.dev/build-details",
 							},
 						],
 					},
