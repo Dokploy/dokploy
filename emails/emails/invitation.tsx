@@ -3,15 +3,15 @@ import {
 	Button,
 	Container,
 	Head,
+	Heading,
 	Hr,
 	Html,
+	Img,
 	Link,
 	Preview,
 	Section,
-	Text,
 	Tailwind,
-	Img,
-	Heading,
+	Text,
 } from "@react-email/components";
 
 export type TemplateProps = {
@@ -48,8 +48,10 @@ export const InvitationEmail = ({
 					<Container className="border border-solid border-[#eaeaea] rounded-lg my-[40px] mx-auto p-[20px] max-w-[465px]">
 						<Section className="mt-[32px]">
 							<Img
-								src={`https://avatars.githubusercontent.com/u/156882017?s=200&v=4`}
-								width="50"
+								src={
+									"https://raw.githubusercontent.com/Dokploy/dokploy/canary/logo.png"
+								}
+								width="100"
 								height="50"
 								alt="Dokploy"
 								className="my-0 mx-auto"
