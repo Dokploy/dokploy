@@ -21,7 +21,7 @@
 		"db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
 		"db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"check": "biome check",
-		"format": "biome format",
+		"format": "biome format --write",
 		"lint": "biome lint",
 		"typecheck": "tsc",
 		"db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
