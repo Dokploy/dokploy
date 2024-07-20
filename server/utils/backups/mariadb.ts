@@ -48,6 +48,7 @@ export const runMariadbBackup = async (
 			projectName: project.name,
 			databaseType: "mariadb",
 			type: "error",
+			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 		});
 		throw error;

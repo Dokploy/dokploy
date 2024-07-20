@@ -23,7 +23,6 @@ import {
 import { findMariadbByBackupId } from "../services/mariadb";
 import { findMongoByBackupId } from "../services/mongo";
 import { findMySqlByBackupId } from "../services/mysql";
-import { sendDatabaseBackupNotifications } from "../services/notification";
 import { findPostgresByBackupId } from "../services/postgres";
 
 export const backupRouter = createTRPCRouter({

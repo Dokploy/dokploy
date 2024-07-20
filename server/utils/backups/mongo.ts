@@ -44,6 +44,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mongodb",
 			type: "error",
+			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 		});
 		throw error;

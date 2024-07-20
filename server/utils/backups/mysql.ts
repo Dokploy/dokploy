@@ -45,6 +45,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "error",
+			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 		});
 		throw error;

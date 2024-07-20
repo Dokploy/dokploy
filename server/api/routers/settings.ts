@@ -17,6 +17,7 @@ import {
 	stopService,
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
+import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -35,7 +36,6 @@ import { TRPCError } from "@trpc/server";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { appRouter } from "../root";
 import { findAdmin, updateAdmin } from "../services/admin";
-import { sendDockerCleanupNotifications } from "../services/notification";
 import {
 	getDokployImage,
 	getDokployVersion,

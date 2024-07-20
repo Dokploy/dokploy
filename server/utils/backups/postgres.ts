@@ -45,6 +45,7 @@ export const runPostgresBackup = async (
 			projectName: project.name,
 			databaseType: "postgres",
 			type: "error",
+			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 		});
 
