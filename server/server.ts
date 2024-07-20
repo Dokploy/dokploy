@@ -14,6 +14,7 @@ import {
 	initializeTraefik,
 } from "./setup/traefik-setup";
 import { initCronJobs } from "./utils/backups";
+import { sendDokployRestartNotifications } from "./utils/notifications/dokploy-restart";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -56,7 +57,9 @@ void app.prepare().then(async () => {
 			// Timeout to wait for the database to be ready
 			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
+			await sendDokployRestartNotifications();
 		}
+
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
 		deploymentWorker.run();

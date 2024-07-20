@@ -90,6 +90,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const postgres = await findPostgresByBackupId(backup.backupId);
 				await runPostgresBackup(postgres, backup);
+
 				return true;
 			} catch (error) {
 				console.log(error);

@@ -1,0 +1,20 @@
+{
+	"name": "emails",
+	"version": "0.0.19",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "email build",
+		"dev": "email dev",
+		"export": "email export"
+	},
+	"dependencies": {
+		"@react-email/components": "0.0.21",
+		"react-email": "2.1.5",
+		"react": "^18.2.0"
+	},
+	"devDependencies": {
+		"@types/react": "18.2.33",
+		"@types/react-dom": "18.2.14"
+	}
+}

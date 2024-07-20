@@ -99,7 +99,7 @@ export const AddRegistry = () => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button>
+				<Button className="max-sm:w-full">
 					<Container className="h-4 w-4" />
 					Create Registry
 				</Button>

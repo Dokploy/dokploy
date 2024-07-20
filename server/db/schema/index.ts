@@ -21,3 +21,4 @@ export * from "./redis";
 export * from "./shared";
 export * from "./compose";
 export * from "./registry";
+export * from "./notification";

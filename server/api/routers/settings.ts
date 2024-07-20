@@ -17,6 +17,7 @@ import {
 	stopService,
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
+import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -86,6 +87,7 @@ export const settingsRouter = createTRPCRouter({
 		await cleanUpUnusedImages();
 		await cleanUpDockerBuilder();
 		await cleanUpSystemPrune();
+
 		return true;
 	}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
@@ -144,6 +146,7 @@ export const settingsRouter = createTRPCRouter({
 					await cleanUpUnusedImages();
 					await cleanUpDockerBuilder();
 					await cleanUpSystemPrune();
+					await sendDockerCleanupNotifications();
 				});
 			} else {
 				const currentJob = scheduledJobs["docker-cleanup"];
