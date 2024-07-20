@@ -18,7 +18,6 @@ export const sendEmailNotification = async (
 		const transporter = nodemailer.createTransport({
 			host: smtpServer,
 			port: smtpPort,
-			secure: smtpPort === 465,
 			auth: { user: username, pass: password },
 		});
 
