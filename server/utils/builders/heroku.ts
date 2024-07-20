@@ -19,7 +19,7 @@ export const buildHeroku = async (
 			"--path",
 			buildAppDirectory,
 			"--builder",
-			"heroku/builder:22",
+			"heroku/builder:24",
 		];
 
 		for (const env of envVariables) {
