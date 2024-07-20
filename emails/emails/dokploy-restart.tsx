@@ -40,9 +40,7 @@ export const DokployRestartEmail = ({
 					<Container className="border border-solid border-[#eaeaea] rounded-lg my-[40px] mx-auto p-[20px] max-w-[465px]">
 						<Section className="mt-[32px]">
 							<Img
-								src={
-									"https://avatars.githubusercontent.com/u/156882017?s=200&v=4"
-								}
+								src={"/static/logo.png"}
 								width="50"
 								height="50"
 								alt="Dokploy"
