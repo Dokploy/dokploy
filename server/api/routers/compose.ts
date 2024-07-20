@@ -30,6 +30,7 @@ import {
 } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import _ from "lodash";
 import { nanoid } from "nanoid";
 import { findAdmin } from "../services/admin";
 import {
@@ -282,5 +283,11 @@ export const composeRouter = createTRPCRouter({
 		}));
 
 		return templatesData;
+	}),
+
+	getTags: protectedProcedure.query(async ({ input }) => {
+		const allTags = templates.flatMap((template) => template.tags);
+		const uniqueTags = _.uniq(allTags);
+		return uniqueTags;
 	}),
 });
