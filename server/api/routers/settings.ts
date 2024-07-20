@@ -252,6 +252,10 @@ export const settingsRouter = createTRPCRouter({
 			}
 			return readConfigInPath(input.path);
 		}),
+	getIp: protectedProcedure.query(async () => {
+		const admin = await findAdmin();
+		return admin.serverIp;
+	}),
 
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {

@@ -44,6 +44,7 @@ interface Props {
 	mysqlId: string;
 }
 export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
+	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mysql.one.useQuery({ mysqlId });
 	const { mutateAsync, isLoading } = api.mysql.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
@@ -77,10 +78,9 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 
 	useEffect(() => {
 		const buildConnectionUrl = () => {
-			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mysql://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
+			return `mysql://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

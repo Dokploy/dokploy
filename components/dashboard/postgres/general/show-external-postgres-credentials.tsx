@@ -44,6 +44,7 @@ interface Props {
 	postgresId: string;
 }
 export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
+	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.postgres.one.useQuery({ postgresId });
 	const { mutateAsync, isLoading } =
 		api.postgres.saveExternalPort.useMutation();
@@ -81,7 +82,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}/${data?.databaseName}`;
+			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
