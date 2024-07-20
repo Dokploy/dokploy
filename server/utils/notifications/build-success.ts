@@ -102,7 +102,7 @@ export const sendBuildSuccessNotifications = async ({
 		}
 
 		if (slack) {
-			const { webhookUrl, channel } = slack;
+			const { channel } = slack;
 			await sendSlackNotification(slack, {
 				channel: channel,
 				attachments: [
