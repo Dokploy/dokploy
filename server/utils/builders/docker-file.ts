@@ -3,12 +3,13 @@ import { docker } from "@/server/constants";
 import * as tar from "tar-fs";
 import type { ApplicationNested } from ".";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import { createEnvFile } from "./utils";
 
 export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName } = application;
+	const { appName, env } = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -16,11 +17,11 @@ export const buildCustomDocker = async (
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
 		const tarStream = tar.pack(contextPath);
 
+		createEnvFile(dockerFilePath, env);
+
 		const stream = await docker.buildImage(tarStream, {
 			t: image,
 			dockerfile: dockerFilePath.substring(dockerFilePath.lastIndexOf("/") + 1),
-			// TODO: maybe use or not forcerm
-			// forcerm: true,
 		});
 
 		await new Promise((resolve, reject) => {
