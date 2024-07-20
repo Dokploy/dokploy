@@ -1,4 +1,9 @@
 import {
+	DiscordIcon,
+	SlackIcon,
+	TelegramIcon,
+} from "@/components/icons/notification-icons";
+import {
 	Card,
 	CardContent,
 	CardDescription,
@@ -9,11 +14,6 @@ import { api } from "@/utils/api";
 import { BellRing, Mail } from "lucide-react";
 import { AddNotification } from "./add-notification";
 import { DeleteNotification } from "./delete-notification";
-import {
-	DiscordIcon,
-	SlackIcon,
-	TelegramIcon,
-} from "@/components/icons/notification-icons";
 import { UpdateNotification } from "./update-notification";
 
 export const ShowNotifications = () => {
