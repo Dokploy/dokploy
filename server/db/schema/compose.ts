@@ -37,7 +37,7 @@ export const compose = pgTable("compose", {
 	repository: text("repository"),
 	owner: text("owner"),
 	branch: text("branch"),
-	autoDeploy: boolean("autoDeploy"),
+	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
