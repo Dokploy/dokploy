@@ -27,7 +27,9 @@ export default async function handler(
 			return;
 		}
 		if (!application?.autoDeploy) {
-			res.status(400).json({ message: "Application Not Deployable" });
+			res.status(400).json({
+				message: "Automatic deployments are disabled for this application",
+			});
 			return;
 		}
 
