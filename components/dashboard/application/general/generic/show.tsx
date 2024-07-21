@@ -7,8 +7,9 @@ import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { SaveDragNDrop } from "./save-drag-n-drop";
 
-type TabState = "github" | "docker" | "git";
+type TabState = "github" | "docker" | "git" | "drop";
 
 interface Props {
 	applicationId: string;
@@ -62,6 +63,12 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						>
 							Git
 						</TabsTrigger>
+						<TabsTrigger
+							value="drop"
+							className="rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+						>
+							Drop
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent value="github" className="w-full p-2">
 						{haveGithubConfigured ? (
@@ -88,6 +95,9 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					</TabsContent>
 					<TabsContent value="git" className="w-full p-2">
 						<SaveGitProvider applicationId={applicationId} />
+					</TabsContent>
+					<TabsContent value="drop" className="w-full p-2">
+						<SaveDragNDrop applicationId={applicationId} />
 					</TabsContent>
 				</Tabs>
 			</CardContent>

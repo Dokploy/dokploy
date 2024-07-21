@@ -155,6 +155,20 @@
       "when": 1721370423752,
       "tag": "0021_premium_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1721531163852,
+      "tag": "0022_warm_colonel_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1721542782659,
+      "tag": "0023_icy_maverick",
+      "breakpoints": true
     }
   ]
 }

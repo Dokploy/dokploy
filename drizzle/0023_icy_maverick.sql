@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "dropBuildPath" text;
