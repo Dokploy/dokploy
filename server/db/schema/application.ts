@@ -122,7 +122,7 @@ export const applications = pgTable("application", {
 	owner: text("owner"),
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
-	autoDeploy: boolean("autoDeploy"),
+	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Docker
 	username: text("username"),
 	password: text("password"),

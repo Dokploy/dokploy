@@ -14,9 +14,11 @@ import {
 	FormItem,
 	FormMessage,
 } from "@/components/ui/form";
+import { Toggle } from "@/components/ui/toggle";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect } from "react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -32,6 +34,7 @@ interface Props {
 }
 
 export const ShowMysqlEnvironment = ({ mysqlId }: Props) => {
+	const [isEnvVisible, setIsEnvVisible] = useState(true);
 	const { mutateAsync, isLoading } = api.mysql.saveEnvironment.useMutation();
 
 	const { data, refetch } = api.mysql.one.useQuery(
@@ -74,11 +77,25 @@ export const ShowMysqlEnvironment = ({ mysqlId }: Props) => {
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
-				<CardHeader>
-					<CardTitle className="text-xl">Environment Settings</CardTitle>
-					<CardDescription>
-						You can add environment variables to your database.
-					</CardDescription>
+				<CardHeader className="flex flex-row w-full items-center justify-between">
+					<div>
+						<CardTitle className="text-xl">Environment Settings</CardTitle>
+						<CardDescription>
+							You can add environment variables to your resource.
+						</CardDescription>
+					</div>
+
+					<Toggle
+						aria-label="Toggle bold"
+						pressed={isEnvVisible}
+						onPressedChange={setIsEnvVisible}
+					>
+						{isEnvVisible ? (
+							<EyeOffIcon className="h-4 w-4 text-muted-foreground" />
+						) : (
+							<EyeIcon className="h-4 w-4 text-muted-foreground" />
+						)}
+					</Toggle>
 				</CardHeader>
 				<CardContent>
 					<Form {...form}>
@@ -95,6 +112,7 @@ export const ShowMysqlEnvironment = ({ mysqlId }: Props) => {
 										<FormControl>
 											<CodeEditor
 												language="properties"
+												disabled={isEnvVisible}
 												placeholder={`NODE_ENV=production
 PORT=3000
 `}
