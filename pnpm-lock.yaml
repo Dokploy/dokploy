@@ -128,6 +128,9 @@ importers:
       '@xterm/xterm':
         specifier: ^5.4.0
         version: 5.4.0
+      adm-zip:
+        specifier: ^0.5.14
+        version: 0.5.14
       bcrypt:
         specifier: 5.1.1
         version: 5.1.1
@@ -266,6 +269,9 @@ importers:
       tar-fs:
         specifier: 3.0.5
         version: 3.0.5
+      undici:
+        specifier: ^6.19.2
+        version: 6.19.2
       use-resize-observer:
         specifier: 9.1.0
         version: 9.1.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -278,6 +284,9 @@ importers:
       zod:
         specifier: ^3.23.4
         version: 3.23.4
+      zod-form-data:
+        specifier: ^2.0.2
+        version: 2.0.2(zod@3.23.4)
     devDependencies:
       '@biomejs/biome':
         specifier: 1.8.3
@@ -288,6 +297,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^19.2.2
         version: 19.2.2
+      '@types/adm-zip':
+        specifier: ^0.5.5
+        version: 0.5.5
       '@types/bcrypt':
         specifier: 5.0.2
         version: 5.0.2
@@ -2809,6 +2821,9 @@ packages:
   '@tybys/wasm-util@0.8.1':
     resolution: {integrity: sha512-GSsTwyBl4pIzsxAY5wroZdyQKyhXk0d8PCRZtrSZ2WEB1cBdrp2EgGBwHOGCZtIIPun/DL3+AykCv+J6fyRH4Q==}
 
+  '@types/adm-zip@0.5.5':
+    resolution: {integrity: sha512-YCGstVMjc4LTY5uK9/obvxBya93axZOVOyf2GSUulADzmLhYE45u2nAssCs/fWBs1Ifq5Vat75JTPwd5XZoPJw==}
+
   '@types/aws-lambda@8.10.136':
     resolution: {integrity: sha512-cmmgqxdVGhxYK9lZMYYXYRJk6twBo53ivtXjIUEFZxfxe4TkZTZBK3RRWrY2HjJcUIix0mdifn15yjOAat5lTA==}
 
@@ -3106,6 +3121,10 @@ packages:
     resolution: {integrity: sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  adm-zip@0.5.14:
+    resolution: {integrity: sha512-DnyqqifT4Jrcvb8USYjp6FHtBpEIz1mnXu6pTRHZ0RL69LbQYiO+0lDFg5+OKA7U29oWSs3a/i8fhn8ZcceIWg==}
+    engines: {node: '>=12.0'}
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -6058,6 +6077,10 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
+  undici@6.19.2:
+    resolution: {integrity: sha512-JfjKqIauur3Q6biAtHJ564e3bWa8VvT+7cSiOJHFbX4Erv6CLGDpg8z+Fmg/1OI/47RA+GI2QZaF48SSaLvyBA==}
+    engines: {node: '>=18.17'}
+
   unenv@1.9.0:
     resolution: {integrity: sha512-QKnFNznRxmbOF1hDgzpqrlIf6NC5sbZ2OJ+5Wl3OX8uM+LUJXbj4TXvLJCtwbPTmbMHCLIz6JLKNinNsMShK9g==}
 
@@ -6355,6 +6378,11 @@ packages:
 
   zenscroll@4.0.2:
     resolution: {integrity: sha512-jEA1znR7b4C/NnaycInCU6h/d15ZzCd1jmsruqOKnZP6WXQSMH3W2GL+OXbkruslU4h+Tzuos0HdswzRUk/Vgg==}
+
+  zod-form-data@2.0.2:
+    resolution: {integrity: sha512-sKTi+k0fvkxdakD0V5rq+9WVJA3cuTQUfEmNqvHrTzPLvjfLmkkBLfR0ed3qOi9MScJXTHIDH/jUNnEJ3CBX4g==}
+    peerDependencies:
+      zod: '>= 3.11.0'
 
   zod-to-json-schema@3.23.1:
     resolution: {integrity: sha512-oT9INvydob1XV0v1d2IadrR74rLtDInLvDFfAa1CG0Pmg/vxATk7I2gSelfj271mbzeM4Da0uuDQE/Nkj3DWNw==}
@@ -9396,6 +9424,10 @@ snapshots:
       tslib: 2.6.2
     optional: true
 
+  '@types/adm-zip@0.5.5':
+    dependencies:
+      '@types/node': 18.19.24
+
   '@types/aws-lambda@8.10.136': {}
 
   '@types/bcrypt@5.0.2':
@@ -9763,6 +9795,8 @@ snapshots:
   acorn-walk@8.3.2: {}
 
   acorn@8.11.3: {}
+
+  adm-zip@0.5.14: {}
 
   agent-base@6.0.2:
     dependencies:
@@ -12737,6 +12771,8 @@ snapshots:
 
   undici-types@5.26.5: {}
 
+  undici@6.19.2: {}
+
   unenv@1.9.0:
     dependencies:
       consola: 3.2.3
@@ -13056,6 +13092,10 @@ snapshots:
   yocto-queue@1.0.0: {}
 
   zenscroll@4.0.2: {}
+
+  zod-form-data@2.0.2(zod@3.23.4):
+    dependencies:
+      zod: 3.23.4
 
   zod-to-json-schema@3.23.1(zod@3.23.4):
     dependencies:

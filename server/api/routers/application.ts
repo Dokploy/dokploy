@@ -1,4 +1,8 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	uploadProcedure,
+} from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateApplication,
@@ -51,6 +55,9 @@ import {
 } from "../services/application";
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
+
+import { unzipDrop } from "@/server/utils/builders/drop";
+import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -324,6 +331,45 @@ export const applicationRouter = createTRPCRouter({
 			return traefikConfig;
 		}),
 
+	dropDeployment: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/drop-deployment",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.use(uploadProcedure)
+		.input(uploadFileSchema)
+		.mutation(async ({ input }) => {
+			const zipFile = input.zip;
+
+			updateApplication(input.applicationId as string, {
+				sourceType: "drop",
+				dropBuildPath: input.dropBuildPath,
+			});
+
+			const app = await findApplicationById(input.applicationId as string);
+			await unzipDrop(zipFile, app.appName);
+
+			const jobData: DeploymentJob = {
+				applicationId: app.applicationId,
+				titleLog: "Manual deployment",
+				descriptionLog: "",
+				type: "deploy",
+				applicationType: "application",
+			};
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+			return true;
+		}),
 	updateTraefikConfig: protectedProcedure
 		.input(z.object({ applicationId: z.string(), traefikConfig: z.string() }))
 		.mutation(async ({ input }) => {
