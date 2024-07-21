@@ -1,7 +1,8 @@
-import { createNextApiHandler } from "@trpc/server/adapters/next";
-
 import { appRouter } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
+import { createNextApiHandler } from "@trpc/server/adapters/next";
+import { nodeHTTPFormDataContentTypeHandler } from "@trpc/server/adapters/node-http/content-type/form-data";
+import { nodeHTTPJSONContentTypeHandler } from "@trpc/server/adapters/node-http/content-type/json";
 
 // export API handler
 export default createNextApiHandler({
@@ -15,4 +16,15 @@ export default createNextApiHandler({
 					);
 				}
 			: undefined,
+	experimental_contentTypeHandlers: [
+		nodeHTTPFormDataContentTypeHandler(),
+		nodeHTTPJSONContentTypeHandler(),
+	],
 });
+
+export const config = {
+	api: {
+		bodyParser: false,
+		sizeLimit: "1gb",
+	},
+};

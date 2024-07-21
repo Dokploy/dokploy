@@ -1,0 +1,1 @@
+ALTER TYPE "sourceType" ADD VALUE 'drop';

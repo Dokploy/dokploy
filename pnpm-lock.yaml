@@ -125,6 +125,9 @@ dependencies:
   '@xterm/xterm':
     specifier: ^5.4.0
     version: 5.4.0
+  adm-zip:
+    specifier: ^0.5.14
+    version: 0.5.14
   bcrypt:
     specifier: 5.1.1
     version: 5.1.1
@@ -263,6 +266,9 @@ dependencies:
   tar-fs:
     specifier: 3.0.5
     version: 3.0.5
+  undici:
+    specifier: ^6.19.2
+    version: 6.19.2
   use-resize-observer:
     specifier: 9.1.0
     version: 9.1.0(react-dom@18.2.0)(react@18.2.0)
@@ -275,6 +281,9 @@ dependencies:
   zod:
     specifier: ^3.23.4
     version: 3.23.4
+  zod-form-data:
+    specifier: ^2.0.2
+    version: 2.0.2(zod@3.23.4)
 
 devDependencies:
   '@biomejs/biome':
@@ -286,6 +295,9 @@ devDependencies:
   '@commitlint/config-conventional':
     specifier: ^19.2.2
     version: 19.2.2
+  '@types/adm-zip':
+    specifier: ^0.5.5
+    version: 0.5.5
   '@types/bcrypt':
     specifier: 5.0.2
     version: 5.0.2
@@ -5470,6 +5482,12 @@ packages:
     dev: false
     optional: true
 
+  /@types/adm-zip@0.5.5:
+    resolution: {integrity: sha512-YCGstVMjc4LTY5uK9/obvxBya93axZOVOyf2GSUulADzmLhYE45u2nAssCs/fWBs1Ifq5Vat75JTPwd5XZoPJw==}
+    dependencies:
+      '@types/node': 18.19.24
+    dev: true
+
   /@types/aws-lambda@8.10.136:
     resolution: {integrity: sha512-cmmgqxdVGhxYK9lZMYYXYRJk6twBo53ivtXjIUEFZxfxe4TkZTZBK3RRWrY2HjJcUIix0mdifn15yjOAat5lTA==}
     dev: false
@@ -6039,6 +6057,11 @@ packages:
     resolution: {integrity: sha512-Y9rRfJG5jcKOE0CLisYbojUjIrIEE7AGMzA/Sm4BslANhbS+cDMpgBdcPT91oJ7OuJ9hYJBx59RjbhxVnrF8Xg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  /adm-zip@0.5.14:
+    resolution: {integrity: sha512-DnyqqifT4Jrcvb8USYjp6FHtBpEIz1mnXu6pTRHZ0RL69LbQYiO+0lDFg5+OKA7U29oWSs3a/i8fhn8ZcceIWg==}
+    engines: {node: '>=12.0'}
+    dev: false
 
   /agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -11152,6 +11175,11 @@ packages:
   /undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
+  /undici@6.19.2:
+    resolution: {integrity: sha512-JfjKqIauur3Q6biAtHJ564e3bWa8VvT+7cSiOJHFbX4Erv6CLGDpg8z+Fmg/1OI/47RA+GI2QZaF48SSaLvyBA==}
+    engines: {node: '>=18.17'}
+    dev: false
+
   /unenv@1.9.0:
     resolution: {integrity: sha512-QKnFNznRxmbOF1hDgzpqrlIf6NC5sbZ2OJ+5Wl3OX8uM+LUJXbj4TXvLJCtwbPTmbMHCLIz6JLKNinNsMShK9g==}
     dependencies:
@@ -11706,6 +11734,14 @@ packages:
 
   /zenscroll@4.0.2:
     resolution: {integrity: sha512-jEA1znR7b4C/NnaycInCU6h/d15ZzCd1jmsruqOKnZP6WXQSMH3W2GL+OXbkruslU4h+Tzuos0HdswzRUk/Vgg==}
+    dev: false
+
+  /zod-form-data@2.0.2(zod@3.23.4):
+    resolution: {integrity: sha512-sKTi+k0fvkxdakD0V5rq+9WVJA3cuTQUfEmNqvHrTzPLvjfLmkkBLfR0ed3qOi9MScJXTHIDH/jUNnEJ3CBX4g==}
+    peerDependencies:
+      zod: '>= 3.11.0'
+    dependencies:
+      zod: 3.23.4
     dev: false
 
   /zod-to-json-schema@3.23.1(zod@3.23.4):

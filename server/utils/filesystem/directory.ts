@@ -59,8 +59,15 @@ export const removeMonitoringDirectory = async (appName: string) => {
 export const getBuildAppDirectory = (application: Application) => {
 	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
 		application;
-	const buildPath =
-		sourceType === "github" ? application?.buildPath : customGitBuildPath;
+	let buildPath = "";
+
+	if (sourceType === "github") {
+		buildPath = application?.buildPath || "";
+	} else if (sourceType === "drop") {
+		buildPath = application?.dropBuildPath || "";
+	} else if (sourceType === "git") {
+		buildPath = customGitBuildPath || "";
+	}
 	if (buildType === "dockerfile") {
 		return path.join(
 			APPLICATIONS_PATH,

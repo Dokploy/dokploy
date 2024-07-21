@@ -15,10 +15,6 @@ import { type Application, findApplicationById } from "./application";
 import { type Compose, findComposeById } from "./compose";
 
 export type Deployment = typeof deployments.$inferSelect;
-type CreateDeploymentInput = Omit<
-	Deployment,
-	"deploymentId" | "createdAt" | "status" | "logPath"
->;
 
 export const findDeploymentById = async (applicationId: string) => {
 	const application = await db.query.deployments.findFirst({

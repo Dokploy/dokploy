@@ -157,6 +157,8 @@ export const deployApplication = async ({
 		} else if (application.sourceType === "git") {
 			await cloneGitRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "drop") {
+			await buildApplication(application, deployment.logPath);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
@@ -215,6 +217,8 @@ export const rebuildApplication = async ({
 		} else if (application.sourceType === "docker") {
 			await buildDocker(application, deployment.logPath);
 		} else if (application.sourceType === "git") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");

@@ -22,7 +22,12 @@ import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
 
-export const sourceType = pgEnum("sourceType", ["docker", "git", "github"]);
+export const sourceType = pgEnum("sourceType", [
+	"docker",
+	"git",
+	"github",
+	"drop",
+]);
 
 export const buildType = pgEnum("buildType", [
 	"dockerfile",
@@ -128,6 +133,8 @@ export const applications = pgTable("application", {
 	customGitBuildPath: text("customGitBuildPath"),
 	customGitSSHKey: text("customGitSSHKey"),
 	dockerfile: text("dockerfile"),
+	// Drop
+	dropBuildPath: text("dropBuildPath"),
 	// Docker swarm json
 	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
 	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
