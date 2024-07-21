@@ -11,29 +11,32 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
-import { TrashIcon } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
 interface Props {
-	domainId: string;
+	applicationId: string;
 }
-export const DeleteDomain = ({ domainId }: Props) => {
-	const { mutateAsync, isLoading } = api.domain.delete.useMutation();
+export const GenerateTraefikMe = ({ applicationId }: Props) => {
+	const { mutateAsync, isLoading } = api.domain.generateDomain.useMutation();
 	const utils = api.useUtils();
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<TrashIcon className="size-4  text-muted-foreground " />
+				<Button variant="secondary" isLoading={isLoading}>
+					Generate Domain
+					<RefreshCcw className="size-4  text-muted-foreground " />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>
+						Are you sure to generate a new domain?
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete the
-						domain
+						This will generate a new domain and will be used to access to the
+						application
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
@@ -41,22 +44,19 @@ export const DeleteDomain = ({ domainId }: Props) => {
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
-								domainId,
+								applicationId,
 							})
 								.then((data) => {
-									if (data?.applicationId) {
-										utils.domain.byApplicationId.invalidate({
-											applicationId: data?.applicationId,
-										});
-										utils.application.readTraefikConfig.invalidate({
-											applicationId: data?.applicationId,
-										});
-									}
-
-									toast.success("Domain delete succesfully");
+									utils.domain.byApplicationId.invalidate({
+										applicationId: applicationId,
+									});
+									utils.application.readTraefikConfig.invalidate({
+										applicationId: applicationId,
+									});
+									toast.success("Generated Domain succesfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete Domain");
+									toast.error("Error to generate Domain");
 								});
 						}}
 					>

@@ -1,16 +1,30 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgTable, serial, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	pgEnum,
+	pgTable,
+	serial,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
+import { compose } from "./compose";
 import { certificateType } from "./shared";
+
+export const applicationType = pgEnum("applicationType", [
+	"application",
+	"compose",
+]);
 
 export const domains = pgTable("domain", {
 	domainId: text("domainId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
+
 	host: text("host").notNull(),
 	https: boolean("https").notNull().default(false),
 	port: integer("port").default(80),
@@ -19,8 +33,17 @@ export const domains = pgTable("domain", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	applicationId: text("applicationId")
+
+	// Compose
+	serviceName: text("serviceName"),
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	applicationType: applicationType("applicationType")
 		.notNull()
+		.default("application"),
+	applicationId: text("applicationId")
+		// .notNull()
 		.references(() => applications.applicationId, { onDelete: "cascade" }),
 	certificateType: certificateType("certificateType").notNull().default("none"),
 });
@@ -51,6 +74,23 @@ export const apiCreateDomain = createSchema
 		applicationId: true,
 		certificateType: true,
 	})
+	.extend({
+		applicationId: z.string().min(1),
+	})
+	.required();
+
+export const apiCreateDomainCompose = createSchema
+	.pick({
+		composeId: true,
+		host: true,
+		path: true,
+		port: true,
+		https: true,
+		certificateType: true,
+	})
+	.extend({
+		composeId: z.string().min(1),
+	})
 	.required();
 
 export const apiFindDomain = createSchema
@@ -62,6 +102,18 @@ export const apiFindDomain = createSchema
 export const apiFindDomainByApplication = createSchema
 	.pick({
 		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+	})
+	.required();
+
+export const apiFindDomainByApplicationCompose = createSchema
+	.pick({
+		composeId: true,
+	})
+	.extend({
+		composeId: z.string().min(1),
 	})
 	.required();
 

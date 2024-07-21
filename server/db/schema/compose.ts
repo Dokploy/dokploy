@@ -5,6 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { deployments } from "./deployment";
+import { domains } from "./domain";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
@@ -61,6 +62,7 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		references: [projects.projectId],
 	}),
 	deployments: many(deployments),
+	domains: many(domains),
 	mounts: many(mounts),
 }));
 

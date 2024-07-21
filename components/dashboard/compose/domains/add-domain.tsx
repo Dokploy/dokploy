@@ -1,6 +1,13 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+} from "@/components/ui/command";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -20,6 +27,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -27,100 +40,82 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, PlusIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
-
-const updateDomain = z.object({
-	host: z.string().regex(hostnameRegex, { message: "Invalid hostname" }),
+// const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
+// .regex(hostnameRegex
+const addDomain = z.object({
+	serviceName: z.string().min(1, "Service name is required"),
+	host: z.string().min(1, "Hostname is required"),
 	path: z.string().min(1),
-	port: z
-		.number()
-		.min(1, { message: "Port must be at least 1" })
-		.max(65535, { message: "Port must be 65535 or below" }),
+	port: z.number(),
 	https: z.boolean(),
 	certificateType: z.enum(["letsencrypt", "none"]),
 });
 
-type UpdateDomain = z.infer<typeof updateDomain>;
+type AddDomain = z.infer<typeof addDomain>;
 
 interface Props {
-	domainId: string;
+	composeId: string;
+	children?: React.ReactNode;
 }
 
-export const UpdateDomain = ({ domainId }: Props) => {
+export const AddDomainCompose = ({
+	composeId,
+	children = <PlusIcon className="h-4 w-4" />,
+}: Props) => {
 	const utils = api.useUtils();
-	const { data, refetch } = api.domain.one.useQuery(
-		{
-			domainId,
-		},
-		{
-			enabled: !!domainId,
-		},
-	);
-	const { mutateAsync, isError, error } = api.domain.update.useMutation();
-
-	const form = useForm<UpdateDomain>({
+	const { data, refetch, isLoading } = api.compose.allServices.useQuery({
+		composeId,
+	});
+	const { mutateAsync, isError, error } =
+		api.domain.createCompose.useMutation();
+	const form = useForm<AddDomain>({
 		defaultValues: {
 			host: "",
-			https: true,
+			https: false,
 			path: "/",
 			port: 3000,
 			certificateType: "none",
 		},
-		resolver: zodResolver(updateDomain),
+		resolver: zodResolver(addDomain),
 	});
 
 	useEffect(() => {
-		if (data) {
-			form.reset({
-				host: data.host || "",
-				port: data.port || 3000,
-				path: data.path || "/",
-				https: data.https,
-				certificateType: data.certificateType,
-			});
-		}
-	}, [form, form.reset, data]);
+		form.reset();
+	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
-	const onSubmit = async (data: UpdateDomain) => {
+	const onSubmit = async (data: AddDomain) => {
 		await mutateAsync({
-			domainId,
+			composeId,
 			host: data.host,
 			https: data.https,
 			path: data.path,
 			port: data.port,
 			certificateType: data.certificateType,
 		})
-			.then(async (data) => {
-				toast.success("Domain Updated");
-				await refetch();
-
-				if (data?.applicationId) {
-					await utils.domain.byApplicationId.invalidate({
-						applicationId: data?.applicationId,
-					});
-					await utils.application.readTraefikConfig.invalidate({
-						applicationId: data?.applicationId,
-					});
-				}
+			.then(async () => {
+				toast.success("Domain Created");
+				await utils.domain.byComposeId.invalidate({
+					composeId,
+				});
+				// await utils.application.readTraefikConfig.invalidate({ composeId });
 			})
 			.catch(() => {
-				toast.error("Error to update the domain");
+				toast.error("Error to create the domain");
 			});
 	};
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost">
-					<PenBoxIcon className="size-4 text-muted-foreground" />
-				</Button>
+				<Button>{children}</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
@@ -138,6 +133,79 @@ export const UpdateDomain = ({ domainId }: Props) => {
 						className="grid w-full gap-8 "
 					>
 						<div className="flex flex-col gap-4">
+							<FormField
+								control={form.control}
+								name="serviceName"
+								render={({ field }) => (
+									<FormItem className="flex flex-col">
+										<FormLabel>Service Name</FormLabel>
+										<Popover>
+											<PopoverTrigger asChild>
+												<FormControl>
+													<Button
+														variant="outline"
+														role="combobox"
+														className={cn(
+															"w-full justify-between !bg-input",
+															!field.value && "text-muted-foreground",
+														)}
+													>
+														{isLoading
+															? "Loading...."
+															: field.value
+																? data?.find((repo) => repo === field.value)
+																: "Select service"}
+
+														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+													</Button>
+												</FormControl>
+											</PopoverTrigger>
+											<PopoverContent className="p-0" align="start">
+												<Command>
+													<CommandInput
+														placeholder="Search service..."
+														className="h-9"
+													/>
+													{isLoading && (
+														<span className="py-6 text-center text-sm">
+															Loading Service....
+														</span>
+													)}
+													<CommandEmpty>No Service found.</CommandEmpty>
+													<ScrollArea className="h-96">
+														<CommandGroup>
+															{data?.map((repo) => (
+																<CommandItem
+																	value={repo}
+																	key={repo}
+																	onSelect={() => {
+																		form.setValue("serviceName", repo);
+																	}}
+																>
+																	{repo}
+																	<CheckIcon
+																		className={cn(
+																			"ml-auto h-4 w-4",
+																			repo === field.value
+																				? "opacity-100"
+																				: "opacity-0",
+																		)}
+																	/>
+																</CommandItem>
+															))}
+														</CommandGroup>
+													</ScrollArea>
+												</Command>
+											</PopoverContent>
+										</Popover>
+										{form.formState.errors.serviceName && (
+											<p className={cn("text-sm font-medium text-destructive")}>
+												Service Name is required
+											</p>
+										)}
+									</FormItem>
+								)}
+							/>
 							<div className="flex flex-col gap-2">
 								<FormField
 									control={form.control}
@@ -199,17 +267,18 @@ export const UpdateDomain = ({ domainId }: Props) => {
 											<FormLabel>Certificate</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												value={field.value}
+												defaultValue={field.value || ""}
 											>
 												<FormControl>
 													<SelectTrigger>
 														<SelectValue placeholder="Select a certificate" />
 													</SelectTrigger>
 												</FormControl>
+
 												<SelectContent>
-													<SelectItem value={"none"}>None</SelectItem>
+													<SelectItem value="none">None</SelectItem>
 													<SelectItem value={"letsencrypt"}>
-														Letsencrypt
+														Letsencrypt (Default)
 													</SelectItem>
 												</SelectContent>
 											</Select>
@@ -247,7 +316,7 @@ export const UpdateDomain = ({ domainId }: Props) => {
 							form="hook-form"
 							type="submit"
 						>
-							Update
+							Create
 						</Button>
 					</DialogFooter>
 				</Form>

@@ -51,6 +51,10 @@ export const DeleteDomain = ({ domainId }: Props) => {
 										utils.application.readTraefikConfig.invalidate({
 											applicationId: data?.applicationId,
 										});
+									} else if (data?.composeId) {
+										utils.domain.byComposeId.invalidate({
+											composeId: data?.composeId,
+										});
 									}
 
 									toast.success("Domain delete succesfully");

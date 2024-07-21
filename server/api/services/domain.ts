@@ -1,6 +1,7 @@
 import { db } from "@/server/db";
 import {
 	type apiCreateDomain,
+	type apiCreateDomainCompose,
 	type apiFindDomainByApplication,
 	domains,
 } from "@/server/db/schema";
@@ -10,6 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
 import { findApplicationById } from "./application";
+import { findComposeById } from "./compose";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -21,6 +23,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			.insert(domains)
 			.values({
 				...input,
+				applicationType: "application",
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -34,6 +37,28 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 		await manageDomain(application, domain);
 	});
+};
+
+export const createDomainCompose = async (
+	input: typeof apiCreateDomainCompose._type,
+) => {
+	const domain = await db
+		.insert(domains)
+		.values({
+			...input,
+			applicationType: "compose",
+		})
+		.returning()
+		.then((response) => response[0]);
+
+	if (!domain) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error to create the domain",
+		});
+	}
+
+	return domain;
 };
 
 export const generateDomain = async (
@@ -106,6 +131,17 @@ export const findDomainById = async (domainId: string) => {
 export const findDomainsByApplicationId = async (applicationId: string) => {
 	const domainsArray = await db.query.domains.findMany({
 		where: eq(domains.applicationId, applicationId),
+		with: {
+			application: true,
+		},
+	});
+
+	return domainsArray;
+};
+
+export const findDomainsByComposeId = async (composeId: string) => {
+	const domainsArray = await db.query.domains.findMany({
+		where: eq(domains.composeId, composeId),
 		with: {
 			application: true,
 		},
