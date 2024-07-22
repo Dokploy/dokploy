@@ -9,9 +9,12 @@ jobs:
       - checkout
 
       - run:
-          name: Verify Docker version
+          name: Instalar Docker
           command: |
-            docker version
+            curl -sSL https://get.docker.com | sh
+      - run:
+          name: Verificar versión de Docker
+          command: docker --version
 
       - run:
           name: Set up Docker Buildx
