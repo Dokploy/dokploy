@@ -9,7 +9,6 @@ import {
 	apiFindMonitoringStats,
 	apiFindOneApplication,
 	apiReloadApplication,
-	apiSaveBuildArgs,
 	apiSaveBuildType,
 	apiSaveDockerProvider,
 	apiSaveEnvironmentVariables,
@@ -188,13 +187,6 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			await updateApplication(input.applicationId, {
 				env: input.env,
-			});
-			return true;
-		}),
-	saveBuildArgs: protectedProcedure
-		.input(apiSaveBuildArgs)
-		.mutation(async ({ input }) => {
-			await updateApplication(input.applicationId, {
 				buildArgs: input.buildArgs,
 			});
 			return true;

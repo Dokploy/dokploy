@@ -23,7 +23,6 @@ interface Props {
 	title: string;
 	description: ReactNode;
 	placeholder: string;
-	isLoading: boolean;
 }
 
 export const Secrets = (props: Props) => {
@@ -31,7 +30,7 @@ export const Secrets = (props: Props) => {
 	const form = useFormContext<Record<string, string>>();
 
 	return (
-		<Card className="bg-background">
+		<>
 			<CardHeader className="flex flex-row w-full items-center justify-between">
 				<div>
 					<CardTitle className="text-xl">{props.title}</CardTitle>
@@ -75,18 +74,7 @@ export const Secrets = (props: Props) => {
 						</FormItem>
 					)}
 				/>
-
-				<div className="flex flex-row justify-end">
-					<Button
-						disabled={isVisible}
-						isLoading={props.isLoading}
-						className="w-fit"
-						type="submit"
-					>
-						Save
-					</Button>
-				</div>
 			</CardContent>
-		</Card>
+		</>
 	);
 };

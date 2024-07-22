@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { api } from "@/utils/api";
@@ -8,15 +10,10 @@ import { z } from "zod";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
-});
-
-type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
-
-const addBuildArgsSchema = z.object({
 	buildArgs: z.string(),
 });
 
-type BuildArgsSchema = z.infer<typeof addBuildArgsSchema>;
+type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
 
 interface Props {
 	applicationId: string;
@@ -24,7 +21,6 @@ interface Props {
 
 export const ShowEnvironment = ({ applicationId }: Props) => {
 	const saveEnvironmentMutation = api.application.saveEnvironment.useMutation();
-	const saveBuildArgsMutation = api.application.saveBuildArgs.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery(
 		{
@@ -38,21 +34,16 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const envForm = useForm<EnvironmentSchema>({
 		defaultValues: {
 			env: data?.env || "",
-		},
-		resolver: zodResolver(addEnvironmentSchema),
-	});
-
-	const buildArgsForm = useForm<BuildArgsSchema>({
-		defaultValues: {
 			buildArgs: data?.buildArgs || "",
 		},
-		resolver: zodResolver(addBuildArgsSchema),
+		resolver: zodResolver(addEnvironmentSchema),
 	});
 
 	const onEnvSubmit = async (data: EnvironmentSchema) => {
 		saveEnvironmentMutation
 			.mutateAsync({
 				env: data.env,
+				buildArgs: data.buildArgs,
 				applicationId,
 			})
 			.then(async () => {
@@ -64,40 +55,22 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			});
 	};
 
-	const onBuildArgsSubmit = async (data: BuildArgsSchema) => {
-		saveBuildArgsMutation
-			.mutateAsync({
-				buildArgs: data.buildArgs,
-				applicationId,
-			})
-			.then(async () => {
-				toast.success("Buildargs Added");
-				await refetch();
-			})
-			.catch(() => {
-				toast.error("Error to add build-args");
-			});
-	};
-
 	return (
-		<div className="flex w-full flex-col gap-5 ">
-			<Form {...envForm}>
-				<form onSubmit={envForm.handleSubmit(onEnvSubmit)}>
+		<Form {...envForm}>
+			<form
+				onSubmit={envForm.handleSubmit(onEnvSubmit)}
+				className="flex w-full flex-col gap-5 "
+			>
+				<Card className="bg-background">
 					<Secrets
 						name="env"
-						isLoading={saveEnvironmentMutation.isLoading}
 						title="Environment Settings"
 						description="You can add environment variables to your resource."
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
 					/>
-				</form>
-			</Form>
-			{data?.buildType === "dockerfile" && (
-				<Form {...buildArgsForm}>
-					<form onSubmit={buildArgsForm.handleSubmit(onBuildArgsSubmit)}>
+					{data?.buildType === "dockerfile" && (
 						<Secrets
 							name="buildArgs"
-							isLoading={saveBuildArgsMutation.isLoading}
 							title="Build-time Variables"
 							description={
 								<span>
@@ -115,9 +88,20 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							}
 							placeholder="NPM_TOKEN=xyz"
 						/>
-					</form>
-				</Form>
-			)}
-		</div>
+					)}
+					<CardContent>
+						<div className="flex flex-row justify-end">
+							<Button
+								isLoading={saveEnvironmentMutation.isLoading}
+								className="w-fit"
+								type="submit"
+							>
+								Save
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			</form>
+		</Form>
 	);
 };

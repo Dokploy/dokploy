@@ -276,6 +276,7 @@ const createSchema = createInsertSchema(applications, {
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
+	buildArgs: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.number().optional(),
@@ -376,12 +377,6 @@ export const apiSaveEnvironmentVariables = createSchema
 	.pick({
 		applicationId: true,
 		env: true,
-	})
-	.required();
-
-export const apiSaveBuildArgs = createSchema
-	.pick({
-		applicationId: true,
 		buildArgs: true,
 	})
 	.required();
