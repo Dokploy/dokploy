@@ -1,66 +1,94 @@
 version: 2.1
-setup: true
 
 parameters:
-  run-canary-config:
-    type: boolean
-    default: false
-  run-main-config:
+  is-main-branch:
     type: boolean
     default: false
 
-orbs:
-  path-filtering: circleci/path-filtering@0.1.3
+jobs:
+  build-amd64:
+    machine:
+      image: ubuntu-2004:current
+    steps:
+      - checkout
+      - run:
+          name: Prepare .env file
+          command: |
+            cp .env.production.example .env.production
+      - run:
+          name: Build and push AMD64 image
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            if << pipeline.parameters.is-main-branch >>; then
+              TAG="latest"
+            else
+              TAG="canary"
+            fi
+            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
+            docker push dokploy/dokploy:${TAG}-amd64
+
+  build-arm64:
+    machine:
+      image: ubuntu-2004:current
+      resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Prepare .env file
+          command: |
+            cp .env.production.example .env.production
+      - run:
+          name: Build and push ARM64 image
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            if << pipeline.parameters.is-main-branch >>; then
+              TAG="latest"
+            else
+              TAG="canary"
+            fi
+            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
+            docker push dokploy/dokploy:${TAG}-arm64
+
+  combine-manifests:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push multi-arch manifest
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            if << pipeline.parameters.is-main-branch >>; then
+              TAG="latest"
+              VERSION=$(node -p "require('./package.json').version")
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
+              
+              docker manifest create dokploy/dokploy:${VERSION} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${VERSION}
+            else
+              TAG="canary"
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
+            fi
 
 workflows:
   version: 2
-  config-selection:
+  build-all:
     jobs:
-      - path-filtering/filter:
-          name: check-updated-files
-          mapping: |
-            .circleci/canary-config.yml run-canary-config true
-            .circleci/main-config.yml run-main-config true
-          base-revision: main
-          config-path: .circleci/config.yml
-
-  canary-workflow:
-    when: << pipeline.parameters.run-canary-config >>
-    jobs:
-      - run-canary-config
-
-  main-workflow:
-    when: << pipeline.parameters.run-main-config >>
-    jobs:
-      - run-main-config
-
-jobs:
-  run-canary-config:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - run:
-          name: Run Canary Config
-          command: |
-            if [ "${CIRCLE_BRANCH}" = "canary" ]; then
-              circleci config process .circleci/canary-config.yml > processed_config.yml
-              circleci local execute -c processed_config.yml --job build-and-push-docker
-            else
-              echo "Not on canary branch, skipping canary deployment"
-            fi
-
-  run-main-config:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      - run:
-          name: Run Main Config
-          command: |
-            if [ "${CIRCLE_BRANCH}" = "main" ]; then
-              circleci config process .circleci/main-config.yml > processed_config.yml
-              circleci local execute -c processed_config.yml --job build-and-deploy
-            else
-              echo "Not on main branch, skipping main deployment"
-            fi
+      - build-amd64:
+          is-main-branch: ${CIRCLE_BRANCH} == 'main'
+      - build-arm64:
+          is-main-branch: ${CIRCLE_BRANCH} == 'main'
+      - combine-manifests:
+          requires:
+            - build-amd64
+            - build-arm64
+          is-main-branch: ${CIRCLE_BRANCH} == 'main'
