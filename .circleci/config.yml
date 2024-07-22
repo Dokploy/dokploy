@@ -11,7 +11,8 @@ jobs:
       - run:
           name: Instalar Docker
           command: |
-            curl -sSL https://get.docker.com | sh
+            # Install this version 27.0.3
+            VERSION=27.0.3 curl -fsSL https://get.docker.com | sh
       - run:
           name: Verificar versión de Docker
           command: docker --version
