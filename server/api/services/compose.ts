@@ -156,7 +156,7 @@ export const deployCompose = async ({
 			await cloneGithubRepository(admin, compose, deployment.logPath, true);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
-		} else {
+		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
 		}
 		await buildCompose(compose, deployment.logPath);

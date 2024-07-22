@@ -6,8 +6,7 @@ import { recreateDirectory } from "../filesystem/directory";
 
 export const unzipDrop = async (zipFile: File, appName: string) => {
 	try {
-		const basePath = APPLICATIONS_PATH;
-		const outputPath = join(basePath, appName);
+		const outputPath = join(APPLICATIONS_PATH, appName, "code");
 		await recreateDirectory(outputPath);
 		const arrayBuffer = await zipFile.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);

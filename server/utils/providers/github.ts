@@ -93,7 +93,7 @@ export const cloneGithubRepository = async (
 		});
 	}
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName);
+	const outputPath = join(basePath, appName, "code");
 	const octokit = authGithub(admin);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;

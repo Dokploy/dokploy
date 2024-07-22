@@ -11,6 +11,7 @@ export const buildNixpacks = async (
 ) => {
 	const { env, appName } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
+
 	const envVariables = prepareEnvironmentVariables(env);
 	try {
 		const args = ["build", buildAppDirectory, "--name", appName];

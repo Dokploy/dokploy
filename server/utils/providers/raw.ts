@@ -8,7 +8,7 @@ import { recreateDirectory } from "../filesystem/directory";
 export const createComposeFile = async (compose: Compose, logPath: string) => {
 	const { appName, composeFile } = compose;
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const outputPath = join(COMPOSE_PATH, appName);
+	const outputPath = join(COMPOSE_PATH, appName, "code");
 
 	try {
 		await recreateDirectory(outputPath);

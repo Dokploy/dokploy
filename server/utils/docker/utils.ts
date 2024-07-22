@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
+import { APPLICATIONS_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
@@ -305,54 +305,36 @@ export const generateFileMounts = (
 	return mounts
 		.filter((mount) => mount.type === "file")
 		.map((mount) => {
-			const fileName = mount.mountPath.split("/").pop();
-
-			if (!fileName) {
-				throw new Error("File name not found");
-			}
+			const fileName = mount.filePath;
 			const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 			const directory = path.join(absoluteBasePath, appName, "files");
-			const filePath = path.join(directory, fileName);
-
-			if (!fs.existsSync(directory)) {
-				fs.mkdirSync(directory, { recursive: true });
-			}
-
-			fs.writeFileSync(filePath, mount.content || "");
-
+			const sourcePath = path.join(directory, fileName || "");
 			return {
 				Type: "bind" as const,
-				Source: filePath,
+				Source: sourcePath,
 				Target: mount.mountPath,
 			};
 		});
 };
 
-export const generateFileMountsCompose = (
-	appName: string,
-	mounts: ApplicationNested["mounts"],
+export const createFile = async (
+	outputPath: string,
+	filePath: string,
+	content: string,
 ) => {
-	if (!mounts || mounts.length === 0) {
-		return [];
+	try {
+		const fullPath = path.join(outputPath, filePath);
+		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+			fs.mkdirSync(fullPath, { recursive: true });
+			return;
+		}
+
+		const directory = path.dirname(fullPath);
+		fs.mkdirSync(directory, { recursive: true });
+		fs.writeFileSync(fullPath, content || "");
+	} catch (error) {
+		throw error;
 	}
-
-	return mounts
-		.filter((mount) => mount.type === "file")
-		.map((mount) => {
-			const fileName = path.basename(mount.mountPath);
-			const directory = path.join(
-				COMPOSE_PATH,
-				appName,
-				path.dirname(mount.mountPath),
-			);
-			fs.mkdirSync(directory, { recursive: true });
-
-			const filePath = path.join(directory, fileName);
-
-			fs.writeFileSync(filePath, mount.content || "");
-
-			return {};
-		});
 };
 
 export const getServiceContainer = async (appName: string) => {
