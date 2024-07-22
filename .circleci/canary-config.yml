@@ -13,6 +13,8 @@ jobs:
       - run:
           name: Build and push AMD64 image
           command: |
+            VERSION=$(node -p "require('./package.json').version")
+            echo $VERSION
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
             docker build --platform linux/amd64 -t dokploy/dokploy:canary-amd64 .
             docker push dokploy/dokploy:canary-amd64
