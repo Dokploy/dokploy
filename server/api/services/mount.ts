@@ -9,7 +9,6 @@ import {
 } from "@/server/db/schema";
 import { createFile } from "@/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@/server/utils/filesystem/directory";
-import { execAsync } from "@/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { type SQL, eq, sql } from "drizzle-orm";
 
@@ -71,10 +70,10 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 export const createFileMount = async (mountId: string) => {
 	try {
 		const mount = await findMountById(mountId);
-		const baseFilePath = await getBaseFilesMountPath(mountId);
+		const baseFilePath = await getBaseFilesPath(mountId);
 		await createFile(baseFilePath, mount.filePath || "", mount.content || "");
 	} catch (error) {
-		console.log(error);
+		console.log(`Error to create the file mount: ${error}`);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create the mount",
@@ -109,28 +108,29 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	const mount = await db
-		.update(mounts)
-		.set({
-			...mountData,
-		})
-		.where(eq(mounts.mountId, mountId))
-		.returning()
-		.then((value) => value[0]);
+	return await db.transaction(async (transaction) => {
+		const mount = await db
+			.update(mounts)
+			.set({
+				...mountData,
+			})
+			.where(eq(mounts.mountId, mountId))
+			.returning()
+			.then((value) => value[0]);
 
-	if (!mount) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Mount not found",
-		});
-	}
+		if (!mount) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Mount not found",
+			});
+		}
 
-	if (mount.type === "file") {
-		await deleteFileMount(mountId);
-		await createFileMount(mountId);
-	}
-
-	return mount;
+		if (mount.type === "file") {
+			await deleteFileMount(mountId);
+			await createFileMount(mountId);
+		}
+		return mount;
+	});
 };
 
 export const findMountsByApplicationId = async (
@@ -184,14 +184,15 @@ export const deleteMount = async (mountId: string) => {
 
 export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	const basePath = await getBaseFilesMountPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath || "");
+	if (!mount.filePath) return;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = path.join(basePath, mount.filePath);
 	try {
 		await removeFileOrDirectory(fullPath);
 	} catch (error) {}
 };
 
-export const getBaseFilesMountPath = async (mountId: string) => {
+export const getBaseFilesPath = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 
 	let absoluteBasePath = path.resolve(APPLICATIONS_PATH);

@@ -115,6 +115,7 @@ export const ShowVolumes = ({ mysqlId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="mysql"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

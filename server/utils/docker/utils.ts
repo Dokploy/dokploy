@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import path, { join } from "node:path";
+import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
+import { APPLICATIONS_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
@@ -305,13 +305,13 @@ export const generateFileMounts = (
 	return mounts
 		.filter((mount) => mount.type === "file")
 		.map((mount) => {
-			const fileName = mount.mountPath.split("/").pop();
+			const fileName = mount.filePath;
 			const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 			const directory = path.join(absoluteBasePath, appName, "files");
-			const filePath = path.join(directory, fileName || "");
+			const sourcePath = path.join(directory, fileName || "");
 			return {
 				Type: "bind" as const,
-				Source: filePath,
+				Source: sourcePath,
 				Target: mount.mountPath,
 			};
 		});
@@ -323,27 +323,17 @@ export const createFile = async (
 	content: string,
 ) => {
 	try {
-		// Unir outputPath con filePath
 		const fullPath = path.join(outputPath, filePath);
-
-		// Verificar si la ruta termina en separador (indica que es un directorio)
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
-			console.log(`Directorio creado: ${fullPath}`);
 			return;
 		}
 
-		// Para archivos, obtener el directorio del archivo
 		const directory = path.dirname(fullPath);
-
-		// Crear el directorio si no existe
 		fs.mkdirSync(directory, { recursive: true });
-
-		// Escribir el archivo
 		fs.writeFileSync(fullPath, content || "");
-		console.log(`Archivo creado: ${fullPath}`);
 	} catch (error) {
-		console.log(error);
+		throw error;
 	}
 };
 

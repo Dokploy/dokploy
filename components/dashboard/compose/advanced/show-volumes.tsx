@@ -126,6 +126,7 @@ export const ShowVolumesCompose = ({ composeId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="compose"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

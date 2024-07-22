@@ -330,7 +330,7 @@ export const AddVolumes = ({
 										/>
 									</>
 								)}
-								{serviceType === "application" && (
+								{serviceType !== "compose" && (
 									<FormField
 										control={form.control}
 										name="mountPath"
