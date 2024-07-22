@@ -167,10 +167,10 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@8.15.4",
+	"packageManager": "pnpm@9.5.0",
 	"engines": {
 		"node": "^18.18.0",
-		"pnpm": ">=8.15.4"
+		"pnpm": ">=9.5.0"
 	},
 	"lint-staged": {
 		"*": [

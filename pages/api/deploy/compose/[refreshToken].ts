@@ -32,7 +32,9 @@ export default async function handler(
 			return;
 		}
 		if (!composeResult?.autoDeploy) {
-			res.status(400).json({ message: "Compose Not Deployable" });
+			res.status(400).json({
+				message: "Automatic deployments are disabled for this compose",
+			});
 			return;
 		}
 

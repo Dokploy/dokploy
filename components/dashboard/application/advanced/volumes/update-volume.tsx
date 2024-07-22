@@ -48,6 +48,7 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("file"),
 			content: z.string().optional(),
+			filePath: z.string().min(1, "File path required"),
 		})
 		.merge(mountSchema),
 ]);
@@ -58,9 +59,23 @@ interface Props {
 	mountId: string;
 	type: "bind" | "volume" | "file";
 	refetch: () => void;
+	serviceType:
+		| "application"
+		| "postgres"
+		| "redis"
+		| "mongo"
+		| "redis"
+		| "mysql"
+		| "mariadb"
+		| "compose";
 }
 
-export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
+export const UpdateVolume = ({
+	mountId,
+	type,
+	refetch,
+	serviceType,
+}: Props) => {
 	const utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
 		{
@@ -103,6 +118,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 				form.reset({
 					content: data.content || "",
 					mountPath: data.mountPath,
+					filePath: data.filePath || "",
 					type: "file",
 				});
 			}
@@ -141,6 +157,7 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 				content: data.content,
 				mountPath: data.mountPath,
 				type: data.type,
+				filePath: data.filePath,
 				mountId,
 			})
 				.then(() => {
@@ -166,6 +183,11 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 					<DialogDescription>Update the mount</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{type === "file" && (
+					<AlertBlock type="warning">
+						Updating the mount will recreate the file or directory.
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
@@ -211,40 +233,62 @@ export const UpdateVolume = ({ mountId, type, refetch }: Props) => {
 							)}
 
 							{type === "file" && (
-								<FormField
-									control={form.control}
-									name="content"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Content</FormLabel>
-											<FormControl>
+								<>
+									<FormField
+										control={form.control}
+										name="content"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Content</FormLabel>
 												<FormControl>
-													<Textarea
-														placeholder="Any content"
-														className="h-64"
+													<FormControl>
+														<Textarea
+															placeholder="Any content"
+															className="h-64"
+															{...field}
+														/>
+													</FormControl>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="filePath"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>File Path</FormLabel>
+												<FormControl>
+													<Input
+														disabled
+														placeholder="Name of the file"
 														{...field}
 													/>
 												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</>
+							)}
+							{serviceType !== "compose" && (
+								<FormField
+									control={form.control}
+									name="mountPath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Mount Path (In the container)</FormLabel>
+											<FormControl>
+												<Input placeholder="Mount Path" {...field} />
 											</FormControl>
+
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 							)}
-							<FormField
-								control={form.control}
-								name="mountPath"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Mount Path</FormLabel>
-										<FormControl>
-											<Input placeholder="Mount Path" {...field} />
-										</FormControl>
-
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
 						</div>
 						<DialogFooter>
 							<Button

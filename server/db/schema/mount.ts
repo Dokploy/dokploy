@@ -31,6 +31,7 @@ export const mounts = pgTable("mount", {
 	type: mountType("type").notNull(),
 	hostPath: text("hostPath"),
 	volumeName: text("volumeName"),
+	filePath: text("filePath"),
 	content: text("content"),
 	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
@@ -97,6 +98,7 @@ const createSchema = createInsertSchema(mounts, {
 	content: z.string().optional(),
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
+	filePath: z.string().optional(),
 	serviceType: z
 		.enum([
 			"application",
@@ -122,6 +124,7 @@ export const apiCreateMount = createSchema
 		content: true,
 		mountPath: true,
 		serviceType: true,
+		filePath: true,
 	})
 	.extend({
 		serviceId: z.string().min(1),

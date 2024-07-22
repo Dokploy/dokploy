@@ -169,6 +169,13 @@
       "when": 1721542782659,
       "tag": "0023_icy_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1721603595092,
+      "tag": "0024_dapper_supernaut",
+      "breakpoints": true
     }
   ]
 }

@@ -113,6 +113,7 @@ export const ShowVolumes = ({ mongoId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="mongo"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>
