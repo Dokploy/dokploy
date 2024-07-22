@@ -14,13 +14,12 @@ jobs:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            VERSION=$(node -p "require('./package.json').version")
-            echo $VERSION
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
               TAG="canary"
             fi
+            echo $TAG
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
             docker push dokploy/dokploy:${TAG}-amd64
 
@@ -56,9 +55,10 @@ jobs:
           name: Create and push multi-arch manifest
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            VERSION=$(node -p "require('./package.json').version")
-            echo $VERSION
+
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              VERSION=$(node -p "require('./package.json').version")
+              echo $VERSION
               TAG="latest"
               
               docker manifest create dokploy/dokploy:${TAG} \
