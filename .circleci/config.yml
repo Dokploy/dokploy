@@ -31,15 +31,7 @@ jobs:
       - run:
           name: Build and push Docker image using custom script
           command: |
-            chmod +x ./docker/push.sh
-            echo $CIRCLE_BRANCH
-            ./docker/push.sh canary
-            if [ "${CIRCLE_BRANCH}" = "canary" ]; then
-              ./docker/push.sh canary
-            else
-              echo "PUSHING PRODUCTION"
-              # ./docker/push.sh
-            fi
+            docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
 
 workflows:
   build-and-push:
