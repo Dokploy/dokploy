@@ -44,6 +44,7 @@ interface Props {
 	mongoId: string;
 }
 export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
+	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mongo.one.useQuery({ mongoId });
 	const { mutateAsync, isLoading } = api.mongo.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
@@ -77,10 +78,9 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 
 	useEffect(() => {
 		const buildConnectionUrl = () => {
-			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${hostname}:${port}`;
+			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

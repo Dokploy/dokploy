@@ -146,3 +146,12 @@ export const removeUserByAuthId = async (authId: string) => {
 		.returning()
 		.then((res) => res[0]);
 };
+
+export const getDokployUrl = async () => {
+	const admin = await findAdmin();
+
+	if (admin.host) {
+		return `https://${admin.host}`;
+	}
+	return `http://${admin.serverIp}:${process.env.PORT}`;
+};

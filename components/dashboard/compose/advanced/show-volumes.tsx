@@ -74,7 +74,7 @@ export const ShowVolumesCompose = ({ composeId }: Props) => {
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
+										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>
 												<span className="text-sm text-muted-foreground">
@@ -91,12 +91,20 @@ export const ShowVolumesCompose = ({ composeId }: Props) => {
 											)}
 
 											{mount.type === "file" && (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Content</span>
-													<span className="text-sm text-muted-foreground w-40 truncate">
-														{mount.content}
-													</span>
-												</div>
+												<>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">Content</span>
+														<span className="text-sm text-muted-foreground w-40 truncate">
+															{mount.content}
+														</span>
+													</div>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">File Path</span>
+														<span className="text-sm text-muted-foreground">
+															{mount.filePath}
+														</span>
+													</div>
+												</>
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">
@@ -118,6 +126,7 @@ export const ShowVolumesCompose = ({ composeId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="compose"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

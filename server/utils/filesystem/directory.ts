@@ -25,6 +25,15 @@ export const removeDirectoryIfExistsContent = async (
 	}
 };
 
+export const removeFileOrDirectory = async (path: string) => {
+	try {
+		await execAsync(`rm -rf ${path}`);
+	} catch (error) {
+		console.error(`Error to remove ${path}: ${error}`);
+		throw error;
+	}
+};
+
 export const removeDirectoryCode = async (appName: string) => {
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
 
@@ -59,15 +68,24 @@ export const removeMonitoringDirectory = async (appName: string) => {
 export const getBuildAppDirectory = (application: Application) => {
 	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
 		application;
-	const buildPath =
-		sourceType === "github" ? application?.buildPath : customGitBuildPath;
+	let buildPath = "";
+
+	if (sourceType === "github") {
+		buildPath = application?.buildPath || "";
+	} else if (sourceType === "drop") {
+		buildPath = application?.dropBuildPath || "";
+	} else if (sourceType === "git") {
+		buildPath = customGitBuildPath || "";
+	}
 	if (buildType === "dockerfile") {
 		return path.join(
 			APPLICATIONS_PATH,
 			appName,
+			"code",
 			buildPath ?? "",
 			dockerfile || "",
 		);
 	}
-	return path.join(APPLICATIONS_PATH, appName, buildPath ?? "");
+
+	return path.join(APPLICATIONS_PATH, appName, "code", buildPath ?? "");
 };

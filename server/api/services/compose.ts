@@ -5,6 +5,8 @@ import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { buildCompose } from "@/server/utils/builders/compose";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
+import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { execAsync } from "@/server/utils/process/execAsync";
 import { cloneGitRepository } from "@/server/utils/providers/git";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
@@ -13,7 +15,7 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { load } from "js-yaml";
-import { findAdmin } from "./admin";
+import { findAdmin, getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
 
@@ -142,6 +144,7 @@ export const deployCompose = async ({
 }) => {
 	const compose = await findComposeById(composeId);
 	const admin = await findAdmin();
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -153,7 +156,7 @@ export const deployCompose = async ({
 			await cloneGithubRepository(admin, compose, deployment.logPath, true);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
-		} else {
+		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
 		}
 		await buildCompose(compose, deployment.logPath);
@@ -161,10 +164,25 @@ export const deployCompose = async ({
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
+
+		await sendBuildSuccessNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			buildLink,
+		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
+		});
+		await sendBuildErrorNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			// @ts-ignore
+			errorMessage: error?.message || "Error to build",
+			buildLink,
 		});
 		throw error;
 	}

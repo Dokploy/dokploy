@@ -17,6 +17,7 @@ import {
 	stopService,
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
+import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -57,8 +58,13 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 	reloadTraefik: adminProcedure.mutation(async () => {
-		await stopService("dokploy-traefik");
-		await startService("dokploy-traefik");
+		try {
+			await stopService("dokploy-traefik");
+			await startService("dokploy-traefik");
+		} catch (err) {
+			console.error(err);
+		}
+
 		return true;
 	}),
 	cleanUnusedImages: adminProcedure.mutation(async () => {
@@ -86,6 +92,7 @@ export const settingsRouter = createTRPCRouter({
 		await cleanUpUnusedImages();
 		await cleanUpDockerBuilder();
 		await cleanUpSystemPrune();
+
 		return true;
 	}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
@@ -144,6 +151,7 @@ export const settingsRouter = createTRPCRouter({
 					await cleanUpUnusedImages();
 					await cleanUpDockerBuilder();
 					await cleanUpSystemPrune();
+					await sendDockerCleanupNotifications();
 				});
 			} else {
 				const currentJob = scheduledJobs["docker-cleanup"];
@@ -244,6 +252,10 @@ export const settingsRouter = createTRPCRouter({
 			}
 			return readConfigInPath(input.path);
 		}),
+	getIp: protectedProcedure.query(async () => {
+		const admin = await findAdmin();
+		return admin.serverIp;
+	}),
 
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {

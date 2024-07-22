@@ -134,6 +134,48 @@
       "when": 1719928377858,
       "tag": "0018_careful_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1721110706912,
+      "tag": "0019_heavy_freak",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1721363861686,
+      "tag": "0020_fantastic_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1721370423752,
+      "tag": "0021_premium_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1721531163852,
+      "tag": "0022_warm_colonel_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1721542782659,
+      "tag": "0023_icy_maverick",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1721603595092,
+      "tag": "0024_dapper_supernaut",
+      "breakpoints": true
     }
   ]
 }

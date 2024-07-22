@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.3.3",
+	"version": "v0.4.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -20,8 +20,8 @@
 		"db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
 		"db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
 		"db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
-		"check": "biome check",
-		"format": "biome format",
+		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
+		"format": "biome format --write",
 		"lint": "biome lint",
 		"typecheck": "tsc",
 		"db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
@@ -64,6 +64,7 @@
 		"@radix-ui/react-tabs": "^1.0.4",
 		"@radix-ui/react-toggle": "^1.0.3",
 		"@radix-ui/react-tooltip": "^1.0.7",
+		"@react-email/components": "^0.0.21",
 		"@tanstack/react-query": "^4.36.1",
 		"@tanstack/react-table": "^8.16.0",
 		"@trpc/client": "^10.43.6",
@@ -74,6 +75,7 @@
 		"@uiw/react-codemirror": "^4.22.1",
 		"@xterm/addon-attach": "0.10.0",
 		"@xterm/xterm": "^5.4.0",
+		"adm-zip": "^0.5.14",
 		"bcrypt": "5.1.1",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
@@ -103,6 +105,7 @@
 		"node-os-utils": "1.3.7",
 		"node-pty": "1.0.0",
 		"node-schedule": "2.1.1",
+		"nodemailer": "6.9.14",
 		"octokit": "3.1.2",
 		"otpauth": "^9.2.3",
 		"postgres": "3.4.4",
@@ -119,13 +122,18 @@
 		"tailwind-merge": "^2.2.0",
 		"tailwindcss-animate": "^1.0.7",
 		"tar-fs": "3.0.5",
+		"undici": "^6.19.2",
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
-		"zod": "^3.23.4"
+		"zod": "^3.23.4",
+		"zod-form-data": "^2.0.2"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
+		"@commitlint/cli": "^19.3.0",
+		"@commitlint/config-conventional": "^19.2.2",
+		"@types/adm-zip": "^0.5.5",
 		"@types/bcrypt": "5.0.2",
 		"@types/dockerode": "3.3.23",
 		"@types/js-yaml": "4.0.9",
@@ -133,6 +141,7 @@
 		"@types/node": "^18.17.0",
 		"@types/node-os-utils": "1.3.4",
 		"@types/node-schedule": "2.1.6",
+		"@types/nodemailer": "^6.4.15",
 		"@types/qrcode": "^1.5.5",
 		"@types/react": "^18.2.37",
 		"@types/react-dom": "^18.2.15",
@@ -158,14 +167,17 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@8.15.4",
+	"packageManager": "pnpm@9.5.0",
 	"engines": {
 		"node": "^18.18.0",
-		"pnpm": ">=8.15.4"
+		"pnpm": ">=9.5.0"
 	},
 	"lint-staged": {
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
 		]
+	},
+	"commitlint": {
+		"extends": ["@commitlint/config-conventional"]
 	}
 }

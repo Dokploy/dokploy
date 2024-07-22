@@ -8,10 +8,7 @@ import { dirname, join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
-import {
-	generateFileMountsCompose,
-	prepareEnvironmentVariables,
-} from "../docker/utils";
+import { prepareEnvironmentVariables } from "../docker/utils";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -24,7 +21,6 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		compose;
 	try {
 		const command = createCommand(compose);
-		generateFileMountsCompose(appName, mounts);
 
 		createEnvFile(compose);
 
@@ -46,7 +42,7 @@ Compose Type: ${composeType} ✅`;
 		});
 		writeStream.write(`\n${logBox}\n`);
 
-		const projectPath = join(COMPOSE_PATH, compose.appName);
+		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 		await spawnAsync(
 			"docker",
 			[...command.split(" ")],
@@ -104,8 +100,8 @@ export const createCommand = (compose: ComposeNested) => {
 const createEnvFile = (compose: ComposeNested) => {
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
-		join(COMPOSE_PATH, appName, composePath) ||
-		join(COMPOSE_PATH, appName, "docker-compose.yml");
+		join(COMPOSE_PATH, appName, "code", composePath) ||
+		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
 	let envContent = env || "";

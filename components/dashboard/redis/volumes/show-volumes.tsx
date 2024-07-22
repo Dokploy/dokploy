@@ -115,6 +115,7 @@ export const ShowVolumes = ({ redisId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="redis"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

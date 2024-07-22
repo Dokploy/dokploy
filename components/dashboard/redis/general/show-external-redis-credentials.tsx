@@ -44,6 +44,7 @@ interface Props {
 	redisId: string;
 }
 export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
+	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.redis.one.useQuery({ redisId });
 	const { mutateAsync, isLoading } = api.redis.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
@@ -80,7 +81,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `redis://default:${data?.databasePassword}@${hostname}:${port}`;
+			return `redis://default:${data?.databasePassword}@${ip}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());

@@ -14,6 +14,7 @@ import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
+import { notificationRouter } from "./routers/notification";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { projectRouter } from "./routers/project";
@@ -54,6 +55,7 @@ export const appRouter = createTRPCRouter({
 	port: portRouter,
 	registry: registryRouter,
 	cluster: clusterRouter,
+	notification: notificationRouter,
 });
 
 // export type definition of API
