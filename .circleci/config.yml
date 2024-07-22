@@ -9,7 +9,6 @@ executors:
 jobs:
   build-and-push-docker:
     executor: docker-executor
-    resource_class: arm.medium
     steps:
       - checkout
 
