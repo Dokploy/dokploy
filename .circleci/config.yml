@@ -1,0 +1,47 @@
+version: 2.1
+commands:
+  setup:
+    steps:
+      - checkout
+      - run:
+          name: Setup buildx and qemu
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y qemu-user-static
+            sudo apt-get install -y binfmt-support
+      - run:
+          name: Check versions
+          command: |
+            qemu-aarch64-static --version
+            update-binfmts --version
+      - run:
+          name: Create builder
+          command: |
+            export DOCKER_CLI_EXPERIMENTAL=enabled
+            docker buildx create --name arm-builder
+            docker buildx use arm-builder
+            docker buildx inspect --bootstrap
+jobs:
+  build:
+    machine:
+      image: ubuntu-2004:202010-01
+    steps:
+      - setup
+      - run:
+          name: Login to Docker Hub
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+      - run:
+          name: env
+          command: |
+            cp .env.production.example .env.production
+      - run:
+          name: Build multiarch docker image and push
+          command: |
+            DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --platform linux/arm64 -t test .
+workflows:
+  build-and-deploy:
+    jobs:
+      - build:
+          context:
+            - DOCKER_HUB
