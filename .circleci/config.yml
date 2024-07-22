@@ -1,0 +1,65 @@
+version: 2.1
+
+parameters:
+  run-canary-config:
+    type: boolean
+    default: false
+  run-main-config:
+    type: boolean
+    default: false
+
+orbs:
+  path-filtering: circleci/path-filtering@0.1.3
+
+workflows:
+  version: 2
+  config-selection:
+    jobs:
+      - path-filtering/filter:
+          name: check-updated-files
+          mapping: |
+            .circleci/canary-config.yml run-canary-config true
+            .circleci/main-config.yml run-main-config true
+          base-revision: main
+          config-path: .circleci/config.yml
+
+  canary-workflow:
+    when: << pipeline.parameters.run-canary-config >>
+    jobs:
+      - run-canary-config
+
+  main-workflow:
+    when: << pipeline.parameters.run-main-config >>
+    jobs:
+      - run-main-config
+
+jobs:
+  run-canary-config:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Run Canary Config
+          command: |
+            if [ "${CIRCLE_BRANCH}" = "canary" ]; then
+              circleci config process .circleci/canary-config.yml > processed_config.yml
+              circleci local execute -c processed_config.yml --job build-and-push-docker
+            else
+              echo "Not on canary branch, skipping canary deployment"
+            fi
+
+  run-main-config:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Run Main Config
+          command: |
+            if [ "${CIRCLE_BRANCH}" = "main" ]; then
+              circleci config process .circleci/main-config.yml > processed_config.yml
+              circleci local execute -c processed_config.yml --job build-and-deploy
+            else
+              echo "Not on main branch, skipping main deployment"
+            fi
