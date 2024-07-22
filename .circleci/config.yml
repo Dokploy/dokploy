@@ -1,10 +1,5 @@
 version: 2.1
 
-parameters:
-  is-main-branch:
-    type: boolean
-    default: false
-
 jobs:
   build-amd64:
     machine:
@@ -21,7 +16,7 @@ jobs:
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
             VERSION=$(node -p "require('./package.json').version")
             echo $VERSION
-            if << pipeline.parameters.is-main-branch >>; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
               TAG="canary"
@@ -43,7 +38,7 @@ jobs:
           name: Build and push ARM64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            if << pipeline.parameters.is-main-branch >>; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
               TAG="canary"
@@ -63,7 +58,7 @@ jobs:
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
             VERSION=$(node -p "require('./package.json').version")
             echo $VERSION
-            if << pipeline.parameters.is-main-branch >>; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
               
               docker manifest create dokploy/dokploy:${TAG} \
@@ -88,11 +83,24 @@ workflows:
   build-all:
     jobs:
       - build-amd64:
-          is-main-branch: ${CIRCLE_BRANCH} == 'main'
+          filters:
+            branches:
+              only:
+                - main
+                - canary
+                - feat/circle
       - build-arm64:
-          is-main-branch: ${CIRCLE_BRANCH} == 'main'
+          filters:
+            branches:
+              only:
+                - main
+                - canary
       - combine-manifests:
           requires:
             - build-amd64
             - build-arm64
-          is-main-branch: ${CIRCLE_BRANCH} == 'main'
+          filters:
+            branches:
+              only:
+                - main
+                - canary
