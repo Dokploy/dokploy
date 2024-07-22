@@ -92,30 +92,32 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					/>
 				</form>
 			</Form>
-			<Form {...buildArgsForm}>
-				<form onSubmit={buildArgsForm.handleSubmit(onBuildArgsSubmit)}>
-					<Secrets
-						name="buildArgs"
-						isLoading={saveBuildArgsMutation.isLoading}
-						title="Build-time Variables"
-						description={
-							<span>
-								Available only at build-time. See documentation&nbsp;
-								<a
-									className="text-primary"
-									href="https://docs.docker.com/build/guide/build-args/"
-									target="_blank"
-									rel="noopener noreferrer"
-								>
-									here
-								</a>
-								.
-							</span>
-						}
-						placeholder="NPM_TOKEN=xyz"
-					/>
-				</form>
-			</Form>
+			{data?.buildType === "dockerfile" && (
+				<Form {...buildArgsForm}>
+					<form onSubmit={buildArgsForm.handleSubmit(onBuildArgsSubmit)}>
+						<Secrets
+							name="buildArgs"
+							isLoading={saveBuildArgsMutation.isLoading}
+							title="Build-time Variables"
+							description={
+								<span>
+									Available only at build-time. See documentation&nbsp;
+									<a
+										className="text-primary"
+										href="https://docs.docker.com/build/guide/build-args/"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										here
+									</a>
+									.
+								</span>
+							}
+							placeholder="NPM_TOKEN=xyz"
+						/>
+					</form>
+				</Form>
+			)}
 		</div>
 	);
 };
