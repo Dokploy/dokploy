@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker-executor:
     docker:
-      - image: cimg/node:18.17-browsers
+      - image: arm64v8/node:18
     working_directory: ~/repo
     resource_class: arm.medium
 
