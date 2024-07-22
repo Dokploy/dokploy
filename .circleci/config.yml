@@ -5,7 +5,7 @@ executors:
     docker:
       - image: cimg/base:stable
     working_directory: ~/repo
-    resource_class: arm.2xlarge
+    resource_class: arm.large
 
 jobs:
   build-and-push-docker:
