@@ -4,6 +4,8 @@ services:
     image: jellyfin/jellyfin:10
     networks:
       - dokploy-network
+    ports:
+      - ${JELLYFIN_PORT}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${HASH}.rule=Host(`${JELLYFIN_HOST}`)"
