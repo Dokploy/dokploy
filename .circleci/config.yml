@@ -11,8 +11,7 @@ jobs:
       - run:
           name: Instalar Docker
           command: |
-            sudo apt update
-            sudo apt install -y docker.io
+            curl -sSL https://get.docker.com | sh
       - run:
           name: Verificar versión de Docker
           command: docker --version
