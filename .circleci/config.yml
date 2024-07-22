@@ -9,6 +9,7 @@ executors:
 jobs:
   build-and-push-docker:
     executor: docker-executor
+    resource_class: arm.medium
     steps:
       - checkout
 
@@ -25,7 +26,7 @@ jobs:
             docker buildx inspect --bootstrap
 
       - setup_remote_docker:
-          version: 20.10.7
+          version: default
 
       - run:
           name: Login to Docker Hub
