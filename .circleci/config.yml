@@ -3,7 +3,7 @@ version: 2.1
 executors:
   docker-executor:
     docker:
-      - image: circleci/node:18
+      - image: cimg/node:18.12.1
     working_directory: ~/repo
 
 jobs:
