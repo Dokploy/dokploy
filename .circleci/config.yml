@@ -30,7 +30,7 @@ jobs:
       - run:
           name: Login to Docker Hub
           command: |
-            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
       - run:
           name: Prepare .env file
