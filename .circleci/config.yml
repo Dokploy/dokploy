@@ -8,18 +8,10 @@ jobs:
     steps:
       - checkout
 
-      # - run:
-      #     name: Instalar Docker
-      #     command: |
-      #       curl -sSL https://get.docker.com | sh
       - run:
-          name: Verificar versión de Docker
-          command: docker version
-
-      - run:
-          name: Set up Docker Buildx
+          name: Verify Docker version
           command: |
-            docker buildx create --name mybuilder --use
+            docker version
             docker buildx inspect --bootstrap
 
       - run:
@@ -32,10 +24,21 @@ jobs:
           command: |
             cp .env.production.example .env.production
 
+      # - run:
+      #     name: Build and push Docker image
+      #     command: |
+      #       docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
       - run:
-          name: Build and push Docker image
+          name: Build and push Docker image using custom script
           command: |
-            docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
+            chmod +x ./docker/push.sh
+            echo $CIRCLE_BRANCH
+            if [ "${CIRCLE_BRANCH}" = "canary" ]; then
+              ./docker/push.sh canary
+            else
+              echo "PUSHING PRODUCTION"
+              # ./docker/push.sh
+            fi
 
 workflows:
   build-and-push:
