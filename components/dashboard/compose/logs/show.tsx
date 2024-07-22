@@ -30,12 +30,14 @@ export const DockerLogs = dynamic(
 
 interface Props {
 	appName: string;
+	appType: "stack" | "docker-compose";
 }
 
-export const ShowDockerLogsCompose = ({ appName }: Props) => {
+export const ShowDockerLogsCompose = ({ appName, appType }: Props) => {
 	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
+			appType,
 		},
 		{
 			enabled: !!appName,
