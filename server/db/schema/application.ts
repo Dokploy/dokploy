@@ -107,6 +107,7 @@ export const applications = pgTable("application", {
 		.unique(),
 	description: text("description"),
 	env: text("env"),
+	buildArgs: text("buildArgs"),
 	memoryReservation: integer("memoryReservation"),
 	memoryLimit: integer("memoryLimit"),
 	cpuReservation: integer("cpuReservation"),
