@@ -23,9 +23,6 @@ jobs:
             docker buildx create --name mybuilder --use
             docker buildx inspect --bootstrap
 
-      - setup_remote_docker:
-          version: default
-
       - run:
           name: Login to Docker Hub
           command: |
