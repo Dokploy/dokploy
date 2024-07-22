@@ -35,7 +35,7 @@ jobs:
       - run:
           name: Build and push Docker image
           command: |
-            docker buildx build --platform linux/arm64 -t dokploy/dokploy:testing --push .
+            docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
 
 workflows:
   build-and-push:
