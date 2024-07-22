@@ -33,6 +33,7 @@ jobs:
           command: |
             chmod +x ./docker/push.sh
             echo $CIRCLE_BRANCH
+            ./docker/push.sh canary
             if [ "${CIRCLE_BRANCH}" = "canary" ]; then
               ./docker/push.sh canary
             else
