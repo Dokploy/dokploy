@@ -19,6 +19,8 @@ jobs:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            VERSION=$(node -p "require('./package.json').version")
+            echo $VERSION
             if << pipeline.parameters.is-main-branch >>; then
               TAG="latest"
             else
@@ -59,14 +61,16 @@ jobs:
           name: Create and push multi-arch manifest
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            VERSION=$(node -p "require('./package.json').version")
+            echo $VERSION
             if << pipeline.parameters.is-main-branch >>; then
               TAG="latest"
-              VERSION=$(node -p "require('./package.json').version")
+              
               docker manifest create dokploy/dokploy:${TAG} \
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64
               docker manifest push dokploy/dokploy:${TAG}
-              
+
               docker manifest create dokploy/dokploy:${VERSION} \
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64
