@@ -1,51 +1,61 @@
 version: 2.1
 
 jobs:
-  build-and-push-docker:
+  build-amd64:
+    machine:
+      image: ubuntu-2004:current
+    steps:
+      - checkout
+      - run:
+          name: Build and push AMD64 image
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            docker build --platform linux/amd64 -t dokploy/dokploy:testing-amd64 .
+            docker push dokploy/dokploy:testing-amd64
+
+  build-arm64:
     machine:
       image: ubuntu-2004:current
       resource_class: arm.large
     steps:
       - checkout
-
       - run:
-          name: Instalar Docker
-          command: |
-            # Install this version 27.0.3
-            VERSION=27.0.3 curl -fsSL https://get.docker.com | sh
-      - run:
-          name: Verificar versión de Docker
-          command: docker --version
-
-      - run:
-          name: Set up Docker Buildx
-          command: |
-            docker buildx create --name mybuilder --use
-            docker buildx inspect --bootstrap
-
-      - run:
-          name: Login to Docker Hub
+          name: Build and push ARM64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            docker build --platform linux/arm64 -t dokploy/dokploy:testing-arm64 .
+            docker push dokploy/dokploy:testing-arm64
 
+  combine-manifests:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - setup_remote_docker
       - run:
-          name: Prepare .env file
+          name: Create and push multi-arch manifest
           command: |
-            cp .env.production.example .env.production
-
-      # - run:
-      #     name: Build and push Docker image
-      #     command: |
-      #       docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
-      - run:
-          name: Build and push Docker image using custom script
-          command: |
-            docker buildx build --platform linux/amd64,linux/arm64 -t dokploy/dokploy:testing --push .
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            docker manifest create dokploy/dokploy:testing \
+              dokploy/dokploy:testing-amd64 \
+              dokploy/dokploy:testing-arm64
+            docker manifest push dokploy/dokploy:testing
 
 workflows:
-  build-and-push:
+  version: 2
+  build-all:
     jobs:
-      - build-and-push-docker:
+      - build-amd64:
+          filters:
+            branches:
+              only: feat/circle
+      - build-arm64:
+          filters:
+            branches:
+              only: feat/circle
+      - combine-manifests:
+          requires:
+            - build-amd64
+            - build-arm64
           filters:
             branches:
               only: feat/circle
