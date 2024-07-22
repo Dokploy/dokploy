@@ -379,6 +379,13 @@ export const apiSaveEnvironmentVariables = createSchema
 	})
 	.required();
 
+export const apiSaveBuildArgs = createSchema
+	.pick({
+		applicationId: true,
+		buildArgs: true,
+	})
+	.required();
+
 export const apiFindMonitoringStats = createSchema
 	.pick({
 		appName: true,
