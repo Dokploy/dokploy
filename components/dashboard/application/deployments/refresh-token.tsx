@@ -29,8 +29,8 @@ export const RefreshToken = ({ applicationId }: Props) => {
 				<AlertDialogHeader>
 					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete the
-						domain
+						This action cannot be undone. This will change the refresh token and
+						other tokens will be invalidated.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

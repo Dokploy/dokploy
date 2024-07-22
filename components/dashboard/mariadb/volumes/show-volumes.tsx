@@ -117,6 +117,7 @@ export const ShowVolumes = ({ mariadbId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="mariadb"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

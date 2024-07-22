@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Toggle } from "@/components/ui/toggle";
 import { api } from "@/utils/api";
-import { ExternalLink, Globe, Terminal } from "lucide-react";
+import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
@@ -50,7 +50,6 @@ export const ComposeActions = ({ composeId }: Props) => {
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<DeployCompose composeId={composeId} />
-
 			<Toggle
 				aria-label="Toggle italic"
 				pressed={data?.autoDeploy || false}
@@ -67,8 +66,9 @@ export const ComposeActions = ({ composeId }: Props) => {
 							toast.error("Error to update Auto Deploy");
 						});
 				}}
+				className="flex flex-row gap-2 items-center"
 			>
-				Autodeploy
+				Autodeploy {data?.autoDeploy && <CheckCircle2 className="size-4" />}
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
 			{data?.composeType === "docker-compose" && (

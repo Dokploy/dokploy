@@ -63,6 +63,7 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("file"),
+			filePath: z.string().min(1, "File path required"),
 			content: z.string().optional(),
 		})
 		.merge(mountSchema),
@@ -81,7 +82,7 @@ export const AddVolumes = ({
 		defaultValues: {
 			type: serviceType === "compose" ? "file" : "bind",
 			hostPath: "",
-			mountPath: "",
+			mountPath: serviceType === "compose" ? "/" : "",
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -125,6 +126,7 @@ export const AddVolumes = ({
 				serviceId,
 				content: data.content,
 				mountPath: data.mountPath,
+				filePath: data.filePath,
 				type: data.type,
 				serviceType,
 			})
@@ -288,41 +290,62 @@ export const AddVolumes = ({
 								)}
 
 								{type === "file" && (
+									<>
+										<FormField
+											control={form.control}
+											name="content"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Content</FormLabel>
+													<FormControl>
+														<FormControl>
+															<Textarea
+																placeholder="Any content"
+																className="h-64"
+																{...field}
+															/>
+														</FormControl>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="filePath"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>File Path</FormLabel>
+													<FormControl>
+														<FormControl>
+															<Input
+																placeholder="Name of the file"
+																{...field}
+															/>
+														</FormControl>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+								{serviceType !== "compose" && (
 									<FormField
 										control={form.control}
-										name="content"
+										name="mountPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Content</FormLabel>
+												<FormLabel>Mount Path (In the container)</FormLabel>
 												<FormControl>
-													<FormControl>
-														<Textarea
-															placeholder="Any content"
-															className="h-64"
-															{...field}
-														/>
-													</FormControl>
+													<Input placeholder="Mount Path" {...field} />
 												</FormControl>
+
 												<FormMessage />
 											</FormItem>
 										)}
 									/>
 								)}
-
-								<FormField
-									control={form.control}
-									name="mountPath"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Mount Path</FormLabel>
-											<FormControl>
-												<Input placeholder="Mount Path" {...field} />
-											</FormControl>
-
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
 							</div>
 						</div>
 					</form>

@@ -26,7 +26,7 @@ describe("unzipDrop using real zip files", () => {
 
 	it("should correctly extract a zip with a single root folder", async () => {
 		const appName = "single-file";
-		const outputPath = path.join(APPLICATIONS_PATH, appName);
+		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
 
 		const zipBuffer = zip.toBuffer();
@@ -39,7 +39,7 @@ describe("unzipDrop using real zip files", () => {
 
 	it("should correctly extract a zip with a single root folder and a subfolder", async () => {
 		const appName = "folderwithfile";
-		const outputPath = path.join(APPLICATIONS_PATH, appName);
+		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/folder-with-file.zip");
 
 		const zipBuffer = zip.toBuffer();
@@ -52,7 +52,7 @@ describe("unzipDrop using real zip files", () => {
 
 	it("should correctly extract a zip with multiple root folders", async () => {
 		const appName = "two-folders";
-		const outputPath = path.join(APPLICATIONS_PATH, appName);
+		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/two-folders.zip");
 
 		const zipBuffer = zip.toBuffer();
@@ -67,7 +67,7 @@ describe("unzipDrop using real zip files", () => {
 
 	it("should correctly extract a zip with a single root with a file", async () => {
 		const appName = "nested";
-		const outputPath = path.join(APPLICATIONS_PATH, appName);
+		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/nested.zip");
 
 		const zipBuffer = zip.toBuffer();
@@ -83,7 +83,7 @@ describe("unzipDrop using real zip files", () => {
 
 	it("should correctly extract a zip with a single root with a folder", async () => {
 		const appName = "folder-with-sibling-file";
-		const outputPath = path.join(APPLICATIONS_PATH, appName);
+		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/folder-with-sibling-file.zip");
 
 		const zipBuffer = zip.toBuffer();

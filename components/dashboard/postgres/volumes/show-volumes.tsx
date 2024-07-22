@@ -118,6 +118,7 @@ export const ShowVolumes = ({ postgresId }: Props) => {
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
+												serviceType="postgres"
 											/>
 											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
 										</div>

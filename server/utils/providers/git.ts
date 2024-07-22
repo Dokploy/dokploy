@@ -28,7 +28,7 @@ export const cloneGitRepository = async (
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const keyPath = path.join(SSH_PATH, `${appName}_rsa`);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName);
+	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	try {
