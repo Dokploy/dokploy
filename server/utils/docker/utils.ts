@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
+import path, { join } from "node:path";
 import type { Readable } from "node:stream";
 import { APPLICATIONS_PATH, COMPOSE_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
@@ -306,20 +306,9 @@ export const generateFileMounts = (
 		.filter((mount) => mount.type === "file")
 		.map((mount) => {
 			const fileName = mount.mountPath.split("/").pop();
-
-			if (!fileName) {
-				throw new Error("File name not found");
-			}
 			const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 			const directory = path.join(absoluteBasePath, appName, "files");
-			const filePath = path.join(directory, fileName);
-
-			if (!fs.existsSync(directory)) {
-				fs.mkdirSync(directory, { recursive: true });
-			}
-
-			fs.writeFileSync(filePath, mount.content || "");
-
+			const filePath = path.join(directory, fileName || "");
 			return {
 				Type: "bind" as const,
 				Source: filePath,
@@ -328,31 +317,34 @@ export const generateFileMounts = (
 		});
 };
 
-export const generateFileMountsCompose = (
-	appName: string,
-	mounts: ApplicationNested["mounts"],
+export const createFile = async (
+	outputPath: string,
+	filePath: string,
+	content: string,
 ) => {
-	if (!mounts || mounts.length === 0) {
-		return [];
+	try {
+		// Unir outputPath con filePath
+		const fullPath = path.join(outputPath, filePath);
+
+		// Verificar si la ruta termina en separador (indica que es un directorio)
+		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+			fs.mkdirSync(fullPath, { recursive: true });
+			console.log(`Directorio creado: ${fullPath}`);
+			return;
+		}
+
+		// Para archivos, obtener el directorio del archivo
+		const directory = path.dirname(fullPath);
+
+		// Crear el directorio si no existe
+		fs.mkdirSync(directory, { recursive: true });
+
+		// Escribir el archivo
+		fs.writeFileSync(fullPath, content || "");
+		console.log(`Archivo creado: ${fullPath}`);
+	} catch (error) {
+		console.log(error);
 	}
-
-	return mounts
-		.filter((mount) => mount.type === "file")
-		.map((mount) => {
-			const fileName = path.basename(mount.mountPath);
-			const directory = path.join(
-				COMPOSE_PATH,
-				appName,
-				path.dirname(mount.mountPath),
-			);
-			fs.mkdirSync(directory, { recursive: true });
-
-			const filePath = path.join(directory, fileName);
-
-			fs.writeFileSync(filePath, mount.content || "");
-
-			return {};
-		});
 };
 
 export const getServiceContainer = async (appName: string) => {

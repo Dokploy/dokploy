@@ -25,6 +25,15 @@ export const removeDirectoryIfExistsContent = async (
 	}
 };
 
+export const removeFileOrDirectory = async (path: string) => {
+	try {
+		await execAsync(`rm -rf ${path}`);
+	} catch (error) {
+		console.error(`Error to remove ${path}: ${error}`);
+		throw error;
+	}
+};
+
 export const removeDirectoryCode = async (appName: string) => {
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
 
@@ -72,9 +81,11 @@ export const getBuildAppDirectory = (application: Application) => {
 		return path.join(
 			APPLICATIONS_PATH,
 			appName,
+			"code",
 			buildPath ?? "",
 			dockerfile || "",
 		);
 	}
-	return path.join(APPLICATIONS_PATH, appName, buildPath ?? "");
+
+	return path.join(APPLICATIONS_PATH, appName, "code", buildPath ?? "");
 };
