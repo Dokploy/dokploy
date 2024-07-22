@@ -158,10 +158,3 @@ export const apiFindMountByApplicationId = createSchema
 export const apiUpdateMount = createSchema.partial().extend({
 	mountId: z.string().min(1),
 });
-
-/**
- *
- Primer Paso:
- Cuando utilizamos aplicaciones en el volume mount, seria buena idea agregar un FilePath?
-
- */
