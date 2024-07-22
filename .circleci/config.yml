@@ -14,12 +14,6 @@ jobs:
       - checkout
 
       - run:
-          name: Setup QEMU
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y qemu qemu-user-static
-
-      - run:
           name: Set up Docker Buildx
           command: |
             docker buildx create --name mybuilder --use
