@@ -102,17 +102,3 @@ workflows:
               only:
                 - main
                 - canary
-  pr-checks:
-    jobs:
-      - build-amd64:
-          filters:
-            branches:
-              ignore:
-                - main
-                - canary
-      - build-arm64:
-          filters:
-            branches:
-              ignore:
-                - main
-                - canary
