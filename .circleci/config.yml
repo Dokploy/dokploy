@@ -3,8 +3,9 @@ version: 2.1
 executors:
   docker-executor:
     docker:
-      - image: cimg/node:18.12.1
+      - image: cimg/node:18.17-browsers
     working_directory: ~/repo
+    resource_class: arm.medium
 
 jobs:
   build-and-push-docker:
