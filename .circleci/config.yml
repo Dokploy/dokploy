@@ -46,7 +46,7 @@ jobs:
 
   combine-manifests:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:18.18.0
     steps:
       - checkout
       - setup_remote_docker
