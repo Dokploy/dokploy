@@ -162,7 +162,7 @@ export const prepareEnvironmentVariables = (env: string | null) =>
 	Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
 
 export const prepareBuildArgs = (input: string | null) => {
-	const pairs = (input ?? "").split(" ");
+	const pairs = (input ?? "").split("\n");
 
 	const jsonObject: Record<string, string> = {};
 
