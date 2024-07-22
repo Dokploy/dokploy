@@ -8,13 +8,13 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: Instalar Docker
-          command: |
-            curl -sSL https://get.docker.com | sh
+      # - run:
+      #     name: Instalar Docker
+      #     command: |
+      #       curl -sSL https://get.docker.com | sh
       - run:
           name: Verificar versión de Docker
-          command: docker --version
+          command: docker version
 
       - run:
           name: Set up Docker Buildx
