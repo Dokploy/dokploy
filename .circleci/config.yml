@@ -19,7 +19,6 @@ jobs:
             else
               TAG="canary"
             fi
-            echo $TAG
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
             docker push dokploy/dokploy:${TAG}-amd64
 
@@ -88,7 +87,6 @@ workflows:
               only:
                 - main
                 - canary
-                - feat/circle
       - build-arm64:
           filters:
             branches:
@@ -102,5 +100,19 @@ workflows:
           filters:
             branches:
               only:
+                - main
+                - canary
+  pr-checks:
+    jobs:
+      - build-amd64:
+          filters:
+            branches:
+              ignore:
+                - main
+                - canary
+      - build-arm64:
+          filters:
+            branches:
+              ignore:
                 - main
                 - canary
