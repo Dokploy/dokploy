@@ -15,13 +15,13 @@ import {
 } from "@/components/ui/form";
 import { Toggle } from "@/components/ui/toggle";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, type ReactNode, useState } from "react";
 import { useFormContext } from "react-hook-form";
 
 interface Props {
 	name: string;
 	title: string;
-	description: string;
+	description: ReactNode;
 	placeholder: string;
 	isLoading: boolean;
 }

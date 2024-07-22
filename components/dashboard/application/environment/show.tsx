@@ -98,7 +98,20 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 						name="buildArgs"
 						isLoading={saveBuildArgsMutation.isLoading}
 						title="Build-time Variables"
-						description="Available only at build-time. See documentation here."
+						description={
+							<span>
+								Available only at build-time. See documentation&nbsp;
+								<a
+									className="text-primary"
+									href="https://docs.docker.com/build/guide/build-args/"
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									here
+								</a>
+								.
+							</span>
+						}
 						placeholder="NPM_TOKEN=xyz"
 					/>
 				</form>
