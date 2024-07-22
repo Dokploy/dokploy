@@ -1,23 +1,21 @@
 version: 2.1
 
-executors:
-  docker-executor:
-    docker:
-      - image: cimg/base:stable
-    working_directory: ~/repo
-    resource_class: arm.large
-
 jobs:
   build-and-push-docker:
-    executor: docker-executor
+    machine:
+      image: ubuntu-2004:current
+      resource_class: arm.large
     steps:
       - checkout
 
       - run:
-          name: Setup QEMU
+          name: Instalar Docker
           command: |
             sudo apt-get update
-            sudo apt-get install -y qemu qemu-user-static
+            sudo apt-get install -y docker.io
+      - run:
+          name: Verificar versión de Docker
+          command: docker --version
 
       - run:
           name: Set up Docker Buildx
