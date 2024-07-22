@@ -1,4 +1,5 @@
 version: 2.1
+setup: true
 
 parameters:
   run-canary-config:
