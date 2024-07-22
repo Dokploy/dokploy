@@ -12,6 +12,11 @@ jobs:
           name: Verify Docker version
           command: |
             docker version
+
+      - run:
+          name: Set up Docker Buildx
+          command: |
+            docker buildx create --name mybuilder --use
             docker buildx inspect --bootstrap
 
       - run:
