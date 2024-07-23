@@ -20,7 +20,8 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ applicationId }: Props) => {
-	const saveEnvironmentMutation = api.application.saveEnvironment.useMutation();
+	const { mutateAsync, isLoading } =
+		api.application.saveEnvironment.useMutation();
 
 	const { data, refetch } = api.application.one.useQuery(
 		{
@@ -40,12 +41,11 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	});
 
 	const onEnvSubmit = async (data: EnvironmentSchema) => {
-		saveEnvironmentMutation
-			.mutateAsync({
-				env: data.env,
-				buildArgs: data.buildArgs,
-				applicationId,
-			})
+		mutateAsync({
+			env: data.env,
+			buildArgs: data.buildArgs,
+			applicationId,
+		})
 			.then(async () => {
 				toast.success("Environments Added");
 				await refetch();
@@ -91,11 +91,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					)}
 					<CardContent>
 						<div className="flex flex-row justify-end">
-							<Button
-								isLoading={saveEnvironmentMutation.isLoading}
-								className="w-fit"
-								type="submit"
-							>
+							<Button isLoading={isLoading} className="w-fit" type="submit">
 								Save
 							</Button>
 						</div>
