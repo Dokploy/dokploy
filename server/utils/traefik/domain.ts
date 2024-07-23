@@ -13,12 +13,28 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const config: FileConfig = loadOrCreateConfig(appName);
 	const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
 	const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
+	const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
 
 	config.http = config.http || { routers: {}, services: {} };
 	config.http.routers = config.http.routers || {};
 	config.http.services = config.http.services || {};
 
-	config.http.routers[routerName] = await createRouterConfig(app, domain);
+	config.http.routers[routerName] = await createRouterConfig(
+		app,
+		domain,
+		"web",
+	);
+
+	// if (domain.https && process.env.NODE_ENV === "production") {
+	if (domain.https) {
+		config.http.routers[routerNameSecure] = await createRouterConfig(
+			app,
+			domain,
+			"websecure",
+		);
+	} else {
+		delete config.http.routers[routerNameSecure];
+	}
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
 	writeTraefikConfig(config, appName);
@@ -28,9 +44,14 @@ export const removeDomain = async (appName: string, uniqueKey: number) => {
 	const config: FileConfig = loadOrCreateConfig(appName);
 
 	const routerKey = `${appName}-router-${uniqueKey}`;
+	const routerSecureKey = `${appName}-router-websecure-${uniqueKey}`;
+
 	const serviceKey = `${appName}-service-${uniqueKey}`;
 	if (config.http?.routers?.[routerKey]) {
 		delete config.http.routers[routerKey];
+	}
+	if (config.http?.routers?.[routerSecureKey]) {
+		delete config.http.routers[routerSecureKey];
 	}
 	if (config.http?.services?.[serviceKey]) {
 		delete config.http.services[serviceKey];
@@ -47,7 +68,11 @@ export const removeDomain = async (appName: string, uniqueKey: number) => {
 	}
 };
 
-const createRouterConfig = async (app: ApplicationNested, domain: Domain) => {
+export const createRouterConfig = async (
+	app: ApplicationNested,
+	domain: Domain,
+	entryPoint: "web" | "websecure",
+) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
@@ -56,32 +81,33 @@ const createRouterConfig = async (app: ApplicationNested, domain: Domain) => {
 		rule: `Host(\`${host}\`)${path ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
-		entryPoints: https
-			? ["web", ...(process.env.NODE_ENV === "production" ? ["websecure"] : [])]
-			: ["web"],
-		tls: {},
+		entryPoints: [entryPoint],
 	};
 
-	if (https) {
+	if (entryPoint === "web" && https) {
 		routerConfig.middlewares = ["redirect-to-https"];
 	}
 
-	// redirects
-	for (const redirect of redirects) {
-		const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
-		routerConfig.middlewares?.push(middlewareName);
+	if ((entryPoint === "websecure" && https) || !https) {
+		// redirects
+		for (const redirect of redirects) {
+			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
+			routerConfig.middlewares?.push(middlewareName);
+		}
+
+		// security
+		if (security.length > 0) {
+			const middlewareName = `auth-${appName}`;
+			routerConfig.middlewares?.push(middlewareName);
+		}
 	}
 
-	// security
-	if (security.length > 0) {
-		const middlewareName = `auth-${appName}`;
-		routerConfig.middlewares?.push(middlewareName);
-	}
-
-	if (certificateType === "letsencrypt") {
-		routerConfig.tls = { certResolver: "letsencrypt" };
-	} else if (certificateType === "none") {
-		routerConfig.tls = undefined;
+	if (entryPoint === "websecure") {
+		if (certificateType === "letsencrypt") {
+			routerConfig.tls = { certResolver: "letsencrypt" };
+		} else if (certificateType === "none") {
+			routerConfig.tls = undefined;
+		}
 	}
 
 	return routerConfig;
