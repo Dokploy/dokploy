@@ -31,6 +31,7 @@ export const ShowMonitoringCompose = ({
 	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName: appName,
+			appType,
 		},
 		{
 			enabled: !!appName,
