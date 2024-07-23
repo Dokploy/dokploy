@@ -32,7 +32,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		},
 	);
 
-	const envForm = useForm<EnvironmentSchema>({
+	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
 			env: data?.env || "",
 			buildArgs: data?.buildArgs || "",
@@ -40,7 +40,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		resolver: zodResolver(addEnvironmentSchema),
 	});
 
-	const onEnvSubmit = async (data: EnvironmentSchema) => {
+	const onSubmit = async (data: EnvironmentSchema) => {
 		mutateAsync({
 			env: data.env,
 			buildArgs: data.buildArgs,
@@ -56,9 +56,9 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Form {...envForm}>
+		<Form {...form}>
 			<form
-				onSubmit={envForm.handleSubmit(onEnvSubmit)}
+				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex w-full flex-col gap-5 "
 			>
 				<Card className="bg-background">
