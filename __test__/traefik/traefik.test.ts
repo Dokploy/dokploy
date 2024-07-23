@@ -18,7 +18,7 @@ const baseApp: ApplicationNested = {
 	cpuReservation: null,
 	createdAt: "",
 	customGitBranch: "",
-	customGitBuildPath: "/",
+	customGitBuildPath: "",
 	customGitSSHKey: "",
 	customGitUrl: "",
 	description: "",
