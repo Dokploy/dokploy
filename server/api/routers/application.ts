@@ -187,6 +187,7 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			await updateApplication(input.applicationId, {
 				env: input.env,
+				buildArgs: input.buildArgs,
 			});
 			return true;
 		}),

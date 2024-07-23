@@ -161,6 +161,21 @@ export const removeService = async (appName: string) => {
 export const prepareEnvironmentVariables = (env: string | null) =>
 	Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
 
+export const prepareBuildArgs = (input: string | null) => {
+	const pairs = (input ?? "").split("\n");
+
+	const jsonObject: Record<string, string> = {};
+
+	for (const pair of pairs) {
+		const [key, value] = pair.split("=");
+		if (key && value) {
+			jsonObject[key] = value;
+		}
+	}
+
+	return jsonObject;
+};
+
 export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 	if (!mounts || mounts.length === 0) {
 		return [];

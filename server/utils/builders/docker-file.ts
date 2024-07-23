@@ -1,5 +1,6 @@
 import type { WriteStream } from "node:fs";
 import { docker } from "@/server/constants";
+import { prepareBuildArgs } from "@/server/utils/docker/utils";
 import * as tar from "tar-fs";
 import type { ApplicationNested } from ".";
 import { getBuildAppDirectory } from "../filesystem/directory";
@@ -9,7 +10,7 @@ export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName, env } = application;
+	const { appName, env, buildArgs } = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -21,6 +22,7 @@ export const buildCustomDocker = async (
 
 		const stream = await docker.buildImage(tarStream, {
 			t: image,
+			buildargs: prepareBuildArgs(buildArgs),
 			dockerfile: dockerFilePath.substring(dockerFilePath.lastIndexOf("/") + 1),
 		});
 

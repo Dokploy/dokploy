@@ -107,6 +107,7 @@ export const applications = pgTable("application", {
 		.unique(),
 	description: text("description"),
 	env: text("env"),
+	buildArgs: text("buildArgs"),
 	memoryReservation: integer("memoryReservation"),
 	memoryLimit: integer("memoryLimit"),
 	cpuReservation: integer("cpuReservation"),
@@ -275,6 +276,7 @@ const createSchema = createInsertSchema(applications, {
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
+	buildArgs: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.number().optional(),
@@ -375,6 +377,7 @@ export const apiSaveEnvironmentVariables = createSchema
 	.pick({
 		applicationId: true,
 		env: true,
+		buildArgs: true,
 	})
 	.required();
 
