@@ -8,13 +8,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { ExternalLink, GlobeIcon, RefreshCcw } from "lucide-react";
+import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 import { AddDomain } from "./add-domain";
 import { DeleteDomain } from "./delete-domain";
 import { GenerateDomain } from "./generate-domain";
-import { UpdateDomain } from "./update-domain";
 
 interface Props {
 	applicationId: string;
@@ -43,7 +41,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 					<div className="flex flex-row gap-4 flex-wrap">
 						{data && data?.length > 0 && (
 							<AddDomain applicationId={applicationId}>
-								<GlobeIcon className="size-4" /> Add Domain
+								<Button>
+									<GlobeIcon className="size-4" /> Add Domain
+								</Button>
 							</AddDomain>
 						)}
 						{data && data?.length > 0 && (
@@ -61,7 +61,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 							</span>
 							<div className="flex flex-row gap-4 flex-wrap">
 								<AddDomain applicationId={applicationId}>
-									<GlobeIcon className="size-4" /> Add Domain
+									<Button>
+										<GlobeIcon className="size-4" /> Add Domain
+									</Button>
 								</AddDomain>
 
 								<GenerateDomain applicationId={applicationId} />
@@ -90,7 +92,14 @@ export const ShowDomains = ({ applicationId }: Props) => {
 											{item.https ? "HTTPS" : "HTTP"}
 										</Button>
 										<div className="flex flex-row gap-1">
-											<UpdateDomain domainId={item.domainId} />
+											<AddDomain
+												applicationId={applicationId}
+												domainId={item.domainId}
+											>
+												<Button variant="ghost">
+													<PenBoxIcon className="size-4 text-muted-foreground" />
+												</Button>
+											</AddDomain>
 											<DeleteDomain domainId={item.domainId} />
 										</div>
 									</div>

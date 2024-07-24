@@ -29,38 +29,52 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
 
-// const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
-// .regex(hostnameRegex
-const addDomain = z.object({
-	host: z.string().min(1, "Hostname is required"),
+const domain = z.object({
+	host: z.string().regex(hostnameRegex, { message: "Invalid hostname" }),
 	path: z.string().min(1),
-	port: z.number(),
+	port: z
+		.number()
+		.min(1, { message: "Port must be at least 1" })
+		.max(65535, { message: "Port must be 65535 or below" }),
 	https: z.boolean(),
 	certificateType: z.enum(["letsencrypt", "none"]),
 });
 
-type AddDomain = z.infer<typeof addDomain>;
+type Domain = z.infer<typeof domain>;
 
 interface Props {
 	applicationId: string;
-	children?: React.ReactNode;
+	domainId?: string;
+	children: React.ReactNode;
 }
 
 export const AddDomain = ({
 	applicationId,
-	children = <PlusIcon className="h-4 w-4" />,
+	domainId = "",
+	children,
 }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
+	const { data } = api.domain.one.useQuery(
+		{
+			domainId,
+		},
+		{
+			enabled: !!domainId,
+		},
+	);
 
-	const { mutateAsync, isError, error } = api.domain.create.useMutation();
+	const { mutateAsync, isError, error } = domainId
+		? api.domain.update.useMutation()
+		: api.domain.create.useMutation();
 
-	const form = useForm<AddDomain>({
+	const form = useForm<Domain>({
 		defaultValues: {
 			host: "",
 			https: false,
@@ -68,15 +82,29 @@ export const AddDomain = ({
 			port: 3000,
 			certificateType: "none",
 		},
-		resolver: zodResolver(addDomain),
+		resolver: zodResolver(domain),
 	});
 
 	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (data) {
+			form.reset(data);
+		}
+	}, [form, form.reset, data]);
 
-	const onSubmit = async (data: AddDomain) => {
+	const dictionary = {
+		success: domainId ? "Domain Updated" : "Domain Created",
+		error: domainId
+			? "Error to update the domain"
+			: "Error to create the domain",
+		submit: domainId ? "Update" : "Create",
+		dialogDescription: domainId
+			? "In this section you can edit a domain"
+			: "In this section you can add domains",
+	};
+
+	const onSubmit = async (data: Domain) => {
 		await mutateAsync({
+			domainId,
 			applicationId,
 			host: data.host,
 			https: data.https,
@@ -85,27 +113,27 @@ export const AddDomain = ({
 			certificateType: data.certificateType,
 		})
 			.then(async () => {
-				toast.success("Domain Created");
+				toast.success(dictionary.success);
 				await utils.domain.byApplicationId.invalidate({
 					applicationId,
 				});
 				await utils.application.readTraefikConfig.invalidate({ applicationId });
+				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the domain");
+				toast.error(dictionary.error);
+				setIsOpen(false);
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				<Button>{children}</Button>
+				{children}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
-					<DialogDescription>
-						In this section you can add custom domains
-					</DialogDescription>
+					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -169,33 +197,36 @@ export const AddDomain = ({
 										);
 									}}
 								/>
-								<FormField
-									control={form.control}
-									name="certificateType"
-									render={({ field }) => (
-										<FormItem className="col-span-2">
-											<FormLabel>Certificate</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value || ""}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a certificate" />
-													</SelectTrigger>
-												</FormControl>
+								{form.getValues().https && (
+									<FormField
+										control={form.control}
+										name="certificateType"
+										render={({ field }) => (
+											<FormItem className="col-span-2">
+												<FormLabel>Certificate</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || ""}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a certificate" />
+														</SelectTrigger>
+													</FormControl>
 
-												<SelectContent>
-													<SelectItem value="none">None</SelectItem>
-													<SelectItem value={"letsencrypt"}>
-														Letsencrypt (Default)
-													</SelectItem>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+													<SelectContent>
+														<SelectItem value="none">None</SelectItem>
+														<SelectItem value={"letsencrypt"}>
+															Letsencrypt (Default)
+														</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
 								<FormField
 									control={form.control}
 									name="https"
@@ -226,7 +257,7 @@ export const AddDomain = ({
 							form="hook-form"
 							type="submit"
 						>
-							Create
+							{dictionary.submit}
 						</Button>
 					</DialogFooter>
 				</Form>
