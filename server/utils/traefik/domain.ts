@@ -25,7 +25,6 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 		"web",
 	);
 
-	// if (domain.https && process.env.NODE_ENV === "production") {
 	if (domain.https) {
 		config.http.routers[routerNameSecure] = await createRouterConfig(
 			app,
