@@ -90,6 +90,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 		form,
 		data?.databaseName,
 		data?.databaseUser,
+		ip,
 	]);
 	return (
 		<>
