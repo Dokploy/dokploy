@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, chmodSync } from "node:fs";
 import path from "node:path";
 import type { CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
@@ -184,6 +184,9 @@ export const createDefaultTraefikConfig = () => {
 	const yamlStr = dump(configObject);
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(mainConfig, yamlStr, "utf8");
+	
+	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
+	chmodSync(acmeJsonPath, '600');
 };
 
 export const createDefaultMiddlewares = () => {
