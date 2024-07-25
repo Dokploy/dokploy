@@ -90,6 +90,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 		data?.databasePassword,
 		form,
 		data?.databaseUser,
+		ip,
 	]);
 
 	return (

@@ -92,6 +92,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 		data?.databasePassword,
 		form,
 		data?.databaseName,
+		ip,
 	]);
 
 	return (
