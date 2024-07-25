@@ -37,12 +37,11 @@ const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
 
 const domain = z.object({
 	host: z.string().regex(hostnameRegex, { message: "Invalid hostname" }),
-	path: z.string().min(1).nullable(),
+	path: z.string().min(1),
 	port: z
 		.number()
 		.min(1, { message: "Port must be at least 1" })
-		.max(65535, { message: "Port must be 65535 or below" })
-		.nullable(),
+		.max(65535, { message: "Port must be 65535 or below" }),
 	https: z.boolean(),
 	certificateType: z.enum(["letsencrypt", "none"]),
 });
@@ -75,20 +74,26 @@ export const AddDomain = ({
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
+	const defaultValues: Domain = {
+		host: "",
+		https: false,
+		path: "/",
+		port: 3000,
+		certificateType: "none",
+	};
+
 	const form = useForm<Domain>({
-		defaultValues: {
-			host: "",
-			https: false,
-			path: "/",
-			port: 3000,
-			certificateType: "none",
-		},
+		defaultValues,
 		resolver: zodResolver(domain),
 	});
 
 	useEffect(() => {
 		if (data) {
-			form.reset(data);
+			form.reset({
+				...data,
+				path: data.path || defaultValues.path,
+				port: data.port || defaultValues.port,
+			});
 		}
 	}, [form, form.reset, data]);
 
@@ -107,11 +112,7 @@ export const AddDomain = ({
 		await mutateAsync({
 			domainId,
 			applicationId,
-			host: data.host,
-			https: data.https,
-			path: data.path,
-			port: data.port,
-			certificateType: data.certificateType,
+			...data,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);
