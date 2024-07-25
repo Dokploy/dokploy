@@ -63,8 +63,8 @@ const baseDomain: Domain = {
 	domainId: "",
 	host: "",
 	https: false,
-	path: "",
-	port: 3000,
+	path: null,
+	port: null,
 	uniqueConfigKey: 1,
 };
 

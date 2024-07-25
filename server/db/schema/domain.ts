@@ -13,8 +13,8 @@ export const domains = pgTable("domain", {
 		.$defaultFn(() => nanoid()),
 	host: text("host").notNull(),
 	https: boolean("https").notNull().default(false),
-	port: integer("port").default(80).notNull(),
-	path: text("path").default("/").notNull(),
+	port: integer("port").default(80),
+	path: text("path").default("/"),
 	uniqueConfigKey: serial("uniqueConfigKey"),
 	createdAt: text("createdAt")
 		.notNull()

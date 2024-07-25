@@ -37,11 +37,12 @@ const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
 
 const domain = z.object({
 	host: z.string().regex(hostnameRegex, { message: "Invalid hostname" }),
-	path: z.string().min(1),
+	path: z.string().min(1).nullable(),
 	port: z
 		.number()
 		.min(1, { message: "Port must be at least 1" })
-		.max(65535, { message: "Port must be 65535 or below" }),
+		.max(65535, { message: "Port must be 65535 or below" })
+		.nullable(),
 	https: z.boolean(),
 	certificateType: z.enum(["letsencrypt", "none"]),
 });
