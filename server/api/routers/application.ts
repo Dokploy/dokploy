@@ -235,6 +235,7 @@ export const applicationRouter = createTRPCRouter({
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
 				customGitUrl: input.customGitUrl,
+				customGitSSHKeyId: input.customGitSSHKeyId,
 				sourceType: "git",
 				applicationStatus: "idle",
 			});
@@ -249,9 +250,9 @@ export const applicationRouter = createTRPCRouter({
 				await generateSSHKey(application.appName);
 				const file = await readRSAFile(application.appName);
 
-				await updateApplication(input.applicationId, {
-					customGitSSHKey: file,
-				});
+				// await updateApplication(input.applicationId, {
+				// 	customGitSSHKey: file,
+				// });
 			} catch (error) {}
 
 			return true;
@@ -261,9 +262,9 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
 			await removeRSAFiles(application.appName);
-			await updateApplication(input.applicationId, {
-				customGitSSHKey: null,
-			});
+			// await updateApplication(input.applicationId, {
+			// 	customGitSSHKey: null,
+			// });
 
 			return true;
 		}),

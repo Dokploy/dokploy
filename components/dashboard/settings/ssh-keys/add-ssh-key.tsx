@@ -127,6 +127,7 @@ export const AddSSHKey = ({ children }: Props) => {
 									<FormControl>
 										<Textarea
 											placeholder={"-----BEGIN RSA PRIVATE KEY-----"}
+											rows={5}
 											{...field}
 										/>
 									</FormControl>
@@ -143,16 +144,13 @@ export const AddSSHKey = ({ children }: Props) => {
 										<FormLabel>Public Key</FormLabel>
 									</div>
 									<FormControl>
-										<Textarea
-											placeholder={"ssh-rsa AAAAB3NzaC1yc2E"}
-											{...field}
-										/>
+										<Input placeholder={"ssh-rsa AAAAB3NzaC1yc2E"} {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
-						<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+						<DialogFooter>
 							<Button isLoading={isLoading} type="submit">
 								Create
 							</Button>

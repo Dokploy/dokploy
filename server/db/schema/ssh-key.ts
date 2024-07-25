@@ -1,4 +1,6 @@
+import { applications } from "@/server/db/schema/application";
 import { sshKeyCreate } from "@/server/db/validations";
+import { relations } from "drizzle-orm";
 import { pgTable, text, time } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
@@ -16,6 +18,10 @@ export const sshKeys = pgTable("ssh-key", {
 		.$defaultFn(() => new Date().toISOString()),
 	lastUsedAt: text("lastUsedAt"),
 });
+
+export const sshKeysRelations = relations(sshKeys, ({ many }) => ({
+	applications: many(applications),
+}));
 
 const createSchema = createInsertSchema(
 	sshKeys,

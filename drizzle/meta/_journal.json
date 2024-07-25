@@ -183,6 +183,13 @@
       "when": 1721633853118,
       "tag": "0025_lying_mephisto",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1721928706816,
+      "tag": "0026_yielding_king_cobra",
+      "breakpoints": true
     }
   ]
 }

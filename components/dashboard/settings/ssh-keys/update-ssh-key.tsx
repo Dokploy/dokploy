@@ -1,3 +1,4 @@
+import { DeleteSSHKey } from "@/components/dashboard/settings/ssh-keys/delete-ssh-key";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -135,7 +136,7 @@ export const UpdateSSHKey = ({ children, sshKeyId = "" }: Props) => {
 							<FormMessage />
 						</FormItem>
 
-						<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+						<DialogFooter>
 							<Button isLoading={isLoading} type="submit">
 								Update
 							</Button>

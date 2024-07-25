@@ -39,54 +39,54 @@ export const ShowDestinations = () => {
 							</AddSSHKey>
 						</div>
 					) : (
-						<div className="flex flex-col gap-4">
-							<div className="flex gap-4 text-xs px-3.5">
-								<div className="col-span-2 basis-4/12">Key</div>
-								<div className="basis-3/12">Added</div>
-								<div>Last Used</div>
-							</div>
-							{data?.map((sshKey) => (
-								<div
-									key={sshKey.sshKeyId}
-									className="flex gap-4 items-center border p-3.5 rounded-lg text-sm"
-								>
-									<div className="flex flex-col basis-4/12">
-										<span>{sshKey.name}</span>
-										{sshKey.description && (
-											<span className="text-xs text-muted-foreground">
-												{sshKey.description}
-											</span>
-										)}
-									</div>
-									<div className="basis-3/12">
-										{formatDistanceToNow(new Date(sshKey.createdAt), {
-											addSuffix: true,
-										})}
-									</div>
-									<div className="grow">
-										{sshKey.lastUsedAt
-											? formatDistanceToNow(new Date(sshKey.lastUsedAt), {
-													addSuffix: true,
-												})
-											: "Never"}
-									</div>
-									<div className="flex flex-row gap-1">
-										<UpdateSSHKey sshKeyId={sshKey.sshKeyId}>
-											<Button variant="ghost">
-												<PenBoxIcon className="size-4 text-muted-foreground" />
-											</Button>
-										</UpdateSSHKey>
-										<DeleteSSHKey sshKeyId={sshKey.sshKeyId} />
-									</div>
+						<div className="space-y-8">
+							<div className="flex flex-col gap-4">
+								<div className="flex gap-4 text-xs px-3.5">
+									<div className="col-span-2 basis-4/12">Key</div>
+									<div className="basis-3/12">Added</div>
+									<div>Last Used</div>
 								</div>
-							))}
-							<div>
-								<AddSSHKey>
-									<Button>
-										<KeyRoundIcon className="size-4" /> Add SSH Key
-									</Button>
-								</AddSSHKey>
+								{data?.map((sshKey) => (
+									<div
+										key={sshKey.sshKeyId}
+										className="flex gap-4 items-center border p-3.5 rounded-lg text-sm"
+									>
+										<div className="flex flex-col basis-4/12">
+											<span>{sshKey.name}</span>
+											{sshKey.description && (
+												<span className="text-xs text-muted-foreground">
+													{sshKey.description}
+												</span>
+											)}
+										</div>
+										<div className="basis-3/12">
+											{formatDistanceToNow(new Date(sshKey.createdAt), {
+												addSuffix: true,
+											})}
+										</div>
+										<div className="grow">
+											{sshKey.lastUsedAt
+												? formatDistanceToNow(new Date(sshKey.lastUsedAt), {
+														addSuffix: true,
+													})
+												: "Never"}
+										</div>
+										<div className="flex flex-row gap-1">
+											<UpdateSSHKey sshKeyId={sshKey.sshKeyId}>
+												<Button variant="ghost">
+													<PenBoxIcon className="size-4 text-muted-foreground" />
+												</Button>
+											</UpdateSSHKey>
+											<DeleteSSHKey sshKeyId={sshKey.sshKeyId} />
+										</div>
+									</div>
+								))}
 							</div>
+							<AddSSHKey>
+								<Button>
+									<KeyRoundIcon className="size-4" /> Add SSH Key
+								</Button>
+							</AddSSHKey>
 						</div>
 					)}
 				</CardContent>
