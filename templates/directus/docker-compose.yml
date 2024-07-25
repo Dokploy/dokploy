@@ -23,8 +23,8 @@ services:
     ports:
       - 8055
     volumes:
-      - ./uploads:/directus/uploads
-      - ./extensions:/directus/extensions
+      - ../files/uploads:/directus/uploads
+      - ../files/extensions:/directus/extensions
     depends_on:
       - cache
       - database
@@ -53,4 +53,4 @@ networks:
   dokploy-network:
     external: true
 volumes:
-  directus: 
+  directus:
