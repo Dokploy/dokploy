@@ -186,7 +186,11 @@ export const createDefaultTraefikConfig = () => {
 	writeFileSync(mainConfig, yamlStr, "utf8");
 	
 	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
-	chmodSync(acmeJsonPath, '600');
+	if (existsSync(acmeJsonPath)) {
+	    chmodSync(acmeJsonPath, '600');
+	} else {
+	    console.error(`File not found: ${acmeJsonPath}`);
+	}
 };
 
 export const createDefaultMiddlewares = () => {
