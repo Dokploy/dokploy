@@ -90,6 +90,13 @@ export const createDefaultServerTraefikConfig = () => {
 		console.log("Default traefik config already exists");
 		return;
 	}
+	
+	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
+	if (existsSync(acmeJsonPath)) {
+	    chmodSync(acmeJsonPath, '600');
+	} else {
+	    console.error(`File not found: ${acmeJsonPath}`);
+	}
 
 	const appName = "dokploy";
 	const serviceURLDefault = `http://${appName}:${process.env.PORT || 3000}`;
@@ -184,13 +191,6 @@ export const createDefaultTraefikConfig = () => {
 	const yamlStr = dump(configObject);
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(mainConfig, yamlStr, "utf8");
-	
-	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
-	if (existsSync(acmeJsonPath)) {
-	    chmodSync(acmeJsonPath, '600');
-	} else {
-	    console.error(`File not found: ${acmeJsonPath}`);
-	}
 };
 
 export const createDefaultMiddlewares = () => {
