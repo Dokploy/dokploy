@@ -19,7 +19,7 @@ const baseApp: ApplicationNested = {
 	createdAt: "",
 	customGitBranch: "",
 	customGitBuildPath: "",
-	customGitSSHKey: "",
+	customGitSSHKeyId: null,
 	customGitUrl: "",
 	description: "",
 	dockerfile: null,
