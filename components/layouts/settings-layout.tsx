@@ -54,6 +54,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										href: "/dashboard/settings/certificates",
 									},
 									{
+										title: "SSH Keys",
+										label: "",
+										icon: KeyRound,
+										href: "/dashboard/settings/ssh-keys",
+									},
+									{
 										title: "Users",
 										label: "",
 										icon: Users,
@@ -86,6 +92,7 @@ import {
 	Activity,
 	Bell,
 	Database,
+	KeyRound,
 	type LucideIcon,
 	Route,
 	Server,
