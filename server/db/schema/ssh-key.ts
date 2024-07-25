@@ -55,7 +55,9 @@ export const apiUpdateSshKey = createSchema
 	.pick({
 		name: true,
 		description: true,
+		lastUsedAt: true,
 	})
+	.partial()
 	.merge(
 		createSchema
 			.pick({

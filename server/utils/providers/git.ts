@@ -1,5 +1,6 @@
 import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
+import { updateSSHKeyById } from "@/server/api/services/ssh-key";
 import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
@@ -40,6 +41,13 @@ export const cloneGitRepository = async (
 			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
 		);
 
+		if (customGitSSHKeyId) {
+			await updateSSHKeyById({
+				sshKeyId: customGitSSHKeyId,
+				lastUsedAt: new Date().toISOString(),
+			});
+		}
+
 		await spawnAsync(
 			"git",
 			[
@@ -66,6 +74,7 @@ export const cloneGitRepository = async (
 				},
 			},
 		);
+
 		writeStream.write(`\nCloned Custom Git ${customGitUrl}: ✅\n`);
 	} catch (error) {
 		writeStream.write(`\nERROR Cloning Custom Git: ${error}: ❌\n`);
