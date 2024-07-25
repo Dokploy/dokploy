@@ -1,4 +1,3 @@
-import { AddSSHKey } from "@/components/dashboard/settings/ssh-keys/add-ssh-key";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -20,13 +19,10 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SelectSeparator } from "@radix-ui/react-select";
 import { KeyRoundIcon, LockIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 
 import { useEffect } from "react";
-import { flushSync } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,11 +49,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 
 	const { mutateAsync, isLoading } =
 		api.application.saveGitProdiver.useMutation();
-	// const { mutateAsync: generateSSHKey, isLoading: isGeneratingSSHKey } =
-	// 	api.application.generateSSHKey.useMutation();
 
-	// const { mutateAsync: removeSSHKey, isLoading: isRemovingSSHKey } =
-	// 	api.application.removeSSHKey.useMutation();
 	const form = useForm<GitProvider>({
 		defaultValues: {
 			branch: "",
@@ -152,7 +144,6 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 														<SelectItem value="none">None</SelectItem>
 														<SelectLabel>Keys ({sshKeys?.length})</SelectLabel>
 													</SelectGroup>
-													<SelectSeparator />
 												</SelectContent>
 											</Select>
 										</FormControl>

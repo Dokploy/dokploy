@@ -16,11 +16,6 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
 import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
-import {
-	generateSSHKey,
-	readSSHPublicKey,
-	removeSSHKey,
-} from "@/server/utils/filesystem/ssh";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import {
@@ -102,7 +97,6 @@ export const composeRouter = createTRPCRouter({
 				async () => await removeCompose(composeResult),
 				async () => await removeDeploymentsByComposeId(composeResult),
 				async () => await removeComposeDirectory(composeResult.appName),
-				async () => await removeSSHKey(composeResult.appName),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -181,38 +175,12 @@ export const composeRouter = createTRPCRouter({
 			const command = createCommand(compose);
 			return `docker ${command}`;
 		}),
-	generateSSHKey: protectedProcedure
-		.input(apiFindCompose)
-		.mutation(async ({ input }) => {
-			const compose = await findComposeById(input.composeId);
-			try {
-				await generateSSHKey(compose.appName);
-				const file = await readSSHPublicKey(compose.appName);
-
-				await updateCompose(input.composeId, {
-					customGitSSHKey: file,
-				});
-			} catch (error) {}
-
-			return true;
-		}),
 	refreshToken: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
 			await updateCompose(input.composeId, {
 				refreshToken: nanoid(),
 			});
-			return true;
-		}),
-	removeSSHKey: protectedProcedure
-		.input(apiFindCompose)
-		.mutation(async ({ input }) => {
-			const compose = await findComposeById(input.composeId);
-			await removeSSHKey(compose.appName);
-			await updateCompose(input.composeId, {
-				customGitSSHKey: null,
-			});
-
 			return true;
 		}),
 	deployTemplate: protectedProcedure

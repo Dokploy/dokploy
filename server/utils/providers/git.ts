@@ -39,7 +39,7 @@ export const cloneGitRepository = async (
 		writeStream.write(
 			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
 		);
-		console.log(customGitSSHKeyId);
+
 		await spawnAsync(
 			"git",
 			[

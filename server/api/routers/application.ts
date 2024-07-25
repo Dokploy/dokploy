@@ -32,11 +32,6 @@ import {
 	removeMonitoringDirectory,
 } from "@/server/utils/filesystem/directory";
 import {
-	generateSSHKey,
-	readSSHPublicKey,
-	removeSSHKey,
-} from "@/server/utils/filesystem/ssh";
-import {
 	readConfig,
 	removeTraefikConfig,
 	writeConfig,
@@ -130,7 +125,6 @@ export const applicationRouter = createTRPCRouter({
 				async () => await removeMonitoringDirectory(application?.appName),
 				async () => await removeTraefikConfig(application?.appName),
 				async () => await removeService(application?.appName),
-				async () => await removeSSHKey(application?.appName),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -239,32 +233,6 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "git",
 				applicationStatus: "idle",
 			});
-
-			return true;
-		}),
-	generateSSHKey: protectedProcedure
-		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
-			const application = await findApplicationById(input.applicationId);
-			try {
-				await generateSSHKey(application.appName);
-				const file = await readSSHPublicKey(application.appName);
-
-				// await updateApplication(input.applicationId, {
-				// 	customGitSSHKey: file,
-				// });
-			} catch (error) {}
-
-			return true;
-		}),
-	removeSSHKey: protectedProcedure
-		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
-			const application = await findApplicationById(input.applicationId);
-			await removeSSHKey(application.appName);
-			// await updateApplication(input.applicationId, {
-			// 	customGitSSHKey: null,
-			// });
 
 			return true;
 		}),
