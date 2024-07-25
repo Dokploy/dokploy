@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { sshKeyUpdate } from "@/server/db/validations";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { CopyIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -131,7 +133,24 @@ export const UpdateSSHKey = ({ children, sshKeyId = "" }: Props) => {
 						<FormItem>
 							<FormLabel>Public Key</FormLabel>
 							<FormControl>
-								<Textarea rows={7} readOnly disabled value={data?.publicKey} />
+								<div className="relative">
+									<Textarea
+										rows={7}
+										readOnly
+										disabled
+										value={data?.publicKey}
+									/>
+									<button
+										type="button"
+										className="absolute right-2 top-2"
+										onClick={() => {
+											copy(data?.publicKey || "Generate a SSH Key");
+											toast.success("SSH Copied to clipboard");
+										}}
+									>
+										<CopyIcon className="size-4" />
+									</button>
+								</div>
 							</FormControl>
 							<FormMessage />
 						</FormItem>

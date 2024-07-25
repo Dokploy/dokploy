@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { sshKeyCreate } from "@/server/db/validations";
+import { sshKeyCreate, type sshKeyType } from "@/server/db/validations";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type ReactNode, useState } from "react";
@@ -65,6 +65,18 @@ export const AddSSHKey = ({ children }: Props) => {
 			});
 	};
 
+	const onGenerateSSHKey = (type: z.infer<typeof sshKeyType>) =>
+		generateMutation
+			.mutateAsync(type)
+			.then(async (data) => {
+				toast.success("SSH Key Generated");
+				form.setValue("privateKey", data.privateKey);
+				form.setValue("publicKey", data.publicKey);
+			})
+			.catch(() => {
+				toast.error("Error to generate the SSH Key");
+			});
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
@@ -78,26 +90,26 @@ export const AddSSHKey = ({ children }: Props) => {
 							In this section you can add one of your keys or generate a new
 							one.
 						</div>
-						<Button
-							variant={"secondary"}
-							isLoading={generateMutation.isLoading}
-							className="max-sm:w-full"
-							onClick={async () => {
-								await generateMutation
-									.mutateAsync()
-									.then(async (data) => {
-										toast.success("SSH Key Generated");
-										form.setValue("privateKey", data.privateKey);
-										form.setValue("publicKey", data.publicKey);
-									})
-									.catch(() => {
-										toast.error("Error to generate the SSH Key");
-									});
-							}}
-							type="button"
-						>
-							Generate SSH Key
-						</Button>
+						<div className="flex gap-4">
+							<Button
+								variant={"secondary"}
+								disabled={generateMutation.isLoading}
+								className="max-sm:w-full"
+								onClick={() => onGenerateSSHKey("rsa")}
+								type="button"
+							>
+								Generate RSA SSH Key
+							</Button>
+							<Button
+								variant={"secondary"}
+								disabled={generateMutation.isLoading}
+								className="max-sm:w-full"
+								onClick={() => onGenerateSSHKey("ed25519")}
+								type="button"
+							>
+								Generate ED25519 SSH Key
+							</Button>
+						</div>
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}

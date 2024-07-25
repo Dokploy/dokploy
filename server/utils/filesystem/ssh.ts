@@ -10,16 +10,12 @@ const readSSHKey = async (id: string) => {
 		}
 
 		return {
-			privateKey: fs
-				.readFileSync(path.join(SSH_PATH, `${id}_rsa`), {
-					encoding: "utf-8",
-				})
-				.trim(),
-			publicKey: fs
-				.readFileSync(path.join(SSH_PATH, `${id}_rsa.pub`), {
-					encoding: "utf-8",
-				})
-				.trim(),
+			privateKey: fs.readFileSync(path.join(SSH_PATH, `${id}_rsa`), {
+				encoding: "utf-8",
+			}),
+			publicKey: fs.readFileSync(path.join(SSH_PATH, `${id}_rsa.pub`), {
+				encoding: "utf-8",
+			}),
 		};
 	} catch (error) {
 		throw error;
@@ -47,7 +43,7 @@ export const saveSSHKey = async (
 	publicKeyStream.end();
 };
 
-export const generateSSHKey = async () => {
+export const generateSSHKey = async (type: "rsa" | "ed25519" = "rsa") => {
 	const applicationDirectory = SSH_PATH;
 
 	if (!fs.existsSync(applicationDirectory)) {
@@ -66,7 +62,7 @@ export const generateSSHKey = async () => {
 
 	const args = [
 		"-t",
-		"rsa",
+		type,
 		"-b",
 		"4096",
 		"-C",

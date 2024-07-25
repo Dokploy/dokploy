@@ -1,6 +1,6 @@
 import { applications } from "@/server/db/schema/application";
 import { compose } from "@/server/db/schema/compose";
-import { sshKeyCreate } from "@/server/db/validations";
+import { sshKeyCreate, sshKeyType } from "@/server/db/validations";
 import { relations } from "drizzle-orm";
 import { pgTable, text, time } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -44,6 +44,8 @@ export const apiFindOneSshKey = createSchema
 		sshKeyId: true,
 	})
 	.required();
+
+export const apiGenerateSSHKey = sshKeyType;
 
 export const apiRemoveSshKey = createSchema
 	.pick({
