@@ -28,23 +28,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-const hostnameRegex = /^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/;
 
-const domain = z.object({
-	host: z.string().regex(hostnameRegex, { message: "Invalid hostname" }),
-	path: z.string().min(1),
-	port: z
-		.number()
-		.min(1, { message: "Port must be at least 1" })
-		.max(65535, { message: "Port must be 65535 or below" }),
-	https: z.boolean(),
-	certificateType: z.enum(["letsencrypt", "none"]),
-});
+import { domain } from "@/server/db/validations";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { flushSync } from "react-dom";
+import type z from "zod";
 
 type Domain = z.infer<typeof domain>;
 
@@ -74,16 +65,7 @@ export const AddDomain = ({
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const defaultValues: Domain = {
-		host: "",
-		https: false,
-		path: "/",
-		port: 3000,
-		certificateType: "none",
-	};
-
 	const form = useForm<Domain>({
-		defaultValues,
 		resolver: zodResolver(domain),
 	});
 
@@ -91,8 +73,9 @@ export const AddDomain = ({
 		if (data) {
 			form.reset({
 				...data,
-				path: data.path || defaultValues.path,
-				port: data.port || defaultValues.port,
+				/* Convert null to undefined */
+				path: data.path || undefined,
+				port: data.port || undefined,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -120,11 +103,19 @@ export const AddDomain = ({
 					applicationId,
 				});
 				await utils.application.readTraefikConfig.invalidate({ applicationId });
+
+				/*
+					Reset form if it was a new domain
+					Flushsync is needed for a bug witht he react-hook-form reset method
+					https://github.com/orgs/react-hook-form/discussions/7589#discussioncomment-10060621
+				*/
+				if (!domainId) {
+					flushSync(() => form.reset());
+				}
 				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error(dictionary.error);
-				setIsOpen(false);
 			});
 	};
 	return (
@@ -239,6 +230,7 @@ export const AddDomain = ({
 												<FormDescription>
 													Automatically provision SSL Certificate.
 												</FormDescription>
+												<FormMessage />
 											</div>
 											<FormControl>
 												<Switch
