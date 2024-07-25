@@ -42,6 +42,8 @@ export const AddSSHKey = ({ children }: Props) => {
 	const { mutateAsync, isError, error, isLoading } =
 		api.sshKey.create.useMutation();
 
+	const generateMutation = api.sshKey.generate.useMutation();
+
 	const form = useForm<SSHKey>({
 		resolver: zodResolver(sshKeyCreate),
 	});
@@ -71,8 +73,31 @@ export const AddSSHKey = ({ children }: Props) => {
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>SSH Key</DialogTitle>
-					<DialogDescription>
-						In this section you can add an SSH key
+					<DialogDescription className="space-y-4">
+						<div>
+							In this section you can add one of your keys or generate a new
+							one.
+						</div>
+						<Button
+							variant={"secondary"}
+							isLoading={generateMutation.isLoading}
+							className="max-sm:w-full"
+							onClick={async () => {
+								await generateMutation
+									.mutateAsync()
+									.then(async (data) => {
+										toast.success("SSH Key Generated");
+										form.setValue("privateKey", data.privateKey);
+										form.setValue("publicKey", data.publicKey);
+									})
+									.catch(() => {
+										toast.error("Error to generate the SSH Key");
+									});
+							}}
+							type="button"
+						>
+							Generate SSH Key
+						</Button>
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}

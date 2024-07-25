@@ -3,6 +3,29 @@ import * as path from "node:path";
 import { SSH_PATH } from "@/server/constants";
 import { spawnAsync } from "../process/spawnAsync";
 
+const readSSHKey = async (id: string) => {
+	try {
+		if (!fs.existsSync(SSH_PATH)) {
+			fs.mkdirSync(SSH_PATH, { recursive: true });
+		}
+
+		return {
+			privateKey: fs
+				.readFileSync(path.join(SSH_PATH, `${id}_rsa`), {
+					encoding: "utf-8",
+				})
+				.trim(),
+			publicKey: fs
+				.readFileSync(path.join(SSH_PATH, `${id}_rsa.pub`), {
+					encoding: "utf-8",
+				})
+				.trim(),
+		};
+	} catch (error) {
+		throw error;
+	}
+};
+
 export const saveSSHKey = async (
 	id: string,
 	publicKey: string,
@@ -24,21 +47,23 @@ export const saveSSHKey = async (
 	publicKeyStream.end();
 };
 
-export const generateSSHKey = async (id: string) => {
+export const generateSSHKey = async () => {
 	const applicationDirectory = SSH_PATH;
 
 	if (!fs.existsSync(applicationDirectory)) {
 		fs.mkdirSync(applicationDirectory, { recursive: true });
 	}
 
-	const keyPath = path.join(applicationDirectory, `${id}_rsa`);
+	const keyPath = path.join(applicationDirectory, "temp_rsa");
 
 	if (fs.existsSync(`${keyPath}`)) {
 		fs.unlinkSync(`${keyPath}`);
 	}
+
 	if (fs.existsSync(`${keyPath}.pub`)) {
 		fs.unlinkSync(`${keyPath}.pub`);
 	}
+
 	const args = [
 		"-t",
 		"rsa",
@@ -46,25 +71,18 @@ export const generateSSHKey = async (id: string) => {
 		"4096",
 		"-C",
 		"dokploy",
+		"-m",
+		"PEM",
 		"-f",
 		keyPath,
 		"-N",
 		"",
 	];
+
 	try {
 		await spawnAsync("ssh-keygen", args);
-		return keyPath;
-	} catch (error) {
-		throw error;
-	}
-};
-export const readSSHPublicKey = async (id: string) => {
-	try {
-		if (!fs.existsSync(SSH_PATH)) {
-			fs.mkdirSync(SSH_PATH, { recursive: true });
-		}
-		const keyPath = path.join(SSH_PATH, `${id}_rsa.pub`);
-		const data = fs.readFileSync(keyPath, { encoding: "utf-8" });
+		const data = await readSSHKey("temp");
+		await removeSSHKey("temp");
 		return data;
 	} catch (error) {
 		throw error;

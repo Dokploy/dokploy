@@ -10,6 +10,7 @@ import {
 	apiRemoveSshKey,
 	apiUpdateSshKey,
 } from "@/server/db/schema";
+import { generateSSHKey } from "@/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
 import {
 	createSshKey,
@@ -48,6 +49,9 @@ export const sshRouter = createTRPCRouter({
 	}),
 	all: adminProcedure.query(async () => {
 		return await db.query.sshKeys.findMany({});
+	}),
+	generate: protectedProcedure.mutation(async () => {
+		return await generateSSHKey();
 	}),
 	update: adminProcedure.input(apiUpdateSshKey).mutation(async ({ input }) => {
 		try {
