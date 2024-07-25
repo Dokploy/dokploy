@@ -18,8 +18,8 @@ import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import {
 	generateSSHKey,
-	readRSAFile,
-	removeRSAFiles,
+	readSSHPublicKey,
+	removeSSHKey,
 } from "@/server/utils/filesystem/ssh";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
@@ -102,7 +102,7 @@ export const composeRouter = createTRPCRouter({
 				async () => await removeCompose(composeResult),
 				async () => await removeDeploymentsByComposeId(composeResult),
 				async () => await removeComposeDirectory(composeResult.appName),
-				async () => await removeRSAFiles(composeResult.appName),
+				async () => await removeSSHKey(composeResult.appName),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -187,7 +187,7 @@ export const composeRouter = createTRPCRouter({
 			const compose = await findComposeById(input.composeId);
 			try {
 				await generateSSHKey(compose.appName);
-				const file = await readRSAFile(compose.appName);
+				const file = await readSSHPublicKey(compose.appName);
 
 				await updateCompose(input.composeId, {
 					customGitSSHKey: file,
@@ -208,7 +208,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
 			const compose = await findComposeById(input.composeId);
-			await removeRSAFiles(compose.appName);
+			await removeSSHKey(compose.appName);
 			await updateCompose(input.composeId, {
 				customGitSSHKey: null,
 			});

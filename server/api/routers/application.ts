@@ -33,8 +33,8 @@ import {
 } from "@/server/utils/filesystem/directory";
 import {
 	generateSSHKey,
-	readRSAFile,
-	removeRSAFiles,
+	readSSHPublicKey,
+	removeSSHKey,
 } from "@/server/utils/filesystem/ssh";
 import {
 	readConfig,
@@ -130,7 +130,7 @@ export const applicationRouter = createTRPCRouter({
 				async () => await removeMonitoringDirectory(application?.appName),
 				async () => await removeTraefikConfig(application?.appName),
 				async () => await removeService(application?.appName),
-				async () => await removeRSAFiles(application?.appName),
+				async () => await removeSSHKey(application?.appName),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -248,7 +248,7 @@ export const applicationRouter = createTRPCRouter({
 			const application = await findApplicationById(input.applicationId);
 			try {
 				await generateSSHKey(application.appName);
-				const file = await readRSAFile(application.appName);
+				const file = await readSSHPublicKey(application.appName);
 
 				// await updateApplication(input.applicationId, {
 				// 	customGitSSHKey: file,
@@ -261,7 +261,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
-			await removeRSAFiles(application.appName);
+			await removeSSHKey(application.appName);
 			// await updateApplication(input.applicationId, {
 			// 	customGitSSHKey: null,
 			// });

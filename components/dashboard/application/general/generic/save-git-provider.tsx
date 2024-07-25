@@ -37,7 +37,7 @@ const GitProviderSchema = z.object({
 	}),
 	branch: z.string().min(1, "Branch required"),
 	buildPath: z.string().min(1, "Build Path required"),
-	sshKey: z.string(),
+	sshKey: z.string().optional(),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -63,7 +63,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			branch: "",
 			buildPath: "/",
 			repositoryURL: "",
-			sshKey: "",
+			sshKey: undefined,
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -71,7 +71,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				sshKey: data.customGitSSHKeyId || "",
+				sshKey: data.customGitSSHKeyId || undefined,
 				branch: data.customGitBranch || "",
 				buildPath: data.customGitBuildPath || "/",
 				repositoryURL: data.customGitUrl || "",
@@ -84,7 +84,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			customGitBranch: values.branch,
 			customGitBuildPath: values.buildPath,
 			customGitUrl: values.repositoryURL,
-			customGitSSHKeyId: values.sshKey,
+			customGitSSHKeyId: values.sshKey === "none" ? null : values.sshKey,
 			applicationId,
 		})
 			.then(async () => {
@@ -149,6 +149,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 																{sshKey.name}
 															</SelectItem>
 														))}
+														<SelectItem value="none">None</SelectItem>
 														<SelectLabel>Keys ({sshKeys?.length})</SelectLabel>
 													</SelectGroup>
 													<SelectSeparator />

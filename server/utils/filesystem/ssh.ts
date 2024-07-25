@@ -3,14 +3,35 @@ import * as path from "node:path";
 import { SSH_PATH } from "@/server/constants";
 import { spawnAsync } from "../process/spawnAsync";
 
-export const generateSSHKey = async (appName: string) => {
+export const saveSSHKey = async (
+	id: string,
+	publicKey: string,
+	privateKey: string,
+) => {
+	const applicationDirectory = SSH_PATH;
+
+	const privateKeyPath = path.join(applicationDirectory, `${id}_rsa`);
+	const publicKeyPath = path.join(applicationDirectory, `${id}_rsa.pub`);
+
+	const privateKeyStream = fs.createWriteStream(privateKeyPath, {
+		mode: 0o400,
+	});
+	privateKeyStream.write(privateKey);
+	privateKeyStream.end();
+
+	const publicKeyStream = fs.createWriteStream(publicKeyPath, { mode: 0o400 });
+	publicKeyStream.write(publicKey);
+	publicKeyStream.end();
+};
+
+export const generateSSHKey = async (id: string) => {
 	const applicationDirectory = SSH_PATH;
 
 	if (!fs.existsSync(applicationDirectory)) {
 		fs.mkdirSync(applicationDirectory, { recursive: true });
 	}
 
-	const keyPath = path.join(applicationDirectory, `${appName}_rsa`);
+	const keyPath = path.join(applicationDirectory, `${id}_rsa`);
 
 	if (fs.existsSync(`${keyPath}`)) {
 		fs.unlinkSync(`${keyPath}`);
@@ -37,12 +58,12 @@ export const generateSSHKey = async (appName: string) => {
 		throw error;
 	}
 };
-export const readRSAFile = async (appName: string) => {
+export const readSSHPublicKey = async (id: string) => {
 	try {
 		if (!fs.existsSync(SSH_PATH)) {
 			fs.mkdirSync(SSH_PATH, { recursive: true });
 		}
-		const keyPath = path.join(SSH_PATH, `${appName}_rsa.pub`);
+		const keyPath = path.join(SSH_PATH, `${id}_rsa.pub`);
 		const data = fs.readFileSync(keyPath, { encoding: "utf-8" });
 		return data;
 	} catch (error) {
@@ -50,10 +71,10 @@ export const readRSAFile = async (appName: string) => {
 	}
 };
 
-export const removeRSAFiles = async (appName: string) => {
+export const removeSSHKey = async (id: string) => {
 	try {
-		const publicKeyPath = path.join(SSH_PATH, `${appName}_rsa.pub`);
-		const privateKeyPath = path.join(SSH_PATH, `${appName}_rsa`);
+		const publicKeyPath = path.join(SSH_PATH, `${id}_rsa.pub`);
+		const privateKeyPath = path.join(SSH_PATH, `${id}_rsa`);
 		await fs.promises.unlink(publicKeyPath);
 		await fs.promises.unlink(privateKeyPath);
 	} catch (error) {
