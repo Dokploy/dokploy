@@ -86,16 +86,17 @@ export const initializeTraefik = async () => {
 
 export const createDefaultServerTraefikConfig = () => {
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
-	if (existsSync(configFilePath)) {
-		console.log("Default traefik config already exists");
-		return;
-	}
+	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
 	
-	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
 	if (existsSync(acmeJsonPath)) {
 	    chmodSync(acmeJsonPath, '600');
 	} else {
 	    console.error(`File not found: ${acmeJsonPath}`);
+	}
+	
+	if (existsSync(configFilePath)) {
+	    console.log("Default traefik config already exists");
+	    return;
 	}
 
 	const appName = "dokploy";
@@ -191,6 +192,12 @@ export const createDefaultTraefikConfig = () => {
 	const yamlStr = dump(configObject);
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(mainConfig, yamlStr, "utf8");
+	const acmeJsonPath = "/etc/dokploy/traefik/dynamic/acme.json";
+	if (existsSync(acmeJsonPath)) {
+	    chmodSync(acmeJsonPath, '600');
+	} else {
+	    console.error(`File not found: ${acmeJsonPath}, func createDefaultTraefikConfig`);
+	}
 };
 
 export const createDefaultMiddlewares = () => {
