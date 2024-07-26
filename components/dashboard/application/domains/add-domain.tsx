@@ -34,7 +34,6 @@ import { toast } from "sonner";
 
 import { domain } from "@/server/db/validations";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { flushSync } from "react-dom";
 import type z from "zod";
 
 type Domain = z.infer<typeof domain>;
@@ -52,7 +51,7 @@ export const AddDomain = ({
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
-	const { data } = api.domain.one.useQuery(
+	const { data, refetch } = api.domain.one.useQuery(
 		{
 			domainId,
 		},
@@ -61,7 +60,7 @@ export const AddDomain = ({
 		},
 	);
 
-	const { mutateAsync, isError, error } = domainId
+	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
@@ -74,11 +73,15 @@ export const AddDomain = ({
 			form.reset({
 				...data,
 				/* Convert null to undefined */
-				path: data.path || undefined,
-				port: data.port || undefined,
+				path: data?.path || undefined,
+				port: data?.port || undefined,
 			});
 		}
-	}, [form, form.reset, data]);
+
+		if (!domainId) {
+			form.reset({});
+		}
+	}, [form, form.reset, data, isLoading]);
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
@@ -104,13 +107,8 @@ export const AddDomain = ({
 				});
 				await utils.application.readTraefikConfig.invalidate({ applicationId });
 
-				/*
-					Reset form if it was a new domain
-					Flushsync is needed for a bug witht he react-hook-form reset method
-					https://github.com/orgs/react-hook-form/discussions/7589#discussioncomment-10060621
-				*/
-				if (!domainId) {
-					flushSync(() => form.reset());
+				if (domainId) {
+					refetch();
 				}
 				setIsOpen(false);
 			})
