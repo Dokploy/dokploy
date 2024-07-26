@@ -1,5 +1,5 @@
 {
-  "id": "e5196aec-c724-4f9e-bb4e-81dca01905e4",
+  "id": "3dff4fa9-1d03-4748-b3ee-908c34324171",
   "prevId": "771c1412-7931-4f79-a789-055b0f51cf0f",
   "version": "6",
   "dialect": "postgresql",
@@ -2392,8 +2392,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customGitSSHKey": {
-          "name": "customGitSSHKey",
+        "customGitSSHKeyId": {
+          "name": "customGitSSHKeyId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2435,6 +2435,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
+          "name": "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk",
+          "tableFrom": "compose",
+          "tableTo": "ssh-key",
+          "columnsFrom": [
+            "customGitSSHKeyId"
+          ],
+          "columnsTo": [
+            "sshKeyId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "compose_projectId_project_projectId_fk": {
           "name": "compose_projectId_project_projectId_fk",
           "tableFrom": "compose",
