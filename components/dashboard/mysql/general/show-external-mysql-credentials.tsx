@@ -91,6 +91,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 		data?.databaseName,
 		data?.databaseUser,
 		form,
+		ip,
 	]);
 	return (
 		<>

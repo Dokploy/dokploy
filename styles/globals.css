@@ -102,12 +102,6 @@
   }
 }
 
-#terminal span {
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-  letter-spacing: 0px !important;
-}
-
 /* Codemirror */
 .cm-editor {
   @apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;

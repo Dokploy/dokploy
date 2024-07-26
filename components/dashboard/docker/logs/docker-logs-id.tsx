@@ -23,8 +23,11 @@ export const DockerLogsId: React.FC<Props> = ({ id, containerId }) => {
 			cursorBlink: true,
 			cols: 80,
 			rows: 30,
-			lineHeight: 1.4,
+			lineHeight: 1.25,
 			fontWeight: 400,
+			fontSize: 14,
+			fontFamily:
+				'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
 
 			convertEol: true,
 			theme: {
