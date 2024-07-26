@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import {
 	APPLICATIONS_PATH,
@@ -33,7 +34,17 @@ export const setupDirectories = () => {
 		try {
 			createDirectoryIfNotExist(dir);
 			if (dir === SSH_PATH) {
-				chmodSync(SSH_PATH, "600");
+				/* Changing SSH Keys permission to 600 keeping the SSH folder writable */
+				spawnSync("find", [
+					SSH_PATH,
+					"-type",
+					"f",
+					"-exec",
+					"chmod",
+					"600",
+					"{}",
+					";",
+				]);
 			}
 		} catch (error) {
 			console.log(error, " On path: ", dir);
