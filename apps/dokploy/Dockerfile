@@ -20,16 +20,16 @@ COPY . .
 
 RUN turbo prune dokploy --docker
 
-FROM base AS installer
+FROM base AS base-deps
 
 # Install dependencies only for production
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 
 # Copy install script for husky  Copy package.json and pnpm-lock.yaml
-COPY --from=builder /app/out/json .
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=builder /app/.husky/install.mjs ./.husky/install.mjs
+COPY --from=base-deps /app/out/json .
+COPY --from=base-deps /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=base-deps /app/.husky/install.mjs ./.husky/install.mjs
 
 FROM base-deps AS prod-deps
 
