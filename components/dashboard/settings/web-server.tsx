@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 import {
 	DropdownMenu,
@@ -37,6 +37,9 @@ export const WebServer = () => {
 		api.settings.reloadTraefik.useMutation();
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
+	const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
+		api.settings.toggleDashboard.useMutation();
+
 	const {
 		mutateAsync: cleanDockerBuilder,
 		isLoading: cleanDockerBuilderIsLoading,
@@ -107,6 +110,7 @@ export const WebServer = () => {
 										<span>View Traefik config</span>
 									</DropdownMenuItem>
 								</ShowServerTraefikConfig>
+
 								<ShowServerMiddlewareConfig>
 									<DropdownMenuItem
 										onSelect={(e) => e.preventDefault()}
@@ -124,8 +128,14 @@ export const WebServer = () => {
 					</DropdownMenu>
 
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild disabled={reloadTraefikIsLoading}>
-							<Button isLoading={reloadTraefikIsLoading} variant="outline">
+						<DropdownMenuTrigger
+							asChild
+							disabled={reloadTraefikIsLoading || toggleDashboardIsLoading}
+						>
+							<Button
+								isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
+								variant="outline"
+							>
 								Traefik
 							</Button>
 						</DropdownMenuTrigger>
@@ -157,6 +167,38 @@ export const WebServer = () => {
 										<span>View Traefik config</span>
 									</DropdownMenuItem>
 								</ShowMainTraefikConfig>
+								<DropdownMenuItem
+									onClick={async () => {
+										await toggleDashboard({
+											enableDashboard: true,
+										})
+											.then(async () => {
+												toast.success("Dashboard Enabled");
+											})
+											.catch(() => {
+												toast.error("Error to enable Dashboard");
+											});
+									}}
+									className="w-full cursor-pointer space-x-3"
+								>
+									<span>Enable Dashboard</span>
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={async () => {
+										await toggleDashboard({
+											enableDashboard: false,
+										})
+											.then(async () => {
+												toast.success("Dashboard Disabled");
+											})
+											.catch(() => {
+												toast.error("Error to disable Dashboard");
+											});
+									}}
+									className="w-full cursor-pointer space-x-3"
+								>
+									<span>Disable Dashboard</span>
+								</DropdownMenuItem>
 
 								<DockerTerminalModal appName="dokploy-traefik">
 									<DropdownMenuItem
