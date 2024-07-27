@@ -4,7 +4,7 @@
 node_modules
 .pnp
 .pnp.js
-.docker/
+.docker
 
 # Local env files
 .env

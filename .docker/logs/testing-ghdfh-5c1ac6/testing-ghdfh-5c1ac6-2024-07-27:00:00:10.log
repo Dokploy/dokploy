@@ -1,4 +1,0 @@
-Initializing deployment
-ERROR Cloning Custom Git: Error: Command failed: ssh-keyscan -p 22 github.com >> /Users/mauricio/Documents/Github/Personal/dokploy/.docker/ssh/known_hosts
-/bin/sh: /Users/mauricio/Documents/Github/Personal/dokploy/.docker/ssh/known_hosts: Permission denied
-: ❌
