@@ -17,6 +17,7 @@
 		"prepare": "node .husky/install.mjs"
 	},
 	"devDependencies": {
+		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
 		"tsx": "4.16.2",
 		"lint-staged": "^15.2.7",
