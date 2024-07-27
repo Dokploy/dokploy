@@ -34,17 +34,7 @@ export const setupDirectories = () => {
 		try {
 			createDirectoryIfNotExist(dir);
 			if (dir === SSH_PATH) {
-				/* Changing SSH Keys permission to 600 keeping the SSH folder writable */
-				spawnSync("find", [
-					SSH_PATH,
-					"-type",
-					"f",
-					"-exec",
-					"chmod",
-					"600",
-					"{}",
-					";",
-				]);
+				chmodSync(SSH_PATH, "700");
 			}
 		} catch (error) {
 			console.log(error, " On path: ", dir);
