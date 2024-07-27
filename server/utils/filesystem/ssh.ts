@@ -38,9 +38,7 @@ export const saveSSHKey = async (
 	privateKeyStream.write(privateKey);
 	privateKeyStream.end();
 
-	const publicKeyStream = fs.createWriteStream(publicKeyPath, { mode: 0o400 });
-	publicKeyStream.write(publicKey);
-	publicKeyStream.end();
+	fs.writeFileSync(publicKeyPath, publicKey);
 };
 
 export const generateSSHKey = async (type: "rsa" | "ed25519" = "rsa") => {
