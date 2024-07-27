@@ -14,16 +14,19 @@ RUN corepack enable
 WORKDIR /app
 
 FROM base AS base-deps
+
+RUN pnpm add -g turbo
+RUN turbo prune dokploy --docker
 # Install dependencies only for production
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 # Copy install script for husky
+
 COPY .husky/install.mjs ./.husky/install.mjs
 
 # Copy package.json and pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
-
-COPY turbo.json ./
+COPY --from=base-deps /app/out/json/ .
+COPY --from=base-deps /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
 FROM base-deps AS prod-deps
 
@@ -39,10 +42,10 @@ FROM base-deps AS build
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
-COPY . .
+COPY --from=pruner /app/out/full/ .
 
 # Build the application
-RUN pnpm --filter dokploy build
+RUN pnpm build
 
 FROM base AS production
 
