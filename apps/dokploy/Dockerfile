@@ -23,10 +23,12 @@ RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib
 # Copy install script for husky
 COPY .husky/install.mjs ./.husky/install.mjs
 
-RUN turbo prune dokploy --docker
 
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
+
+RUN turbo prune dokploy --docker
+
 
 FROM base-deps AS prod-deps
 
