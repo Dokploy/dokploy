@@ -39,7 +39,7 @@ export const spawnAsync = (
 			if (code === 0) {
 				resolve(stdout);
 			} else {
-				const err = new Error(`child exited with code ${code}`) as Error & {
+				const err = new Error(`${stderr.toString()}`) as Error & {
 					code: number;
 					stderr: BufferList;
 					stdout: BufferList;

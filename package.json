@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.4.0",
+	"version": "v0.5.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -17,7 +17,7 @@
 		"migration:run": "tsx -r dotenv/config migration.ts",
 		"migration:up": "drizzle-kit up --config ./server/db/drizzle.config.ts",
 		"migration:drop": "drizzle-kit drop --config ./server/db/drizzle.config.ts",
-		"db:push": "drizzle-kit --config ./server/db/drizzle.config.ts",
+		"db:push": "drizzle-kit push --config ./server/db/drizzle.config.ts",
 		"db:truncate": "tsx -r dotenv/config ./server/db/reset.ts",
 		"db:studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",

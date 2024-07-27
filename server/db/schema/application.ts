@@ -20,6 +20,7 @@ import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { applicationStatus } from "./shared";
+import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 
 export const sourceType = pgEnum("sourceType", [
@@ -107,6 +108,7 @@ export const applications = pgTable("application", {
 		.unique(),
 	description: text("description"),
 	env: text("env"),
+	buildArgs: text("buildArgs"),
 	memoryReservation: integer("memoryReservation"),
 	memoryLimit: integer("memoryLimit"),
 	cpuReservation: integer("cpuReservation"),
@@ -131,7 +133,12 @@ export const applications = pgTable("application", {
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
 	customGitBuildPath: text("customGitBuildPath"),
-	customGitSSHKey: text("customGitSSHKey"),
+	customGitSSHKeyId: text("customGitSSHKeyId").references(
+		() => sshKeys.sshKeyId,
+		{
+			onDelete: "set null",
+		},
+	),
 	dockerfile: text("dockerfile"),
 	// Drop
 	dropBuildPath: text("dropBuildPath"),
@@ -169,6 +176,10 @@ export const applicationsRelations = relations(
 			references: [projects.projectId],
 		}),
 		deployments: many(deployments),
+		customGitSSHKey: one(sshKeys, {
+			fields: [applications.customGitSSHKeyId],
+			references: [sshKeys.sshKeyId],
+		}),
 		domains: many(domains),
 		mounts: many(mounts),
 		redirects: many(redirects),
@@ -275,6 +286,7 @@ const createSchema = createInsertSchema(applications, {
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
+	buildArgs: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.number().optional(),
@@ -287,7 +299,7 @@ const createSchema = createInsertSchema(applications, {
 	dockerImage: z.string().optional(),
 	username: z.string().optional(),
 	password: z.string().optional(),
-	customGitSSHKey: z.string().optional(),
+	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
 	dockerfile: z.string().optional(),
 	branch: z.string().optional(),
@@ -369,12 +381,18 @@ export const apiSaveGitProvider = createSchema
 		customGitBuildPath: true,
 		customGitUrl: true,
 	})
-	.required();
+	.required()
+	.merge(
+		createSchema.pick({
+			customGitSSHKeyId: true,
+		}),
+	);
 
 export const apiSaveEnvironmentVariables = createSchema
 	.pick({
 		applicationId: true,
 		env: true,
+		buildArgs: true,
 	})
 	.required();
 

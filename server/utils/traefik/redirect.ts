@@ -10,10 +10,9 @@ import {
 
 export const updateRedirectMiddleware = (appName: string, data: Redirect) => {
 	const config = loadMiddlewares<FileConfig>();
+	const middlewareName = `redirect-${appName}-${data.uniqueConfigKey}`;
 
-	if (config?.http?.middlewares?.[appName]) {
-		const middlewareName = `${appName}-${data.uniqueConfigKey}`;
-
+	if (config?.http?.middlewares?.[middlewareName]) {
 		config.http.middlewares[middlewareName] = {
 			redirectRegex: {
 				regex: data.regex,

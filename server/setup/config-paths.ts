@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import {
 	APPLICATIONS_PATH,
 	BASE_PATH,
@@ -32,6 +33,9 @@ export const setupDirectories = () => {
 	for (const dir of directories) {
 		try {
 			createDirectoryIfNotExist(dir);
+			if (dir === SSH_PATH) {
+				chmodSync(SSH_PATH, "700");
+			}
 		} catch (error) {
 			console.log(error, " On path: ", dir);
 		}

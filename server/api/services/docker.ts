@@ -66,10 +66,18 @@ export const getConfig = async (containerId: string) => {
 	} catch (error) {}
 };
 
-export const getContainersByAppNameMatch = async (appName: string) => {
+export const getContainersByAppNameMatch = async (
+	appName: string,
+	appType?: "stack" | "docker-compose",
+) => {
 	try {
+		const cmd =
+			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'";
+
 		const { stdout, stderr } = await execAsync(
-			`docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}' | grep ${appName}`,
+			appType === "docker-compose"
+				? `${cmd} --filter='label=com.docker.compose.project=${appName}'`
+				: `${cmd} | grep ${appName}`,
 		);
 
 		if (stderr) {

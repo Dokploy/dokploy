@@ -23,10 +23,15 @@ services:
     networks:
       - dokploy-network
     volumes:
-      - ./config.toml:/listmonk/config.toml
+      - ../files/config.toml:/listmonk/config.toml
     depends_on:
       - db
-    command: [sh, -c, "sleep 3 && ./listmonk --install --idempotent --yes --config config.toml"]
+    command:
+      [
+        sh,
+        -c,
+        "sleep 3 && ./listmonk --install --idempotent --yes --config config.toml",
+      ]
 
   app:
     restart: unless-stopped
@@ -41,7 +46,7 @@ services:
       - db
       - setup
     volumes:
-      - ./config.toml:/listmonk/config.toml
+      - ../files/config.toml:/listmonk/config.toml
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.${HASH}.rule=Host(`${LISTMONK_HOST}`)"
@@ -50,7 +55,7 @@ services:
 volumes:
   listmonk-data:
     driver: local
-    
+
 networks:
   dokploy-network:
     external: true

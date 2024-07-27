@@ -378,4 +378,19 @@ export const templates: TemplateData[] = [
 		tags: ["analytics"],
 		load: () => import("./umami/index").then((m) => m.generate),
 	},
+	{
+		id: "jellyfin",
+		name: "jellyfin",
+		version: "v10.9.7",
+		description:
+			"Jellyfin is a Free Software Media System that puts you in control of managing and streaming your media. ",
+		logo: "jellyfin.svg",
+		links: {
+			github: "https://github.com/jellyfin/jellyfin",
+			website: "https://jellyfin.org/",
+			docs: "https://jellyfin.org/docs/",
+		},
+		tags: ["media system"],
+		load: () => import("./jellyfin/index").then((m) => m.generate),
+	},
 ];

@@ -32,11 +32,6 @@ import {
 	removeMonitoringDirectory,
 } from "@/server/utils/filesystem/directory";
 import {
-	generateSSHKey,
-	readRSAFile,
-	removeRSAFiles,
-} from "@/server/utils/filesystem/ssh";
-import {
 	readConfig,
 	removeTraefikConfig,
 	writeConfig,
@@ -130,7 +125,6 @@ export const applicationRouter = createTRPCRouter({
 				async () => await removeMonitoringDirectory(application?.appName),
 				async () => await removeTraefikConfig(application?.appName),
 				async () => await removeService(application?.appName),
-				async () => await removeRSAFiles(application?.appName),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -187,6 +181,7 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			await updateApplication(input.applicationId, {
 				env: input.env,
+				buildArgs: input.buildArgs,
 			});
 			return true;
 		}),
@@ -234,34 +229,9 @@ export const applicationRouter = createTRPCRouter({
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
 				customGitUrl: input.customGitUrl,
+				customGitSSHKeyId: input.customGitSSHKeyId,
 				sourceType: "git",
 				applicationStatus: "idle",
-			});
-
-			return true;
-		}),
-	generateSSHKey: protectedProcedure
-		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
-			const application = await findApplicationById(input.applicationId);
-			try {
-				await generateSSHKey(application.appName);
-				const file = await readRSAFile(application.appName);
-
-				await updateApplication(input.applicationId, {
-					customGitSSHKey: file,
-				});
-			} catch (error) {}
-
-			return true;
-		}),
-	removeSSHKey: protectedProcedure
-		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
-			const application = await findApplicationById(input.applicationId);
-			await removeRSAFiles(application.appName);
-			await updateApplication(input.applicationId, {
-				customGitSSHKey: null,
 			});
 
 			return true;

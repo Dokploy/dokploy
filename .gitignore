@@ -52,6 +52,7 @@ yarn-error.log*
 # otros
 /.data
 /.main
+.vscode
 
 *.lockb
 *.rdb

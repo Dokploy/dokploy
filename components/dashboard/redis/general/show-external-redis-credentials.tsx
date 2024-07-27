@@ -85,7 +85,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 		};
 
 		setConnectionUrl(buildConnectionUrl());
-	}, [data?.appName, data?.externalPort, data?.databasePassword, form]);
+	}, [data?.appName, data?.externalPort, data?.databasePassword, form, ip]);
 	return (
 		<>
 			<div className="flex w-full flex-col gap-5 ">

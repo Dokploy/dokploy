@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
@@ -11,7 +11,7 @@ const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
 const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 
-export const initializeTraefik = async () => {
+export const initializeTraefik = async (enableDashboard = false) => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
@@ -59,11 +59,15 @@ export const initializeTraefik = async () => {
 					PublishedPort: TRAEFIK_PORT,
 					PublishMode: "host",
 				},
-				{
-					TargetPort: 8080,
-					PublishedPort: 8080,
-					PublishMode: "host",
-				},
+				...(enableDashboard
+					? [
+							{
+								TargetPort: 8080,
+								PublishedPort: 8080,
+								PublishMode: "host" as const,
+							},
+						]
+					: []),
 			],
 		},
 	};
@@ -86,6 +90,7 @@ export const initializeTraefik = async () => {
 
 export const createDefaultServerTraefikConfig = () => {
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
+
 	if (existsSync(configFilePath)) {
 		console.log("Default traefik config already exists");
 		return;
@@ -125,6 +130,11 @@ export const createDefaultServerTraefikConfig = () => {
 
 export const createDefaultTraefikConfig = () => {
 	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
+	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
+
+	if (existsSync(acmeJsonPath)) {
+		chmodSync(acmeJsonPath, "600");
+	}
 	if (existsSync(mainConfig)) {
 		console.log("Main config already exists");
 		return;

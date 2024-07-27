@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 services:
   web:
     image: odoo:16.0
@@ -18,8 +18,8 @@ services:
       - "traefik.http.services.${HASH}.loadbalancer.server.port=${ODOO_PORT}"
     volumes:
       - odoo-web-data:/var/lib/odoo
-      - ./config:/etc/odoo
-      - ./addons:/mnt/extra-addons
+      - ../files/config:/etc/odoo
+      - ../files/addons:/mnt/extra-addons
 
   db:
     image: postgres:13
@@ -35,7 +35,6 @@ services:
 volumes:
   odoo-web-data:
   odoo-db-data:
-
 
 networks:
   dokploy-network:
