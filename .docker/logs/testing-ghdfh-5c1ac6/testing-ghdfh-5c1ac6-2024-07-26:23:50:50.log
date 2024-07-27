@@ -1,0 +1,8 @@
+Initializing deployment
+Build nixpacks: ✅
+Source Type: github: ✅
+Error: Failed to read app source directory
+
+Caused by:
+    No such file or directory (os error 2)
+Error ❌

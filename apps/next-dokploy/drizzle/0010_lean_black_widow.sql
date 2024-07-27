@@ -1,1 +1,0 @@
-ALTER TABLE "registry" ADD COLUMN "imagePrefix" text NOT NULL;

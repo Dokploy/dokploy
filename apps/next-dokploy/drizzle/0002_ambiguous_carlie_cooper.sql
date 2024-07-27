@@ -1,1 +1,0 @@
-ALTER TABLE "auth" ADD COLUMN "is2FAEnabled" boolean DEFAULT false NOT NULL;

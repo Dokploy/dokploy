@@ -1,1 +1,0 @@
-ALTER TABLE "auth" ADD COLUMN "secret" text;

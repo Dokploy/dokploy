@@ -1,1 +1,0 @@
-ALTER TABLE "admin" ADD COLUMN "githubWebhookSecret" text;

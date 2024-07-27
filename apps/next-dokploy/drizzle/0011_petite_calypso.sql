@@ -1,1 +1,0 @@
-ALTER TABLE "registry" ALTER COLUMN "imagePrefix" DROP NOT NULL;
