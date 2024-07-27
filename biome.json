@@ -1,34 +1,34 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"ignore": ["node_modules/**", ".next/**", "drizzle/**", ".docker"]
+	},
 	"organizeImports": {
-		"enabled": false
+		"enabled": true
 	},
 	"linter": {
-		"enabled": true,
 		"rules": {
-			"recommended": true,
-			"style": {
-				"useImportType": "off"
+			"complexity": {
+				"noUselessCatch": "off",
+				"noBannedTypes": "off"
 			},
 			"correctness": {
-				"useExhaustiveDependencies": "off"
+				"useExhaustiveDependencies": "off",
+				"noUnsafeOptionalChaining": "off"
+			},
+			"style": {
+				"noNonNullAssertion": "off"
 			},
 			"suspicious": {
-				"noArrayIndexKey": "off"
+				"noArrayIndexKey": "off",
+				"noExplicitAny": "off",
+				"noRedeclare": "off"
 			},
 			"a11y": {
-				"noSvgWithoutTitle": "off"
+				"noSvgWithoutTitle": "off",
+				"useKeyWithClickEvents": "off",
+				"useAriaPropsForRole": "off"
 			}
 		}
-	},
-	"formatter": {
-		"enabled": true,
-		"ignore": [
-			"node_modules/*",
-			"*.config.*",
-			"*.json",
-			"tsconfig.json",
-			".turbo"
-		]
 	}
 }
