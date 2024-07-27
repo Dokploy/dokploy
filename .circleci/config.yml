@@ -19,8 +19,8 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
-            docker push dokploy/dokploy:${TAG}-amd64
+            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f apps/dokploy/Dockerfile .
+            # docker push dokploy/dokploy:${TAG}-amd64
 
   build-arm64:
     machine:
@@ -41,8 +41,8 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
-            docker push dokploy/dokploy:${TAG}-arm64
+            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 -f apps/dokploy/Dockerfile .
+            # docker push dokploy/dokploy:${TAG}-arm64
 
   combine-manifests:
     docker:
@@ -78,7 +78,6 @@ jobs:
             fi
 
 workflows:
-  version: 2
   build-all:
     jobs:
       - build-amd64:
@@ -87,12 +86,14 @@ workflows:
               only:
                 - main
                 - canary
+                - feat/monorepo
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
+                - feat/monorepo
       - combine-manifests:
           requires:
             - build-amd64
