@@ -93,3 +93,7 @@ export const apiModifyTraefikConfig = z.object({
 export const apiReadTraefikConfig = z.object({
 	path: z.string().min(1),
 });
+
+export const apiEnableDashboard = z.object({
+	enableDashboard: z.boolean().optional(),
+});
