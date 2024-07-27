@@ -42,7 +42,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 
 # Build the application
-RUN pnpm build
+RUN pnpm --filter dokploy build
 
 FROM base AS production
 
