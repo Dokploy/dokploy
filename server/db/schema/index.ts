@@ -22,3 +22,4 @@ export * from "./shared";
 export * from "./compose";
 export * from "./registry";
 export * from "./notification";
+export * from "./ssh-key";

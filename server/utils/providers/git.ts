@@ -1,5 +1,6 @@
 import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
+import { updateSSHKeyById } from "@/server/api/services/ssh-key";
 import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
@@ -11,12 +12,12 @@ export const cloneGitRepository = async (
 		appName: string;
 		customGitUrl?: string | null;
 		customGitBranch?: string | null;
-		customGitSSHKey?: string | null;
+		customGitSSHKeyId?: string | null;
 	},
 	logPath: string,
 	isCompose = false,
 ) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKey } = entity;
+	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -26,7 +27,7 @@ export const cloneGitRepository = async (
 	}
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const keyPath = path.join(SSH_PATH, `${appName}_rsa`);
+	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
@@ -39,6 +40,13 @@ export const cloneGitRepository = async (
 		writeStream.write(
 			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
 		);
+
+		if (customGitSSHKeyId) {
+			await updateSSHKeyById({
+				sshKeyId: customGitSSHKeyId,
+				lastUsedAt: new Date().toISOString(),
+			});
+		}
 
 		await spawnAsync(
 			"git",
@@ -60,12 +68,13 @@ export const cloneGitRepository = async (
 			{
 				env: {
 					...process.env,
-					...(customGitSSHKey && {
+					...(customGitSSHKeyId && {
 						GIT_SSH_COMMAND: `ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}`,
 					}),
 				},
 			},
 		);
+
 		writeStream.write(`\nCloned Custom Git ${customGitUrl}: ✅\n`);
 	} catch (error) {
 		writeStream.write(`\nERROR Cloning Custom Git: ${error}: ❌\n`);
