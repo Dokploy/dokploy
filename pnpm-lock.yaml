@@ -20,6 +20,9 @@ importers:
       '@types/node':
         specifier: ^18.17.0
         version: 18.19.42
+      esbuild:
+        specifier: 0.20.2
+        version: 0.20.2
       husky:
         specifier: ^9.0.11
         version: 9.1.3
