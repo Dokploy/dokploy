@@ -58,7 +58,7 @@ Compose Type: ${composeType} ✅`;
 
 		writeStream.write("Docker Compose Deployed: ✅");
 	} catch (error) {
-		writeStream.write(`ERROR: ${error}: ❌`);
+		writeStream.write("Error ❌");
 		throw error;
 	} finally {
 		writeStream.end();
