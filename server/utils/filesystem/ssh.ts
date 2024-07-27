@@ -33,7 +33,7 @@ export const saveSSHKey = async (
 	const publicKeyPath = path.join(applicationDirectory, `${id}_rsa.pub`);
 
 	const privateKeyStream = fs.createWriteStream(privateKeyPath, {
-		mode: 0o400,
+		mode: 0o600,
 	});
 	privateKeyStream.write(privateKey);
 	privateKeyStream.end();
