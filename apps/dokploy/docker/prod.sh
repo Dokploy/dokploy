@@ -70,7 +70,7 @@ echo "Network created"
 
 mkdir -p /etc/dokploy
 
-chmod -R 777 /etc/dokploy
+chmod 777 /etc/dokploy
 
 docker pull dokploy/dokploy:latest
 

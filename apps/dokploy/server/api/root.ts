@@ -23,6 +23,7 @@ import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
 import { securityRouter } from "./routers/security";
 import { settingsRouter } from "./routers/settings";
+import { sshRouter } from "./routers/ssh-key";
 import { userRouter } from "./routers/user";
 
 /**
@@ -56,6 +57,7 @@ export const appRouter = createTRPCRouter({
 	registry: registryRouter,
 	cluster: clusterRouter,
 	notification: notificationRouter,
+	sshKey: sshRouter,
 });
 
 // export type definition of API

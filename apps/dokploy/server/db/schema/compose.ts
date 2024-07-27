@@ -1,3 +1,4 @@
+import { sshKeys } from "@/server/db/schema/ssh-key";
 import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
@@ -41,7 +42,12 @@ export const compose = pgTable("compose", {
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
-	customGitSSHKey: text("customGitSSHKey"),
+	customGitSSHKeyId: text("customGitSSHKeyId").references(
+		() => sshKeys.sshKeyId,
+		{
+			onDelete: "set null",
+		},
+	),
 	//
 	command: text("command").notNull().default(""),
 	//
@@ -62,6 +68,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	}),
 	deployments: many(deployments),
 	mounts: many(mounts),
+	customGitSSHKey: one(sshKeys, {
+		fields: [compose.customGitSSHKeyId],
+		references: [sshKeys.sshKeyId],
+	}),
 }));
 
 const createSchema = createInsertSchema(compose, {
@@ -70,6 +80,7 @@ const createSchema = createInsertSchema(compose, {
 	env: z.string().optional(),
 	composeFile: z.string().min(1),
 	projectId: z.string(),
+	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),

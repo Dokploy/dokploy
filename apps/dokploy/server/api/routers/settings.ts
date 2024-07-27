@@ -1,12 +1,14 @@
 import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
 import {
 	apiAssignDomain,
+	apiEnableDashboard,
 	apiModifyTraefikConfig,
 	apiReadTraefikConfig,
 	apiSaveSSHKey,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
+import { initializeTraefik } from "@/server/setup/traefik-setup";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -67,6 +69,13 @@ export const settingsRouter = createTRPCRouter({
 
 		return true;
 	}),
+	toggleDashboard: adminProcedure
+		.input(apiEnableDashboard)
+		.mutation(async ({ input }) => {
+			await initializeTraefik(input.enableDashboard);
+			return true;
+		}),
+
 	cleanUnusedImages: adminProcedure.mutation(async () => {
 		await cleanUpUnusedImages();
 		return true;

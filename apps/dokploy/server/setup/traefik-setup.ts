@@ -11,7 +11,7 @@ const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
 const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 
-export const initializeTraefik = async () => {
+export const initializeTraefik = async (enableDashboard = false) => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
@@ -59,11 +59,15 @@ export const initializeTraefik = async () => {
 					PublishedPort: TRAEFIK_PORT,
 					PublishMode: "host",
 				},
-				{
-					TargetPort: 8080,
-					PublishedPort: 8080,
-					PublishMode: "host",
-				},
+				...(enableDashboard
+					? [
+							{
+								TargetPort: 8080,
+								PublishedPort: 8080,
+								PublishMode: "host" as const,
+							},
+						]
+					: []),
 			],
 		},
 	};
