@@ -61,14 +61,14 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y curl apache2-utils && rm -rf /var/lib/apt/lists/*
 
 # Copy the rest of the source code
-COPY --from=build /app/apps/dokploy/.next ./apps/dokploy/.next
-COPY --from=build /app/apps/dokploy/dist ./apps/dokploy/dist
-COPY --from=build /app/apps/dokploy/next.config.mjs ./apps/dokploy/next.config.mjs
-COPY --from=build /app/apps/dokploy/public ./apps/dokploy/public
-COPY --from=build /app/apps/dokploy/package.json ./apps/dokploy/package.json
-COPY --from=build /app/apps/dokploy/drizzle ./apps/dokploy/drizzle
-COPY --from=build /app/apps/dokploy/.env.production ./apps/dokploy/.env
-COPY --from=build /app/apps/dokploy/components.json ./apps/dokploy/components.json
+COPY --from=build /app/apps/dokploy/.next ./.next
+COPY --from=build /app/apps/dokploy/dist ./dist
+COPY --from=build /app/apps/dokploy/next.config.mjs ./next.config.mjs
+COPY --from=build /app/apps/dokploy/public ./public
+COPY --from=build /app/apps/dokploy/package.json ./package.json
+COPY --from=build /app/apps/dokploy/drizzle ./drizzle
+COPY --from=build /app/apps/dokploy/.env.production ./.env
+COPY --from=build /app/apps/dokploy/components.json ./components.json
 COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Install docker
