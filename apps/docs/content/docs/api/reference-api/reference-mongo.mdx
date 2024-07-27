@@ -1,0 +1,1261 @@
+---
+title: mongo
+full: true
+---
+
+import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, ExampleResponse, TypeScriptResponse, Property, ObjectCollapsible, Requests, Request } from "fumadocs-ui/components/api";
+
+<Root>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.create"}>
+
+## mongo-create
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"appName"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"dockerImage"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Default:  `"mongo:15"`</span>
+
+</Property>
+
+<Property name={"projectId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"databaseUser"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"databasePassword"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.create" \
+  -d '{
+  "name": "string",
+  "appName": "string",
+  "dockerImage": "mongo:15",
+  "projectId": "string",
+  "description": "string",
+  "databaseUser": "string",
+  "databasePassword": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.create", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/mongo.one"}>
+
+## mongo-one
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/mongo.one?mongoId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.one?mongoId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.start"}>
+
+## mongo-start
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.start" \
+  -d '{
+  "mongoId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.start", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.stop"}>
+
+## mongo-stop
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.stop" \
+  -d '{
+  "mongoId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.stop", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.saveExternalPort"}>
+
+## mongo-saveExternalPort
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"externalPort"} type={"number | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.saveExternalPort" \
+  -d '{
+  "mongoId": "string",
+  "externalPort": 0
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.saveExternalPort", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.deploy"}>
+
+## mongo-deploy
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.deploy" \
+  -d '{
+  "mongoId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.deploy", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.changeStatus"}>
+
+## mongo-changeStatus
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationStatus"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Value in:  `"idle" | "running" | "done" | "error"`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.changeStatus" \
+  -d '{
+  "mongoId": "string",
+  "applicationStatus": "idle"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.changeStatus", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.reload"}>
+
+## mongo-reload
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"appName"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.reload" \
+  -d '{
+  "mongoId": "string",
+  "appName": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.reload", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.remove"}>
+
+## mongo-remove
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.remove" \
+  -d '{
+  "mongoId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.remove", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.saveEnvironment"}>
+
+## mongo-saveEnvironment
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"env"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.saveEnvironment" \
+  -d '{
+  "mongoId": "string",
+  "env": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.saveEnvironment", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mongo.update"}>
+
+## mongo-update
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mongoId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"name"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"appName"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"databaseUser"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"databasePassword"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"dockerImage"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Default:  `"mongo:15"`</span>
+
+</Property>
+
+<Property name={"command"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"env"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"memoryReservation"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"memoryLimit"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"cpuReservation"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"cpuLimit"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"externalPort"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationStatus"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"idle" | "running" | "done" | "error"`</span>
+
+</Property>
+
+<Property name={"createdAt"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"projectId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mongo.update" \
+  -d '{
+  "mongoId": "string",
+  "name": "string",
+  "appName": "string",
+  "description": "string",
+  "databaseUser": "string",
+  "databasePassword": "string",
+  "dockerImage": "mongo:15",
+  "command": "string",
+  "env": "string",
+  "memoryReservation": 0,
+  "memoryLimit": 0,
+  "cpuReservation": 0,
+  "cpuLimit": 0,
+  "externalPort": 0,
+  "applicationStatus": "idle",
+  "createdAt": "string",
+  "projectId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mongo.update", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+</Root>

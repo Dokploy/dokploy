@@ -1,0 +1,15 @@
+{
+	"$schema": "https://biomejs.dev/schemas/1.8.1/schema.json",
+	"organizeImports": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"a11y":{
+				"noSvgWithoutTitle":"off"
+			}
+		}
+	}
+}

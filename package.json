@@ -11,16 +11,28 @@
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
 		"format-and-lint": "biome check .",
 		"format-and-lint:fix": "biome check . --write",
-		"prepare": "node .config/.husky/install.mjs"
+		"prepare": "node .husky/install.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
 		"turbo": "^2.0.6",
 		"typescript": "^5.4.5",
-		"husky": "^9.0.11"
+		"husky": "^9.0.11",
+		"@commitlint/cli": "^19.3.0",
+		"@commitlint/config-conventional": "^19.2.2",
+		"@types/node": "^18.17.0"
 	},
-	"packageManager": "pnpm@8.15.6",
+	"packageManager": "pnpm@9.5.0",
 	"engines": {
-		"node": ">=18"
+		"node": "^18.18.0",
+		"pnpm": ">=9.5.0"
+	},
+	"lint-staged": {
+		"*": [
+			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+		]
+	},
+	"commitlint": {
+		"extends": ["@commitlint/config-conventional"]
 	}
 }

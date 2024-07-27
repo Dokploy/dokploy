@@ -1,0 +1,33 @@
+{
+  "title": "CLI",
+  "root": true,
+  "pages": [
+    "---Get Started---",
+    "index",
+    "---API---",
+    "reference-api/reference-admin",
+    "reference-api/reference-application",
+    "reference-api/reference-auth",
+    "reference-api/reference-backup",
+    "reference-api/reference-certificates",
+    "reference-api/reference-cluster",
+    "reference-api/reference-compose",
+    "reference-api/reference-deployment",
+    "reference-api/reference-destination",
+    "reference-api/reference-docker",
+    "reference-api/reference-domain",
+    "reference-api/reference-mariadb",
+    "reference-api/reference-mongo",
+    "reference-api/reference-mounts",
+    "reference-api/reference-mysql",
+    "reference-api/reference-port",
+    "reference-api/reference-postgres",
+    "reference-api/reference-project",
+    "reference-api/reference-redirects",
+    "reference-api/reference-redis",
+    "reference-api/reference-registry",
+    "reference-api/reference-security",
+    "reference-api/reference-settings",
+    "reference-api/reference-user"
+  ]
+}

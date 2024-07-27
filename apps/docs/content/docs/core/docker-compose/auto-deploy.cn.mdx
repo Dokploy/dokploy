@@ -1,0 +1,81 @@
+---
+title: 自动部署
+description: 如何使用 Dokploy 自动部署您的 docker-compose 应用
+---
+
+自动部署您的 docker-compose 应用到 Dokploy 可以通过两种主要方法实现：使用 Webhooks 或 Dokploy API。每种方法支持各种平台，并提供简化的部署过程。
+
+## Github
+
+对于 Github，我们提供无需配置的自动部署。这将在您推送到存储库时自动部署您的应用。
+
+## Webhook URL
+
+使用 Webhooks，您可以在源代码库中发生更改时自动部署您的 docker-compose 应用。
+
+- GitHub
+- GitLab
+- Bitbucket
+- Gitea
+
+### 配置步骤
+
+1. **启用自动部署**：在 Dokploy 中的应用设置的常规标签中切换“自动部署”按钮。
+2. **获取 Webhook URL**：从部署日志中找到 Webhook URL。
+
+<ImageZoom
+  src="/assets/webhook-url-compose.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}/>
+
+3. **配置您的存储库**：
+   - 导航到您选择的平台上的存储库设置。
+   - 添加 Dokploy 提供的 webhook URL。
+   - 确保设置匹配触发 webhook 所需的配置。
+
+<ImageZoom
+  src="/assets/webhook-github.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}/>
+
+#### 重要说明
+
+- **分支匹配**：使用基于 Git 的提供商（GitHub、GitLab 等）时，确保 Dokploy 中配置的分支与您打算推送到的分支匹配。不匹配将导致“分支不匹配”错误。
+- 所有提供商的步骤相同。
+
+## API 方法
+
+通过 Dokploy API 从任何地方以编程方式部署您的应用。
+
+### 使用 API 部署的步骤
+
+步骤：
+
+1. **生成令牌**：在 Dokploy 的个人资料设置中创建一个 API 令牌。
+2. **获取 Compose ID**：
+
+```http
+curl -X 'GET' \
+  'https://your-domain/api/project.all' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <token>'
+```
+
+此命令列出所有项目和服务。确定您要部署的 compose 的 composeId。
+
+3. **触发部署**：
+```http
+curl -X 'POST' \
+  'https://canary.dokploy.com/api/compose.deploy' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{
+  "composeId": "string"
+}'
+```
+
+这种 API 方法提供了灵活的、可脚本化的部署选项，适用于自动化系统或无法直接集成存储库的情况。
+通过这种方式，您可以从任何地方部署您的应用，可以使用 webhook URL 或 API。

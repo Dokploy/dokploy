@@ -1,0 +1,49 @@
+---
+title: Overview
+description: "Discover how to create and backup databases easily with Dokploy, supporting a variety of database systems."
+---
+
+Dokploy simplifies the process of creating and managing databases, offering robust options for both setup and backups.
+
+## Database Support
+
+Dokploy currently supports a range of popular database systems, ensuring compatibility and flexibility for your projects:
+
+- **Postgres**: Robust, SQL-compliant and highly reliable.
+- **MySQL**: Widely used relational database known for its performance and flexibility.
+- **MariaDB**: A fork of MySQL with additional features and improved performance.
+- **MongoDB**: A NoSQL database known for its high scalability and flexibility.
+- **Redis**: An in-memory key-value store often used as a database, cache, and message broker.
+
+
+We offer multiple functionalities that you can use to manage your databases, such as:
+
+## General
+
+Actions like deploying, updating, and deleting your database, and stopping it.
+
+## Environment
+
+If you need to assign environment variables to your application, you can do so here.
+
+## Monitoring
+
+Four graphs will be displayed for the use of memory, CPU, disk, and network. Note that the information is only updated if you are viewing the current page, otherwise it will not be updated.
+
+## Backups
+
+We offer automated backups for your databases, ensuring that you can recover your data quickly and easily in case of any issues, you can setup a S3 Destinations in settings to store your backups.
+
+
+## Logs
+
+If you want to see any important logs from your application that is running, you can do so here and determine if your application is displaying any errors or not.
+
+## Advanced
+
+This section provides advanced configuration options for experienced users. It includes tools for custom commands within the container, managing Docker Swarm settings, and adjusting cluster settings such as replicas and registry selection. These tools are typically not required for standard application deployment and are intended for complex management and troubleshooting tasks.
+
+- **Custom Docker Image**: You can change the Docker image used to run your database.
+- **Run Command**: Execute custom commands directly in the container for advanced management or troubleshooting.
+- **Volumes**: To ensure data persistence across deployments, configure storage volumes for your application.
+- **Resources**: Adjust the CPU and memory allocation for your application.

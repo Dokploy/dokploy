@@ -1,0 +1,13 @@
+{
+  "title": "CLI",
+  "root": true,
+  "pages": [
+    "---Get Started---",
+    "index",
+    "---Commands---",
+    "commands/authentication",
+    "commands/project",
+    "commands/application",
+    "commands/databases"
+  ]
+}

@@ -1,0 +1,32 @@
+---
+title: Oracle 云
+description: 将应用程序部署到 Oracle 云
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+
+将应用程序部署到 Oracle 云
+
+步骤
+
+1. 登录 Oracle 云
+2. 创建一个新的 `Compute Instance`
+3. 到 `Image and Shape`
+4. 选择 `Ubuntu 20.04 LTS`
+
+<ImageZoom  src="/assets/images/deployment/oracle/oracle-shape.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+
+5. 添加 SSH Key，确保添加您的 SSH key 的公钥
+6. 登录实例 `ssh ubuntu@ip-address-of-instance`
+   <Callout>
+     如果由于出现连接拒绝错误而无法访问实例，您可以尝试将`Public Subnet IPv4
+     CIDR Block` 添加到实例，转到您的实例，然后 Quick Actions -> Connect public
+     subnet to internet -> Create
+   </Callout>
+7. 运行 `sudo su`
+8. 运行 `curl -sSL https://dokploy.com/install.sh | sh`
+9. 默认情况下，Oracle 云 已设置仅 22 个端口打开，您可以在实例中更改
+   -> attached VNICs -> 点击 `subnet` 链接 -> 打开 `Security Lists` -> `Inbound Rules` -> 点击 `default security list for vnc` 链接 -> 进入规则 -> 添加入口规则 -> 设置 CIDR `0.0.0.0/0` 后，保存.
+10. 打开 `ip-address-of-instance:3000` 您会看到仪表板.

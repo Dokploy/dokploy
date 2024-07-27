@@ -1,0 +1,29 @@
+---
+title: "Application Domain Setup"
+description: "Learn how to setup a domain for an application"
+---
+
+This guide details how to set up a domain for your application.
+
+## Create DNS Record
+
+1. Add an `A` record to your DNS settings:
+   - **Name:** Enter the route you want to point to (e.g., `app` for `app.yourdomain.com`).
+   - **Value:** Type in the IP address of your server, such as `1.2.3.4`.
+
+## Application Domain Setup
+
+1. Navigate to your application's dashboard.
+2. Go to the `Domains` tab and click on `Add Domain`.
+3. Enter the DNS record you created in the previous step (e.g., `app.yourdomain.com`).
+4. Make sure to assign the right container port (e.g., NextJS: `3000`).
+5. Choose your certificate option:
+   - `None`
+   - `Let's Encrypt`
+   
+
+For detailed instructions on setting up certificates, refer to the [Certificates](/docs/core/domain/certificates) documentation.
+
+
+<ImageZoom  src="/assets/images/application-domain-setup/app-setup-domain.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />
+
