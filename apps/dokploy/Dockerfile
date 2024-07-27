@@ -15,6 +15,8 @@ WORKDIR /app
 
 RUN pnpm add -g turbo
 
+COPY . .
+
 RUN turbo prune dokploy --docker
 
 FROM base AS base-deps
