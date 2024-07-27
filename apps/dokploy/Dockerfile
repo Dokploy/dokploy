@@ -29,7 +29,6 @@ RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib
 # Copy install script for husky  Copy package.json and pnpm-lock.yaml
 COPY --from=base-deps /app/out/json .
 COPY --from=base-deps /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=base-deps /app/.husky/install.mjs ./.husky/install.mjs
 
 FROM base-deps AS prod-deps
 
