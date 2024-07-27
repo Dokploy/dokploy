@@ -1,25 +1,26 @@
 {
-  "name": "dokploy",
-  "private": true,
-  "scripts": {
-    "build": "turbo build",
-    "dokploy#start": "turbo run start --filter=dokploy",
-    "dokploy#dev": "turbo run dev --filter=dokploy",
-    "dokploy#build": "turbo run build --filter=dokploy",
-    "docker:build:canary": "./apps/dokploy/docker/build.sh canary",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "format-and-lint": "biome check .",
-    "format-and-lint:fix": "biome check . --write"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.8.3",
-    "turbo": "^2.0.6",
-    "typescript": "^5.4.5"
-  },
-  "packageManager": "pnpm@8.15.6",
-  "engines": {
-    "node": ">=18"
-  }
+	"name": "dokploy",
+	"private": true,
+	"scripts": {
+		"build": "turbo build",
+		"dev": "turbo run dev --filter=dokploy",
+		"docker:build:canary": "./apps/dokploy/docker/build.sh canary",
+		"docs:dev": "turbo run dev --filter=docs",
+		"docs:build": "turbo run build --filter=docs",
+		"lint": "turbo lint",
+		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
+		"format-and-lint": "biome check .",
+		"format-and-lint:fix": "biome check . --write",
+		"prepare": "node .config/.husky/install.mjs"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.8.3",
+		"turbo": "^2.0.6",
+		"typescript": "^5.4.5",
+		"husky": "^9.0.11"
+	},
+	"packageManager": "pnpm@8.15.6",
+	"engines": {
+		"node": ">=18"
+	}
 }
