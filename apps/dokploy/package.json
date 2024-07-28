@@ -178,8 +178,5 @@
 	},
 	"commitlint": {
 		"extends": ["@commitlint/config-conventional"]
-	},
-	"imports": {
-		"#*": ["./*"]
 	}
 }
