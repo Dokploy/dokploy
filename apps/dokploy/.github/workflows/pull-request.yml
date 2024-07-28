@@ -1,0 +1,49 @@
+name: Pull request
+
+on:
+  pull_request:
+    branches:
+      - main
+      - canary
+
+env:
+  HUSKY: 0
+
+jobs:
+  build-app:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.18.0]
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # - name: Run commitlint
+      #   run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+      - name: Run format and lint
+        run: pnpm biome ci
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run Build
+        run: pnpm build
+
+      - name: Run Tests
+        run: pnpm run test

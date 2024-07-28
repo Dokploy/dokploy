@@ -18,7 +18,7 @@ FROM base AS base-deps
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 # Copy install script for husky
-# COPY ../../.husky/install.mjs ./.husky/install.mjs
+COPY .husky/install.mjs ./.husky/install.mjs
 
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
@@ -38,6 +38,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
 COPY . .
+
 # Build the application
 RUN pnpm build
 

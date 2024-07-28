@@ -1,10 +1,10 @@
-import { load } from "js-yaml";
-import { expect, test } from "vitest";
 import {
 	addPrefixToAllServiceNames,
 	addPrefixToServiceNames,
-} from "~/server/utils/docker/compose/service";
-import type { ComposeSpecification } from "~/server/utils/docker/types";
+} from "@/server/utils/docker/compose/service";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { load } from "js-yaml";
+import { expect, test } from "vitest";
 
 const composeFileCombinedAllCases = `
 version: "3.8"

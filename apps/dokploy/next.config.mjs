@@ -23,7 +23,7 @@ const nextConfig = {
 			new CopyWebpackPlugin({
 				patterns: [
 					{
-						from: path.resolve(__dirname, "src/templates/**/*.yml"),
+						from: path.resolve(__dirname, "templates/**/*.yml"),
 						to: ({ context, absoluteFilename }) => {
 							const relativePath = path.relative(
 								path.resolve(__dirname, "templates"),

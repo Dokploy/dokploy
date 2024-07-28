@@ -1,8 +1,8 @@
+import { generateRandomHash } from "@/server/utils/docker/compose";
+import { addPrefixToSecretsInServices } from "@/server/utils/docker/compose/secrets";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
-import { generateRandomHash } from "~/server/utils/docker/compose";
-import { addPrefixToSecretsInServices } from "~/server/utils/docker/compose/secrets";
-import type { ComposeSpecification } from "~/server/utils/docker/types";
 
 const composeFileSecretsServices = `
 version: "3.8"

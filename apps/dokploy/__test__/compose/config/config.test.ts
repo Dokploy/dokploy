@@ -1,11 +1,11 @@
-import { load } from "js-yaml";
-import { expect, test } from "vitest";
-import { generateRandomHash } from "~/server/utils/docker/compose";
+import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
 	addPrefixToAllConfigs,
 	addPrefixToConfigsRoot,
-} from "~/server/utils/docker/compose/configs";
-import type { ComposeSpecification } from "~/server/utils/docker/types";
+} from "@/server/utils/docker/compose/configs";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { load } from "js-yaml";
+import { expect, test } from "vitest";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
