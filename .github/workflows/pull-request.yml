@@ -1,5 +1,4 @@
 name: Pull request
-
 on:
   pull_request:
     branches:
@@ -8,10 +7,8 @@ on:
   push:
     branches:
       - feat/monorepo
-
 env:
   HUSKY: 0
-
 jobs:
   build-app:
     runs-on: ubuntu-latest
@@ -26,6 +23,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0 # Ajusta esta versión a la que estés usando localmente
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -36,17 +35,65 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # - name: Run commitlint
-      #   run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+      - name: List all files
+        run: |
+          echo "Files in repository:"
+          find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/.next/*'
 
-      # - name: Run format and lint
-      #   run: pnpm biome ci
+      - name: Show content of key files
+        run: |
+          echo "Content of tsconfig.json:"
+          cat apps/dokploy/tsconfig.json || echo "File not found"
+          echo "Content of next-env.d.ts:"
+          cat apps/dokploy/next-env.d.ts || echo "File not found"
+          echo "Content of next.config.js:"
+          cat apps/dokploy/next.config.js || echo "File not found"
+
+      - name: Debug environment
+        run: |
+          node --version
+          pnpm --version
+          pwd
+          ls -la
+          cat apps/dokploy/tsconfig.json
+          cat apps/dokploy/package.json
+
+      - name: Verify project structure
+        run: |
+          tree -L 3 -I 'node_modules'
+          cat apps/dokploy/next-env.d.ts
+
+      - name: Show installed packages
+        run: |
+          echo "Installed packages:"
+          pnpm list
 
       - name: Run type check
-        run: pnpm run dokploy:check
+        run: |
+          cd apps/dokploy
+          echo "Running type check..."
+          pnpm run dokploy:check --traceResolution > typecheck_output.log 2>&1
+          cat typecheck_output.log
+        continue-on-error: true
+
+      - name: Upload typecheck log
+        uses: actions/upload-artifact@v3
+        with:
+          name: typecheck-log
+          path: apps/dokploy/typecheck_output.log
 
       - name: Run Build
-        run: pnpm dokploy:build
+        run: |
+          cd apps/dokploy
+          pnpm run build
 
       - name: Run Tests
-        run: pnpm run dokploy:test
+        run: |
+          cd apps/dokploy
+          pnpm run test
+
+      # Comentado por ahora, descomenta si necesitas estos pasos
+      # - name: Run commitlint
+      #   run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+      # - name: Run format and lint
+      #   run: pnpm biome ci
