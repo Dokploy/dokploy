@@ -24,7 +24,14 @@
 		"incremental": true,
 
 		/* Path Aliases */
-		"baseUrl": "."
+		"baseUrl": ".",
+		"paths": {
+			"~/": ["./"],
+			"~/components/*": ["./components/*"],
+			"~/utils/*": ["./utils/*"],
+			"~/lib/*": ["./lib/*"],
+			"~/server/*": ["./server/*"]
+		}
 	},
 
 	"include": [
