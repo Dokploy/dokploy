@@ -412,7 +412,7 @@ importers:
         specifier: ^4.7.0
         version: 4.16.2
       typescript:
-        specifier: ^5.4.2
+        specifier: ^5.0.4
         version: 5.5.3
       vite-tsconfig-paths:
         specifier: 4.3.2
