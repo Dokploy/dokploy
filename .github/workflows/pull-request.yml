@@ -40,15 +40,6 @@ jobs:
           echo "Files in repository:"
           find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/.next/*'
 
-      - name: Show content of key files
-        run: |
-          echo "Content of tsconfig.json:"
-          cat apps/dokploy/tsconfig.json || echo "File not found"
-          echo "Content of next-env.d.ts:"
-          cat apps/dokploy/next-env.d.ts || echo "File not found"
-          echo "Content of next.config.js:"
-          cat apps/dokploy/next.config.js || echo "File not found"
-
       - name: Debug environment
         run: |
           node --version
@@ -72,8 +63,7 @@ jobs:
         run: |
           cd apps/dokploy
           echo "Running type check..."
-          pnpm run dokploy:check --traceResolution > typecheck_output.log 2>&1
-          cat typecheck_output.log
+          pnpm run dokploy:check
         continue-on-error: true
 
       - name: Upload typecheck log
