@@ -11,6 +11,18 @@ jobs:
           command: |
             cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
+          name: Debug environment
+          command: |
+            pwd
+            ls -R
+            cat apps/dokploy/Dockerfile
+            cat apps/dokploy/.env.production
+      - run:
+          name: List project structure
+          command: |
+            ls -R apps/dokploy/components
+            ls -R apps/dokploy/pages
+      - run:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -32,6 +44,18 @@ jobs:
           name: Prepare .env file
           command: |
             cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+      - run:
+          name: Debug environment
+          command: |
+            pwd
+            ls -R
+            cat apps/dokploy/Dockerfile
+            cat apps/dokploy/.env.production
+      - run:
+          name: List project structure
+          command: |
+            ls -R apps/dokploy/components
+            ls -R apps/dokploy/pages
       - run:
           name: Build and push ARM64 image
           command: |
