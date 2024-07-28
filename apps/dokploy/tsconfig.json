@@ -28,7 +28,8 @@
 		"paths": {
 			"@/*": ["/*"],
 			"@/components/*": ["components/*"],
-			"@/utils/*": ["utils/*"]
+			"@/utils/*": ["utils/*"],
+			"@/server/*": ["server/*"]
 		}
 	},
 
