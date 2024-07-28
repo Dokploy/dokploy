@@ -180,11 +180,6 @@
 		"extends": ["@commitlint/config-conventional"]
 	},
 	"imports": {
-		"#app/*": "./apps/dokploy/*",
-		"#server/*": "./apps/dokploy/server/*",
-		"#config/*": "./apps/dokploy/config/*",
-		"#lib/*": "./apps/dokploy/lib/*",
-		"#utils/*": "./apps/dokploy/utils/*",
-		"#components/*": "./apps/dokploy/components/*"
+		"#*": ["./*"]
 	}
 }

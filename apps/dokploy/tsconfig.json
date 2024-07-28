@@ -24,10 +24,7 @@
 		"incremental": true,
 
 		/* Path Aliases */
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./*"]
-		}
+		"baseUrl": "."
 	},
 
 	"include": [
