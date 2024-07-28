@@ -38,6 +38,15 @@ const nextConfig = {
 				],
 			}),
 		);
+		config.resolve.alias["@"] = path.join(__dirname, "apps/dokploy");
+		config.resolve.alias["@/components"] = path.join(
+			__dirname,
+			"apps/dokploy/components",
+		);
+		config.resolve.alias["@/utils"] = path.join(
+			__dirname,
+			"apps/dokploy/utils",
+		);
 		return config;
 	},
 
