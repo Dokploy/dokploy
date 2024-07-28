@@ -1,8 +1,8 @@
+import type { Mongo } from "@/server/api/services/mongo";
+import type { Mount } from "@/server/api/services/mount";
+import type { Postgres } from "@/server/api/services/postgres";
+import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
-import type { Mongo } from "~/server/api/services/mongo";
-import type { Mount } from "~/server/api/services/mount";
-import type { Postgres } from "~/server/api/services/postgres";
-import { docker } from "~/server/constants";
 import {
 	calculateResources,
 	generateBindMounts,

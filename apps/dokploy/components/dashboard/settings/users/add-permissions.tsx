@@ -1,11 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { AlertBlock } from "~/components/shared/alert-block";
-import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -14,8 +9,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
-import { DropdownMenuItem } from "~/components/ui/dropdown-menu";
+} from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -24,10 +19,15 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "~/components/ui/form";
-import { Switch } from "~/components/ui/switch";
-import { extractServices } from "~/pages/dashboard/project/[projectId]";
-import { api } from "~/utils/api";
+} from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
+import { extractServices } from "@/pages/dashboard/project/[projectId]";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const addPermissions = z.object({
 	accesedProjects: z.array(z.string()).optional(),

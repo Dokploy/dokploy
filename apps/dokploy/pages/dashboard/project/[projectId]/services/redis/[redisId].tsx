@@ -1,3 +1,25 @@
+import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ShowAdvancedRedis } from "@/components/dashboard/redis/advanced/show-redis-advanced-settings";
+import { DeleteRedis } from "@/components/dashboard/redis/delete-redis";
+import { ShowRedisEnvironment } from "@/components/dashboard/redis/environment/show-redis-environment";
+import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
+import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
+import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/general/show-internal-redis-credentials";
+import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
+import { RedisIcon } from "@/components/icons/data-tools-icons";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,
@@ -7,28 +29,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
-import { ShowDockerLogs } from "~/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "~/components/dashboard/monitoring/docker/show";
-import { ShowAdvancedRedis } from "~/components/dashboard/redis/advanced/show-redis-advanced-settings";
-import { DeleteRedis } from "~/components/dashboard/redis/delete-redis";
-import { ShowRedisEnvironment } from "~/components/dashboard/redis/environment/show-redis-environment";
-import { ShowExternalRedisCredentials } from "~/components/dashboard/redis/general/show-external-redis-credentials";
-import { ShowGeneralRedis } from "~/components/dashboard/redis/general/show-general-redis";
-import { ShowInternalRedisCredentials } from "~/components/dashboard/redis/general/show-internal-redis-credentials";
-import { UpdateRedis } from "~/components/dashboard/redis/update-redis";
-import { RedisIcon } from "~/components/icons/data-tools-icons";
-import { DashboardLayout } from "~/components/layouts/dashboard-layout";
-import { ProjectLayout } from "~/components/layouts/project-layout";
-import { StatusTooltip } from "~/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "~/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { appRouter } from "~/server/api/root";
-import { validateRequest } from "~/server/auth/auth";
-import { api } from "~/utils/api";
 
 type TabState = "projects" | "monitoring" | "settings" | "advanced";
 

@@ -1,16 +1,16 @@
 import { rmdir, stat, unlink } from "node:fs/promises";
 import path, { join } from "node:path";
-import { TRPCError } from "@trpc/server";
-import { type SQL, eq, sql } from "drizzle-orm";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "~/server/constants";
-import { db } from "~/server/db";
+import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { db } from "@/server/db";
 import {
 	type ServiceType,
 	type apiCreateMount,
 	mounts,
-} from "~/server/db/schema";
-import { createFile } from "~/server/utils/docker/utils";
-import { removeFileOrDirectory } from "~/server/utils/filesystem/directory";
+} from "@/server/db/schema";
+import { createFile } from "@/server/utils/docker/utils";
+import { removeFileOrDirectory } from "@/server/utils/filesystem/directory";
+import { TRPCError } from "@trpc/server";
+import { type SQL, eq, sql } from "drizzle-orm";
 
 export type Mount = typeof mounts.$inferSelect;
 

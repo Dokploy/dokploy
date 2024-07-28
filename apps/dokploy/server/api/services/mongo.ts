@@ -1,12 +1,12 @@
+import { generateRandomPassword } from "@/server/auth/random-password";
+import { db } from "@/server/db";
+import { type apiCreateMongo, backups, mongo } from "@/server/db/schema";
+import { generateAppName } from "@/server/db/schema/utils";
+import { buildMongo } from "@/server/utils/databases/mongo";
+import { pullImage } from "@/server/utils/docker/utils";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
-import { generateRandomPassword } from "~/server/auth/random-password";
-import { db } from "~/server/db";
-import { type apiCreateMongo, backups, mongo } from "~/server/db/schema";
-import { generateAppName } from "~/server/db/schema/utils";
-import { buildMongo } from "~/server/utils/databases/mongo";
-import { pullImage } from "~/server/utils/docker/utils";
-import { generatePassword } from "~/templates/utils";
 import { validUniqueServerAppName } from "./project";
 
 export type Mongo = typeof mongo.$inferSelect;

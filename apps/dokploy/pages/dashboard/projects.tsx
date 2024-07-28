@@ -1,8 +1,8 @@
+import { ShowProjects } from "@/components/dashboard/projects/show";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { validateRequest } from "@/server/auth/auth";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
-import { ShowProjects } from "~/components/dashboard/projects/show";
-import { DashboardLayout } from "~/components/layouts/dashboard-layout";
-import { validateRequest } from "~/server/auth/auth";
 
 const Dashboard = () => {
 	return <ShowProjects />;

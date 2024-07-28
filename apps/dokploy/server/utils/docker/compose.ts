@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
+import { findComposeById } from "@/server/api/services/compose";
 import { dump, load } from "js-yaml";
-import { findComposeById } from "~/server/api/services/compose";
 import { addPrefixToAllConfigs } from "./compose/configs";
 import { addPrefixToAllNetworks } from "./compose/network";
 import { addPrefixToAllSecrets } from "./compose/secrets";

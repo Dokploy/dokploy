@@ -1,8 +1,8 @@
+import BuildSuccessEmail from "@/emails/emails/build-success";
+import { db } from "@/server/db";
+import { notifications } from "@/server/db/schema";
 import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
-import BuildSuccessEmail from "~/emails/emails/build-success";
-import { db } from "~/server/db";
-import { notifications } from "~/server/db/schema";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,

@@ -1,11 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Container } from "lucide-react";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -14,7 +7,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -22,9 +15,16 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
-import { api } from "~/utils/api";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Container } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const AddRegistrySchema = z.object({
 	registryName: z.string().min(1, {

@@ -1,9 +1,9 @@
+import { ShowDestinations } from "@/components/dashboard/settings/destination/show-destinations";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { SettingsLayout } from "@/components/layouts/settings-layout";
+import { validateRequest } from "@/server/auth/auth";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
-import { ShowDestinations } from "~/components/dashboard/settings/destination/show-destinations";
-import { DashboardLayout } from "~/components/layouts/dashboard-layout";
-import { SettingsLayout } from "~/components/layouts/settings-layout";
-import { validateRequest } from "~/server/auth/auth";
 
 const Page = () => {
 	return (

@@ -1,12 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import { AlertBlock } from "~/components/shared/alert-block";
-import { CodeEditor } from "~/components/shared/code-editor";
-import { Button } from "~/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -15,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -24,14 +18,20 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "~/components/ui/form";
+} from "@/components/ui/form";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { api } from "~/utils/api";
+} from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, Settings } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const HealthCheckSwarmSchema = z
 	.object({

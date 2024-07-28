@@ -1,4 +1,4 @@
-import { apiFindOneUser, apiFindOneUserByAuth } from "~/server/db/schema";
+import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 import { findUserByAuthId, findUserById, findUsers } from "../services/user";

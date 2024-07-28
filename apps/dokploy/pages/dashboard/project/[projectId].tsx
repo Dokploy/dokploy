@@ -1,26 +1,37 @@
-import { AddApplication } from "~/components/dashboard/project/add-application";
-import { AddCompose } from "~/components/dashboard/project/add-compose";
-import { AddDatabase } from "~/components/dashboard/project/add-database";
-import { AddTemplate } from "~/components/dashboard/project/add-template";
+import { AddApplication } from "@/components/dashboard/project/add-application";
+import { AddCompose } from "@/components/dashboard/project/add-compose";
+import { AddDatabase } from "@/components/dashboard/project/add-database";
+import { AddTemplate } from "@/components/dashboard/project/add-template";
 import {
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
 	PostgresqlIcon,
 	RedisIcon,
-} from "~/components/icons/data-tools-icons";
-import { DashboardLayout } from "~/components/layouts/dashboard-layout";
-import { ProjectLayout } from "~/components/layouts/project-layout";
-import { DateTooltip } from "~/components/shared/date-tooltip";
-import { StatusTooltip } from "~/components/shared/status-tooltip";
+} from "@/components/icons/data-tools-icons";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DateTooltip } from "@/components/shared/date-tooltip";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "~/components/ui/breadcrumb";
-import { Button } from "~/components/ui/button";
-import { Card, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+} from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { appRouter } from "@/server/api/root";
+import type { findProjectById } from "@/server/api/services/project";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard, FolderInput, GlobeIcon, PlusIcon } from "lucide-react";
 import type {
@@ -31,17 +42,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { type ReactElement } from "react";
 import superjson from "superjson";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { appRouter } from "~/server/api/root";
-import type { findProjectById } from "~/server/api/services/project";
-import { validateRequest } from "~/server/auth/auth";
-import { api } from "~/utils/api";
 
 export type Services = {
 	name: string;

@@ -1,9 +1,5 @@
-import { RefreshCcw } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
-import { AlertBlock } from "~/components/shared/alert-block";
-import { Button } from "~/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -11,8 +7,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
-import { api } from "~/utils/api";
+} from "@/components/ui/dialog";
+import { api } from "@/utils/api";
+import { RefreshCcw } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { UpdateWebServer } from "./update-webserver";
 
 export const UpdateServer = () => {

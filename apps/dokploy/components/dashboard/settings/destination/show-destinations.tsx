@@ -1,12 +1,12 @@
-import { FolderUp } from "lucide-react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { FolderUp } from "lucide-react";
 import { AddDestination } from "./add-destination";
 import { DeleteDestination } from "./delete-destination";
 import { UpdateDestination } from "./update-destination";

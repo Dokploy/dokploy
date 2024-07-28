@@ -1,3 +1,4 @@
+import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -10,7 +11,6 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { generatePassword } from "~/templates/utils";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";

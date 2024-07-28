@@ -1,3 +1,26 @@
+import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowAdvancedMongo } from "@/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
+import { ShowBackupMongo } from "@/components/dashboard/mongo/backups/show-backup-mongo";
+import { DeleteMongo } from "@/components/dashboard/mongo/delete-mongo";
+import { ShowMongoEnvironment } from "@/components/dashboard/mongo/environment/show-mongo-environment";
+import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
+import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
+import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
+import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { MongodbIcon } from "@/components/icons/data-tools-icons";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,
@@ -7,29 +30,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
-import { ShowDockerLogs } from "~/components/dashboard/application/logs/show";
-import { ShowAdvancedMongo } from "~/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
-import { ShowBackupMongo } from "~/components/dashboard/mongo/backups/show-backup-mongo";
-import { DeleteMongo } from "~/components/dashboard/mongo/delete-mongo";
-import { ShowMongoEnvironment } from "~/components/dashboard/mongo/environment/show-mongo-environment";
-import { ShowExternalMongoCredentials } from "~/components/dashboard/mongo/general/show-external-mongo-credentials";
-import { ShowGeneralMongo } from "~/components/dashboard/mongo/general/show-general-mongo";
-import { ShowInternalMongoCredentials } from "~/components/dashboard/mongo/general/show-internal-mongo-credentials";
-import { UpdateMongo } from "~/components/dashboard/mongo/update-mongo";
-import { DockerMonitoring } from "~/components/dashboard/monitoring/docker/show";
-import { MongodbIcon } from "~/components/icons/data-tools-icons";
-import { DashboardLayout } from "~/components/layouts/dashboard-layout";
-import { ProjectLayout } from "~/components/layouts/project-layout";
-import { StatusTooltip } from "~/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "~/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { appRouter } from "~/server/api/root";
-import { validateRequest } from "~/server/auth/auth";
-import { api } from "~/utils/api";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 

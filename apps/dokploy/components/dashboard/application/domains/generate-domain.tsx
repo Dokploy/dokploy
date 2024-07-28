@@ -1,6 +1,4 @@
-import { RefreshCcw } from "lucide-react";
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -8,8 +6,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
-import { api } from "~/utils/api";
+} from "@/components/ui/dialog";
+import { api } from "@/utils/api";
+import { RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import { GenerateTraefikMe } from "./generate-traefikme";
 import { GenerateWildCard } from "./generate-wildcard";
 

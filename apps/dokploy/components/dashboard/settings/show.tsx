@@ -1,6 +1,6 @@
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import React from "react";
-import { cn } from "~/lib/utils";
-import { api } from "~/utils/api";
 import { AppearanceForm } from "./appearance-form";
 import { ShowCertificates } from "./certificates/show-certificates";
 import { ShowDestinations } from "./destination/show-destinations";

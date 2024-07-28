@@ -102,10 +102,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { useRouter } from "next/router";
-import { buttonVariants } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
-import { api } from "~/utils/api";
 
 interface NavProps {
 	links: {

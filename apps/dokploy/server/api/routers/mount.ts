@@ -3,7 +3,7 @@ import {
 	apiFindOneMount,
 	apiRemoveMount,
 	apiUpdateMount,
-} from "~/server/db/schema";
+} from "@/server/db/schema";
 import {
 	createMount,
 	deleteMount,

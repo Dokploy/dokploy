@@ -3,8 +3,8 @@ import {
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { cn } from "~/lib/utils";
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	status: "running" | "error" | "done" | "idle" | undefined | null;

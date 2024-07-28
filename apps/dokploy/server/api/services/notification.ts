@@ -1,6 +1,4 @@
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { db } from "~/server/db";
+import { db } from "@/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
@@ -15,7 +13,9 @@ import {
 	notifications,
 	slack,
 	telegram,
-} from "~/server/db/schema";
+} from "@/server/db/schema";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 
 export type Notification = typeof notifications.$inferSelect;
 

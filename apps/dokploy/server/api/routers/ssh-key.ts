@@ -1,18 +1,18 @@
-import { TRPCError } from "@trpc/server";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "~/server/api/trpc";
-import { db } from "~/server/db";
+} from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiCreateSshKey,
 	apiFindOneSshKey,
 	apiGenerateSSHKey,
 	apiRemoveSshKey,
 	apiUpdateSshKey,
-} from "~/server/db/schema";
-import { generateSSHKey } from "~/server/utils/filesystem/ssh";
+} from "@/server/db/schema";
+import { generateSSHKey } from "@/server/utils/filesystem/ssh";
+import { TRPCError } from "@trpc/server";
 import {
 	createSshKey,
 	findSSHKeyById,

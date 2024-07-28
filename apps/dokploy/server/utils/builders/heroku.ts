@@ -4,7 +4,7 @@ import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 
-// TODO: integrate in the vps sudo chown -R $(whoami) ~/.docker
+// TODO: integrate in the vps sudo chown -R $(whoami) @/.docker
 export const buildHeroku = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,

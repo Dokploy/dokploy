@@ -1,5 +1,5 @@
+import type { Security } from "@/server/api/services/security";
 import * as bcrypt from "bcrypt";
-import type { Security } from "~/server/api/services/security";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type {
 	BasicAuthMiddleware,

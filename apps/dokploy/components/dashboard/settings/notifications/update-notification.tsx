@@ -1,14 +1,9 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, PenBoxIcon } from "lucide-react";
-import { useEffect } from "react";
-import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import {
 	DiscordIcon,
 	SlackIcon,
 	TelegramIcon,
-} from "~/components/icons/notification-icons";
-import { Button } from "~/components/ui/button";
+} from "@/components/icons/notification-icons";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -17,7 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -26,10 +21,15 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
-import { Switch } from "~/components/ui/switch";
-import { api } from "~/utils/api";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, PenBoxIcon } from "lucide-react";
+import { useEffect } from "react";
+import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import {
 	type NotificationSchema,
 	notificationSchema,

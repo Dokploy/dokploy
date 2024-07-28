@@ -1,9 +1,9 @@
+import { db } from "@/server/db";
+import { compose } from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "~/server/db";
-import { compose } from "~/server/db/schema";
-import type { DeploymentJob } from "~/server/queues/deployments-queue";
-import { myQueue } from "~/server/queues/queueSetup";
 import {
 	extractBranchName,
 	extractCommitMessage,

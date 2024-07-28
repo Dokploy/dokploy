@@ -1,7 +1,7 @@
+import { db } from "@/server/db";
+import { users } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { db } from "~/server/db";
-import { users } from "~/server/db/schema";
 
 export type User = typeof users.$inferSelect;
 

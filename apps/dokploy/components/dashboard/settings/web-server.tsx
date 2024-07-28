@@ -1,16 +1,15 @@
-import React from "react";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
-import { Label } from "~/components/ui/label";
-import { Switch } from "~/components/ui/switch";
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import React from "react";
 
-import { toast } from "sonner";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -19,8 +18,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { api } from "~/utils/api";
+} from "@/components/ui/dropdown-menu";
+import { api } from "@/utils/api";
+import { toast } from "sonner";
 import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
 import { ShowMainTraefikConfig } from "./web-server/show-main-traefik-config";
 import { ShowModalLogs } from "./web-server/show-modal-logs";

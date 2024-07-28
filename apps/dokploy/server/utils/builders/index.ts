@@ -1,7 +1,7 @@
 import { createWriteStream } from "node:fs";
+import { docker } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { docker } from "~/server/constants";
-import type { InferResultType } from "~/server/types/with";
 import { uploadImage } from "../cluster/upload";
 import {
 	calculateResources,

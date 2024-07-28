@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path, { join } from "node:path";
+import { APPLICATIONS_PATH } from "@/server/constants";
 import AdmZip from "adm-zip";
-import { APPLICATIONS_PATH } from "~/server/constants";
 import { recreateDirectory } from "../filesystem/directory";
 
 export const unzipDrop = async (zipFile: File, appName: string) => {

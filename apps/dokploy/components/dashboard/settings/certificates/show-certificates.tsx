@@ -1,12 +1,12 @@
-import { ShieldCheck } from "lucide-react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { ShieldCheck } from "lucide-react";
 import { AddCertificate } from "./add-certificate";
 import { DeleteCertificate } from "./delete-certificate";
 

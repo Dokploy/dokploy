@@ -1,20 +1,20 @@
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { type CSSProperties, type ReactNode, useState } from "react";
-import { useFormContext } from "react-hook-form";
-import { CodeEditor } from "~/components/shared/code-editor";
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
+} from "@/components/ui/card";
 import {
 	FormControl,
 	FormField,
 	FormItem,
 	FormMessage,
-} from "~/components/ui/form";
-import { Toggle } from "~/components/ui/toggle";
+} from "@/components/ui/form";
+import { Toggle } from "@/components/ui/toggle";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { type CSSProperties, type ReactNode, useState } from "react";
+import { useFormContext } from "react-hook-form";
 
 interface Props {
 	name: string;

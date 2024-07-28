@@ -1,19 +1,19 @@
-import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateBackup,
 	apiFindOneBackup,
 	apiRemoveBackup,
 	apiUpdateBackup,
-} from "~/server/db/schema";
-import { runMariadbBackup } from "~/server/utils/backups/mariadb";
-import { runMongoBackup } from "~/server/utils/backups/mongo";
-import { runMySqlBackup } from "~/server/utils/backups/mysql";
-import { runPostgresBackup } from "~/server/utils/backups/postgres";
+} from "@/server/db/schema";
+import { runMariadbBackup } from "@/server/utils/backups/mariadb";
+import { runMongoBackup } from "@/server/utils/backups/mongo";
+import { runMySqlBackup } from "@/server/utils/backups/mysql";
+import { runPostgresBackup } from "@/server/utils/backups/postgres";
 import {
 	removeScheduleBackup,
 	scheduleBackup,
-} from "~/server/utils/backups/utils";
+} from "@/server/utils/backups/utils";
+import { TRPCError } from "@trpc/server";
 import {
 	createBackup,
 	findBackupById,

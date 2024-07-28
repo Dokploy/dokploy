@@ -1,15 +1,15 @@
-import { formatDistanceToNow } from "date-fns";
-import { KeyRound, KeyRoundIcon, PenBoxIcon } from "lucide-react";
-import { UpdateSSHKey } from "~/components/dashboard/settings/ssh-keys/update-ssh-key";
-import { Button } from "~/components/ui/button";
+import { UpdateSSHKey } from "@/components/dashboard/settings/ssh-keys/update-ssh-key";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { formatDistanceToNow } from "date-fns";
+import { KeyRound, KeyRoundIcon, PenBoxIcon } from "lucide-react";
 import { AddSSHKey } from "./add-ssh-key";
 import { DeleteSSHKey } from "./delete-ssh-key";
 

@@ -1,5 +1,3 @@
-import { TrashIcon } from "lucide-react";
-import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -10,9 +8,11 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
-import { Button } from "~/components/ui/button";
-import { api } from "~/utils/api";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { api } from "@/utils/api";
+import { TrashIcon } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
 	redirectId: string;

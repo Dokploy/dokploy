@@ -1,17 +1,17 @@
-import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
-import { TRPCError } from "@trpc/server";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "~/server/api/trpc";
-import { db } from "~/server/db";
+} from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiCreateDestination,
 	apiFindOneDestination,
 	apiRemoveDestination,
 	apiUpdateDestination,
-} from "~/server/db/schema";
+} from "@/server/db/schema";
+import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
+import { TRPCError } from "@trpc/server";
 import { findAdmin } from "../services/admin";
 import {
 	createDestintation,

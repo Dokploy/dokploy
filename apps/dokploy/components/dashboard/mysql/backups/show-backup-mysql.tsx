@@ -1,22 +1,22 @@
-import { DatabaseBackup, Play } from "lucide-react";
-import Link from "next/link";
-import React from "react";
-import { toast } from "sonner";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
+} from "@/components/ui/card";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "~/components/ui/tooltip";
-import { api } from "~/utils/api";
+} from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
+import { DatabaseBackup, Play } from "lucide-react";
+import Link from "next/link";
+import React from "react";
+import { toast } from "sonner";
 import { AddBackup } from "../../database/backups/add-backup";
 import { DeleteBackup } from "../../database/backups/delete-backup";
 import { UpdateBackup } from "../../database/backups/update-backup";

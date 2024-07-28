@@ -1,6 +1,3 @@
-import dynamic from "next/dynamic";
-import type React from "react";
-import { useEffect, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -8,8 +5,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -18,12 +15,15 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "~/components/ui/select";
-import { api } from "~/utils/api";
+} from "@/components/ui/select";
+import { api } from "@/utils/api";
+import dynamic from "next/dynamic";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 const Terminal = dynamic(
 	() =>
-		import("~/components/dashboard/docker/terminal/docker-terminal").then(
+		import("@/components/dashboard/docker/terminal/docker-terminal").then(
 			(e) => e.DockerTerminal,
 		),
 	{

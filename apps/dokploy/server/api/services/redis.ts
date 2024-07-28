@@ -1,12 +1,12 @@
+import { generateRandomPassword } from "@/server/auth/random-password";
+import { db } from "@/server/db";
+import { type apiCreateRedis, redis } from "@/server/db/schema";
+import { generateAppName } from "@/server/db/schema/utils";
+import { buildRedis } from "@/server/utils/databases/redis";
+import { pullImage } from "@/server/utils/docker/utils";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { generateRandomPassword } from "~/server/auth/random-password";
-import { db } from "~/server/db";
-import { type apiCreateRedis, redis } from "~/server/db/schema";
-import { generateAppName } from "~/server/db/schema/utils";
-import { buildRedis } from "~/server/utils/databases/redis";
-import { pullImage } from "~/server/utils/docker/utils";
-import { generatePassword } from "~/templates/utils";
 import { validUniqueServerAppName } from "./project";
 
 export type Redis = typeof redis.$inferSelect;

@@ -1,5 +1,5 @@
 import type { WriteStream } from "node:fs";
-import { prepareEnvironmentVariables } from "~/server/utils/docker/utils";
+import { prepareEnvironmentVariables } from "@/server/utils/docker/utils";
 import type { ApplicationNested } from ".";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";

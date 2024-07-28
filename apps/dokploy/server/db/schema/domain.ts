@@ -1,8 +1,8 @@
+import { domain } from "@/server/db/validations";
 import { relations } from "drizzle-orm";
 import { boolean, integer, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
-import { domain } from "~/server/db/validations";
 import { applications } from "./application";
 import { certificateType } from "./shared";
 

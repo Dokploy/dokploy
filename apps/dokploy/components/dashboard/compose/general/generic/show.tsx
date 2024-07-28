@@ -1,9 +1,9 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { api } from "~/utils/api";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";

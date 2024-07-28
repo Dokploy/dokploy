@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "~/components/ui/dialog";
+} from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
 	logPath: string | null;

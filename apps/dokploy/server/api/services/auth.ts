@@ -1,19 +1,19 @@
 import { randomBytes } from "node:crypto";
-import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
-import { eq } from "drizzle-orm";
-import encode from "hi-base32";
-import { TOTP } from "otpauth";
-import QRCode from "qrcode";
-import { db } from "~/server/db";
+import { db } from "@/server/db";
 import {
 	admins,
 	type apiCreateAdmin,
 	type apiCreateUser,
 	auth,
 	users,
-} from "~/server/db/schema";
-import { getPublicIpWithFallback } from "~/server/wss/terminal";
+} from "@/server/db/schema";
+import { getPublicIpWithFallback } from "@/server/wss/terminal";
+import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
+import { eq } from "drizzle-orm";
+import encode from "hi-base32";
+import { TOTP } from "otpauth";
+import QRCode from "qrcode";
 
 export type Auth = typeof auth.$inferSelect;
 

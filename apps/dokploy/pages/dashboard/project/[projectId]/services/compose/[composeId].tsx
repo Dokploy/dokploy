@@ -1,3 +1,23 @@
+import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
+import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
+import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
+import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
+import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
+import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
+import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
+import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
+import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard } from "lucide-react";
 import type {
@@ -8,26 +28,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
-import { AddCommandCompose } from "~/components/dashboard/compose/advanced/add-command";
-import { ShowVolumesCompose } from "~/components/dashboard/compose/advanced/show-volumes";
-import { DeleteCompose } from "~/components/dashboard/compose/delete-compose";
-import { ShowDeploymentsCompose } from "~/components/dashboard/compose/deployments/show-deployments-compose";
-import { ShowEnvironmentCompose } from "~/components/dashboard/compose/enviroment/show";
-import { ShowGeneralCompose } from "~/components/dashboard/compose/general/show";
-import { ShowDockerLogsCompose } from "~/components/dashboard/compose/logs/show";
-import { ShowMonitoringCompose } from "~/components/dashboard/compose/monitoring/show";
-import { UpdateCompose } from "~/components/dashboard/compose/update-compose";
-import { ProjectLayout } from "~/components/layouts/project-layout";
-import { StatusTooltip } from "~/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "~/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { appRouter } from "~/server/api/root";
-import { validateRequest } from "~/server/auth/auth";
-import { api } from "~/utils/api";
 
 type TabState =
 	| "projects"

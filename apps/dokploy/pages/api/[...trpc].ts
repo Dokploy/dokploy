@@ -1,9 +1,9 @@
+import { appRouter } from "@/server/api/root";
+import { createTRPCContext } from "@/server/api/trpc";
+import { validateRequest } from "@/server/auth/auth";
+import { validateBearerToken } from "@/server/auth/token";
 import { createOpenApiNextHandler } from "@dokploy/trpc-openapi";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { appRouter } from "~/server/api/root";
-import { createTRPCContext } from "~/server/api/trpc";
-import { validateRequest } from "~/server/auth/auth";
-import { validateBearerToken } from "~/server/auth/token";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	let { session, user } = await validateBearerToken(req);

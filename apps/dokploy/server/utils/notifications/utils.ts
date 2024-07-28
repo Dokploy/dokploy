@@ -1,5 +1,5 @@
+import type { discord, email, slack, telegram } from "@/server/db/schema";
 import nodemailer from "nodemailer";
-import type { discord, email, slack, telegram } from "~/server/db/schema";
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,

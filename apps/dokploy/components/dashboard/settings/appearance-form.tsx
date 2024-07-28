@@ -2,17 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-import { useTheme } from "next-themes";
-import { useEffect } from "react";
-import { toast } from "sonner";
-import { Button } from "~/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
+} from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -21,8 +18,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "~/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+} from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {

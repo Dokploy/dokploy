@@ -1,14 +1,14 @@
-import { File } from "lucide-react";
-import React from "react";
-import { CodeEditor } from "~/components/shared/code-editor";
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "~/components/ui/card";
-import { api } from "~/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { File } from "lucide-react";
+import React from "react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
 interface Props {
 	applicationId: string;
