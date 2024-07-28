@@ -27,7 +27,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM installer AS builder
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
-RUN pnpm turbo run build --filter=dokploy
+RUN pnpm turbo run build --filter=dokploy...
 
 # Etapa de producción
 FROM base AS production
