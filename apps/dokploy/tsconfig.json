@@ -29,7 +29,8 @@
 			"@/*": ["/*"],
 			"@/components/*": ["components/*"],
 			"@/utils/*": ["utils/*"],
-			"@/server/*": ["server/*"]
+			"@/server/*": ["server/*"],
+			"@/lib/*": ["lib/*"]
 		}
 	},
 
