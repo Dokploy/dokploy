@@ -6,6 +6,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import CopyWebpackPlugin from "copy-webpack-plugin";
+import TsconfigPathsPlugin from "tsconfig-paths-webpack-plugin";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,19 @@ const nextConfig = {
 		ignoreBuildErrors: true,
 	},
 	webpack: (config) => {
+		if (config.resolve.plugins) {
+			config.resolve.plugins.push(
+				new TsconfigPathsPlugin({
+					configFile: path.resolve(__dirname, "./tsconfig.json"),
+				}),
+			);
+		} else {
+			config.resolve.plugins = [
+				new TsconfigPathsPlugin({
+					configFile: path.resolve(__dirname, "./tsconfig.json"),
+				}),
+			];
+		}
 		config.plugins.push(
 			new CopyWebpackPlugin({
 				patterns: [
@@ -38,7 +52,6 @@ const nextConfig = {
 				],
 			}),
 		);
-		config.resolve.alias["@dokploy"] = path.resolve(__dirname);
 		return config;
 	},
 
