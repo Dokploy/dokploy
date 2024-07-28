@@ -63,7 +63,7 @@ jobs:
         run: |
           cd apps/dokploy
           echo "Running type check..."
-          pnpm run tsc
+          pnpm run typecheck
 
       - name: Upload typecheck log
         uses: actions/upload-artifact@v3
