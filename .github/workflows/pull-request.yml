@@ -49,10 +49,10 @@ jobs:
           cat apps/dokploy/tsconfig.json
           cat apps/dokploy/package.json
 
-      - name: Verify project structure
-        run: |
-          tree -L 3 -I 'node_modules'
-          cat apps/dokploy/next-env.d.ts
+      # - name: Verify project structure
+      #   run: |
+      #     tree -L 3 -I 'node_modules'
+      #     cat apps/dokploy/next-env.d.ts
 
       - name: Show installed packages
         run: |
@@ -64,7 +64,6 @@ jobs:
           cd apps/dokploy
           echo "Running type check..."
           pnpm run dokploy:check
-        continue-on-error: true
 
       - name: Upload typecheck log
         uses: actions/upload-artifact@v3
