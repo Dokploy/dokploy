@@ -3,4 +3,3 @@ node_modules
 .gitignore
 *.md
 dist
-.next
