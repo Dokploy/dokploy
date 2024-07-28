@@ -27,27 +27,19 @@
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
-			"@/components/*": ["./components/*"]
+			"@/components/*": ["./components/*"],
+			"@/server/*": ["./server/*"],
+			"@/templates/*": ["./templates/*"]
 		}
 	},
 
 	"include": [
-		"next-env.d.ts",
 		"**/*.ts",
 		"**/*.tsx",
-		"**/*.cjs",
 		"**/*.js",
-		".next/types/**/*.ts",
-		"env.js",
-		"next.config.mjs"
+		"**/*.jsx",
+		"../../../node_modules/.pnpm/@types/node@*/node_modules/@types/node/globals.d.ts",
+		"../../../node_modules/.pnpm/@types/node@*/node_modules/@types/node/globals.*.d.ts"
 	],
-	"exclude": [
-		"node_modules",
-		"dokploy",
-		"config",
-		"dist",
-		"webpack.config.server.js",
-		"migration.ts",
-		"setup.ts"
-	]
+	"exclude": ["node_modules", "dist", ".next"]
 }
