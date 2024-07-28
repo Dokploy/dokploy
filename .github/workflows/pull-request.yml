@@ -42,8 +42,8 @@ jobs:
       # - name: Run format and lint
       #   run: pnpm biome ci
 
-      # - name: Run type check
-      #   run: pnpm typecheck
+      - name: Run type check
+        run: pnpm typecheck
 
       - name: Run Build
         run: pnpm dokploy:build

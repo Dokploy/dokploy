@@ -7,6 +7,7 @@
 		"dokploy:build": "pnpm --filter dokploy run build",
 		"dokploy:start": "pnpm run start --filter=dokploy",
 		"dokploy:test": "pnpm run test --filter=dokploy",
+		"dokploy:check": "pnpm --filter dokploy run typecheck",
 		"docker:build:canary": "./apps/dokploy/docker/build.sh canary",
 		"docs:dev": "pnpm run dev --filter=docs",
 		"docs:build": "pnpm run build --filter=docs",
