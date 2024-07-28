@@ -2,7 +2,6 @@ version: 2.1
 
 jobs:
   build-amd64:
-    working_directory: ~/apps/dokploy
     machine:
       image: ubuntu-2004:current
     steps:

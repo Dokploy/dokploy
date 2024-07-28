@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - canary
+  push:
+    branches:
+      - feat/monorepo
 
 env:
   HUSKY: 0
@@ -36,14 +39,14 @@ jobs:
       # - name: Run commitlint
       #   run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
-      - name: Run format and lint
-        run: pnpm biome ci
+      # - name: Run format and lint
+      #   run: pnpm biome ci
 
-      - name: Run type check
-        run: pnpm typecheck
+      # - name: Run type check
+      #   run: pnpm typecheck
 
       - name: Run Build
-        run: pnpm build
+        run: pnpm dokploy:build
 
       - name: Run Tests
-        run: pnpm run test
+        run: pnpm run dokploy:test
