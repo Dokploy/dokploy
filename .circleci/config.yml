@@ -14,7 +14,7 @@ jobs:
           name: Debug environment
           command: |
             pwd
-            ls -R
+            ls 
             cat apps/dokploy/Dockerfile
             cat apps/dokploy/.env.production
       - run:
