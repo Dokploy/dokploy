@@ -26,10 +26,7 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/components/*": ["../../apps/dokploy/components/*"],
-			"@/utils/*": ["../../apps/dokploy/utils/*"],
-			"@/lib/*": ["../../apps/dokploy/lib/*"],
-			"@/server/*": ["../../apps/dokploy/server/*"]
+			"@/*": ["../../apps/dokploy/*"]
 		}
 	},
 
