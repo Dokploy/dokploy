@@ -26,8 +26,8 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["/*"]
-			//   "@/components/*": ["components/*"],
+			"@/*": ["/*"],
+			"@/components/*": ["components/*"]
 			//   "@/utils/*": ["utils/*"],
 			//   "@/server/*": ["server/*"],
 			//   "@/lib/*": ["lib/*"]
