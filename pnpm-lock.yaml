@@ -36,7 +36,7 @@ importers:
         specifier: 4.16.2
         version: 4.16.2
       typescript:
-        specifier: ^5.4.5
+        specifier: ^5.0.4
         version: 5.5.3
 
   apps/dokploy:
