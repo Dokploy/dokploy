@@ -23,7 +23,7 @@
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
 		"format": "biome format --write",
 		"lint": "biome lint",
-		"typecheck": "tsc --traceResolution",
+		"typecheck": "tsc",
 		"db:seed": "tsx -r dotenv/config ./server/db/seed.ts",
 		"db:clean": "tsx -r dotenv/config ./server/db/reset.ts",
 		"docker:build": "./docker/build.sh",
