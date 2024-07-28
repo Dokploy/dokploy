@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/.husky/ ./.husky
-COPY --from=pruner /app/tsconfig.json ./tsconfig.json
 
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -28,7 +27,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM installer AS builder
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
-COPY --from=pruner /app/tsconfig.json ./tsconfig.json
 RUN pnpm turbo run build --filter=dokploy...
 
 # Etapa de producción
