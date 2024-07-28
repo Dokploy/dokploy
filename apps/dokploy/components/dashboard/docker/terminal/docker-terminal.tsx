@@ -2,7 +2,7 @@ import { Terminal } from "@xterm/xterm";
 import React, { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { Tabs, TabsList, TabsTrigger } from "@dokploy/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttachAddon } from "@xterm/addon-attach";
 
 interface Props {

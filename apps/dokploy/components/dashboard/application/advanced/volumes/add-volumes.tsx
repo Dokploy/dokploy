@@ -1,4 +1,4 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -6,7 +6,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -14,13 +14,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
-import { Label } from "@dokploy/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@dokploy/components/ui/radio-group";
-import { Textarea } from "@dokploy/components/ui/textarea";
-import { cn } from "@dokploy/lib/utils";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import type React from "react";

@@ -1,14 +1,14 @@
-import { Button, buttonVariants } from "@dokploy/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Input } from "@dokploy/components/ui/input";
-import { Switch } from "@dokploy/components/ui/switch";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
 import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";

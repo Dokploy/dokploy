@@ -1,8 +1,5 @@
-import { adminProcedure, createTRPCRouter } from "@dokploy/server/api/trpc";
-import {
-	apiCreateCertificate,
-	apiFindCertificate,
-} from "@dokploy/server/db/schema";
+import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import { apiCreateCertificate, apiFindCertificate } from "@/server/db/schema";
 import {
 	createCertificate,
 	findCertificateById,

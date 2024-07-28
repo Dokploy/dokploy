@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@dokploy/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -8,12 +8,12 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
-} from "@dokploy/server/db/schema/mysql";
+} from "@/server/db/schema/mysql";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@dokploy/server/utils/docker/utils";
+} from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createMount } from "../services/mount";

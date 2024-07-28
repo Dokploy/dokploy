@@ -1,4 +1,4 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -6,13 +6,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@dokploy/components/ui/tabs";
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { AddManager } from "./manager/add-manager";

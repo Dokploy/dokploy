@@ -1,5 +1,4 @@
 {
-	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		/* Base Options: */
 		"esModuleInterop": true,
@@ -23,7 +22,12 @@
 		"jsx": "preserve",
 		"plugins": [{ "name": "next" }],
 		"incremental": true,
-		"rootDir": "."
+
+		/* Path Aliases */
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"]
+		}
 	},
 
 	"include": [

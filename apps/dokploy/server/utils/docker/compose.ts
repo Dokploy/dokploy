@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { findComposeById } from "@dokploy/server/api/services/compose";
+import { findComposeById } from "@/server/api/services/compose";
 import { dump, load } from "js-yaml";
 import { addPrefixToAllConfigs } from "./compose/configs";
 import { addPrefixToAllNetworks } from "./compose/network";

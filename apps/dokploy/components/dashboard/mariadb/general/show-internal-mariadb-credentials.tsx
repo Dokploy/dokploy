@@ -1,13 +1,8 @@
-import { ToggleVisibilityInput } from "@dokploy/components/shared/toggle-visibility-input";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Input } from "@dokploy/components/ui/input";
-import { Label } from "@dokploy/components/ui/label";
-import { api } from "@dokploy/utils/api";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { api } from "@/utils/api";
 import React from "react";
 
 interface Props {

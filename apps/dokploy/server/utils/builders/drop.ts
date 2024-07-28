@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path, { join } from "node:path";
-import { APPLICATIONS_PATH } from "@dokploy/server/constants";
+import { APPLICATIONS_PATH } from "@/server/constants";
 import AdmZip from "adm-zip";
 import { recreateDirectory } from "../filesystem/directory";
 

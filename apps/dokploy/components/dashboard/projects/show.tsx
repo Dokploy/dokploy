@@ -1,4 +1,4 @@
-import { DateTooltip } from "@dokploy/components/shared/date-tooltip";
+import { DateTooltip } from "@/components/shared/date-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -9,22 +9,17 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@dokploy/components/ui/alert-dialog";
-import { Button } from "@dokploy/components/ui/button";
-import {
-	Card,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@dokploy/components/ui/dropdown-menu";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/dropdown-menu";
+import { api } from "@/utils/api";
 import {
 	AlertTriangle,
 	BookIcon,

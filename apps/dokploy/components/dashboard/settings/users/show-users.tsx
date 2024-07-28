@@ -1,19 +1,19 @@
-import { Badge } from "@dokploy/components/ui/badge";
-import { Button } from "@dokploy/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
+} from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@dokploy/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
 	Table,
 	TableBody,
@@ -22,8 +22,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@dokploy/components/ui/table";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/table";
+import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";

@@ -1,6 +1,6 @@
-import { appRouter } from "@dokploy/server/api/root";
-import { validateRequest } from "@dokploy/server/auth/auth";
-import { api } from "@dokploy/utils/api";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext, NextPage } from "next";
 import dynamic from "next/dynamic";

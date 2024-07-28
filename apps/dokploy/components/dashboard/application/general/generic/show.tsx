@@ -1,19 +1,9 @@
-import { SaveDockerProvider } from "@dokploy/components/dashboard/application/general/generic/save-docker-provider";
-import { SaveGitProvider } from "@dokploy/components/dashboard/application/general/generic/save-git-provider";
-import { SaveGithubProvider } from "@dokploy/components/dashboard/application/general/generic/save-github-provider";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@dokploy/components/ui/tabs";
-import { api } from "@dokploy/utils/api";
+import { SaveDockerProvider } from "@/components/dashboard/application/general/generic/save-docker-provider";
+import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
+import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

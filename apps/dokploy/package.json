@@ -129,7 +129,6 @@
 		"zod-form-data": "^2.0.2"
 	},
 	"devDependencies": {
-		"tsconfig-paths-webpack-plugin": "^4.1.0",
 		"@biomejs/biome": "1.8.3",
 		"@commitlint/cli": "^19.3.0",
 		"@commitlint/config-conventional": "^19.2.2",
@@ -159,7 +158,7 @@
 		"prettier-plugin-tailwindcss": "^0.5.11",
 		"tailwindcss": "^3.4.1",
 		"tsx": "^4.7.0",
-		"typescript": "^5.0.4",
+		"typescript": "^5.4.2",
 		"vite-tsconfig-paths": "4.3.2",
 		"vitest": "^1.6.0",
 		"xterm-readline": "1.1.1"

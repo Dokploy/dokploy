@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Label } from "@dokploy/components/ui/label";
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -14,8 +14,8 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@dokploy/components/ui/select";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
 import { DockerMonitoring } from "../../monitoring/docker/show";
 

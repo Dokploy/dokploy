@@ -1,4 +1,4 @@
-import { cn } from "@dokploy/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	className?: string;

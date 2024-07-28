@@ -1,10 +1,10 @@
-import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
+import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
 	addPrefixToAllNetworks,
 	addPrefixToServiceNetworks,
-} from "@dokploy/server/utils/docker/compose/network";
-import { addPrefixToNetworksRoot } from "@dokploy/server/utils/docker/compose/network";
-import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+} from "@/server/utils/docker/compose/network";
+import { addPrefixToNetworksRoot } from "@/server/utils/docker/compose/network";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

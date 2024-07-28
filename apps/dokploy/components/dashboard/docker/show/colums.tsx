@@ -2,15 +2,15 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import * as React from "react";
 
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@dokploy/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
-import { Badge } from "@dokploy/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";

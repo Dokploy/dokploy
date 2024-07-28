@@ -1,12 +1,12 @@
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
-import { Button } from "@dokploy/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
+} from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -14,8 +14,8 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -24,8 +24,8 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@dokploy/components/ui/select";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Server } from "lucide-react";
 import Link from "next/link";

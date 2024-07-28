@@ -1,4 +1,4 @@
-import { db } from "@dokploy/server/db";
+import { db } from "@/server/db";
 import {
 	type apiCreateProject,
 	applications,
@@ -8,7 +8,7 @@ import {
 	postgres,
 	projects,
 	redis,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";

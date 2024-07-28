@@ -1,12 +1,12 @@
-import { Badge } from "@dokploy/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
 import React from "react";
 import { ComposeActions } from "./actions";
 import { ShowProviderFormCompose } from "./generic/show";

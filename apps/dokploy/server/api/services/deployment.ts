@@ -1,13 +1,13 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { LOGS_PATH } from "@dokploy/server/constants";
-import { db } from "@dokploy/server/db";
+import { LOGS_PATH } from "@/server/constants";
+import { db } from "@/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
 	deployments,
-} from "@dokploy/server/db/schema";
-import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
+} from "@/server/db/schema";
+import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";

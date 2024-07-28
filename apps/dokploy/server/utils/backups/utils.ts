@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
+import type { BackupSchedule } from "@/server/api/services/backup";
+import type { Destination } from "@/server/api/services/destination";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import type { BackupSchedule } from "@dokploy/server/api/services/backup";
-import type { Destination } from "@dokploy/server/api/services/destination";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";

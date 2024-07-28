@@ -1,11 +1,11 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,
 	CommandItem,
-} from "@dokploy/components/ui/command";
+} from "@/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -14,7 +14,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -23,17 +23,17 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@dokploy/components/ui/popover";
-import { ScrollArea } from "@dokploy/components/ui/scroll-area";
-import { Switch } from "@dokploy/components/ui/switch";
-import { cn } from "@dokploy/lib/utils";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, PenBoxIcon, Pencil } from "lucide-react";
 import { useEffect } from "react";

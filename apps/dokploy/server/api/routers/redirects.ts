@@ -2,7 +2,7 @@ import {
 	apiCreateRedirect,
 	apiFindOneRedirect,
 	apiUpdateRedirect,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import {
 	createRedirect,
 	findRedirectById,

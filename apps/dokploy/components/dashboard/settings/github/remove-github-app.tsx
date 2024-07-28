@@ -8,15 +8,15 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@dokploy/components/ui/alert-dialog";
-import { Button } from "@dokploy/components/ui/button";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@dokploy/components/ui/tooltip";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
 import { InfoIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";

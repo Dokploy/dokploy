@@ -1,4 +1,4 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -6,8 +6,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
+} from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -16,11 +16,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
-import { Label } from "@dokploy/components/ui/label";
-import { Textarea } from "@dokploy/components/ui/textarea";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import dynamic from "next/dynamic";
 import type React from "react";

@@ -5,9 +5,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
-import { Label } from "@dokploy/components/ui/label";
+} from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -16,15 +16,15 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@dokploy/components/ui/select";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/select";
+import { api } from "@/utils/api";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
 
 export const DockerLogsId = dynamic(
 	() =>
-		import("@dokploy/components/dashboard/docker/logs/docker-logs-id").then(
+		import("@/components/dashboard/docker/logs/docker-logs-id").then(
 			(e) => e.DockerLogsId,
 		),
 	{

@@ -1,12 +1,12 @@
-import { db } from "@dokploy/server/db";
-import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
-import { initializeRegistry } from "@dokploy/server/setup/registry-setup";
-import { removeService } from "@dokploy/server/utils/docker/utils";
-import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import { db } from "@/server/db";
+import { type apiCreateRegistry, registry } from "@/server/db/schema";
+import { initializeRegistry } from "@/server/setup/registry-setup";
+import { removeService } from "@/server/utils/docker/utils";
+import { execAsync } from "@/server/utils/process/execAsync";
 import {
 	manageRegistry,
 	removeSelfHostedRegistry,
-} from "@dokploy/server/utils/traefik/registry";
+} from "@/server/utils/traefik/registry";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";

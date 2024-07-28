@@ -5,8 +5,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import { Label } from "@dokploy/components/ui/label";
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -15,17 +15,17 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@dokploy/components/ui/select";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/select";
+import { api } from "@/utils/api";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
 
 const Terminal = dynamic(
 	() =>
-		import(
-			"@dokploy/components/dashboard/docker/terminal/docker-terminal"
-		).then((e) => e.DockerTerminal),
+		import("@/components/dashboard/docker/terminal/docker-terminal").then(
+			(e) => e.DockerTerminal,
+		),
 	{
 		ssr: false,
 	},

@@ -1,5 +1,5 @@
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
-import { Button } from "@dokploy/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -8,7 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -17,22 +17,22 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@dokploy/components/ui/select";
-import { Switch } from "@dokploy/components/ui/switch";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { domain } from "@dokploy/server/db/validations";
+import { domain } from "@/server/db/validations";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type z from "zod";
 

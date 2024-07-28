@@ -1,12 +1,12 @@
-import { db } from "@dokploy/server/db";
+import { db } from "@/server/db";
 import {
 	type apiCreateSshKey,
 	type apiFindOneSshKey,
 	type apiRemoveSshKey,
 	type apiUpdateSshKey,
 	sshKeys,
-} from "@dokploy/server/db/schema";
-import { removeSSHKey, saveSSHKey } from "@dokploy/server/utils/filesystem/ssh";
+} from "@/server/db/schema";
+import { removeSSHKey, saveSSHKey } from "@/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 

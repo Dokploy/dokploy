@@ -1,5 +1,5 @@
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
-import { Button } from "@dokploy/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,8 +7,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/dialog";
+import { api } from "@/utils/api";
 import { RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

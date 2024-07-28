@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@dokploy/lib/utils";
+import { cn } from "@/lib/utils";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";

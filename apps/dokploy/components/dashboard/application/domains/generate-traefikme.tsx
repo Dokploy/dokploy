@@ -8,9 +8,9 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@dokploy/components/ui/alert-dialog";
-import { Button } from "@dokploy/components/ui/button";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { api } from "@/utils/api";
 import { RefreshCcw } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";

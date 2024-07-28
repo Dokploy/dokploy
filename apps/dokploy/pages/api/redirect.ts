@@ -1,5 +1,5 @@
-import { db } from "@dokploy/server/db";
-import { admins } from "@dokploy/server/db/schema";
+import { db } from "@/server/db";
+import { admins } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";

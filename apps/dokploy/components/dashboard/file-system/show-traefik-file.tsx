@@ -1,7 +1,7 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
-import { CodeEditor } from "@dokploy/components/shared/code-editor";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Form,
 	FormControl,
@@ -10,8 +10,8 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/form";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";

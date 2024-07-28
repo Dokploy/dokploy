@@ -1,31 +1,26 @@
-import { ShowDockerLogs } from "@dokploy/components/dashboard/application/logs/show";
-import { ShowAdvancedMariadb } from "@dokploy/components/dashboard/mariadb/advanced/show-mariadb-advanced-settings";
-import { ShowBackupMariadb } from "@dokploy/components/dashboard/mariadb/backups/show-backup-mariadb";
-import { DeleteMariadb } from "@dokploy/components/dashboard/mariadb/delete-mariadb";
-import { ShowMariadbEnvironment } from "@dokploy/components/dashboard/mariadb/environment/show-mariadb-environment";
-import { ShowExternalMariadbCredentials } from "@dokploy/components/dashboard/mariadb/general/show-external-mariadb-credentials";
-import { ShowGeneralMariadb } from "@dokploy/components/dashboard/mariadb/general/show-general-mariadb";
-import { ShowInternalMariadbCredentials } from "@dokploy/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
-import { UpdateMariadb } from "@dokploy/components/dashboard/mariadb/update-mariadb";
-import { DockerMonitoring } from "@dokploy/components/dashboard/monitoring/docker/show";
-import { MariadbIcon } from "@dokploy/components/icons/data-tools-icons";
-import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
-import { ProjectLayout } from "@dokploy/components/layouts/project-layout";
-import { StatusTooltip } from "@dokploy/components/shared/status-tooltip";
+import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowAdvancedMariadb } from "@/components/dashboard/mariadb/advanced/show-mariadb-advanced-settings";
+import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
+import { DeleteMariadb } from "@/components/dashboard/mariadb/delete-mariadb";
+import { ShowMariadbEnvironment } from "@/components/dashboard/mariadb/environment/show-mariadb-environment";
+import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
+import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
+import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
+import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { MariadbIcon } from "@/components/icons/data-tools-icons";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "@dokploy/components/ui/breadcrumb";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@dokploy/components/ui/tabs";
-import { appRouter } from "@dokploy/server/api/root";
-import { validateRequest } from "@dokploy/server/auth/auth";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,

@@ -1,11 +1,6 @@
-import { Button } from "@dokploy/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/utils/api";
 import { Terminal } from "lucide-react";
 import React from "react";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";

@@ -2,8 +2,8 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "@dokploy/server/api/trpc";
-import { db } from "@dokploy/server/db";
+} from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiCreateDiscord,
 	apiCreateEmail,
@@ -19,13 +19,13 @@ import {
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
-} from "@dokploy/server/utils/notifications/utils";
+} from "@/server/utils/notifications/utils";
 import { TRPCError } from "@trpc/server";
 import { desc } from "drizzle-orm";
 import {

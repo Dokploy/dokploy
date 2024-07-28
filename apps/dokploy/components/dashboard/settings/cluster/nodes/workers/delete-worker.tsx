@@ -8,10 +8,10 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@dokploy/components/ui/alert-dialog";
-import { Button } from "@dokploy/components/ui/button";
-import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { api } from "@/utils/api";
 import { TrashIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";

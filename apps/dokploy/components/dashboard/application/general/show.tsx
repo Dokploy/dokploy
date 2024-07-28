@@ -1,14 +1,9 @@
-import { ShowBuildChooseForm } from "@dokploy/components/dashboard/application/build/show";
-import { ShowProviderForm } from "@dokploy/components/dashboard/application/general/generic/show";
-import { Button } from "@dokploy/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Toggle } from "@dokploy/components/ui/toggle";
-import { api } from "@dokploy/utils/api";
+import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
+import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle";
+import { api } from "@/utils/api";
 import { CheckCircle2, Terminal } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";

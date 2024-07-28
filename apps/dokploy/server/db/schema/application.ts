@@ -1,4 +1,4 @@
-import { generatePassword } from "@dokploy/templates/utils";
+import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import {
 	boolean,

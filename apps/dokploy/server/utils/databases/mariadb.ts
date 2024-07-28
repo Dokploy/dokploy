@@ -1,6 +1,6 @@
-import type { Mariadb } from "@dokploy/server/api/services/mariadb";
-import type { Mount } from "@dokploy/server/api/services/mount";
-import { docker } from "@dokploy/server/constants";
+import type { Mariadb } from "@/server/api/services/mariadb";
+import type { Mount } from "@/server/api/services/mount";
+import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,

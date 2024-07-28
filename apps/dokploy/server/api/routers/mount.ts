@@ -3,7 +3,7 @@ import {
 	apiFindOneMount,
 	apiRemoveMount,
 	apiUpdateMount,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import {
 	createMount,
 	deleteMount,

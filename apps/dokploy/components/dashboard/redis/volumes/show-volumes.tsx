@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
 import { AlertTriangle, Package } from "lucide-react";
 import React from "react";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";

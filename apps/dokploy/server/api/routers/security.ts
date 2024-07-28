@@ -2,7 +2,7 @@ import {
 	apiCreateSecurity,
 	apiFindOneSecurity,
 	apiUpdateSecurity,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import {
 	createSecurity,
 	deleteSecurityById,

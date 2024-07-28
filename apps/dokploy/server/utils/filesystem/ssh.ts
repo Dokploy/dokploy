@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { SSH_PATH } from "@dokploy/server/constants";
+import { SSH_PATH } from "@/server/constants";
 import { spawnAsync } from "../process/spawnAsync";
 
 const readSSHKey = async (id: string) => {

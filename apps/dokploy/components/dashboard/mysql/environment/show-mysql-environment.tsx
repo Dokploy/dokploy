@@ -1,21 +1,21 @@
-import { CodeEditor } from "@dokploy/components/shared/code-editor";
-import { Button } from "@dokploy/components/ui/button";
+import { CodeEditor } from "@/components/shared/code-editor";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
+} from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Toggle } from "@dokploy/components/ui/toggle";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/form";
+import { Toggle } from "@/components/ui/toggle";
+import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";

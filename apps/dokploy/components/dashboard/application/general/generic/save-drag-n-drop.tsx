@@ -1,5 +1,5 @@
-import { Button } from "@dokploy/components/ui/button";
-import { Dropzone } from "@dokploy/components/ui/dropzone";
+import { Button } from "@/components/ui/button";
+import { Dropzone } from "@/components/ui/dropzone";
 import {
 	Form,
 	FormControl,
@@ -7,10 +7,10 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@dokploy/components/ui/form";
-import { Input } from "@dokploy/components/ui/input";
-import { api } from "@dokploy/utils/api";
-import { type UploadFile, uploadFileSchema } from "@dokploy/utils/schema";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { api } from "@/utils/api";
+import { type UploadFile, uploadFileSchema } from "@/utils/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "lucide-react";
 import { useEffect } from "react";

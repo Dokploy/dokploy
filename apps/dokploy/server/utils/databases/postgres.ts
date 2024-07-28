@@ -1,6 +1,6 @@
-import type { Mount } from "@dokploy/server/api/services/mount";
-import type { Postgres } from "@dokploy/server/api/services/postgres";
-import { docker } from "@dokploy/server/constants";
+import type { Mount } from "@/server/api/services/mount";
+import type { Postgres } from "@/server/api/services/postgres";
+import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,

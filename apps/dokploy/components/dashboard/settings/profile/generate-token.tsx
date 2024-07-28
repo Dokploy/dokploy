@@ -1,14 +1,14 @@
-import { ToggleVisibilityInput } from "@dokploy/components/shared/toggle-visibility-input";
-import { Button } from "@dokploy/components/ui/button";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Label } from "@dokploy/components/ui/label";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { api } from "@/utils/api";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";

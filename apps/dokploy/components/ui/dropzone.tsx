@@ -1,6 +1,6 @@
-import { Card, CardContent } from "@dokploy/components/ui/card";
-import { Input } from "@dokploy/components/ui/input";
-import { cn } from "@dokploy/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { FolderIcon } from "lucide-react";
 import React, { type ChangeEvent, useRef } from "react";
 

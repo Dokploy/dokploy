@@ -1,11 +1,6 @@
-import { Button } from "@dokploy/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/utils/api";
 import React from "react";
 
 import { Terminal } from "lucide-react";

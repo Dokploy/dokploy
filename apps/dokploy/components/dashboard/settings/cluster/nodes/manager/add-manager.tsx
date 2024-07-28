@@ -1,10 +1,10 @@
-import { CardContent } from "@dokploy/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@dokploy/components/ui/dialog";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/dialog";
+import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { CopyIcon } from "lucide-react";
 import { toast } from "sonner";

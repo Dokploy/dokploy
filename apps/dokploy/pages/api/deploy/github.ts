@@ -1,8 +1,8 @@
-import { findAdmin } from "@dokploy/server/api/services/admin";
-import { db } from "@dokploy/server/db";
-import { applications, compose } from "@dokploy/server/db/schema";
-import type { DeploymentJob } from "@dokploy/server/queues/deployments-queue";
-import { myQueue } from "@dokploy/server/queues/queueSetup";
+import { findAdmin } from "@/server/api/services/admin";
+import { db } from "@/server/db";
+import { applications, compose } from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/deployments-queue";
+import { myQueue } from "@/server/queues/queueSetup";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";

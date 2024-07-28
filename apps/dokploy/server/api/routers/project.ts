@@ -2,8 +2,8 @@ import {
 	cliProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "@dokploy/server/api/trpc";
-import { db } from "@dokploy/server/db";
+} from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	applications,
 	compose,
@@ -12,14 +12,14 @@ import {
 	mysql,
 	postgres,
 	redis,
-} from "@dokploy/server/db/schema";
+} from "@/server/db/schema";
 import {
 	apiCreateProject,
 	apiFindOneProject,
 	apiRemoveProject,
 	apiUpdateProject,
 	projects,
-} from "@dokploy/server/db/schema/project";
+} from "@/server/db/schema/project";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";

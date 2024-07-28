@@ -1,6 +1,6 @@
-import { ShowMonitoring } from "@dokploy/components/dashboard/monitoring/web-server/show";
-import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
-import { validateRequest } from "@dokploy/server/auth/auth";
+import { ShowMonitoring } from "@/components/dashboard/monitoring/web-server/show";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { validateRequest } from "@/server/auth/auth";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 

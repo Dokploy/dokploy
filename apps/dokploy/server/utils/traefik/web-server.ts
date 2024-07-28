@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Admin } from "@dokploy/server/api/services/admin";
-import { MAIN_TRAEFIK_PATH } from "@dokploy/server/constants";
+import type { Admin } from "@/server/api/services/admin";
+import { MAIN_TRAEFIK_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { FileConfig } from "./file-types";

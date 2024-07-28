@@ -1,12 +1,12 @@
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
+import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
 import { Package } from "lucide-react";
 import React from "react";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";

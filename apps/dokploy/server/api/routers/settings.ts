@@ -1,8 +1,4 @@
-import {
-	MAIN_TRAEFIK_PATH,
-	MONITORING_PATH,
-	docker,
-} from "@dokploy/server/constants";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -11,8 +7,8 @@ import {
 	apiSaveSSHKey,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
-} from "@dokploy/server/db/schema";
-import { initializeTraefik } from "@dokploy/server/setup/traefik-setup";
+} from "@/server/db/schema";
+import { initializeTraefik } from "@/server/setup/traefik-setup";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -21,22 +17,22 @@ import {
 	cleanUpUnusedVolumes,
 	startService,
 	stopService,
-} from "@dokploy/server/utils/docker/utils";
-import { recreateDirectory } from "@dokploy/server/utils/filesystem/directory";
-import { sendDockerCleanupNotifications } from "@dokploy/server/utils/notifications/docker-cleanup";
-import { spawnAsync } from "@dokploy/server/utils/process/spawnAsync";
+} from "@/server/utils/docker/utils";
+import { recreateDirectory } from "@/server/utils/filesystem/directory";
+import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
+import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
 	readConfigInPath,
 	writeConfig,
 	writeTraefikConfigInPath,
-} from "@dokploy/server/utils/traefik/application";
+} from "@/server/utils/traefik/application";
 import {
 	readMainConfig,
 	updateLetsEncryptEmail,
 	updateServerTraefik,
 	writeMainConfig,
-} from "@dokploy/server/utils/traefik/web-server";
+} from "@/server/utils/traefik/web-server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { scheduleJob, scheduledJobs } from "node-schedule";

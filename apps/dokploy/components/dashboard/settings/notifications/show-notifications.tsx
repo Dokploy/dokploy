@@ -2,15 +2,15 @@ import {
 	DiscordIcon,
 	SlackIcon,
 	TelegramIcon,
-} from "@dokploy/components/icons/notification-icons";
+} from "@/components/icons/notification-icons";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
 import { BellRing, Mail } from "lucide-react";
 import { AddNotification } from "./add-notification";
 import { DeleteNotification } from "./delete-notification";

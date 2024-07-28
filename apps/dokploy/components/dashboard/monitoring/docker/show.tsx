@@ -4,9 +4,9 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Progress } from "@dokploy/components/ui/progress";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { api } from "@/utils/api";
 import React, { useEffect, useState } from "react";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";

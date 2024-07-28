@@ -1,4 +1,4 @@
-import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import { execAsync } from "@/server/utils/process/execAsync";
 
 export const getContainers = async () => {
 	try {

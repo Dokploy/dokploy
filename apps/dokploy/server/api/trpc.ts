@@ -7,8 +7,8 @@
  * need to use are documented accordingly near the end.
  */
 
-// import { getServerAuthSession } from "@dokploy/server/auth";
-import { db } from "@dokploy/server/db";
+// import { getServerAuthSession } from "@/server/auth";
+import { db } from "@/server/db";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";

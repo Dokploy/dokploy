@@ -1,7 +1,7 @@
-import "@dokploy/styles/globals.css";
+import "@/styles/globals.css";
 
-import { Toaster } from "@dokploy/components/ui/sonner";
-import { api } from "@dokploy/utils/api";
+import { Toaster } from "@/components/ui/sonner";
+import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";

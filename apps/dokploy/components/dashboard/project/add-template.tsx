@@ -1,4 +1,4 @@
-import { AlertBlock } from "@dokploy/components/shared/alert-block";
+import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -9,16 +9,16 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@dokploy/components/ui/alert-dialog";
-import { Badge } from "@dokploy/components/ui/badge";
-import { Button } from "@dokploy/components/ui/button";
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,
 	CommandItem,
-} from "@dokploy/components/ui/command";
+} from "@/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -26,16 +26,16 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@dokploy/components/ui/dialog";
-import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
-import { Input } from "@dokploy/components/ui/input";
+} from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@dokploy/components/ui/popover";
-import { cn } from "@dokploy/lib/utils";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import {
 	CheckIcon,

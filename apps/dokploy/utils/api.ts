@@ -4,7 +4,7 @@
  *
  * We also create a few inference helpers for input and output types.
  */
-import type { AppRouter } from "@dokploy/server/api/root";
+import type { AppRouter } from "@/server/api/root";
 import {
 	experimental_formDataLink,
 	httpBatchLink,

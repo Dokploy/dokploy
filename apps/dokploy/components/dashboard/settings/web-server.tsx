@@ -1,13 +1,13 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Label } from "@dokploy/components/ui/label";
-import { Switch } from "@dokploy/components/ui/switch";
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import React from "react";
 
 import {
@@ -18,8 +18,8 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@dokploy/components/ui/dropdown-menu";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/dropdown-menu";
+import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
 import { ShowMainTraefikConfig } from "./web-server/show-main-traefik-config";

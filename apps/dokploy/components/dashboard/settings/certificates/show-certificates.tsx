@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
 import { ShieldCheck } from "lucide-react";
 import { AddCertificate } from "./add-certificate";
 import { DeleteCertificate } from "./delete-certificate";

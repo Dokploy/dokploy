@@ -1,16 +1,6 @@
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@dokploy/components/ui/card";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@dokploy/components/ui/tabs";
-import { api } from "@dokploy/utils/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";

@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@dokploy/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -8,12 +8,12 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
-} from "@dokploy/server/db/schema/mongo";
+} from "@/server/db/schema/mongo";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@dokploy/server/utils/docker/utils";
+} from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import {
 	createMongo,

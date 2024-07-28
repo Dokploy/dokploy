@@ -1,8 +1,8 @@
 import {
 	addPrefixToAllServiceNames,
 	addPrefixToServiceNames,
-} from "@dokploy/server/utils/docker/compose/service";
-import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+} from "@/server/utils/docker/compose/service";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

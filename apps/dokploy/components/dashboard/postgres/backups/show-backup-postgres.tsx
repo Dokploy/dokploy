@@ -1,18 +1,18 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
+} from "@/components/ui/card";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@dokploy/components/ui/tooltip";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
 import { DatabaseBackup, Play } from "lucide-react";
 import Link from "next/link";
 import React from "react";

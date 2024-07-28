@@ -1,4 +1,4 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -7,9 +7,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@dokploy/components/ui/dropdown-menu";
-import { Toggle } from "@dokploy/components/ui/toggle";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/dropdown-menu";
+import { Toggle } from "@/components/ui/toggle";
+import { api } from "@/utils/api";
 import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";

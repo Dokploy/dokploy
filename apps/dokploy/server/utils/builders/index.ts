@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
-import { docker } from "@dokploy/server/constants";
-import type { InferResultType } from "@dokploy/server/types/with";
+import { docker } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage } from "../cluster/upload";
 import {

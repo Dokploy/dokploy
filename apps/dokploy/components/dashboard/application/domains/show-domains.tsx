@@ -1,13 +1,13 @@
-import { Button } from "@dokploy/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@dokploy/components/ui/card";
-import { Input } from "@dokploy/components/ui/input";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { api } from "@/utils/api";
 import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
 import Link from "next/link";
 import { AddDomain } from "./add-domain";

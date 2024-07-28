@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@dokploy/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -8,12 +8,12 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
-} from "@dokploy/server/db/schema/redis";
+} from "@/server/db/schema/redis";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@dokploy/server/utils/docker/utils";
+} from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { createMount } from "../services/mount";
 import {

@@ -1,8 +1,5 @@
-import { db } from "@dokploy/server/db";
-import {
-	type apiCreateDestination,
-	destinations,
-} from "@dokploy/server/db/schema";
+import { db } from "@/server/db";
+import { type apiCreateDestination, destinations } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";

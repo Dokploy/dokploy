@@ -1,5 +1,5 @@
 import http from "node:http";
-import { migration } from "@dokploy/server/db/migration";
+import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
 import { deploymentWorker } from "./queues/deployments-queue";

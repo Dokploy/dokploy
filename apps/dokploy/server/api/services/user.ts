@@ -1,5 +1,5 @@
-import { db } from "@dokploy/server/db";
-import { users } from "@dokploy/server/db/schema";
+import { db } from "@/server/db";
+import { users } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 

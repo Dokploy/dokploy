@@ -1,31 +1,26 @@
-import { ShowDockerLogs } from "@dokploy/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@dokploy/components/dashboard/monitoring/docker/show";
-import { ShowAdvancedPostgres } from "@dokploy/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
-import { ShowBackupPostgres } from "@dokploy/components/dashboard/postgres/backups/show-backup-postgres";
-import { DeletePostgres } from "@dokploy/components/dashboard/postgres/delete-postgres";
-import { ShowPostgresEnvironment } from "@dokploy/components/dashboard/postgres/environment/show-postgres-environment";
-import { ShowExternalPostgresCredentials } from "@dokploy/components/dashboard/postgres/general/show-external-postgres-credentials";
-import { ShowGeneralPostgres } from "@dokploy/components/dashboard/postgres/general/show-general-postgres";
-import { ShowInternalPostgresCredentials } from "@dokploy/components/dashboard/postgres/general/show-internal-postgres-credentials";
-import { UpdatePostgres } from "@dokploy/components/dashboard/postgres/update-postgres";
-import { PostgresqlIcon } from "@dokploy/components/icons/data-tools-icons";
-import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
-import { ProjectLayout } from "@dokploy/components/layouts/project-layout";
-import { StatusTooltip } from "@dokploy/components/shared/status-tooltip";
+import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
+import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
+import { DeletePostgres } from "@/components/dashboard/postgres/delete-postgres";
+import { ShowPostgresEnvironment } from "@/components/dashboard/postgres/environment/show-postgres-environment";
+import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
+import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
+import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
+import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
+import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@/components/layouts/project-layout";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "@dokploy/components/ui/breadcrumb";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@dokploy/components/ui/tabs";
-import { appRouter } from "@dokploy/server/api/root";
-import { validateRequest } from "@dokploy/server/auth/auth";
-import { api } from "@dokploy/utils/api";
+} from "@/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { appRouter } from "@/server/api/root";
+import { validateRequest } from "@/server/auth/auth";
+import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,

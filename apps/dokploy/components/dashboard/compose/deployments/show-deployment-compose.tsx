@@ -4,7 +4,7 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@dokploy/components/ui/dialog";
+} from "@/components/ui/dialog";
 import { useEffect, useRef, useState } from "react";
 
 interface Props {
