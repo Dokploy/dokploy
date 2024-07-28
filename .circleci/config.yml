@@ -2,6 +2,7 @@ version: 2.1
 
 jobs:
   build-amd64:
+    working_directory: ~/apps/dokploy
     machine:
       image: ubuntu-2004:current
     steps:
@@ -14,7 +15,7 @@ jobs:
           name: Debug environment
           command: |
             pwd
-            ls 
+            ls -R
             cat apps/dokploy/Dockerfile
             cat apps/dokploy/.env.production
       - run:
@@ -31,7 +32,6 @@ jobs:
             else
               TAG="canary"
             fi
-            cd ./apps/dokploy
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f Dockerfile .
             # docker push dokploy/dokploy:${TAG}-amd64
 
