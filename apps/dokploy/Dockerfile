@@ -27,7 +27,7 @@ FROM deps AS builder
 COPY --from=pruner /app/out/full/ .
 COPY /apps/dokploy/tsconfig.json tsconfig.json
 COPY /apps/dokploy/next.config.mjs next.config.mjs
-RUN pnpm turbo run build --filter=dokploy -- --debug
+RUN pnpm turbo run build --filter=dokploy
 
 # Etapa de producción
 FROM base AS production
