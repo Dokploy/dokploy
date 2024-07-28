@@ -10,8 +10,8 @@ WORKDIR /app
 FROM base AS pruner
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY . .
-RUN yarn global add turbo
-RUN turbo prune dokploy --docker
+RUN pnpm install turbo -g
+RUN pnpm turbo prune dokploy --docker
 
 # Etapa de dependencias
 FROM base AS deps
