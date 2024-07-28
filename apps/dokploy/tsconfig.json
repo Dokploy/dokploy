@@ -1,5 +1,4 @@
 {
-	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		/* Base Options: */
 		"esModuleInterop": true,
@@ -27,7 +26,7 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./*"]
+			"@/*": ["../*"]
 		}
 	},
 
