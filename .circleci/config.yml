@@ -32,6 +32,7 @@ jobs:
             else
               TAG="canary"
             fi
+            cd ./apps/dokploy
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f Dockerfile .
             # docker push dokploy/dokploy:${TAG}-amd64
 
