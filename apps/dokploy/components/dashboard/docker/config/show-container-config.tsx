@@ -5,9 +5,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { api } from "@/utils/api";
+} from "~/components/ui/dialog";
+import { DropdownMenuItem } from "~/components/ui/dropdown-menu";
+import { api } from "~/utils/api";
 
 interface Props {
 	containerId: string;

@@ -1,7 +1,7 @@
 import http from "node:http";
-import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
+import { migration } from "~/server/db/migration";
 import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";

@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "~/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -7,15 +7,8 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "~/components/ui/form";
 
-import { CardTitle } from "@/components/ui/card";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/router";
@@ -23,6 +16,13 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { CardTitle } from "~/components/ui/card";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot,
+} from "~/components/ui/input-otp";
+import { api } from "~/utils/api";
 
 const Login2FASchema = z.object({
 	pin: z.string().min(6, {

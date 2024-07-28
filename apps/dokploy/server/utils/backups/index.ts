@@ -1,5 +1,5 @@
-import { findAdmin } from "@/server/api/services/admin";
 import { scheduleJob } from "node-schedule";
+import { findAdmin } from "~/server/api/services/admin";
 import { db } from "../../db/index";
 import {
 	cleanUpDockerBuilder,

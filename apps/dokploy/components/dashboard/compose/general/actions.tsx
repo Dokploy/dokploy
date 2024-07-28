@@ -1,4 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -7,12 +10,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Toggle } from "@/components/ui/toggle";
-import { api } from "@/utils/api";
-import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
+} from "~/components/ui/dropdown-menu";
+import { Toggle } from "~/components/ui/toggle";
+import { api } from "~/utils/api";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 import { DeployCompose } from "./deploy-compose";
 import { RedbuildCompose } from "./rebuild-compose";

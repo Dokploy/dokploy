@@ -7,8 +7,6 @@
  * need to use are documented accordingly near the end.
  */
 
-// import { getServerAuthSession } from "@/server/auth";
-import { db } from "@/server/db";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -20,6 +18,8 @@ import {
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
+// import { getServerAuthSession } from "~/server/auth";
+import { db } from "~/server/db";
 import { validateRequest } from "../auth/auth";
 import { validateBearerToken } from "../auth/token";
 

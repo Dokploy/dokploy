@@ -1,6 +1,13 @@
-import { DeleteSSHKey } from "@/components/dashboard/settings/ssh-keys/delete-ssh-key";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { CopyIcon } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import type { z } from "zod";
+import { DeleteSSHKey } from "~/components/dashboard/settings/ssh-keys/delete-ssh-key";
+import { AlertBlock } from "~/components/shared/alert-block";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,7 +16,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
+} from "~/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -17,18 +24,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { sshKeyUpdate } from "@/server/db/validations";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import copy from "copy-to-clipboard";
-import { CopyIcon } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import type { z } from "zod";
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
+import { sshKeyUpdate } from "~/server/db/validations";
+import { api } from "~/utils/api";
 
 type SSHKey = z.infer<typeof sshKeyUpdate>;
 

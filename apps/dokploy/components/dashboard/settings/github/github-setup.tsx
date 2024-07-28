@@ -1,17 +1,17 @@
-import { Button, buttonVariants } from "@/components/ui/button";
+import { BadgeCheck } from "lucide-react";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { Button, buttonVariants } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { api } from "@/utils/api";
-import { BadgeCheck } from "lucide-react";
-import Link from "next/link";
-import React, { useEffect, useState } from "react";
+} from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { Switch } from "~/components/ui/switch";
+import { api } from "~/utils/api";
 import { RemoveGithubApp } from "./remove-github-app";
 export const generateName = () => {
 	const n1 = ["Blue", "Green", "Red", "Orange", "Violet", "Indigo", "Yellow"];

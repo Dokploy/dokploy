@@ -1,8 +1,8 @@
 import { unlink } from "node:fs/promises";
 import path from "node:path";
-import type { BackupSchedule } from "@/server/api/services/backup";
-import type { Mariadb } from "@/server/api/services/mariadb";
-import { findProjectById } from "@/server/api/services/project";
+import type { BackupSchedule } from "~/server/api/services/backup";
+import type { Mariadb } from "~/server/api/services/mariadb";
+import { findProjectById } from "~/server/api/services/project";
 import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync } from "../process/execAsync";

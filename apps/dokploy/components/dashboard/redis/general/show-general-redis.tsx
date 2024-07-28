@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api } from "@/utils/api";
 import React from "react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { api } from "~/utils/api";
 
 import { Terminal } from "lucide-react";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";

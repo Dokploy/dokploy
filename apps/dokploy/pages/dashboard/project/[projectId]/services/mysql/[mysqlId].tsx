@@ -1,26 +1,3 @@
-import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { ShowAdvancedMysql } from "@/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
-import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
-import { DeleteMysql } from "@/components/dashboard/mysql/delete-mysql";
-import { ShowMysqlEnvironment } from "@/components/dashboard/mysql/environment/show-mysql-environment";
-import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
-import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
-import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
-import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
-import { MysqlIcon } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ProjectLayout } from "@/components/layouts/project-layout";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,
@@ -30,6 +7,29 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
+import { ShowDockerLogs } from "~/components/dashboard/application/logs/show";
+import { DockerMonitoring } from "~/components/dashboard/monitoring/docker/show";
+import { ShowAdvancedMysql } from "~/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
+import { ShowBackupMySql } from "~/components/dashboard/mysql/backups/show-backup-mysql";
+import { DeleteMysql } from "~/components/dashboard/mysql/delete-mysql";
+import { ShowMysqlEnvironment } from "~/components/dashboard/mysql/environment/show-mysql-environment";
+import { ShowExternalMysqlCredentials } from "~/components/dashboard/mysql/general/show-external-mysql-credentials";
+import { ShowGeneralMysql } from "~/components/dashboard/mysql/general/show-general-mysql";
+import { ShowInternalMysqlCredentials } from "~/components/dashboard/mysql/general/show-internal-mysql-credentials";
+import { UpdateMysql } from "~/components/dashboard/mysql/update-mysql";
+import { MysqlIcon } from "~/components/icons/data-tools-icons";
+import { DashboardLayout } from "~/components/layouts/dashboard-layout";
+import { ProjectLayout } from "~/components/layouts/project-layout";
+import { StatusTooltip } from "~/components/shared/status-tooltip";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+} from "~/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { appRouter } from "~/server/api/root";
+import { validateRequest } from "~/server/auth/auth";
+import { api } from "~/utils/api";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 

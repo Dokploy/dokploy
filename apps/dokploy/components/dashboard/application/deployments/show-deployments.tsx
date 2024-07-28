@@ -1,16 +1,16 @@
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { Button } from "@/components/ui/button";
+import { RocketIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { DateTooltip } from "~/components/shared/date-tooltip";
+import { StatusTooltip } from "~/components/shared/status-tooltip";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { RocketIcon } from "lucide-react";
-import React, { useEffect, useState } from "react";
+} from "~/components/ui/card";
+import { api } from "~/utils/api";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";

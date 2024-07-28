@@ -1,12 +1,17 @@
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { AlertBlock } from "~/components/shared/alert-block";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from "~/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -14,14 +19,9 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { api } from "~/utils/api";
 
 const addResourcesRedis = z.object({
 	memoryReservation: z.number().nullable().optional(),

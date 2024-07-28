@@ -1,4 +1,5 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
@@ -8,13 +9,12 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
-} from "@/server/db/schema/mariadb";
+} from "~/server/db/schema/mariadb";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@/server/utils/docker/utils";
-import { TRPCError } from "@trpc/server";
+} from "~/server/utils/docker/utils";
 import {
 	createMariadb,
 	deployMariadb,

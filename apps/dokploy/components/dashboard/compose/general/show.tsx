@@ -1,13 +1,13 @@
-import { Badge } from "@/components/ui/badge";
+import React from "react";
+import { Badge } from "~/components/ui/badge";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import React from "react";
+} from "~/components/ui/card";
+import { api } from "~/utils/api";
 import { ComposeActions } from "./actions";
 import { ShowProviderFormCompose } from "./generic/show";
 interface Props {

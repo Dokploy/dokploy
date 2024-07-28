@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import {
 	apiCreateRegistry,
 	apiEnableSelfHostedRegistry,
@@ -5,11 +6,10 @@ import {
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiUpdateRegistry,
-} from "@/server/db/schema";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { execAsync } from "@/server/utils/process/execAsync";
-import { manageRegistry } from "@/server/utils/traefik/registry";
-import { TRPCError } from "@trpc/server";
+} from "~/server/db/schema";
+import { initializeRegistry } from "~/server/setup/registry-setup";
+import { execAsync } from "~/server/utils/process/execAsync";
+import { manageRegistry } from "~/server/utils/traefik/registry";
 import {
 	createRegistry,
 	findAllRegistry,

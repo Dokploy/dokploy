@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { HeartIcon } from "lucide-react";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,8 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { HeartIcon } from "lucide-react";
+} from "~/components/ui/dialog";
 
 export const ShowSupport = () => {
 	return (

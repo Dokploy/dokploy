@@ -1,13 +1,13 @@
+import React, { useEffect, useState } from "react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { api } from "@/utils/api";
-import React, { useEffect, useState } from "react";
+} from "~/components/ui/card";
+import { Progress } from "~/components/ui/progress";
+import { api } from "~/utils/api";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";

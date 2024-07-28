@@ -1,4 +1,4 @@
-import type { Redirect } from "@/server/api/services/redirect";
+import type { Redirect } from "~/server/api/services/redirect";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { FileConfig } from "./file-types";
 import {

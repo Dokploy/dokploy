@@ -1,9 +1,9 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { generatePassword } from "~/templates/utils";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";

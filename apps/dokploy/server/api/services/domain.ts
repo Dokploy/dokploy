@@ -1,13 +1,13 @@
-import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db";
 import {
 	type apiCreateDomain,
 	type apiFindDomainByApplication,
 	domains,
-} from "@/server/db/schema";
-import { manageDomain } from "@/server/utils/traefik/domain";
-import { generateRandomDomain } from "@/templates/utils";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+} from "~/server/db/schema";
+import { manageDomain } from "~/server/utils/traefik/domain";
+import { generateRandomDomain } from "~/templates/utils";
 import { findAdmin } from "./admin";
 import { findApplicationById } from "./application";
 

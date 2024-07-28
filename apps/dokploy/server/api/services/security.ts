@@ -1,12 +1,12 @@
-import { db } from "@/server/db";
-import { type apiCreateSecurity, security } from "@/server/db/schema";
-import {
-	createSecurityMiddleware,
-	removeSecurityMiddleware,
-} from "@/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import { db } from "~/server/db";
+import { type apiCreateSecurity, security } from "~/server/db/schema";
+import {
+	createSecurityMiddleware,
+	removeSecurityMiddleware,
+} from "~/server/utils/traefik/security";
 import { findApplicationById } from "./application";
 export type Security = typeof security.$inferSelect;
 

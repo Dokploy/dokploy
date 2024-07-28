@@ -1,11 +1,13 @@
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+} from "~/components/ui/card";
+import { Label } from "~/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -14,13 +16,11 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select";
-import { api } from "@/utils/api";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+} from "~/components/ui/select";
+import { api } from "~/utils/api";
 export const DockerLogs = dynamic(
 	() =>
-		import("@/components/dashboard/docker/logs/docker-logs-id").then(
+		import("~/components/dashboard/docker/logs/docker-logs-id").then(
 			(e) => e.DockerLogsId,
 		),
 	{

@@ -1,5 +1,11 @@
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon, Pencil } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { AlertBlock } from "~/components/shared/alert-block";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -8,7 +14,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
+} from "~/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -16,15 +22,9 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { api } from "~/utils/api";
 
 const UpdateSecuritySchema = z.object({
 	username: z.string().min(1, "Username is required"),

@@ -1,13 +1,13 @@
-import { db } from "@/server/db";
-import { type apiCreateRedirect, redirects } from "@/server/db/schema";
+import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import type { z } from "zod";
+import { db } from "~/server/db";
+import { type apiCreateRedirect, redirects } from "~/server/db/schema";
 import {
 	createRedirectMiddleware,
 	removeRedirectMiddleware,
 	updateRedirectMiddleware,
-} from "@/server/utils/traefik/redirect";
-import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
-import type { z } from "zod";
+} from "~/server/utils/traefik/redirect";
 import { findApplicationById } from "./application";
 export type Redirect = typeof redirects.$inferSelect;
 

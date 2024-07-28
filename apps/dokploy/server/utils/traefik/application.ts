@@ -1,8 +1,8 @@
 import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
-import type { Domain } from "@/server/api/services/domain";
-import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import type { Domain } from "~/server/api/services/domain";
+import { DYNAMIC_TRAEFIK_PATH } from "~/server/constants";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {

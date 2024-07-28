@@ -1,10 +1,10 @@
-import { sshKeys } from "@/server/db/schema/ssh-key";
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { sshKeys } from "~/server/db/schema/ssh-key";
+import { generatePassword } from "~/templates/utils";
 import { deployments } from "./deployment";
 import { mounts } from "./mount";
 import { projects } from "./project";

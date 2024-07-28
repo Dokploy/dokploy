@@ -1,11 +1,11 @@
-import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 import superjson from "superjson";
+import { ShowContainers } from "~/components/dashboard/docker/show/show-containers";
+import { DashboardLayout } from "~/components/layouts/dashboard-layout";
+import { appRouter } from "~/server/api/root";
+import { validateRequest } from "~/server/auth/auth";
 
 const Dashboard = () => {
 	return <ShowContainers />;

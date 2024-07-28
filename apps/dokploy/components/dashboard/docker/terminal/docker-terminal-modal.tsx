@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import {
 	Dialog,
 	DialogContent,
@@ -5,9 +6,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import dynamic from "next/dynamic";
+} from "~/components/ui/dialog";
+import { DropdownMenuItem } from "~/components/ui/dropdown-menu";
 
 const Terminal = dynamic(
 	() => import("./docker-terminal").then((e) => e.DockerTerminal),

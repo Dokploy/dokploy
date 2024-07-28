@@ -1,12 +1,12 @@
-import { SaveDockerProvider } from "@/components/dashboard/application/general/generic/save-docker-provider";
-import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
-import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/utils/api";
 import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { SaveDockerProvider } from "~/components/dashboard/application/general/generic/save-docker-provider";
+import { SaveGitProvider } from "~/components/dashboard/application/general/generic/save-git-provider";
+import { SaveGithubProvider } from "~/components/dashboard/application/general/generic/save-github-provider";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { api } from "~/utils/api";
 import { SaveDragNDrop } from "./save-drag-n-drop";
 
 type TabState = "github" | "docker" | "git" | "drop";

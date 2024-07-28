@@ -1,4 +1,6 @@
-import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db";
 import {
 	type apiCreateProject,
 	applications,
@@ -8,9 +10,7 @@ import {
 	postgres,
 	projects,
 	redis,
-} from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+} from "~/server/db/schema";
 import { findAdmin } from "./admin";
 
 export type Project = typeof projects.$inferSelect;

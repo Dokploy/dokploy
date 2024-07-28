@@ -1,7 +1,7 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { MySql } from "@/server/api/services/mysql";
-import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
+import type { Mount } from "~/server/api/services/mount";
+import type { MySql } from "~/server/api/services/mysql";
+import { docker } from "~/server/constants";
 import {
 	calculateResources,
 	generateBindMounts,

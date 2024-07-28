@@ -1,10 +1,10 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import type { Admin } from "@/server/api/services/admin";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
+import type { Admin } from "~/server/api/services/admin";
+import { APPLICATIONS_PATH, COMPOSE_PATH } from "~/server/constants";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 

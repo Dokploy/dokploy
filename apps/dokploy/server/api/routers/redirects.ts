@@ -2,7 +2,7 @@ import {
 	apiCreateRedirect,
 	apiFindOneRedirect,
 	apiUpdateRedirect,
-} from "@/server/db/schema";
+} from "~/server/db/schema";
 import {
 	createRedirect,
 	findRedirectById,

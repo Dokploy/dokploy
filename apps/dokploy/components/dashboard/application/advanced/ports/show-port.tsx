@@ -1,14 +1,14 @@
-import { AlertBlock } from "@/components/shared/alert-block";
+import { Rss } from "lucide-react";
+import React from "react";
+import { AlertBlock } from "~/components/shared/alert-block";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { Rss } from "lucide-react";
-import React from "react";
+} from "~/components/ui/card";
+import { api } from "~/utils/api";
 import { AddPort } from "./add-port";
 import { DeletePort } from "./delete-port";
 import { UpdatePort } from "./update-port";

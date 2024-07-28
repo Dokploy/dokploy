@@ -1,5 +1,9 @@
-import { slugify } from "@/lib/slug";
-import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import _ from "lodash";
+import { nanoid } from "nanoid";
+import { slugify } from "~/lib/slug";
+import { db } from "~/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
@@ -7,26 +11,22 @@ import {
 	apiRandomizeCompose,
 	apiUpdateCompose,
 	compose,
-} from "@/server/db/schema";
+} from "~/server/db/schema";
 import {
 	type DeploymentJob,
 	cleanQueuesByCompose,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
-import { createCommand } from "@/server/utils/builders/compose";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
-import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
-import { templates } from "@/templates/templates";
-import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+} from "~/server/queues/deployments-queue";
+import { myQueue } from "~/server/queues/queueSetup";
+import { createCommand } from "~/server/utils/builders/compose";
+import { randomizeComposeFile } from "~/server/utils/docker/compose";
+import { removeComposeDirectory } from "~/server/utils/filesystem/directory";
+import { templates } from "~/templates/templates";
+import type { TemplatesKeys } from "~/templates/types/templates-data.type";
 import {
 	generatePassword,
 	loadTemplateModule,
 	readComposeFile,
-} from "@/templates/utils";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import _ from "lodash";
-import { nanoid } from "nanoid";
+} from "~/templates/utils";
 import { findAdmin } from "../services/admin";
 import {
 	createCompose,

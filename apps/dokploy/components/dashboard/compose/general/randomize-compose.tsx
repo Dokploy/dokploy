@@ -1,5 +1,8 @@
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
+import { Dices } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AlertBlock } from "~/components/shared/alert-block";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,12 +10,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
-import { Dices } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+} from "~/components/ui/dialog";
+import { Input } from "~/components/ui/input";
+import { api } from "~/utils/api";
 
 interface Props {
 	composeId: string;

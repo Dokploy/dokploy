@@ -1,15 +1,15 @@
-import { Button } from "@/components/ui/button";
+import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
+import Link from "next/link";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
-import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
-import Link from "next/link";
+} from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { api } from "~/utils/api";
 import { AddDomain } from "./add-domain";
 import { DeleteDomain } from "./delete-domain";
 import { GenerateDomain } from "./generate-domain";

@@ -1,11 +1,17 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Database } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import {
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
 	PostgresqlIcon,
 	RedisIcon,
-} from "@/components/icons/data-tools-icons";
-import { Button } from "@/components/ui/button";
+} from "~/components/icons/data-tools-icons";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -13,8 +19,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "~/components/ui/dialog";
+import { DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -22,19 +28,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
-import { slugify } from "@/lib/slug";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Database } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Textarea } from "~/components/ui/textarea";
+import { slugify } from "~/lib/slug";
+import { api } from "~/utils/api";
 
 type DbType = typeof mySchema._type.type;
 

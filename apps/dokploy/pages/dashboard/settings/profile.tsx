@@ -1,11 +1,11 @@
-import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
-import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
+import { GenerateToken } from "~/components/dashboard/settings/profile/generate-token";
+import { ProfileForm } from "~/components/dashboard/settings/profile/profile-form";
+import { DashboardLayout } from "~/components/layouts/dashboard-layout";
+import { SettingsLayout } from "~/components/layouts/settings-layout";
+import { validateRequest } from "~/server/auth/auth";
+import { api } from "~/utils/api";
 
 const Page = () => {
 	const { data } = api.auth.get.useQuery();

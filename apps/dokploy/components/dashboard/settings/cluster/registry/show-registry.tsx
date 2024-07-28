@@ -1,12 +1,12 @@
+import { Server } from "lucide-react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { Server } from "lucide-react";
+} from "~/components/ui/card";
+import { api } from "~/utils/api";
 import { AddRegistry } from "./add-docker-registry";
 import { AddSelfHostedRegistry } from "./add-self-docker-registry";
 import { DeleteRegistry } from "./delete-registry";

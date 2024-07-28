@@ -1,7 +1,7 @@
-import { db } from "@/server/db";
-import { type apiCreateDestination, destinations } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { db } from "~/server/db";
+import { type apiCreateDestination, destinations } from "~/server/db/schema";
 import { findAdmin } from "./admin";
 
 export type Destination = typeof destinations.$inferSelect;

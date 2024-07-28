@@ -1,3 +1,6 @@
+import { InfoIcon } from "lucide-react";
+import React from "react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -8,18 +11,15 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+} from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
-import { InfoIcon } from "lucide-react";
-import React from "react";
-import { toast } from "sonner";
+} from "~/components/ui/tooltip";
+import { api } from "~/utils/api";
 
 export const RemoveGithubApp = () => {
 	const { refetch } = api.auth.get.useQuery();

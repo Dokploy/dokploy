@@ -1,19 +1,24 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import copy from "copy-to-clipboard";
+import { format } from "date-fns";
+import { MoreHorizontal, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from "~/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "~/components/ui/dropdown-menu";
 import {
 	Table,
 	TableBody,
@@ -22,13 +27,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@/components/ui/table";
-import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
-import { format } from "date-fns";
-import { MoreHorizontal, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+} from "~/components/ui/table";
+import { api } from "~/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { AddUser } from "./add-user";
 import { DeleteUser } from "./delete-user";

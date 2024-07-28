@@ -1,11 +1,11 @@
 import fs, { promises as fsPromises } from "node:fs";
 import path from "node:path";
-import type { Application } from "@/server/api/services/application";
+import type { Application } from "~/server/api/services/application";
 import {
 	APPLICATIONS_PATH,
 	COMPOSE_PATH,
 	MONITORING_PATH,
-} from "@/server/constants";
+} from "~/server/constants";
 import { execAsync } from "../process/execAsync";
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {

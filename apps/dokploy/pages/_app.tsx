@@ -1,13 +1,13 @@
-import "@/styles/globals.css";
+import "~/styles/globals.css";
 
-import { Toaster } from "@/components/ui/sonner";
-import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import Head from "next/head";
 import type { ReactElement, ReactNode } from "react";
+import { Toaster } from "~/components/ui/sonner";
+import { api } from "~/utils/api";
 
 const inter = Inter({ subsets: ["latin"] });
 

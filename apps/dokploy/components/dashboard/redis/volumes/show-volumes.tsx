@@ -1,13 +1,13 @@
+import { AlertTriangle, Package } from "lucide-react";
+import React from "react";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { AlertTriangle, Package } from "lucide-react";
-import React from "react";
+} from "~/components/ui/card";
+import { api } from "~/utils/api";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
 import { DeleteVolume } from "../../application/advanced/volumes/delete-volume";
 import { UpdateVolume } from "../../application/advanced/volumes/update-volume";

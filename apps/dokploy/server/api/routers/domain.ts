@@ -1,12 +1,12 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
 	apiCreateDomain,
 	apiFindDomain,
 	apiFindDomainByApplication,
 	apiUpdateDomain,
-} from "@/server/db/schema";
-import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
-import { TRPCError } from "@trpc/server";
+} from "~/server/db/schema";
+import { manageDomain, removeDomain } from "~/server/utils/traefik/domain";
 import { findApplicationById } from "../services/application";
 import {
 	createDomain,

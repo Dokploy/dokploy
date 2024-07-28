@@ -42,9 +42,5 @@
 	},
 	"commitlint": {
 		"extends": ["@commitlint/config-conventional"]
-	},
-	"imports": {
-		"@/": "./src/",
-		"@/utils/*": "./src/utils/*.js"
 	}
 }

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
-import type { BackupSchedule } from "@/server/api/services/backup";
-import type { Destination } from "@/server/api/services/destination";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { scheduleJob, scheduledJobs } from "node-schedule";
+import type { BackupSchedule } from "~/server/api/services/backup";
+import type { Destination } from "~/server/api/services/destination";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";

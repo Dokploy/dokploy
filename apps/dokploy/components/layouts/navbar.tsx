@@ -1,3 +1,6 @@
+import { HeartIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -6,12 +9,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
-import { HeartIcon } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/router";
+} from "~/components/ui/dropdown-menu";
+import { cn } from "~/lib/utils";
+import { api } from "~/utils/api";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";

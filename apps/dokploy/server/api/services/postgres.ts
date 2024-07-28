@@ -1,12 +1,12 @@
-import { generateRandomPassword } from "@/server/auth/random-password";
-import { db } from "@/server/db";
-import { type apiCreatePostgres, backups, postgres } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
-import { buildPostgres } from "@/server/utils/databases/postgres";
-import { pullImage } from "@/server/utils/docker/utils";
-import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { generateRandomPassword } from "~/server/auth/random-password";
+import { db } from "~/server/db";
+import { type apiCreatePostgres, backups, postgres } from "~/server/db/schema";
+import { generateAppName } from "~/server/db/schema/utils";
+import { buildPostgres } from "~/server/utils/databases/postgres";
+import { pullImage } from "~/server/utils/docker/utils";
+import { generatePassword } from "~/templates/utils";
 import { validUniqueServerAppName } from "./project";
 
 export type Postgres = typeof postgres.$inferSelect;

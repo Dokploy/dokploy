@@ -1,5 +1,7 @@
-import { lucia, validateRequest } from "@/server/auth/auth";
-import { luciaToken } from "@/server/auth/token";
+import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
+import { lucia, validateRequest } from "~/server/auth/auth";
+import { luciaToken } from "~/server/auth/token";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
@@ -9,9 +11,7 @@ import {
 	apiUpdateAuthByAdmin,
 	apiVerify2FA,
 	apiVerifyLogin2FA,
-} from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
+} from "~/server/db/schema";
 import {
 	createAdmin,
 	createUser,

@@ -1,8 +1,8 @@
 import { unlink } from "node:fs/promises";
 import path from "node:path";
-import type { BackupSchedule } from "@/server/api/services/backup";
-import type { Mongo } from "@/server/api/services/mongo";
-import { findProjectById } from "@/server/api/services/project";
+import type { BackupSchedule } from "~/server/api/services/backup";
+import type { Mongo } from "~/server/api/services/mongo";
+import { findProjectById } from "~/server/api/services/project";
 import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync } from "../process/execAsync";

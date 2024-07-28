@@ -1,10 +1,10 @@
-import type * as schema from "@/server/db/schema";
 import type {
 	BuildQueryResult,
 	DBQueryConfig,
 	ExtractTablesWithRelations,
 } from "drizzle-orm";
 import { z } from "zod";
+import type * as schema from "~/server/db/schema";
 /*
  * This is for testing purposes in the case we need a nested relational types
  *

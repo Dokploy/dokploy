@@ -1,4 +1,8 @@
-import { db } from "@/server/db";
+import { createAppAuth } from "@octokit/auth-app";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { Octokit } from "octokit";
+import { db } from "~/server/db";
 import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
@@ -6,12 +10,8 @@ import {
 	apiGetBranches,
 	apiRemoveUser,
 	users,
-} from "@/server/db/schema";
-import { haveGithubRequirements } from "@/server/utils/providers/github";
-import { createAppAuth } from "@octokit/auth-app";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { Octokit } from "octokit";
+} from "~/server/db/schema";
+import { haveGithubRequirements } from "~/server/utils/providers/github";
 import {
 	createInvitation,
 	findAdmin,

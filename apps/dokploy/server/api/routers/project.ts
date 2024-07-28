@@ -1,9 +1,12 @@
+import { TRPCError } from "@trpc/server";
+import { desc, eq, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
 	cliProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+} from "~/server/api/trpc";
+import { db } from "~/server/db";
 import {
 	applications,
 	compose,
@@ -12,17 +15,14 @@ import {
 	mysql,
 	postgres,
 	redis,
-} from "@/server/db/schema";
+} from "~/server/db/schema";
 import {
 	apiCreateProject,
 	apiFindOneProject,
 	apiRemoveProject,
 	apiUpdateProject,
 	projects,
-} from "@/server/db/schema/project";
-import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+} from "~/server/db/schema/project";
 import {
 	createProject,
 	deleteProject,

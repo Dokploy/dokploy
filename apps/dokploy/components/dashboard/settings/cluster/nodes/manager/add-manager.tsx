@@ -1,13 +1,13 @@
-import { CardContent } from "@/components/ui/card";
+import copy from "copy-to-clipboard";
+import { CopyIcon } from "lucide-react";
+import { toast } from "sonner";
+import { CardContent } from "~/components/ui/card";
 import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@/components/ui/dialog";
-import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
-import { CopyIcon } from "lucide-react";
-import { toast } from "sonner";
+} from "~/components/ui/dialog";
+import { api } from "~/utils/api";
 
 export const AddManager = () => {
 	const { data } = api.cluster.addManager.useQuery();

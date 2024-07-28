@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Registry } from "@/server/api/services/registry";
-import { REGISTRY_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import type { Registry } from "~/server/api/services/registry";
+import { REGISTRY_PATH } from "~/server/constants";
 import { removeDirectoryIfExistsContent } from "../filesystem/directory";
 import type { FileConfig, HttpRouter } from "./file-types";
 

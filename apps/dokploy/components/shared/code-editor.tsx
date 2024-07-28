@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
@@ -6,6 +5,7 @@ import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
+import { cn } from "~/lib/utils";
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;

@@ -1,8 +1,8 @@
-import DokployRestartEmail from "@/emails/emails/dokploy-restart";
-import { db } from "@/server/db";
-import { notifications } from "@/server/db/schema";
 import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
+import DokployRestartEmail from "~/emails/emails/dokploy-restart";
+import { db } from "~/server/db";
+import { notifications } from "~/server/db/schema";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,

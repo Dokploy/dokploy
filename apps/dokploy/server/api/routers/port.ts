@@ -1,10 +1,10 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
 	apiCreatePort,
 	apiFindOnePort,
 	apiUpdatePort,
-} from "@/server/db/schema/port";
-import { TRPCError } from "@trpc/server";
+} from "~/server/db/schema/port";
 import {
 	createPort,
 	finPortById,

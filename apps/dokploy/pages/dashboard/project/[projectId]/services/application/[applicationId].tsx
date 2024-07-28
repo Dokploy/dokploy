@@ -1,30 +1,3 @@
-import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
-import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
-import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
-import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
-import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
-import { ShowApplicationResources } from "@/components/dashboard/application/advanced/show-application-advanced-settings";
-import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
-import { DeleteApplication } from "@/components/dashboard/application/delete-application";
-import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
-import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
-import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
-import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { UpdateApplication } from "@/components/dashboard/application/update-application";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { ProjectLayout } from "@/components/layouts/project-layout";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { GlobeIcon } from "lucide-react";
 import type {
@@ -35,6 +8,33 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
 import superjson from "superjson";
+import { ShowClusterSettings } from "~/components/dashboard/application/advanced/cluster/show-cluster-settings";
+import { AddCommand } from "~/components/dashboard/application/advanced/general/add-command";
+import { ShowPorts } from "~/components/dashboard/application/advanced/ports/show-port";
+import { ShowRedirects } from "~/components/dashboard/application/advanced/redirects/show-redirects";
+import { ShowSecurity } from "~/components/dashboard/application/advanced/security/show-security";
+import { ShowApplicationResources } from "~/components/dashboard/application/advanced/show-application-advanced-settings";
+import { ShowTraefikConfig } from "~/components/dashboard/application/advanced/traefik/show-traefik-config";
+import { ShowVolumes } from "~/components/dashboard/application/advanced/volumes/show-volumes";
+import { DeleteApplication } from "~/components/dashboard/application/delete-application";
+import { ShowDeployments } from "~/components/dashboard/application/deployments/show-deployments";
+import { ShowDomains } from "~/components/dashboard/application/domains/show-domains";
+import { ShowEnvironment } from "~/components/dashboard/application/environment/show";
+import { ShowGeneralApplication } from "~/components/dashboard/application/general/show";
+import { ShowDockerLogs } from "~/components/dashboard/application/logs/show";
+import { UpdateApplication } from "~/components/dashboard/application/update-application";
+import { DockerMonitoring } from "~/components/dashboard/monitoring/docker/show";
+import { ProjectLayout } from "~/components/layouts/project-layout";
+import { StatusTooltip } from "~/components/shared/status-tooltip";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+} from "~/components/ui/breadcrumb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { appRouter } from "~/server/api/root";
+import { validateRequest } from "~/server/auth/auth";
+import { api } from "~/utils/api";
 
 type TabState =
 	| "projects"

@@ -1,14 +1,14 @@
-import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { db } from "~/server/db";
 import {
 	type apiCreateSshKey,
 	type apiFindOneSshKey,
 	type apiRemoveSshKey,
 	type apiUpdateSshKey,
 	sshKeys,
-} from "@/server/db/schema";
-import { removeSSHKey, saveSSHKey } from "@/server/utils/filesystem/ssh";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+} from "~/server/db/schema";
+import { removeSSHKey, saveSSHKey } from "~/server/utils/filesystem/ssh";
 
 export const createSshKey = async ({
 	privateKey,
