@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./apps/dokploy/*"]
+		}
+	},
+	"include": ["apps/**/*"],
+	"exclude": ["node_modules"]
+}

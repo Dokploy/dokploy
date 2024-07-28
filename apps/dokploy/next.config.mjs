@@ -41,10 +41,6 @@ const nextConfig = {
 		config.resolve.alias = {
 			...config.resolve.alias,
 			"@": path.resolve(__dirname),
-			"@/components": path.resolve(__dirname, "components"),
-			"@/utils": path.resolve(__dirname, "utils"),
-			// "@/server": path.resolve(__dirname, "server"),
-			// "@/lib": path.resolve(__dirname, "lib"),
 		};
 		return config;
 	},
