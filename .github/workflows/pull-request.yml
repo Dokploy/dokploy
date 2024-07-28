@@ -43,7 +43,7 @@ jobs:
       #   run: pnpm biome ci
 
       - name: Run type check
-        run: pnpm typecheck
+        run: pnpm run dokploy:check
 
       - name: Run Build
         run: pnpm dokploy:build
