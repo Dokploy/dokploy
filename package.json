@@ -1,7 +1,6 @@
 {
 	"name": "dokploy",
 	"private": true,
-	"workspaces": ["apps/dokploy", "packages/*"],
 	"scripts": {
 		"dokploy:setup": "turbo run setup --filter=dokploy",
 		"dokploy:dev": "turbo run dev --filter=dokploy",
