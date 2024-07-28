@@ -178,12 +178,5 @@
 	},
 	"commitlint": {
 		"extends": ["@commitlint/config-conventional"]
-	},
-	"imports": {
-		"~/": "./",
-		"~/components/": "./components/",
-		"~/utils/": "./utils/",
-		"~/lib/": "./lib/",
-		"~/server/": "./server/"
 	}
 }
