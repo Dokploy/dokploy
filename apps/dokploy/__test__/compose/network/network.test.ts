@@ -1,12 +1,12 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
+import { load } from "js-yaml";
+import { expect, test } from "vitest";
+import { generateRandomHash } from "~/server/utils/docker/compose";
 import {
 	addPrefixToAllNetworks,
 	addPrefixToServiceNetworks,
-} from "@/server/utils/docker/compose/network";
-import { addPrefixToNetworksRoot } from "@/server/utils/docker/compose/network";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
-import { load } from "js-yaml";
-import { expect, test } from "vitest";
+} from "~/server/utils/docker/compose/network";
+import { addPrefixToNetworksRoot } from "~/server/utils/docker/compose/network";
+import type { ComposeSpecification } from "~/server/utils/docker/types";
 
 const composeFileCombined = `
 version: "3.8"

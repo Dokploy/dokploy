@@ -116,7 +116,7 @@ bunx lt --port 3000
 If you run into permission issues of docker run the following command
 
 ```bash
-sudo chown -R USERNAME dokploy or sudo chown -R $(whoami) @/.docker
+sudo chown -R USERNAME dokploy or sudo chown -R $(whoami) ~/.docker
 ```
 
 ## Application deploy

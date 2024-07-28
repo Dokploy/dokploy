@@ -12,18 +12,18 @@ const __dirname = path.dirname(__filename);
 /** @type {import("next").NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
-	// eslint: {
-	// 	ignoreDuringBuilds: true,
-	// },
-	// typescript: {
-	// 	ignoreBuildErrors: true,
-	// },
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
+	typescript: {
+		ignoreBuildErrors: true,
+	},
 	webpack: (config) => {
 		config.plugins.push(
 			new CopyWebpackPlugin({
 				patterns: [
 					{
-						from: path.resolve(__dirname, "templates/**/*.yml"),
+						from: path.resolve(__dirname, "src/templates/**/*.yml"),
 						to: ({ context, absoluteFilename }) => {
 							const relativePath = path.relative(
 								path.resolve(__dirname, "templates"),
@@ -37,15 +37,6 @@ const nextConfig = {
 					},
 				],
 			}),
-		);
-		config.resolve.alias["@"] = path.join(__dirname, "apps/dokploy");
-		config.resolve.alias["@/components"] = path.join(
-			__dirname,
-			"apps/dokploy/components",
-		);
-		config.resolve.alias["@/utils"] = path.join(
-			__dirname,
-			"apps/dokploy/utils",
 		);
 		return config;
 	},

@@ -1,6 +1,6 @@
-import { findAdmin } from "./server/api/services/admin";
-import { updateAuthById } from "./server/api/services/auth";
-import { generateRandomPassword } from "./server/auth/random-password";
+import { findAdmin } from "./src/server/api/services/admin";
+import { updateAuthById } from "./src/server/api/services/auth";
+import { generateRandomPassword } from "./src/server/auth/random-password";
 
 (async () => {
 	try {

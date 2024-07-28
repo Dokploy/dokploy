@@ -21,11 +21,6 @@
 		"moduleResolution": "Bundler",
 		"jsx": "preserve",
 		"plugins": [{ "name": "next" }],
-		"incremental": true,
-
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["../../apps/dokploy/*"]
-		}
+		"incremental": true
 	}
 }

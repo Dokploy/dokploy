@@ -19,7 +19,7 @@ try {
 	esbuild
 		.build({
 			entryPoints: {
-				server: "server/server.ts",
+				server: "src/server/server.ts",
 				"reset-password": "reset-password.ts",
 			},
 			bundle: true,
