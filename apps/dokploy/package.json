@@ -159,7 +159,7 @@
 		"prettier-plugin-tailwindcss": "^0.5.11",
 		"tailwindcss": "^3.4.1",
 		"tsx": "^4.7.0",
-		"typescript": "^5.4.2",
+		"typescript": "^5.0.4",
 		"vite-tsconfig-paths": "4.3.2",
 		"vitest": "^1.6.0",
 		"xterm-readline": "1.1.1"
