@@ -35,25 +35,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: List all files
-        run: |
-          echo "Files in repository:"
-          find . -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/.next/*'
-
-      - name: Debug environment
-        run: |
-          node --version
-          pnpm --version
-          pwd
-          ls -la
-          cat apps/dokploy/tsconfig.json
-          cat apps/dokploy/package.json
-
-      # - name: Verify project structure
-      #   run: |
-      #     tree -L 3 -I 'node_modules'
-      #     cat apps/dokploy/next-env.d.ts
-
       - name: Show installed packages
         run: |
           echo "Installed packages:"
@@ -61,9 +42,8 @@ jobs:
 
       - name: Run type check
         run: |
-          cd apps/dokploy
           echo "Running type check..."
-          pnpm run typecheck
+          pnpm run dokploy:check
 
       - name: Upload typecheck log
         uses: actions/upload-artifact@v3
