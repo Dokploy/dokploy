@@ -394,6 +394,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^19.2.2
         version: 19.2.2
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
       '@types/adm-zip':
         specifier: ^0.5.5
         version: 0.5.5
