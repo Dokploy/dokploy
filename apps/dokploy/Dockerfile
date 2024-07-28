@@ -26,7 +26,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM deps AS builder
 COPY --from=pruner /app/out/full/ .
 COPY tsconfig.json tsconfig.json
-COPY next.config.mjs next.config.mjs
+COPY /apps/dokploy/next.config.mjs next.config.mjs
 RUN pnpm turbo run build --filter=dokploy -- --debug
 
 # Etapa de producción
