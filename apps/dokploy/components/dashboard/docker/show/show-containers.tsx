@@ -12,14 +12,14 @@ import {
 import { ChevronDown } from "lucide-react";
 import * as React from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "@dokploy/components/ui/dropdown-menu";
+import { Input } from "@dokploy/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -27,8 +27,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@/components/ui/table";
-import { type RouterOutputs, api } from "@/utils/api";
+} from "@dokploy/components/ui/table";
+import { type RouterOutputs, api } from "@dokploy/utils/api";
 import { columns } from "./colums";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]

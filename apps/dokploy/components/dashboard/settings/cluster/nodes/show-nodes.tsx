@@ -1,19 +1,19 @@
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { DateTooltip } from "@dokploy/components/shared/date-tooltip";
+import { Badge } from "@dokploy/components/ui/badge";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from "@dokploy/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@dokploy/components/ui/dropdown-menu";
 import {
 	Table,
 	TableBody,
@@ -22,14 +22,14 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@/components/ui/table";
+} from "@dokploy/components/ui/table";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/tooltip";
+import { api } from "@dokploy/utils/api";
 import { HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
 import React from "react";
 import { AddNode } from "./add-node";

@@ -1,9 +1,9 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
+import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
 import {
 	addPrefixToAllVolumes,
 	addPrefixToVolumesInServices,
-} from "@/server/utils/docker/compose/volume";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+} from "@dokploy/server/utils/docker/compose/volume";
+import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

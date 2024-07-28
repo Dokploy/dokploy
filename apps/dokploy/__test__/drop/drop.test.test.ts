@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { APPLICATIONS_PATH } from "@/server/constants";
-import { unzipDrop } from "@/server/utils/builders/drop";
+import { APPLICATIONS_PATH } from "@dokploy/server/constants";
+import { unzipDrop } from "@dokploy/server/utils/builders/drop";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -11,7 +11,7 @@ if (typeof window === "undefined") {
 	globalThis.FileList = undici.FileList as any;
 }
 
-vi.mock("@/server/constants", () => ({
+vi.mock("@dokploy/server/constants", () => ({
 	APPLICATIONS_PATH: "./__test__/drop/zips/output",
 }));
 

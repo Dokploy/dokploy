@@ -1,12 +1,12 @@
-import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
-import { Button } from "@/components/ui/button";
+import { ToggleVisibilityInput } from "@dokploy/components/shared/toggle-visibility-input";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from "@dokploy/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -14,10 +14,10 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { Input } from "@dokploy/components/ui/input";
+import { Label } from "@dokploy/components/ui/label";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";

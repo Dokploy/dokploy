@@ -1,6 +1,6 @@
-import { DeleteSSHKey } from "@/components/dashboard/settings/ssh-keys/delete-ssh-key";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
+import { DeleteSSHKey } from "@dokploy/components/dashboard/settings/ssh-keys/delete-ssh-key";
+import { AlertBlock } from "@dokploy/components/shared/alert-block";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@dokploy/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -17,11 +17,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { sshKeyUpdate } from "@/server/db/validations";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { Input } from "@dokploy/components/ui/input";
+import { Textarea } from "@dokploy/components/ui/textarea";
+import { sshKeyUpdate } from "@dokploy/server/db/validations";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import copy from "copy-to-clipboard";
 import { CopyIcon } from "lucide-react";

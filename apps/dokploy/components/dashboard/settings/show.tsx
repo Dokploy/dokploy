@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
+import { cn } from "@dokploy/lib/utils";
+import { api } from "@dokploy/utils/api";
 import React from "react";
 import { AppearanceForm } from "./appearance-form";
 import { ShowCertificates } from "./certificates/show-certificates";

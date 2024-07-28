@@ -1,4 +1,4 @@
-import type { Domain } from "@/server/api/services/domain";
+import type { Domain } from "@dokploy/server/api/services/domain";
 import type { ApplicationNested } from "../builders";
 import {
 	createServiceConfig,

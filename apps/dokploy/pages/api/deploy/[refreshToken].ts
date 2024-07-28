@@ -1,7 +1,7 @@
-import { db } from "@/server/db";
-import { applications } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import { db } from "@dokploy/server/db";
+import { applications } from "@dokploy/server/db/schema";
+import type { DeploymentJob } from "@dokploy/server/queues/deployments-queue";
+import { myQueue } from "@dokploy/server/queues/queueSetup";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 

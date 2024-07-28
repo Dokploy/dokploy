@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
-import { Secrets } from "@/components/ui/secrets";
-import { api } from "@/utils/api";
+import { Button } from "@dokploy/components/ui/button";
+import { Card, CardContent } from "@dokploy/components/ui/card";
+import { Form } from "@dokploy/components/ui/form";
+import { Secrets } from "@dokploy/components/ui/secrets";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";

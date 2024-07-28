@@ -1,11 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Command,
 	CommandEmpty,
 	CommandGroup,
 	CommandInput,
 	CommandItem,
-} from "@/components/ui/command";
+} from "@dokploy/components/ui/command";
 import {
 	Form,
 	FormControl,
@@ -13,16 +13,16 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@dokploy/components/ui/form";
+import { Input } from "@dokploy/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/popover";
+import { ScrollArea } from "@dokploy/components/ui/scroll-area";
+import { cn } from "@dokploy/lib/utils";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { useEffect } from "react";

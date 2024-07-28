@@ -1,5 +1,5 @@
-import { addPrefixToAllProperties } from "@/server/utils/docker/compose";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { addPrefixToAllProperties } from "@dokploy/server/utils/docker/compose";
+import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

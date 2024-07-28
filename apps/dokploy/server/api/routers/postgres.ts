@@ -1,4 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@dokploy/server/api/trpc";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -8,12 +8,12 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
-} from "@/server/db/schema/postgres";
+} from "@dokploy/server/db/schema/postgres";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@/server/utils/docker/utils";
+} from "@dokploy/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { createMount } from "../services/mount";
 import {

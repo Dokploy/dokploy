@@ -1,5 +1,5 @@
-import { addPrefixToAllSecrets } from "@/server/utils/docker/compose/secrets";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { addPrefixToAllSecrets } from "@dokploy/server/utils/docker/compose/secrets";
+import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

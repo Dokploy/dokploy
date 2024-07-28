@@ -1,13 +1,13 @@
-import { UpdateSSHKey } from "@/components/dashboard/settings/ssh-keys/update-ssh-key";
-import { Button } from "@/components/ui/button";
+import { UpdateSSHKey } from "@dokploy/components/dashboard/settings/ssh-keys/update-ssh-key";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/card";
+import { api } from "@dokploy/utils/api";
 import { formatDistanceToNow } from "date-fns";
 import { KeyRound, KeyRoundIcon, PenBoxIcon } from "lucide-react";
 import { AddSSHKey } from "./add-ssh-key";

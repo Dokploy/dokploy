@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToServiceNames } from "@/server/utils/docker/compose/service";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
+import { addPrefixToServiceNames } from "@dokploy/server/utils/docker/compose/service";
+import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

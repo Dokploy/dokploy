@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/card";
+import { api } from "@dokploy/utils/api";
 import { FolderUp } from "lucide-react";
 import { AddDestination } from "./add-destination";
 import { DeleteDestination } from "./delete-destination";

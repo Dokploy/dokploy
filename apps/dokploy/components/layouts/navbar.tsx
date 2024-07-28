@@ -6,9 +6,9 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/dropdown-menu";
+import { cn } from "@dokploy/lib/utils";
+import { api } from "@dokploy/utils/api";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";

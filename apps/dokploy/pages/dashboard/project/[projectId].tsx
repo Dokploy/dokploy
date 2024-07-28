@@ -1,25 +1,30 @@
-import { AddApplication } from "@/components/dashboard/project/add-application";
-import { AddCompose } from "@/components/dashboard/project/add-compose";
-import { AddDatabase } from "@/components/dashboard/project/add-database";
-import { AddTemplate } from "@/components/dashboard/project/add-template";
+import { AddApplication } from "@dokploy/components/dashboard/project/add-application";
+import { AddCompose } from "@dokploy/components/dashboard/project/add-compose";
+import { AddDatabase } from "@dokploy/components/dashboard/project/add-database";
+import { AddTemplate } from "@dokploy/components/dashboard/project/add-template";
 import {
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
 	PostgresqlIcon,
 	RedisIcon,
-} from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ProjectLayout } from "@/components/layouts/project-layout";
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+} from "@dokploy/components/icons/data-tools-icons";
+import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@dokploy/components/layouts/project-layout";
+import { DateTooltip } from "@dokploy/components/shared/date-tooltip";
+import { StatusTooltip } from "@dokploy/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+} from "@dokploy/components/ui/breadcrumb";
+import { Button } from "@dokploy/components/ui/button";
+import {
+	Card,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@dokploy/components/ui/card";
 
 import {
 	DropdownMenu,
@@ -27,11 +32,11 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { appRouter } from "@/server/api/root";
-import type { findProjectById } from "@/server/api/services/project";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/dropdown-menu";
+import { appRouter } from "@dokploy/server/api/root";
+import type { findProjectById } from "@dokploy/server/api/services/project";
+import { validateRequest } from "@dokploy/server/auth/auth";
+import { api } from "@dokploy/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard, FolderInput, GlobeIcon, PlusIcon } from "lucide-react";
 import type {

@@ -5,8 +5,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "@dokploy/components/ui/dialog";
+import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
 import dynamic from "next/dynamic";
 
 const Terminal = dynamic(

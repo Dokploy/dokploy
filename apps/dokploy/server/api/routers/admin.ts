@@ -1,4 +1,4 @@
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
@@ -6,8 +6,8 @@ import {
 	apiGetBranches,
 	apiRemoveUser,
 	users,
-} from "@/server/db/schema";
-import { haveGithubRequirements } from "@/server/utils/providers/github";
+} from "@dokploy/server/db/schema";
+import { haveGithubRequirements } from "@dokploy/server/utils/providers/github";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";

@@ -1,10 +1,14 @@
-import { generateRandomPassword } from "@/server/auth/random-password";
-import { db } from "@/server/db";
-import { type apiCreatePostgres, backups, postgres } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
-import { buildPostgres } from "@/server/utils/databases/postgres";
-import { pullImage } from "@/server/utils/docker/utils";
-import { generatePassword } from "@/templates/utils";
+import { generateRandomPassword } from "@dokploy/server/auth/random-password";
+import { db } from "@dokploy/server/db";
+import {
+	type apiCreatePostgres,
+	backups,
+	postgres,
+} from "@dokploy/server/db/schema";
+import { generateAppName } from "@dokploy/server/db/schema/utils";
+import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
+import { pullImage } from "@dokploy/server/utils/docker/utils";
+import { generatePassword } from "@dokploy/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";

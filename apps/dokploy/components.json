@@ -11,7 +11,7 @@
 		"prefix": ""
 	},
 	"aliases": {
-		"components": "@/components",
-		"utils": "@/lib/utils"
+		"components": "@dokploy/components",
+		"utils": "@dokploy/lib/utils"
 	}
 }

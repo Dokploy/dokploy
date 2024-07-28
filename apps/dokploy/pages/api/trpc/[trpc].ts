@@ -1,5 +1,5 @@
-import { appRouter } from "@/server/api/root";
-import { createTRPCContext } from "@/server/api/trpc";
+import { appRouter } from "@dokploy/server/api/root";
+import { createTRPCContext } from "@dokploy/server/api/trpc";
 import { createNextApiHandler } from "@trpc/server/adapters/next";
 import { nodeHTTPFormDataContentTypeHandler } from "@trpc/server/adapters/node-http/content-type/form-data";
 import { nodeHTTPJSONContentTypeHandler } from "@trpc/server/adapters/node-http/content-type/json";

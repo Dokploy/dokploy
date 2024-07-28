@@ -1,26 +1,31 @@
-import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowAdvancedMongo } from "@/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
-import { ShowBackupMongo } from "@/components/dashboard/mongo/backups/show-backup-mongo";
-import { DeleteMongo } from "@/components/dashboard/mongo/delete-mongo";
-import { ShowMongoEnvironment } from "@/components/dashboard/mongo/environment/show-mongo-environment";
-import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
-import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
-import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
-import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { MongodbIcon } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ProjectLayout } from "@/components/layouts/project-layout";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ShowDockerLogs } from "@dokploy/components/dashboard/application/logs/show";
+import { ShowAdvancedMongo } from "@dokploy/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
+import { ShowBackupMongo } from "@dokploy/components/dashboard/mongo/backups/show-backup-mongo";
+import { DeleteMongo } from "@dokploy/components/dashboard/mongo/delete-mongo";
+import { ShowMongoEnvironment } from "@dokploy/components/dashboard/mongo/environment/show-mongo-environment";
+import { ShowExternalMongoCredentials } from "@dokploy/components/dashboard/mongo/general/show-external-mongo-credentials";
+import { ShowGeneralMongo } from "@dokploy/components/dashboard/mongo/general/show-general-mongo";
+import { ShowInternalMongoCredentials } from "@dokploy/components/dashboard/mongo/general/show-internal-mongo-credentials";
+import { UpdateMongo } from "@dokploy/components/dashboard/mongo/update-mongo";
+import { DockerMonitoring } from "@dokploy/components/dashboard/monitoring/docker/show";
+import { MongodbIcon } from "@dokploy/components/icons/data-tools-icons";
+import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
+import { ProjectLayout } from "@dokploy/components/layouts/project-layout";
+import { StatusTooltip } from "@dokploy/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/breadcrumb";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@dokploy/components/ui/tabs";
+import { appRouter } from "@dokploy/server/api/root";
+import { validateRequest } from "@dokploy/server/auth/auth";
+import { api } from "@dokploy/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type {
 	GetServerSidePropsContext,

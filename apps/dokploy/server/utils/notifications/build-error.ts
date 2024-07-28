@@ -1,6 +1,6 @@
-import BuildFailedEmail from "@/emails/emails/build-failed";
-import { db } from "@/server/db";
-import { notifications } from "@/server/db/schema";
+import BuildFailedEmail from "@dokploy/emails/emails/build-failed";
+import { db } from "@dokploy/server/db";
+import { notifications } from "@dokploy/server/db/schema";
 import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {

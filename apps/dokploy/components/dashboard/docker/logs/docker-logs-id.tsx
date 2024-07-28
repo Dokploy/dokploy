@@ -1,5 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@dokploy/components/ui/input";
+import { Label } from "@dokploy/components/ui/label";
 import { Terminal } from "@xterm/xterm";
 import React, { useEffect } from "react";
 import { FitAddon } from "xterm-addon-fit";

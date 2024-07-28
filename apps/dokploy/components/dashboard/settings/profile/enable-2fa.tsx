@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -7,7 +7,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@dokploy/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -16,13 +16,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "@dokploy/components/ui/form";
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/input-otp";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Fingerprint } from "lucide-react";
 import { useEffect } from "react";

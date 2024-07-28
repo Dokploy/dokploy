@@ -1,6 +1,6 @@
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { AlertBlock } from "@dokploy/components/shared/alert-block";
+import { Button } from "@dokploy/components/ui/button";
+import { Checkbox } from "@dokploy/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -9,8 +9,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "@dokploy/components/ui/dialog";
+import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -19,10 +19,10 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
-import { extractServices } from "@/pages/dashboard/project/[projectId]";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { Switch } from "@dokploy/components/ui/switch";
+import { extractServices } from "@dokploy/pages/dashboard/project/[projectId]";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";

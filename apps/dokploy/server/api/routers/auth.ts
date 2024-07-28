@@ -1,5 +1,5 @@
-import { lucia, validateRequest } from "@/server/auth/auth";
-import { luciaToken } from "@/server/auth/token";
+import { lucia, validateRequest } from "@dokploy/server/auth/auth";
+import { luciaToken } from "@dokploy/server/auth/token";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
@@ -9,7 +9,7 @@ import {
 	apiUpdateAuthByAdmin,
 	apiVerify2FA,
 	apiVerifyLogin2FA,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import {

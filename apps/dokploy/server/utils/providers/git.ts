@@ -1,7 +1,11 @@
 import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
-import { updateSSHKeyById } from "@/server/api/services/ssh-key";
-import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
+import { updateSSHKeyById } from "@dokploy/server/api/services/ssh-key";
+import {
+	APPLICATIONS_PATH,
+	COMPOSE_PATH,
+	SSH_PATH,
+} from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync } from "../process/execAsync";

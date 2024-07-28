@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/card";
+import { api } from "@dokploy/utils/api";
 import { LockKeyhole } from "lucide-react";
 import React from "react";
 import { AddSecurity } from "./add-security";

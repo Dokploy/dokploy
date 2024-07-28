@@ -1,11 +1,11 @@
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDomain,
 	type apiFindDomainByApplication,
 	domains,
-} from "@/server/db/schema";
-import { manageDomain } from "@/server/utils/traefik/domain";
-import { generateRandomDomain } from "@/templates/utils";
+} from "@dokploy/server/db/schema";
+import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { generateRandomDomain } from "@dokploy/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";

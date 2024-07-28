@@ -1,17 +1,17 @@
-import { CodeEditor } from "@/components/shared/code-editor";
+import { CodeEditor } from "@dokploy/components/shared/code-editor";
 import {
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from "@dokploy/components/ui/card";
 import {
 	FormControl,
 	FormField,
 	FormItem,
 	FormMessage,
-} from "@/components/ui/form";
-import { Toggle } from "@/components/ui/toggle";
+} from "@dokploy/components/ui/form";
+import { Toggle } from "@dokploy/components/ui/toggle";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type CSSProperties, type ReactNode, useState } from "react";
 import { useFormContext } from "react-hook-form";

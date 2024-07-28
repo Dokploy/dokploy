@@ -1,13 +1,13 @@
-import { Login2FA } from "@/components/auth/login-2fa";
-import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
-import { Logo } from "@/components/shared/logo";
-import { Button } from "@/components/ui/button";
+import { Login2FA } from "@dokploy/components/auth/login-2fa";
+import { OnboardingLayout } from "@dokploy/components/layouts/onboarding-layout";
+import { Logo } from "@dokploy/components/shared/logo";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardTitle,
-} from "@/components/ui/card";
+} from "@dokploy/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -15,11 +15,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { isAdminPresent } from "@/server/api/services/admin";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { Input } from "@dokploy/components/ui/input";
+import { isAdminPresent } from "@dokploy/server/api/services/admin";
+import { validateRequest } from "@dokploy/server/auth/auth";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";

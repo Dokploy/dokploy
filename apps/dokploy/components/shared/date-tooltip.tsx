@@ -3,8 +3,8 @@ import {
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+} from "@dokploy/components/ui/tooltip";
+import { cn } from "@dokploy/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface Props {

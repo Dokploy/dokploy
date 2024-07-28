@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -7,15 +7,15 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "@dokploy/components/ui/form";
 
-import { CardTitle } from "@/components/ui/card";
+import { CardTitle } from "@dokploy/components/ui/card";
 import {
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/input-otp";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/router";

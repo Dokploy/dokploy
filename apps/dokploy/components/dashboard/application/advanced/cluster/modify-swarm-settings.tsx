@@ -1,6 +1,6 @@
-import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
-import { Button } from "@/components/ui/button";
+import { AlertBlock } from "@dokploy/components/shared/alert-block";
+import { CodeEditor } from "@dokploy/components/shared/code-editor";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@dokploy/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -18,14 +18,14 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "@dokploy/components/ui/form";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/tooltip";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HelpCircle, Settings } from "lucide-react";
 import { useEffect } from "react";

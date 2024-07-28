@@ -1,4 +1,4 @@
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
@@ -13,7 +13,7 @@ import {
 	notifications,
 	slack,
 	telegram,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 

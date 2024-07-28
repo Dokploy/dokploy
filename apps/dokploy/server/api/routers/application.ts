@@ -2,8 +2,8 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 	uploadProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+} from "@dokploy/server/api/trpc";
+import { db } from "@dokploy/server/db";
 import {
 	apiCreateApplication,
 	apiFindMonitoringStats,
@@ -16,27 +16,27 @@ import {
 	apiSaveGithubProvider,
 	apiUpdateApplication,
 	applications,
-} from "@/server/db/schema/application";
+} from "@dokploy/server/db/schema/application";
 import {
 	type DeploymentJob,
 	cleanQueuesByApplication,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+} from "@dokploy/server/queues/deployments-queue";
+import { myQueue } from "@dokploy/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
 	stopService,
-} from "@/server/utils/docker/utils";
+} from "@dokploy/server/utils/docker/utils";
 import {
 	removeDirectoryCode,
 	removeMonitoringDirectory,
-} from "@/server/utils/filesystem/directory";
+} from "@dokploy/server/utils/filesystem/directory";
 import {
 	readConfig,
 	removeTraefikConfig,
 	writeConfig,
-} from "@/server/utils/traefik/application";
-import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
+} from "@dokploy/server/utils/traefik/application";
+import { deleteAllMiddlewares } from "@dokploy/server/utils/traefik/middleware";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -51,8 +51,8 @@ import {
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
 
-import { unzipDrop } from "@/server/utils/builders/drop";
-import { uploadFileSchema } from "@/utils/schema";
+import { unzipDrop } from "@dokploy/server/utils/builders/drop";
+import { uploadFileSchema } from "@dokploy/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure

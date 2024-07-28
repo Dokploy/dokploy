@@ -9,7 +9,7 @@
 		"moduleResolution": "Node",
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./*"]
+			"@dokploy/*": ["./*"]
 		}
 	},
 	"include": ["next-env.d.ts", "./server/**/*"]

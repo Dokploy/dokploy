@@ -2,16 +2,16 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
+} from "@dokploy/server/api/trpc";
+import { db } from "@dokploy/server/db";
 import {
 	apiCreateSshKey,
 	apiFindOneSshKey,
 	apiGenerateSSHKey,
 	apiRemoveSshKey,
 	apiUpdateSshKey,
-} from "@/server/db/schema";
-import { generateSSHKey } from "@/server/utils/filesystem/ssh";
+} from "@dokploy/server/db/schema";
+import { generateSSHKey } from "@dokploy/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
 import {
 	createSshKey,

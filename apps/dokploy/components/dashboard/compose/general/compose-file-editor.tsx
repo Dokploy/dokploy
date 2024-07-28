@@ -1,13 +1,13 @@
-import { CodeEditor } from "@/components/shared/code-editor";
-import { Button } from "@/components/ui/button";
+import { CodeEditor } from "@dokploy/components/shared/code-editor";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Form,
 	FormControl,
 	FormField,
 	FormItem,
 	FormMessage,
-} from "@/components/ui/form";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";

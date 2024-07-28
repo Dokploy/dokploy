@@ -1,7 +1,7 @@
-import { AddProject } from "@/components/dashboard/projects/add";
-import type { Auth } from "@/server/api/services/auth";
-import type { User } from "@/server/api/services/user";
-import { api } from "@/utils/api";
+import { AddProject } from "@dokploy/components/dashboard/projects/add";
+import type { Auth } from "@dokploy/server/api/services/auth";
+import type { User } from "@dokploy/server/api/services/user";
+import { api } from "@dokploy/utils/api";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";

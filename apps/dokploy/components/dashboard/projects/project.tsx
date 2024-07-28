@@ -1,7 +1,7 @@
 // import { ComponentProps } from "react";
 // import { formatDistanceToNow } from "date-fns";
-// import { cn } from "@/lib/utils";
-// import { Badge } from "@/components/ui/badge";
+// import { cn } from "@dokploy/lib/utils";
+// import { Badge } from "@dokploy/components/ui/badge";
 
 // interface Props {
 //   item: ProjectType;

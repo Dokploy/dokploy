@@ -1,9 +1,9 @@
-import { GithubSetup } from "@/components/dashboard/settings/github/github-setup";
-import { WebDomain } from "@/components/dashboard/settings/web-domain";
-import { WebServer } from "@/components/dashboard/settings/web-server";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { validateRequest } from "@/server/auth/auth";
+import { GithubSetup } from "@dokploy/components/dashboard/settings/github/github-setup";
+import { WebDomain } from "@dokploy/components/dashboard/settings/web-domain";
+import { WebServer } from "@dokploy/components/dashboard/settings/web-server";
+import { DashboardLayout } from "@dokploy/components/layouts/dashboard-layout";
+import { SettingsLayout } from "@dokploy/components/layouts/settings-layout";
+import { validateRequest } from "@dokploy/server/auth/auth";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 

@@ -1,9 +1,9 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@dokploy/server/api/trpc";
 import {
 	apiCreatePort,
 	apiFindOnePort,
 	apiUpdatePort,
-} from "@/server/db/schema/port";
+} from "@dokploy/server/db/schema/port";
 import { TRPCError } from "@trpc/server";
 import {
 	createPort,

@@ -1,25 +1,25 @@
-import { docker } from "@/server/constants";
-import { db } from "@/server/db";
+import { docker } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
 	applications,
 	domains,
-} from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
-import { getAdvancedStats } from "@/server/monitoring/utilts";
-import { buildApplication } from "@/server/utils/builders";
-import { buildDocker } from "@/server/utils/providers/docker";
-import { cloneGitRepository } from "@/server/utils/providers/git";
-import { cloneGithubRepository } from "@/server/utils/providers/github";
-import { createTraefikConfig } from "@/server/utils/traefik/application";
-import { generatePassword } from "@/templates/utils";
+} from "@dokploy/server/db/schema";
+import { generateAppName } from "@dokploy/server/db/schema/utils";
+import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
+import { buildApplication } from "@dokploy/server/utils/builders";
+import { buildDocker } from "@dokploy/server/utils/providers/docker";
+import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
+import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
+import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import { generatePassword } from "@dokploy/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin, getDokployUrl } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
 
-import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
-import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
+import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 

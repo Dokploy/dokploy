@@ -1,23 +1,28 @@
-import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
-import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
-import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
-import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
-import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
-import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
-import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
-import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
-import { ProjectLayout } from "@/components/layouts/project-layout";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { AddCommandCompose } from "@dokploy/components/dashboard/compose/advanced/add-command";
+import { ShowVolumesCompose } from "@dokploy/components/dashboard/compose/advanced/show-volumes";
+import { DeleteCompose } from "@dokploy/components/dashboard/compose/delete-compose";
+import { ShowDeploymentsCompose } from "@dokploy/components/dashboard/compose/deployments/show-deployments-compose";
+import { ShowEnvironmentCompose } from "@dokploy/components/dashboard/compose/enviroment/show";
+import { ShowGeneralCompose } from "@dokploy/components/dashboard/compose/general/show";
+import { ShowDockerLogsCompose } from "@dokploy/components/dashboard/compose/logs/show";
+import { ShowMonitoringCompose } from "@dokploy/components/dashboard/compose/monitoring/show";
+import { UpdateCompose } from "@dokploy/components/dashboard/compose/update-compose";
+import { ProjectLayout } from "@dokploy/components/layouts/project-layout";
+import { StatusTooltip } from "@dokploy/components/shared/status-tooltip";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/breadcrumb";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@dokploy/components/ui/tabs";
+import { appRouter } from "@dokploy/server/api/root";
+import { validateRequest } from "@dokploy/server/auth/auth";
+import { api } from "@dokploy/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard } from "lucide-react";
 import type {

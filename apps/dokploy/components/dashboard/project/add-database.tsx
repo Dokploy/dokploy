@@ -4,8 +4,8 @@ import {
 	MysqlIcon,
 	PostgresqlIcon,
 	RedisIcon,
-} from "@/components/icons/data-tools-icons";
-import { Button } from "@/components/ui/button";
+} from "@dokploy/components/icons/data-tools-icons";
+import { Button } from "@dokploy/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -13,8 +13,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "@dokploy/components/ui/dialog";
+import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -22,13 +22,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
-import { slugify } from "@/lib/slug";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/form";
+import { Input } from "@dokploy/components/ui/input";
+import { Label } from "@dokploy/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@dokploy/components/ui/radio-group";
+import { Textarea } from "@dokploy/components/ui/textarea";
+import { slugify } from "@dokploy/lib/slug";
+import { api } from "@dokploy/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Database } from "lucide-react";
 import { useState } from "react";

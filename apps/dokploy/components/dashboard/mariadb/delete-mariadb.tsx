@@ -8,9 +8,9 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/alert-dialog";
+import { Button } from "@dokploy/components/ui/button";
+import { api } from "@dokploy/utils/api";
 import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";

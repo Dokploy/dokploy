@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	admins,
 	type apiCreateUserInvitation,
 	auth,
 	users,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { isAfter } from "date-fns";

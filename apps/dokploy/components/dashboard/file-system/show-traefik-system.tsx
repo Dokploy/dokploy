@@ -1,10 +1,10 @@
 import React from "react";
 
-import { Tree } from "@/components/ui/file-tree";
-import { api } from "@/utils/api";
+import { Tree } from "@dokploy/components/ui/file-tree";
+import { api } from "@dokploy/utils/api";
 import { FileIcon, Folder, Workflow } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@dokploy/lib/utils";
 import { ShowTraefikFile } from "./show-traefik-file";
 
 export const ShowTraefikSystem = () => {

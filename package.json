@@ -1,5 +1,5 @@
 {
-	"name": "dokploy",
+	"name": "monorepo",
 	"private": true,
 	"scripts": {
 		"dokploy:setup": "pnpm run setup --filter=dokploy",

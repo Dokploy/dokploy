@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+} from "@dokploy/components/ui/card";
+import { Label } from "@dokploy/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -14,13 +14,13 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/select";
+import { api } from "@dokploy/utils/api";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 export const DockerLogs = dynamic(
 	() =>
-		import("@/components/dashboard/docker/logs/docker-logs-id").then(
+		import("@dokploy/components/dashboard/docker/logs/docker-logs-id").then(
 			(e) => e.DockerLogsId,
 		),
 	{

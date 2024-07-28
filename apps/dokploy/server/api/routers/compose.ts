@@ -1,5 +1,5 @@
-import { slugify } from "@/lib/slug";
-import { db } from "@/server/db";
+import { slugify } from "@dokploy/lib/slug";
+import { db } from "@dokploy/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
@@ -7,22 +7,22 @@ import {
 	apiRandomizeCompose,
 	apiUpdateCompose,
 	compose,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import {
 	type DeploymentJob,
 	cleanQueuesByCompose,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
-import { createCommand } from "@/server/utils/builders/compose";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
-import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
-import { templates } from "@/templates/templates";
-import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+} from "@dokploy/server/queues/deployments-queue";
+import { myQueue } from "@dokploy/server/queues/queueSetup";
+import { createCommand } from "@dokploy/server/utils/builders/compose";
+import { randomizeComposeFile } from "@dokploy/server/utils/docker/compose";
+import { removeComposeDirectory } from "@dokploy/server/utils/filesystem/directory";
+import { templates } from "@dokploy/templates/templates";
+import type { TemplatesKeys } from "@dokploy/templates/types/templates-data.type";
 import {
 	generatePassword,
 	loadTemplateModule,
 	readComposeFile,
-} from "@/templates/utils";
+} from "@dokploy/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import _ from "lodash";

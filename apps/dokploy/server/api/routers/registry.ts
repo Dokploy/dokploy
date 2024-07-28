@@ -5,10 +5,10 @@ import {
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiUpdateRegistry,
-} from "@/server/db/schema";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { execAsync } from "@/server/utils/process/execAsync";
-import { manageRegistry } from "@/server/utils/traefik/registry";
+} from "@dokploy/server/db/schema";
+import { initializeRegistry } from "@dokploy/server/setup/registry-setup";
+import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import { manageRegistry } from "@dokploy/server/utils/traefik/registry";
 import { TRPCError } from "@trpc/server";
 import {
 	createRegistry,

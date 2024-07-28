@@ -1,7 +1,7 @@
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import {
 	findAllDeploymentsByApplicationId,
 	findAllDeploymentsByComposeId,

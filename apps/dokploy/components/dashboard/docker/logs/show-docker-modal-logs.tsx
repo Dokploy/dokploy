@@ -5,13 +5,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "@dokploy/components/ui/dialog";
+import { DropdownMenuItem } from "@dokploy/components/ui/dropdown-menu";
 import dynamic from "next/dynamic";
 import type React from "react";
 export const DockerLogsId = dynamic(
 	() =>
-		import("@/components/dashboard/docker/logs/docker-logs-id").then(
+		import("@dokploy/components/dashboard/docker/logs/docker-logs-id").then(
 			(e) => e.DockerLogsId,
 		),
 	{

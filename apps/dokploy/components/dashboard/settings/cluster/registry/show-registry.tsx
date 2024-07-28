@@ -4,8 +4,8 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
+} from "@dokploy/components/ui/card";
+import { api } from "@dokploy/utils/api";
 import { Server } from "lucide-react";
 import { AddRegistry } from "./add-docker-registry";
 import { AddSelfHostedRegistry } from "./add-self-docker-registry";

@@ -1,4 +1,4 @@
-import type { Security } from "@/server/api/services/security";
+import type { Security } from "@dokploy/server/api/services/security";
 import * as bcrypt from "bcrypt";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type {

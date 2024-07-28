@@ -1,4 +1,4 @@
-import { findAdmin } from "@/server/api/services/admin";
+import { findAdmin } from "@dokploy/server/api/services/admin";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import {

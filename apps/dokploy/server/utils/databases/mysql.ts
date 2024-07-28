@@ -1,6 +1,6 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { MySql } from "@/server/api/services/mysql";
-import { docker } from "@/server/constants";
+import type { Mount } from "@dokploy/server/api/services/mount";
+import type { MySql } from "@dokploy/server/api/services/mysql";
+import { docker } from "@dokploy/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,

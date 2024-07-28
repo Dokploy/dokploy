@@ -1,6 +1,6 @@
-import { docker } from "@/server/constants";
-import { execAsync } from "@/server/utils/process/execAsync";
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
+import { docker } from "@dokploy/server/constants";
+import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import { getPublicIpWithFallback } from "@dokploy/server/wss/terminal";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { DockerNode } from "../services/cluster";

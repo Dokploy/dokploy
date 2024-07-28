@@ -1,6 +1,6 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { Redis } from "@/server/api/services/redis";
-import { docker } from "@/server/constants";
+import type { Mount } from "@dokploy/server/api/services/mount";
+import type { Redis } from "@dokploy/server/api/services/redis";
+import { docker } from "@dokploy/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,

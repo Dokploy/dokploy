@@ -1,7 +1,7 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import type { Admin } from "@/server/api/services/admin";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import type { Admin } from "@dokploy/server/api/services/admin";
+import { APPLICATIONS_PATH, COMPOSE_PATH } from "@dokploy/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
