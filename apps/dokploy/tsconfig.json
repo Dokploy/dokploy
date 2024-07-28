@@ -28,8 +28,8 @@
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["/*"],
-			"@/components/*": ["components/*"]
-			//   "@/utils/*": ["utils/*"],
+			"@/components/*": ["components/*"],
+			"@/utils/*": ["utils/*"]
 			//   "@/server/*": ["server/*"],
 			//   "@/lib/*": ["lib/*"]
 		}
