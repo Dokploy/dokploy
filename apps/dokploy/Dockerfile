@@ -14,19 +14,19 @@ COPY . .
 RUN pnpm turbo prune dokploy --docker
 
 # Etapa de dependencias
-FROM base AS deps
+FROM base AS installer
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-# copy husky folder 
 COPY --from=pruner /app/.husky/ ./.husky
+
+
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Etapa de construcción
-FROM deps AS builder
+FROM installer AS builder
 COPY --from=pruner /app/out/full/ .
-COPY /apps/dokploy/tsconfig.json tsconfig.json
-COPY /apps/dokploy/next.config.mjs next.config.mjs
+COPY turbo.json turbo.json
 RUN pnpm turbo run build --filter=dokploy
 
 # Etapa de producción
@@ -43,7 +43,7 @@ COPY --from=builder /app/apps/dokploy/package.json ./package.json
 COPY --from=builder /app/apps/dokploy/drizzle ./drizzle
 COPY --from=builder /app/apps/dokploy/.env.production ./.env
 COPY --from=builder /app/apps/dokploy/components.json ./components.json
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=installer /app/node_modules ./node_modules
 
 # Instalar herramientas adicionales
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
