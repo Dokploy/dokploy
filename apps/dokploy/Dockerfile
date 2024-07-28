@@ -9,8 +9,8 @@ WORKDIR /app
 # Etapa de pruning
 FROM base AS pruner
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
-COPY . .
 RUN pnpm install turbo -g
+COPY . .
 RUN pnpm turbo prune dokploy --docker
 
 # Etapa de dependencias
@@ -25,8 +25,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Etapa de construcción
 FROM deps AS builder
 COPY --from=pruner /app/out/full/ .
-COPY turbo.json turbo.json
-RUN pnpm turbo run build --filter=dokploy
+COPY tsconfig.json tsconfig.json
+COPY next.config.js next.config.js
+RUN pnpm turbo run build --filter=dokploy -- --debug
 
 # Etapa de producción
 FROM base AS production
