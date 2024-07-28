@@ -38,6 +38,7 @@ const nextConfig = {
 				],
 			}),
 		);
+		config.resolve.alias["@dokploy"] = path.resolve(__dirname);
 		return config;
 	},
 
