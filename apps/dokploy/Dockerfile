@@ -1,70 +1,52 @@
-# Start with the base image
+# Etapa base
 FROM node:18-slim AS base
-
-# Disable husky
 ENV HUSKY=0
-
-# Set pnpm home
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-
-# Enable corepack
 RUN corepack enable
-
-# Set workdir
 WORKDIR /app
 
-# Install dependencies for the base image
-RUN apt-get update && apt-get install -y python3 make g++ git curl apache2-utils && rm -rf /var/lib/apt/lists/*
-
-# Copy the entire workspace
+# Etapa de pruning
+FROM base AS pruner
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY . .
+RUN yarn global add turbo
+RUN turbo prune dokploy --docker
 
-# Install dependencies for the entire workspace
+# Etapa de dependencias
+FROM base AS deps
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# Build the dokploy app
-RUN pnpm dokploy:build
+# Etapa de construcción
+FROM deps AS builder
+COPY --from=pruner /app/out/full/ .
+COPY turbo.json turbo.json
+RUN pnpm turbo run build --filter=dokploy...
 
-# Production stage
-FROM node:18-slim AS production
-
-# Set production environment
+# Etapa de producción
+FROM base AS production
 ENV NODE_ENV=production
+RUN apt-get update && apt-get install -y curl apache2-utils && rm -rf /var/lib/apt/lists/*
 
-# Set workdir
-WORKDIR /app
+# Copiar archivos de construcción y dependencias
+COPY --from=builder /app/apps/dokploy/.next ./.next
+COPY --from=builder /app/apps/dokploy/dist ./dist
+COPY --from=builder /app/apps/dokploy/next.config.mjs ./next.config.mjs
+COPY --from=builder /app/apps/dokploy/public ./public
+COPY --from=builder /app/apps/dokploy/package.json ./package.json
+COPY --from=builder /app/apps/dokploy/drizzle ./drizzle
+COPY --from=builder /app/apps/dokploy/.env.production ./.env
+COPY --from=builder /app/apps/dokploy/components.json ./components.json
+COPY --from=deps /app/node_modules ./node_modules
 
-# Copy necessary files from the build stage
-COPY --from=base /app/apps/dokploy/.next ./apps/dokploy/.next
-COPY --from=base /app/apps/dokploy/dist ./apps/dokploy/dist
-COPY --from=base /app/apps/dokploy/next.config.mjs ./apps/dokploy/next.config.mjs
-COPY --from=base /app/apps/dokploy/public ./apps/dokploy/public
-COPY --from=base /app/apps/dokploy/package.json ./apps/dokploy/package.json
-COPY --from=base /app/apps/dokploy/drizzle ./apps/dokploy/drizzle
-COPY --from=base /app/apps/dokploy/.env.production ./apps/dokploy/.env
-COPY --from=base /app/apps/dokploy/components.json ./apps/dokploy/components.json
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/package.json ./package.json
-COPY --from=base /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-
-# Install docker
+# Instalar herramientas adicionales
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
-
-# Install Nixpacks
-RUN curl -sSL https://nixpacks.com/install.sh | bash
-
-# Install tsx
-RUN npm install -g tsx
-
-# Install buildpacks
+RUN curl -sSL https://nixpacks.com/install.sh -o install.sh && chmod +x install.sh && ./install.sh && pnpm install -g tsx
 RUN curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 
-# Expose port
 EXPOSE 3000
 
-# Set the working directory to the dokploy app
-WORKDIR /app/apps/dokploy
-
-# Start the application
 CMD ["pnpm", "start"]
