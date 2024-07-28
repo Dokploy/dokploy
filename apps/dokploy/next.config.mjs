@@ -19,6 +19,10 @@ const nextConfig = {
 	// 	ignoreBuildErrors: true,
 	// },
 	webpack: (config) => {
+		config.resolve.alias = {
+			...config.resolve.alias,
+			"@": path.resolve(__dirname),
+		};
 		config.plugins.push(
 			new CopyWebpackPlugin({
 				patterns: [
