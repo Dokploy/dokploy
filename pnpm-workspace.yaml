@@ -1,2 +1,4 @@
 packages:
-  - "apps/*"
+  - "apps/dokploy"
+  - "apps/docs"
+  - "apps/website"
