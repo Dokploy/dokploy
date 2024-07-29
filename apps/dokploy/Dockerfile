@@ -24,6 +24,7 @@ FROM base AS installer
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=pruner /app/.husky/ ./.husky
 
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
