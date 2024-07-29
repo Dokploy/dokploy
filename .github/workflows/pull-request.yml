@@ -45,12 +45,6 @@ jobs:
           echo "Running type check..."
           pnpm run dokploy:check
 
-      - name: Upload typecheck log
-        uses: actions/upload-artifact@v3
-        with:
-          name: typecheck-log
-          path: apps/dokploy/typecheck_output.log
-
       - name: Run Build
         run: |
           cd apps/dokploy

@@ -1,0 +1,41 @@
+---
+title: 概述
+description: "探索 Dokploy 中可用的多种部署方法，包括 GitHub、Git、Docker 以及通过 webhook 的自动化部署。"
+---
+
+Dokploy 提供了多种部署应用程序的方法，无论您使用 GitHub、任何 Git 提供商、Docker 还是自动化部署，都可以简化流程。
+
+- Github
+- Git (Any Git Provider)
+- Docker
+
+## GitHub
+
+通过 GitHub 部署很简单：
+
+1. 在以下配置您的 GitHub 存储库 `/dashboard/settings/server`.
+2. 创建应用程序时，Dokploy 会自动加载可用的存储库和分支。
+
+## Git
+
+对于来自任何 Git 存储库（公共或私有）的部署，您可以使用 SSL 或 HTTPS：
+
+1. 提供存储库 URL。
+2. 指定您要部署的分支。
+
+## Docker
+
+对于 Docker 部署：
+
+- 指定 Docker 镜像。对于私人存储库，您需要提供用户名和密码。
+
+## 自动部署
+
+设置自动部署：
+
+1. 导航至`deployments`选项卡并复制`Webhook URL`。
+2. 在 Git 提供商的设置中，将此 URL 粘贴到 Webhook URL 字段中。
+3. 选择应该触发部署的事件，例如`Push`。
+4. 配置后，任何指定的操作（例如推送新提交）都将自动触发部署。
+
+Dokploy 支持 GitHub、GitLab、Bitbucket、Gitea 和 DockerHub 的 webhook。

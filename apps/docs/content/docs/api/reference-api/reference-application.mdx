@@ -1,0 +1,2800 @@
+---
+title: application
+full: true
+---
+
+import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, ExampleResponse, TypeScriptResponse, Property, ObjectCollapsible, Requests, Request } from "fumadocs-ui/components/api";
+
+<Root>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.create"}>
+
+## application-create
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"appName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"projectId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.create" \
+  -d '{
+  "name": "string",
+  "appName": "string",
+  "description": "string",
+  "projectId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.create", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/application.one"}>
+
+## application-one
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/application.one?applicationId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.one?applicationId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.reload"}>
+
+## application-reload
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"appName"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.reload" \
+  -d '{
+  "appName": "string",
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.reload", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.delete"}>
+
+## application-delete
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.delete" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.delete", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.stop"}>
+
+## application-stop
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.stop" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.stop", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.start"}>
+
+## application-start
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.start" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.start", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.redeploy"}>
+
+## application-redeploy
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.redeploy" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.redeploy", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveEnvironment"}>
+
+## application-saveEnvironment
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"env"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveEnvironment" \
+  -d '{
+  "applicationId": "string",
+  "env": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveEnvironment", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveBuildType"}>
+
+## application-saveBuildType
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"buildType"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Value in:  `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks"`</span>
+
+</Property>
+
+<Property name={"dockerfile"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveBuildType" \
+  -d '{
+  "applicationId": "string",
+  "buildType": "dockerfile",
+  "dockerfile": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveBuildType", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveGithubProvider"}>
+
+## application-saveGithubProvider
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"repository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"branch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"owner"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"buildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveGithubProvider" \
+  -d '{
+  "applicationId": "string",
+  "repository": "string",
+  "branch": "string",
+  "owner": "string",
+  "buildPath": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveGithubProvider", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveDockerProvider"}>
+
+## application-saveDockerProvider
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"dockerImage"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"username"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"password"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveDockerProvider" \
+  -d '{
+  "dockerImage": "string",
+  "applicationId": "string",
+  "username": "string",
+  "password": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveDockerProvider", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveGitProdiver"}>
+
+## application-saveGitProdiver
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"customGitBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitBuildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitUrl"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveGitProdiver" \
+  -d '{
+  "customGitBranch": "string",
+  "applicationId": "string",
+  "customGitBuildPath": "string",
+  "customGitUrl": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveGitProdiver", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.generateSSHKey"}>
+
+## application-generateSSHKey
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.generateSSHKey" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.generateSSHKey", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.removeSSHKey"}>
+
+## application-removeSSHKey
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.removeSSHKey" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.removeSSHKey", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.markRunning"}>
+
+## application-markRunning
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.markRunning" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.markRunning", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.update"}>
+
+## application-update
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"name"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"appName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"env"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"memoryReservation"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"memoryLimit"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"cpuReservation"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"cpuLimit"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"title"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"enabled"} type={"boolean | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"subtitle"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"command"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"refreshToken"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"sourceType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"github" | "docker" | "git"`</span>
+
+</Property>
+
+<Property name={"repository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"owner"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"branch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"buildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"autoDeploy"} type={"boolean | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"username"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"password"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"dockerImage"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitUrl"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitBuildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"customGitSSHKey"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"dockerfile"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"healthCheckSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"healthCheckSwarm"}>
+
+<Property name={"Test"} type={"array of string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Interval"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Timeout"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"StartPeriod"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Retries"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"restartPolicySwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"restartPolicySwarm"}>
+
+<Property name={"Condition"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Delay"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"MaxAttempts"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Window"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"placementSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"placementSwarm"}>
+
+<Property name={"Constraints"} type={"array of string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Preferences"} type={"array of object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"Preferences"}>
+
+<Property name={"Spread"} type={"object"} required={true} deprecated={undefined}>
+
+<ObjectCollapsible name={"Spread"}>
+
+<Property name={"SpreadDescriptor"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"MaxReplicas"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Platforms"} type={"array of object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"Platforms"}>
+
+<Property name={"Architecture"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"OS"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"updateConfigSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"updateConfigSwarm"}>
+
+<Property name={"Parallelism"} type={"number"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Delay"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"FailureAction"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Monitor"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"MaxFailureRatio"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Order"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"rollbackConfigSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"rollbackConfigSwarm"}>
+
+<Property name={"Parallelism"} type={"number"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Delay"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"FailureAction"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Monitor"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"MaxFailureRatio"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Order"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"modeSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"modeSwarm"}>
+
+<Property name={"Replicated"} type={"object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"Replicated"}>
+
+<Property name={"Replicas"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"Global"} type={"object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"Global"}>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"ReplicatedJob"} type={"object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"ReplicatedJob"}>
+
+<Property name={"MaxConcurrent"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"TotalCompletions"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"GlobalJob"} type={"object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"GlobalJob"}>
+
+</ObjectCollapsible>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"labelsSwarm"} type={"object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"labelsSwarm"}>
+
+<Property name={"[key: string]"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"networkSwarm"} type={"array of object | null"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"networkSwarm"}>
+
+<Property name={"Target"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"Aliases"} type={"array of string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"DriverOpts"} type={"object"} required={false} deprecated={undefined}>
+
+<ObjectCollapsible name={"DriverOpts"}>
+
+</ObjectCollapsible>
+
+</Property>
+
+</ObjectCollapsible>
+
+</Property>
+
+<Property name={"replicas"} type={"number"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationStatus"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"idle" | "running" | "done" | "error"`</span>
+
+</Property>
+
+<Property name={"buildType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks"`</span>
+
+</Property>
+
+<Property name={"createdAt"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"registryId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"projectId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.update" \
+  -d '{
+  "applicationId": "string",
+  "name": "string",
+  "appName": "string",
+  "description": "string",
+  "env": "string",
+  "memoryReservation": 0,
+  "memoryLimit": 0,
+  "cpuReservation": 0,
+  "cpuLimit": 0,
+  "title": "string",
+  "enabled": true,
+  "subtitle": "string",
+  "command": "string",
+  "refreshToken": "string",
+  "sourceType": "github",
+  "repository": "string",
+  "owner": "string",
+  "branch": "string",
+  "buildPath": "string",
+  "autoDeploy": true,
+  "username": "string",
+  "password": "string",
+  "dockerImage": "string",
+  "customGitUrl": "string",
+  "customGitBranch": "string",
+  "customGitBuildPath": "string",
+  "customGitSSHKey": "string",
+  "dockerfile": "string",
+  "healthCheckSwarm": {
+    "Test": [
+      "string"
+    ],
+    "Interval": 0,
+    "Timeout": 0,
+    "StartPeriod": 0,
+    "Retries": 0
+  },
+  "restartPolicySwarm": {
+    "Condition": "string",
+    "Delay": 0,
+    "MaxAttempts": 0,
+    "Window": 0
+  },
+  "placementSwarm": {
+    "Constraints": [
+      "string"
+    ],
+    "Preferences": [
+      {
+        "Spread": {
+          "SpreadDescriptor": "string"
+        }
+      }
+    ],
+    "MaxReplicas": 0,
+    "Platforms": [
+      {
+        "Architecture": "string",
+        "OS": "string"
+      }
+    ]
+  },
+  "updateConfigSwarm": {
+    "Parallelism": 0,
+    "Delay": 0,
+    "FailureAction": "string",
+    "Monitor": 0,
+    "MaxFailureRatio": 0,
+    "Order": "string"
+  },
+  "rollbackConfigSwarm": {
+    "Parallelism": 0,
+    "Delay": 0,
+    "FailureAction": "string",
+    "Monitor": 0,
+    "MaxFailureRatio": 0,
+    "Order": "string"
+  },
+  "modeSwarm": {
+    "Replicated": {
+      "Replicas": 0
+    },
+    "Global": {},
+    "ReplicatedJob": {
+      "MaxConcurrent": 0,
+      "TotalCompletions": 0
+    },
+    "GlobalJob": {}
+  },
+  "labelsSwarm": {
+    "property1": "string",
+    "property2": "string"
+  },
+  "networkSwarm": [
+    {
+      "Target": "string",
+      "Aliases": [
+        "string"
+      ],
+      "DriverOpts": {}
+    }
+  ],
+  "replicas": 0,
+  "applicationStatus": "idle",
+  "buildType": "dockerfile",
+  "createdAt": "string",
+  "registryId": "string",
+  "projectId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.update", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.refreshToken"}>
+
+## application-refreshToken
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.refreshToken" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.refreshToken", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.deploy"}>
+
+## application-deploy
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.deploy" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.deploy", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.cleanQueues"}>
+
+## application-cleanQueues
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.cleanQueues" \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.cleanQueues", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/application.readTraefikConfig"}>
+
+## application-readTraefikConfig
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/application.readTraefikConfig?applicationId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.readTraefikConfig?applicationId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.updateTraefikConfig"}>
+
+## application-updateTraefikConfig
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"traefikConfig"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.updateTraefikConfig" \
+  -d '{
+  "applicationId": "string",
+  "traefikConfig": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.updateTraefikConfig", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/application.readAppMonitoring"}>
+
+## application-readAppMonitoring
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"appName"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/application.readAppMonitoring?appName=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.readAppMonitoring?appName=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+</Root>
