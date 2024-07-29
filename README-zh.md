@@ -28,11 +28,17 @@ Dokploy 是一个免费的自托管平台即服务 (PaaS)，它使用 Docker 和
 
 ## 🌟 功能
 
-- **应用程序**: 轻松部署任何类型的应用程序(Node.js,PHP,Python,Go、Ruby 等)。数据库: 创建和管理数据库,支持 MySQL,PostgreSQL,MongoDB、MariaDB、Redis 等。
-- **Docker 管理**: 轻松部署和管理 Docker 容器。
+- **应用程序**: 轻松部署任何类型的应用程序(Node.js,PHP,Python,Go、Ruby 等)。
+- **数据库**: 创建和管理数据库,支持 MySQL,PostgreSQL,MongoDB、MariaDB、Redis 等。
+- **数据库备份**: 支持多种存储目的地自动备份。
+- **Docker Compose**: 原生支持 Docker Compose 以管理复杂的应用程序。
+- **多节点**: 使用 docker swarm 将应用程序扩展到多个节点以管理集群。
+- **模板**: 一键部署开源模板（Plausible、Pocketbase、Calcom 等）。
 - **Traefik 集成**: 自动与 Traefik 集成,用于路由和负载均衡。
 - **实时监控**: 监控 CPU,内存,存储和网络使用情况。
-- **数据库备份**: 支持多种存储目的地自动备份。
+- **Docker 管理**: 轻松部署和管理 Docker 容器。
+- **CLI/API**: 使用命令行工具或使用 API 管理你的应用程序和数据库。
+- **自托管**: 在你的 VPS 上自托管 Dokploy。
 
 ## 🚀 入门
 要开始使用 请在VPS 上运行以下命令:
