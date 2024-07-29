@@ -46,9 +46,26 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ## Donations
 
+
+🙏 Our Sponsors
+We're deeply grateful to all our sponsors who make Dokploy possible!
+Hero Sponsors 🎖
+
+<!-- Add Hero Sponsors here -->
+Premium Supporters 🥇
+<!-- Add Premium Supporters here -->
+Elite Contributors 🥈
+<!-- Add Elite Contributors here -->
+Supporting Members 🥉
+<!-- Add Supporting Members here -->
+Community Backers 🤝
+<!-- Add Community Backers here -->
+Dokploy Supporters 💙
+<!-- Add Dokploy Supporters here -->
 If you like dokploy, and want to support the project to cover the costs of hosting, testing and development new features, you can donate to the project using the following link:
 
 Thanks to all the supporters!
+
 
 [Dokploy Open Collective](https://opencollective.com/dokploy)
 
@@ -65,7 +82,7 @@ Individuals:
   <img src="https://contrib.rocks/image?repo=dokploy/dokploy" />
 </a>
 
-## Support OS
+## Supported OS
 
 - Ubuntu 24.04 LTS
 - Ubuntu 23.10
