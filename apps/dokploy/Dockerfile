@@ -26,16 +26,8 @@ COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/.husky/ ./.husky
 
-
+# Install all dependencies (including dev dependencies)
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
-FROM base-deps as prod-deps
-
-# Set production
-ENV NODE_ENV=production
-
-# Install dependencies only for production
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
 
 # Etapa de construcción
 FROM base-deps AS build
@@ -62,7 +54,7 @@ COPY --from=build /app/apps/dokploy/package.json ./package.json
 COPY --from=build /app/apps/dokploy/drizzle ./drizzle
 COPY --from=build /app/apps/dokploy/.env.production ./.env
 COPY --from=build /app/apps/dokploy/components.json ./components.json
-COPY --from=prod-deps /app/apps/dokploy/node_modules ./node_modules
+COPY --from=build /app/apps/dokploy/node_modules ./node_modules
 
 # Instalar herramientas adicionales
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
