@@ -11,18 +11,6 @@ jobs:
           command: |
             cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
-          name: Debug environment
-          command: |
-            pwd
-            ls -R
-            cat apps/dokploy/Dockerfile
-            cat apps/dokploy/.env.production
-      - run:
-          name: List project structure
-          command: |
-            ls -R apps/dokploy/components
-            ls -R apps/dokploy/pages
-      - run:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -31,8 +19,7 @@ jobs:
             else
               TAG="canary"
             fi
-            cd ./apps/dokploy
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f Dockerfile .
+            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f Dockerfile -f apps/dokploy/Dockerfile .
             # docker push dokploy/dokploy:${TAG}-amd64
 
   # build-arm64:
