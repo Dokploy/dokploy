@@ -1,49 +1,55 @@
-name: Pull request
+name: Optimized Pull Request Workflow
 
 on:
   pull_request:
-    branches:
-      - main
-      - canary
+    branches: [main, canary]
   push:
-    branches:
-      - feat/monorepo
+    branches: [feat/monorepo]
 
 env:
   HUSKY: 0
 
 jobs:
-  build-app:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.18.0
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm biome ci
+      - run: pnpm typecheck
+
+  build-and-test:
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.18.0
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+  # Optional: Add this job if you want to run tests in parallel
+  parallel-tests:
+    needs: lint-and-typecheck
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.18.0]
+        shard: [1, 2, 3] # Adjust the number of shards as needed
     steps:
-      - name: Check out the code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 18.18.0
           cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run format and lint
-        run: pnpm biome ci
-
-      - name: Run type check
-        run: pnpm typecheck
-
-      - name: Run Build
-        run: pnpm build
-
-      - name: Run Tests
-        run: pnpm run test
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
