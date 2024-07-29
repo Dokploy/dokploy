@@ -38,9 +38,6 @@ importers:
       turbo:
         specifier: ^2.0.9
         version: 2.0.9
-      typescript:
-        specifier: ^5.4.5
-        version: 5.5.3
 
   apps/dokploy:
     dependencies:
