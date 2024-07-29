@@ -20,7 +20,7 @@ COPY . .
 RUN pnpm turbo prune dokploy --docker
 
 # Etapa de dependencias
-FROM base AS installer
+FROM base AS base-deps
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
@@ -29,12 +29,20 @@ COPY --from=pruner /app/.husky/ ./.husky
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
+FROM base-deps as prod-deps
+
+# Set production
+ENV NODE_ENV=production
+
+# Install dependencies only for production
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile
+
 # Etapa de construcción
-FROM installer AS build
+FROM base-deps AS build
 
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
-RUN pnpm turbo run build --filter=dokploy... 
+RUN pnpm run dokploy:build
 
 # Etapa de producción
 FROM base AS production
@@ -54,7 +62,7 @@ COPY --from=build /app/apps/dokploy/package.json ./package.json
 COPY --from=build /app/apps/dokploy/drizzle ./drizzle
 COPY --from=build /app/apps/dokploy/.env.production ./.env
 COPY --from=build /app/apps/dokploy/components.json ./components.json
-COPY --from=installer /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Instalar herramientas adicionales
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
