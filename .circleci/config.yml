@@ -56,7 +56,7 @@ jobs:
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              VERSION=$(node -p "require('./package.json').version")
+              VERSION=$(node -p "require('apps/dokploy/package.json').version")
               echo $VERSION
               TAG="latest"
               
