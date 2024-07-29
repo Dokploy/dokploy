@@ -78,6 +78,6 @@ Individuals:
 - Centos 9
 - Centos 8
 
-## Explanation
+## Contributing
 
-[English](README.md) | [中文](README-zh.md) | [Deutsch](README-de.md) | [Русский Язык](README-ru.md)
+Check out the [Contributing Guide](CONTRIBUTING.md) for more information.
