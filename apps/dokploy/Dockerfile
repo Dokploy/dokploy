@@ -1,7 +1,11 @@
 FROM node:18-slim AS base
 
-# ENV
-ENV PNPM_HOME="/pnpm" PATH="$PNPM_HOME:$PATH" HUSKY=0
+# Disable husky
+ENV HUSKY=0
+
+# Set pnpm home
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 # Enable corepack
 RUN corepack enable
