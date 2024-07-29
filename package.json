@@ -6,7 +6,7 @@
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
 		"dokploy:build": "pnpm --filter=dokploy run build",
 		"dokploy:start": "turbo run start --filter=dokploy",
-		"test": "turbo run test --filter=dokploy",
+		"test": "pnpm --filter=dokploy run test",
 		"docker:build:canary": "./apps/dokploy/docker/build.sh canary",
 		"docs:dev": "turbo run dev --filter=docs",
 		"docs:build": "turbo run build --filter=docs",
