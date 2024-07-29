@@ -15,6 +15,7 @@ FROM base AS builder
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY ../../.husky/install.mjs ./.husky/install.mjs
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
