@@ -26,6 +26,8 @@ RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
 FROM base AS dokploy
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl apache2-utils && rm -rf /var/lib/apt/lists/*
+
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next
 COPY --from=build /prod/dokploy/dist ./dist
@@ -36,5 +38,20 @@ COPY --from=build /prod/dokploy/drizzle ./drizzle
 COPY --from=build /prod/dokploy/.env.production.example ./.env
 COPY --from=build /prod/dokploy/components.json ./components.json
 COPY --from=build /prod/dokploy/node_modules ./node_modules
+
+
+# Install docker
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
+
+# Install Nixpacks and tsx
+# | VERBOSE=1 VERSION=1.21.0 bash
+RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
+    && chmod +x install.sh \
+    && ./install.sh \
+    && pnpm install -g tsx
+
+# Install buildpacks
+RUN curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
