@@ -17,6 +17,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # RUN pnpm --filter=dokploy run build
 
 # Deploy only the dokploy app
+
+ENV NODE_ENV=production
 RUN pnpm --filter=./apps/dokploy run build
 RUN pnpm --filter=./apps/dokploy --prod deploy /prod/dokploy
 
@@ -25,6 +27,9 @@ RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
 
 FROM base AS dokploy
 WORKDIR /app
+
+# Set production
+ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y curl apache2-utils && rm -rf /var/lib/apt/lists/*
 
