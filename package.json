@@ -15,8 +15,9 @@
 		"website:build": "turbo run build --filter=website",
 		"website:typecheck": "turbo run typecheck --filter=website",
 		"lint": "turbo lint",
-		"typecheck": "pnpm -r run typechec",
+		"typecheck": "pnpm -r run typecheck",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
+		"build": "pnpm -r run build",
 		"format-and-lint": "biome check .",
 		"format-and-lint:fix": "biome check . --write",
 		"prepare": "node .husky/install.mjs"
