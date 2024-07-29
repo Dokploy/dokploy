@@ -1,11 +1,7 @@
 FROM node:18-slim AS base
 
-# Disable husky
-ENV HUSKY=0
-
-# Set pnpm home
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+# ENV
+ENV PNPM_HOME="/pnpm" PATH="$PNPM_HOME:$PATH" HUSKY=0
 
 # Enable corepack
 RUN corepack enable
@@ -33,9 +29,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 FROM installer AS build
 
 COPY --from=pruner /app/out/full/ .
-
 COPY turbo.json turbo.json
-
 RUN pnpm turbo run build --filter=dokploy... 
 
 # Etapa de producción
