@@ -17,8 +17,6 @@ FROM base AS base-deps
 # Install dependencies only for production
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
-# Copy install script for husky
-COPY .husky/install.mjs ./.husky/install.mjs
 
 # Copy package.json and pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
