@@ -41,9 +41,6 @@ jobs:
   parallel-tests:
     needs: lint-and-typecheck
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shard: [1, 2, 3] # Adjust the number of shards as needed
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
