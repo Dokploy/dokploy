@@ -19,8 +19,7 @@ jobs:
             else
               TAG="canary"
             fi
-            cd apps/dokploy
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
+            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f apps/dokploy/Dockerfile .
             docker push dokploy/dokploy:${TAG}-amd64
 
   build-arm64:
@@ -42,8 +41,7 @@ jobs:
             else
               TAG="canary"
             fi
-            cd apps/dokploy
-            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
+            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 -f apps/dokploy/Dockerfile .
             docker push dokploy/dokploy:${TAG}-arm64
 
   combine-manifests:
