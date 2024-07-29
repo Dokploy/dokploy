@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - canary
+  push:
+    branches:
       - feat/monorepo
 
 env:
