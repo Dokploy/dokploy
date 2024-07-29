@@ -10,6 +10,7 @@ jobs:
           name: Prepare .env file
           command: |
             cp apps/dokploy/.env.production.example .env.production
+            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
           name: Build and push AMD64 image
           command: |
@@ -32,6 +33,7 @@ jobs:
           name: Prepare .env file
           command: |
             cp apps/dokploy/.env.production.example .env.production
+            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
           name: Build and push ARM64 image
           command: |
