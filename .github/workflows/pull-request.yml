@@ -1,14 +1,15 @@
 name: Pull request
+
 on:
   pull_request:
     branches:
       - main
       - canary
-  push:
-    branches:
       - feat/monorepo
+
 env:
   HUSKY: 0
+
 jobs:
   build-app:
     runs-on: ubuntu-latest
@@ -23,8 +24,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9.5.0 # Ajusta esta versión a la que estés usando localmente
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -35,28 +34,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Show installed packages
-        run: |
-          echo "Installed packages:"
-          pnpm list
-
-      - name: Run type check
-        run: |
-          echo "Running type check..."
-          pnpm run dokploy:check
-
-      - name: Run Build
-        run: |
-          cd apps/dokploy
-          pnpm run build
-
-      - name: Run Tests
-        run: |
-          cd apps/dokploy
-          pnpm run test
-
-      # Comentado por ahora, descomenta si necesitas estos pasos
       # - name: Run commitlint
       #   run: pnpm commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
-      # - name: Run format and lint
-      #   run: pnpm biome ci
+
+      - name: Run format and lint
+        run: pnpm biome ci
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run Build
+        run: pnpm build
+
+      - name: Run Tests
+        run: pnpm run test
