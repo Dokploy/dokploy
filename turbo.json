@@ -24,6 +24,10 @@
 			"cache": false,
 			"persistent": true
 		},
+		"typecheck": {
+			"dependsOn": ["^build"],
+			"outputs": ["node_modules/.cache/tsbuildinfo.json"]
+		},
 		"setup": {},
 		"test": {}
 	}

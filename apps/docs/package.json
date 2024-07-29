@@ -6,7 +6,8 @@
 		"build": "next build",
 		"dev": "next dev",
 		"start": "next start",
-		"build:docs": "node generate-docs.mjs"
+		"build:docs": "node generate-docs.mjs",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"fumadocs-core": "12.2.2",
