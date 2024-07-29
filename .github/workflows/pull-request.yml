@@ -10,7 +10,7 @@ env:
   HUSKY: 0
 
 jobs:
-  setup:
+  lint-and-typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,49 +19,31 @@ jobs:
         with:
           node-version: 18.18.0
           cache: "pnpm"
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
       - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@v3
-        with:
-          path: ./*
-          key: ${{ github.sha }}
-
-  lint-and-typecheck:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/cache@v3
-        with:
-          path: ./*
-          key: ${{ github.sha }}
       - run: pnpm biome ci
       - run: pnpm typecheck
 
   build-and-test:
-    needs: setup
+    needs: lint-and-typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          path: ./*
-          key: ${{ github.sha }}
+          node-version: 18.18.0
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
   parallel-tests:
-    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          path: ./*
-          key: ${{ github.sha }}
+          node-version: 18.18.0
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
