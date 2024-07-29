@@ -7,6 +7,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Prepare .env file
+          command: |
+            cp apps/dokploy/.env.production.example .env.production
+      - run:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -24,6 +28,10 @@ jobs:
       resource_class: arm.large
     steps:
       - checkout
+      - run:
+          name: Prepare .env file
+          command: |
+            cp apps/dokploy/.env.production.example .env.production
       - run:
           name: Build and push ARM64 image
           command: |
