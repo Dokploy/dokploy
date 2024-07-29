@@ -19,14 +19,20 @@ export const updateServerTraefik = (
 
 	const currentRouterConfig = config.http.routers[`${appName}-router-app`];
 
-	if (currentRouterConfig) {
-		if (newHost) {
-			currentRouterConfig.rule = `Host(\`${newHost}\`)`;
-		}
+	if (currentRouterConfig && newHost) {
+		currentRouterConfig.rule = `Host(\`${newHost}\`)`;
+
 		if (admin?.certificateType === "letsencrypt") {
-			currentRouterConfig.tls = { certResolver: "letsencrypt" };
-		} else if (admin?.certificateType === "none") {
-			currentRouterConfig.tls = undefined;
+			config.http.routers[`${appName}-router-app-secure`] = {
+				...currentRouterConfig,
+				entryPoints: ["web-secure"],
+				tls:
+					admin?.certificateType === "letsencrypt"
+						? { certResolver: "letsencrypt" }
+						: undefined,
+			};
+
+			currentRouterConfig.middlewares = ["redirect-to-https"];
 		}
 	}
 

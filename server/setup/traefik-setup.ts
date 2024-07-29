@@ -104,8 +104,7 @@ export const createDefaultServerTraefikConfig = () => {
 				[`${appName}-router-app`]: {
 					rule: `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`,
 					service: `${appName}-service-app`,
-					entryPoints: ["web", "websecure"],
-					tls: {},
+					entryPoints: ["web"],
 				},
 			},
 			services: {
