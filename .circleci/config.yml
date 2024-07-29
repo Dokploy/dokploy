@@ -7,10 +7,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Prepare .env file
-          command: |
-            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
-      - run:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -19,7 +15,7 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 -f apps/dokploy/Dockerfile .
+            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
             docker push dokploy/dokploy:${TAG}-amd64
 
   build-arm64:
@@ -29,10 +25,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Prepare .env file
-          command: |
-            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
-      - run:
           name: Build and push ARM64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
@@ -41,7 +33,7 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 -f apps/dokploy/Dockerfile .
+            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
             docker push dokploy/dokploy:${TAG}-arm64
 
   combine-manifests:
