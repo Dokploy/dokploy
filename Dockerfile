@@ -13,9 +13,6 @@ RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
-# Build only the dokploy app
-# RUN pnpm --filter=dokploy run build
-
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
