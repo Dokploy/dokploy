@@ -52,4 +52,4 @@ jobs:
           node-version: 18.18.0
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      - run: pnpm test
