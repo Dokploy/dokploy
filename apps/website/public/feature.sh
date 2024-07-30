@@ -41,27 +41,7 @@ else
 fi
 
 docker swarm leave --force 2>/dev/null
-<<<<<<< HEAD:apps/website/public/feature.sh
 advertise_addr=$(curl -s ifconfig.me)
-=======
-
-get_ip() {
-    # Try to get IPv4
-    local ipv4=$(curl -4s https://ifconfig.io 2>/dev/null)
-
-    if [ -n "$ipv4" ]; then
-        echo "$ipv4"
-    else
-        # Try to get IPv6
-        local ipv6=$(curl -6s https://ifconfig.io 2>/dev/null)
-        if [ -n "$ipv6" ]; then
-            echo "$ipv6"
-        fi
-    fi
-}
-
-advertise_addr=$(get_ip)
->>>>>>> canary:docker/prod.sh
 
 docker swarm init --advertise-addr $advertise_addr
 
@@ -89,12 +69,8 @@ docker service create \
   --update-parallelism 1 \
   --update-order stop-first \
   --constraint 'node.role == manager' \
-<<<<<<< HEAD:apps/website/public/feature.sh
   -e RELEASE_TAG=feature \
   dokploy/dokploy:feature
-=======
-  dokploy/dokploy:latest
->>>>>>> canary:docker/prod.sh
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
