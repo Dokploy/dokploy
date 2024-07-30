@@ -1,6 +1,9 @@
+
+
 # Contributing
 
 Hey, thanks for your interest in contributing to Dokploy! We appreciate your help and taking your time to contribute.
+
 
 Before you start, please first discuss the feature/bug you want to add with the owners and comunity via github issues.
 
@@ -14,10 +17,9 @@ We have a few guidelines to follow when contributing to this project:
 
 ## Commit Convention
 
-Before you create a Pull Request, please make sure your commit message follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
+Before you craete a Pull Request, please make sure your commit message follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
 ### Commit Message Format
-
 ```
 <type>[optional scope]: <description>
 
@@ -27,26 +29,27 @@ Before you create a Pull Request, please make sure your commit message follows t
 ```
 
 #### Type
-
 Must be one of the following:
 
-- **feat**: A new feature
-- **fix**: A bug fix
-- **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-- **refactor**: A code change that neither fixes a bug nor adds a feature
-- **perf**: A code change that improves performance
-- **test**: Adding missing tests or correcting existing tests
-- **build**: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
-- **ci**: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
-- **chore**: Other changes that don't modify `src` or `test` files
-- **revert**: Reverts a previous commit
+* **feat**: A new feature
+* **fix**: A bug fix
+* **docs**: Documentation only changes
+* **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+* **refactor**: A code change that neither fixes a bug nor adds a feature
+* **perf**: A code change that improves performance
+* **test**: Adding missing tests or correcting existing tests
+* **build**: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+* **ci**: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+* **chore**: Other changes that don't modify `src` or `test` files
+* **revert**: Reverts a previous commit
 
 Example:
-
 ```
 feat: add new feature
 ```
+
+
+
 
 ## Setup
 
@@ -56,45 +59,45 @@ Before you start, please make the clone based on the `canary` branch, since the 
 git clone https://github.com/dokploy/dokploy.git
 cd dokploy
 pnpm install
-cp apps/dokploy/.env.example apps/dokploy/.env
+cp .env.example .env
 ```
 
 ## Development
 
 Is required to have **Docker** installed on your machine.
 
+
 ### Setup
 
 Run the command that will spin up all the required services and files.
 
 ```bash
-pnpm run dokploy:setup
+pnpm run setup
 ```
 
 Now run the development server.
 
 ```bash
-pnpm run dokploy:dev
+pnpm run dev
 ```
+
 
 Go to http://localhost:3000 to see the development server
 
 ## Build
 
 ```bash
-pnpm run dokploy:build
+pnpm run build
 ```
 
 ## Docker
 
 To build the docker image
-
 ```bash
 pnpm run docker:build
 ```
 
 To push the docker image
-
 ```bash
 pnpm run docker:push
 ```
@@ -135,6 +138,7 @@ curl -sSL https://nixpacks.com/install.sh -o install.sh \
 curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.32.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 ```
 
+
 ## Pull Request
 
 - The `main` branch is the source of truth and should always reflect the latest stable release.
@@ -147,6 +151,10 @@ curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.
 - Once your pull request is merged, you will be automatically added as a contributor to the project.
 
 Thank you for your contribution!
+
+
+
+
 
 ## Templates
 
@@ -162,40 +170,42 @@ Let's take the example of `plausible` template.
 ```typescript
 // EXAMPLE
 import {
-  generateHash,
-  generateRandomDomain,
-  type Template,
-  type Schema,
+	generateHash,
+	generateRandomDomain,
+	type Template,
+	type Schema,
 } from "../utils";
 
+
 export function generate(schema: Schema): Template {
-  // do your stuff here, like create a new domain, generate random passwords, mounts.
-  const mainServiceHash = generateHash(schema.projectName);
-  const randomDomain = generateRandomDomain(schema);
-  const secretBase = generateBase64(64);
-  const toptKeyBase = generateBase64(32);
 
-  const envs = [
-    // If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
-    `PLAUSIBLE_HOST=${randomDomain}`,
-    "PLAUSIBLE_PORT=8000",
-    `BASE_URL=http://${randomDomain}`,
-    `SECRET_KEY_BASE=${secretBase}`,
-    `TOTP_VAULT_KEY=${toptKeyBase}`,
-    `HASH=${mainServiceHash}`,
-  ];
+	// do your stuff here, like create a new domain, generate random passwords, mounts.
+	const mainServiceHash = generateHash(schema.projectName);
+	const randomDomain = generateRandomDomain(schema);
+	const secretBase = generateBase64(64);
+	const toptKeyBase = generateBase64(32);
 
-  const mounts: Template["mounts"] = [
-    {
-      mountPath: "./clickhouse/clickhouse-config.xml",
-      content: `some content......`,
-    },
-  ];
+	const envs = [
+// If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
+		`PLAUSIBLE_HOST=${randomDomain}`,
+		"PLAUSIBLE_PORT=8000",
+		`BASE_URL=http://${randomDomain}`,
+		`SECRET_KEY_BASE=${secretBase}`,
+		`TOTP_VAULT_KEY=${toptKeyBase}`,
+		`HASH=${mainServiceHash}`,
+	];
 
-  return {
-    envs,
-    mounts,
-  };
+    const mounts: Template["mounts"] = [
+		{
+			mountPath: "./clickhouse/clickhouse-config.xml",
+			content: `some content......`,
+		},
+	];
+
+	return {
+		envs,
+        mounts,
+	};
 }
 ```
 
@@ -223,37 +233,10 @@ export function generate(schema: Schema): Template {
 
 5. Add the logo or image of the template to `public/templates/plausible.svg`
 
-### Recomendations
 
+### Recomendations
 - Use the same name of the folder as the id of the template.
 - The logo should be in the public folder.
-- If you want to show a domain in the UI, please add the prefix \_HOST at the end of the variable name.
+- If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
 - Test first on a vps or a server to make sure the template works.
 
-## Docs
-
-To run the docs locally, run the following command:
-
-```bash
-pnpm run docs:dev
-```
-
-To build the docs, run the following command:
-
-```bash
-pnpm run docs:build
-```
-
-## Website
-
-To run the website locally, run the following command:
-
-```bash
-pnpm run website:dev
-```
-
-To build the website, run the following command:
-
-```bash
-pnpm run website:build
-```
