@@ -71,11 +71,6 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <a href="https://steamsets.com/"><img src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4" width="60px" alt="Lightspeed.run"/></a>
 </div>
 
-## Sponsors
-
-<!-- sponsors:start -->
-<!-- sponsors:end -->
-
 #### Organizations:
 
 [![Sponsors on Open Collective](https://opencollective.com/dokploy/organizations.svg?width=890)](https://opencollective.com/dokploy)
