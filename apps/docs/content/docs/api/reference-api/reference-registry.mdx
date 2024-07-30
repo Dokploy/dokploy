@@ -1,0 +1,838 @@
+---
+title: registry
+full: true
+---
+
+import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, ExampleResponse, TypeScriptResponse, Property, ObjectCollapsible, Requests, Request } from "fumadocs-ui/components/api";
+
+<Root>
+
+<API>
+
+<APIInfo method={"POST"} route={"/registry.create"}>
+
+## registry-create
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"registryName"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"username"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"password"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"registryUrl"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"registryType"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Value in:  `"selfHosted" | "cloud"`</span>
+
+</Property>
+
+<Property name={"imagePrefix"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/registry.create" \
+  -d '{
+  "registryName": "string",
+  "username": "string",
+  "password": "string",
+  "registryUrl": "string",
+  "registryType": "selfHosted",
+  "imagePrefix": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.create", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/registry.remove"}>
+
+## registry-remove
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"registryId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/registry.remove" \
+  -d '{
+  "registryId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.remove", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/registry.update"}>
+
+## registry-update
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"registryId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"registryName"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"imagePrefix"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"username"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"password"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"registryUrl"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"createdAt"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"registryType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"selfHosted" | "cloud"`</span>
+
+</Property>
+
+<Property name={"adminId"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/registry.update" \
+  -d '{
+  "registryId": "string",
+  "registryName": "string",
+  "imagePrefix": "string",
+  "username": "string",
+  "password": "string",
+  "registryUrl": "string",
+  "createdAt": "string",
+  "registryType": "selfHosted",
+  "adminId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.update", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/registry.all"}>
+
+## registry-all
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/registry.all"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.all", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/registry.one"}>
+
+## registry-one
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"registryId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/registry.one?registryId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.one?registryId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/registry.testRegistry"}>
+
+## registry-testRegistry
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"registryName"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"username"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"password"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"registryUrl"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"registryType"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Value in:  `"selfHosted" | "cloud"`</span>
+
+</Property>
+
+<Property name={"imagePrefix"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/registry.testRegistry" \
+  -d '{
+  "registryName": "string",
+  "username": "string",
+  "password": "string",
+  "registryUrl": "string",
+  "registryType": "selfHosted",
+  "imagePrefix": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.testRegistry", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/registry.enableSelfHostedRegistry"}>
+
+## registry-enableSelfHostedRegistry
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"registryUrl"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"username"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"password"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/registry.enableSelfHostedRegistry" \
+  -d '{
+  "registryUrl": "string",
+  "username": "string",
+  "password": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/registry.enableSelfHostedRegistry", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+</Root>

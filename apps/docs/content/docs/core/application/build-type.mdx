@@ -1,0 +1,34 @@
+---
+title: Build Type
+description: "Learn about the different build types available in Dokploy, including Nixpacks, Dockerfile, and Buildpack options."
+
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+
+Dokploy offers three distinct build types for deploying applications, each suited to different development needs and preferences.
+
+### Nixpacks
+
+This is the default build type in Dokploy. When you select Nixpacks, Dokploy builds your application as a Nixpack, which is optimized for ease of use and efficiency.
+
+You can read more about Nixpacks [here](https://nixpacks.com/).
+
+### Dockerfile
+
+If your project includes a Dockerfile, you can specify its path. Dokploy will use this Dockerfile to build your application directly, giving you full control over the build environment and dependencies.
+
+### Buildpack
+
+Dokploy supports two types of buildpacks:
+
+- **Heroku**: Adapted from Heroku's popular cloud platform, these buildpacks are designed for compatibility and ease of migration.
+- **Paketo**: Provides cloud-native buildpacks that leverage modern standards and practices for building applications.
+
+<Callout>
+  **Tip:** We recommend using the `Nixpacks` build type as it is the most
+  straightforward and commonly used option for most applications.
+</Callout>
+
+By choosing the appropriate build type, you can tailor the deployment process to best fit your application's requirements and your operational preferences.

@@ -1,0 +1,522 @@
+---
+title: mounts
+full: true
+---
+
+import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, ExampleResponse, TypeScriptResponse, Property, ObjectCollapsible, Requests, Request } from "fumadocs-ui/components/api";
+
+<Root>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mounts.create"}>
+
+## mounts-create
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"type"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Value in:  `"bind" | "volume" | "file"`</span>
+
+</Property>
+
+<Property name={"hostPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"volumeName"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"content"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"mountPath"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"serviceType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Default:  `"application"`</span>
+
+<span>Value in:  `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
+
+</Property>
+
+<Property name={"serviceId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mounts.create" \
+  -d '{
+  "type": "bind",
+  "hostPath": "string",
+  "volumeName": "string",
+  "content": "string",
+  "mountPath": "string",
+  "serviceType": "application",
+  "serviceId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mounts.create", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mounts.remove"}>
+
+## mounts-remove
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mountId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mounts.remove" \
+  -d '{
+  "mountId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mounts.remove", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/mounts.one"}>
+
+## mounts-one
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"mountId"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/mounts.one?mountId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mounts.one?mountId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/mounts.update"}>
+
+## mounts-update
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"mountId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"type"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in:  `"bind" | "volume" | "file"`</span>
+
+</Property>
+
+<Property name={"hostPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"volumeName"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"content"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"serviceType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Default:  `"application"`</span>
+
+<span>Value in:  `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
+
+</Property>
+
+<Property name={"mountPath"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Minimum length:  `1`</span>
+
+</Property>
+
+<Property name={"applicationId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"postgresId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"mariadbId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"mongoId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"mysqlId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"redisId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"composeId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/mounts.update" \
+  -d '{
+  "mountId": "string",
+  "type": "bind",
+  "hostPath": "string",
+  "volumeName": "string",
+  "content": "string",
+  "serviceType": "application",
+  "mountPath": "string",
+  "applicationId": "string",
+  "postgresId": "string",
+  "mariadbId": "string",
+  "mongoId": "string",
+  "mysqlId": "string",
+  "redisId": "string",
+  "composeId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/mounts.update", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+</Root>

@@ -1,0 +1,110 @@
+---
+title: "Example"
+description: "Learn how to use Docker Compose with Dokploy"
+
+---
+
+## Tutorial
+
+In this tutorial, we will create a simple application using Docker Compose and route the traffic to an accessible domain.
+
+
+### Steps
+
+1. Create a new project.
+2. Create a new service `Compose` and select the Compose Type `Docker Compose`.
+3. Fork this repository: [Repo](https://github.com/Dokploy/docker-compose-test).
+4. Select Provider type: GitHub or Git.
+5. Select the repository: `Dokploy/docker-compose-test`.
+6. Select the branch: `main`.
+7. Set the Compose Path to `./docker-compose.yml` and save.
+![Docker compose configuration](/assets/images/compose/setup.png)
+
+
+### Updating Your `docker-compose.yml`
+
+Add the following to your existing `docker-compose.yml` file:
+
+1. Add the network `dokploy-network` to each service.
+2. Add labels for Traefik to make the service accessible through the domain.
+
+Example:
+
+Let's modify the following compose file to make it work with Dokploy:
+
+```yaml
+version: "3"
+
+services:
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: prod.Dockerfile
+      args:
+        ENV_VARIABLE: ${ENV_VARIABLE}
+        NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - my_network
+networks:
+  my_network:
+    external: true
+```
+
+
+Updated version with dokploy-network and Traefik labels:
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout  type="warn">
+Don't set container_name property to the each service, it will cause issues with logs, metrics and other features
+</Callout>
+{/* :::danger
+Don't set container_name property to the each service, it will cause issues with logs, metrics and other features
+
+::: */}
+
+```yaml
+version: "3"
+
+services:
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: prod.Dockerfile
+      args:
+        ENV_VARIABLE: ${ENV_VARIABLE}
+        NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+    restart: always
+    ports:
+      - 3000
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<unique-name>.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.<unique-name>.entrypoints=websecure"
+      - "traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt"
+      - "traefik.http.services.<unique-name>.loadbalancer.server.port=3000"
+networks:
+  dokploy-network:
+    external: true
+```
+
+Make sure to point the A record to the domain you want to use for your service.
+
+<ImageZoom  src="/assets/images/compose/domain.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+Deploy the application by clicking on "deploy" and wait for the deployment to complete. Then give Traefik about 10 seconds to generate the certificates. You can then access the application through the domain you have set.
+
+<ImageZoom  src="/assets/images/compose/application.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+**Tips**:
+
+1. Set unique names for each router: `traefik.http.routers.<unique-name>` 
+2.  Set unique names for each service: `traefik.http.services.<unique-name>`
+3. Ensure the network is linked to the `dokploy-network`
+4. Set the entry point to websecure and the certificate resolver to letsencrypt to generate certificates.
+
