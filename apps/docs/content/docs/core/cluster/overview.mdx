@@ -1,0 +1,98 @@
+---
+title: Cluster (Advanced)
+description: "Learn how to set up and manage a cluster in Dokploy with docker swarm."
+sidebar:
+  order: 1
+---
+
+
+For most suitables cases you may not need to use a cluster, unless you need to scale your application.
+A cluster is a group of nodes that work together to provide a single, unified service. In Dokploy, clusters manage a group of servers collaborating to deliver this unified service.
+
+We use traefik under the hood to load balance the traffic to the application.
+
+
+We recommend to read the [Traefik Docs](https://doc.traefik.io/traefik/routing/providers/swarm/) before using a cluster, to have a better understanding of how it works.
+
+To start adding nodes to your cluster, you need a registry. The nodes require the registry to pull images .
+
+## Requirements
+
+- A server with Dokploy installed.
+- A registry to store your images.
+- Additional servers (VPS) to add as nodes.
+
+## Registry Options
+
+We provide two methods to add a registry to your cluster:
+
+- **Custom Registry (Free)**: Set up a private registry on your server.
+- **External Registry (Paid)**: Use external registries like Docker Hub, DigitalOcean, AWS ECR, etc.
+
+
+You can see you can add two types of registries:
+
+<ImageZoom  src="/assets/images/cluster/registry.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+
+## Adding Nodes to a Cluster
+
+Once you have a registry, you can add nodes to your cluster by following these steps:
+
+1. Click the `Add Node` button.
+2. You will see two tabs: `Worker` and `Manager`.
+3. Select the type of node you want to add.
+4. Follow the two steps provided:
+   - Install the Docker engine.
+   - Install the Dokploy agent. These steps are the same for both node types.
+5. Run the provided commands on the new server.
+6. After running the commands, go to `server/settings/cluster`. You will see entries for both the worker and manager nodes in the table.
+
+<ImageZoom  src="/assets/images/cluster/nodes.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+<ImageZoom  src="/assets/images/cluster/cluster.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+<ImageZoom  src="/assets/images/cluster/application.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+{/* ![Add Node](/assets/images/cluster/nodes.png)
+![Cluster](/assets/images/cluster/cluster.png)
+![Application Setting](/assets/images/cluster/application.png) */}
+
+## Deploying an Application
+
+Once you have linked nodes to the cluster, you can deploy an application as follows:
+
+1. Create an application in a project.
+2. Fork the repository [Dokploy/swarm-test](https://github.com/Dokploy/swarm-test).
+3. Save it as a GitHub provider.
+4. Go to the advanced tab of the application.
+5. In the "Cluster Settings" section:
+   - Change the number of replicas (default is 1).
+   - Select the registry for the nodes to pull images from.
+6. Now you can deploy the application to the cluster (By clicking the `Deploy` button).
+
+
+In fact, this is a straightforward way to achieve multi-node deployments. Traefik will handle load balancing and route traffic to the node where the application is most available.
+
+To further enhance this setup, you can use load balancers from services like AWS, DigitalOcean, or Google Cloud. These load balancers perform health checks before routing requests to ensure that only healthy nodes receive traffic. If a node fails the health check, the load balancer will automatically route the request to another node. This setup provides a more robust and scalable deployment.
+
+To add manager nodes to the cluster, follow the same steps as adding a worker node. However, if the manager node (where Dokploy is running) fails, all other nodes will become inaccessible. This is because we currently have a single entry point for the cluster. To ensure high availability, you should have multiple manager nodes.
+
+To achieve this, you need to replicate all persistent and Traefik information to the new manager nodes. This will create multiple entry points for the cluster. You can use tools like rsync, aws data sync, or any other tool to synchronize all the necessary information between the nodes.
+
+
+## Customizing the Application
+
+You can customize the application in the "Swarm Settings" section. Here, you can modify almost every setting related to the swarm application mode.
+
+In the interface, placeholders and expected formats for each setting are provided. All fields must be JSON values.
+
+#### Customizable Settings:
+
+- Healthcheck
+- Restart Policy
+- Placement
+- Update Config
+- Rollback Config
+- Mode
+- Network
+- Labels
+
+<ImageZoom  src="/assets/images/cluster/swarm-settings.png" width={800} height={630} alt='home og image' className="rounded-lg" />

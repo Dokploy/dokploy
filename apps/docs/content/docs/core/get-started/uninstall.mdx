@@ -1,0 +1,39 @@
+---
+title: Uninstall
+description: "Learn how to uninstall Dokploy on your server"
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Follow these steps to completely remove Dokploy and its components from your server.
+
+<Steps>
+<Step>
+Remove the docker swarm services created by Dokploy:
+
+   ```bash
+   docker service rm dokploy dokploy-traefik dokploy-postgres dokploy-redis
+   ```
+ 
+</Step>
+ 
+<Step>
+ 
+Remove the docker volumes created by Dokploy:
+
+   ```bash
+   docker volume rm -f dokploy-postgres-database redis-data-volume
+   ```
+ 
+</Step>
+ 
+<Step>
+
+Remove the dokploy files and directories from your server:
+
+   ```bash
+   sudo rm -rf /etc/dokploy
+   ```
+ 
+</Step>
+</Steps>

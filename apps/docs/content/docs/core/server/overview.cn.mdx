@@ -1,0 +1,108 @@
+---
+title: 概述
+description: "Dokploy 提供多种功能来有效管理您的服务器。其中包括管理服务器设置、配置文件、外观、S3存储、证书和用户。"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 服务器
+
+`Server` 选项卡提供服务管理的各种功能：
+
+- **Reload Instance(重新加载实例)**: 重新加载 Dokploy 实例.
+- **Watch Logs(观察日志)**: 监视服务器日志.
+- **Traefik Configuration(Traefik 配置)**: 查看 Traefik 的主要配置。
+- **View Middlewares(查看中间件)**: 检查活动的中间件。
+- **SSH Access(SSH 访问)**: 输入服务器终端（需要 SSH 密钥）。
+
+### 服务器域名
+
+设置服务器域并配置 Let's Encrypt 证书以启用 HTTPS。
+
+### GitHub 集成
+
+配置您的 GitHub 帐户以管理组织或个人项目。 将用于您从 GitHub创建应用程序和部署存储库。
+
+### 空间管理
+
+清理未使用的 Docker 镜像、卷和容器来管理服务器空间。
+
+### Traefik
+
+访问和管理 Traefik 设置：
+
+- **Reload(重载)**: 刷新 Traefik 配置。
+- **Watch Logs(查看日志)**: 查看 Traefik 日志。
+- **View Config(视图配置)**: 检查 Traefik 配置。
+- **Terminal Access(终端访问)**: 通过终端访问 Traefik。
+
+## 服务器信息
+
+自定义您的个人资料，包括电子邮件、密码和头像。
+
+### 两步验证
+
+使用 Google Authenticator 应用程序启用双重身份验证。
+
+## 服务器外观
+
+调整服务器界面的视觉外观、主题。
+
+## S3 存储
+
+配置 S3 存储桶用于备份存储。这包括设置访问密钥、秘密密钥、桶名称、区域和访问地址。
+
+### 创建
+
+为了创建新的 S3 存储桶，您需要填写表单。
+
+- Name: 这可以是您想要的任何东西，它将是存储桶的名称。
+- Access Key: 这是您将用来访问存储桶的访问密钥。
+- Secret Key: 这是您将用来访问存储桶的密钥。
+- Bucket: 这是您将用来访问存储桶的名称。
+- Region: 这是您将用来访问存储桶的区域。
+- Endpoint: 这是您将用来访问存储桶的地址。
+
+<Callout>
+  有一个按钮`Test`将测试与您的存储桶的连接，如果正确，它会向您显示成功消息。
+</Callout>
+
+## 证书
+
+管理 SSL/TLS 证书:
+
+- **Name**: 为证书指定名称。
+- **Certificate Data**: 提供证书详细信息。
+- **Private Key**: 输入私钥。
+
+<Callout>
+  它只会在服务器中创建证书，如果您需要更详细地配置或管理，您可以使用 `Traefik` 选项卡来配置它。
+</Callout>
+
+## 用户
+
+管理 Dokploy 中的用户角色和权限。每个实例仅限一个管理员角色。
+
+### 权限
+
+Dokploy 提供多种权限来管理您的用户。
+
+**Create Projects** 将允许您创建新项目。
+
+**Create Services** 将允许您创建新的应用程序或数据库。
+
+**Access to traefik files tab** 将允许您访问 traefik 文件选项卡。
+
+**Delete Projects** 将允许您删除项目。
+
+**Delete Services** 将允许您删除服务。
+
+**Access to Docker tab** 将允许您访问 docker 选项卡。
+
+您还可以应用权限以允许访问特定 项目/服务
+
+## 提示和警告
+
+- 使用 `Traefik` 选项卡进行详细的配置调整。
+- 使用前测试与 S3 桶的连接，以确保设置正确。
+- 请记住，如果需要详细管理，Dokploy 中添加的证书需要在 `Traefik` 选项卡中进一步配置。

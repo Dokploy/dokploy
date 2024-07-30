@@ -1,0 +1,72 @@
+---
+title: Installation
+description: "Get Dokploy up and running on your server within minutes with this easy-to-follow installation guide."
+---
+
+
+Follow these steps in order to set up Dokploy locally and deploy it to your server, effectively managing Docker containers and applications:
+
+You need to follow this steps in the same order:
+
+1. [Virtual Private Server (VPS)](#virtual-private-server-vps)
+
+## Virtual Private Server (VPS)
+
+There are multiple VPS providers to choose from:
+
+We have tested on the following Linux Distros:
+
+- Ubuntu 24.04 LTS
+- Ubuntu 23.10
+- Ubuntu 22.04 LTS
+- Ubuntu 20.04 LTS
+- Ubuntu 18.04 LTS
+- Debian 12
+- Debian 11
+- Debian 10
+- Fedora 40
+- Centos 9
+- Centos 8
+
+### Providers
+
+- [DigitalOcean](https://www.digitalocean.com/pricing/droplets#basic-droplets)
+- [Hetzner](https://www.hetzner.com/cloud/)
+- [Linode](https://www.linode.com/es/pricing/#compute-shared)
+- [Vultr](https://www.vultr.com/pricing/#cloud-compute)
+- [Scaleway](https://www.scaleway.com/en/pricing/?tags=baremetal,available)
+- [Google Cloud](https://cloud.google.com/)
+- [AWS](https://aws.amazon.com/ec2/pricing/)
+
+### Requirements
+
+To ensure a smooth experience with Dokploy, your server should have at least 2GB of RAM and 30GB of disk space. This specification helps to handle the resources consumed by Docker during builds and prevents system freezes.
+
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout>**Suggestion:** For cost efficiency with reliable service, we recommend Hetzner as the best value-for-money VPS provider.</Callout>
+
+
+### Docker
+
+Dokploy utilizes Docker, so it is essential to have Docker installed on your server. If Docker is not already installed, use the following command to install it automatically:
+
+```bash
+curl -sSL https://dokploy.com/install.sh | sh
+```
+
+## Completing the Setup
+
+After running the installation script, Dokploy and its dependencies will be set up on your server. Here's how to finalize the setup and start using Dokploy:
+
+### Accessing Dokploy
+
+Open your web browser and navigate to `http://your-ip-from-your-vps:3000`. You will be directed to the initial setup page where you can configure the administrative account for Dokploy.
+
+
+### Initial Configuration
+
+1. **Create an Admin Account:** Fill in the necessary details to set up your administrator account. This account will be the admin account for Dokploy.
+
+ <ImageZoom  src="/assets/images/setup.png" width={1300} height={630} alt='home og image' className="rounded-lg" />

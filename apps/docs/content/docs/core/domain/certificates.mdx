@@ -1,0 +1,59 @@
+---
+title: "Certificates"
+description: "Learn how to set up certificates for the Dokploy panel"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+When using a domain for Dokploy, we offer 3 options for certificates:
+
+- Use `None`
+- Use a free SSL certificate from [Let's Encrypt](https://letsencrypt.org/)
+- Use a custom SSL certificate
+
+## None
+
+Using `None` basically means we will not assign a `tlsResolver`, so your DNS provider can implement SSL certificates from their own server.
+
+<Callout title="Cloudflare">When you register a domain on Cloudflare, the SSL certificate is automatically assigned by Cloudflare, so you need to select `None` in Dokploy and disable HTTPS.</Callout>
+
+## Let's Encrypt
+
+Using a free SSL certificate from [Let's Encrypt](https://letsencrypt.org/) is the easiest option, but it comes with some limitations:
+
+1. **Rate Limits**: There are limits on the number of certificates you can issue per domain and account within specific time frames.
+2. **Short Validity Period**: Certificates are valid for only 90 days, but Traefik automatically renews them for you.
+3. **Wildcard Certificates**: While supported, obtaining wildcard certificates requires DNS-01 validation, which can be more complex.
+4. **Domain Validation Only**: Let's Encrypt only provides Domain Validation (DV) certificates, which means they only verify domain ownership, not the organization behind it.
+5. **No Warranty**: Certificates come without any warranties or liability coverage, which might not be suitable for all use cases.
+
+### Other Providers
+
+For domains managed by providers other than Cloudflare, the process is simple:
+
+1. In Dokploy, select `Let's Encrypt` and enable `HTTPS`.
+2. Ensure your DNS records are correctly set up to point to your server.
+3. Traefik will handle the rest, and the certificate should be generated within about 20 seconds.
+
+### Cloudflare Setup
+
+If your domain is managed by Cloudflare:
+
+1. Ensure your domain is set to `Full (Strict)` mode in Cloudflare.
+2. In Dokploy, select `Let's Encrypt` and enable `HTTPS`.
+
+Steps for Cloudflare configuration:
+
+1. Log in to Cloudflare and navigate to `Websites` -> `Your Domain` -> `SSL/TLS` -> `Overview`.
+2. You will see 4 different modes (Off, Flexible, Full, Full (Strict)).
+3. To use Let's Encrypt, select `Full (Strict)`.
+
+<Callout>
+  **Note:** When creating a domain in your application, ensure you use the `Let's Encrypt` certificate and enable `HTTPS`. The generation of certificates typically takes about 20 seconds. If the certificate is not generated, restart Traefik and try again.
+</Callout>
+
+## Custom SSL   
+
+We provide a way to create a certificate and have Traefik reference it, but that doesn't mean it will work automatically. You need to adjust the Traefik configuration to use it.
+
+You can read more about how to create a custom certificate [here](https://docs.traefik.io/https/acme/#custom-ssl-certificates).

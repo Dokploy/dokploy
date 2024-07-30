@@ -1,0 +1,34 @@
+---
+title: "Web Domain Setup"
+description: "Learn how to setup a main domain for the Dokploy panel"
+---
+
+This guide covers the basic setup of a main domain for your Dokploy panel.
+
+## DNS Setup
+
+We'll use [Cloudflare](https://www.cloudflare.com/) for DNS management, but you can use any provider. The steps should be similar.
+
+1. Log in to Cloudflare and navigate to `Websites` -> `Your Domain` -> `DNS` -> `Records`.
+2. Click on `Add record`, select `A`.
+3. Enter `canary` in the name field and your IP address (e.g., `1.2.3.4`) in the value field.
+4. Save the record. Your DNS record will be `canary.dokploy.com`.
+
+<ImageZoom src="/assets/images/web-domain-setup/domain-setup.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />
+
+
+## Dokploy Panel Setup
+
+1. Log in to your Dokploy panel.
+2. Navigate to `/dashboard/settings/server`.
+3. Under Server domain, set your domain to match the one configured in Cloudflare (e.g., `canary.dokploy.com`).
+4. Choose your certificate option:
+   - `None`
+   - `Let's Encrypt`
+6. Access your panel via `https://canary.dokploy.com`.
+
+
+For detailed instructions on setting up certificates, refer to the [Certificates](/docs/core/domain/certificates) documentation.
+
+
+<ImageZoom src="/assets/images/web-domain-setup/dokploy-setup.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />

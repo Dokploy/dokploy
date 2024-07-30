@@ -1,0 +1,143 @@
+---
+title: 'Manual Installation'
+description: 'Learn how to manually install Dokploy on your server.'
+---
+
+If you wish to customize the Dokploy installation on your server, you can modify several aspects:
+
+1. **Use a specific port for Dokploy** - Ideal for avoiding conflicts with other services.
+2. **Select a specific version of Dokploy** - Choose between versions like canary, latest, or a specific Docker tag (e.g., v0.0.1).
+3. **Specify HTTP and HTTPS ports for Traefik** - Useful when running alongside other servers like Nginx.
+
+## Installation Script
+
+Here is a Bash script for installing Dokploy on a Linux server. Make sure you run this as root on a Linux environment that is not a container, and ensure ports 80 and 443 are free.
+
+```bash
+#!/bin/bash
+# Ensure the script is run as root
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root" >&2
+    exit 1
+fi
+
+# Check for Linux OS (not macOS or inside a Docker container)
+if [ "$(uname)" = "Darwin" ]; then
+    echo "This script must be run on Linux" >&2
+    exit 1
+fi
+
+if [ -f /.dockerenv ]; then
+    echo "This script must be run on a native Linux host" >&2
+    exit 1
+fi
+
+# Check for occupied ports
+if ss -tulnp | grep ':80 ' >/dev/null; then
+    echo "Error: Port 80 is already in use" >&2
+    exit 1
+fi
+
+if ss -tulnp | grep ':443 ' >/dev/null; then
+    echo "Error: Port 443 is already in use" >&2
+    exit 1
+fi
+
+# Function to check if a command exists
+command_exists() {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# Install Docker if it is not installed
+if command_exists docker; then
+  echo "Docker already installed"
+else
+  curl -sSL https://get.docker.com | sh
+fi
+
+# Initialize Docker Swarm
+docker swarm leave --force 2>/dev/null
+advertise_addr=$(curl -s ifconfig.me)
+docker swarm init --advertise-addr $advertise_addr
+echo "Swarm initialized"
+
+# Create network
+docker network rm -f dokploy-network 2>/dev/null
+docker network create --driver overlay --attachable dokploy-network
+echo "Network created"
+
+# Prepare configuration directory
+mkdir -p /etc/dokploy
+chmod -R 777 /etc/dokploy
+
+# Pull and deploy Dokploy
+docker pull dokploy/dokploy:latest
+docker service create \
+  --name dokploy \
+  --replicas 1 \
+  --network dokploy-network \
+  --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
+  --mount type=bind,source=/etc/dokploy,target=/etc/dokploy \
+  --publish published=3000,target=3000,mode=host \
+  --update-parallelism 1 \
+  --update-order stop-first \
+  -e PORT=<Value For PORT eg(3000)> \
+  -e TRAEFIK_SSL_PORT=<Value For SSL PORT eg(444)> \
+  -e TRAEFIK_PORT=<VALUE FOR TRAEFIK HTTP PORT eg(81)> \
+  dokploy/dokploy:latest
+
+# Output success message
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+NC="\033[0m" # No Color
+printf "${GREEN}Congratulations, Dokploy is installed!${NC}\n"
+printf "${BLUE}Wait 15 seconds for the server to start${NC}\n"
+printf "${YELLOW}Please go to http://${advertise_addr}:3000${NC}\n\n"
+
+```
+
+
+This script includes checks for common pitfalls, installs Docker if it’s not already installed, initializes a Docker Swarm, creates a network, and then pulls and deploys Dokploy. After the script runs, it provides a success message and instructions for accessing Dokploy.
+
+This structured format clearly lays out the prerequisites, steps, and post-installation information, making it user-friendly and accessible for those performing manual installations.
+
+## Customize install 
+#### Customize swarm advertise address
+
+The --advertise-addr parameter in the docker swarm init command specifies the IP address or interface that the Docker Swarm manager node should advertise to other nodes in the Swarm. This address is used by other nodes to communicate with the manager.
+
+By default, this script uses the external IP address of the server, obtained using the `curl -s ifconfig.me` command. However, you might need to customize this address based on your network configuration, especially if your server has multiple network interfaces or if you're setting up Swarm in a private network.
+
+To customize the --advertise-addr parameter, replace the line: `advertise_addr=$(curl -s ifconfig.me)` with your desired IP address or interface, for example:
+`advertise_addr="192.168.1.100"`
+
+:warning: This IP address should be accessible to all nodes that will join the Swarm.
+
+
+## Existing Docker swarm
+
+If you already have a Docker swarm running on your server and you want to use dokploy, you can use the following command to join it:
+
+
+```bash
+docker network create --driver overlay --attachable dokploy-network
+
+mkdir -p /etc/dokploy
+
+chmod -R 777 /etc/dokploy
+
+docker pull dokploy/dokploy:latest
+
+# Installation
+docker service create \
+  --name dokploy \
+  --replicas 1 \
+  --network dokploy-network \
+  --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
+  --mount type=bind,source=/etc/dokploy,target=/etc/dokploy \
+  --publish published=3000,target=3000,mode=host \
+  --update-parallelism 1 \
+  --update-order stop-first \
+  dokploy/dokploy:latest
+```
