@@ -1,0 +1,70 @@
+---
+title: Overview
+description: 'Dokploy offers multiple functions to manage your server efficiently. These include managing server settings, profiles, appearance, S3 destinations, certificates, and users.'
+---
+import { Callout } from 'fumadocs-ui/components/callout';
+
+We provide multiples functions to manage and interact with the server directly.
+
+
+## Server Domain
+
+Set the server domain to make your panel accessible via a domain.
+
+1. Set the domain
+2. Set the Let's Encrypt email.
+3. Choose a certificate option.
+
+## Github
+
+Configure your GitHub account to manage organization or personal projects. This section guides you through creating a GitHub app and deploying repositories.
+
+
+## Web server settings
+
+Manage multiples settings for your server.
+
+### Server
+
+The `Server` section provides various functions:
+
+- **Reload Instance**: Reload the Dokploy instance.
+- **Watch Logs**: Monitor server logs.
+- **Traefik Configuration**: View main Traefik configurations.
+- **View Middlewares**: Inspect active middlewares.
+- **SSH Access**: Enter the server terminal (requires SSH key).
+
+### Traefik
+
+Access and manage Traefik settings:
+
+- **Reload**: Refresh Traefik configuration.
+- **Watch Logs**: View Traefik logs.
+- **View Config**: Inspect Traefik configuration.
+- **Terminal Access**: Access Traefik via terminal.
+
+### Space Management
+
+Manage server space by cleaning unused Docker images, volumes, and containers.
+
+1. Clean unused images.
+2. Clean unused volumes.
+3. Clean stopped containers.
+4. Clean Docker build cache & system.
+5. Clean monitoring data.
+6. Clean all.
+7. Toggle to run a daily cleanup job.
+
+### Updates
+
+Check for Dokploy updates and apply them as needed. When you check for updates, a modal will open with an action button to check for updates. If a new version is available, the button will indicate it is loading. After a few seconds, it will display the new version and provide an option to update.
+
+
+
+#### Considerations
+
+- The update process usually takes between 20 seconds and 1 minute to complete.
+- All your services and domains will remain operational during the update, so it is safe to apply an update.
+- We are not responsible for any downtime caused by the update process.
+- We recommend updating if you are experiencing a bug or want to access new features.
+- It is important to read the release notes before updating to avoid any unexpected issues.

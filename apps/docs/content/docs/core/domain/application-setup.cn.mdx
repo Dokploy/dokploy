@@ -1,0 +1,38 @@
+---
+title: "应用程序域名设置"
+description: "了解如何为应用程序设置域名"
+---
+
+
+## 介绍
+
+本指南详细介绍了如何为您的应用程序设置域名。
+
+## 要求
+
+如果您没有域名，请首先参阅 `Web域名设置` 部分。
+
+## 创建 DNS 记录
+
+1. 将 `A` 记录添加到您的 DNS 设置中：
+  - **名称:** 输入您要指向的路线 (例如, `app` 到 `app.yourdomain.com`).
+  - **值:** 输入服务器的 IP 地址， 例如 `1.2.3.4`.
+
+## 应用程序域名设置
+
+1. 导航至应用程序的仪表板。
+2. 转到 “域名” 选项卡并单击 “添加域名”。
+3. 输入您在上一步中创建的 DNS 记录 （例如:`app.yourdomain.com`）。
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout >
+
+**注意:** 将容器端口设置为您的应用程序正在运行的端口。
+
+</Callout>
+
+等待 20-30 秒，让 Traefik 生成证书，之后您可以通过新设置的域访问您的应用程序。
+
+转到任何应用程序并转到 “域名” 选项卡并单击 “添加域名” ，然后只需输入您在上一步中创建的记录即可。
+<ImageZoom  src="/assets/images/application-domain-setup/app-setup-domain.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />

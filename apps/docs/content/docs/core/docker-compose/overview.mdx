@@ -1,0 +1,49 @@
+---
+title: "Overview"
+description: "Learn how to use Docker Compose with Dokploy"
+---
+
+Dokploy integrates with Docker Compose and Docker Stack to provide flexible deployment solutions. Whether you are developing locally or deploying at scale, Dokploy facilitates application management through these powerful Docker tools.
+
+### Configuration Methods
+
+Dokploy provides two methods for creating Docker Compose configurations:
+
+
+- **Docker Compose**: Ideal for standard Docker Compose configurations.
+- **Stack**: Geared towards orchestrating applications using Docker Swarm. Note that some Docker Compose features, such as `build`, are not available in this mode.
+
+### General
+
+Configure the source of your code, the way your application is built, and also manage actions like deploying, updating, and deleting your application, and stopping it.
+
+### Enviroment
+
+A code editor within Dokploy allows you to specify environment variables for your Docker Compose file. By default, Dokploy creates a `.env` file in the specified Docker Compose file path.
+
+###  Monitoring
+
+Monitor each service individually within Dokploy. If your application consists of multiple services, each can be monitored separately to ensure optimal performance.
+
+### Logs
+
+Access detailed logs for each service through the Dokploy log viewer, which can help in troubleshooting and ensuring the stability of your services.
+
+
+### Deployments
+
+You can view the last 10 deployments of your application. When you deploy your application in real time, a new deployment record will be created and it will gradually show you how your application is being built.
+
+We also offer a button to cancel deployments that are in queue. Note that those in progress cannot be canceled.
+
+We provide a webhook so that you can trigger your own deployments by pushing to your GitHub, Gitea, GitLab, Bitbucket repository.
+
+
+### Advanced
+
+This section provides advanced configuration options for experienced users. It includes tools for custom commands within the container and volumes.
+
+- **Command**: Dokploy has a defined command to run the Docker Compose file, ensuring complete control through the UI. However, you can append flags or options to the command.
+- **Volumes**: To ensure data persistence across deployments, configure storage volumes for your application.
+
+<ImageZoom  src="/assets/images/compose/overview.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />
