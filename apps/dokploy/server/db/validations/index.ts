@@ -32,7 +32,9 @@ export const sshKeyUpdate = sshKeyCreate.pick({
 	description: true,
 });
 
-export const sshKeyType = z.enum(["rsa", "ed25519"]).optional();
+export const sshKeyType = z.object({
+	type: z.enum(["rsa", "ed25519"]).optional(),
+});
 
 export const domain = z
 	.object({

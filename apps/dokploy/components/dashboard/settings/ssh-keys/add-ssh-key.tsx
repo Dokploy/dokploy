@@ -95,7 +95,11 @@ export const AddSSHKey = ({ children }: Props) => {
 								variant={"secondary"}
 								disabled={generateMutation.isLoading}
 								className="max-sm:w-full"
-								onClick={() => onGenerateSSHKey("rsa")}
+								onClick={() =>
+									onGenerateSSHKey({
+										type: "rsa",
+									})
+								}
 								type="button"
 							>
 								Generate RSA SSH Key
@@ -104,7 +108,11 @@ export const AddSSHKey = ({ children }: Props) => {
 								variant={"secondary"}
 								disabled={generateMutation.isLoading}
 								className="max-sm:w-full"
-								onClick={() => onGenerateSSHKey("ed25519")}
+								onClick={() =>
+									onGenerateSSHKey({
+										type: "ed25519",
+									})
+								}
 								type="button"
 							>
 								Generate ED25519 SSH Key
