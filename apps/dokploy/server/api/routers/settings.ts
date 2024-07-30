@@ -299,6 +299,7 @@ export const settingsRouter = createTRPCRouter({
 					"redis",
 					"mongo",
 					"mariadb",
+					"sshRouter",
 				],
 			});
 

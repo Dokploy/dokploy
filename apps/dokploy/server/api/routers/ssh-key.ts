@@ -54,7 +54,7 @@ export const sshRouter = createTRPCRouter({
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)
 		.mutation(async ({ input }) => {
-			return await generateSSHKey(input);
+			return await generateSSHKey(input.type);
 		}),
 	update: adminProcedure.input(apiUpdateSshKey).mutation(async ({ input }) => {
 		try {
