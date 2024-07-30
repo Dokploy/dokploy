@@ -1,0 +1,99 @@
+---
+title: Dokploy API
+description: How to interact with the dokploy API for administrators and users
+---
+
+In some cases, you may need to interact directly with the dokploy API. Here's how both administrators and users can do this.
+
+## For Administrators
+
+1. Access the Swagger UI by navigating to `your-vps-ip:3000/swagger`.
+2. Use the Swagger interface to interact with the API.
+3. By default, access to the Swagger UI is restricted, and only authenticated administrators can access the API.
+
+## For Users
+
+1. By default, users do not have direct access to the API.
+2. Administrators can grant users access to:
+   - Generate access tokens
+   - Access the Swagger UI
+3. If you need access, contact your administrator.
+
+Note: The API provides advanced functionalities. Make sure you understand the operations you're performing to avoid unintended changes to the system.
+
+## Usage
+
+By default the OpenApi base url is `http://localhost:3000/api`, you need to replace with the ip of your dokploy instance or the domain name.
+
+### Authentication
+
+The API uses JWT tokens for authentication. You can generate a token by going to the `/settings/profile` page and go to API/CLI Section and generate the token.
+
+Let's take a example of authenticated request:
+```bash
+curl -X 'GET' \
+  'https://dokploy.com/api/project.all' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer YOUR-TOKEN'
+```
+then you will get the something like this:
+
+```json
+[
+  {
+    "projectId": "klZKsyw5g-QT_jrWJ5T-w",
+    "name": "Random",
+    "description": "",
+    "createdAt": "2024-06-19T15:05:58.785Z",
+    "adminId": "_WrKZbs7iJAA3p4N2Yfyu",
+    "applications": [],
+    "mariadb": [],
+    "mongo": [],
+    "mysql": [
+      {
+        "mysqlId": "N3cudwO46TiDXzBm4SaQ1",
+        "name": "mysql",
+        "appName": "random-mysql-924715",
+        "description": "",
+        "databaseName": "mysql",
+        "databaseUser": "mysql",
+        "databasePassword": "h13BzO6y3KYSHaQg",
+        "databaseRootPassword": "mM1b7JeoPA7jArxj",
+        "dockerImage": "mysql:8",
+        "command": null,
+        "env": null,
+        "memoryReservation": null,
+        "memoryLimit": null,
+        "cpuReservation": null,
+        "cpuLimit": null,
+        "externalPort": null,
+        "applicationStatus": "done",
+        "createdAt": "2024-06-24T01:55:40.378Z",
+        "projectId": "klZKsyw5g-QT_jrWJ5T-w"
+      }
+    ],
+    "postgres": [],
+    "redis": [
+      {
+        "redisId": "TtFK5S4QFaIjaNGOb8Ku-",
+        "name": "redis",
+        "appName": "random-redis-7eec62",
+        "description": "",
+        "databasePassword": "Yvb8gqClfomjcue8",
+        "dockerImage": "redis:7",
+        "command": null,
+        "env": null,
+        "memoryReservation": null,
+        "memoryLimit": null,
+        "cpuReservation": null,
+        "cpuLimit": null,
+        "externalPort": 6379,
+        "createdAt": "2024-06-26T06:43:20.570Z",
+        "applicationStatus": "done",
+        "projectId": "klZKsyw5g-QT_jrWJ5T-w"
+      }
+    ],
+    "compose": []
+  },
+]
+```

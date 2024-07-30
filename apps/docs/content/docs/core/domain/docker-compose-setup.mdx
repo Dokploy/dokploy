@@ -1,0 +1,84 @@
+---
+title: "Docker Compose Setup"
+description: "Learn how to setup a domain for a Docker Compose application"
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+This guide details how to set up a domain for your Docker Compose application.
+
+## Create DNS Record
+
+1. Add an `A` record to your DNS settings:
+   - **Name:** Enter the route you want to point to (e.g., `app` for `app.yourdomain.com`).
+   - **Value:** Type in the IP address of your server, such as `1.2.3.4`.
+
+## Docker Compose Domain Setup
+
+To make a Docker Compose service or container accessible via a domain, add two things to your existing Docker Compose file.
+
+<Steps>
+<Step>
+Add the `dokploy-network` network to each service.
+
+ 
+```yaml
+services:
+  app:
+    image: nextjs-app
+    networks:
+      - dokploy-network
+    ports:
+      - "3000"
+
+networks:
+  dokploy-network:
+    external: true
+```
+ 
+</Step>
+ 
+<Step>
+ 
+Traefik labels to make the service accessible through the domain.
+
+
+1. if you are using the default Cloudflare configuration, add the following label:
+
+- `traefik.http.routers.<unique-name>.entrypoints=web`
+
+2. If you are using Let's Encrypt or Cloudflare's Full Strict mode, add the following labels:
+
+- `traefik.http.routers.<unique-name>.entrypoints=websecure`
+- `traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt`
+
+
+ ```yaml
+services:
+  app:
+    image: nextjs-app
+    networks:
+      - dokploy-network
+    ports:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<unique-name>.entrypoints=websecure"
+      - "traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.<unique-name>.rule=Host(`app.yourdomain.com`)"
+      - "traefik.http.services.<unique-name>.loadbalancer.server.port=3000"
+networks:
+  dokploy-network:
+    external: true
+```
+ 
+</Step>
+
+ 
+</Steps>
+
+
+
+### Example of a Basic `docker-compose.yml`
+
+
+For example of a basic `docker-compose.yml` file, refer to the [Docker Compose Quickstart](/docs/core/docker-compose/example#tutorial) documentation. 

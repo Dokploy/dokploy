@@ -9,7 +9,8 @@ jobs:
       - run:
           name: Prepare .env file
           command: |
-            cp .env.production.example .env.production
+            cp apps/dokploy/.env.production.example .env.production
+            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
           name: Build and push AMD64 image
           command: |
@@ -31,7 +32,8 @@ jobs:
       - run:
           name: Prepare .env file
           command: |
-            cp .env.production.example .env.production
+            cp apps/dokploy/.env.production.example .env.production
+            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
       - run:
           name: Build and push ARM64 image
           command: |
@@ -56,7 +58,7 @@ jobs:
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              VERSION=$(node -p "require('./package.json').version")
+              VERSION=$(node -p "require('apps/dokploy/package.json').version")
               echo $VERSION
               TAG="latest"
               
@@ -78,7 +80,6 @@ jobs:
             fi
 
 workflows:
-  version: 2
   build-all:
     jobs:
       - build-amd64:

@@ -1,0 +1,47 @@
+---
+title: "Web 域名设置"
+description: "学习如何为 Dokploy 面板设置主域名"
+---
+
+## 介绍
+
+本指南涵盖 Dokploy 面板主域名的基本设置。
+
+## 要求
+
+开始之前，请确保您已从以下提供商之一购买了域名：
+
+- [Cloudflare](https://www.cloudflare.com/)
+- [Namecheap](https://www.namecheap.com/domains/)
+- [Name.com](https://www.name.com/)
+- [GoDaddy](https://www.godaddy.com/)
+- [Domain.com](https://www.domain.com/)
+- [阿里云](https://www.aliyun.com/)
+- [腾讯云](https://cloud.tencent.com/)
+
+## 域名转移
+
+我们建议将您的域转移到 Cloudflare 以提升安全性和增强服务：
+
+- [将域名转移到 Cloudflare](https://developers.cloudflare.com/registrar/get-started/transfer-domain-to-cloudflare/)
+
+## DNS 设置
+
+使用 [Cloudflare](https://www.cloudflare.com/) 用于 DNS 管理：
+
+1. 登录 Cloudflare 并导航至 `Websites` -> `Your Domain` -> `DNS` -> `Records`.
+2. 点击 `Add record`, 选择 `A`.
+3. 在 name 字段中输入 `web` 和, 在值字段中输入您的 IP 地址（例如，`1.2.3.4`） 。
+4. 保存记录。 您的 DNS 记录将是 `web.dokploy.com`.
+
+<ImageZoom  src="/assets/images/web-domain-setup/domain-setup.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />
+
+## Dokploy 面板设置
+
+1. 登录您的 Dokploy 面板。
+2. 导航到 `/dashboard/settings/server`.
+3. 在服务器域下，将您的域设置为与 Cloudflare 中配置的域相匹配(例如, `web.dokploy.com`).
+4. 保存，应用更改需要约 20 秒的时间生效。
+5. 通过以下方式访问您的面板 `https://web.dokploy.com`.
+
+<ImageZoom  src="/assets/images/web-domain-setup/dokploy-domain.png" width={800} height={630} quality={100} priority alt='home og image' className="rounded-lg" />

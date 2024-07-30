@@ -1,0 +1,56 @@
+---
+title: Overview
+description: "Explore the multiple deployment methods available in Dokploy, including GitHub, Git, Docker, and automated deployments via webhooks."
+---
+
+Applications in Dokploy are treated as a single service or container, making it easy and intuitive for users to work with each application in its own workspace.
+
+We offer multiple functionalities that you can use to manage your applications, such as:
+
+## General
+
+Configure the source of your code, the way your application is built, and also manage actions like deploying, updating, and deleting your application, and stopping it.
+
+## Environment
+
+If you need to assign environment variables to your application, you can do so here.
+
+## Monitoring
+
+Four graphs will be displayed for the use of memory, CPU, disk, and network. Note that the information is only updated if you are viewing the current page, otherwise it will not be updated.
+
+## Logs
+
+If you want to see any important logs from your application that is running, you can do so here and determine if your application is displaying any errors or not.
+
+## Deployments
+
+You can view the last 10 deployments of your application. When you deploy your application in real time, a new deployment record will be created and it will gradually show you how your application is being built.
+
+We also offer a button to cancel deployments that are in queue. Note that those in progress cannot be canceled.
+
+We provide a webhook so that you can trigger your own deployments by pushing to your GitHub, Gitea, GitLab, Bitbucket, DockerHub repository.
+
+## Domains
+
+This is where you will assign your domain so that your application can be accessed from the internet.
+
+There are two ways to assign a domain:
+
+1. Create a custom domain.
+2. Use a generated domain, we use traefik.me to generate free domains.
+
+## Advanced Settings
+
+This section provides advanced configuration options for experienced users. It includes tools for custom commands within the container, managing Docker Swarm settings, and adjusting cluster settings such as replicas and registry selection. These tools are typically not required for standard application deployment and are intended for complex management and troubleshooting tasks.
+
+- **Run Command**: Execute custom commands directly in the container for advanced management or troubleshooting.
+- **Cluster Settings**: Configure the number of replicas and select the Docker registry for your deployment to manage how your application scales and where it pulls images from.
+- **Swarm Settings**: Access additional Docker Swarm configurations for detailed orchestration and scaling across multiple nodes.
+- **Resources**: Adjust the CPU and memory allocation for your application.
+- **Volumes**: To ensure data persistence across deployments, configure storage volumes for your application.
+- **Ports**: Expose your application to the internet by configuring network ports.
+- **Traefik**: Modify Traefik settings to manage HTTP request handling for your application.
+
+### Note
+Adjust these settings carefully as incorrect configurations can significantly impact your application’s functionality and availability.

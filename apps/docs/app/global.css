@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.api {
+    --primary: var(--api-color);
+  }
+  
+  .core {
+    --primary: var(--core-color);
+  }
+  
+  .cli {
+    --primary: var(--cli-color);
+  }
+
+  :root {
+    --core-color: 250 80% 54%;
+    --cli-color: 0 0% 9%;
+    --api-color: 220deg 91% 54%;
+  }
+  
+  .dark {
+    --headless-color: 250 100% 80%;
+    --cli-color: 0 0% 100%;
+    --api-color: 217deg 92% 76%;
+  }
