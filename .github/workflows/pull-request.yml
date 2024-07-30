@@ -3,8 +3,6 @@ name: Pull Request
 on:
   pull_request:
     branches: [main, canary]
-  push:
-    branches: [feat/monorepo]
 
 env:
   HUSKY: 0
