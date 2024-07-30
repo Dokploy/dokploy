@@ -7,7 +7,6 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
-
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
