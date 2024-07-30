@@ -30,11 +30,6 @@ if ss -tulnp | grep ':443 ' >/dev/null; then
     exit 1
 fi
 
-
-
-
-
-
 command_exists() {
   command -v "$@" > /dev/null 2>&1
 }
@@ -46,7 +41,27 @@ else
 fi
 
 docker swarm leave --force 2>/dev/null
+<<<<<<< HEAD:apps/website/public/feature.sh
 advertise_addr=$(curl -s ifconfig.me)
+=======
+
+get_ip() {
+    # Try to get IPv4
+    local ipv4=$(curl -4s https://ifconfig.io 2>/dev/null)
+
+    if [ -n "$ipv4" ]; then
+        echo "$ipv4"
+    else
+        # Try to get IPv6
+        local ipv6=$(curl -6s https://ifconfig.io 2>/dev/null)
+        if [ -n "$ipv6" ]; then
+            echo "$ipv6"
+        fi
+    fi
+}
+
+advertise_addr=$(get_ip)
+>>>>>>> canary:docker/prod.sh
 
 docker swarm init --advertise-addr $advertise_addr
 
@@ -59,7 +74,7 @@ echo "Network created"
 
 mkdir -p /etc/dokploy
 
-chmod -R 777 /etc/dokploy
+chmod 777 /etc/dokploy
 
 docker pull dokploy/dokploy:feature
 
@@ -74,20 +89,32 @@ docker service create \
   --update-parallelism 1 \
   --update-order stop-first \
   --constraint 'node.role == manager' \
+<<<<<<< HEAD:apps/website/public/feature.sh
   -e RELEASE_TAG=feature \
   dokploy/dokploy:feature
-
-
-public_ip=$(hostname -I | awk '{print $1}')
+=======
+  dokploy/dokploy:latest
+>>>>>>> canary:docker/prod.sh
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 BLUE="\033[0;34m"
 NC="\033[0m" # No Color
 
+format_ip_for_url() {
+    local ip="$1"
+    if echo "$ip" | grep -q ':'; then
+        # IPv6
+        echo "[${ip}]"
+    else
+        # IPv4
+        echo "${ip}"
+    fi
+}
 
+formatted_addr=$(format_ip_for_url "$advertise_addr")
 echo ""
 printf "${GREEN}Congratulations, Dokploy is installed!${NC}\n"
 printf "${BLUE}Wait 15 seconds for the server to start${NC}\n"
-printf "${YELLOW}Please go to http://${public_ip}:3000${NC}\n\n"
+printf "${YELLOW}Please go to http://${formatted_addr}:3000${NC}\n\n"
 echo ""

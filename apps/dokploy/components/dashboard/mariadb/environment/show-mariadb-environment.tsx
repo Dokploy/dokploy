@@ -24,7 +24,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const addEnvironmentSchema = z.object({
-	environment: z.string(),
+	env: z.string(),
+	buildArgs: z.string(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -45,20 +46,14 @@ export const ShowMariadbEnvironment = ({ mariadbId }: Props) => {
 			enabled: !!mariadbId,
 		},
 	);
+
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
-			environment: "",
+			env: data?.env || "",
+			buildArgs: data?.buildArgs || "",
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
-
-	useEffect(() => {
-		if (data) {
-			form.reset({
-				environment: data.env || "",
-			});
-		}
-	}, [form.reset, data, form]);
 
 	const onSubmit = async (data: EnvironmentSchema) => {
 		mutateAsync({
