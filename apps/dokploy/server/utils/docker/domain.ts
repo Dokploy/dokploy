@@ -61,7 +61,9 @@ export const addDomainToCompose = async (
 	const result = await loadDockerCompose(compose);
 
 	if (!result) {
-		throw new Error("Error to load docker compose");
+		throw new Error(
+			"Error to load docker compose, the file is empty or not found",
+		);
 	}
 
 	for (const domain of domains) {
