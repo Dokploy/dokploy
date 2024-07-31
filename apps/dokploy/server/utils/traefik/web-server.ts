@@ -26,13 +26,13 @@ export const updateServerTraefik = (
 			config.http.routers[`${appName}-router-app-secure`] = {
 				...currentRouterConfig,
 				entryPoints: ["web-secure"],
-				tls:
-					admin?.certificateType === "letsencrypt"
-						? { certResolver: "letsencrypt" }
-						: undefined,
+				tls: { certResolver: "letsencrypt" },
 			};
 
 			currentRouterConfig.middlewares = ["redirect-to-https"];
+		} else {
+			delete config.http.routers[`${appName}-router-app-secure`];
+			currentRouterConfig.middlewares = [];
 		}
 	}
 

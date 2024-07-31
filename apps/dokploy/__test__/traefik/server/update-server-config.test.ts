@@ -77,3 +77,21 @@ test("Should not touch config without host", () => {
 
 	expect(originalConfig).toEqual(config);
 });
+
+test("Should remove web-secure if https rollback to http", () => {
+	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
+
+	updateServerTraefik(
+		{ ...baseAdmin, certificateType: "letsencrypt" },
+		"example.com",
+	);
+
+	updateServerTraefik({ ...baseAdmin, certificateType: "none" }, "example.com");
+
+	const config: FileConfig = loadOrCreateConfig("dokploy");
+
+	expect(config.http?.routers?.["dokploy-router-app-secure"]).toBeUndefined();
+	expect(
+		config.http?.routers?.["dokploy-router-app"]?.middlewares,
+	).not.toContain("redirect-to-https");
+});
