@@ -1,8 +1,11 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateDomain,
+	apiFindCompose,
 	apiFindDomain,
 	apiFindDomainByApplication,
+	apiFindDomainByCompose,
+	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
 import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
@@ -12,6 +15,7 @@ import {
 	createDomain,
 	findDomainById,
 	findDomainsByApplicationId,
+	findDomainsByComposeId,
 	generateDomain,
 	generateWildcard,
 	removeDomainById,
@@ -33,9 +37,14 @@ export const domainRouter = createTRPCRouter({
 			}
 		}),
 	byApplicationId: protectedProcedure
-		.input(apiFindDomainByApplication)
+		.input(apiFindOneApplication)
 		.query(async ({ input }) => {
 			return await findDomainsByApplicationId(input.applicationId);
+		}),
+	byComposeId: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input }) => {
+			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
 		.input(apiFindDomainByApplication)
@@ -52,8 +61,10 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
-			const application = await findApplicationById(domain.applicationId);
-			await manageDomain(application, domain);
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				await manageDomain(application, domain);
+			}
 			return result;
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input }) => {
@@ -64,7 +75,9 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const domain = await findDomainById(input.domainId);
 			const result = await removeDomainById(input.domainId);
-			await removeDomain(domain.application.appName, domain.uniqueConfigKey);
+			if (domain.application) {
+				await removeDomain(domain.application.appName, domain.uniqueConfigKey);
+			}
 
 			return result;
 		}),

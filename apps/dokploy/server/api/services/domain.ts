@@ -15,8 +15,6 @@ export type Domain = typeof domains.$inferSelect;
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
 	await db.transaction(async (tx) => {
-		const application = await findApplicationById(input.applicationId);
-
 		const domain = await tx
 			.insert(domains)
 			.values({
@@ -32,7 +30,10 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			});
 		}
 
-		await manageDomain(application, domain);
+		if (domain.applicationId) {
+			const application = await findApplicationById(domain.applicationId);
+			await manageDomain(application, domain);
+		}
 	});
 };
 
@@ -108,6 +109,17 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 		where: eq(domains.applicationId, applicationId),
 		with: {
 			application: true,
+		},
+	});
+
+	return domainsArray;
+};
+
+export const findDomainsByComposeId = async (composeId: string) => {
+	const domainsArray = await db.query.domains.findMany({
+		where: eq(domains.composeId, composeId),
+		with: {
+			compose: true,
 		},
 	});
 

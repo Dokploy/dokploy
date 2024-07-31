@@ -5,6 +5,7 @@ import { GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ComposeFileEditor } from "../compose-file-editor";
+import { ShowConvertedCompose } from "../show-converted-compose";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 
@@ -32,6 +33,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 					<div className="hidden space-y-1 text-sm font-normal md:block">
 						<GitBranch className="size-6 text-muted-foreground" />
 					</div>
+					<ShowConvertedCompose composeId={composeId} />
 				</CardTitle>
 			</CardHeader>
 			<CardContent>

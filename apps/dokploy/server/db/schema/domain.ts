@@ -1,10 +1,20 @@
-import { domain } from "@/server/db/validations";
+import { domain } from "@/server/db/validations/domain";
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgTable, serial, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	pgEnum,
+	pgTable,
+	serial,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { applications } from "./application";
+import { compose } from "./compose";
 import { certificateType } from "./shared";
+
+export const domainType = pgEnum("domainType", ["compose", "application"]);
 
 export const domains = pgTable("domain", {
 	domainId: text("domainId")
@@ -15,13 +25,19 @@ export const domains = pgTable("domain", {
 	https: boolean("https").notNull().default(false),
 	port: integer("port").default(80),
 	path: text("path").default("/"),
+	serviceName: text("serviceName"),
+	domainType: domainType("domainType").default("application"),
 	uniqueConfigKey: serial("uniqueConfigKey"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	applicationId: text("applicationId")
-		.notNull()
-		.references(() => applications.applicationId, { onDelete: "cascade" }),
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	applicationId: text("applicationId").references(
+		() => applications.applicationId,
+		{ onDelete: "cascade" },
+	),
 	certificateType: certificateType("certificateType").notNull().default("none"),
 });
 
@@ -29,6 +45,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	application: one(applications, {
 		fields: [domains.applicationId],
 		references: [applications.applicationId],
+	}),
+	compose: one(compose, {
+		fields: [domains.composeId],
+		references: [compose.composeId],
 	}),
 }));
 
@@ -41,6 +61,9 @@ export const apiCreateDomain = createSchema.pick({
 	https: true,
 	applicationId: true,
 	certificateType: true,
+	composeId: true,
+	serviceName: true,
+	domainType: true,
 });
 
 export const apiFindDomain = createSchema
@@ -53,6 +76,10 @@ export const apiFindDomainByApplication = createSchema.pick({
 	applicationId: true,
 });
 
+export const apiFindDomainByCompose = createSchema.pick({
+	composeId: true,
+});
+
 export const apiUpdateDomain = createSchema
 	.pick({
 		host: true,
@@ -60,5 +87,7 @@ export const apiUpdateDomain = createSchema
 		port: true,
 		https: true,
 		certificateType: true,
+		serviceName: true,
+		domainType: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

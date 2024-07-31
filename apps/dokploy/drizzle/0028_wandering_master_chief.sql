@@ -1,0 +1,1 @@
+ALTER TABLE "domain" ADD COLUMN "serviceName" text;

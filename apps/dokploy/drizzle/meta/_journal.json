@@ -190,6 +190,27 @@
       "when": 1721979220929,
       "tag": "0026_known_dormammu",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1722362624160,
+      "tag": "0027_ambitious_abomination",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1722371073553,
+      "tag": "0028_wandering_master_chief",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1722399047750,
+      "tag": "0029_rapid_blockbuster",
+      "breakpoints": true
     }
   ]
 }

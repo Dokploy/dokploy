@@ -1,11 +1,11 @@
 import { sshKeys } from "@/server/db/schema/ssh-key";
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { deployments } from "./deployment";
+import { domains } from "./domain";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
@@ -72,6 +72,7 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.customGitSSHKeyId],
 		references: [sshKeys.sshKeyId],
 	}),
+	domains: many(domains),
 }));
 
 const createSchema = createInsertSchema(compose, {
@@ -104,6 +105,11 @@ export const apiCreateComposeByTemplate = createSchema
 
 export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
+});
+
+export const apiFetchServices = z.object({
+	composeId: z.string().min(1),
+	type: z.enum(["fetch", "cache"]).optional().default("cache"),
 });
 
 export const apiUpdateCompose = createSchema.partial().extend({
