@@ -1,6 +1,5 @@
 {
 	"name": "dokploy",
-	"version": "v0.5.0",
 	"private": true,
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
