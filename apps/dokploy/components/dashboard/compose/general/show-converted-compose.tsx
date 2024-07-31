@@ -12,6 +12,7 @@ import {
 import { api } from "@/utils/api";
 import { Puzzle } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
 	composeId: string;
@@ -21,10 +22,17 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const {
 		data: compose,
-		isLoading,
 		error,
 		isError,
-	} = api.compose.getConvertedCompose.useQuery({ composeId });
+		refetch,
+	} = api.compose.getConvertedCompose.useQuery(
+		{ composeId },
+		{
+			retry: false,
+		},
+	);
+
+	const { mutateAsync, isLoading } = api.compose.fetchSourceType.useMutation();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -43,6 +51,23 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<Button
+					isLoading={isLoading}
+					onClick={() => {
+						mutateAsync({ composeId })
+							.then(() => {
+								refetch();
+								toast.success("Fetched source type");
+							})
+							.catch((err) => {
+								toast.error("Error to fetch source type", {
+									description: err.message,
+								});
+							});
+					}}
+				>
+					Fetch
+				</Button>
 				<pre>
 					<CodeEditor value={compose} language="yaml" readOnly height="50rem" />
 				</pre>

@@ -16,7 +16,7 @@ import {
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
 import { randomizeComposeFile } from "@/server/utils/docker/compose";
-import { addDomainToCompose } from "@/server/utils/docker/domain";
+import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
@@ -121,6 +121,21 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFetchServices)
 		.query(async ({ input }) => {
 			return await loadServices(input.composeId, input.type);
+		}),
+	fetchSourceType: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input }) => {
+			try {
+				const compose = await findComposeById(input.composeId);
+				await cloneCompose(compose);
+				return compose.sourceType;
+			} catch (err) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to fetch source type",
+					cause: err,
+				});
+			}
 		}),
 
 	randomizeCompose: protectedProcedure

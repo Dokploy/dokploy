@@ -71,9 +71,8 @@ export const addDomainToCompose = async (
 		if (!serviceName) {
 			throw new Error("Service name not found");
 		}
-
 		if (!result?.services?.[serviceName]) {
-			throw new Error("Service not found");
+			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
 		if (!result.services[serviceName].labels) {
 			result.services[serviceName].labels = [];
