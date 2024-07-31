@@ -9,7 +9,7 @@ export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName, env, buildArgs } = application;
+	const { appName, env, publishDirectory, buildArgs } = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -24,7 +24,15 @@ export const buildCustomDocker = async (
 			commandArgs.push("--build-arg", arg);
 		}
 
-		createEnvFile(dockerFilePath, env);
+		/*
+			Do not generate an environment file when publishDirectory is specified,
+			as it could be publicly exposed.
+		*/
+
+		if (!publishDirectory) {
+			createEnvFile(dockerFilePath, env);
+		}
+
 		await spawnAsync(
 			"docker",
 			commandArgs,

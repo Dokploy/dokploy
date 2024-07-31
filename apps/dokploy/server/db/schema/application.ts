@@ -157,6 +157,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	publishDirectory: text("publishDirectory"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -316,6 +317,7 @@ const createSchema = createInsertSchema(applications, {
 		"paketo_buildpacks",
 		"nixpacks",
 	]),
+	publishDirectory: z.string().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -353,7 +355,8 @@ export const apiSaveBuildType = createSchema
 		buildType: true,
 		dockerfile: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ publishDirectory: true }));
 
 export const apiSaveGithubProvider = createSchema
 	.pick({
