@@ -393,4 +393,19 @@ export const templates: TemplateData[] = [
 		tags: ["media system"],
 		load: () => import("./jellyfin/index").then((m) => m.generate),
 	},
+	{
+		id: "teable",
+		name: "teable",
+		version: "v1.2.0-beta",
+		description:
+			"Teable is a Super fast, Real-time, Professional, Developer friendly, No-code database built on Postgres. It uses a simple, spreadsheet-like interface to create complex enterprise-level database applications. Unlock efficient app development with no-code, free from the hurdles of data security and scalability.",
+		logo: "teable.png",
+		links: {
+			github: "https://github.com/teableio/teable",
+			website: "https://teable.io/",
+			docs: "https://help.teable.io/",
+		},
+		tags: ["database", "spreadsheet", "low-code", "nocode"],
+		load: () => import("./teable/index").then((m) => m.generate),
+	},
 ];
