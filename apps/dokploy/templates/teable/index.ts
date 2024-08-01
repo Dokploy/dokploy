@@ -22,7 +22,7 @@ export function generate(schema: Schema): Template {
 		"POSTGRES_USER=teable",
 		`POSTGRES_PASSWORD=${password}`,
 		"# App",
-		"PUBLIC_ORIGIN=https://${TABLE_HOST}",
+		"PUBLIC_ORIGIN=https://${TAEBLE_HOST}",
 		"PRISMA_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}",
 		"PUBLIC_DATABASE_PROXY=127.0.0.1:42345",
 		"# Need to support sending emails to enable the following configurations",

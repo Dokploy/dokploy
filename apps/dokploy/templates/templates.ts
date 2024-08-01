@@ -396,7 +396,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "teable",
 		name: "teable",
-		version: "v1.2.0-beta",
+		version: "v1.3.1-alpha-build.460",
 		description:
 			"Teable is a Super fast, Real-time, Professional, Developer friendly, No-code database built on Postgres. It uses a simple, spreadsheet-like interface to create complex enterprise-level database applications. Unlock efficient app development with no-code, free from the hurdles of data security and scalability.",
 		logo: "teable.png",
