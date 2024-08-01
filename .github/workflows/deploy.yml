@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: dokploy/website:latest
 
 jobs:
-  build-and-push-image:
+  build-and-push-image-docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,12 +23,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      #   - name: Build Docker image
-      #     run: docker build --platform linux/amd64 --tag dokploy/website:testing -f Dockerfile .
-
-      #   - name: Push Docker image
-      #     run: docker push dokploy/website:latest
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -36,4 +30,26 @@ jobs:
           file: ./Dockerfile.docs
           push: true
           tags: dokploy/docs:latest
+          platforms: linux/amd64
+
+  build-and-push-image-website:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.website
+          push: true
+          tags: dokploy/website:latest
           platforms: linux/amd64
