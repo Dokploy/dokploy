@@ -27,6 +27,7 @@ ENV NODE_ENV=production
 
 # Copy only the necessary files
 COPY --from=build /prod/docs/.next ./.next
+COPY --from=build /prod/docs/package.json ./package.json
 COPY --from=build /prod/docs/node_modules ./node_modules
 
 EXPOSE 3000
