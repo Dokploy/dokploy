@@ -4,7 +4,7 @@ on:
   push:
     branches: ["feat/docker-images-apps"]
   pull_request:
-    branches: ["main"]
+    branches: ["canary", "main"]
 
 env:
   IMAGE_NAME: dokploy/website:latest
@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
