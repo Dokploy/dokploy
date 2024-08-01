@@ -1,0 +1,1 @@
+ALTER TYPE "buildType" ADD VALUE 'static';
