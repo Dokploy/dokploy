@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   teable:
@@ -7,7 +7,7 @@ services:
     ports:
       - ${TEABLE_PORT}
     volumes:
-      - teable-data:/app/.assets:rw
+      - teable-data:/app/.assets
       # you may use a bind-mounted host directory instead,
       # so that it is harder to accidentally remove the volume and lose all your data!
       # - ./docker/teable/data:/app/.assets:rw
@@ -39,9 +39,9 @@ services:
     image: postgres:15.4
     restart: always
     ports:
-      - '42345:5432'
+      - "${TEABLE_DB_PORT}:${POSTGRES_PORT}"
     volumes:
-      - teable-db:/var/lib/postgresql/data:rw
+      - teable-db:/var/lib/postgresql/data
       # you may use a bind-mounted host directory instead,
       # so that it is harder to accidentally remove the volume and lose all your data!
       # - ./docker/db/data:/var/lib/postgresql/data:rw
@@ -54,7 +54,11 @@ services:
       - dokploy-network
       - teable-standalone
     healthcheck:
-      test: ['CMD-SHELL', "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      test:
+        [
+          "CMD-SHELL",
+          "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'",
+        ]
       interval: 10s
       timeout: 3s
       retries: 3
