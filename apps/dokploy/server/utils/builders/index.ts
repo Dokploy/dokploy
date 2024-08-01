@@ -15,6 +15,7 @@ import { buildCustomDocker } from "./docker-file";
 import { buildHeroku } from "./heroku";
 import { buildNixpacks } from "./nixpacks";
 import { buildPaketo } from "./paketo";
+import { buildStatic } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -43,6 +44,8 @@ export const buildApplication = async (
 			await buildPaketo(application, writeStream);
 		} else if (buildType === "dockerfile") {
 			await buildCustomDocker(application, writeStream);
+		} else if (buildType === "static") {
+			await buildStatic(application, writeStream);
 		}
 
 		if (application.registryId) {

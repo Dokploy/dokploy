@@ -24,6 +24,7 @@ enum BuildType {
 	heroku_buildpacks = "heroku_buildpacks",
 	paketo_buildpacks = "paketo_buildpacks",
 	nixpacks = "nixpacks",
+	static = "static",
 }
 
 const mySchema = z.discriminatedUnion("buildType", [
@@ -45,6 +46,9 @@ const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal("nixpacks"),
 		publishDirectory: z.string().optional(),
+	}),
+	z.object({
+		buildType: z.literal("static"),
 	}),
 ]);
 
@@ -175,6 +179,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													<FormLabel className="font-normal">
 														Paketo Buildpacks
 													</FormLabel>
+												</FormItem>
+												<FormItem className="flex items-center space-x-3 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="static" />
+													</FormControl>
+													<FormLabel className="font-normal">Static</FormLabel>
 												</FormItem>
 											</RadioGroup>
 										</FormControl>
