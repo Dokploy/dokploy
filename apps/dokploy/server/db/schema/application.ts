@@ -35,6 +35,7 @@ export const buildType = pgEnum("buildType", [
 	"heroku_buildpacks",
 	"paketo_buildpacks",
 	"nixpacks",
+	"static",
 ]);
 
 // TODO: refactor this types
@@ -316,6 +317,7 @@ const createSchema = createInsertSchema(applications, {
 		"heroku_buildpacks",
 		"paketo_buildpacks",
 		"nixpacks",
+		"static",
 	]),
 	publishDirectory: z.string().optional(),
 	owner: z.string(),
