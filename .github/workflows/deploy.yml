@@ -2,7 +2,7 @@ name: Build Docs & Website Docker images
 
 on:
   push:
-    branches: ["canary", "main"]
+    branches: ["canary", "main", "feat/docker-images-apps"]
 
 jobs:
   build-and-push-image-docs:
