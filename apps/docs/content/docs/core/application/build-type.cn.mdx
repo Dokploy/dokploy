@@ -1,0 +1,32 @@
+---
+title: 构建类型
+description: "了解 Dokploy 中可用的不同构建类型，包括 Nixpack、Dockerfile 和 Building pack 选项。"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+## 构建类型
+
+Dokploy 提供了三种不同的构建类型来部署应用程序，每种类型都适合不同的开发需求和偏好。
+
+### Nixpacks
+
+这是 Dokploy 中的默认构建类型。当您选择 Nixpack 时，Dokploy 会将您的应用程序构建为 Nixpack，该 Nixpack 针对易用性和效率进行了优化。
+
+### Dockerfile
+
+如果您的项目包含 Dockerfile，您可以指定其路径。 Dokploy 将使用此 Dockerfile 直接构建您的应用程序，让您完全控制构建环境和依赖项。
+
+### Buildpack
+
+Dokploy 支持两种类型的构建包：
+
+- **Heroku**: 这些构建包改编自 Heroku 流行的云平台，旨在兼容性和易于迁移。
+- **Paketo**: 提供利用现代标准和实践来构建应用程序的云原生构建包。
+
+<Callout>
+  **Tip:**
+  我们建议使用“Nixpack”构建类型，因为它是大多数应用程序最简单、最常用的选项。
+</Callout>
+
+通过选择适当的构建类型，您可以定制部署过程，以最适合您的应用程序的要求和您的操作偏好。

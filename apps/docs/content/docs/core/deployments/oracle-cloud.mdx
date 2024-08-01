@@ -1,0 +1,31 @@
+---
+title: Oracle Cloud
+description: Deploy your application to Oracle Cloud
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+
+
+Deploy your application to Oracle Cloud
+
+Steps
+
+1. Log in to Oracle Cloud
+2. Create a new `Compute Instance`
+3. Go to `Image and Shape`
+4. Select `Ubuntu 20.04 LTS` and Shape 
+
+<ImageZoom  src="/assets/images/deployment/oracle/oracle-shape.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+5. Add SSH Key, make sure to add the public key of your SSH key
+6. Login to the instance `ssh ubuntu@ip-address-of-instance`
+<Callout>
+If you cannot access to the instance because you se connection refused error, you can try adding a `Public Subnet IPv4 CIDR Block` to the instance, go to your instance and then Quick Actions -> Connect public subnet to internet -> Create
+</Callout>
+7. Run `sudo su`
+8. Run `curl -sSL https://dokploy.com/install.sh | sh`
+9. By default oracle cloud have blocked the ports only the 22 is open, you can change in your instance -> attached VNICs -> click on `subnet` Link -> go to `Security Lists` -> `Inbound Rules` -> Click on `default security list for vnc` Link -> Go to ingress rules ->  add a ingress rule -> on source CIDR `0.0.0.0/0` and save.
+9. Go to `ip-address-of-instance:3000` and you will see the dashboard.
+
+

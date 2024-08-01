@@ -1,0 +1,86 @@
+---
+title: Cluster (Advanced)
+description: 'Manage server cluster settings.'
+---
+
+When you deploy applications in dokploy, all of them run on the same node. If you wish to run an application on a different server, you can use the cluster feature.
+
+The idea of using clusters is to allow each server to host a different application and, using Traefik along with the load balancer, redirect the traffic from the dokploy server to the servers you choose.
+
+## Server Scaling Methods
+
+There are two primary ways to scale your server:
+
+1. **Vertical Scaling**: This involves adding more resources to the same dokploy server, such as more CPU and RAM.
+2. **Horizontal Scaling**: This method involves adding multiple servers.
+
+### Vertical Scaling
+
+We recommend using vertical scaling to increase the processing capacity of your applications since it's faster and requires less additional configuration.
+
+To perform vertical scaling, you need to add more resources to your dokploy server, that is, more CPU and RAM. This is done through your VPS provider.
+
+It's ideal to first check the vertical scaling limit you can handle. If you find it insufficient, you may consider horizontal scaling.
+
+### Horizontal Scaling
+
+Horizontal scaling usually requires more additional configuration and involves adding more servers (VPS).
+
+If you choose the second option, we will proceed to configure the different servers.
+
+## Requirements for Cluster Setup
+
+1. dokploy server running (Manager).
+2. Have at least one extra server with the same architecture as the dokploy server.
+3. Have a Docker registry.
+
+## Configuring the Docker Registry
+
+To start, we need to configure a Docker registry, as when deploying an application, you need a registry to deploy and download the application image on the other servers.
+
+We offer two ways to configure a registry:
+
+1. **External Registry**: Use any registry you want.
+2. **Self-Hosted Registry**: We create and configure a self-hosted registry for you.
+
+### External Registry
+
+You can use any registry, such as Docker Hub, DigitalOcean Spaces, ECR, or your choice. Make sure to enter the correct credentials and test the connection before adding the registry.
+
+### Self-Hosted Registry
+
+We will ask you for three things:
+
+1. A user.
+2. A password.
+3. A domain. Ensure this domain is pointing to the dokploy VPS.
+
+Once set up, the Cluster section will be unlocked.
+
+## Understanding Docker Swarm
+
+We suggest you read this information to better understand how Docker Swarm works and its orchestration: [Docker Swarm documentation](https://docs.docker.com/engine/swarm/) and its architecture: [How Swarm mode works](https://docs.docker.com/engine/swarm/how-swarm-mode-works/nodes/).
+
+## Managing Your Cluster
+
+Now you can do two things:
+
+1. Add workers.
+2. Add managers.
+
+Managers have two functionalities:
+
+1. Manage the cluster state.
+2. Schedule the services.
+
+Workers have a single purpose, which is to run the containers, acting under the rules created or established by the manager.
+
+## Adding Nodes
+
+You can click the 'Add Node' button, which will display the instructions you need to follow to add your servers as nodes and join them to the dokploy manager node.
+
+<ImageZoom src="/assets/add-node.png" width={800} height={630} className="rounded-lg"/>
+
+Once you follow the instructions, the workers or managers will appear in the table.
+
+<ImageZoom src="/assets/nodes.png" width={800} height={630} className="rounded-lg"/>

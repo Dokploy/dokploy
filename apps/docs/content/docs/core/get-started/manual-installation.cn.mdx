@@ -1,0 +1,144 @@
+---
+title: '手动安装'
+description: '学习如何在服务器上手动安装 Dokploy。'
+---
+
+如果您希望自定义 Dokploy 在服务器上的安装，可以修改以下几个方面：
+
+1. **为 Dokploy 使用特定端口** - 这对于避免与其他服务的冲突非常理想。
+2. **选择特定版本的 Dokploy** - 可以选择如 canary、latest 或特定 Docker 标签（例如 v0.0.1）版本。
+3. **指定 Traefik 的 HTTP 和 HTTPS 端口** - 当与其他服务器（如 Nginx）一起运行时非常有用。
+
+## 安装脚本
+
+下面是一个在 Linux 服务器上安装 Dokploy 的 Bash 脚本。确保在非容器的 Linux 环境中以 root 身份运行，并确保端口 80 和 443 是空闲的。
+
+```bash
+#!/bin/bash
+# 确保以根用户身份运行脚本
+if [ "$(id -u)" != "0" ]; then
+    echo "This script must be run as root" >&2
+    exit 1
+fi
+
+# 检查 Linux 操作系统（非 macOS 或 Docker 容器内的操作系统）
+if [ "$(uname)" = "Darwin" ]; then
+    echo "This script must be run on Linux" >&2
+    exit 1
+fi
+
+if [ -f /.dockerenv ]; then
+    echo "This script must be run on a native Linux host" >&2
+    exit 1
+fi
+
+# 检查端口是否被占用
+if ss -tulnp | grep ':80 ' >/dev/null; then
+    echo "Error: Port 80 is already in use" >&2
+    exit 1
+fi
+
+if ss -tulnp | grep ':443 ' >/dev/null; then
+    echo "Error: Port 443 is already in use" >&2
+    exit 1
+fi
+
+# 检查命令是否存在
+command_exists() {
+  command -v "$@" > /dev/null 2>&1
+}
+
+# 如果未安装 Docker 则安装
+if command_exists docker; then
+  echo "Docker already installed"
+else
+  curl -sSL https://get.docker.com | sh
+fi
+
+# 初始化 Docker Swarm
+docker swarm leave --force 2>/dev/null
+advertise_addr=$(curl -s ifconfig.me)
+docker swarm init --advertise-addr $advertise_addr
+echo "Swarm initialized"
+
+#  创建网络
+docker network rm -f dokploy-network 2>/dev/null
+docker network create --driver overlay --attachable dokploy-network
+echo "Network created"
+
+# 准备配置目录
+mkdir -p /etc/dokploy
+chmod -R 777 /etc/dokploy
+
+# Pull and deploy Dokploy
+docker pull dokploy/dokploy:latest
+docker service create \
+  --name dokploy \
+  --replicas 1 \
+  --network dokploy-network \
+  --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
+  --mount type=bind,source=/etc/dokploy,target=/etc/dokploy \
+  --publish published=3000,target=3000,mode=host \
+  --update-parallelism 1 \
+  --update-order stop-first \
+  -e PORT=<Value For PORT eg(3000)> \
+  -e TRAEFIK_SSL_PORT=<Value For SSL PORT eg(444)> \
+  -e TRAEFIK_PORT=<VALUE FOR TRAEFIK HTTP PORT eg(81)> \
+  dokploy/dokploy:latest
+
+# 输出成功消息
+GREEN="\033[0;32m"
+YELLOW="\033[1;33m"
+BLUE="\033[0;34m"
+NC="\033[0m" # No Color
+printf "${GREEN}Congratulations, Dokploy is installed!${NC}\n"
+printf "${BLUE}Wait 15 seconds for the server to start${NC}\n"
+printf "${YELLOW}Please go to http://${advertise_addr}:3000${NC}\n\n"
+
+```
+
+
+这个脚本包括对常见陷阱的检查，如果未安装 Docker 则安装 Docker，初始化 Docker Swarm，创建网络，然后拉取并部署 Dokploy。脚本运行后，它提供成功消息和访问 Dokploy 的说明。
+
+这种结构化的格式清晰地列出了先决条件、步骤和安装后信息，使其对执行手动安装的用户来说非常友好和易于理解。
+
+## 自定义安装
+#### 自定义 swarm 广播地址
+
+`docker swarm init` 命令中的 `--advertise-addr` 参数指定了 Docker Swarm 管理节点应该向 Swarm 中的其他节点广播的 IP 地址或接口。其他节点使用该地址与管理节点通信。
+
+默认情况下，此脚本使用通过 `curl -s ifconfig.me` 命令获得的服务器外部 IP 地址。但是，根据您的网络配置，特别是如果您的服务器有多个网络接口或如果您在私有网络中设置 Swarm，您可能需要自定义此地址。
+
+要自定义 `--advertise-addr` 参数，请将以下行：
+`advertise_addr=$(curl -s ifconfig.me)`
+
+替换为您所需的 IP 地址或接口，例如：
+`advertise_addr="192.168.1.100"`
+
+:warning: 该 IP 地址应对将加入 Swarm 的所有节点可访问。
+
+## 已有 Docker Swarm
+
+如果您的服务器上已经运行了 Docker Swarm，并且您想使用 Dokploy，可以使用以下命令加入它：
+
+```bash
+docker network create --driver overlay --attachable dokploy-network
+
+mkdir -p /etc/dokploy
+
+chmod -R 777 /etc/dokploy
+
+docker pull dokploy/dokploy:latest
+
+# 安装
+docker service create \
+  --name dokploy \
+  --replicas 1 \
+  --network dokploy-network \
+  --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
+  --mount type=bind,source=/etc/dokploy,target=/etc/dokploy \
+  --publish published=3000,target=3000,mode=host \
+  --update-parallelism 1 \
+  --update-order stop-first \
+  dokploy/dokploy:latest
+```

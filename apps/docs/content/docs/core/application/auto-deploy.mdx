@@ -1,0 +1,86 @@
+---
+title: Auto Deploy
+description: "Learn how to automatically deploy your application to Dokploy."
+---
+
+Automatically deploying your application to Dokploy can be achieved through two primary methods: using Webhooks or the Dokploy API. Each method supports various platforms and provides a streamlined deployment process.
+
+## Github
+
+For Github, we provide autodeploy without any configuration. This will automatically deploy your application whenever you push to your repository.
+
+## Webhook URL
+
+Webhooks allow you to automatically deploy your application whenever changes are made in your source repository.
+
+- GitHub
+- GitLab
+- Bitbucket
+- Gitea
+- DockerHub
+
+### Configuration Steps
+
+1. **Enable Auto Deploy**: Toggle the 'Auto Deploy' button found in the general tab of your application settings in Dokploy.
+2. **Obtain Webhook URL**: Locate the Webhook URL from the deployment logs.
+
+<ImageZoom
+  src="/assets/webhook-url.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}
+/>
+
+3. **Configure Your Repository**:
+   - Navigate to your repository settings on your chosen platform.
+   - Add the webhook URL provided by Dokploy.
+   - Ensure the settings match the configuration necessary for triggering the webhook.
+
+<ImageZoom
+  src="/assets/webhook-github.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}
+/>
+
+#### Important Notes
+
+- **Branch Matching**: When using Git-based providers (GitHub, GitLab, etc.), ensure that the branch configured in Dokploy matches the branch you intend to push to. Misalignment will result in a "Branch Not Match" error.
+- **Docker Tags**: For deployments using DockerHub, ensure the tag pushed matches the one specified in Dokploy.
+- The steps are the same for all the providers.
+
+### API Method
+
+Deploy your application programmatically using the Dokploy API from anywhere.
+
+### Steps to Deploy Using API
+
+Steps:
+
+1. **Generate a Token**: Create an API token in your profile settings on Dokploy.
+2. **Retrieve Application ID**:
+
+```http
+curl -X 'GET' \
+  'https://your-domain/api/project.all' \
+  -H 'accept: application/json'
+  -H 'Authorization: Bearer <token>'
+```
+
+This command lists all projects and services. Identify the applicationId for the application you wish to deploy.
+
+3. **Trigger Deployment**:
+
+```http
+curl -X 'POST' \
+  'https://your-domain/api/application.deploy' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+This API method allows for flexible, scriptable deployment options, suitable for automated systems or situations where direct repository integration is not feasible.
+In this way you can deploy your application from anywhere, you can use the webhook URL or the API.

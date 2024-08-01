@@ -1,0 +1,196 @@
+---
+title: Domains
+description: Configure domains for your Docker Compose application.
+---
+
+When using Docker Compose, adding a domain to a service is a straightforward process. This guide will walk you through the necessary steps to configure domains for your application.
+
+Key Steps:
+
+1. Add the service to the `dokploy-network`.
+2. Use Traefik labels to configure routing.
+
+Example Scenario
+
+Let's consider an application with three components: a frontend, a backend, and a database. We'll start with a basic Docker Compose file and then enhance it with domain configuration.
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@database:5432/mydatabase
+    depends_on:
+      - database
+
+  database:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+```
+
+## Step 1: Add the Network
+
+First, we'll add the dokploy-network to our services:
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    # ... (previous configuration)
+    networks:
+      - dokploy-network
+
+  backend:
+    # ... (previous configuration)
+    networks:
+      - dokploy-network
+
+  database:
+    # ... (previous configuration)
+    networks:
+      - dokploy-network
+
+volumes:
+  db-data:
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+Step 2: Configuring Traefik Labels
+
+Now, let's add Traefik labels to route domains to our services. We'll focus on the frontend and backend services:
+
+{/* It is necessary to add these labels:
+
+1. `traefik.enable=true`
+This label tells Traefik that this service should be routed by Traefik.
+2. `traefik.http.routers.<UNIQUE-RULE>.rule=Host('your-domain.dokploy.com')`
+This label tells Traefik that the domain to be used is `your-domain.dokploy.com`
+3. `traefik.http.routers.<UNIQUE-RULE>.entrypoints=web`
+This label tells Traefik that the service should be accessible via the `http` protocol.
+4. `traefik.http.services.<UNIQUE-RULE>.loadbalancer.server.port=3000`
+This label tells Traefik that the port to be used is `3000`
+
+Note: For loadbalancer.server.port, ensure you assign the port that your service is using. It's important to note that you do not need to expose the port like this:
+
+Nota: en el loadbalancer.server.port asegurate de asignar el puerto que tu servicio esta utilizando, y alcaramos no es necesario que expongas el puerto de esta manera
+
+'3000:3000' esto es incorrecto, unicamente debes de asignar el puerto que tu servicio esta utilizando, en este caso `3000`
+
+asegurate de crear los registros `A` que apunten a tu dominio, esto hazlo desde tu DNS provider. */}
+
+
+```yaml
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+    expose:
+      - 3000
+    depends_on:
+      - backend
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend-app.rule=Host(`frontend.dokploy.com`)
+      - traefik.http.routers.frontend-app.entrypoints=web
+      - traefik.http.services.frontend-app.loadbalancer.server.port=3000
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/app
+    expose:
+      - 5000
+    environment:
+      - DATABASE_URL=postgres://postgres:password@database:5432/mydatabase
+    depends_on:
+      - database
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend-app.rule=Host(`backend.dokploy.com`)
+      - traefik.http.routers.backend-app.entrypoints=web
+      - traefik.http.services.backend-app.loadbalancer.server.port=5000
+
+  database:
+    # ... (same as before)
+
+volumes:
+  db-data:
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+Understanding Traefik Labels
+
+
+1. `traefik.enable=true`   Enables Traefik routing for the service.
+2. `traefik.http.routers.<UNIQUE-RULE>.rule=Host('your-domain.dokploy.com')` Specifies the domain for the service
+3. `traefik.http.routers.<UNIQUE-RULE>.entrypoints=web`  Sets the service to be accessible via HTTP.
+4. `traefik.http.services.<UNIQUE-RULE>.loadbalancer.server.port=3000` Specifies the port your service is using internally.
+
+**Note**: Replace `<UNIQUE-RULE>` with a unique identifier for each service (e.g., frontend-app, backend-app, etc.). 
+
+
+## Important Considerations
+
+1. **Port Exposure**: Use `expose` instead of `ports` to expose ports to the host machine. This ensures that the ports are not exposed to the host machine.
+2. **DNS Configuration**: Ensure you create `A` records pointing to your domain in your DNS Provider Settings.
+3. **HTTPS**: For HTTPS, you can use Let's Encrypt or other SSL/TLS certificates. 
+
+
+## Deployment
+
+With these configurations in place, you're now ready to deploy your application using Docker Compose. This setup should be sufficient to get your services up and running with custom domain routing through Traefik.
+
+## SSL Certificates and Further Configuration
+
+If you have questions about when to use Let's Encrypt or other SSL certificate options, you can find more detailed information in the following resources:
+
+1. [Certificates](/docs/core/domain/certificates)
+2. [Docker Compose Domain](/docs/core/domain/docker-compose-setup)
+3. [Docker Compose Example](/docs/core/docker-compose/example)
+
+If you have any further questions or need assistance, join our [Discord server](https://discord.com/invite/2tBnJ3jDJc) and we'll be happy to help.
