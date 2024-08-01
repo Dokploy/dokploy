@@ -25,7 +25,7 @@ export const updateServerTraefik = (
 		if (admin?.certificateType === "letsencrypt") {
 			config.http.routers[`${appName}-router-app-secure`] = {
 				...currentRouterConfig,
-				entryPoints: ["web-secure"],
+				entryPoints: ["websecure"],
 				tls: { certResolver: "letsencrypt" },
 			};
 

@@ -78,7 +78,7 @@ test("Should not touch config without host", () => {
 	expect(originalConfig).toEqual(config);
 });
 
-test("Should remove web-secure if https rollback to http", () => {
+test("Should remove websecure if https rollback to http", () => {
 	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
 
 	updateServerTraefik(
