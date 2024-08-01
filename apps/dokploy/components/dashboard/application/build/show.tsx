@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -43,6 +44,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal("nixpacks"),
+		publishDirectory: z.string().optional(),
 	}),
 ]);
 
@@ -84,6 +86,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			} else {
 				form.reset({
 					buildType: data.buildType,
+					publishDirectory: data.publishDirectory || undefined,
 				});
 			}
 		}
@@ -93,6 +96,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		await mutateAsync({
 			applicationId,
 			buildType: data.buildType,
+			publishDirectory:
+				data.buildType === "nixpacks" ? data.publishDirectory : null,
 			dockerfile: data.buildType === "dockerfile" ? data.dockerfile : null,
 		})
 			.then(async () => {
@@ -189,6 +194,36 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 											<FormControl>
 												<Input
 													placeholder={"Path of your docker file"}
+													{...field}
+													value={field.value ?? ""}
+												/>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
+
+						{buildType === "nixpacks" && (
+							<FormField
+								control={form.control}
+								name="publishDirectory"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Publish Directory</FormLabel>
+												<FormDescription>
+													Allows you to serve a single directory via NGINX after
+													the build phase. Useful if the final build assets
+													should be served as a static site.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Input
+													placeholder={"Publish Directory"}
 													{...field}
 													value={field.value ?? ""}
 												/>
