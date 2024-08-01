@@ -1,0 +1,33 @@
+FROM node:18-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS build
+COPY . /usr/src/app
+WORKDIR /usr/src/app
+
+
+# Install dependencies
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+# Deploy only the dokploy app
+
+ENV NODE_ENV=production
+RUN pnpm --filter=./apps/docs run build
+RUN pnpm --filter=./apps/docs --prod deploy /prod/docs
+
+RUN cp -R /usr/src/app/apps/docs/.next /prod/docs/.next
+
+FROM base AS dokploy
+WORKDIR /app
+
+# Set production
+ENV NODE_ENV=production
+
+# Copy only the necessary files
+COPY --from=build /prod/docs/.next ./.next
+COPY --from=build /prod/docs/node_modules ./node_modules
+
+EXPOSE 3000
+CMD [ "pnpm", "start" ]
