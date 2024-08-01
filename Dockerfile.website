@@ -32,4 +32,4 @@ COPY --from=build /prod/website/package.json ./package.json
 COPY --from=build /prod/website/node_modules ./node_modules
 
 EXPOSE 3000
-CMD [ "pnpm", "start" ]
+CMD HOSTNAME=0.0.0.0 && pnpm start
