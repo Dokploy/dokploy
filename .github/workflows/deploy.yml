@@ -2,7 +2,7 @@ name: Build and Publish Docker image
 
 on:
   push:
-    branches: ["feat/docker-image-apps"]
+    branches: ["feat/docker-images-apps"]
   pull_request:
     branches: ["main"]
 
