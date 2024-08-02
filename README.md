@@ -59,7 +59,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ### Premium Supporters 🥇
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-<a href="https://supafort.com/" target="_blank"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="190"/></a>
+<a href="https://supafort.com/?ref=dokploy" target="_blank"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="190"/></a>
 </div>
 
 <!-- Elite Contributors 🥈 -->
@@ -69,13 +69,13 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ### Supporting Members 🥉
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-<a href="https://lightspeed.run/"><img src="https://github.com/lightspeedrun.png" width="60px" alt="Lightspeed.run"/></a>
+<a href="https://lightspeed.run/?ref=dokploy"><img src="https://github.com/lightspeedrun.png" width="60px" alt="Lightspeed.run"/></a>
 </div>
 
 ### Community Backers 🤝
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-<a href="https://steamsets.com/"><img src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4" width="60px" alt="Steamsets.com"/></a>
+<a href="https://steamsets.com/?ref=dokploy"><img src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4" width="60px" alt="Steamsets.com"/></a>
 </div>
 
 #### Organizations:

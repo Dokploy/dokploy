@@ -190,6 +190,27 @@
       "when": 1721979220929,
       "tag": "0026_known_dormammu",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1722445099203,
+      "tag": "0027_red_lady_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1722503439951,
+      "tag": "0028_jittery_eternity",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1722578386823,
+      "tag": "0029_colossal_zodiak",
+      "breakpoints": true
     }
   ]
 }

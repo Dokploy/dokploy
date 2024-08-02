@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -23,6 +24,7 @@ enum BuildType {
 	heroku_buildpacks = "heroku_buildpacks",
 	paketo_buildpacks = "paketo_buildpacks",
 	nixpacks = "nixpacks",
+	static = "static",
 }
 
 const mySchema = z.discriminatedUnion("buildType", [
@@ -34,6 +36,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 				invalid_type_error: "Dockerfile path is required",
 			})
 			.min(1, "Dockerfile required"),
+		dockerContextPath: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
@@ -43,6 +46,10 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal("nixpacks"),
+		publishDirectory: z.string().optional(),
+	}),
+	z.object({
+		buildType: z.literal("static"),
 	}),
 ]);
 
@@ -73,17 +80,18 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	const buildType = form.watch("buildType");
 	useEffect(() => {
 		if (data) {
-			// TODO: refactor this
 			if (data.buildType === "dockerfile") {
 				form.reset({
 					buildType: data.buildType,
 					...(data.buildType && {
 						dockerfile: data.dockerfile || "",
+						dockerContextPath: data.dockerContextPath || "",
 					}),
 				});
 			} else {
 				form.reset({
 					buildType: data.buildType,
+					publishDirectory: data.publishDirectory || undefined,
 				});
 			}
 		}
@@ -93,7 +101,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		await mutateAsync({
 			applicationId,
 			buildType: data.buildType,
+			publishDirectory:
+				data.buildType === "nixpacks" ? data.publishDirectory : null,
 			dockerfile: data.buildType === "dockerfile" ? data.dockerfile : null,
+			dockerContextPath:
+				data.buildType === "dockerfile" ? data.dockerContextPath : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -171,6 +183,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 														Paketo Buildpacks
 													</FormLabel>
 												</FormItem>
+												<FormItem className="flex items-center space-x-3 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="static" />
+													</FormControl>
+													<FormLabel className="font-normal">Static</FormLabel>
+												</FormItem>
 											</RadioGroup>
 										</FormControl>
 										<FormMessage />
@@ -179,16 +197,71 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							}}
 						/>
 						{buildType === "dockerfile" && (
+							<>
+								<FormField
+									control={form.control}
+									name="dockerfile"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Docker File</FormLabel>
+												<FormControl>
+													<Input
+														placeholder={"Path of your docker file"}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="dockerContextPath"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Docker Context Path</FormLabel>
+												<FormControl>
+													<Input
+														placeholder={
+															"Path of your docker context default: ."
+														}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+							</>
+						)}
+
+						{buildType === "nixpacks" && (
 							<FormField
 								control={form.control}
-								name="dockerfile"
+								name="publishDirectory"
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Docker File</FormLabel>
+											<div className="space-y-0.5">
+												<FormLabel>Publish Directory</FormLabel>
+												<FormDescription>
+													Allows you to serve a single directory via NGINX after
+													the build phase. Useful if the final build assets
+													should be served as a static site.
+												</FormDescription>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"Path of your docker file"}
+													placeholder={"Publish Directory"}
 													{...field}
 													value={field.value ?? ""}
 												/>

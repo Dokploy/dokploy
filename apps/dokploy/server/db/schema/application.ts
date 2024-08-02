@@ -35,6 +35,7 @@ export const buildType = pgEnum("buildType", [
 	"heroku_buildpacks",
 	"paketo_buildpacks",
 	"nixpacks",
+	"static",
 ]);
 
 // TODO: refactor this types
@@ -140,6 +141,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	dockerfile: text("dockerfile"),
+	dockerContextPath: text("dockerContextPath"),
 	// Drop
 	dropBuildPath: text("dropBuildPath"),
 	// Docker swarm json
@@ -157,6 +159,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	publishDirectory: text("publishDirectory"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -315,7 +318,9 @@ const createSchema = createInsertSchema(applications, {
 		"heroku_buildpacks",
 		"paketo_buildpacks",
 		"nixpacks",
+		"static",
 	]),
+	publishDirectory: z.string().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -352,8 +357,10 @@ export const apiSaveBuildType = createSchema
 		applicationId: true,
 		buildType: true,
 		dockerfile: true,
+		dockerContextPath: true,
 	})
-	.required();
+	.required()
+	.merge(createSchema.pick({ publishDirectory: true }));
 
 export const apiSaveGithubProvider = createSchema
 	.pick({

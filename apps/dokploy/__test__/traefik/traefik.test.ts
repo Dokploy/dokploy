@@ -40,6 +40,7 @@ const baseApp: ApplicationNested = {
 	placementSwarm: null,
 	ports: [],
 	projectId: "",
+	publishDirectory: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -54,6 +55,7 @@ const baseApp: ApplicationNested = {
 	title: null,
 	updateConfigSwarm: null,
 	username: null,
+	dockerContextPath: null,
 };
 
 const baseDomain: Domain = {

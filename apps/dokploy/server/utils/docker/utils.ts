@@ -242,12 +242,7 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 			? {
 					RestartPolicy: restartPolicySwarm,
 				}
-			: {
-					// if no restartPolicySwarm provided use default
-					RestartPolicy: {
-						Condition: "on-failure",
-					},
-				}),
+			: {}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
