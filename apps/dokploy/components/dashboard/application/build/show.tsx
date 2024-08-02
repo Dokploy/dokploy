@@ -36,7 +36,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 				invalid_type_error: "Dockerfile path is required",
 			})
 			.min(1, "Dockerfile required"),
-		dockerContextPath: z.string().nullable(),
+		dockerContextPath: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
@@ -76,6 +76,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		},
 		resolver: zodResolver(mySchema),
 	});
+
+	console.log(form.formState.errors);
 
 	const buildType = form.watch("buildType");
 	useEffect(() => {
