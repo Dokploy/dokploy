@@ -12,7 +12,7 @@ export function generate(schema: Schema): Template {
 	const randomDomain = generateRandomDomain(schema);
 
 	const publicDbPort = ((min: number, max: number) => {
-		return Math.random() * (max - min) + min;
+		return Math.round(Math.random() * (max - min) + min);
 	})(32769, 65534);
 
 	const envs = [
