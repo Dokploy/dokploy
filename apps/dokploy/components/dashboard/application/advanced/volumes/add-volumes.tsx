@@ -82,7 +82,7 @@ export const AddVolumes = ({
 		defaultValues: {
 			type: serviceType === "compose" ? "file" : "bind",
 			hostPath: "",
-			mountPath: serviceType === "compose" ? "/" : "",
+			mountPath: "",
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -330,22 +330,20 @@ export const AddVolumes = ({
 										/>
 									</>
 								)}
-								{serviceType !== "compose" && (
-									<FormField
-										control={form.control}
-										name="mountPath"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Mount Path (In the container)</FormLabel>
-												<FormControl>
-													<Input placeholder="Mount Path" {...field} />
-												</FormControl>
+								<FormField
+									control={form.control}
+									name="mountPath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Mount Path (In the container)</FormLabel>
+											<FormControl>
+												<Input placeholder="Mount Path" {...field} />
+											</FormControl>
 
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>
