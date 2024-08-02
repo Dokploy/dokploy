@@ -36,6 +36,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 				invalid_type_error: "Dockerfile path is required",
 			})
 			.min(1, "Dockerfile required"),
+		dockerContextPath: z.string().nullable(),
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
@@ -79,12 +80,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	const buildType = form.watch("buildType");
 	useEffect(() => {
 		if (data) {
-			// TODO: refactor this
 			if (data.buildType === "dockerfile") {
 				form.reset({
 					buildType: data.buildType,
 					...(data.buildType && {
 						dockerfile: data.dockerfile || "",
+						dockerContextPath: data.dockerContextPath || "",
 					}),
 				});
 			} else {
@@ -103,6 +104,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			publishDirectory:
 				data.buildType === "nixpacks" ? data.publishDirectory : null,
 			dockerfile: data.buildType === "dockerfile" ? data.dockerfile : null,
+			dockerContextPath:
+				data.buildType === "dockerfile" ? data.dockerContextPath : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -194,26 +197,51 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							}}
 						/>
 						{buildType === "dockerfile" && (
-							<FormField
-								control={form.control}
-								name="dockerfile"
-								render={({ field }) => {
-									return (
-										<FormItem>
-											<FormLabel>Docker File</FormLabel>
-											<FormControl>
-												<Input
-													placeholder={"Path of your docker file"}
-													{...field}
-													value={field.value ?? ""}
-												/>
-											</FormControl>
+							<>
+								<FormField
+									control={form.control}
+									name="dockerfile"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Docker File</FormLabel>
+												<FormControl>
+													<Input
+														placeholder={"Path of your docker file"}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
 
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="dockerContextPath"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Docker Context Path</FormLabel>
+												<FormControl>
+													<Input
+														placeholder={
+															"Path of your docker context default: ."
+														}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+							</>
 						)}
 
 						{buildType === "nixpacks" && (
