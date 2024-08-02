@@ -89,3 +89,12 @@ export const getBuildAppDirectory = (application: Application) => {
 
 	return path.join(APPLICATIONS_PATH, appName, "code", buildPath ?? "");
 };
+
+export const getDockerContextPath = (application: Application) => {
+	const { appName, dockerContextPath } = application;
+
+	if (!dockerContextPath) {
+		return null;
+	}
+	return path.join(APPLICATIONS_PATH, appName, "code", dockerContextPath);
+};
