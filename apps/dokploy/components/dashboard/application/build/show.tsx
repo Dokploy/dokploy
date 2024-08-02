@@ -77,8 +77,6 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		resolver: zodResolver(mySchema),
 	});
 
-	console.log(form.formState.errors);
-
 	const buildType = form.watch("buildType");
 	useEffect(() => {
 		if (data) {
