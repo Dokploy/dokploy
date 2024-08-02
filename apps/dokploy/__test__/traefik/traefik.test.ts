@@ -55,6 +55,7 @@ const baseApp: ApplicationNested = {
 	title: null,
 	updateConfigSwarm: null,
 	username: null,
+	dockerContextPath: null,
 };
 
 const baseDomain: Domain = {
