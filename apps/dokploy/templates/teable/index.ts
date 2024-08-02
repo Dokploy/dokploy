@@ -10,10 +10,15 @@ export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const password = generatePassword();
 	const randomDomain = generateRandomDomain(schema);
+
+	const publicDbPort = ((min: number, max: number) => {
+		return Math.random() * (max - min) + min;
+	})(32769, 65534);
+
 	const envs = [
 		`TEABLE_HOST=${randomDomain}`,
 		"TEABLE_PORT=3000",
-		"TEABLE_DB_PORT=42345",
+		`TEABLE_DB_PORT=${publicDbPort}`,
 		`HASH=${mainServiceHash}`,
 		"TIMEZONE=UTC",
 		"# Postgres",
