@@ -228,7 +228,7 @@ export const composeRouter = createTRPCRouter({
 				for (const mount of mounts) {
 					await createMount({
 						filePath: mount.filePath,
-						mountPath: mount.mountPath,
+						mountPath: "",
 						content: mount.content,
 						serviceId: compose.composeId,
 						serviceType: "compose",
