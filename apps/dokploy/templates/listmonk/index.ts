@@ -21,6 +21,7 @@ export function generate(schema: Schema): Template {
 
 	const mounts: Template["mounts"] = [
 		{
+			filePath: "config.toml",
 			mountPath: "../files/config.toml",
 			content: `[app]
 address = "0.0.0.0:9000"
