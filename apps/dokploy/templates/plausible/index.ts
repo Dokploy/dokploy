@@ -23,6 +23,7 @@ export function generate(schema: Schema): Template {
 
 	const mounts: Template["mounts"] = [
 		{
+			filePath: "clickhouse-config.xml",
 			mountPath: "../files/clickhouse/clickhouse-config.xml",
 			content: `
             <clickhouse>
@@ -45,6 +46,7 @@ export function generate(schema: Schema): Template {
             `,
 		},
 		{
+			filePath: "clickhouse-user-config.xml",
 			mountPath: "../files/clickhouse/clickhouse-user-config.xml",
 			content: `
             <clickhouse>
