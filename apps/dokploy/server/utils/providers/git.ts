@@ -118,10 +118,11 @@ const sanitizeRepoPathSSH = (input: string) => {
 		throw new Error(`Malformatted SSH path: ${input}`);
 	}
 
+	const port = found.groups?.port ? parseInt(found.groups.port, 10) : 22; // needs refactor
 	return {
 		user: found.groups?.user ?? "git",
 		domain: found.groups?.domain,
-		port: 22,
+		port: port,
 		owner: found.groups?.owner ?? "",
 		repo: found.groups?.repo,
 		get repoPath() {
