@@ -9,7 +9,9 @@ export function generate(schema: Schema): Template {
     `ZIPLINE_HOST=${randomDomain}`,
     `ZIPLINE_PORT=3000`,
     `ZIPLINE_SECRET=${secretBase}`,
-    `HASH=${mainServiceHash}`,
+    `ZIPLINE_RETURN_HTTPS=false`,
+    `ZIPLINE_LOGGER=true`,
+    `HASH=${mainServiceHash}`
   ]
 
   return {

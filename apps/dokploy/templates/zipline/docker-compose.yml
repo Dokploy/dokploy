@@ -29,12 +29,12 @@ services:
       - traefik.http.services.${HASH}.loadbalancer.server.port=${ZIPLINE_PORT}
     restart: unless-stopped
     environment:
-      - CORE_RETURN_HTTPS=false
+      - CORE_RETURN_HTTPS=${ZIPLINE_RETURN_HTTPS}
       - CORE_SECRET=${ZIPLINE_SECRET}
       - CORE_HOST=0.0.0.0
-      - CORE_PORT=3000
+      - CORE_PORT=${ZIPLINE_PORT}
       - CORE_DATABASE_URL=postgres://postgres:postgres@postgres/postgres
-      - CORE_LOGGER=true
+      - CORE_LOGGER=${ZIPLINE_LOGGER}
     volumes:
       - './uploads:/zipline/uploads'
       - './public:/zipline/public'
