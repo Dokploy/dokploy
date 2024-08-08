@@ -1,7 +1,7 @@
 <div align="center">
    <h1 align="center">Dokploy</h1>
    <div>
-  <img style="object-fit: cover; border-radius:20px;" align="center" width="50%"src="https://raw.githubusercontent.com/Dokploy/docs/main/public/logo.png" >
+  <img style="object-fit: cover; border-radius:20px;" align="center" width="50%"src="https://dokploy.com/og.png" >
 
 </div>
 
