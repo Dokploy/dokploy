@@ -408,4 +408,18 @@ export const templates: TemplateData[] = [
 		tags: ["database", "spreadsheet", "low-code", "nocode"],
 		load: () => import("./teable/index").then((m) => m.generate),
 	},
+	{
+		id: "zipline",
+		name: "Zipline",
+		version: "v3.7.9",
+		description: "A ShareX/file upload server that is easy to use, packed with features, and with an easy setup!",
+		logo: "zipline.png",
+		links: {
+			github: "https://github.com/diced/zipline",
+			website: "https://zipline.diced.sh/",
+			docs: "https://zipline.diced.sh/docs/",
+		},
+		tags: ["media system", "storage"],
+		load: () => import("./zipline/index").then((m) => m.generate),
+	}
 ];
