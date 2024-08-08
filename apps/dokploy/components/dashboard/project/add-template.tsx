@@ -82,7 +82,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<PuzzleIcon className="size-4 text-muted-foreground" />
-					<span>Templates</span>
+					<span>Template</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl p-0">
