@@ -58,6 +58,7 @@ export const cloneGitRepository = async (
 				customGitBranch,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				customGitUrl,
 				outputPath,
 				"--progress",
