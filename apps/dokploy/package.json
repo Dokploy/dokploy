@@ -39,6 +39,7 @@
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
 		"@codemirror/legacy-modes": "6.4.0",
+		"@codemirror/view": "6.29.0",
 		"@dokploy/trpc-openapi": "0.0.4",
 		"@faker-js/faker": "^8.4.1",
 		"@hookform/resolvers": "^3.3.4",

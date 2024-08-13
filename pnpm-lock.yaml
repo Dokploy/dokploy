@@ -114,6 +114,9 @@ importers:
       '@codemirror/legacy-modes':
         specifier: 6.4.0
         version: 6.4.0
+      '@codemirror/view':
+        specifier: 6.29.0
+        version: 6.29.0
       '@dokploy/trpc-openapi':
         specifier: 0.0.4
         version: 0.0.4(@trpc/server@10.45.2)(zod@3.23.8)
