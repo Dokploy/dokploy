@@ -51,7 +51,7 @@ import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
 		const { stdout } = await execAsync(
-			"docker service inspect dokploy-postgres --format '{{.ID}}'",
+			"docker service inspect dokploy --format '{{.ID}}'",
 		);
 		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
