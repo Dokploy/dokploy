@@ -55,6 +55,7 @@ interface Props {
 
 export const AddTemplate = ({ projectId }: Props) => {
 	const [query, setQuery] = useState("");
+	const [open, setOpen] = useState(false);
 	const { data } = api.compose.templates.useQuery();
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data: tags, isLoading: isLoadingTags } =
@@ -75,7 +76,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 		}) || [];
 
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -283,6 +284,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				utils.project.one.invalidate({
 																					projectId,
 																				});
+																				setOpen(false);
 																			})
 																			.catch(() => {
 																				toast.error(
