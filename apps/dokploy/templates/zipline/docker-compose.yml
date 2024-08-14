@@ -36,8 +36,8 @@ services:
       - CORE_DATABASE_URL=postgres://postgres:postgres@postgres/postgres
       - CORE_LOGGER=${ZIPLINE_LOGGER}
     volumes:
-      - './uploads:/zipline/uploads'
-      - './public:/zipline/public'
+      - '../files/uploads:/zipline/uploads'
+      - '../files/public:/zipline/public'
     depends_on:
       - 'postgres'
 
