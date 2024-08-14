@@ -39,6 +39,7 @@ const addPermissions = z.object({
 	canAccessToTraefikFiles: z.boolean().optional().default(false),
 	canAccessToDocker: z.boolean().optional().default(false),
 	canAccessToAPI: z.boolean().optional().default(false),
+	canAccessToSSHKeys: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -82,6 +83,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 				canAccessToDocker: data.canAccessToDocker,
 				canAccessToAPI: data.canAccessToAPI,
+				canAccessToSSHKeys: data.canAccessToSSHKeys,
 			});
 		}
 	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
@@ -98,6 +100,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			accesedServices: data.accesedServices || [],
 			canAccessToDocker: data.canAccessToDocker,
 			canAccessToAPI: data.canAccessToAPI,
+			canAccessToSSHKeys: data.canAccessToSSHKeys,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
@@ -259,6 +262,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Access to API/CLI</FormLabel>
 										<FormDescription>
 											Allow the user to access to the API/CLI
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canAccessToSSHKeys"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Access to SSH Keys</FormLabel>
+										<FormDescription>
+											Allow to users to access to the SSH Keys section
 										</FormDescription>
 									</div>
 									<FormControl>
