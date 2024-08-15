@@ -35,7 +35,7 @@ export default async function handler(
 			.update(admins)
 			.set({
 				githubAppId: data.id,
-				githubAppName: data.name,
+				githubAppName: data.html_url,
 				githubClientId: data.client_id,
 				githubClientSecret: data.client_secret,
 				githubWebhookSecret: data.webhook_secret,

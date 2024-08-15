@@ -33,7 +33,9 @@ export const cloneGitRepository = async (
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	try {
-		await addHostToKnownHosts(customGitUrl);
+		if (!isHttpOrHttps(customGitUrl)) {
+			await addHostToKnownHosts(customGitUrl);
+		}
 		await recreateDirectory(outputPath);
 		// const command = `GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}" git clone --branch ${customGitBranch} --depth 1 ${customGitUrl} ${gitCopyPath} --progress`;
 		// const { stdout, stderr } = await execAsync(command);
@@ -56,6 +58,7 @@ export const cloneGitRepository = async (
 				customGitBranch,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				customGitUrl,
 				outputPath,
 				"--progress",
@@ -82,6 +85,11 @@ export const cloneGitRepository = async (
 	} finally {
 		writeStream.end();
 	}
+};
+
+const isHttpOrHttps = (url: string): boolean => {
+	const regex = /^https?:\/\//;
+	return regex.test(url);
 };
 
 const addHostToKnownHosts = async (repositoryURL: string) => {
@@ -121,7 +129,7 @@ const sanitizeRepoPathSSH = (input: string) => {
 	return {
 		user: found.groups?.user ?? "git",
 		domain: found.groups?.domain,
-		port: 22,
+		port: Number(found.groups?.port ?? 22),
 		owner: found.groups?.owner ?? "",
 		repo: found.groups?.repo,
 		get repoPath() {

@@ -55,6 +55,7 @@ interface Props {
 
 export const AddTemplate = ({ projectId }: Props) => {
 	const [query, setQuery] = useState("");
+	const [open, setOpen] = useState(false);
 	const { data } = api.compose.templates.useQuery();
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data: tags, isLoading: isLoadingTags } =
@@ -75,14 +76,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 		}) || [];
 
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
 					onSelect={(e) => e.preventDefault()}
 				>
 					<PuzzleIcon className="size-4 text-muted-foreground" />
-					<span>Templates</span>
+					<span>Template</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl p-0">
@@ -283,6 +284,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				utils.project.one.invalidate({
 																					projectId,
 																				});
+																				setOpen(false);
 																			})
 																			.catch(() => {
 																				toast.error(

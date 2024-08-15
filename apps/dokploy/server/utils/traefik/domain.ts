@@ -77,7 +77,7 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey } = domain;
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${host}\`)${path ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],

@@ -13,7 +13,7 @@ export interface Schema {
 export interface Template {
 	envs: string[];
 	mounts?: {
-		mountPath: string;
+		filePath: string;
 		content?: string;
 	}[];
 }

@@ -9,36 +9,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { format } from "date-fns";
 import { BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { RemoveGithubApp } from "./remove-github-app";
-export const generateName = () => {
-	const n1 = ["Blue", "Green", "Red", "Orange", "Violet", "Indigo", "Yellow"];
-	const n2 = [
-		"One",
-		"Two",
-		"Three",
-		"Four",
-		"Five",
-		"Six",
-		"Seven",
-		"Eight",
-		"Nine",
-		"Zero",
-	];
-	return `Dokploy-${n1[Math.round(Math.random() * (n1.length - 1))]}-${
-		n2[Math.round(Math.random() * (n2.length - 1))]
-	}`;
-};
-function slugify(text: string) {
-	return text
-		.toLowerCase()
-		.replace(/[\s\^&*()+=!]+/g, "-")
-		.replace(/[\$.,*+~()'"!:@^&]+/g, "")
-		.replace(/-+/g, "-")
-		.replace(/^-+|-+$/g, "");
-}
 
 export const GithubSetup = () => {
 	const [isOrganization, setIsOrganization] = useState(false);
@@ -52,10 +27,9 @@ export const GithubSetup = () => {
 		const manifest = JSON.stringify(
 			{
 				redirect_url: `${origin}/api/redirect?authId=${data?.authId}`,
-				name: generateName(),
+				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
 				url: origin,
 				hook_attributes: {
-					// JUST FOR TESTING
 					url: `${url}/api/deploy/github`,
 					// url: `${origin}/api/webhook`, // Aquí especificas la URL del endpoint de tu webhook
 				},
@@ -95,8 +69,8 @@ export const GithubSetup = () => {
 						</div>
 						<div className="flex items-end gap-4 flex-wrap">
 							<RemoveGithubApp />
-							{/* <Link
-								href={`https://github.com/settings/apps/${data?.githubAppName}`}
+							<Link
+								href={`${data?.githubAppName}`}
 								target="_blank"
 								className={buttonVariants({
 									className: "w-fit",
@@ -104,7 +78,7 @@ export const GithubSetup = () => {
 								})}
 							>
 								<span className="text-sm">Manage Github App</span>
-							</Link> */}
+							</Link>
 						</div>
 					</div>
 				) : (
@@ -119,9 +93,9 @@ export const GithubSetup = () => {
 
 								<div className="flex flex-row gap-4">
 									<Link
-										href={`https://github.com/apps/${slugify(
-											data.githubAppName,
-										)}/installations/new?state=gh_setup:${data?.authId}`}
+										href={`${
+											data.githubAppName
+										}/installations/new?state=gh_setup:${data?.authId}`}
 										className={buttonVariants({ className: "w-fit" })}
 									>
 										Install Github App

@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.5.0",
+	"version": "v0.6.2",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -39,6 +39,7 @@
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
 		"@codemirror/legacy-modes": "6.4.0",
+		"@codemirror/view": "6.29.0",
 		"@dokploy/trpc-openapi": "0.0.4",
 		"@faker-js/faker": "^8.4.1",
 		"@hookform/resolvers": "^3.3.4",
@@ -129,7 +130,6 @@
 		"zod-form-data": "^2.0.2"
 	},
 	"devDependencies": {
-		"tsconfig-paths": "4.2.0",
 		"@biomejs/biome": "1.8.3",
 		"@commitlint/cli": "^19.3.0",
 		"@commitlint/config-conventional": "^19.2.2",
@@ -154,10 +154,12 @@
 		"husky": "^9.0.11",
 		"lint-staged": "^15.2.7",
 		"localtunnel": "2.0.2",
+		"memfs": "^4.11.0",
 		"postcss": "^8.4.31",
 		"prettier": "^3.2.4",
 		"prettier-plugin-tailwindcss": "^0.5.11",
 		"tailwindcss": "^3.4.1",
+		"tsconfig-paths": "4.2.0",
 		"tsx": "^4.7.0",
 		"typescript": "^5.4.2",
 		"vite-tsconfig-paths": "4.3.2",

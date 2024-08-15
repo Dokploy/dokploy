@@ -79,6 +79,16 @@ export const SettingsLayout = ({ children }: Props) => {
 									},
 								]
 							: []),
+						...(user?.canAccessToSSHKeys
+							? [
+									{
+										title: "SSH Keys",
+										label: "",
+										icon: KeyRound,
+										href: "/dashboard/settings/ssh-keys",
+									},
+								]
+							: []),
 					]}
 				/>
 			</div>

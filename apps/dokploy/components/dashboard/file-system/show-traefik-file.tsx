@@ -104,6 +104,7 @@ export const ShowTraefikFile = ({ path }: Props) => {
 									</FormDescription>
 									<FormControl>
 										<CodeEditor
+											lineWrapping
 											wrapperClassName="h-[35rem] font-mono"
 											placeholder={`http:
 routers:

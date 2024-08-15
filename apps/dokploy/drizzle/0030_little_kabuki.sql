@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "canAccessToSSHKeys" boolean DEFAULT false NOT NULL;

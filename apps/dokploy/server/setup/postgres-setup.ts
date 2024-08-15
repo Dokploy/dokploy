@@ -36,10 +36,9 @@ export const initializePostgres = async () => {
 			Ports: [
 				{
 					TargetPort: 5432,
-					...(process.env.NODE_ENV === "development"
-						? { PublishedPort: 5432 }
-						: {}),
+					PublishedPort: process.env.NODE_ENV === "development" ? 5432 : 0,
 					Protocol: "tcp",
+					PublishMode: "host",
 				},
 			],
 		},

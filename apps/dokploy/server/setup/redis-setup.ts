@@ -33,10 +33,9 @@ export const initializeRedis = async () => {
 			Ports: [
 				{
 					TargetPort: 6379,
-					...(process.env.NODE_ENV === "development"
-						? { PublishedPort: 6379 }
-						: {}),
+					PublishedPort: process.env.NODE_ENV === "development" ? 6379 : 0,
 					Protocol: "tcp",
+					PublishMode: "host",
 				},
 			],
 		},

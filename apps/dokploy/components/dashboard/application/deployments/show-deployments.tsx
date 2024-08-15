@@ -53,7 +53,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 					<div className="flex flex-row items-center gap-2 flex-wrap">
 						<span>Webhook URL: </span>
 						<div className="flex flex-row items-center gap-2">
-							<span className="text-muted-foreground">
+							<span className="break-all text-muted-foreground">
 								{`${url}/api/deploy/${data?.refreshToken}`}
 							</span>
 							<RefreshToken applicationId={applicationId} />
@@ -72,7 +72,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 						{deployments?.map((deployment) => (
 							<div
 								key={deployment.deploymentId}
-								className="flex items-center justify-between rounded-lg border p-4"
+								className="flex items-center justify-between rounded-lg border p-4 gap-2"
 							>
 								<div className="flex flex-col">
 									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
@@ -87,7 +87,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 										{deployment.title}
 									</span>
 									{deployment.description && (
-										<span className="text-sm text-muted-foreground">
+										<span className="break-all text-sm text-muted-foreground">
 											{deployment.description}
 										</span>
 									)}

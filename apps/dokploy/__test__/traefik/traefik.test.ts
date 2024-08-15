@@ -40,6 +40,7 @@ const baseApp: ApplicationNested = {
 	placementSwarm: null,
 	ports: [],
 	projectId: "",
+	publishDirectory: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -54,6 +55,7 @@ const baseApp: ApplicationNested = {
 	title: null,
 	updateConfigSwarm: null,
 	username: null,
+	dockerContextPath: null,
 };
 
 const baseDomain: Domain = {
@@ -88,6 +90,17 @@ test("Web entrypoint on http domain", async () => {
 	);
 
 	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.rule).not.toContain("PathPrefix");
+});
+
+test("Web entrypoint on http domain with custom path", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, path: "/foo", https: false },
+		"web",
+	);
+
+	expect(router.rule).toContain("PathPrefix(`/foo`)");
 });
 
 test("Web entrypoint on http domain with redirect", async () => {
