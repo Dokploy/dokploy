@@ -40,12 +40,12 @@ import {
 } from "@/components/ui/tooltip";
 import { domainCompose } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, RefreshCw } from "lucide-react";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import type z from "zod";
 
 type Domain = z.infer<typeof domainCompose>;
 
-type CacheType = "fetch" | "cache";
+export type CacheType = "fetch" | "cache";
 
 interface Props {
 	composeId: string;
@@ -70,6 +70,15 @@ export const AddDomainCompose = ({
 		},
 	);
 
+	const { data: compose } = api.compose.one.useQuery(
+		{
+			composeId,
+		},
+		{
+			enabled: !!composeId,
+		},
+	);
+
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -85,6 +94,9 @@ export const AddDomainCompose = ({
 			refetchOnWindowFocus: false,
 		},
 	);
+
+	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+		api.domain.generateDomain.useMutation();
 
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
@@ -279,9 +291,42 @@ export const AddDomainCompose = ({
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Host</FormLabel>
-											<FormControl>
-												<Input placeholder="api.dokploy.com" {...field} />
-											</FormControl>
+											<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+												<FormControl>
+													<Input placeholder="api.dokploy.com" {...field} />
+												</FormControl>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingGenerate}
+																onClick={() => {
+																	generateDomain({
+																		appName: compose?.appName || "",
+																	})
+																		.then((domain) => {
+																			field.onChange(domain);
+																		})
+																		.catch((err) => {
+																			toast.error(err.message);
+																		});
+																}}
+															>
+																<Dices className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>Generate traefik.me domain</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 
 											<FormMessage />
 										</FormItem>

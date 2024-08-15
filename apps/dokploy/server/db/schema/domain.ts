@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { certificateType } from "./shared";
@@ -23,7 +24,7 @@ export const domains = pgTable("domain", {
 		.$defaultFn(() => nanoid()),
 	host: text("host").notNull(),
 	https: boolean("https").notNull().default(false),
-	port: integer("port").default(80),
+	port: integer("port").default(3000),
 	path: text("path").default("/"),
 	serviceName: text("serviceName"),
 	domainType: domainType("domainType").default("application"),
@@ -74,6 +75,10 @@ export const apiFindDomain = createSchema
 
 export const apiFindDomainByApplication = createSchema.pick({
 	applicationId: true,
+});
+
+export const apiCreateTraefikMeDomain = createSchema.pick({}).extend({
+	appName: z.string().min(1),
 });
 
 export const apiFindDomainByCompose = createSchema.pick({

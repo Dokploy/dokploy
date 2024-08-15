@@ -30,9 +30,9 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							Select the source of your code
 						</p>
 					</div>
-					<div className="hidden space-y-1 text-sm font-normal md:block">
+					{/* <div className="hidden space-y-1 text-sm font-normal md:block">
 						<GitBranch className="size-6 text-muted-foreground" />
-					</div>
+					</div> */}
 					<ShowConvertedCompose composeId={composeId} />
 				</CardTitle>
 			</CardHeader>

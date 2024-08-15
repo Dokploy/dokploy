@@ -61,9 +61,7 @@ export const addDomainToCompose = async (
 	const result = await loadDockerCompose(compose);
 
 	if (!result) {
-		throw new Error(
-			"Error to load docker compose, the file is empty or not found",
-		);
+		return null;
 	}
 
 	for (const domain of domains) {
@@ -89,10 +87,14 @@ export const addDomainToCompose = async (
 		}
 
 		if (Array.isArray(result.services[serviceName].labels)) {
-			result.services[serviceName].labels.push(
-				"traefik.enable=true",
-				...httpLabels,
-			);
+			const haveTraefikEnableLabel = result.services[
+				serviceName
+			].labels.includes("traefik.enable=true");
+
+			if (!haveTraefikEnableLabel) {
+				result.services[serviceName].labels.push("traefik.enable=true");
+			}
+			result.services[serviceName].labels.push(...httpLabels);
 		}
 	}
 

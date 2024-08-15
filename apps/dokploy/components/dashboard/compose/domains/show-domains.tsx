@@ -26,6 +26,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 			enabled: !!composeId,
 		},
 	);
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
@@ -45,9 +46,6 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 								</Button>
 							</AddDomainCompose>
 						)}
-						{/* {data && data?.length > 0 && (
-							<GenerateDomain composeId={composeId} />
-						)} */}
 					</div>
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
@@ -64,8 +62,6 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 										<GlobeIcon className="size-4" /> Add Domain
 									</Button>
 								</AddDomainCompose>
-
-								{/* <GenerateDomain composeId={composeId} /> */}
 							</div>
 						</div>
 					) : (
