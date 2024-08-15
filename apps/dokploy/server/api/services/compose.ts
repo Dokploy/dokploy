@@ -91,6 +91,7 @@ export const findComposeById = async (composeId: string) => {
 			project: true,
 			deployments: true,
 			mounts: true,
+			domains: true,
 		},
 	});
 	if (!result) {

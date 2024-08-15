@@ -1,4 +1,5 @@
-import fs, { existsSync, readFileSync } from "node:fs";
+import fs, { existsSync, readFileSync, writeSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
@@ -8,6 +9,7 @@ import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
 import { createComposeFileRaw } from "../providers/raw";
 import type { ComposeSpecification } from "./types";
+
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
 		await cloneRawGithubRepository(compose);
@@ -51,6 +53,24 @@ export const readComposeFile = async (compose: Compose) => {
 		return yamlStr;
 	}
 	return null;
+};
+
+export const writeDomainsToCompose = async (
+	compose: Compose,
+	domains: Domain[],
+) => {
+	if (!domains.length) {
+		return;
+	}
+	const composeConverted = await addDomainToCompose(compose, domains);
+
+	const path = getComposePath(compose);
+	const composeString = dump(composeConverted, { lineWidth: 1000 });
+	try {
+		await writeFile(path, composeString, "utf8");
+	} catch (error) {
+		throw error;
+	}
 };
 
 export const addDomainToCompose = async (
@@ -125,7 +145,7 @@ export const createDomainLabels = async (
 	const { host, port, https, uniqueConfigKey, certificateType } = domain;
 
 	const labels = [
-		`traefik.http.routers.${appName}-${uniqueConfigKey}-${entrypoint}.ruleHost(\`${host}\`)`,
+		`traefik.http.routers.${appName}-${uniqueConfigKey}-${entrypoint}.rule=Host(\`${host}\`)`,
 		`traefik.http.services.${appName}-${uniqueConfigKey}-${entrypoint}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${appName}-${uniqueConfigKey}-${entrypoint}.entrypoints=${entrypoint}`,
 	];
