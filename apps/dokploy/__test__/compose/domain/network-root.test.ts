@@ -1,5 +1,5 @@
 import { addDokployNetworkToRoot } from "@/server/utils/docker/domain";
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 describe("addDokployNetworkToRoot", () => {
 	it("should create network object if networks is undefined", () => {
