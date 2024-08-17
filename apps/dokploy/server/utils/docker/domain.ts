@@ -8,7 +8,11 @@ import { dump, load } from "js-yaml";
 import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
 import { createComposeFileRaw } from "../providers/raw";
-import type { ComposeSpecification } from "./types";
+import type {
+	ComposeSpecification,
+	DefinitionsService,
+	PropertiesNetworks,
+} from "./types";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -115,32 +119,14 @@ export const addDomainToCompose = async (
 			labels.push(...httpLabels);
 		}
 
-		// Add the dokploy-network to the service but first check if it exists
-		if (!result.services[serviceName].networks) {
-			result.services[serviceName].networks = [];
-		}
-		const networks = result.services[serviceName].networks;
-
-		if (Array.isArray(networks)) {
-			if (!networks.includes("dokploy-network")) {
-				networks.push("dokploy-network");
-			}
-		} else if (networks && typeof networks === "object") {
-			if (!("dokploy-network" in networks)) {
-				networks["dokploy-network"] = {};
-			}
-		}
+		// Add the dokploy-network to the service
+		result.services[serviceName].networks = addDokployNetworkToService(
+			result.services[serviceName].networks,
+		);
 	}
 
 	// Add dokploy-network to the root of the compose file
-	if (!result.networks) {
-		result.networks = {};
-	}
-	if (!result.networks["dokploy-network"]) {
-		result.networks["dokploy-network"] = {
-			external: true,
-		};
-	}
+	result.networks = addDokployNetworkToRoot(result.networks);
 
 	return result;
 };
@@ -194,4 +180,45 @@ export const createDomainLabels = async (
 	}
 
 	return labels;
+};
+
+export const addDokployNetworkToService = (
+	networkService: DefinitionsService["networks"],
+) => {
+	let networks = networkService;
+	const network = "dokploy-network";
+	if (!networks) {
+		networks = [];
+	}
+
+	if (Array.isArray(networks)) {
+		if (!networks.includes(network)) {
+			networks.push(network);
+		}
+	} else if (networks && typeof networks === "object") {
+		if (!(network in networks)) {
+			networks[network] = {};
+		}
+	}
+
+	return networks;
+};
+
+export const addDokployNetworkToRoot = (
+	networkRoot: PropertiesNetworks | undefined,
+) => {
+	let networks = networkRoot;
+	const network = "dokploy-network";
+
+	if (!networks) {
+		networks = {};
+	}
+
+	if (networks[network] || !networks[network]) {
+		networks[network] = {
+			external: true,
+		};
+	}
+
+	return networks;
 };
