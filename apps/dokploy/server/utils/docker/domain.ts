@@ -106,16 +106,40 @@ export const addDomainToCompose = async (
 			httpLabels.push(...httpsLabels);
 		}
 
-		if (Array.isArray(result.services[serviceName].labels)) {
-			const haveTraefikEnableLabel = result.services[
-				serviceName
-			].labels.includes("traefik.enable=true");
+		const labels = result.services[serviceName].labels;
 
-			if (!haveTraefikEnableLabel) {
-				result.services[serviceName].labels.push("traefik.enable=true");
+		if (Array.isArray(labels)) {
+			if (!labels.includes("traefik.enable=true")) {
+				labels.push("traefik.enable=true");
 			}
-			result.services[serviceName].labels.push(...httpLabels);
+			labels.push(...httpLabels);
 		}
+
+		// Add the dokploy-network to the service but first check if it exists
+		if (!result.services[serviceName].networks) {
+			result.services[serviceName].networks = [];
+		}
+		const networks = result.services[serviceName].networks;
+
+		if (Array.isArray(networks)) {
+			if (!networks.includes("dokploy-network")) {
+				networks.push("dokploy-network");
+			}
+		} else if (networks && typeof networks === "object") {
+			if (!("dokploy-network" in networks)) {
+				networks["dokploy-network"] = {};
+			}
+		}
+	}
+
+	// Add dokploy-network to the root of the compose file
+	if (!result.networks) {
+		result.networks = {};
+	}
+	if (!result.networks["dokploy-network"]) {
+		result.networks["dokploy-network"] = {
+			external: true,
+		};
 	}
 
 	return result;
@@ -143,26 +167,29 @@ export const createDomainLabels = async (
 	entrypoint: "web" | "websecure",
 ) => {
 	const { host, port, https, uniqueConfigKey, certificateType } = domain;
-
+	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
-		`traefik.http.routers.${appName}-${uniqueConfigKey}-${entrypoint}.rule=Host(\`${host}\`)`,
-		`traefik.http.services.${appName}-${uniqueConfigKey}-${entrypoint}.loadbalancer.server.port=${port}`,
-		`traefik.http.routers.${appName}-${uniqueConfigKey}-${entrypoint}.entrypoints=${entrypoint}`,
+		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)`,
+		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 	];
+
+	if (entrypoint === "web") {
+		labels.push(
+			`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
+		);
+	}
 
 	if (entrypoint === "web" && https) {
 		labels.push(
-			"traefik.http.routers.redirect-to-https.middlewares=redirect-to-https",
+			`traefik.http.routers.${routerName}.middlewares=redirect-to-https@file`,
 		);
 	}
 
 	if (entrypoint === "websecure") {
 		if (certificateType === "letsencrypt") {
 			labels.push(
-				"traefik.http.routers.letsencrypt.tls.certresolver=letsencrypt",
+				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
 			);
-		} else if (certificateType === "none") {
-			labels.push("traefik.http.routers.letsencrypt.tls=null");
 		}
 	}
 
