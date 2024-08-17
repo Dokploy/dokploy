@@ -3,6 +3,7 @@ import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
+import { EditorView } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
@@ -10,6 +11,7 @@ interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
 	language?: "yaml" | "json" | "properties";
+	lineWrapping?: boolean;
 }
 
 export const CodeEditor = ({
@@ -36,6 +38,7 @@ export const CodeEditor = ({
 						: language === "json"
 							? json()
 							: StreamLanguage.define(properties),
+					props.lineWrapping ? EditorView.lineWrapping : [],
 				]}
 				{...props}
 				editable={!props.disabled}

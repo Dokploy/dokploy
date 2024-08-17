@@ -20,6 +20,7 @@ import {
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
 import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
+import { execAsync } from "@/server/utils/process/execAsync";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -49,14 +50,10 @@ import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
-		await spawnAsync("docker", [
-			"service",
-			"update",
-			"--force",
-			"--image",
-			getDokployImage(),
-			"dokploy",
-		]);
+		const { stdout } = await execAsync(
+			"docker service inspect dokploy --format '{{.ID}}'",
+		);
+		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
 	}),
 	reloadTraefik: adminProcedure.mutation(async () => {

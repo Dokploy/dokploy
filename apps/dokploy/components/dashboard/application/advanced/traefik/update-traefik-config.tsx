@@ -144,6 +144,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
 											<CodeEditor
+												lineWrapping
 												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`http:
 routers:
