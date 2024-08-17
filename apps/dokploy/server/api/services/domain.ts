@@ -45,28 +45,6 @@ export const generateTraefikMeDomain = async (appName: string) => {
 	});
 };
 
-export const generateWildcard = async (
-	input: typeof apiFindDomainByApplication._type,
-) => {
-	// const application = await findApplicationById(input.applicationId);
-	// const admin = await findAdmin();
-	// if (!admin.host) {
-	// 	throw new TRPCError({
-	// 		code: "BAD_REQUEST",
-	// 		message: "We need a host to generate a wildcard domain",
-	// 	});
-	// }
-	// const domain = await createDomain({
-	// 	applicationId: application.applicationId,
-	// 	host: generateWildcardDomain(application.appName, admin.host || ""),
-	// 	port: 3000,
-	// 	certificateType: "none",
-	// 	https: false,
-	// 	path: "/",
-	// });
-	// return domain;
-};
-
 export const generateWildcardDomain = (
 	appName: string,
 	serverDomain: string,

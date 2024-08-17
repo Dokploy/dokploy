@@ -84,7 +84,7 @@ export const addDomainToCompose = async (
 	const { appName } = compose;
 	const result = await loadDockerCompose(compose);
 
-	if (!result) {
+	if (!result || domains.length === 0) {
 		return null;
 	}
 
