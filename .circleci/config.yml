@@ -20,7 +20,7 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
+            docker build --platform linux/amd64 -t songtianlun/dokploy:${TAG}-amd64 .
             docker push songtianlun/dokploy:${TAG}-amd64
 
   build-arm64:
@@ -43,7 +43,7 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
+            docker build --platform linux/arm64 -t songtianlun/dokploy:${TAG}-arm64 .
             docker push songtianlun/dokploy:${TAG}-arm64
 
   combine-manifests:
