@@ -2,9 +2,7 @@ import { z } from "zod";
 
 export const domain = z
 	.object({
-		host: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/, {
-			message: "Invalid hostname",
-		}),
+		host: z.string().min(1, { message: "Add a hostname" }),
 		path: z.string().min(1).optional(),
 		port: z
 			.number()
