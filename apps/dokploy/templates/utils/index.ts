@@ -57,7 +57,7 @@ export const loadTemplateModule = async (
 	return generate;
 };
 
-export const readComposeFile = async (id: string) => {
+export const readTemplateComposeFile = async (id: string) => {
 	const cwd = process.cwd();
 	const composeFile = await readFile(
 		join(cwd, ".next", "templates", id, "docker-compose.yml"),

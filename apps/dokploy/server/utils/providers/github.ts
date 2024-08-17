@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import type { Admin } from "@/server/api/services/admin";
+import { type Admin, findAdmin } from "@/server/api/services/admin";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
@@ -126,5 +126,36 @@ export const cloneGithubRepository = async (
 		throw error;
 	} finally {
 		writeStream.end();
+	}
+};
+
+export const cloneRawGithubRepository = async (entity: {
+	appName: string;
+	repository?: string | null;
+	owner?: string | null;
+	branch?: string | null;
+}) => {
+	const { appName, repository, owner, branch } = entity;
+	const admin = await findAdmin();
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const octokit = authGithub(admin);
+	const token = await getGithubToken(octokit);
+	const repoclone = `github.com/${owner}/${repository}.git`;
+	await recreateDirectory(outputPath);
+	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
+	try {
+		await spawnAsync("git", [
+			"clone",
+			"--branch",
+			branch!,
+			"--depth",
+			"1",
+			cloneUrl,
+			outputPath,
+			"--progress",
+		]);
+	} catch (error) {
+		throw error;
 	}
 };

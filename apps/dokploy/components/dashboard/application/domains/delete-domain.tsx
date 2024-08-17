@@ -44,12 +44,19 @@ export const DeleteDomain = ({ domainId }: Props) => {
 								domainId,
 							})
 								.then((data) => {
-									utils.domain.byApplicationId.invalidate({
-										applicationId: data?.applicationId,
-									});
-									utils.application.readTraefikConfig.invalidate({
-										applicationId: data?.applicationId,
-									});
+									if (data?.applicationId) {
+										utils.domain.byApplicationId.invalidate({
+											applicationId: data?.applicationId,
+										});
+										utils.application.readTraefikConfig.invalidate({
+											applicationId: data?.applicationId,
+										});
+									} else if (data?.composeId) {
+										utils.domain.byComposeId.invalidate({
+											composeId: data?.composeId,
+										});
+									}
+
 									toast.success("Domain delete succesfully");
 								})
 								.catch(() => {

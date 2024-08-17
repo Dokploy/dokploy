@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { buildCompose } from "@/server/utils/builders/compose";
+import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
@@ -14,7 +15,6 @@ import { createComposeFile } from "@/server/utils/providers/raw";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { load } from "js-yaml";
 import { findAdmin, getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
@@ -91,6 +91,7 @@ export const findComposeById = async (composeId: string) => {
 			project: true,
 			deployments: true,
 			mounts: true,
+			domains: true,
 		},
 	});
 	if (!result) {
@@ -102,20 +103,27 @@ export const findComposeById = async (composeId: string) => {
 	return result;
 };
 
-export const loadServices = async (composeId: string) => {
+export const loadServices = async (
+	composeId: string,
+	type: "fetch" | "cache" = "fetch",
+) => {
 	const compose = await findComposeById(composeId);
 
-	// use js-yaml to parse the docker compose file and then extact the services
-	const composeFile = compose.composeFile;
-	const composeData = load(composeFile) as ComposeSpecification;
+	if (type === "fetch") {
+		await cloneCompose(compose);
+	}
 
+	const composeData = await loadDockerCompose(compose);
 	if (!composeData?.services) {
-		return ["All Services"];
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Services not found",
+		});
 	}
 
 	const services = Object.keys(composeData.services);
 
-	return [...services, "All Services"];
+	return [...services];
 };
 
 export const updateCompose = async (

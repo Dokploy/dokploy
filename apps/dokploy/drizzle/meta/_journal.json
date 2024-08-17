@@ -218,6 +218,20 @@
       "when": 1723608499147,
       "tag": "0030_little_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1723701656243,
+      "tag": "0031_steep_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1723705257806,
+      "tag": "0032_flashy_shadow_king",
+      "breakpoints": true
     }
   ]
 }
