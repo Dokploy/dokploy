@@ -20,8 +20,8 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
-            docker push dokploy/dokploy:${TAG}-amd64
+            docker build --platform linux/amd64 -t songtianlun/dokploy:${TAG}-amd64 .
+            docker push songtianlun/dokploy:${TAG}-amd64
 
   build-arm64:
     machine:
@@ -43,8 +43,8 @@ jobs:
             else
               TAG="canary"
             fi
-            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
-            docker push dokploy/dokploy:${TAG}-arm64
+            docker build --platform linux/arm64 -t songtianlun/dokploy:${TAG}-arm64 .
+            docker push songtianlun/dokploy:${TAG}-arm64
 
   combine-manifests:
     docker:
@@ -62,21 +62,21 @@ jobs:
               echo $VERSION
               TAG="latest"
               
-              docker manifest create dokploy/dokploy:${TAG} \
-                dokploy/dokploy:${TAG}-amd64 \
-                dokploy/dokploy:${TAG}-arm64
-              docker manifest push dokploy/dokploy:${TAG}
+              docker manifest create songtianlun/dokploy:${TAG} \
+                songtianlun/dokploy:${TAG}-amd64 \
+                songtianlun/dokploy:${TAG}-arm64
+              docker manifest push songtianlun/dokploy:${TAG}
 
-              docker manifest create dokploy/dokploy:${VERSION} \
-                dokploy/dokploy:${TAG}-amd64 \
-                dokploy/dokploy:${TAG}-arm64
-              docker manifest push dokploy/dokploy:${VERSION}
+              docker manifest create songtianlun/dokploy:${VERSION} \
+                songtianlun/dokploy:${TAG}-amd64 \
+                songtianlun/dokploy:${TAG}-arm64
+              docker manifest push songtianlun/dokploy:${VERSION}
             else
               TAG="canary"
-              docker manifest create dokploy/dokploy:${TAG} \
-                dokploy/dokploy:${TAG}-amd64 \
-                dokploy/dokploy:${TAG}-arm64
-              docker manifest push dokploy/dokploy:${TAG}
+              docker manifest create songtianlun/dokploy:${TAG} \
+                songtianlun/dokploy:${TAG}-amd64 \
+                songtianlun/dokploy:${TAG}-arm64
+              docker manifest push songtianlun/dokploy:${TAG}
             fi
 
 workflows:
