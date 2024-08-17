@@ -26,9 +26,7 @@ export const domain = z
 
 export const domainCompose = z
 	.object({
-		host: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9\.-]*\.[a-zA-Z]{2,}$/, {
-			message: "Invalid hostname",
-		}),
+		host: z.string().min(1, { message: "Host is required" }),
 		path: z.string().min(1).optional(),
 		port: z
 			.number()
