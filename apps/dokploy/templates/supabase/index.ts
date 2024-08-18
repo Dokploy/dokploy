@@ -314,8 +314,8 @@ services:
 		{
 			filePath: "/volumes/db/jwt.sql",
 			content: `
-\set jwt_secret \`echo "$JWT_SECRET"\`
-\set jwt_exp \`echo "$JWT_EXP"\`
+\\set jwt_secret \`echo "$JWT_SECRET"\`
+\\set jwt_exp \`echo "$JWT_EXP"\`
 
 ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
 ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :'jwt_exp';
@@ -324,7 +324,7 @@ ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :'jwt_exp';
         {
 			filePath: "/volumes/db/logs.sql",
 			content: `
-\set pguser \`echo "$POSTGRES_USER"\`
+\\set pguser \`echo "$POSTGRES_USER"\`
 
 create schema if not exists _analytics;
 alter schema _analytics owner to :pguser;
@@ -333,7 +333,7 @@ alter schema _analytics owner to :pguser;
         {
 			filePath: "/volumes/db/realtime.sql",
 			content: `
-\set pguser \`echo "$POSTGRES_USER"\`
+\\set pguser \`echo "$POSTGRES_USER"\`
 
 create schema if not exists _realtime;
 alter schema _realtime owner to :pguser;
@@ -343,7 +343,7 @@ alter schema _realtime owner to :pguser;
 			filePath: "/volumes/db/roles.sql",
 			content: `
 -- NOTE: change to your own passwords for production environments
-\set pgpass \`echo "$POSTGRES_PASSWORD"\`
+\\set pgpass \`echo "$POSTGRES_PASSWORD"\`
 
 ALTER USER authenticator WITH PASSWORD :'pgpass';
 ALTER USER pgbouncer WITH PASSWORD :'pgpass';
