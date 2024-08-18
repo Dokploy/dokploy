@@ -52,7 +52,7 @@ RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && pnpm install -g tsx
 
 # Install buildpacks
-COPY --from=buildpacksio/pack:latest /usr/local/bin/pack /usr/local/bin/pack
+COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
 CMD [ "pnpm", "start" ]
