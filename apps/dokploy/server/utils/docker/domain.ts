@@ -157,13 +157,9 @@ export const createDomainLabels = async (
 	const labels = [
 		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
+		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
+		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
-
-	if (entrypoint === "web") {
-		labels.push(
-			`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
-		);
-	}
 
 	if (entrypoint === "web" && https) {
 		labels.push(

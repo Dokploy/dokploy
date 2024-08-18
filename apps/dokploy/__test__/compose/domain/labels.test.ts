@@ -21,54 +21,69 @@ describe("createDomainLabels", () => {
 
 	it("should create basic labels for web entrypoint", async () => {
 		const labels = await createDomainLabels(appName, baseDomain, "web");
-
-		expect(labels).toContain(
+		expect(labels).toEqual([
 			"traefik.http.routers.test-app-1-web.rule=Host(`example.com`)",
-		);
-		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.entrypoints=web",
-		);
-		expect(labels).toContain(
 			"traefik.http.services.test-app-1-web.loadbalancer.server.port=8080",
-		);
+			"traefik.http.routers.test-app-1-web.service=test-app-1-web",
+		]);
 	});
 
 	it("should create labels for websecure entrypoint", async () => {
-		const labels = await createDomainLabels(
-			appName,
-			{ ...baseDomain, https: true },
-			"websecure",
-		);
-		expect(labels).toContain(
+		const labels = await createDomainLabels(appName, baseDomain, "websecure");
+		expect(labels).toEqual([
 			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`)",
-		);
-		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
-		);
-		expect(labels).not.toContain(
 			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
-		);
+			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
+		]);
 	});
 
 	it("should add redirect middleware for https on web entrypoint", async () => {
-		const labels = await createDomainLabels(
-			appName,
-			{ ...baseDomain, https: true },
-			"web",
-		);
+		const httpsBaseDomain = { ...baseDomain, https: true };
+		const labels = await createDomainLabels(appName, httpsBaseDomain, "web");
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file",
 		);
 	});
 
 	it("should add Let's Encrypt configuration for websecure with letsencrypt certificate", async () => {
+		const letsencryptDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "letsencrypt" as const,
+		};
 		const labels = await createDomainLabels(
 			appName,
-			{ ...baseDomain, https: true, certificateType: "letsencrypt" },
+			letsencryptDomain,
 			"websecure",
 		);
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
+		);
+	});
+
+	it("should not add Let's Encrypt configuration for non-letsencrypt certificate", async () => {
+		const nonLetsencryptDomain = {
+			...baseDomain,
+			https: true,
+			certificateType: "none" as const,
+		};
+		const labels = await createDomainLabels(
+			appName,
+			nonLetsencryptDomain,
+			"websecure",
+		);
+		expect(labels).not.toContain(
+			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
+		);
+	});
+
+	it("should handle different ports correctly", async () => {
+		const customPortDomain = { ...baseDomain, port: 3000 };
+		const labels = await createDomainLabels(appName, customPortDomain, "web");
+		expect(labels).toContain(
+			"traefik.http.services.test-app-1-web.loadbalancer.server.port=3000",
 		);
 	});
 });
