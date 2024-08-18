@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -57,6 +57,7 @@ interface Props {
 }
 
 export const UpdateBackup = ({ backupId, refetch }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const { data, isLoading } = api.destination.all.useQuery();
 	const { data: backup } = api.backup.one.useQuery(
 		{
@@ -105,6 +106,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			.then(async () => {
 				toast.success("Backup Updated");
 				refetch();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the backup");
@@ -112,7 +114,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<PenBoxIcon className="size-4  text-muted-foreground" />

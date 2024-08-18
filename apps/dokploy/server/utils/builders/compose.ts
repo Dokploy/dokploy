@@ -8,20 +8,28 @@ import { dirname, join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
+import { writeDomainsToCompose } from "../docker/domain";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
 	"compose",
-	{ project: true; mounts: true }
+	{ project: true; mounts: true; domains: true }
 >;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { sourceType, appName, mounts, composeType, env, composePath } =
-		compose;
+	const {
+		sourceType,
+		appName,
+		mounts,
+		composeType,
+		env,
+		composePath,
+		domains,
+	} = compose;
 	try {
 		const command = createCommand(compose);
-
+		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
 
 		const logContent = `

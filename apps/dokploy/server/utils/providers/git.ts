@@ -139,3 +139,61 @@ const sanitizeRepoPathSSH = (input: string) => {
 		},
 	};
 };
+
+export const cloneGitRawRepository = async (entity: {
+	appName: string;
+	customGitUrl?: string | null;
+	customGitBranch?: string | null;
+	customGitSSHKeyId?: string | null;
+}) => {
+	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
+
+	if (!customGitUrl || !customGitBranch) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error: Repository not found",
+		});
+	}
+
+	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+
+	try {
+		await addHostToKnownHosts(customGitUrl);
+		await recreateDirectory(outputPath);
+
+		if (customGitSSHKeyId) {
+			await updateSSHKeyById({
+				sshKeyId: customGitSSHKeyId,
+				lastUsedAt: new Date().toISOString(),
+			});
+		}
+
+		await spawnAsync(
+			"git",
+			[
+				"clone",
+				"--branch",
+				customGitBranch,
+				"--depth",
+				"1",
+				customGitUrl,
+				outputPath,
+				"--progress",
+			],
+			(data) => {},
+			{
+				env: {
+					...process.env,
+					...(customGitSSHKeyId && {
+						GIT_SSH_COMMAND: `ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}`,
+					}),
+				},
+			},
+		);
+	} catch (error) {
+		throw error;
+	}
+};

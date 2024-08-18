@@ -2,6 +2,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
@@ -22,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -76,6 +77,7 @@ export const UpdateVolume = ({
 	refetch,
 	serviceType,
 }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
 		{
@@ -135,6 +137,7 @@ export const UpdateVolume = ({
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the Bind mount");
@@ -148,6 +151,7 @@ export const UpdateVolume = ({
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the Volume mount");
@@ -162,6 +166,7 @@ export const UpdateVolume = ({
 			})
 				.then(() => {
 					toast.success("Mount Update");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update the File mount");
@@ -171,7 +176,7 @@ export const UpdateVolume = ({
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<Pencil className="size-4  text-muted-foreground" />
@@ -291,13 +296,15 @@ export const UpdateVolume = ({
 							)}
 						</div>
 						<DialogFooter>
-							<Button
-								isLoading={isLoading}
-								form="hook-form-update-volume"
-								type="submit"
-							>
-								Update
-							</Button>
+							<DialogClose>
+								<Button
+									isLoading={isLoading}
+									form="hook-form-update-volume"
+									type="submit"
+								>
+									Update
+								</Button>
+							</DialogClose>
 						</DialogFooter>
 					</form>
 				</Form>

@@ -10,22 +10,23 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
 import Link from "next/link";
-import { AddDomain } from "./add-domain";
-import { DeleteDomain } from "./delete-domain";
+import { DeleteDomain } from "../../application/domains/delete-domain";
+import { AddDomainCompose } from "./add-domain";
 
 interface Props {
-	applicationId: string;
+	composeId: string;
 }
 
-export const ShowDomains = ({ applicationId }: Props) => {
-	const { data } = api.domain.byApplicationId.useQuery(
+export const ShowDomainsCompose = ({ composeId }: Props) => {
+	const { data } = api.domain.byComposeId.useQuery(
 		{
-			applicationId,
+			composeId,
 		},
 		{
-			enabled: !!applicationId,
+			enabled: !!composeId,
 		},
 	);
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
@@ -39,11 +40,11 @@ export const ShowDomains = ({ applicationId }: Props) => {
 
 					<div className="flex flex-row gap-4 flex-wrap">
 						{data && data?.length > 0 && (
-							<AddDomain applicationId={applicationId}>
+							<AddDomainCompose composeId={composeId}>
 								<Button>
 									<GlobeIcon className="size-4" /> Add Domain
 								</Button>
-							</AddDomain>
+							</AddDomainCompose>
 						)}
 					</div>
 				</CardHeader>
@@ -56,11 +57,11 @@ export const ShowDomains = ({ applicationId }: Props) => {
 								domain
 							</span>
 							<div className="flex flex-row gap-4 flex-wrap">
-								<AddDomain applicationId={applicationId}>
+								<AddDomainCompose composeId={composeId}>
 									<Button>
 										<GlobeIcon className="size-4" /> Add Domain
 									</Button>
-								</AddDomain>
+								</AddDomainCompose>
 							</div>
 						</div>
 					) : (
@@ -74,7 +75,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										<Link target="_blank" href={`http://${item.host}`}>
 											<ExternalLink className="size-5" />
 										</Link>
-
+										<Button variant="outline" disabled>
+											{item.serviceName}
+										</Button>
 										<Input disabled value={item.host} />
 										<Button variant="outline" disabled>
 											{item.path}
@@ -86,14 +89,14 @@ export const ShowDomains = ({ applicationId }: Props) => {
 											{item.https ? "HTTPS" : "HTTP"}
 										</Button>
 										<div className="flex flex-row gap-1">
-											<AddDomain
-												applicationId={applicationId}
+											<AddDomainCompose
+												composeId={composeId}
 												domainId={item.domainId}
 											>
 												<Button variant="ghost">
 													<PenBoxIcon className="size-4 text-muted-foreground" />
 												</Button>
-											</AddDomain>
+											</AddDomainCompose>
 											<DeleteDomain domainId={item.domainId} />
 										</div>
 									</div>

@@ -27,36 +27,39 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
-import { domain } from "@/server/db/validations/domain";
+import { domainCompose } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dices } from "lucide-react";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import type z from "zod";
 
-type Domain = z.infer<typeof domain>;
+type Domain = z.infer<typeof domainCompose>;
+
+export type CacheType = "fetch" | "cache";
 
 interface Props {
-	applicationId: string;
+	composeId: string;
 	domainId?: string;
 	children: React.ReactNode;
 }
 
-export const AddDomain = ({
-	applicationId,
+export const AddDomainCompose = ({
+	composeId,
 	domainId = "",
 	children,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
 		{
@@ -67,25 +70,43 @@ export const AddDomain = ({
 		},
 	);
 
-	const { data: application } = api.application.one.useQuery(
+	const { data: compose } = api.compose.one.useQuery(
 		{
-			applicationId,
+			composeId,
 		},
 		{
-			enabled: !!applicationId,
+			enabled: !!composeId,
 		},
 	);
+
+	const {
+		data: services,
+		isFetching: isLoadingServices,
+		error: errorServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId,
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+		},
+	);
+
+	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+		api.domain.generateDomain.useMutation();
 
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
-		api.domain.generateDomain.useMutation();
-
 	const form = useForm<Domain>({
-		resolver: zodResolver(domain),
+		resolver: zodResolver(domainCompose),
 	});
+
+	const https = form.watch("https");
 
 	useEffect(() => {
 		if (data) {
@@ -94,6 +115,7 @@ export const AddDomain = ({
 				/* Convert null to undefined */
 				path: data?.path || undefined,
 				port: data?.port || undefined,
+				serviceName: data?.serviceName || undefined,
 			});
 		}
 
@@ -116,16 +138,15 @@ export const AddDomain = ({
 	const onSubmit = async (data: Domain) => {
 		await mutateAsync({
 			domainId,
-			applicationId,
+			composeId,
+			domainType: "compose",
 			...data,
 		})
 			.then(async () => {
-				toast.success(dictionary.success);
-				await utils.domain.byApplicationId.invalidate({
-					applicationId,
+				await utils.domain.byComposeId.invalidate({
+					composeId,
 				});
-				await utils.application.readTraefikConfig.invalidate({ applicationId });
-
+				toast.success(dictionary.success);
 				if (domainId) {
 					refetch();
 				}
@@ -155,6 +176,115 @@ export const AddDomain = ({
 					>
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-2">
+								{errorServices && (
+									<AlertBlock
+										type="warning"
+										className="[overflow-wrap:anywhere]"
+									>
+										{errorServices?.message}
+									</AlertBlock>
+								)}
+								<div className="flex flex-row gap-4 w-full items-end">
+									<FormField
+										control={form.control}
+										name="serviceName"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Service Name</FormLabel>
+												<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value || ""}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a service name" />
+															</SelectTrigger>
+														</FormControl>
+
+														<SelectContent>
+															{services?.map((service, index) => (
+																<SelectItem
+																	value={service}
+																	key={`${service}-${index}`}
+																>
+																	{service}
+																</SelectItem>
+															))}
+															<SelectItem value="none" disabled>
+																Empty
+															</SelectItem>
+														</SelectContent>
+													</Select>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "fetch") {
+																			refetchServices();
+																		} else {
+																			setCacheType("fetch");
+																		}
+																	}}
+																>
+																	<RefreshCw className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Fetch: Will clone the repository and load the
+																	services
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "cache") {
+																			refetchServices();
+																		} else {
+																			setCacheType("cache");
+																		}
+																	}}
+																>
+																	<DatabaseZap className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Cache: If you previously deployed this
+																	compose, it will read the services from the
+																	last deployment/fetch from the repository
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+
 								<FormField
 									control={form.control}
 									name="host"
@@ -174,7 +304,7 @@ export const AddDomain = ({
 																isLoading={isLoadingGenerate}
 																onClick={() => {
 																	generateDomain({
-																		appName: application?.appName || "",
+																		appName: compose?.appName || "",
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -240,7 +370,7 @@ export const AddDomain = ({
 										);
 									}}
 								/>
-								{form.getValues().https && (
+								{https && (
 									<FormField
 										control={form.control}
 										name="certificateType"
