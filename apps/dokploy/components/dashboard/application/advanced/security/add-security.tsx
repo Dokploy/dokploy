@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -43,7 +43,7 @@ export const AddSecurity = ({
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const utils = api.useUtils();
-
+	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, isLoading, error, isError } =
 		api.security.create.useMutation();
 
@@ -72,6 +72,7 @@ export const AddSecurity = ({
 				await utils.application.readTraefikConfig.invalidate({
 					applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to create the security");
@@ -79,7 +80,7 @@ export const AddSecurity = ({
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
