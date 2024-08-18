@@ -27,7 +27,9 @@ export const AddWorker = () => {
 							type="button"
 							className="self-center"
 							onClick={() => {
-								copy(`curl https://get.docker.com | sh -s -- --version ${data?.version}`);
+								copy(
+									`curl https://get.docker.com | sh -s -- --version ${data?.version}`,
+								);
 								toast.success("Copied to clipboard");
 							}}
 						>
