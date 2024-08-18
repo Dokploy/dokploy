@@ -57,9 +57,12 @@ services:
       - dokploy-network
     # https://unix.stackexchange.com/a/294837
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
-    ports:
-      - ${KONG_HTTP_PORT}:8000/tcp
-      - ${KONG_HTTPS_PORT}:8443/tcp
+    #ports:
+    #  - ${KONG_HTTP_PORT}:8000/tcp
+    #  - ${KONG_HTTPS_PORT}:8443/tcp
+    expose:
+      - 8000
+      - 8443
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend-app.rule=Host(`${BASE_URL}`)
@@ -376,8 +379,10 @@ services:
       # Uncomment to use Big Query backend for analytics
       # GOOGLE_PROJECT_ID: ${GOOGLE_PROJECT_ID}
       # GOOGLE_PROJECT_NUMBER: ${GOOGLE_PROJECT_NUMBER}
-    ports:
-      - 4000:4000
+    #ports:
+    #  - 4000:4000
+    expose:
+      - 4000
 
   # Comment out everything below this point if you are using an external Postgres database
   db:
@@ -400,9 +405,11 @@ services:
       - -c
       - log_min_messages=fatal # prevents Realtime polling queries from appearing in logs
     restart: unless-stopped
-    ports:
-      # Pass down internal port because it's set dynamically by other services
-      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    #ports:
+    #  # Pass down internal port because it's set dynamically by other services
+    #  - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    expose:
+      - ${POSTGRES_PORT}
     environment:
       POSTGRES_HOST: /var/run/postgresql
       PGPORT: ${POSTGRES_PORT}
