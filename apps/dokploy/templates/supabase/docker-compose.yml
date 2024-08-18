@@ -11,6 +11,8 @@ services:
   studio:
     container_name: supabase-studio
     image: supabase/studio:20240729-ce42139
+    networks:
+      - dokploy-network
     restart: unless-stopped
     healthcheck:
       test:
@@ -51,11 +53,18 @@ services:
     container_name: supabase-kong
     image: kong:2.8.1
     restart: unless-stopped
+    networks:
+      - dokploy-network
     # https://unix.stackexchange.com/a/294837
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
     ports:
       - ${KONG_HTTP_PORT}:8000/tcp
       - ${KONG_HTTPS_PORT}:8443/tcp
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend-app.rule=Host(`${BASE_URL}`)
+      - traefik.http.routers.frontend-app.entrypoints=web
+      - traefik.http.services.frontend-app.loadbalancer.server.port=${KONG_HTTP_PORT}
     depends_on:
       analytics:
         condition: service_healthy
@@ -78,6 +87,8 @@ services:
   auth:
     container_name: supabase-auth
     image: supabase/gotrue:v2.158.1
+    networks:
+      - dokploy-network
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -151,6 +162,8 @@ services:
   rest:
     container_name: supabase-rest
     image: postgrest/postgrest:v12.2.0
+    networks:
+      - dokploy-network
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -172,6 +185,8 @@ services:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
     image: supabase/realtime:v2.30.23
+    networks:
+      - dokploy-network
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -216,6 +231,8 @@ services:
   storage:
     container_name: supabase-storage
     image: supabase/storage-api:v1.0.6
+    networks:
+      - dokploy-network
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -259,6 +276,8 @@ services:
   imgproxy:
     container_name: supabase-imgproxy
     image: darthsim/imgproxy:v3.8.0
+    networks:
+      - dokploy-network
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       timeout: 5s
@@ -275,6 +294,8 @@ services:
   meta:
     container_name: supabase-meta
     image: supabase/postgres-meta:v0.83.2
+    networks:
+      - dokploy-network
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -294,6 +315,8 @@ services:
     container_name: supabase-edge-functions
     image: supabase/edge-runtime:v1.56.0
     restart: unless-stopped
+    networks:
+      - dokploy-network
     depends_on:
       analytics:
         condition: service_healthy
@@ -315,6 +338,8 @@ services:
   analytics:
     container_name: supabase-analytics
     image: supabase/logflare:1.4.0
+    networks:
+      - dokploy-network
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:4000/health" ]
       timeout: 5s
@@ -358,6 +383,8 @@ services:
   db:
     container_name: supabase-db
     image: supabase/postgres:15.1.1.78
+    networks:
+      - dokploy-network
     healthcheck:
       test: pg_isready -U postgres -h localhost
       interval: 5s
@@ -404,6 +431,8 @@ services:
   vector:
     container_name: supabase-vector
     image: timberio/vector:0.28.1-alpine
+    networks:
+      - dokploy-network
     healthcheck:
       test:
         [
@@ -427,3 +456,7 @@ services:
 
 volumes:
   db-config:
+
+networks:
+  dokploy-network:
+    external: true
