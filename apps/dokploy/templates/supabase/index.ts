@@ -17,9 +17,9 @@ export function generate(schema: Schema): Template {
     const logflareApiKey = generateBase64(64);
 
 	const envs = [
+		`SUPABASE_URL=${randomDomain}`,
 		`POSTGRES_PASSWORD=${postgresPassword}`,
         `JWT_SECRET=${jwtSecret}`, 
-		`BASE_URL=http://${randomDomain}`,
         `ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE`,
         `SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q`,
         `DASHBOARD_USERNAME=supabase`,
@@ -30,11 +30,9 @@ export function generate(schema: Schema): Template {
         `KONG_HTTP_PORT=8000`,
         `KONG_HTTPS_PORT=8443`,
         `PGRST_DB_SCHEMAS=public,storage,graphql_public`,
-        `SITE_URL=http://${randomDomain}`,
         `ADDITIONAL_REDIRECT_URLS=`,
         `JWT_EXPIRY=3600`,
         `DISABLE_SIGNUP=false`,
-        `API_EXTERNAL_URL=http://${randomDomain}`,
         `MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"`,
         `MAILER_URLPATHS_INVITE="/auth/v1/verify"`,
         `MAILER_URLPATHS_RECOVERY="/auth/v1/verify"`,
@@ -53,7 +51,6 @@ export function generate(schema: Schema): Template {
         `STUDIO_DEFAULT_ORGANIZATION=Default Organization`,
         `STUDIO_DEFAULT_PROJECT=Default Project`,
         `STUDIO_PORT=3000`,
-        `SUPABASE_PUBLIC_URL=http://${randomDomain}`,
         `IMGPROXY_ENABLE_WEBP_DETECTION=true`,
         `FUNCTIONS_VERIFY_JWT=false`,
         `LOGFLARE_LOGGER_BACKEND_API_KEY=${logflareApiKey}`,
