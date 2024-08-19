@@ -22,13 +22,13 @@ import {
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
+import { EditTraefikEnv } from "./web-server/edit-traefik-env";
 import { ShowMainTraefikConfig } from "./web-server/show-main-traefik-config";
 import { ShowModalLogs } from "./web-server/show-modal-logs";
 import { ShowServerMiddlewareConfig } from "./web-server/show-server-middleware-config";
 import { ShowServerTraefikConfig } from "./web-server/show-server-traefik-config";
 import { TerminalModal } from "./web-server/terminal-modal";
 import { UpdateServer } from "./web-server/update-server";
-import { EditTraefikEnv } from "./web-server/edit-traefik-env";
 
 export const WebServer = () => {
 	const { data, refetch } = api.admin.one.useQuery();
