@@ -14,7 +14,7 @@ export function generate(schema: Schema): Template {
 
   const postgresPassword = generatePassword(32);
   const jwtSecret = generateBase64(32);
-  const dashboardPassword = generateBase64(32);
+  const dashboardPassword = generatePassword(32);
   const logflareApiKey = generateBase64(64);
 
   const envs = [
