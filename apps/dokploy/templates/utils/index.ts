@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Domain } from "@/server/api/services/domain";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
-import type { Domain } from "@/server/api/services/domain";
 
 export interface Schema {
 	serverIp: string;
