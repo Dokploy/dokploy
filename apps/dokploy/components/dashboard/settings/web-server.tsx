@@ -28,6 +28,7 @@ import { ShowServerMiddlewareConfig } from "./web-server/show-server-middleware-
 import { ShowServerTraefikConfig } from "./web-server/show-server-traefik-config";
 import { TerminalModal } from "./web-server/terminal-modal";
 import { UpdateServer } from "./web-server/update-server";
+import { EditTraefikEnv } from "./web-server/edit-traefik-env";
 
 export const WebServer = () => {
 	const { data, refetch } = api.admin.one.useQuery();
@@ -66,6 +67,9 @@ export const WebServer = () => {
 
 	const { mutateAsync: updateDockerCleanup } =
 		api.settings.updateDockerCleanup.useMutation();
+
+	const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
+		api.settings.haveTraefikDashboardPortEnabled.useQuery();
 
 	return (
 		<Card className="rounded-lg w-full bg-transparent">
@@ -167,37 +171,38 @@ export const WebServer = () => {
 										<span>View Traefik config</span>
 									</DropdownMenuItem>
 								</ShowMainTraefikConfig>
+								<EditTraefikEnv>
+									<DropdownMenuItem
+										onSelect={(e) => e.preventDefault()}
+										className="w-full cursor-pointer space-x-3"
+									>
+										<span>Modify Env</span>
+									</DropdownMenuItem>
+								</EditTraefikEnv>
+
 								<DropdownMenuItem
 									onClick={async () => {
 										await toggleDashboard({
-											enableDashboard: true,
+											enableDashboard: !haveTraefikDashboardPortEnabled,
 										})
 											.then(async () => {
-												toast.success("Dashboard Enabled");
+												toast.success(
+													`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
+												);
+												refetchDashboard();
 											})
 											.catch(() => {
-												toast.error("Error to enable Dashboard");
+												toast.error(
+													`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
+												);
 											});
 									}}
 									className="w-full cursor-pointer space-x-3"
 								>
-									<span>Enable Dashboard</span>
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onClick={async () => {
-										await toggleDashboard({
-											enableDashboard: false,
-										})
-											.then(async () => {
-												toast.success("Dashboard Disabled");
-											})
-											.catch(() => {
-												toast.error("Error to disable Dashboard");
-											});
-									}}
-									className="w-full cursor-pointer space-x-3"
-								>
-									<span>Disable Dashboard</span>
+									<span>
+										{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
+										Dashboard
+									</span>
 								</DropdownMenuItem>
 
 								<DockerTerminalModal appName="dokploy-traefik">
