@@ -18,8 +18,6 @@ services:
 
   directus:
     image: directus/directus:10.12.1
-    networks:
-      - dokploy-network
     ports:
       - 8055
     volumes:
@@ -28,10 +26,6 @@ services:
     depends_on:
       - cache
       - database
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${DIRECTUS_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${DIRECTUS_PORT}
     environment:
       SECRET: "replace-with-secure-random-value"
 
@@ -49,8 +43,5 @@ services:
 
       ADMIN_EMAIL: "admin@example.com"
       ADMIN_PASSWORD: "d1r3ctu5"
-networks:
-  dokploy-network:
-    external: true
 volumes:
   directus:

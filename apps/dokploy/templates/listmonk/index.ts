@@ -1,20 +1,24 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
-	generateHash,
 	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
 	const adminPassword = generatePassword(32);
 
+	const domains: DomainSchema[] = [
+		{
+			host: randomDomain,
+			port: 9000,
+			serviceName: "app",
+		},
+	];
+
 	const envs = [
-		`LISTMONK_HOST=${randomDomain}`,
-		"LISTMONK_PORT=9000",
-		`HASH=${mainServiceHash}`,
 		`# login with admin:${adminPassword}`,
 		"# check config.toml in Advanced / Volumes for more options",
 	];
@@ -48,5 +52,6 @@ params = ""
 	return {
 		envs,
 		mounts,
+		domains,
 	};
 }

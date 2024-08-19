@@ -10,18 +10,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - ${UMAMI_PORT}
-    networks:
-      - dokploy-network
     environment:
       DATABASE_URL: postgresql://umami:umami@db:5432/umami
       DATABASE_TYPE: postgresql
       APP_SECRET: ${APP_SECRET}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${UMAMI_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${UMAMI_PORT}"
   db:
     image: postgres:15-alpine
     restart: always
@@ -39,8 +31,5 @@ services:
       POSTGRES_USER: umami
       POSTGRES_PASSWORD: umami
 
-networks:
-  dokploy-network:
-    external: true
 volumes:
   db-data:
