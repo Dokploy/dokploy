@@ -1,24 +1,28 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
 	generateBase64,
-	generateHash,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 	const secretBase = generateBase64(64);
 	const toptKeyBase = generateBase64(32);
 
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 8000,
+			serviceName: "plausible",
+		},
+	];
+
 	const envs = [
-		`PLAUSIBLE_HOST=${randomDomain}`,
-		"PLAUSIBLE_PORT=8000",
-		`BASE_URL=http://${randomDomain}`,
+		`BASE_URL=http://${mainDomain}`,
 		`SECRET_KEY_BASE=${secretBase}`,
 		`TOTP_VAULT_KEY=${toptKeyBase}`,
-		`HASH=${mainServiceHash}`,
 	];
 
 	const mounts: Template["mounts"] = [
@@ -62,5 +66,6 @@ export function generate(schema: Schema): Template {
 	return {
 		envs,
 		mounts,
+		domains,
 	};
 }

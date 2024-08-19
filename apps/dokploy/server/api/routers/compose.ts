@@ -41,7 +41,7 @@ import {
 	updateCompose,
 } from "../services/compose";
 import { removeDeploymentsByComposeId } from "../services/deployment";
-import { findDomainsByComposeId } from "../services/domain";
+import { createDomain, findDomainsByComposeId } from "../services/domain";
 import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
 import { addNewService, checkServiceAccess } from "../services/user";
@@ -236,7 +236,7 @@ export const composeRouter = createTRPCRouter({
 			const project = await findProjectById(input.projectId);
 
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const { envs, mounts } = generate({
+			const { envs, mounts, domains } = generate({
 				serverIp: admin.serverIp,
 				projectName: projectName,
 			});
@@ -244,7 +244,7 @@ export const composeRouter = createTRPCRouter({
 			const compose = await createComposeByTemplate({
 				...input,
 				composeFile: composeFile,
-				env: envs.join("\n"),
+				env: envs?.join("\n"),
 				name: input.id,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
@@ -263,6 +263,17 @@ export const composeRouter = createTRPCRouter({
 						serviceId: compose.composeId,
 						serviceType: "compose",
 						type: "file",
+					});
+				}
+			}
+
+			if (domains && domains?.length > 0) {
+				for (const domain of domains) {
+					await createDomain({
+						...domain,
+						domainType: "compose",
+						certificateType: "none",
+						composeId: compose.composeId,
 					});
 				}
 			}

@@ -1,4 +1,5 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
 	generateHash,
@@ -6,15 +7,19 @@ import {
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
-	const envs = [
-		`GHOST_HOST=${randomDomain}`,
-		"GHOST_PORT=2368",
-		`HASH=${mainServiceHash}`,
+	const mainDomain = generateRandomDomain(schema);
+
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 2368,
+			serviceName: "ghost",
+		},
 	];
+	const envs = [`GHOST_HOST=${mainDomain}`];
 
 	return {
 		envs,
+		domains,
 	};
 }

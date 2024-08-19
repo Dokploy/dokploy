@@ -1,21 +1,25 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
-	generateHash,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 
-	const envs = [
-		`ROCKETCHAT_HOST=${randomDomain}`,
-		"ROCKETCHAT_PORT=3000",
-		`HASH=${mainServiceHash}`,
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 3000,
+			serviceName: "rocketchat",
+		},
 	];
+
+	const envs = [`ROCKETCHAT_HOST=${mainDomain}`, "ROCKETCHAT_PORT=3000"];
 
 	return {
 		envs,
+		domains,
 	};
 }

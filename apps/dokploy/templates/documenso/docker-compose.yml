@@ -19,8 +19,6 @@ services:
 
   documenso:
     image: documenso/documenso:1.5.6-rc.2
-    networks:
-      - dokploy-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,16 +36,8 @@ services:
       - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/documenso/cert.p12
     ports:
       - ${DOCUMENSO_PORT}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${DOCUMENSO_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${DOCUMENSO_PORT}"
     volumes:
       - /opt/documenso/cert.p12:/opt/documenso/cert.p12
-
-networks:
-  dokploy-network:
-    external: true
 
 volumes:
   documenso-data:

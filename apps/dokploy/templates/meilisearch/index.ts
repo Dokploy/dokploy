@@ -1,24 +1,26 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
 	generateBase64,
-	generateHash,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 	const masterKey = generateBase64(32);
-	const envs = [
-		`MEILISEARCH_HOST=${randomDomain}`,
-		"MEILISEARCH_PORT=7700",
-		"MEILI_ENV=development",
-		`MEILI_MASTER_KEY=${masterKey}`,
-		`HASH=${mainServiceHash}`,
+
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 7700,
+			serviceName: "meilisearch",
+		},
 	];
+	const envs = ["MEILI_ENV=development", `MEILI_MASTER_KEY=${masterKey}`];
 
 	return {
 		envs,
+		domains,
 	};
 }
