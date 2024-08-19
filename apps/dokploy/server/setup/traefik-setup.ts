@@ -11,7 +11,15 @@ const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
 const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 
-export const initializeTraefik = async (enableDashboard = false) => {
+interface TraefikOptions {
+	enableDashboard?: boolean;
+	env?: string[];
+}
+
+export const initializeTraefik = async ({
+	enableDashboard = false,
+	env = [],
+}: TraefikOptions = {}) => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
@@ -19,6 +27,7 @@ export const initializeTraefik = async (enableDashboard = false) => {
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: imageName,
+				Env: env,
 				Mounts: [
 					{
 						Type: "bind",
