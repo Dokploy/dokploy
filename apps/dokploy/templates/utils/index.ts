@@ -4,18 +4,22 @@ import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
+import type { Domain } from "@/server/api/services/domain";
 
 export interface Schema {
 	serverIp: string;
 	projectName: string;
 }
 
+export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
+
 export interface Template {
-	envs: string[];
+	envs?: string[];
 	mounts?: {
 		filePath: string;
 		content?: string;
 	}[];
+	domains?: DomainSchema[];
 }
 
 export const generateRandomDomain = ({

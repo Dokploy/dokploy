@@ -1,20 +1,12 @@
-version: '3.8'
+version: "3.8"
 services:
   wordpress:
     image: wordpress:5.8.3
-    networks:
-      - dokploy-network
-    ports:
-      - ${WORDPRESS_PORT}
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: exampleuser
       WORDPRESS_DB_PASSWORD: examplepass
       WORDPRESS_DB_NAME: exampledb
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${WORDPRESS_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${WORDPRESS_PORT}"
     volumes:
       - wordpress_data:/var/www/html
 
@@ -33,7 +25,3 @@ services:
 volumes:
   wordpress_data:
   db_data:
-
-networks:
-  dokploy-network:
-    external: true

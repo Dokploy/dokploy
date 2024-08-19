@@ -1,13 +1,8 @@
 version: "3.8"
 services:
-
   ghost:
     image: ghost:5-alpine
     restart: always
-    networks:
-      - dokploy-network
-    ports:
-      - ${GHOST_PORT}
     environment:
       database__client: mysql
       database__connection__host: db
@@ -15,10 +10,7 @@ services:
       database__connection__password: example
       database__connection__database: ghost
       url: http://${GHOST_HOST}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${GHOST_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${GHOST_PORT}
+
     volumes:
       - ghost:/var/lib/ghost/content
 
@@ -35,7 +27,3 @@ services:
 volumes:
   ghost:
   db:
-  
-networks:
-  dokploy-network:
-    external: true
