@@ -87,13 +87,13 @@ workflows:
             branches:
               only:
                 - main
-                - canary
+                - mycanary
       - build-arm64:
           filters:
             branches:
               only:
                 - main
-                - canary
+                - mycanary
       - combine-manifests:
           requires:
             - build-amd64
@@ -102,4 +102,4 @@ workflows:
             branches:
               only:
                 - main
-                - canary
+                - mycanary
