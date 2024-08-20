@@ -1,72 +1,72 @@
 import {
-  type Schema,
-  type Template,
-  generateBase64,
-  generatePassword,
-  generateHash,
-  generateRandomDomain,
+	type Schema,
+	type Template,
+	generateBase64,
+	generateHash,
+	generatePassword,
+	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-  const mainServiceHash = generateHash(schema.projectName);
-  const randomDomain = generateRandomDomain(schema);
-  const secretBase = generateBase64(64);
+	const mainServiceHash = generateHash(schema.projectName);
+	const randomDomain = generateRandomDomain(schema);
+	const secretBase = generateBase64(64);
 
-  const postgresPassword = generatePassword(32);
-  const jwtSecret = generateBase64(32);
-  const dashboardPassword = generatePassword(32);
-  const logflareApiKey = generateBase64(64);
+	const postgresPassword = generatePassword(32);
+	const jwtSecret = generateBase64(32);
+	const dashboardPassword = generatePassword(32);
+	const logflareApiKey = generateBase64(64);
 
-  const envs = [
-    `SUPABASE_HOST=${randomDomain}`,
-    `POSTGRES_PASSWORD=${postgresPassword}`,
-    `JWT_SECRET=${jwtSecret}`,
-    `ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE`,
-    `SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q`,
-    `DASHBOARD_USERNAME=supabase`,
-    `DASHBOARD_PASSWORD=${dashboardPassword}`,
-    `POSTGRES_HOSTNAME=db`,
-    `POSTGRES_DB=postgres`,
-    `POSTGRES_PORT=5432`,
-    `KONG_HTTP_PORT=8000`,
-    `KONG_HTTPS_PORT=8443`,
-    `PGRST_DB_SCHEMAS=public,storage,graphql_public`,
-    `ADDITIONAL_REDIRECT_URLS=`,
-    `JWT_EXPIRY=3600`,
-    `DISABLE_SIGNUP=false`,
-    `MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"`,
-    `MAILER_URLPATHS_INVITE="/auth/v1/verify"`,
-    `MAILER_URLPATHS_RECOVERY="/auth/v1/verify"`,
-    `MAILER_URLPATHS_EMAIL_CHANGE="/auth/v1/verify"`,
-    `ENABLE_EMAIL_SIGNUP=true`,
-    `ENABLE_EMAIL_AUTOCONFIRM=false`,
-    `SMTP_ADMIN_EMAIL=admin@example.com`,
-    `SMTP_HOSTNAME=supabase-mail`,
-    `SMTP_PORT=2500`,
-    `SMTP_USER=fake_mail_user`,
-    `SMTP_PASS=fake_mail_password`,
-    `SMTP_SENDER_NAME=fake_sender`,
-    `ENABLE_ANONYMOUS_USERS=false`,
-    `ENABLE_PHONE_SIGNUP=true`,
-    `ENABLE_PHONE_AUTOCONFIRM=true`,
-    `STUDIO_DEFAULT_ORGANIZATION=Default Organization`,
-    `STUDIO_DEFAULT_PROJECT=Default Project`,
-    `STUDIO_PORT=3000`,
-    `IMGPROXY_ENABLE_WEBP_DETECTION=true`,
-    `FUNCTIONS_VERIFY_JWT=false`,
-    `LOGFLARE_LOGGER_BACKEND_API_KEY=${logflareApiKey}`,
-    `LOGFLARE_API_KEY=${logflareApiKey}`,
-    `DOCKER_SOCKET_LOCATION=/var/run/docker.sock`,
-    `GOOGLE_PROJECT_ID=GOOGLE_PROJECT_ID`,
-    `GOOGLE_PROJECT_NUMBER=GOOGLE_PROJECT_NUMBER`,
-    `SECRET_KEY_BASE=${secretBase}`,
-    `HASH=${mainServiceHash}`,
-  ];
+	const envs = [
+		`SUPABASE_HOST=${randomDomain}`,
+		`POSTGRES_PASSWORD=${postgresPassword}`,
+		`JWT_SECRET=${jwtSecret}`,
+		"ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
+		"SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q",
+		"DASHBOARD_USERNAME=supabase",
+		`DASHBOARD_PASSWORD=${dashboardPassword}`,
+		"POSTGRES_HOSTNAME=db",
+		"POSTGRES_DB=postgres",
+		"POSTGRES_PORT=5432",
+		"KONG_HTTP_PORT=8000",
+		"KONG_HTTPS_PORT=8443",
+		"PGRST_DB_SCHEMAS=public,storage,graphql_public",
+		"ADDITIONAL_REDIRECT_URLS=",
+		"JWT_EXPIRY=3600",
+		"DISABLE_SIGNUP=false",
+		`MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"`,
+		`MAILER_URLPATHS_INVITE="/auth/v1/verify"`,
+		`MAILER_URLPATHS_RECOVERY="/auth/v1/verify"`,
+		`MAILER_URLPATHS_EMAIL_CHANGE="/auth/v1/verify"`,
+		"ENABLE_EMAIL_SIGNUP=true",
+		"ENABLE_EMAIL_AUTOCONFIRM=false",
+		"SMTP_ADMIN_EMAIL=admin@example.com",
+		"SMTP_HOSTNAME=supabase-mail",
+		"SMTP_PORT=2500",
+		"SMTP_USER=fake_mail_user",
+		"SMTP_PASS=fake_mail_password",
+		"SMTP_SENDER_NAME=fake_sender",
+		"ENABLE_ANONYMOUS_USERS=false",
+		"ENABLE_PHONE_SIGNUP=true",
+		"ENABLE_PHONE_AUTOCONFIRM=true",
+		"STUDIO_DEFAULT_ORGANIZATION=Default Organization",
+		"STUDIO_DEFAULT_PROJECT=Default Project",
+		"STUDIO_PORT=3000",
+		"IMGPROXY_ENABLE_WEBP_DETECTION=true",
+		"FUNCTIONS_VERIFY_JWT=false",
+		`LOGFLARE_LOGGER_BACKEND_API_KEY=${logflareApiKey}`,
+		`LOGFLARE_API_KEY=${logflareApiKey}`,
+		"DOCKER_SOCKET_LOCATION=/var/run/docker.sock",
+		"GOOGLE_PROJECT_ID=GOOGLE_PROJECT_ID",
+		"GOOGLE_PROJECT_NUMBER=GOOGLE_PROJECT_NUMBER",
+		`SECRET_KEY_BASE=${secretBase}`,
+		`HASH=${mainServiceHash}`,
+	];
 
-  const mounts: Template["mounts"] = [
-    {
-      filePath: "/volumes/api/kong.yml",
-      content: `
+	const mounts: Template["mounts"] = [
+		{
+			filePath: "/volumes/api/kong.yml",
+			content: `
 _format_version: '2.1'
 _transform: true
 
@@ -309,38 +309,38 @@ services:
         config:
           hide_credentials: true
             `,
-    },
-    {
-      filePath: "/volumes/db/jwt.sql",
-      content: `
+		},
+		{
+			filePath: "/volumes/db/jwt.sql",
+			content: `
 \\set jwt_secret \`echo "$JWT_SECRET"\`
 \\set jwt_exp \`echo "$JWT_EXP"\`
 
 ALTER DATABASE postgres SET "app.settings.jwt_secret" TO :'jwt_secret';
 ALTER DATABASE postgres SET "app.settings.jwt_exp" TO :'jwt_exp';
             `,
-    },
-    {
-      filePath: "/volumes/db/logs.sql",
-      content: `
+		},
+		{
+			filePath: "/volumes/db/logs.sql",
+			content: `
 \\set pguser \`echo "$POSTGRES_USER"\`
 
 create schema if not exists _analytics;
 alter schema _analytics owner to :pguser;
             `,
-    },
-    {
-      filePath: "/volumes/db/realtime.sql",
-      content: `
+		},
+		{
+			filePath: "/volumes/db/realtime.sql",
+			content: `
 \\set pguser \`echo "$POSTGRES_USER"\`
 
 create schema if not exists _realtime;
 alter schema _realtime owner to :pguser;
             `,
-    },
-    {
-      filePath: "/volumes/db/roles.sql",
-      content: `
+		},
+		{
+			filePath: "/volumes/db/roles.sql",
+			content: `
 -- NOTE: change to your own passwords for production environments
 \\set pgpass \`echo "$POSTGRES_PASSWORD"\`
 
@@ -350,10 +350,10 @@ ALTER USER supabase_auth_admin WITH PASSWORD :'pgpass';
 ALTER USER supabase_functions_admin WITH PASSWORD :'pgpass';
 ALTER USER supabase_storage_admin WITH PASSWORD :'pgpass';
             `,
-    },
-    {
-      filePath: "/volumes/db/webhooks.sql",
-      content: `
+		},
+		{
+			filePath: "/volumes/db/webhooks.sql",
+			content: `
 BEGIN;
   -- Create pg_net extension
   CREATE EXTENSION IF NOT EXISTS pg_net SCHEMA extensions;
@@ -563,10 +563,10 @@ BEGIN;
   GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
 COMMIT;
             `,
-    },
-    {
-      filePath: "/volumes/functions/hello/index.ts",
-      content: `
+		},
+		{
+			filePath: "/volumes/functions/hello/index.ts",
+			content: `
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -584,10 +584,10 @@ serve(async () => {
 // curl 'http://localhost:<KONG_HTTP_PORT>/functions/v1/hello' \
 //   --header 'Authorization: Bearer <anon/service_role API key>'
             `,
-    },
-    {
-      filePath: "/volumes/functions/main/index.ts",
-      content: `
+		},
+		{
+			filePath: "/volumes/functions/main/index.ts",
+			content: `
 import { serve } from 'https://deno.land/std@0.131.0/http/server.ts'
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 
@@ -683,10 +683,10 @@ serve(async (req: Request) => {
   }
 })
             `,
-    },
-    {
-      filePath: "/volumes/logs/vector.yml",
-      content: `
+		},
+		{
+			filePath: "/volumes/logs/vector.yml",
+			content: `
 api:
   enabled: true
   address: 0.0.0.0:9001
@@ -920,12 +920,11 @@ sinks:
       retry_max_duration_secs: 10
     uri: 'http://analytics:4000/api/logs?source_name=cloudflare.logs.prod&api_key=\${LOGFLARE_API_KEY?LOGFLARE_API_KEY is required}'
             `,
-    },
+		},
+	];
 
-  ];
-
-  return {
-    envs,
-    mounts,
-  };
+	return {
+		envs,
+		mounts,
+	};
 }
