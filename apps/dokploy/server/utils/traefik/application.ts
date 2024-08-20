@@ -76,6 +76,15 @@ export const readConfig = (appName: string) => {
 	return null;
 };
 
+export const readMonitoringConfig = () => {
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
+	if (fs.existsSync(configPath)) {
+		const yamlStr = fs.readFileSync(configPath, "utf8");
+		return yamlStr;
+	}
+	return null;
+};
+
 export const readConfigInPath = (pathFile: string) => {
 	const configPath = path.join(pathFile);
 	if (fs.existsSync(configPath)) {

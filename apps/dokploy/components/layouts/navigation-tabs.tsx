@@ -19,6 +19,7 @@ export type TabState =
 	| "monitoring"
 	| "settings"
 	| "traefik"
+	| "requests"
 	| "docker";
 
 const tabMap: Record<TabState, TabInfo> = {
@@ -48,6 +49,14 @@ const tabMap: Record<TabState, TabInfo> = {
 		isShow: ({ rol, user }) => {
 			return Boolean(rol === "admin" || user?.canAccessToDocker);
 		},
+	},
+	requests: {
+		label: "Requests",
+		description: "Manage your requests",
+		index: "/dashboard/requests",
+		// isShow: ({ rol, user }) => {
+		// 	return Boolean(rol === "admin" || user?.canAccessToDocker);
+		// },
 	},
 	settings: {
 		label: "Settings",
