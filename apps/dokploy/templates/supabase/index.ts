@@ -806,7 +806,7 @@ transforms:
     source: |-
       .metadata.project = del(.project)
       .metadata.external_id = .metadata.project
-      parsed, err = parse_regex(.event_message, r'^(?P<time>\d+:\d+:\d+\.\d+) \[(?P<level>\w+)\] (?P<msg>.*)$')
+      parsed, err = parse_regex(.event_message, r'^(?P<time>\\d+:\\d+:\\d+\\.\\d+) \\[(?P<level>\\w+)\\] (?P<msg>.*)$')
       if err == null {
           .event_message = parsed.msg
           .metadata.level = parsed.level
