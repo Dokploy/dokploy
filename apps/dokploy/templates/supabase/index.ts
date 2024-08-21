@@ -310,6 +310,11 @@ services:
           hide_credentials: true
             `,
 		},
+    {
+			filePath: "/volumes/db/init/data.sql",
+			content: `
+            `,
+		},
 		{
 			filePath: "/volumes/db/jwt.sql",
 			content: `
