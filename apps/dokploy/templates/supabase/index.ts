@@ -10,7 +10,6 @@ import {
 export function generate(schema: Schema): Template {
 	const mainServiceHash = generateHash(schema.projectName);
 	const randomDomain = generateRandomDomain(schema);
-	const secretBase = generateBase64(64);
 
 	const postgresPassword = generatePassword(32);
 	const jwtSecret = generateBase64(32);
@@ -59,7 +58,6 @@ export function generate(schema: Schema): Template {
 		"DOCKER_SOCKET_LOCATION=/var/run/docker.sock",
 		"GOOGLE_PROJECT_ID=GOOGLE_PROJECT_ID",
 		"GOOGLE_PROJECT_NUMBER=GOOGLE_PROJECT_NUMBER",
-		`SECRET_KEY_BASE=${secretBase}`,
 		`HASH=${mainServiceHash}`,
 	];
 
