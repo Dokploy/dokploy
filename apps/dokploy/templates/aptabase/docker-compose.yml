@@ -1,0 +1,45 @@
+services:
+  aptabase_db:
+    container_name: aptabase_db
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: aptabase
+      POSTGRES_PASSWORD: sTr0NGp4ssw0rd
+
+  aptabase_events_db:
+    container_name: aptabase_events_db
+    image: clickhouse/clickhouse-server:23.8.16.16-alpine
+    restart: always
+    volumes:
+      - events-db-data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: aptabase
+      CLICKHOUSE_PASSWORD: sTr0NGp4ssw0rd
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  aptabase:
+    container_name: aptabase_app
+    image: ghcr.io/aptabase/aptabase:main
+    restart: always
+    depends_on:
+      - aptabase_events_db
+      - aptabase_db
+    ports:
+      - 8000:8080
+    environment:
+      BASE_URL: http://localhost:8000 # replace with your ip or domain, including port if needed
+      AUTH_SECRET: c4rI4x8kz5DgKJ1is5Eiu9bNncSQ6ROD # get a strong secret from https://randomkeygen.com/
+      DATABASE_URL: Server=aptabase_db;Port=5432;User Id=aptabase;Password=sTr0NGp4ssw0rd;Database=aptabase
+      CLICKHOUSE_URL: Host=aptabase_events_db;Port=8123;Username=aptabase;Password=sTr0NGp4ssw0rd
+
+volumes:
+  db-data:
+    driver: local
+  events-db-data:
+    driver: local
