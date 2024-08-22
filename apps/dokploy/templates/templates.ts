@@ -427,7 +427,8 @@ export const templates: TemplateData[] = [
 		id: "aptabase",
 		name: "Aptabase",
 		version: "v1.0.0",
-		description: "Aptabase is a self-hosted web analytics platform that lets you track website traffic and user behavior.",
+		description:
+			"Aptabase is a self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "aptabase.svg",
 		links: {
 			github: "https://github.com/aptabase/aptabase",
@@ -437,5 +438,4 @@ export const templates: TemplateData[] = [
 		tags: ["analytics", "self-hosted"],
 		load: () => import("./aptabase/index").then((m) => m.generate),
 	},
-
 ];
