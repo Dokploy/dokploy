@@ -308,7 +308,7 @@ services:
           hide_credentials: true
             `,
 		},
-    {
+		{
 			filePath: "/volumes/db/init/data.sql",
 			content: `
             `,
