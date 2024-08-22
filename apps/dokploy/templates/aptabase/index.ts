@@ -9,8 +9,6 @@ import {
 export function generate(schema: Schema): Template {
   const mainDomain = generateRandomDomain(schema);
   const authSecret = generateBase64(32);
-  const postgresPassword = generateBase64(16);
-  const clickhousePassword = generateBase64(16);
 
   const domains: DomainSchema[] = [
     {

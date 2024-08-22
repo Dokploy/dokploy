@@ -1,6 +1,5 @@
 services:
   aptabase_db:
-    container_name: aptabase_db
     image: postgres:15-alpine
     restart: always
     volumes:
@@ -17,7 +16,6 @@ services:
       retries: 5
 
   aptabase_events_db:
-    container_name: aptabase_events_db
     image: clickhouse/clickhouse-server:23.8.16.16-alpine
     restart: always
     volumes:
@@ -38,12 +36,8 @@ services:
       retries: 5
 
   aptabase:
-    container_name: aptabase_app
     image: ghcr.io/aptabase/aptabase:main
     restart: always
-    depends_on:
-      - aptabase_events_db
-      - aptabase_db
     environment:
       BASE_URL: http://${APTABASE_HOST}
       AUTH_SECRET: ${AUTH_SECRET}
