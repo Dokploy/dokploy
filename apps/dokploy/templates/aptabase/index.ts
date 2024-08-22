@@ -15,7 +15,7 @@ export function generate(schema: Schema): Template {
   const domains: DomainSchema[] = [
     {
       host: mainDomain,
-      port: 8000,
+      port: 8080,
       serviceName: "aptabase",
     },
   ];
