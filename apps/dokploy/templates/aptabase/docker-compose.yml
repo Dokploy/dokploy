@@ -44,8 +44,6 @@ services:
     depends_on:
       - aptabase_events_db
       - aptabase_db
-    ports:
-      - 8000:8080
     environment:
       BASE_URL: http://${APTABASE_HOST}
       AUTH_SECRET: ${AUTH_SECRET}
