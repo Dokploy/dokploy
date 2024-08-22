@@ -8,6 +8,13 @@ services:
     environment:
       POSTGRES_USER: aptabase
       POSTGRES_PASSWORD: sTr0NGp4ssw0rd
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aptabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   aptabase_events_db:
     container_name: aptabase_events_db
@@ -22,6 +29,13 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8123 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   aptabase:
     container_name: aptabase_app
@@ -33,8 +47,8 @@ services:
     ports:
       - 8000:8080
     environment:
-      BASE_URL: http://localhost:8000 # replace with your ip or domain, including port if needed
-      AUTH_SECRET: c4rI4x8kz5DgKJ1is5Eiu9bNncSQ6ROD # get a strong secret from https://randomkeygen.com/
+      BASE_URL: http://${APTABASE_HOST}
+      AUTH_SECRET: ${AUTH_SECRET}
       DATABASE_URL: Server=aptabase_db;Port=5432;User Id=aptabase;Password=sTr0NGp4ssw0rd;Database=aptabase
       CLICKHOUSE_URL: Host=aptabase_events_db;Port=8123;Username=aptabase;Password=sTr0NGp4ssw0rd
 

@@ -21,12 +21,8 @@ export function generate(schema: Schema): Template {
   ];
 
   const envs = [
-    `BASE_URL=http://${mainDomain}`,
-    `AUTH_SECRET=${authSecret}`,
-    `POSTGRES_PASSWORD=${postgresPassword}`,
-    `CLICKHOUSE_PASSWORD=${clickhousePassword}`,
-    `DATABASE_URL=Server=aptabase_db;Port=5432;User Id=aptabase;Password=${postgresPassword};Database=aptabase`,
-    `CLICKHOUSE_URL=Host=aptabase_events_db;Port=8123;Username=aptabase;Password=${clickhousePassword}`,
+    `APTABASE_HOST=${mainDomain}`,
+    `AUTH_SECRET=${authSecret}`
   ];
 
   return {
