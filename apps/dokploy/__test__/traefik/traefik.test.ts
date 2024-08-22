@@ -67,6 +67,9 @@ const baseDomain: Domain = {
 	https: false,
 	path: null,
 	port: null,
+	serviceName: "",
+	composeId: "",
+	domainType: "application",
 	uniqueConfigKey: 1,
 };
 

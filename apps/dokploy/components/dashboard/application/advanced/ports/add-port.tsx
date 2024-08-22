@@ -28,7 +28,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -52,6 +52,7 @@ export const AddPort = ({
 	applicationId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
 	const { mutateAsync, isLoading, error, isError } =
@@ -82,6 +83,7 @@ export const AddPort = ({
 				await utils.application.one.invalidate({
 					applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to create the port");
@@ -89,7 +91,7 @@ export const AddPort = ({
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>

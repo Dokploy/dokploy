@@ -1,27 +1,32 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
 	generateBase64,
-	generateHash,
 	generateRandomDomain,
 } from "../utils";
 
-// https://cal.com/
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 	const calcomEncryptionKey = generateBase64(32);
 	const nextAuthSecret = generateBase64(32);
 
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 3000,
+			serviceName: "calcom",
+		},
+	];
+
 	const envs = [
-		`CALCOM_HOST=${randomDomain}`,
-		"CALCOM_PORT=3000",
-		`HASH=${mainServiceHash}`,
+		`CALCOM_HOST=${mainDomain}`,
 		`NEXTAUTH_SECRET=${nextAuthSecret}`,
 		`CALENDSO_ENCRYPTION_KEY=${calcomEncryptionKey}`,
 	];
 
 	return {
 		envs,
+		domains,
 	};
 }

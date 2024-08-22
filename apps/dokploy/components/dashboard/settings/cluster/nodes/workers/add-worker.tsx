@@ -22,12 +22,14 @@ export const AddWorker = () => {
 				<div className="flex flex-col gap-2.5 text-sm">
 					<span>1. Go to your new server and run the following command</span>
 					<span className="bg-muted rounded-lg p-2 flex justify-between">
-						curl https://get.docker.com | sh -s -- --version 24.0
+						curl https://get.docker.com | sh -s -- --version {data?.version}
 						<button
 							type="button"
 							className="self-center"
 							onClick={() => {
-								copy("curl https://get.docker.com | sh -s -- --version 24.0");
+								copy(
+									`curl https://get.docker.com | sh -s -- --version ${data?.version}`,
+								);
 								toast.success("Copied to clipboard");
 							}}
 						>
@@ -42,12 +44,12 @@ export const AddWorker = () => {
 					</span>
 
 					<span className="bg-muted rounded-lg p-2  flex">
-						{data}
+						{data?.command}
 						<button
 							type="button"
 							className="self-start"
 							onClick={() => {
-								copy(data || "");
+								copy(data?.command || "");
 								toast.success("Copied to clipboard");
 							}}
 						>

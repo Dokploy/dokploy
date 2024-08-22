@@ -2,6 +2,7 @@ import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-c
 import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
 import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
+import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -34,6 +35,7 @@ type TabState =
 	| "settings"
 	| "advanced"
 	| "deployments"
+	| "domains"
 	| "monitoring";
 
 const Service = (
@@ -117,12 +119,13 @@ const Service = (
 				}}
 			>
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
+					<TabsList className="md:grid md:w-fit md:grid-cols-7 max-md:overflow-y-scroll justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
 						<TabsTrigger value="environment">Environment</TabsTrigger>
 						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="deployments">Deployments</TabsTrigger>
+						<TabsTrigger value="domains">Domains</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
 					</TabsList>
 					<div className="flex flex-row gap-2">
@@ -166,6 +169,12 @@ const Service = (
 				<TabsContent value="deployments">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<ShowDeploymentsCompose composeId={composeId} />
+					</div>
+				</TabsContent>
+
+				<TabsContent value="domains">
+					<div className="flex flex-col gap-4 pt-2.5">
+						<ShowDomainsCompose composeId={composeId} />
 					</div>
 				</TabsContent>
 				<TabsContent value="advanced">

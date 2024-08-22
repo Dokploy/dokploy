@@ -21,16 +21,6 @@ services:
       - DATABASE_URL=postgres://postgres:password@postgres:5432/db
       - NEXT_PUBLIC_WEBAPP_URL=http://${CALCOM_HOST}
       - NEXTAUTH_URL=http://${CALCOM_HOST}/api/auth
-    networks:
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${CALCOM_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${CALCOM_PORT}"
-
-networks:
-  dokploy-network:
-    external: true
 
 volumes:
   calcom-data:

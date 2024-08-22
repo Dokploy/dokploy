@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Domain } from "@/server/api/services/domain";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
@@ -10,12 +11,15 @@ export interface Schema {
 	projectName: string;
 }
 
+export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
+
 export interface Template {
-	envs: string[];
+	envs?: string[];
 	mounts?: {
 		filePath: string;
 		content?: string;
 	}[];
+	domains?: DomainSchema[];
 }
 
 export const generateRandomDomain = ({
@@ -57,7 +61,7 @@ export const loadTemplateModule = async (
 	return generate;
 };
 
-export const readComposeFile = async (id: string) => {
+export const readTemplateComposeFile = async (id: string) => {
 	const cwd = process.cwd();
 	const composeFile = await readFile(
 		join(cwd, ".next", "templates", id, "docker-compose.yml"),

@@ -12,7 +12,6 @@ import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
 import Link from "next/link";
 import { AddDomain } from "./add-domain";
 import { DeleteDomain } from "./delete-domain";
-import { GenerateDomain } from "./generate-domain";
 
 interface Props {
 	applicationId: string;
@@ -46,9 +45,6 @@ export const ShowDomains = ({ applicationId }: Props) => {
 								</Button>
 							</AddDomain>
 						)}
-						{data && data?.length > 0 && (
-							<GenerateDomain applicationId={applicationId} />
-						)}
 					</div>
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
@@ -65,8 +61,6 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										<GlobeIcon className="size-4" /> Add Domain
 									</Button>
 								</AddDomain>
-
-								<GenerateDomain applicationId={applicationId} />
 							</div>
 						</div>
 					) : (

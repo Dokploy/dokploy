@@ -4,8 +4,6 @@ services:
     image: metabase/metabase:v0.50.8
     volumes:
       - /dev/urandom:/dev/random:ro
-    ports:
-      - ${METABASE_PORT}
     environment:
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: metabaseappdb
@@ -13,17 +11,11 @@ services:
       MB_DB_USER: metabase
       MB_DB_PASS: mysecretpassword
       MB_DB_HOST: postgres
-    networks:
-      - dokploy-network
     healthcheck:
       test: curl --fail -I http://localhost:3000/api/health || exit 1
       interval: 15s
       timeout: 5s
       retries: 5
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${METABASE_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${METABASE_PORT}
   postgres:
     image: postgres:14
     environment:
@@ -32,7 +24,3 @@ services:
       POSTGRES_PASSWORD: mysecretpassword
     networks:
       - dokploy-network
-
-networks:
-  dokploy-network:
-    external: true

@@ -28,7 +28,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,6 +49,7 @@ interface Props {
 }
 
 export const UpdatePort = ({ portId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data } = api.port.one.useQuery(
 		{
@@ -89,6 +90,7 @@ export const UpdatePort = ({ portId }: Props) => {
 				await utils.application.one.invalidate({
 					applicationId: response?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the port");
@@ -96,7 +98,7 @@ export const UpdatePort = ({ portId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<PenBoxIcon className="size-4 text-muted-foreground" />

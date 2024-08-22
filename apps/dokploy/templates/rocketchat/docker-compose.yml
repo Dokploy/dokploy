@@ -9,18 +9,10 @@ services:
       ROOT_URL: ${ROOT_URL:-http://${ROCKETCHAT_HOST}:${ROCKETCHAT_PORT}}
       PORT: ${ROCKETCHAT_PORT}
       DEPLOY_METHOD: docker
-      DEPLOY_PLATFORM: 
-      REG_TOKEN: 
+      DEPLOY_PLATFORM:
+      REG_TOKEN:
     depends_on:
       - mongodb
-    ports:
-      - ${ROCKETCHAT_PORT}
-    networks:
-      - dokploy-network
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${ROCKETCHAT_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${ROCKETCHAT_PORT}
 
   mongodb:
     image: docker.io/bitnami/mongodb:5.0
@@ -41,8 +33,3 @@ services:
 
 volumes:
   mongodb_data: { driver: local }
-
-
-networks:
-  dokploy-network:
-    external: true

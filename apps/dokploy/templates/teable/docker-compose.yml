@@ -4,8 +4,6 @@ services:
   teable:
     image: ghcr.io/teableio/teable:1.3.1-alpha-build.460
     restart: always
-    ports:
-      - ${TEABLE_PORT}
     volumes:
       - teable-data:/app/.assets
       # you may use a bind-mounted host directory instead,
@@ -24,12 +22,6 @@ services:
       - BACKEND_MAIL_SENDER_NAME=${BACKEND_MAIL_SENDER_NAME}
       - BACKEND_MAIL_AUTH_USER=${BACKEND_MAIL_AUTH_USER}
       - BACKEND_MAIL_AUTH_PASS=${BACKEND_MAIL_AUTH_PASS}
-    networks:
-      - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${TEABLE_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${TEABLE_PORT}"
     depends_on:
       teable-db-migrate:
         condition: service_completed_successfully
@@ -71,10 +63,6 @@ services:
     depends_on:
       teable-db:
         condition: service_healthy
-
-networks:
-  dokploy-network:
-    external: true
 
 volumes:
   teable-data: {}

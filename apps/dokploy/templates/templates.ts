@@ -423,4 +423,19 @@ export const templates: TemplateData[] = [
 		tags: ["database", "spreadsheet", "low-code", "nocode"],
 		load: () => import("./teable/index").then((m) => m.generate),
 	},
+	{
+		id: "soketi",
+		name: "Soketi",
+		version: "v1.4-16",
+		description:
+			"Soketi is your simple, fast, and resilient open-source WebSockets server.",
+		logo: "soketi.png",
+		links: {
+			github: "https://github.com/soketi/soketi",
+			website: "https://soketi.app/",
+			docs: "https://docs.soketi.app/",
+		},
+		tags: ["chat"],
+		load: () => import("./soketi/index").then((m) => m.generate),
+	},
 ];

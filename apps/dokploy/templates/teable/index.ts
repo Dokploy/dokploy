@@ -1,25 +1,30 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
-	generateHash,
 	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
 	const password = generatePassword();
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 
 	const publicDbPort = ((min: number, max: number) => {
 		return Math.round(Math.random() * (max - min) + min);
 	})(32769, 65534);
 
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 3000,
+			serviceName: "teable",
+		},
+	];
+
 	const envs = [
-		`TEABLE_HOST=${randomDomain}`,
-		"TEABLE_PORT=3000",
+		`TEABLE_HOST=${mainDomain}`,
 		`TEABLE_DB_PORT=${publicDbPort}`,
-		`HASH=${mainServiceHash}`,
 		"TIMEZONE=UTC",
 		"# Postgres",
 		"POSTGRES_HOST=teable-db",
@@ -44,5 +49,6 @@ export function generate(schema: Schema): Template {
 
 	return {
 		envs,
+		domains,
 	};
 }

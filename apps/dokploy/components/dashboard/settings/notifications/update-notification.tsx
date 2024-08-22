@@ -27,7 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, PenBoxIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,7 @@ interface Props {
 
 export const UpdateNotification = ({ notificationId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const { data, refetch } = api.notification.one.useQuery(
 		{
 			notificationId,
@@ -207,6 +208,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					toast.success("Notification Updated");
 					await utils.notification.all.invalidate();
 					refetch();
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to update a notification");
@@ -214,7 +216,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 		}
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
 				<Button variant="ghost">
 					<PenBoxIcon className="size-4  text-muted-foreground" />
