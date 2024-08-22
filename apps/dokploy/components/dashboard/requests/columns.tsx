@@ -11,6 +11,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import type { LogEntry } from "./show-requests";
+import { format } from "date-fns";
 
 export const columns: ColumnDef<LogEntry>[] = [
 	{
@@ -60,6 +61,30 @@ export const columns: ColumnDef<LogEntry>[] = [
 							Exec Time: {convertMicroseconds(log.Duration)}
 						</Badge>
 						<Badge variant={"secondary"}>IP: {log.ClientAddr}</Badge>
+					</div>
+				</div>
+			);
+		},
+	},
+	{
+		accessorKey: "time",
+		header: ({ column }) => {
+			return (
+				<Button
+					variant="ghost"
+					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+				>
+					Time
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			);
+		},
+		cell: ({ row }) => {
+			const log = row.original;
+			return (
+				<div className=" flex flex-col gap-2">
+					<div className="flex flex-row gap-3 w-full">
+						{format(new Date(log.time), "yyyy-MM-dd HH:mm:ss")}
 					</div>
 				</div>
 			);
