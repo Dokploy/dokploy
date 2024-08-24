@@ -438,4 +438,19 @@ export const templates: TemplateData[] = [
 		tags: ["chat"],
 		load: () => import("./soketi/index").then((m) => m.generate),
 	},
+	{
+		id: "aptabase",
+		name: "Aptabase",
+		version: "v1.0.0",
+		description:
+			"Aptabase is a self-hosted web analytics platform that lets you track website traffic and user behavior.",
+		logo: "aptabase.svg",
+		links: {
+			github: "https://github.com/aptabase/aptabase",
+			website: "https://aptabase.com/",
+			docs: "https://github.com/aptabase/aptabase/blob/main/README.md",
+		},
+		tags: ["analytics", "self-hosted"],
+		load: () => import("./aptabase/index").then((m) => m.generate),
+	},
 ];
