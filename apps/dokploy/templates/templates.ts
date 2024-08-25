@@ -453,4 +453,19 @@ export const templates: TemplateData[] = [
 		tags: ["analytics", "self-hosted"],
 		load: () => import("./aptabase/index").then((m) => m.generate),
 	},
+	{
+		id: "huly",
+		name: "Huly",
+		version: "v0.6.265",
+		description:
+		  "Huly is an open-source, self-hosted project management and collaboration platform.",
+		logo: "huly.png",
+		links: {
+		  github: "https://github.com/hcengineering/huly-selfhost",
+		  website: "https://huly.io/",
+		  docs: "https://huly.io/docs",
+		},
+		tags: ["project-management", "collaboration"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	  },
 ];
