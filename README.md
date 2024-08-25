@@ -70,6 +70,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
 <a href="https://lightspeed.run/?ref=dokploy"><img src="https://github.com/lightspeedrun.png" width="60px" alt="Lightspeed.run"/></a>
+<a href="https://cloudblast.io/?ref=dokploy "><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Lightspeed.run"/></a>
 </div>
 
 ### Community Backers 🤝
