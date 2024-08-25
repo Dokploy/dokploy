@@ -1,6 +1,5 @@
-interface LogEntry {
-	StartUTC: string;
-}
+import _ from "lodash";
+import type { LogEntry } from "./types";
 
 interface HourlyData {
 	hour: string;
@@ -8,45 +7,107 @@ interface HourlyData {
 }
 
 export function processLogs(logString: string): HourlyData[] {
-	const hourlyData: Record<string, number> = {};
-
-	if (!logString || logString?.length === 0) {
+	if (_.isEmpty(logString)) {
 		return [];
 	}
 
-	const logEntries = logString.trim().split("\n");
+	const hourlyData = _(logString)
+		.split("\n")
+		.compact()
+		.map((entry) => {
+			try {
+				const log: LogEntry = JSON.parse(entry);
+				const date = new Date(log.StartUTC);
+				return `${date.toISOString().slice(0, 13)}:00:00Z`;
+			} catch (error) {
+				console.error("Error parsing log entry:", error);
+				return null;
+			}
+		})
+		.compact()
+		.countBy()
+		.map((count, hour) => ({ hour, count }))
+		.value();
 
-	for (const entry of logEntries) {
-		try {
-			const log: LogEntry = JSON.parse(entry);
-			const date = new Date(log.StartUTC);
-			const hourKey = `${date.toISOString().slice(0, 13)}:00:00Z`; // Agrupa por hora
-
-			hourlyData[hourKey] = (hourlyData[hourKey] || 0) + 1;
-		} catch (error) {
-			console.error("Error parsing log entry:", error);
-		}
-	}
-
-	return Object.entries(hourlyData)
-		.map(([hour, count]) => ({ hour, count }))
-		.sort((a, b) => new Date(a.hour).getTime() - new Date(b.hour).getTime());
+	return _.sortBy(hourlyData, (entry) => new Date(entry.hour).getTime());
 }
 
-export function parseRawConfig(rawConfig: string): LogEntry[] {
+interface PageInfo {
+	pageIndex: number;
+	pageSize: number;
+}
+
+interface SortInfo {
+	id: string;
+	desc: boolean;
+}
+
+export function parseRawConfig(
+	rawConfig: string,
+	page?: PageInfo,
+	sort?: SortInfo,
+	search?: string,
+	status?: string[],
+): { data: LogEntry[]; totalCount: number } {
 	try {
-		if (!rawConfig || rawConfig?.length === 0) {
-			return [];
+		if (_.isEmpty(rawConfig)) {
+			return { data: [], totalCount: 0 };
 		}
-		const jsonLines = rawConfig
+
+		let parsedLogs = _(rawConfig)
 			.split("\n")
-			.filter((line) => line.trim() !== "");
+			.compact()
+			.map((line) => JSON.parse(line) as LogEntry)
+			.value();
 
-		const parsedConfig = jsonLines.map((line) => JSON.parse(line) as LogEntry);
+		if (search) {
+			parsedLogs = parsedLogs.filter((log) =>
+				log.RequestPath.toLowerCase().includes(search.toLowerCase()),
+			);
+		}
 
-		return parsedConfig;
+		if (status && status.length > 0) {
+			parsedLogs = parsedLogs.filter((log) =>
+				status.some((range) => isStatusInRange(log.DownstreamStatus, range)),
+			);
+		}
+
+		const totalCount = parsedLogs.length;
+
+		if (sort) {
+			parsedLogs = _.orderBy(
+				parsedLogs,
+				[sort.id],
+				[sort.desc ? "desc" : "asc"],
+			);
+		} else {
+			parsedLogs = _.orderBy(parsedLogs, ["time"], ["desc"]);
+		}
+
+		if (page) {
+			const startIndex = page.pageIndex * page.pageSize;
+			parsedLogs = parsedLogs.slice(startIndex, startIndex + page.pageSize);
+		}
+
+		return { data: parsedLogs, totalCount };
 	} catch (error) {
 		console.error("Error parsing rawConfig:", error);
 		throw new Error("Failed to parse rawConfig");
 	}
 }
+const isStatusInRange = (status: number, range: string) => {
+	switch (range) {
+		case "info":
+			return status >= 100 && status <= 199;
+		case "success":
+			return status >= 200 && status <= 299;
+		case "redirect":
+			return status >= 300 && status <= 399;
+		case "client":
+			return status >= 400 && status <= 499;
+		case "server":
+			return status >= 500 && status <= 599;
+		default:
+			return false;
+	}
+};

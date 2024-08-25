@@ -1,17 +1,26 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
 import { Badge } from "@/components/ui/badge";
 import type { LogEntry } from "./show-requests";
 import { format } from "date-fns";
+
+export const getStatusColor = (status: number) => {
+	if (status >= 100 && status < 200) {
+		return "outline";
+	}
+	if (status >= 200 && status < 300) {
+		return "default";
+	}
+	if (status >= 300 && status < 400) {
+		return "outline";
+	}
+	if (status >= 400 && status < 500) {
+		return "destructive";
+	}
+	return "destructive";
+};
 
 export const columns: ColumnDef<LogEntry>[] = [
 	{
@@ -52,13 +61,11 @@ export const columns: ColumnDef<LogEntry>[] = [
 						{log.RequestMethod} {log.RequestPath}
 					</div>
 					<div className="flex flex-row gap-3 w-full">
-						<Badge
-							variant={log.OriginStatus <= 200 ? "default" : "destructive"}
-						>
+						<Badge variant={getStatusColor(log.OriginStatus)}>
 							Status: {log.OriginStatus}
 						</Badge>
 						<Badge variant={"secondary"}>
-							Exec Time: {convertMicroseconds(log.Duration)}
+							Exec Time: {`${log.Duration / 1000000000}s`}
 						</Badge>
 						<Badge variant={"secondary"}>IP: {log.ClientAddr}</Badge>
 					</div>
@@ -91,12 +98,3 @@ export const columns: ColumnDef<LogEntry>[] = [
 		},
 	},
 ];
-function convertMicroseconds(microseconds: number): string {
-	if (microseconds < 1000) {
-		return `${microseconds} µs`;
-	}
-	if (microseconds < 1000000) {
-		return `${(microseconds / 1000).toFixed(2)} ms`;
-	}
-	return `${(microseconds / 1000000).toFixed(2)} s`;
-}

@@ -98,3 +98,15 @@ export const apiReadTraefikConfig = z.object({
 export const apiEnableDashboard = z.object({
 	enableDashboard: z.boolean().optional(),
 });
+
+export const apiReadStatsLogs = z.object({
+	page: z
+		.object({
+			pageIndex: z.number(),
+			pageSize: z.number(),
+		})
+		.optional(),
+	status: z.string().array().optional(),
+	search: z.string().optional(),
+	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
+});
