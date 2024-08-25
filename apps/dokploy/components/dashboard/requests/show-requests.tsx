@@ -36,13 +36,28 @@ import {
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet";
+
+import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, MoreHorizontal, TrendingUp } from "lucide-react";
+import {
+	ChevronDown,
+	Copy,
+	Download,
+	MoreHorizontal,
+	TrendingUp,
+} from "lucide-react";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -65,7 +80,8 @@ import { Button } from "@/components/ui/button";
 import { columns } from "./columns";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export type LogEntry = NonNullable<
 	RouterOutputs["settings"]["readMonitoringConfig"]["data"]
@@ -80,10 +96,33 @@ const chartConfig = {
 		color: "hsl(var(--chart-1))",
 	},
 } satisfies ChartConfig;
+
+const requestLog = {
+	id: "zagp0jxukx0mw7h",
+	level: "ERROR (8)",
+	created: "2024-08-25 05:33:45.366 UTC",
+	"data.execTime": "0.056928ms",
+	"data.type": "request",
+	"data.auth": "guest",
+	"data.status": "404",
+	"data.method": "GET",
+	"data.url": "/favicon.ico",
+	"data.referer": "http://testing2-pocketbase-8d9cd5-5-161-87-31.traefik.me/",
+	"data.remoteIp": "10.0.1.184",
+	"data.userIp": "179.49.119.201",
+	"data.userAgent":
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+	"data.error": "Not Found.",
+	"data.details": "code=404, message=Not Found",
+};
 export const ShowRequests = () => {
-	const { data } = api.settings.readMonitoringConfig.useQuery(undefined, {
-		refetchInterval: 1000,
-	});
+	const { data, isLoading } = api.settings.readMonitoringConfig.useQuery(
+		undefined,
+		{
+			refetchInterval: 1000,
+		},
+	);
+	const [selectedRow, setSelectedRow] = useState<LogEntry>();
 	const { data: isLogRotateActive, refetch: refetchLogRotate } =
 		api.settings.getLogRotateStatus.useQuery();
 
@@ -284,6 +323,10 @@ export const ShowRequests = () => {
 										table.getRowModel().rows.map((row) => (
 											<TableRow
 												key={row.id}
+												className="cursor-pointer"
+												onClick={() => {
+													setSelectedRow(row.original);
+												}}
 												data-state={row.getIsSelected() && "selected"}
 											>
 												{row.getVisibleCells().map((cell) => (
@@ -302,15 +345,15 @@ export const ShowRequests = () => {
 												colSpan={columns.length}
 												className="h-24 text-center"
 											>
-												{/* {isLoading ? (
-											<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-												<span className="text-muted-foreground text-lg font-medium">
-													Loading...
-												</span>
-											</div>
-										) : (
-											<>No results.</>
-										)} */}
+												{isLoading ? (
+													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+														<span className="text-muted-foreground text-lg font-medium">
+															Loading...
+														</span>
+													</div>
+												) : (
+													<>No results.</>
+												)}
 											</TableCell>
 										</TableRow>
 									)}
@@ -340,6 +383,58 @@ export const ShowRequests = () => {
 					</div>
 				</div>
 			</div>
+			<Sheet
+				open={!!selectedRow}
+				onOpenChange={(open) => setSelectedRow(undefined)}
+			>
+				<SheetContent className="w-[400px] sm:w-[540px] sm:max-w-none flex flex-col">
+					<SheetHeader>
+						<SheetTitle>Request log</SheetTitle>
+						<SheetDescription>
+							Details of the request log entry.
+						</SheetDescription>
+					</SheetHeader>
+					<ScrollArea className="flex-grow mt-4 pr-4">
+						<div className="border rounded-md">
+							<Table>
+								<TableBody>
+									{Object.entries(requestLog).map(([key, value]) => (
+										<TableRow key={key}>
+											<TableCell className="font-medium">{key}</TableCell>
+											<TableCell>
+												{key === "id" ? (
+													<div className="flex items-center gap-2 bg-muted p-1 rounded">
+														<span>{value}</span>
+														<Copy className="h-4 w-4 text-muted-foreground" />
+													</div>
+												) : key === "level" ? (
+													<Badge variant="destructive">{value}</Badge>
+												) : key === "data.error" ? (
+													<Badge variant="destructive" className="font-normal">
+														{value}
+													</Badge>
+												) : key === "data.details" ? (
+													<div className="bg-muted p-2 rounded text-xs">
+														{value}
+													</div>
+												) : (
+													value
+												)}
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+					</ScrollArea>
+					<div className="mt-4 pt-4 border-t">
+						<Button variant="outline" className="w-full gap-2">
+							<Download className="h-4 w-4" />
+							Download as JSON
+						</Button>
+					</div>
+				</SheetContent>
+			</Sheet>
 		</>
 	);
 };

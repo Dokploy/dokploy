@@ -84,37 +84,9 @@ export const columns: ColumnDef<LogEntry>[] = [
 			return (
 				<div className=" flex flex-col gap-2">
 					<div className="flex flex-row gap-3 w-full">
-						{format(new Date(log.time), "yyyy-MM-dd HH:mm:ss")}
+						{format(new Date(log.StartUTC), "yyyy-MM-dd HH:mm:ss")}
 					</div>
 				</div>
-			);
-		},
-	},
-	{
-		id: "actions",
-		enableHiding: false,
-		cell: ({ row }) => {
-			const container = row.original;
-
-			return (
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" className="h-8 w-8 p-0">
-							<span className="sr-only">Open menu</span>
-							<MoreHorizontal className="h-4 w-4" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuLabel>Actions</DropdownMenuLabel>
-						{/* <ShowDockerModalLogs containerId={container.containerId}>
-							View Logs
-						</ShowDockerModalLogs>
-						<ShowContainerConfig containerId={container.containerId} />
-						<DockerTerminalModal containerId={container.containerId}>
-							Terminal
-						</DockerTerminalModal> */}
-					</DropdownMenuContent>
-				</DropdownMenu>
 			);
 		},
 	},
