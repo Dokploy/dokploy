@@ -1,4 +1,4 @@
-import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -50,6 +50,8 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
+import { logRotationManager } from "@/server/utils/access-log/handler";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -353,105 +355,18 @@ export const settingsRouter = createTRPCRouter({
 		const parsedConfig = parseRawConfig(rawConfig as string);
 		const processedLogs = processLogs(rawConfig as string);
 		return {
-			data: parsedConfig,
-			hourlyData: processedLogs,
+			data: parsedConfig || [],
+			hourlyData: processedLogs || [],
 		};
 	}),
+	activateLogRotate: adminProcedure.mutation(async () => {
+		await logRotationManager.activate();
+		return true;
+	}),
+	deactivateLogRotate: adminProcedure.mutation(async () => {
+		return await logRotationManager.deactivate();
+	}),
+	getLogRotateStatus: adminProcedure.query(async () => {
+		return await logRotationManager.getStatus();
+	}),
 });
-interface LogEntry {
-	StartUTC: string;
-	// Otros campos relevantes...
-}
-
-interface HourlyData {
-	hour: string;
-	count: number;
-}
-
-function processLogs(logString: string): HourlyData[] {
-	const hourlyData: Record<string, number> = {};
-
-	const logEntries = logString.trim().split("\n");
-
-	for (const entry of logEntries) {
-		try {
-			const log: LogEntry = JSON.parse(entry);
-			const date = new Date(log.StartUTC);
-			const hourKey = `${date.toISOString().slice(0, 13)}:00:00Z`; // Agrupa por hora
-
-			hourlyData[hourKey] = (hourlyData[hourKey] || 0) + 1;
-		} catch (error) {
-			console.error("Error parsing log entry:", error);
-		}
-	}
-
-	return Object.entries(hourlyData)
-		.map(([hour, count]) => ({ hour, count }))
-		.sort((a, b) => new Date(a.hour).getTime() - new Date(b.hour).getTime());
-}
-
-interface LogEntry {
-	ClientAddr: string;
-	ClientHost: string;
-	ClientPort: string;
-	ClientUsername: string;
-	DownstreamContentSize: number;
-	DownstreamStatus: number;
-	Duration: number;
-	OriginContentSize: number;
-	OriginDuration: number;
-	OriginStatus: number;
-	Overhead: number;
-	RequestAddr: string;
-	RequestContentSize: number;
-	RequestCount: number;
-	RequestHost: string;
-	RequestMethod: string;
-	RequestPath: string;
-	RequestPort: string;
-	RequestProtocol: string;
-	RequestScheme: string;
-	RetryAttempts: number;
-	RouterName: string;
-	ServiceAddr: string;
-	ServiceName: string;
-	ServiceURL: {
-		Scheme: string;
-		Opaque: string;
-		User: null;
-		Host: string;
-		Path: string;
-		RawPath: string;
-		ForceQuery: boolean;
-		RawQuery: string;
-		Fragment: string;
-		RawFragment: string;
-	};
-	StartLocal: string;
-	StartUTC: string;
-	downstream_Content_Type: string;
-	entryPointName: string;
-	level: string;
-	msg: string;
-	origin_Content_Type: string;
-	request_Content_Type: string;
-	request_User_Agent: string;
-	time: string;
-}
-
-function parseRawConfig(rawConfig: string): LogEntry[] {
-	try {
-		// Dividir el string en líneas y filtrar las líneas vacías
-		const jsonLines = rawConfig
-			.split("\n")
-			.filter((line) => line.trim() !== "");
-
-		// Parsear cada línea como un objeto JSON
-		const parsedConfig = jsonLines.map((line) => JSON.parse(line) as LogEntry);
-
-		return parsedConfig;
-	} catch (error) {
-		console.error("Error parsing rawConfig:", error);
-		throw new Error("Failed to parse rawConfig");
-	}
-}

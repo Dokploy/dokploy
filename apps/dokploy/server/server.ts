@@ -39,6 +39,7 @@ void app.prepare().then(async () => {
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
+		// setupTraefikLogsWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
 		setupDockerStatsMonitoringSocketServer(server);
 

@@ -232,6 +232,13 @@
       "when": 1723705257806,
       "tag": "0032_flashy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1724555040199,
+      "tag": "0033_sweet_black_bird",
+      "breakpoints": true
     }
   ]
 }
