@@ -239,6 +239,13 @@
       "when": 1724555040199,
       "tag": "0033_sweet_black_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1724631497207,
+      "tag": "0034_silent_slayback",
+      "breakpoints": true
     }
   ]
 }

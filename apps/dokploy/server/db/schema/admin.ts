@@ -28,6 +28,7 @@ export const admins = pgTable("admin", {
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	enableLogRotation: boolean("enableLogRotation").notNull().default(false),
+	licenseKey: text("licenseKey"),
 	authId: text("authId")
 		.notNull()
 		.references(() => auth.id, { onDelete: "cascade" }),

@@ -53,11 +53,6 @@ import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
 import { logRotationManager } from "@/server/utils/access-log/handler";
-import { observable } from "@trpc/server/observable";
-import type { LogEntry } from "@/server/utils/access-log/types";
-import EventEmitter from "node:events";
-
-const ee = new EventEmitter();
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
