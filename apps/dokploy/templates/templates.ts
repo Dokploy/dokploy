@@ -453,4 +453,18 @@ export const templates: TemplateData[] = [
 		tags: ["analytics", "self-hosted"],
 		load: () => import("./aptabase/index").then((m) => m.generate),
 	},
+	{
+		id: "typebot",
+		name: "Typebot",
+		version: "latest",
+		description: "Typebot is an open-source chatbot builder platform.",
+		logo: "typebot.svg",
+		links: {
+			github: "https://github.com/baptisteArno/typebot.io",
+			website: "https://typebot.io/",
+			docs: "https://docs.typebot.io/get-started/introduction",
+		},
+		tags: ["chatbot", "builder", "open-source"],
+		load: () => import("./typebot/index").then((m) => m.generate),
+	},
 ];
