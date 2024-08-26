@@ -14,12 +14,12 @@ export function generate(schema: Schema): Template {
 	const domains: DomainSchema[] = [
 		{
 			host: builderDomain,
-			port: 8080,
+			port: 3000,
 			serviceName: "typebot-builder",
 		},
 		{
 			host: viewerDomain,
-			port: 8081,
+			port: 3000,
 			serviceName: "typebot-viewer",
 		},
 	];
