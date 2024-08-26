@@ -25,6 +25,11 @@ export async function getServerSideProps(
 		};
 	}
 
+	if (process.env.NODE_ENV === "development") {
+		return {
+			props: {},
+		};
+	}
 	const isValid = await isValidLicense();
 
 	if (!isValid) {
