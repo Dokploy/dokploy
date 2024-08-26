@@ -27,12 +27,21 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { db } from "../../db";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
 		.input(apiCreateAdmin)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				const admin = await db.query.admins.findFirst({});
+
+				if (admin) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Admin already exists",
+					});
+				}
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
