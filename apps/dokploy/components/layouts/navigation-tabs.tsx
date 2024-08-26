@@ -54,9 +54,9 @@ const tabMap: Record<TabState, TabInfo> = {
 		label: "Requests",
 		description: "Manage your requests",
 		index: "/dashboard/requests",
-		// isShow: ({ rol, user }) => {
-		// 	return Boolean(rol === "admin" || user?.canAccessToDocker);
-		// },
+		isShow: ({ rol, user }) => {
+			return Boolean(rol === "admin" || user?.canAccessToDocker);
+		},
 	},
 	settings: {
 		label: "Settings",

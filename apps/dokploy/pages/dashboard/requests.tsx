@@ -4,6 +4,7 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import * as React from "react";
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
+import { isValidLicense } from "@/server/api/services/license";
 
 export default function Requests() {
 	return <ShowRequests />;
@@ -20,6 +21,17 @@ export async function getServerSideProps(
 			redirect: {
 				permanent: true,
 				destination: "/",
+			},
+		};
+	}
+
+	const isValid = await isValidLicense();
+
+	if (!isValid) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
 			},
 		};
 	}

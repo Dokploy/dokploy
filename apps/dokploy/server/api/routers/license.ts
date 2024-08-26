@@ -7,6 +7,12 @@ export const licenseRouter = createTRPCRouter({
 	setLicense: adminProcedure.input(z.string()).mutation(async ({ input }) => {
 		const admin = await findAdmin();
 
+		if (!input) {
+			return await updateAdmin(admin.authId, {
+				licenseKey: "",
+			});
+		}
+
 		try {
 			const result = await fetch("http://127.0.0.1:4000/v1/validate-license", {
 				method: "POST",

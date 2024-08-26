@@ -28,9 +28,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const schema = z.object({
-	licenseKey: z.string().min(1, {
-		message: "License key is required",
-	}),
+	licenseKey: z.string(),
 });
 
 type Schema = z.infer<typeof schema>;
