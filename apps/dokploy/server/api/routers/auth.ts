@@ -12,6 +12,7 @@ import {
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
+import { db } from "../../db";
 import {
 	createAdmin,
 	createUser,
@@ -27,7 +28,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { db } from "../../db";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
