@@ -10,7 +10,7 @@ import {
 	type VisibilityState,
 	flexRender,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { LogEntry } from "./show-requests";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -78,10 +78,6 @@ export const priorities = [
 	},
 ];
 export const RequestsTable = () => {
-	const [statsLogs, setStatsLogs] = useState<{
-		data: LogEntry[];
-		totalCount: number;
-	}>();
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -94,93 +90,17 @@ export const RequestsTable = () => {
 		pageSize: 10,
 	});
 
-	// const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery({
-	// 	sort: sorting[0],
-	// 	page: pagination,
-	// 	search,
-	// 	status: statusFilter,
-	// });
-
-	// useEffect(() => {
-	// 	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-	// 	const wsUrl = `${protocol}//${window.location.host}/request-logs`;
-	// 	const ws = new WebSocket(wsUrl);
-
-	// 	ws.onopen = () => {
-	// 		// Enviar parámetros iniciales
-	// 		ws.send(
-	// 			JSON.stringify({
-	// 				page: pagination,
-	// 				sort: sorting[0],
-	// 				search: search,
-	// 				status: statusFilter,
-	// 			}),
-	// 		);
-	// 	};
-
-	// 	ws.onmessage = (event) => {
-	// 		const data = JSON.parse(event.data);
-	// 		setStatsLogs(data);
-	// 	};
-
-	// 	// return () => ws.close();
-	// }, [pagination, search, sorting, statusFilter]);
-	const wsRef = useRef<WebSocket | null>(null);
-	const isInitialMount = useRef(true);
-
-	const sendParams = useCallback(() => {
-		if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-			wsRef.current.send(
-				JSON.stringify({
-					page: pagination,
-					sort: sorting[0],
-					search: search,
-					status: statusFilter,
-				}),
-			);
-		} else {
-			console.log("WebSocket not ready, retrying in 100ms");
-			setTimeout(sendParams, 100); // Retry after 100ms
-		}
-	}, [pagination, sorting, search, statusFilter]);
-
-	useEffect(() => {
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/request-logs`;
-		const newWs = new WebSocket(wsUrl);
-
-		newWs.onopen = () => {
-			console.log("WebSocket connection established");
-			wsRef.current = newWs;
-			sendParams(); // Send initial params as soon as the connection is open
-		};
-
-		newWs.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			setStatsLogs(data);
-		};
-
-		newWs.onerror = (error) => {
-			console.error("WebSocket error:", error);
-		};
-
-		newWs.onclose = () => {
-			console.log("WebSocket connection closed");
-		};
-
-		return () => {
-			newWs.close();
-		};
-	}, []);
-
-	useEffect(() => {
-		if (isInitialMount.current) {
-			isInitialMount.current = false;
-		} else {
-			sendParams();
-		}
-	}, [sendParams]);
+	const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery(
+		{
+			sort: sorting[0],
+			page: pagination,
+			search,
+			status: statusFilter,
+		},
+		{
+			refetchInterval: 1333,
+		},
+	);
 
 	const pageCount = useMemo(() => {
 		if (statsLogs?.totalCount) {

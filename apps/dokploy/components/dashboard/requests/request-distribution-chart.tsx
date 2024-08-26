@@ -25,7 +25,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export const RequestDistributionChart = () => {
-	const { data: stats } = api.settings.readStats.useQuery();
+	const { data: stats } = api.settings.readStats.useQuery(undefined, {
+		refetchInterval: 1333,
+	});
 
 	return (
 		<ResponsiveContainer width="100%" height={200}>

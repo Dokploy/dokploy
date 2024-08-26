@@ -23,7 +23,6 @@ import {
 	getPublicIpWithFallback,
 	setupTerminalWebSocketServer,
 } from "./wss/terminal";
-import { setupRequestLogsWebSocketServer } from "./wss/requests-logs";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -40,7 +39,6 @@ void app.prepare().then(async () => {
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
-		setupRequestLogsWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
 		setupDockerStatsMonitoringSocketServer(server);
 
