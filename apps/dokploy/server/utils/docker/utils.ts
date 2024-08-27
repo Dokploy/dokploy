@@ -109,7 +109,7 @@ export const cleanStoppedContainers = async () => {
 
 export const cleanUpUnusedVolumes = async () => {
 	try {
-		await execAsync("docker volume prune --force");
+		await execAsync("docker volume prune --all --force");
 	} catch (error) {
 		console.error(error);
 		throw error;
