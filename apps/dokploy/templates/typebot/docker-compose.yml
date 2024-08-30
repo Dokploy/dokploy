@@ -1,0 +1,49 @@
+version: '3.3'
+
+volumes:
+  db-data:
+
+services:
+  typebot-db:
+    image: postgres:14-alpine
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: typebot
+      POSTGRES_DB: typebot
+      POSTGRES_PASSWORD: typebot
+    networks:
+      - dokploy-network
+
+  typebot-builder:
+    image: baptistearno/typebot-builder:2.27
+    restart: always
+    depends_on:
+      - typebot-db
+    environment:
+      ENCRYPTION_SECRET: '${ENCRYPTION_SECRET}'
+      DATABASE_URL: 'postgresql://typebot:typebot@typebot-db:5432/typebot'
+      NEXTAUTH_URL: '${NEXTAUTH_URL}'
+      NEXT_PUBLIC_VIEWER_URL: '${NEXT_PUBLIC_VIEWER_URL}'
+      ADMIN_EMAIL: '${ADMIN_EMAIL}'
+      SMTP_HOST: '${SMTP_HOST}'
+      NEXT_PUBLIC_SMTP_FROM: '${NEXT_PUBLIC_SMTP_FROM}'
+      SMTP_USERNAME: '${SMTP_USERNAME}'
+      SMTP_PASSWORD: '${SMTP_PASSWORD}'
+      DEFAULT_WORKSPACE_PLAN: '${DEFAULT_WORKSPACE_PLAN}'
+
+  typebot-viewer:
+    image: baptistearno/typebot-viewer:2.27.0
+    restart: always
+    environment:
+      ENCRYPTION_SECRET: '${ENCRYPTION_SECRET}'
+      DATABASE_URL: postgresql://typebot:typebot@typebot-db:5432/typebot
+      NEXTAUTH_URL: '${NEXTAUTH_URL}'
+      NEXT_PUBLIC_VIEWER_URL: '${NEXT_PUBLIC_VIEWER_URL}'
+      ADMIN_EMAIL: '${ADMIN_EMAIL}'
+      SMTP_HOST: '${SMTP_HOST}'
+      NEXT_PUBLIC_SMTP_FROM: '${NEXT_PUBLIC_SMTP_FROM}'
+      SMTP_USERNAME: '${SMTP_USERNAME}'
+      SMTP_PASSWORD: '${SMTP_PASSWORD}'
+      DEFAULT_WORKSPACE_PLAN: '${DEFAULT_WORKSPACE_PLAN}'
