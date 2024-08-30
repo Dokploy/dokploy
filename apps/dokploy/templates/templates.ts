@@ -427,7 +427,8 @@ export const templates: TemplateData[] = [
 		id: "zipline",
 		name: "Zipline",
 		version: "v3.7.9",
-		description: "A ShareX/file upload server that is easy to use, packed with features, and with an easy setup!",
+		description:
+			"A ShareX/file upload server that is easy to use, packed with features, and with an easy setup!",
 		logo: "zipline.png",
 		links: {
 			github: "https://github.com/diced/zipline",
@@ -437,7 +438,7 @@ export const templates: TemplateData[] = [
 		tags: ["media system", "storage"],
 		load: () => import("./zipline/index").then((m) => m.generate),
 	},
-{
+	{
 		id: "soketi",
 		name: "Soketi",
 		version: "v1.4-16",

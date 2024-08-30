@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   postgres:
     image: postgres:15
@@ -12,21 +12,13 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   zipline:
-    image: ghcr.io/diced/zipline
-    networks:
-      - dokploy-network
-    ports:
-      - ${ZIPLINE_PORT}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${ZIPLINE_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${ZIPLINE_PORT}
+    image: ghcr.io/diced/zipline:3.7.9
     restart: unless-stopped
     environment:
       - CORE_RETURN_HTTPS=${ZIPLINE_RETURN_HTTPS}
@@ -36,14 +28,10 @@ services:
       - CORE_DATABASE_URL=postgres://postgres:postgres@postgres/postgres
       - CORE_LOGGER=${ZIPLINE_LOGGER}
     volumes:
-      - '../files/uploads:/zipline/uploads'
-      - '../files/public:/zipline/public'
+      - "../files/uploads:/zipline/uploads"
+      - "../files/public:/zipline/public"
     depends_on:
-      - 'postgres'
+      - "postgres"
 
 volumes:
   pg_data:
-
-networks:
-  dokploy-network:
-    external: true
