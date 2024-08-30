@@ -456,7 +456,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "typebot",
 		name: "Typebot",
-		version: "latest",
+		version: "2.27.0",
 		description: "Typebot is an open-source chatbot builder platform.",
 		logo: "typebot.svg",
 		links: {
