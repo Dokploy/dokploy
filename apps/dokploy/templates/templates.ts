@@ -424,6 +424,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./teable/index").then((m) => m.generate),
 	},
 	{
+		id: "zipline",
+		name: "Zipline",
+		version: "v3.7.9",
+		description:
+			"A ShareX/file upload server that is easy to use, packed with features, and with an easy setup!",
+		logo: "zipline.png",
+		links: {
+			github: "https://github.com/diced/zipline",
+			website: "https://zipline.diced.sh/",
+			docs: "https://zipline.diced.sh/docs/",
+		},
+		tags: ["media system", "storage"],
+		load: () => import("./zipline/index").then((m) => m.generate),
+	},
+	{
 		id: "soketi",
 		name: "Soketi",
 		version: "v1.4-16",
@@ -452,5 +467,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["analytics", "self-hosted"],
 		load: () => import("./aptabase/index").then((m) => m.generate),
+	},
+	{
+		id: "typebot",
+		name: "Typebot",
+		version: "2.27.0",
+		description: "Typebot is an open-source chatbot builder platform.",
+		logo: "typebot.svg",
+		links: {
+			github: "https://github.com/baptisteArno/typebot.io",
+			website: "https://typebot.io/",
+			docs: "https://docs.typebot.io/get-started/introduction",
+		},
+		tags: ["chatbot", "builder", "open-source"],
+		load: () => import("./typebot/index").then((m) => m.generate),
 	},
 ];

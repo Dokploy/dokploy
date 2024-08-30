@@ -1,0 +1,37 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:15
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zipline:
+    image: ghcr.io/diced/zipline:3.7.9
+    restart: unless-stopped
+    environment:
+      - CORE_RETURN_HTTPS=${ZIPLINE_RETURN_HTTPS}
+      - CORE_SECRET=${ZIPLINE_SECRET}
+      - CORE_HOST=0.0.0.0
+      - CORE_PORT=${ZIPLINE_PORT}
+      - CORE_DATABASE_URL=postgres://postgres:postgres@postgres/postgres
+      - CORE_LOGGER=${ZIPLINE_LOGGER}
+    volumes:
+      - "../files/uploads:/zipline/uploads"
+      - "../files/public:/zipline/public"
+    depends_on:
+      - "postgres"
+
+volumes:
+  pg_data:
