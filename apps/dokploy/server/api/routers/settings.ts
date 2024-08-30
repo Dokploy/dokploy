@@ -15,11 +15,13 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 	cleanUpUnusedVolumes,
+	prepareEnvironmentVariables,
 	startService,
 	stopService,
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
 import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
+import { execAsync } from "@/server/utils/process/execAsync";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -36,6 +38,7 @@ import {
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { scheduleJob, scheduledJobs } from "node-schedule";
+import { z } from "zod";
 import { appRouter } from "../root";
 import { findAdmin, updateAdmin } from "../services/admin";
 import {
@@ -49,14 +52,10 @@ import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
-		await spawnAsync("docker", [
-			"service",
-			"update",
-			"--force",
-			"--image",
-			getDokployImage(),
-			"dokploy",
-		]);
+		const { stdout } = await execAsync(
+			"docker service inspect dokploy --format '{{.ID}}'",
+		);
+		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
 	}),
 	reloadTraefik: adminProcedure.mutation(async () => {
@@ -72,7 +71,9 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input }) => {
-			await initializeTraefik(input.enableDashboard);
+			await initializeTraefik({
+				enableDashboard: input.enableDashboard,
+			});
 			return true;
 		}),
 
@@ -312,4 +313,37 @@ export const settingsRouter = createTRPCRouter({
 			return openApiDocument;
 		},
 	),
+	readTraefikEnv: adminProcedure.query(async () => {
+		const { stdout } = await execAsync(
+			"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik",
+		);
+
+		return stdout.trim();
+	}),
+
+	writeTraefikEnv: adminProcedure
+		.input(z.string())
+		.mutation(async ({ input }) => {
+			const envs = prepareEnvironmentVariables(input);
+			await initializeTraefik({
+				env: envs,
+			});
+
+			return true;
+		}),
+	haveTraefikDashboardPortEnabled: adminProcedure.query(async () => {
+		const { stdout } = await execAsync(
+			"docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik",
+		);
+
+		const parsed: any[] = JSON.parse(stdout.trim());
+
+		for (const port of parsed) {
+			if (port.PublishedPort === 8080) {
+				return true;
+			}
+		}
+
+		return false;
+	}),
 });

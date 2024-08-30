@@ -20,7 +20,7 @@
 		"format-and-lint": "biome check .",
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
 		"format-and-lint:fix": "biome check . --write",
-		"prepare": "node .husky/install.mjs"
+		"prepare": "node ./.config/.husky/install.mjs"
 	},
 	"devDependencies": {
 		"dotenv": "16.4.5",

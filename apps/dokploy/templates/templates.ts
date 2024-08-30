@@ -2,6 +2,21 @@ import type { TemplateData } from "./types/templates-data.type";
 
 export const templates: TemplateData[] = [
 	{
+		id: "supabase",
+		name: "SupaBase",
+		version: "1.24.07",
+		description:
+			"The open source Firebase alternative. Supabase gives you a dedicated Postgres database to build your web, mobile, and AI applications. ",
+		links: {
+			github: "https://github.com/supabase/supabase",
+			website: "https://supabase.com/",
+			docs: "https://supabase.com/docs/guides/self-hosting",
+		},
+		logo: "supabase.svg",
+		load: () => import("./supabase/index").then((m) => m.generate),
+		tags: ["database", "firebase", "postgres"],
+	},
+	{
 		id: "pocketbase",
 		name: "Pocketbase",
 		version: "v0.22.12",
@@ -421,5 +436,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["media system", "storage"],
 		load: () => import("./zipline/index").then((m) => m.generate),
-	}
+	},
+{
+		id: "soketi",
+		name: "Soketi",
+		version: "v1.4-16",
+		description:
+			"Soketi is your simple, fast, and resilient open-source WebSockets server.",
+		logo: "soketi.png",
+		links: {
+			github: "https://github.com/soketi/soketi",
+			website: "https://soketi.app/",
+			docs: "https://docs.soketi.app/",
+		},
+		tags: ["chat"],
+		load: () => import("./soketi/index").then((m) => m.generate),
+	},
+	{
+		id: "aptabase",
+		name: "Aptabase",
+		version: "v1.0.0",
+		description:
+			"Aptabase is a self-hosted web analytics platform that lets you track website traffic and user behavior.",
+		logo: "aptabase.svg",
+		links: {
+			github: "https://github.com/aptabase/aptabase",
+			website: "https://aptabase.com/",
+			docs: "https://github.com/aptabase/aptabase/blob/main/README.md",
+		},
+		tags: ["analytics", "self-hosted"],
+		load: () => import("./aptabase/index").then((m) => m.generate),
+	},
 ];

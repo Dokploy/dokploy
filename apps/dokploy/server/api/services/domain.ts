@@ -15,8 +15,6 @@ export type Domain = typeof domains.$inferSelect;
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
 	await db.transaction(async (tx) => {
-		const application = await findApplicationById(input.applicationId);
-
 		const domain = await tx
 			.insert(domains)
 			.values({
@@ -32,52 +30,19 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			});
 		}
 
-		await manageDomain(application, domain);
+		if (domain.applicationId) {
+			const application = await findApplicationById(domain.applicationId);
+			await manageDomain(application, domain);
+		}
 	});
 };
 
-export const generateDomain = async (
-	input: typeof apiFindDomainByApplication._type,
-) => {
-	const application = await findApplicationById(input.applicationId);
+export const generateTraefikMeDomain = async (appName: string) => {
 	const admin = await findAdmin();
-	const domain = await createDomain({
-		applicationId: application.applicationId,
-		host: generateRandomDomain({
-			serverIp: admin.serverIp || "",
-			projectName: application.appName,
-		}),
-		port: 3000,
-		certificateType: "none",
-		https: false,
-		path: "/",
+	return generateRandomDomain({
+		serverIp: admin.serverIp || "",
+		projectName: appName,
 	});
-
-	return domain;
-};
-
-export const generateWildcard = async (
-	input: typeof apiFindDomainByApplication._type,
-) => {
-	const application = await findApplicationById(input.applicationId);
-	const admin = await findAdmin();
-
-	if (!admin.host) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "We need a host to generate a wildcard domain",
-		});
-	}
-	const domain = await createDomain({
-		applicationId: application.applicationId,
-		host: generateWildcardDomain(application.appName, admin.host || ""),
-		port: 3000,
-		certificateType: "none",
-		https: false,
-		path: "/",
-	});
-
-	return domain;
 };
 
 export const generateWildcardDomain = (
@@ -108,6 +73,17 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 		where: eq(domains.applicationId, applicationId),
 		with: {
 			application: true,
+		},
+	});
+
+	return domainsArray;
+};
+
+export const findDomainsByComposeId = async (composeId: string) => {
+	const domainsArray = await db.query.domains.findMany({
+		where: eq(domains.composeId, composeId),
+		with: {
+			compose: true,
 		},
 	});
 

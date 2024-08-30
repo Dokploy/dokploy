@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -38,6 +38,7 @@ interface Props {
 }
 
 export const UpdateSecurity = ({ securityId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data } = api.security.one.useQuery(
 		{
@@ -79,6 +80,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 				await utils.application.one.invalidate({
 					applicationId: response?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the security");
@@ -86,7 +88,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<PenBoxIcon className="size-4  text-muted-foreground" />

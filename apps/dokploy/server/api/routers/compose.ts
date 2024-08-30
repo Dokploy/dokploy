@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
+	apiFetchServices,
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiUpdateCompose,
@@ -15,16 +16,18 @@ import {
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
 import { randomizeComposeFile } from "@/server/utils/docker/compose";
+import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import {
 	generatePassword,
 	loadTemplateModule,
-	readComposeFile,
+	readTemplateComposeFile,
 } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { findAdmin } from "../services/admin";
@@ -38,6 +41,7 @@ import {
 	updateCompose,
 } from "../services/compose";
 import { removeDeploymentsByComposeId } from "../services/deployment";
+import { createDomain, findDomainsByComposeId } from "../services/domain";
 import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
 import { addNewService, checkServiceAccess } from "../services/user";
@@ -113,16 +117,42 @@ export const composeRouter = createTRPCRouter({
 			await cleanQueuesByCompose(input.composeId);
 		}),
 
-	allServices: protectedProcedure
-		.input(apiFindCompose)
+	loadServices: protectedProcedure
+		.input(apiFetchServices)
 		.query(async ({ input }) => {
-			return await loadServices(input.composeId);
+			return await loadServices(input.composeId, input.type);
+		}),
+	fetchSourceType: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input }) => {
+			try {
+				const compose = await findComposeById(input.composeId);
+				await cloneCompose(compose);
+				return compose.sourceType;
+			} catch (err) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to fetch source type",
+					cause: err,
+				});
+			}
 		}),
 
 	randomizeCompose: protectedProcedure
 		.input(apiRandomizeCompose)
 		.mutation(async ({ input }) => {
 			return await randomizeComposeFile(input.composeId, input.prefix);
+		}),
+	getConvertedCompose: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
+			const domains = await findDomainsByComposeId(input.composeId);
+
+			const composeFile = await addDomainToCompose(compose, domains);
+			return dump(composeFile, {
+				lineWidth: 1000,
+			});
 		}),
 
 	deploy: protectedProcedure
@@ -189,7 +219,7 @@ export const composeRouter = createTRPCRouter({
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 			}
-			const composeFile = await readComposeFile(input.id);
+			const composeFile = await readTemplateComposeFile(input.id);
 
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
@@ -206,7 +236,7 @@ export const composeRouter = createTRPCRouter({
 			const project = await findProjectById(input.projectId);
 
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const { envs, mounts } = generate({
+			const { envs, mounts, domains } = generate({
 				serverIp: admin.serverIp,
 				projectName: projectName,
 			});
@@ -214,7 +244,7 @@ export const composeRouter = createTRPCRouter({
 			const compose = await createComposeByTemplate({
 				...input,
 				composeFile: composeFile,
-				env: envs.join("\n"),
+				env: envs?.join("\n"),
 				name: input.id,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
@@ -233,6 +263,17 @@ export const composeRouter = createTRPCRouter({
 						serviceId: compose.composeId,
 						serviceType: "compose",
 						type: "file",
+					});
+				}
+			}
+
+			if (domains && domains?.length > 0) {
+				for (const domain of domains) {
+					await createDomain({
+						...domain,
+						domainType: "compose",
+						certificateType: "none",
+						composeId: compose.composeId,
 					});
 				}
 			}

@@ -1,23 +1,28 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
-	generateHash,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 	const apiDomain = generateRandomDomain(schema);
-	const envs = [
-		`MINIO_DASHBOARD_HOST=${randomDomain}`,
-		"MINIO_DASHBOARD_PORT=9001",
-		`MINIO_API_HOST=${apiDomain}`,
-		"MINIO_API_PORT=9000",
-		`HASH=${mainServiceHash}`,
+
+	const domains: DomainSchema[] = [
+		{
+			host: mainDomain,
+			port: 9001,
+			serviceName: "minio",
+		},
+		{
+			host: apiDomain,
+			port: 9000,
+			serviceName: "minio",
+		},
 	];
 
 	return {
-		envs,
+		domains,
 	};
 }

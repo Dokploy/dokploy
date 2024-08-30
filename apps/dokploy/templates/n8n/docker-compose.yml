@@ -3,17 +3,9 @@ services:
   n8n:
     image: docker.n8n.io/n8nio/n8n:1.48.1
     restart: always
-    networks:
-      - dokploy-network
-    ports:
-      - ${N8N_PORT}
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${N8N_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${N8N_PORT}
     environment:
       - N8N_HOST=${N8N_HOST}
-      - N8N_PORT=5678
+      - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       - WEBHOOK_URL=https://${N8N_HOST}/
@@ -23,7 +15,4 @@ services:
       - n8n_data:/home/node/.n8n
 
 volumes:
-  n8n_data: 
-networks:
-  dokploy-network:
-    external: true
+  n8n_data:

@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SquarePen } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -41,6 +41,7 @@ interface Props {
 }
 
 export const UpdateCompose = ({ composeId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
 		api.compose.update.useMutation();
@@ -79,6 +80,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 				utils.compose.one.invalidate({
 					composeId: composeId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the Compose");
@@ -87,7 +89,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<SquarePen className="size-4 text-muted-foreground" />

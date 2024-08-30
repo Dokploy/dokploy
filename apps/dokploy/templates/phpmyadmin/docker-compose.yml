@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -20,21 +20,9 @@ services:
       PMA_USER: ${MYSQL_USER}
       PMA_PASSWORD: ${MYSQL_PASSWORD}
       PMA_ARBITRARY: 1
-    ports:
-      - ${PHPMYADMIN_PORT}
     depends_on:
       - db
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.${HASH}.rule=Host(`${PHPMYADMIN_HOST}`)
-      - traefik.http.services.${HASH}.loadbalancer.server.port=${PHPMYADMIN_PORT}
-    networks:
-      - dokploy-network
 
 volumes:
   db_data:
     driver: local
-
-networks:
-  dokploy-network:
-    external: true

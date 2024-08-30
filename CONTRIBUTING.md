@@ -166,20 +166,26 @@ import {
   generateRandomDomain,
   type Template,
   type Schema,
+  type DomainSchema,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
   // do your stuff here, like create a new domain, generate random passwords, mounts.
   const mainServiceHash = generateHash(schema.projectName);
-  const randomDomain = generateRandomDomain(schema);
+  const mainDomain = generateRandomDomain(schema);
   const secretBase = generateBase64(64);
   const toptKeyBase = generateBase64(32);
 
+  const domains: DomainSchema[] = [
+    {
+      host: mainDomain,
+      port: 8000,
+      serviceName: "plausible",
+    },
+  ];
+
   const envs = [
-    // If you want to show a domain in the UI, please add the prefix _HOST at the end of the variable name.
-    `PLAUSIBLE_HOST=${randomDomain}`,
-    "PLAUSIBLE_PORT=8000",
-    `BASE_URL=http://${randomDomain}`,
+    `BASE_URL=http://${mainDomain}`,
     `SECRET_KEY_BASE=${secretBase}`,
     `TOTP_VAULT_KEY=${toptKeyBase}`,
     `HASH=${mainServiceHash}`,
@@ -195,6 +201,7 @@ export function generate(schema: Schema): Template {
   return {
     envs,
     mounts,
+    domains,
   };
 }
 ```

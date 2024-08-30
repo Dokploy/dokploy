@@ -22,7 +22,7 @@ export const ShowDestinations = () => {
 				<CardHeader>
 					<CardTitle className="text-xl">SSH Keys</CardTitle>
 					<CardDescription>
-						Use SSH to beeing able cloning from private repositories.
+						Use SSH to be able to clone from private repositories.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-2 pt-4">

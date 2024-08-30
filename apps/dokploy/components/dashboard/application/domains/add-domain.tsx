@@ -27,13 +27,20 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { domain } from "@/server/db/validations";
+import { domain } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Dices } from "lucide-react";
 import type z from "zod";
 
 type Domain = z.infer<typeof domain>;
@@ -60,9 +67,21 @@ export const AddDomain = ({
 		},
 	);
 
+	const { data: application } = api.application.one.useQuery(
+		{
+			applicationId,
+		},
+		{
+			enabled: !!applicationId,
+		},
+	);
+
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
+
+	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+		api.domain.generateDomain.useMutation();
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
@@ -142,9 +161,42 @@ export const AddDomain = ({
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Host</FormLabel>
-											<FormControl>
-												<Input placeholder="api.dokploy.com" {...field} />
-											</FormControl>
+											<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+												<FormControl>
+													<Input placeholder="api.dokploy.com" {...field} />
+												</FormControl>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingGenerate}
+																onClick={() => {
+																	generateDomain({
+																		appName: application?.appName || "",
+																	})
+																		.then((domain) => {
+																			field.onChange(domain);
+																		})
+																		.catch((err) => {
+																			toast.error(err.message);
+																		});
+																}}
+															>
+																<Dices className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>Generate traefik.me domain</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 
 											<FormMessage />
 										</FormItem>

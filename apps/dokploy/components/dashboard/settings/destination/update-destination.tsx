@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -43,6 +43,7 @@ interface Props {
 
 export const UpdateDestination = ({ destinationId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const { data, refetch } = api.destination.one.useQuery(
 		{
 			destinationId,
@@ -93,13 +94,14 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 				toast.success("Destination Updated");
 				await refetch();
 				await utils.destination.all.invalidate();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the Destination");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
 				<Button variant="ghost">
 					<PenBoxIcon className="size-4  text-muted-foreground" />

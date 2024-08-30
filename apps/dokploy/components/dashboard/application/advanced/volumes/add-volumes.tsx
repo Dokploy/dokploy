@@ -24,7 +24,7 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import type React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -77,6 +77,7 @@ export const AddVolumes = ({
 	refetch,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync } = api.mounts.create.useMutation();
 	const form = useForm<AddMount>({
 		defaultValues: {
@@ -103,6 +104,7 @@ export const AddVolumes = ({
 			})
 				.then(() => {
 					toast.success("Mount Created");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to create the Bind mount");
@@ -117,6 +119,7 @@ export const AddVolumes = ({
 			})
 				.then(() => {
 					toast.success("Mount Created");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to create the Volume mount");
@@ -132,6 +135,7 @@ export const AddVolumes = ({
 			})
 				.then(() => {
 					toast.success("Mount Created");
+					setIsOpen(false);
 				})
 				.catch(() => {
 					toast.error("Error to create the File mount");
@@ -142,7 +146,7 @@ export const AddVolumes = ({
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>

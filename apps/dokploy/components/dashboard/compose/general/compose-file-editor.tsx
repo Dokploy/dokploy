@@ -72,7 +72,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			.then(async () => {
 				toast.success("Compose config Updated");
 				refetch();
-				await utils.compose.allServices.invalidate({
+				await utils.compose.getConvertedCompose.invalidate({
 					composeId,
 				});
 			})

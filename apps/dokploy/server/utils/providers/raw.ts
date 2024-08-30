@@ -26,3 +26,15 @@ export const createComposeFile = async (compose: Compose, logPath: string) => {
 		writeStream.end();
 	}
 };
+
+export const createComposeFileRaw = async (compose: Compose) => {
+	const { appName, composeFile } = compose;
+	const outputPath = join(COMPOSE_PATH, appName, "code");
+	const filePath = join(outputPath, "docker-compose.yml");
+	try {
+		await recreateDirectory(outputPath);
+		await writeFile(filePath, composeFile);
+	} catch (error) {
+		throw error;
+	}
+};

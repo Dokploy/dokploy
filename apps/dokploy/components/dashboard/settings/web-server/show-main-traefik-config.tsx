@@ -106,6 +106,7 @@ export const ShowMainTraefikConfig = ({ children }: Props) => {
 										<FormLabel>Traefik config</FormLabel>
 										<FormControl>
 											<CodeEditor
+												lineWrapping
 												wrapperClassName="h-[35rem] font-mono"
 												placeholder={`providers:
     docker:

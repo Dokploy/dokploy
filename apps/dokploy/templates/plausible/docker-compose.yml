@@ -32,17 +32,9 @@ services:
     depends_on:
       - plausible_db
       - plausible_events_db
-    ports:
-      - ${PLAUSIBLE_PORT}
-    networks:
-      - dokploy-network
     env_file:
       - .env
 
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${PLAUSIBLE_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${PLAUSIBLE_PORT}"
 volumes:
   db-data:
     driver: local
@@ -50,7 +42,3 @@ volumes:
     driver: local
   event-logs:
     driver: local
-
-networks:
-  dokploy-network:
-    external: true

@@ -2,20 +2,12 @@ version: "3.8"
 services:
   web:
     image: odoo:16.0
-    networks:
-      - dokploy-network
     depends_on:
       - db
-    ports:
-      - ${ODOO_PORT}
     environment:
       - HOST=db
       - USER=odoo
       - PASSWORD=odoo
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${HASH}.rule=Host(`${ODOO_HOST}`)"
-      - "traefik.http.services.${HASH}.loadbalancer.server.port=${ODOO_PORT}"
     volumes:
       - odoo-web-data:/var/lib/odoo
       - ../files/config:/etc/odoo
@@ -35,7 +27,3 @@ services:
 volumes:
   odoo-web-data:
   odoo-db-data:
-
-networks:
-  dokploy-network:
-    external: true

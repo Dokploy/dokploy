@@ -35,14 +35,23 @@ export const clusterRouter = createTRPCRouter({
 		}),
 	addWorker: protectedProcedure.query(async ({ input }) => {
 		const result = await docker.swarmInspect();
-		return `docker swarm join --token ${
-			result.JoinTokens.Worker
-		} ${await getPublicIpWithFallback()}:2377`;
+		const docker_version = await docker.version();
+
+		return {
+			command: `docker swarm join --token ${
+				result.JoinTokens.Worker
+			} ${await getPublicIpWithFallback()}:2377`,
+			version: docker_version.Version,
+		};
 	}),
 	addManager: protectedProcedure.query(async ({ input }) => {
 		const result = await docker.swarmInspect();
-		return `docker swarm join --token ${
-			result.JoinTokens.Manager
-		} ${await getPublicIpWithFallback()}:2377`;
+		const docker_version = await docker.version();
+		return {
+			command: `docker swarm join --token ${
+				result.JoinTokens.Manager
+			} ${await getPublicIpWithFallback()}:2377`,
+			version: docker_version.Version,
+		};
 	}),
 });

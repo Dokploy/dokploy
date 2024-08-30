@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -41,6 +41,7 @@ interface Props {
 
 export const UpdateRedirect = ({ redirectId }: Props) => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const { data } = api.redirects.one.useQuery(
 		{
 			redirectId,
@@ -84,6 +85,7 @@ export const UpdateRedirect = ({ redirectId }: Props) => {
 				await utils.application.one.invalidate({
 					applicationId: response?.applicationId,
 				});
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error to update the redirect");
@@ -91,7 +93,7 @@ export const UpdateRedirect = ({ redirectId }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
 					<PenBoxIcon className="size-4  text-muted-foreground" />

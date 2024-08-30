@@ -34,21 +34,23 @@ export const sshRouter = createTRPCRouter({
 				});
 			}
 		}),
-	remove: adminProcedure.input(apiRemoveSshKey).mutation(async ({ input }) => {
-		try {
-			return await removeSSHKeyById(input.sshKeyId);
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error to delete this ssh key",
-			});
-		}
-	}),
+	remove: protectedProcedure
+		.input(apiRemoveSshKey)
+		.mutation(async ({ input }) => {
+			try {
+				return await removeSSHKeyById(input.sshKeyId);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to delete this ssh key",
+				});
+			}
+		}),
 	one: protectedProcedure.input(apiFindOneSshKey).query(async ({ input }) => {
 		const sshKey = await findSSHKeyById(input.sshKeyId);
 		return sshKey;
 	}),
-	all: adminProcedure.query(async () => {
+	all: protectedProcedure.query(async () => {
 		return await db.query.sshKeys.findMany({});
 	}),
 	generate: protectedProcedure
@@ -56,15 +58,17 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			return await generateSSHKey(input.type);
 		}),
-	update: adminProcedure.input(apiUpdateSshKey).mutation(async ({ input }) => {
-		try {
-			return await updateSSHKeyById(input);
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error to update this ssh key",
-				cause: error,
-			});
-		}
-	}),
+	update: protectedProcedure
+		.input(apiUpdateSshKey)
+		.mutation(async ({ input }) => {
+			try {
+				return await updateSSHKeyById(input);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to update this ssh key",
+					cause: error,
+				});
+			}
+		}),
 });
