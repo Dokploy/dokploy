@@ -132,7 +132,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 					<DialogFooter>
 						<Button
 							isLoading={isLoading}
-							disabled={canEdit}
+							disabled={canEdit || isLoading}
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>

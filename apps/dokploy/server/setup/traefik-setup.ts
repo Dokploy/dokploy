@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { CreateServiceOptions } from "dockerode";
+import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
 import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH, docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
@@ -18,7 +18,7 @@ interface TraefikOptions {
 
 export const initializeTraefik = async ({
 	enableDashboard = false,
-	env = [],
+	env,
 }: TraefikOptions = {}) => {
 	const imageName = "traefik:v2.5";
 	const containerName = "dokploy-traefik";
@@ -85,9 +85,23 @@ export const initializeTraefik = async ({
 
 		const service = docker.getService(containerName);
 		const inspect = await service.inspect();
+
+		const existingEnv = inspect.Spec.TaskTemplate.ContainerSpec.Env || [];
+		const updatedEnv = !env ? existingEnv : env;
+
+		const updatedSettings = {
+			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ContainerSpec: {
+					...(settings?.TaskTemplate as ContainerTaskSpec).ContainerSpec,
+					Env: updatedEnv,
+				},
+			},
+		};
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
-			...settings,
+			...updatedSettings,
 		});
 
 		console.log("Traefik Started ✅");
