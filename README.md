@@ -9,7 +9,7 @@
 <div align="center">
   <div>Join us on Discord for help, feedback, and discussions!</div>
   </br>
-  <a href="https://discord.gg/ZXwG32bw">
+  <a href="https://discord.gg/2tBnJ3jDJc">
     <img src="https://discordapp.com/api/guilds/1234073262418563112/widget.png?style=banner2" alt="Discord Shield"/>
   </a>
 </div>
@@ -55,6 +55,10 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <!-- Hero Sponsors 🎖 -->
 
 <!-- Add Hero Sponsors here -->
+
+### Hero Sponsors 🎖
+
+<a href="https://www.hostinger.com/?ref=dokploy" target="_blank" ><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/></a>
 
 ### Premium Supporters 🥇
 

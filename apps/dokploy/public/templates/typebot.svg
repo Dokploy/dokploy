@@ -1,0 +1,13 @@
+<svg viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="800" rx="80" fill="#0042DA" style="--darkreader-inline-fill:#0035ae" />
+  <rect x="650" y="293" width="85.47" height="384.617" rx="20" transform="rotate(90 650 293)" fill="#FF8E20"
+    style="--darkreader-inline-fill:#ff9630" />
+  <path fill-rule="evenodd" clip-rule="evenodd"
+    d="M192.735 378.47c23.602 0 42.735-19.133 42.735-42.735S216.337 293 192.735 293 150 312.133 150 335.735s19.133 42.735 42.735 42.735Z"
+    fill="#FF8E20" style="--darkreader-inline-fill:#ff9630" />
+  <rect x="150" y="506.677" width="85.47" height="384.617" rx="20" transform="rotate(-90 150 506.677)" fill="#fff"
+    style="--darkreader-inline-fill:#e8e6e3" />
+  <path fill-rule="evenodd" clip-rule="evenodd"
+    d="M607.265 421.206c-23.602 0-42.735 19.134-42.735 42.736 0 23.602 19.133 42.735 42.735 42.735S650 487.544 650 463.942s-19.133-42.736-42.735-42.736Z"
+    fill="#fff" style="--darkreader-inline-fill:#e8e6e3" />
+</svg>
