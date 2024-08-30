@@ -58,7 +58,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Hero Sponsors 🎖
 
-<a href="https://www.hostinger.com/?ref=dokploy" target="_blank" style="background-color:white;"><img src="https://www.hostinger.com//h-assets/svg/icons/logos/hostinger-logo.svg#svgView(viewBox(0 0 147 30))" alt="Hostinger" width="200"/></a>
+<a href="https://www.hostinger.com/?ref=dokploy" target="_blank" ><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/></a>
 
 ### Premium Supporters 🥇
 
