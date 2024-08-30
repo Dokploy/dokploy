@@ -77,7 +77,10 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										key={item.domainId}
 										className="flex w-full items-center gap-4 max-sm:flex-wrap border p-4 rounded-lg"
 									>
-										<Link target="_blank" href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}>
+										<Link
+											target="_blank"
+											href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+										>
 											<ExternalLink className="size-5" />
 										</Link>
 
