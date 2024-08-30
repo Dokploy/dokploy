@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { CreateServiceOptions, ContainerTaskSpec } from "dockerode";
+import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
 import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH, docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
