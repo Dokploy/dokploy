@@ -20,7 +20,7 @@ export const initializeTraefik = async ({
 	enableDashboard = false,
 	env,
 }: TraefikOptions = {}) => {
-	const imageName = "traefik:v2.5";
+	const imageName = "traefik:v3.1.2";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
 		Name: containerName,
