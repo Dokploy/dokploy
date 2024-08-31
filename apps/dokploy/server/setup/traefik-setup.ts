@@ -56,6 +56,9 @@ export const initializeTraefik = async ({
 				Replicas: 1,
 			},
 		},
+		Labels: {
+			"traefik.enable": "true",
+		},
 		EndpointSpec: {
 			Ports: [
 				{
@@ -171,6 +174,9 @@ export const createDefaultTraefikConfig = () => {
 						},
 					}
 				: {
+						swarm: {
+							exposedByDefault: false,
+						},
 						docker: {
 							exposedByDefault: false,
 						},
