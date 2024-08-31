@@ -176,6 +176,7 @@ export const createDefaultTraefikConfig = () => {
 				: {
 						swarm: {
 							exposedByDefault: false,
+							watch: false,
 						},
 						docker: {
 							exposedByDefault: false,
