@@ -37,6 +37,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 			})
 			.min(1, "Dockerfile required"),
 		dockerContextPath: z.string().nullable().default(""),
+		dockerBuildStage: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
@@ -86,6 +87,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					...(data.buildType && {
 						dockerfile: data.dockerfile || "",
 						dockerContextPath: data.dockerContextPath || "",
+						dockerBuildStage: data.dockerBuildStage || "",
 					}),
 				});
 			} else {
@@ -106,6 +108,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			dockerfile: data.buildType === "dockerfile" ? data.dockerfile : null,
 			dockerContextPath:
 				data.buildType === "dockerfile" ? data.dockerContextPath : null,
+			dockerBuildStage:
+					data.buildType === "dockerfile" ? data.dockerBuildStage : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -239,6 +243,34 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												<FormMessage />
 											</FormItem>
 										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="dockerBuildStage"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<div className="space-y-0.5">
+													<FormLabel>Docker Build Stage</FormLabel>
+													<FormDescription>
+														Allows you to target a specific stage in a Multi-stage
+														Dockerfile. If empty, Docker defaults to build
+														the last defined stage.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Input
+														placeholder={
+															"E.g. production"
+														}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
+											</FormItem>
+										)
 									}}
 								/>
 							</>
