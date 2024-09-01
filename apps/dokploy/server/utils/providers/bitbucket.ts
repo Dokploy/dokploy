@@ -39,7 +39,6 @@ export const cloneBitbucketRepository = async (
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
 	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
-
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		await spawnAsync(
@@ -122,7 +121,10 @@ export const getBitbucketRepositories = async (
 	}
 	const bitbucketProvider = await getBitbucketProvider(input.bitbucketId);
 
-	const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketProvider.bitbucketUsername}`;
+	const username =
+		bitbucketProvider.bitbucketWorkspaceName ||
+		bitbucketProvider.bitbucketUsername;
+	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
 
 	try {
 		const response = await fetch(url, {
