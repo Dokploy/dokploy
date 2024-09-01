@@ -9,19 +9,23 @@ import { TRPCError } from "@trpc/server";
 import {
 	createBitbucketProvider,
 	createGitlabProvider,
-	getBitbucketProvider,
-	getGithubProvider,
-	getGitlabProvider,
 	haveGithubRequirements,
 	removeGithubProvider,
 } from "../services/git-provider";
 import { z } from "zod";
 import {
+	getGitlabBranches,
+	getGitlabRepositories,
 	haveGitlabRequirements,
-	refreshGitlabToken,
 } from "@/server/utils/providers/gitlab";
-import { Octokit } from "octokit";
-import { createAppAuth } from "@octokit/auth-app";
+import {
+	getBitbucketBranches,
+	getBitbucketRepositories,
+} from "@/server/utils/providers/bitbucket";
+import {
+	getGithubBranches,
+	getGithubRepositories,
+} from "@/server/utils/providers/github";
 
 export const gitProvider = createTRPCRouter({
 	getAll: protectedProcedure.query(async () => {
@@ -129,36 +133,7 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.gitlabProviderId) {
-				return [];
-			}
-			await refreshGitlabToken(input.gitlabProviderId);
-
-			const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
-			const response = await fetch(
-				`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
-				{
-					headers: {
-						Authorization: `Bearer ${gitlabProvider.accessToken}`,
-					},
-				},
-			);
-
-			if (!response.ok) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Failed to fetch repositories: ${response.statusText}`,
-				});
-			}
-
-			const repositories = await response.json();
-			return repositories as {
-				name: string;
-				url: string;
-				owner: {
-					username: string;
-				};
-			}[];
+			return await getGitlabRepositories(input);
 		}),
 
 	getGitlabBranches: protectedProcedure
@@ -170,60 +145,7 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.gitlabProviderId) {
-				return [];
-			}
-
-			const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
-
-			const projectResponse = await fetch(
-				`https://gitlab.com/api/v4/projects?search=${input.repo}&owned=true&page=1&per_page=100`,
-				{
-					headers: {
-						Authorization: `Bearer ${gitlabProvider.accessToken}`,
-					},
-				},
-			);
-
-			if (!projectResponse.ok) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Failed to fetch repositories: ${projectResponse.statusText}`,
-				});
-			}
-
-			const projects = await projectResponse.json();
-			const project = projects.find(
-				(p) => p.namespace.path === input.owner && p.name === input.repo,
-			);
-
-			if (!project) {
-				throw new Error(`Project not found: ${input.owner}/${input.repo}`);
-			}
-
-			const branchesResponse = await fetch(
-				`https://gitlab.com/api/v4/projects/${project.id}/repository/branches`,
-				{
-					headers: {
-						Authorization: `Bearer ${gitlabProvider.accessToken}`,
-					},
-				},
-			);
-
-			if (!branchesResponse.ok) {
-				throw new Error(
-					`Failed to fetch branches: ${branchesResponse.statusText}`,
-				);
-			}
-
-			const branches = await branchesResponse.json();
-
-			return branches as {
-				name: string;
-				commit: {
-					id: string;
-				};
-			}[];
+			return await getGitlabBranches(input);
 		}),
 	getBitbucketRepositories: protectedProcedure
 		.input(
@@ -232,52 +154,7 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.bitbucketProviderId) {
-				return [];
-			}
-			const bitbucketProvider = await getBitbucketProvider(
-				input.bitbucketProviderId,
-			);
-
-			const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketProvider.bitbucketUsername}`;
-
-			try {
-				const response = await fetch(url, {
-					method: "GET",
-					headers: {
-						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-					},
-				});
-
-				if (!response.ok) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `Failed to fetch repositories: ${response.statusText}`,
-					});
-				}
-
-				const data = await response.json();
-
-				const mappedData = data.values.map((repo) => {
-					return {
-						name: repo.name,
-						url: repo.links.html.href,
-						owner: {
-							username: repo.workspace.slug,
-						},
-					};
-				});
-
-				return mappedData as {
-					name: string;
-					url: string;
-					owner: {
-						username: string;
-					};
-				}[];
-			} catch (error) {
-				throw error;
-			}
+			return await getBitbucketRepositories(input);
 		}),
 	getBitbucketBranches: protectedProcedure
 		.input(
@@ -288,50 +165,7 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.bitbucketProviderId) {
-				return [];
-			}
-			const bitbucketProvider = await getBitbucketProvider(
-				input.bitbucketProviderId,
-			);
-			const { owner, repo } = input;
-			const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches`;
-
-			try {
-				const response = await fetch(url, {
-					method: "GET",
-					headers: {
-						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-					},
-				});
-
-				if (!response.ok) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: `HTTP error! status: ${response.status}`,
-					});
-				}
-
-				const data = await response.json();
-
-				const mappedData = data.values.map((branch) => {
-					return {
-						name: branch.name,
-						commit: {
-							sha: branch.target.hash,
-						},
-					};
-				});
-
-				return mappedData as {
-					name: string;
-					commit: {
-						sha: string;
-					};
-				}[];
-			} catch (error) {
-				throw error;
-			}
+			return await getBitbucketBranches(input);
 		}),
 	getRepositories: protectedProcedure
 		.input(
@@ -340,84 +174,11 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.githubProviderId) {
-				return [];
-			}
-
-			const githubProvider = await getGithubProvider(input.githubProviderId);
-
-			const octokit = new Octokit({
-				authStrategy: createAppAuth,
-				auth: {
-					appId: githubProvider.githubAppId,
-					privateKey: githubProvider.githubPrivateKey,
-					installationId: githubProvider.githubInstallationId,
-				},
-			});
-
-			const repositories = (await octokit.paginate(
-				octokit.rest.apps.listReposAccessibleToInstallation,
-			)) as unknown as Awaited<
-				ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
-			>["data"]["repositories"];
-
-			return repositories;
+			return await getGithubRepositories(input);
 		}),
 	getBranches: protectedProcedure
 		.input(apiGetBranches)
 		.query(async ({ input }) => {
-			// const admin = await findAdmin();
-
-			// const completeRequirements = haveGithubRequirements(admin);
-
-			// if (!completeRequirements) {
-			// 	throw new TRPCError({
-			// 		code: "BAD_REQUEST",
-			// 		message: "Admin need to setup correctly github account",
-			// 	});
-			// }
-
-			if (!input.githubProviderId) {
-				return [];
-			}
-			const githubProvider = await getGithubProvider(input.githubProviderId);
-
-			const octokit = new Octokit({
-				authStrategy: createAppAuth,
-				auth: {
-					appId: githubProvider.githubAppId,
-					privateKey: githubProvider.githubPrivateKey,
-					installationId: githubProvider.githubInstallationId,
-				},
-			});
-
-			const branches = (await octokit.paginate(
-				octokit.rest.repos.listBranches,
-				{
-					owner: input.owner,
-					repo: input.repo,
-				},
-			)) as unknown as Awaited<
-				ReturnType<typeof octokit.rest.repos.listBranches>
-			>["data"];
-
-			return branches;
+			return await getGithubBranches(input);
 		}),
 });
-// 1725175543
-// {
-// 	access_token: '11d422887d8fac712191ee9b09dfdb043a705938cd67a4a39f36b4bc65b3106d',
-// 	token_type: 'Bearer',
-// 	expires_in: 7200,
-// 	refresh_token: '3806d8022d32886c19d91eb9d1cea9328b864387f39c5d0469d08c48e18b674e',
-// 	scope: 'api read_user read_repository',
-// 	created_at: 1725167656
-//   }
-// {
-// 	access_token: 'd256b52b10bf72ebf2784f8c0528e48a04a7d249c28695b6cc105b47b09c7336',
-// 	token_type: 'Bearer',
-// 	expires_in: 7200,
-// 	refresh_token: '265eb87d0bbef410e0c30a2c239c4fa3698943219a439fb43cf2f8227d1fcaf2',
-// 	scope: 'api read_user read_repository',
-// 	created_at: 1725167803
-//   }

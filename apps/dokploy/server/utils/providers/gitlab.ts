@@ -1,6 +1,5 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import { findAdmin } from "@/server/api/services/admin";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
@@ -150,6 +149,105 @@ export const cloneGitlabRepository = async (
 	} finally {
 		writeStream.end();
 	}
+};
+
+interface GetGitlabRepositories {
+	gitlabProviderId?: string;
+}
+
+export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
+	if (!input.gitlabProviderId) {
+		return [];
+	}
+
+	await refreshGitlabToken(input.gitlabProviderId);
+
+	const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
+	const response = await fetch(
+		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		{
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to fetch repositories: ${response.statusText}`,
+		});
+	}
+
+	const repositories = await response.json();
+	return repositories as {
+		name: string;
+		url: string;
+		owner: {
+			username: string;
+		};
+	}[];
+};
+
+interface GetGitlabBranches {
+	owner: string;
+	repo: string;
+	gitlabProviderId?: string;
+}
+
+export const getGitlabBranches = async (input: GetGitlabBranches) => {
+	if (!input.gitlabProviderId) {
+		return [];
+	}
+
+	const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
+
+	const projectResponse = await fetch(
+		`https://gitlab.com/api/v4/projects?search=${input.repo}&owned=true&page=1&per_page=100`,
+		{
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!projectResponse.ok) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to fetch repositories: ${projectResponse.statusText}`,
+		});
+	}
+
+	const projects = await projectResponse.json();
+	const project = projects.find(
+		(p) => p.namespace.path === input.owner && p.name === input.repo,
+	);
+
+	if (!project) {
+		throw new Error(`Project not found: ${input.owner}/${input.repo}`);
+	}
+
+	const branchesResponse = await fetch(
+		`https://gitlab.com/api/v4/projects/${project.id}/repository/branches`,
+		{
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!branchesResponse.ok) {
+		throw new Error(`Failed to fetch branches: ${branchesResponse.statusText}`);
+	}
+
+	const branches = await branchesResponse.json();
+
+	return branches as {
+		name: string;
+		commit: {
+			id: string;
+		};
+	}[];
 };
 
 export const cloneRawGitlabRepository = async (

@@ -174,3 +174,63 @@ export const cloneRawGithubRepository = async (
 		throw error;
 	}
 };
+
+interface GetGithubRepositories {
+	githubProviderId?: string;
+}
+
+export const getGithubRepositories = async (input: GetGithubRepositories) => {
+	if (!input.githubProviderId) {
+		return [];
+	}
+
+	const githubProvider = await getGithubProvider(input.githubProviderId);
+
+	const octokit = new Octokit({
+		authStrategy: createAppAuth,
+		auth: {
+			appId: githubProvider.githubAppId,
+			privateKey: githubProvider.githubPrivateKey,
+			installationId: githubProvider.githubInstallationId,
+		},
+	});
+
+	const repositories = (await octokit.paginate(
+		octokit.rest.apps.listReposAccessibleToInstallation,
+	)) as unknown as Awaited<
+		ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
+	>["data"]["repositories"];
+
+	return repositories;
+};
+
+interface GetGithubBranches {
+	owner: string;
+	repo: string;
+	githubProviderId?: string;
+}
+
+export const getGithubBranches = async (input: GetGithubBranches) => {
+	if (!input.githubProviderId) {
+		return [];
+	}
+	const githubProvider = await getGithubProvider(input.githubProviderId);
+
+	const octokit = new Octokit({
+		authStrategy: createAppAuth,
+		auth: {
+			appId: githubProvider.githubAppId,
+			privateKey: githubProvider.githubPrivateKey,
+			installationId: githubProvider.githubInstallationId,
+		},
+	});
+
+	const branches = (await octokit.paginate(octokit.rest.repos.listBranches, {
+		owner: input.owner,
+		repo: input.repo,
+	})) as unknown as Awaited<
+		ReturnType<typeof octokit.rest.repos.listBranches>
+	>["data"];
+
+	return branches;
+};
