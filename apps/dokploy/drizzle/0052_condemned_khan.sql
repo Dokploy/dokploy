@@ -1,0 +1,1 @@
+ALTER TABLE "compose" RENAME COLUMN "gitlabHttpUrl" TO "gitlabPath";

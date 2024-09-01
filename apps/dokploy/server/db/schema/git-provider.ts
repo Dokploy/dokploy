@@ -64,7 +64,7 @@ export const githubProvider = pgTable("github_provider", {
 
 export const githubProviderRelations = relations(
 	githubProvider,
-	({ one, many }) => ({
+	({ one, }) => ({
 		gitProvider: one(gitProvider, {
 			fields: [githubProvider.gitProviderId],
 			references: [gitProvider.gitProviderId],
@@ -91,7 +91,7 @@ export const gitlabProvider = pgTable("gitlab_provider", {
 
 export const gitlabProviderRelations = relations(
 	gitlabProvider,
-	({ one, many }) => ({
+	({ one}) => ({
 		gitProvider: one(gitProvider, {
 			fields: [gitlabProvider.gitProviderId],
 			references: [gitProvider.gitProviderId],
@@ -114,7 +114,7 @@ export const bitbucketProvider = pgTable("bitbucket_provider", {
 
 export const bitbucketProviderRelations = relations(
 	bitbucketProvider,
-	({ one, many }) => ({
+	({ one }) => ({
 		gitProvider: one(gitProvider, {
 			fields: [bitbucketProvider.gitProviderId],
 			references: [gitProvider.gitProviderId],

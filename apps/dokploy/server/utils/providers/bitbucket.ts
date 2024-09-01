@@ -6,14 +6,20 @@ import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
 import { getBitbucketProvider } from "@/server/api/services/git-provider";
+import type { Compose } from "@/server/api/services/compose";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
 	{ bitbucketProvider: true }
 >;
 
+export type ComposeWithBitbucket = InferResultType<
+	"compose",
+	{ bitbucketProvider: true }
+>;
+
 export const cloneBitbucketRepository = async (
-	entity: ApplicationWithBitbucket,
+	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
 	logPath: string,
 	isCompose = false,
 ) => {
@@ -68,16 +74,13 @@ export const cloneBitbucketRepository = async (
 	}
 };
 
-export const cloneRawBitbucketRepository = async (
-	entity: ApplicationWithBitbucket,
-) => {
+export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	const {
 		appName,
 		bitbucketRepository,
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
-		bitbucketProvider,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -87,6 +90,7 @@ export const cloneRawBitbucketRepository = async (
 		});
 	}
 
+	const bitbucketProvider = await getBitbucketProvider(bitbucketId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);

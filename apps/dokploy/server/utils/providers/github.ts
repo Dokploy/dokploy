@@ -11,6 +11,7 @@ import {
 	getGithubProvider,
 	type GithubProvider,
 } from "@/server/api/services/git-provider";
+import type { Compose } from "@/server/api/services/compose";
 
 export const authGithub = (githubProvider: GithubProvider) => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -71,8 +72,13 @@ export type ApplicationWithGithub = InferResultType<
 	"applications",
 	{ githubProvider: true }
 >;
+
+export type ComposeWithGithub = InferResultType<
+	"compose",
+	{ githubProvider: true }
+>;
 export const cloneGithubRepository = async (
-	entity: ApplicationWithGithub,
+	entity: ApplicationWithGithub | ComposeWithGithub,
 	logPath: string,
 	isCompose = false,
 ) => {
@@ -140,9 +146,7 @@ export const cloneGithubRepository = async (
 	}
 };
 
-export const cloneRawGithubRepository = async (
-	entity: ApplicationWithGithub,
-) => {
+export const cloneRawGithubRepository = async (entity: Compose) => {
 	const { appName, repository, owner, branch, githubId } = entity;
 
 	if (!githubId) {

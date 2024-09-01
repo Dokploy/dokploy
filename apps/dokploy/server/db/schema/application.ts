@@ -138,6 +138,7 @@ export const applications = pgTable("application", {
 	gitlabOwner: text("gitlabOwner"),
 	gitlabBranch: text("gitlabBranch"),
 	gitlabBuildPath: text("gitlabBuildPath").default("/"),
+	gitlabPathNamespace: text("gitlabPathNamespace"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
@@ -423,6 +424,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabRepository: true,
 		gitlabId: true,
 		gitlabProjectId: true,
+		gitlabPathNamespace: true,
 	})
 	.required();
 

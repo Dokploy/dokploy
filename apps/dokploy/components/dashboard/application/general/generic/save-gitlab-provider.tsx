@@ -44,6 +44,7 @@ const GitlabProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
+			gitlabPathNamespace: z.string().min(1),
 			id: z.number().nullable(),
 		})
 		.required(),
@@ -70,6 +71,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
+				gitlabPathNamespace: "",
 				id: null,
 			},
 			gitlabId: "",
@@ -112,6 +114,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				repository: {
 					repo: data.gitlabRepository || "",
 					owner: data.gitlabOwner || "",
+					gitlabPathNamespace: data.gitlabPathNamespace || "",
 					id: data.gitlabProjectId,
 				},
 				buildPath: data.gitlabBuildPath || "/",
@@ -129,6 +132,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabId: data.gitlabId,
 			applicationId,
 			gitlabProjectId: data.repository.id,
+			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -161,6 +165,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												owner: "",
 												repo: "",
 												id: null,
+												gitlabPathNamespace: "",
 											});
 											form.setValue("branch", "");
 										}}
@@ -246,6 +251,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																			owner: repo.owner.username as string,
 																			repo: repo.name,
 																			id: repo.id,
+																			gitlabPathNamespace: repo.url,
 																		});
 																		form.setValue("branch", "");
 																	}}

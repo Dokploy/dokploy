@@ -344,6 +344,41 @@
       "when": 1725206119154,
       "tag": "0048_unknown_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1725225552834,
+      "tag": "0049_futuristic_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1725226430293,
+      "tag": "0050_faithful_brood",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1725231466293,
+      "tag": "0051_powerful_ironclad",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1725231697187,
+      "tag": "0052_condemned_khan",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1725232936525,
+      "tag": "0053_fearless_electro",
+      "breakpoints": true
     }
   ]
 }

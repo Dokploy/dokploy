@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -37,90 +38,102 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const GithubProviderSchema = z.object({
+const GitlabProviderSchema = z.object({
 	composePath: z.string().min(1),
 	repository: z
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
+			id: z.number().nullable(),
+			gitlabPathNamespace: z.string().min(1),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	githubId: z.string().min(1, "Github Provider is required"),
+	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 });
 
-type GithubProvider = z.infer<typeof GithubProviderSchema>;
+type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
 
 interface Props {
 	composeId: string;
 }
 
-export const SaveGithubProviderCompose = ({ composeId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
+export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
+	const { data: gitlabProviders } = api.gitProvider.gitlabProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
-	const { mutateAsync, isLoading: isSavingGithubProvider } =
+	const { mutateAsync, isLoading: isSavingGitlabProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<GithubProvider>({
+	const form = useForm<GitlabProvider>({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
 				owner: "",
 				repo: "",
+				gitlabPathNamespace: "",
+				id: null,
 			},
-			githubId: "",
+			gitlabId: "",
 			branch: "",
 		},
-		resolver: zodResolver(GithubProviderSchema),
+		resolver: zodResolver(GitlabProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const githubId = form.watch("githubId");
+	const gitlabId = form.watch("gitlabId");
 
-	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.gitProvider.getRepositories.useQuery({
-			githubId,
-		});
+	const {
+		data: repositories,
+		isLoading: isLoadingRepositories,
+		error,
+	} = api.gitProvider.getGitlabRepositories.useQuery({
+		gitlabId,
+	});
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getBranches.useQuery(
+	} = api.gitProvider.getGitlabBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			githubId,
+			id: repository?.id,
+			gitlabId: gitlabId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!githubId,
+			enabled: !!repository?.owner && !!repository?.repo && !!gitlabId,
 		},
 	);
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				branch: data.branch || "",
+				branch: data.gitlabBranch || "",
 				repository: {
-					repo: data.repository || "",
-					owner: data.owner || "",
+					repo: data.gitlabRepository || "",
+					owner: data.gitlabOwner || "",
+					id: data.gitlabProjectId,
+					gitlabPathNamespace: data.gitlabPathNamespace || "",
 				},
 				composePath: data.composePath,
-				githubId: data.githubId || "",
+				gitlabId: data.gitlabId || "",
 			});
 		}
 	}, [form.reset, data, form]);
 
-	const onSubmit = async (data: GithubProvider) => {
+	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
-			branch: data.branch,
-			repository: data.repository.repo,
-			composeId,
-			owner: data.repository.owner,
+			gitlabBranch: data.branch,
+			gitlabRepository: data.repository.repo,
+			gitlabOwner: data.repository.owner,
 			composePath: data.composePath,
-			githubId: data.githubId,
-			sourceType: "github",
+			gitlabId: data.gitlabId,
+			composeId,
+			gitlabProjectId: data.repository.id,
+			gitlabPathNamespace: data.repository.gitlabPathNamespace,
+			sourceType: "gitlab",
 			composeStatus: "idle",
 		})
 			.then(async () => {
@@ -128,7 +141,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the github provider");
+				toast.error("Error to save the gitlab provider");
 			});
 	};
 
@@ -139,19 +152,22 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid w-full gap-4 py-3"
 				>
+					{error && <AlertBlock type="error">{error?.message}</AlertBlock>}
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="githubId"
+							name="gitlabId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Github Account</FormLabel>
+									<FormLabel>Gitlab Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
 												repo: "",
+												gitlabPathNamespace: "",
+												id: null,
 											});
 											form.setValue("branch", "");
 										}}
@@ -160,16 +176,16 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue placeholder="Select a Gitlab Account" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											{githubProviders?.map((githubProvider) => (
+											{gitlabProviders?.map((gitlabProvider) => (
 												<SelectItem
-													key={githubProvider.githubId}
-													value={githubProvider.githubId}
+													key={gitlabProvider.gitlabId}
+													value={gitlabProvider.gitlabId}
 												>
-													{githubProvider.gitProvider.name}
+													{gitlabProvider.gitProvider.name}
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -222,29 +238,38 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
-														{repositories?.map((repo) => (
-															<CommandItem
-																value={repo.url}
-																key={repo.url}
-																onSelect={() => {
-																	form.setValue("repository", {
-																		owner: repo.owner.login as string,
-																		repo: repo.name,
-																	});
-																	form.setValue("branch", "");
-																}}
-															>
-																{repo.name}
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
+														{repositories && repositories.length === 0 && (
+															<CommandEmpty>
+																No repositories found.
+															</CommandEmpty>
+														)}
+														{repositories?.map((repo) => {
+															return (
+																<CommandItem
+																	value={repo.url}
+																	key={repo.url}
+																	onSelect={() => {
+																		form.setValue("repository", {
+																			owner: repo.owner.username as string,
+																			repo: repo.name,
+																			id: repo.id,
+																			gitlabPathNamespace: repo.url,
+																		});
+																		form.setValue("branch", "");
+																	}}
+																>
+																	{repo.name}
+																	<CheckIcon
+																		className={cn(
+																			"ml-auto h-4 w-4",
+																			repo.name === field.value.repo
+																				? "opacity-100"
+																				: "opacity-0",
+																		)}
+																	/>
+																</CommandItem>
+															);
+														})}
 													</CommandGroup>
 												</ScrollArea>
 											</Command>
@@ -309,7 +334,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														{branches?.map((branch) => (
 															<CommandItem
 																value={branch.name}
-																key={branch.commit.sha}
+																key={branch.commit.id}
 																onSelect={() => {
 																	form.setValue("branch", branch.name);
 																}}
@@ -352,7 +377,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					</div>
 					<div className="flex w-full justify-end">
 						<Button
-							isLoading={isSavingGithubProvider}
+							isLoading={isSavingGitlabProvider}
 							type="submit"
 							className="w-fit"
 						>

@@ -1,4 +1,4 @@
-import fs, { existsSync, readFileSync, writeSync } from "node:fs";
+import fs, { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
@@ -13,10 +13,16 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
+import { cloneRawGitlabRepository } from "../providers/gitlab";
+import { cloneRawBitbucketRepository } from "../providers/bitbucket";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
 		await cloneRawGithubRepository(compose);
+	} else if (compose.sourceType === "gitlab") {
+		await cloneRawGitlabRepository(compose);
+	} else if (compose.sourceType === "bitbucket") {
+		await cloneRawBitbucketRepository(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneGitRawRepository(compose);
 	} else if (compose.sourceType === "raw") {

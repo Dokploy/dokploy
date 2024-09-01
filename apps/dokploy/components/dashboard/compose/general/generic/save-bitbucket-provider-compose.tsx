@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -37,7 +38,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const GithubProviderSchema = z.object({
+const BitbucketProviderSchema = z.object({
 	composePath: z.string().min(1),
 	repository: z
 		.object({
@@ -46,81 +47,86 @@ const GithubProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	githubId: z.string().min(1, "Github Provider is required"),
+	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 });
 
-type GithubProvider = z.infer<typeof GithubProviderSchema>;
+type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
 
 interface Props {
 	composeId: string;
 }
 
-export const SaveGithubProviderCompose = ({ composeId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
+export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
+	const { data: bitbucketProviders } =
+		api.gitProvider.bitbucketProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
-	const { mutateAsync, isLoading: isSavingGithubProvider } =
+	const { mutateAsync, isLoading: isSavingBitbucketProvider } =
 		api.compose.update.useMutation();
 
-	const form = useForm<GithubProvider>({
+	const form = useForm<BitbucketProvider>({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
 			repository: {
 				owner: "",
 				repo: "",
 			},
-			githubId: "",
+			bitbucketId: "",
 			branch: "",
 		},
-		resolver: zodResolver(GithubProviderSchema),
+		resolver: zodResolver(BitbucketProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const githubId = form.watch("githubId");
+	const bitbucketId = form.watch("bitbucketId");
 
-	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.gitProvider.getRepositories.useQuery({
-			githubId,
-		});
+	const {
+		data: repositories,
+		isLoading: isLoadingRepositories,
+		error,
+		isError,
+	} = api.gitProvider.getBitbucketRepositories.useQuery({
+		bitbucketId,
+	});
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getBranches.useQuery(
+	} = api.gitProvider.getBitbucketBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			githubId,
+			bitbucketId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!githubId,
+			enabled: !!repository?.owner && !!repository?.repo && !!bitbucketId,
 		},
 	);
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				branch: data.branch || "",
+				branch: data.bitbucketBranch || "",
 				repository: {
-					repo: data.repository || "",
-					owner: data.owner || "",
+					repo: data.bitbucketRepository || "",
+					owner: data.bitbucketOwner || "",
 				},
 				composePath: data.composePath,
-				githubId: data.githubId || "",
+				bitbucketId: data.bitbucketId || "",
 			});
 		}
 	}, [form.reset, data, form]);
 
-	const onSubmit = async (data: GithubProvider) => {
+	const onSubmit = async (data: BitbucketProvider) => {
 		await mutateAsync({
-			branch: data.branch,
-			repository: data.repository.repo,
-			composeId,
-			owner: data.repository.owner,
+			bitbucketBranch: data.branch,
+			bitbucketRepository: data.repository.repo,
+			bitbucketOwner: data.repository.owner,
+			bitbucketId: data.bitbucketId,
 			composePath: data.composePath,
-			githubId: data.githubId,
-			sourceType: "github",
+			composeId,
+			sourceType: "bitbucket",
 			composeStatus: "idle",
 		})
 			.then(async () => {
@@ -128,7 +134,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the github provider");
+				toast.error("Error to save the Bitbucket provider");
 			});
 	};
 
@@ -139,13 +145,16 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid w-full gap-4 py-3"
 				>
+					{error && (
+						<AlertBlock type="error">Repositories: {error.message}</AlertBlock>
+					)}
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="githubId"
+							name="bitbucketId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Github Account</FormLabel>
+									<FormLabel>Bitbucket Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -160,16 +169,16 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue placeholder="Select a Bitbucket Account" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											{githubProviders?.map((githubProvider) => (
+											{bitbucketProviders?.map((bitbucketProvider) => (
 												<SelectItem
-													key={githubProvider.githubId}
-													value={githubProvider.githubId}
+													key={bitbucketProvider.bitbucketId}
+													value={bitbucketProvider.bitbucketId}
 												>
-													{githubProvider.gitProvider.name}
+													{bitbucketProvider.gitProvider.name}
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -228,7 +237,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 																key={repo.url}
 																onSelect={() => {
 																	form.setValue("repository", {
-																		owner: repo.owner.login as string,
+																		owner: repo.owner.username as string,
 																		repo: repo.name,
 																	});
 																	form.setValue("branch", "");
@@ -352,7 +361,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					</div>
 					<div className="flex w-full justify-end">
 						<Button
-							isLoading={isSavingGithubProvider}
+							isLoading={isSavingBitbucketProvider}
 							type="submit"
 							className="w-fit"
 						>

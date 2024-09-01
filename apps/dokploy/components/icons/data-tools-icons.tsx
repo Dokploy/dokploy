@@ -256,8 +256,8 @@ export const DockerIcon = ({ className }: Props) => {
 export const GitIcon = ({ className }: Props) => {
 	return (
 		<svg
-			width="24"
-			height="24"
+			width="20"
+			height="20"
 			viewBox="0 0 256 256"
 			xmlns="http://www.w3.org/2000/svg"
 			preserveAspectRatio="xMinYMin meet"

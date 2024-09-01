@@ -8,7 +8,6 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	console.log(req.body);
 	const { code, gitlabId } = req.query;
 
 	if (!code || Array.isArray(code)) {

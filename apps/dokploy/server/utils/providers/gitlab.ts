@@ -10,6 +10,7 @@ import {
 	updateGitlabProvider,
 } from "@/server/api/services/git-provider";
 import type { InferResultType } from "@/server/types/with";
+import type { Compose } from "@/server/api/services/compose";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await getGitlabProvider(gitlabProviderId);
@@ -79,8 +80,13 @@ export type ApplicationWithGitlab = InferResultType<
 	{ gitlabProvider: true }
 >;
 
+export type ComposeWithGitlab = InferResultType<
+	"compose",
+	{ gitlabProvider: true }
+>;
+
 export const cloneGitlabRepository = async (
-	entity: ApplicationWithGitlab,
+	entity: ApplicationWithGitlab | ComposeWithGitlab,
 	logPath: string,
 	isCompose = false,
 ) => {
@@ -92,6 +98,7 @@ export const cloneGitlabRepository = async (
 		gitlabBranch,
 		gitlabId,
 		gitlabProvider,
+		gitlabPathNamespace,
 	} = entity;
 
 	if (!gitlabId) {
@@ -121,7 +128,7 @@ export const cloneGitlabRepository = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `gitlab.com/${gitlabOwner}/${gitlabRepository}.git`;
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 
 	try {
@@ -191,12 +198,11 @@ export const getGitlabRepositories = async (input: {
 		}
 		return kind === "user";
 	});
-
 	const mappedRepositories = filteredRepos.map((repo: any) => {
 		return {
 			id: repo.id,
 			name: repo.name,
-			url: repo.web_url,
+			url: repo.path_with_namespace,
 			owner: {
 				username: repo.namespace.path,
 			},
@@ -249,16 +255,14 @@ export const getGitlabBranches = async (input: {
 	}[];
 };
 
-export const cloneRawGitlabRepository = async (
-	entity: ApplicationWithGitlab,
-) => {
+export const cloneRawGitlabRepository = async (entity: Compose) => {
 	const {
 		appName,
 		gitlabRepository,
 		gitlabOwner,
 		gitlabBranch,
 		gitlabId,
-		gitlabProvider,
+		gitlabPathNamespace,
 	} = entity;
 
 	if (!gitlabId) {
@@ -268,12 +272,15 @@ export const cloneRawGitlabRepository = async (
 		});
 	}
 
+	const gitlabProvider = await getGitlabProvider(gitlabId);
+
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `gitlab.com/${gitlabOwner}/${gitlabRepository}.git`;
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
+
 	try {
 		await spawnAsync("git", [
 			"clone",
