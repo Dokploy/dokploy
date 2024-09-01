@@ -1,6 +1,6 @@
 import { findAdmin } from "@/server/api/services/admin";
 import { db } from "@/server/db";
-import { applications, compose } from "@/server/db/schema";
+import { applications, compose, githubProvider } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { Webhooks } from "@octokit/webhooks";
@@ -19,17 +19,25 @@ export default async function handler(
 		return;
 	}
 
-	if (!admin.githubWebhookSecret) {
-		res.status(200).json({ message: "Github Webhook Secret not set" });
+	const signature = req.headers["x-hub-signature-256"];
+	const github = req.body;
+
+	const githubResult = await db.query.githubProvider.findFirst({
+		where: eq(githubProvider.githubInstallationId, github.installation.id),
+	});
+
+	if (!githubResult) {
+		res.status(400).json({ message: "Github Installation not found" });
 		return;
 	}
 
+	if (!githubResult.githubWebhookSecret) {
+		res.status(400).json({ message: "Github Webhook Secret not set" });
+		return;
+	}
 	const webhooks = new Webhooks({
-		secret: admin.githubWebhookSecret,
+		secret: githubResult.githubWebhookSecret,
 	});
-
-	const signature = req.headers["x-hub-signature-256"];
-	const github = req.body;
 
 	const verified = await webhooks.verify(
 		JSON.stringify(github),

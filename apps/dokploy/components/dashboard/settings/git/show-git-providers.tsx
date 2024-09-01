@@ -44,100 +44,102 @@ export const ShowGitProviders = () => {
 					</div>
 				</CardContent>
 			</Card>
-			{data?.map((gitProvider, index) => {
-				const isGithub = gitProvider.providerType === "github";
-				const isGitlab = gitProvider.providerType === "gitlab";
-				const haveGithubRequirements =
-					gitProvider.providerType === "github" &&
-					gitProvider.github?.githubPrivateKey &&
-					gitProvider.github?.githubAppId &&
-					gitProvider.github?.githubInstallationId;
+			<div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1">
+				{data?.map((gitProvider, index) => {
+					const isGithub = gitProvider.providerType === "github";
+					const isGitlab = gitProvider.providerType === "gitlab";
+					const haveGithubRequirements =
+						gitProvider.providerType === "github" &&
+						gitProvider.github?.githubPrivateKey &&
+						gitProvider.github?.githubAppId &&
+						gitProvider.github?.githubInstallationId;
 
-				const haveGitlabRequirements =
-					gitProvider.gitlab?.accessToken && gitProvider.gitlab?.refreshToken;
-				return (
-					<div
-						className="space-y-4"
-						key={`${gitProvider.gitProviderId}-${index}`}
-					>
-						<Card className="flex sm:flex-row max-sm:gap-2 flex-col justify-between items-center p-4">
-							<div className="flex items-center space-x-4 w-full">
-								{gitProvider.providerType === "github" && (
-									<GithubIcon className="w-6 h-6" />
-								)}
-								{gitProvider.providerType === "gitlab" && (
-									<GitlabIcon className="w-6 h-6" />
-								)}
-								{gitProvider.providerType === "bitbucket" && (
-									<BitbucketIcon className="w-6 h-6" />
-								)}
-								<div>
-									<p className="font-medium">
-										{gitProvider.providerType === "github"
-											? "GitHub"
-											: gitProvider.providerType === "gitlab"
-												? "GitLab"
-												: "Bitbucket"}
-									</p>
-									<p className="text-sm text-muted-foreground">
-										{gitProvider.name}
-									</p>
+					const haveGitlabRequirements =
+						gitProvider.gitlab?.accessToken && gitProvider.gitlab?.refreshToken;
+					return (
+						<div
+							className="space-y-4"
+							key={`${gitProvider.gitProviderId}-${index}`}
+						>
+							<Card className="flex sm:flex-row max-sm:gap-2 flex-col justify-between items-center p-4 h-full">
+								<div className="flex items-center space-x-4 w-full">
+									{gitProvider.providerType === "github" && (
+										<GithubIcon className="w-6 h-6" />
+									)}
+									{gitProvider.providerType === "gitlab" && (
+										<GitlabIcon className="w-6 h-6" />
+									)}
+									{gitProvider.providerType === "bitbucket" && (
+										<BitbucketIcon className="w-6 h-6" />
+									)}
+									<div>
+										<p className="font-medium">
+											{gitProvider.providerType === "github"
+												? "GitHub"
+												: gitProvider.providerType === "gitlab"
+													? "GitLab"
+													: "Bitbucket"}
+										</p>
+										<p className="text-sm text-muted-foreground">
+											{gitProvider.name}
+										</p>
+									</div>
 								</div>
-							</div>
-							<div className="flex  sm:gap-4 sm:flex-row flex-col">
-								{!haveGithubRequirements && isGithub && (
-									<div className="flex flex-col  gap-1">
-										<Link
-											href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
-											className={buttonVariants({ className: "w-fit" })}
-										>
-											Install Github App
-										</Link>
-									</div>
-								)}
+								<div className="flex  sm:gap-4 sm:flex-row flex-col">
+									{!haveGithubRequirements && isGithub && (
+										<div className="flex flex-col  gap-1">
+											<Link
+												href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
+												className={buttonVariants({ className: "w-fit" })}
+											>
+												Install Github App
+											</Link>
+										</div>
+									)}
 
-								{haveGithubRequirements && isGithub && (
-									<div className="flex flex-col  gap-1">
-										<Link
-											href={`${gitProvider?.github?.githubAppName}`}
-											target="_blank"
-											className={buttonVariants({
-												className: "w-fit",
-												variant: "secondary",
-											})}
-										>
-											<span className="text-sm">Manage Github App</span>
-										</Link>
-									</div>
-								)}
+									{haveGithubRequirements && isGithub && (
+										<div className="flex flex-col  gap-1">
+											<Link
+												href={`${gitProvider?.github?.githubAppName}`}
+												target="_blank"
+												className={buttonVariants({
+													className: "w-fit",
+													variant: "secondary",
+												})}
+											>
+												<span className="text-sm">Manage Github App</span>
+											</Link>
+										</div>
+									)}
 
-								{!haveGitlabRequirements && isGitlab && (
-									<div className="flex flex-col  gap-1">
-										<Link
-											href={getGitlabUrl(
-												gitProvider.gitlab?.applicationId || "",
-												gitProvider.gitlab?.gitlabId || "",
-											)}
-											target="_blank"
-											className={buttonVariants({
-												className: "w-fit",
-												variant: "secondary",
-											})}
-										>
-											<span className="text-sm">Install Gitlab App</span>
-										</Link>
-									</div>
-								)}
+									{!haveGitlabRequirements && isGitlab && (
+										<div className="flex flex-col  gap-1">
+											<Link
+												href={getGitlabUrl(
+													gitProvider.gitlab?.applicationId || "",
+													gitProvider.gitlab?.gitlabId || "",
+												)}
+												target="_blank"
+												className={buttonVariants({
+													className: "w-fit",
+													variant: "secondary",
+												})}
+											>
+												<span className="text-sm">Install Gitlab App</span>
+											</Link>
+										</div>
+									)}
 
-								<RemoveGitProvider
-									gitProviderId={gitProvider.gitProviderId}
-									gitProviderType={gitProvider.providerType}
-								/>
-							</div>
-						</Card>
-					</div>
-				);
-			})}
+									<RemoveGitProvider
+										gitProviderId={gitProvider.gitProviderId}
+										gitProviderType={gitProvider.providerType}
+									/>
+								</div>
+							</Card>
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 };
