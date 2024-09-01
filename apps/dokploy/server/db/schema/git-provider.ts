@@ -83,6 +83,7 @@ export const gitlabProvider = pgTable("gitlab_provider", {
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	groupName: text("group_name"),
+	expiresAt: integer("expires_at"),
 	gitProviderId: text("gitProviderId")
 		.notNull()
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),

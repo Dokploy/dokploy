@@ -13,6 +13,7 @@ import {
 	haveGithubRequirements,
 	haveGitlabRequirements,
 	removeGithubProvider,
+	updateGitlabProvider,
 } from "../services/git-provider";
 import { z } from "zod";
 
@@ -125,6 +126,8 @@ export const gitProvider = createTRPCRouter({
 			if (!input.gitlabProviderId) {
 				return [];
 			}
+			await refreshGitlabToken(input.gitlabProviderId);
+
 			const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
 			const response = await fetch(
 				`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
@@ -161,16 +164,18 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (!input.gitlabProviderId) {
+			console.log(input);
+			if (!input.gitlabProviderId || !input.repo || !input.owner) {
 				return [];
 			}
+
 			const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
 
 			const projectResponse = await fetch(
 				`https://gitlab.com/api/v4/projects?search=${input.repo}&owned=true&page=1&per_page=100`,
 				{
 					headers: {
-						Authorization: `Bearer ${gitlabProvider.refreshToken}`,
+						Authorization: `Bearer ${gitlabProvider.accessToken}`,
 					},
 				},
 			);
@@ -324,3 +329,61 @@ export const gitProvider = createTRPCRouter({
 			}
 		}),
 });
+async function refreshGitlabToken(gitlabProviderId: string) {
+	const gitlabProvider = await getGitlabProvider(gitlabProviderId);
+	const currentTime = Math.floor(Date.now() / 1000);
+
+	const safetyMargin = 60;
+	if (
+		gitlabProvider.expiresAt &&
+		currentTime + safetyMargin < gitlabProvider.expiresAt
+	) {
+		console.log("Token still valid, no need to refresh");
+		return;
+	}
+
+	const response = await fetch("https://gitlab.com/oauth/token", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+		body: new URLSearchParams({
+			grant_type: "refresh_token",
+			refresh_token: gitlabProvider.refreshToken as string,
+			client_id: gitlabProvider.applicationId as string,
+			client_secret: gitlabProvider.secret as string,
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to refresh token: ${response.statusText}`);
+	}
+
+	const data = await response.json();
+
+	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
+
+	await updateGitlabProvider(gitlabProviderId, {
+		accessToken: data.access_token,
+		refreshToken: data.refresh_token,
+		expiresAt,
+	});
+	return data;
+}
+// 1725175543
+// {
+// 	access_token: '11d422887d8fac712191ee9b09dfdb043a705938cd67a4a39f36b4bc65b3106d',
+// 	token_type: 'Bearer',
+// 	expires_in: 7200,
+// 	refresh_token: '3806d8022d32886c19d91eb9d1cea9328b864387f39c5d0469d08c48e18b674e',
+// 	scope: 'api read_user read_repository',
+// 	created_at: 1725167656
+//   }
+// {
+// 	access_token: 'd256b52b10bf72ebf2784f8c0528e48a04a7d249c28695b6cc105b47b09c7336',
+// 	token_type: 'Bearer',
+// 	expires_in: 7200,
+// 	refresh_token: '265eb87d0bbef410e0c30a2c239c4fa3698943219a439fb43cf2f8227d1fcaf2',
+// 	scope: 'api read_user read_repository',
+// 	created_at: 1725167803
+//   }
