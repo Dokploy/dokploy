@@ -21,6 +21,8 @@ import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { validUniqueServerAppName } from "./project";
+import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
+import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -81,6 +83,9 @@ export const findApplicationById = async (applicationId: string) => {
 			security: true,
 			ports: true,
 			registry: true,
+			gitlabProvider: true,
+			githubProvider: true,
+			bitbucketProvider: true,
 		},
 	});
 	if (!application) {
@@ -150,7 +155,13 @@ export const deployApplication = async ({
 
 	try {
 		if (application.sourceType === "github") {
-			await cloneGithubRepository(admin, application, deployment.logPath);
+			await cloneGithubRepository(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitlab") {
+			await cloneGitlabRepository(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "bitbucket") {
+			await cloneBitbucketRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "docker") {
 			await buildDocker(application, deployment.logPath);
@@ -213,6 +224,10 @@ export const rebuildApplication = async ({
 
 	try {
 		if (application.sourceType === "github") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitlab") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "bitbucket") {
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "docker") {
 			await buildDocker(application, deployment.logPath);

@@ -142,10 +142,6 @@ export const haveGithubRequirements = (githubProvider: GithubProvider) => {
 	);
 };
 
-export const haveGitlabRequirements = (gitlabProvider: GitlabProvider) => {
-	return !!(gitlabProvider?.accessToken && gitlabProvider?.refreshToken);
-};
-
 export const getGitlabProvider = async (gitlabProviderId: string) => {
 	const gitlabProviderResult = await db.query.gitlabProvider.findFirst({
 		where: eq(gitlabProvider.gitlabProviderId, gitlabProviderId),

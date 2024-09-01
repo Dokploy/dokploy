@@ -1,15 +1,19 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import { type Admin, findAdmin } from "@/server/api/services/admin";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import type { InferResultType } from "@/server/types/with";
+import {
+	getGithubProvider,
+	type GithubProvider,
+} from "@/server/api/services/git-provider";
 
-export const authGithub = (admin: Admin) => {
-	if (!haveGithubRequirements(admin)) {
+export const authGithub = (githubProvider: GithubProvider) => {
+	if (!haveGithubRequirements(githubProvider)) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Github Account not configured correctly",
@@ -19,9 +23,9 @@ export const authGithub = (admin: Admin) => {
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,
 		auth: {
-			appId: admin?.githubAppId || 0,
-			privateKey: admin?.githubPrivateKey || "",
-			installationId: admin?.githubInstallationId,
+			appId: githubProvider?.githubAppId || 0,
+			privateKey: githubProvider?.githubPrivateKey || "",
+			installationId: githubProvider?.githubInstallationId,
 		},
 	});
 
@@ -40,11 +44,11 @@ export const getGithubToken = async (
 	return installation.token;
 };
 
-export const haveGithubRequirements = (admin: Admin) => {
+export const haveGithubRequirements = (githubProvider: GithubProvider) => {
 	return !!(
-		admin?.githubAppId &&
-		admin?.githubPrivateKey &&
-		admin?.githubInstallationId
+		githubProvider?.githubAppId &&
+		githubProvider?.githubPrivateKey &&
+		githubProvider?.githubInstallationId
 	);
 };
 
@@ -63,19 +67,24 @@ const getErrorCloneRequirements = (entity: {
 	return reasons;
 };
 
+export type ApplicationWithGithub = InferResultType<
+	"applications",
+	{ githubProvider: true }
+>;
 export const cloneGithubRepository = async (
-	admin: Admin,
-	entity: {
-		appName: string;
-		repository?: string | null;
-		owner?: string | null;
-		branch?: string | null;
-	},
+	entity: ApplicationWithGithub,
 	logPath: string,
 	isCompose = false,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, repository, owner, branch } = entity;
+	const { appName, repository, owner, branch, githubProviderId } = entity;
+
+	if (!githubProviderId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "GitHub Provider not found",
+		});
+	}
 
 	const requirements = getErrorCloneRequirements(entity);
 
@@ -92,9 +101,11 @@ export const cloneGithubRepository = async (
 			message: "Error: GitHub repository information is incomplete.",
 		});
 	}
+
+	const githubProvider = await getGithubProvider(githubProviderId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const octokit = authGithub(admin);
+	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;
 	await recreateDirectory(outputPath);
@@ -129,17 +140,21 @@ export const cloneGithubRepository = async (
 	}
 };
 
-export const cloneRawGithubRepository = async (entity: {
-	appName: string;
-	repository?: string | null;
-	owner?: string | null;
-	branch?: string | null;
-}) => {
-	const { appName, repository, owner, branch } = entity;
-	const admin = await findAdmin();
+export const cloneRawGithubRepository = async (
+	entity: ApplicationWithGithub,
+) => {
+	const { appName, repository, owner, branch, githubProviderId } = entity;
+
+	if (!githubProviderId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "GitHub Provider not found",
+		});
+	}
+	const githubProvider = await getGithubProvider(githubProviderId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const octokit = authGithub(admin);
+	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;
 	await recreateDirectory(outputPath);

@@ -11,11 +11,13 @@ import {
 	getBitbucketProvider,
 	getGitlabProvider,
 	haveGithubRequirements,
-	haveGitlabRequirements,
 	removeGithubProvider,
-	updateGitlabProvider,
 } from "../services/git-provider";
 import { z } from "zod";
+import {
+	haveGitlabRequirements,
+	refreshGitlabToken,
+} from "@/server/utils/providers/gitlab";
 
 export const gitProvider = createTRPCRouter({
 	getAll: protectedProcedure.query(async () => {
@@ -164,8 +166,7 @@ export const gitProvider = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			console.log(input);
-			if (!input.gitlabProviderId || !input.repo || !input.owner) {
+			if (!input.gitlabProviderId) {
 				return [];
 			}
 
@@ -329,47 +330,6 @@ export const gitProvider = createTRPCRouter({
 			}
 		}),
 });
-async function refreshGitlabToken(gitlabProviderId: string) {
-	const gitlabProvider = await getGitlabProvider(gitlabProviderId);
-	const currentTime = Math.floor(Date.now() / 1000);
-
-	const safetyMargin = 60;
-	if (
-		gitlabProvider.expiresAt &&
-		currentTime + safetyMargin < gitlabProvider.expiresAt
-	) {
-		console.log("Token still valid, no need to refresh");
-		return;
-	}
-
-	const response = await fetch("https://gitlab.com/oauth/token", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/x-www-form-urlencoded",
-		},
-		body: new URLSearchParams({
-			grant_type: "refresh_token",
-			refresh_token: gitlabProvider.refreshToken as string,
-			client_id: gitlabProvider.applicationId as string,
-			client_secret: gitlabProvider.secret as string,
-		}),
-	});
-
-	if (!response.ok) {
-		throw new Error(`Failed to refresh token: ${response.statusText}`);
-	}
-
-	const data = await response.json();
-
-	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
-
-	await updateGitlabProvider(gitlabProviderId, {
-		accessToken: data.access_token,
-		refreshToken: data.refresh_token,
-		expiresAt,
-	});
-	return data;
-}
 // 1725175543
 // {
 // 	access_token: '11d422887d8fac712191ee9b09dfdb043a705938cd67a4a39f36b4bc65b3106d',
