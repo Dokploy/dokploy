@@ -66,6 +66,18 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
+		} else if (sourceType === "gitlab") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.gitlabBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+		} else if (sourceType === "bitbucket") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.bitbucketBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
 		}
 
 		try {

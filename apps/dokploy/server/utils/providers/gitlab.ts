@@ -93,8 +93,6 @@ export const cloneGitlabRepository = async (
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const {
 		appName,
-		gitlabRepository,
-		gitlabOwner,
 		gitlabBranch,
 		gitlabId,
 		gitlabProvider,
