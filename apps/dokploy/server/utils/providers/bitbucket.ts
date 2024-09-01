@@ -141,7 +141,7 @@ export const getBitbucketRepositories = async (
 
 		const data = await response.json();
 
-		const mappedData = data.values.map((repo) => {
+		const mappedData = data.values.map((repo: any) => {
 			return {
 				name: repo.name,
 				url: repo.links.html.href,
@@ -194,7 +194,7 @@ export const getBitbucketBranches = async (input: GetBitbucketBranches) => {
 
 		const data = await response.json();
 
-		const mappedData = data.values.map((branch) => {
+		const mappedData = data.values.map((branch: any) => {
 			return {
 				name: branch.name,
 				commit: {

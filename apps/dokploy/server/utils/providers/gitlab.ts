@@ -163,6 +163,7 @@ export const getGitlabRepositories = async (input: {
 	await refreshGitlabToken(input.gitlabId);
 
 	const gitlabProvider = await getGitlabProvider(input.gitlabId);
+
 	const response = await fetch(
 		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
@@ -181,7 +182,28 @@ export const getGitlabRepositories = async (input: {
 
 	const repositories = await response.json();
 
-	return repositories as {
+	const filteredRepos = repositories.filter((repo: any) => {
+		const { full_path, kind } = repo.namespace;
+		const groupName = gitlabProvider.groupName?.toLowerCase();
+
+		if (groupName) {
+			return full_path.toLowerCase().includes(groupName) && kind === "group";
+		}
+		return kind === "user";
+	});
+
+	const mappedRepositories = filteredRepos.map((repo: any) => {
+		return {
+			id: repo.id,
+			name: repo.name,
+			url: repo.web_url,
+			owner: {
+				username: repo.namespace.path,
+			},
+		};
+	});
+
+	return mappedRepositories as {
 		id: number;
 		name: string;
 		url: string;

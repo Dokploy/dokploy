@@ -231,6 +231,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
+														{repositories && repositories.length === 0 && (
+															<CommandEmpty>
+																No repositories found.
+															</CommandEmpty>
+														)}
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
