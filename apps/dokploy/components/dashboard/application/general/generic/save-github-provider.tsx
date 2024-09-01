@@ -46,7 +46,7 @@ const GithubProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	githubProviderId: z.string().min(1, "Github Provider is required"),
+	githubId: z.string().min(1, "Github Provider is required"),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -69,18 +69,18 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				owner: "",
 				repo: "",
 			},
-			githubProviderId: "",
+			githubId: "",
 			branch: "",
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const githubProviderId = form.watch("githubProviderId");
+	const githubId = form.watch("githubId");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
 		api.gitProvider.getRepositories.useQuery({
-			githubProviderId,
+			githubId,
 		});
 
 	const {
@@ -91,10 +91,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			githubProviderId,
+			githubId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!githubProviderId,
+			enabled: !!repository?.owner && !!repository?.repo && !!githubId,
 		},
 	);
 
@@ -107,7 +107,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 					owner: data.owner || "",
 				},
 				buildPath: data.buildPath || "/",
-				githubProviderId: data.githubProviderId || "",
+				githubId: data.githubId || "",
 			});
 		}
 	}, [form.reset, data, form]);
@@ -119,7 +119,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			applicationId,
 			owner: data.repository.owner,
 			buildPath: data.buildPath,
-			githubProviderId: data.githubProviderId,
+			githubId: data.githubId,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -140,7 +140,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="githubProviderId"
+							name="githubId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<FormLabel>Github Account</FormLabel>
@@ -164,8 +164,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<SelectContent>
 											{githubProviders?.map((githubProvider) => (
 												<SelectItem
-													key={githubProvider.githubProviderId}
-													value={githubProvider.githubProviderId}
+													key={githubProvider.githubId}
+													value={githubProvider.githubId}
 												>
 													{githubProvider.gitProvider.name}
 												</SelectItem>

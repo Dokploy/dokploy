@@ -1,5 +1,5 @@
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AddGitlabProvider } from "./add-gitlab-provider";
 import {
 	BitbucketIcon,
@@ -49,13 +49,12 @@ export const ShowGitProviders = () => {
 				const isGitlab = gitProvider.providerType === "gitlab";
 				const haveGithubRequirements =
 					gitProvider.providerType === "github" &&
-					gitProvider.githubProvider?.githubPrivateKey &&
-					gitProvider.githubProvider?.githubAppId &&
-					gitProvider.githubProvider?.githubInstallationId;
+					gitProvider.github?.githubPrivateKey &&
+					gitProvider.github?.githubAppId &&
+					gitProvider.github?.githubInstallationId;
 
 				const haveGitlabRequirements =
-					gitProvider.gitlabProvider?.accessToken &&
-					gitProvider.gitlabProvider?.refreshToken;
+					gitProvider.gitlab?.accessToken && gitProvider.gitlab?.refreshToken;
 				return (
 					<div
 						className="space-y-4"
@@ -89,7 +88,7 @@ export const ShowGitProviders = () => {
 								{!haveGithubRequirements && isGithub && (
 									<div className="flex flex-col  gap-1">
 										<Link
-											href={`${gitProvider?.githubProvider?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.githubProvider.githubProviderId}`}
+											href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 											className={buttonVariants({ className: "w-fit" })}
 										>
 											Install Github App
@@ -100,7 +99,7 @@ export const ShowGitProviders = () => {
 								{haveGithubRequirements && isGithub && (
 									<div className="flex flex-col  gap-1">
 										<Link
-											href={`${gitProvider?.githubProvider?.githubAppName}`}
+											href={`${gitProvider?.github?.githubAppName}`}
 											target="_blank"
 											className={buttonVariants({
 												className: "w-fit",
@@ -116,8 +115,8 @@ export const ShowGitProviders = () => {
 									<div className="flex flex-col  gap-1">
 										<Link
 											href={getGitlabUrl(
-												gitProvider.gitlabProvider?.applicationId || "",
-												gitProvider.gitlabProvider?.gitlabProviderId || "",
+												gitProvider.gitlab?.applicationId || "",
+												gitProvider.gitlab?.gitlabId || "",
 											)}
 											target="_blank"
 											className={buttonVariants({

@@ -47,7 +47,7 @@ const GitlabProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	gitlabProviderId: z.string().min(1, "Gitlab Provider is required"),
+	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -70,21 +70,21 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				owner: "",
 				repo: "",
 			},
-			gitlabProviderId: "",
+			gitlabId: "",
 			branch: "",
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const gitlabProviderId = form.watch("gitlabProviderId");
+	const gitlabId = form.watch("gitlabId");
 
 	const {
 		data: repositories,
 		isLoading: isLoadingRepositories,
 		error,
 	} = api.gitProvider.getGitlabRepositories.useQuery({
-		gitlabProviderId,
+		gitlabId,
 	});
 
 	const {
@@ -95,10 +95,10 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			gitlabProviderId: gitlabProviderId,
+			gitlabId: gitlabId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!gitlabProviderId,
+			enabled: !!repository?.owner && !!repository?.repo && !!gitlabId,
 		},
 	);
 
@@ -111,7 +111,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 					owner: data.gitlabOwner || "",
 				},
 				buildPath: data.gitlabBuildPath || "/",
-				gitlabProviderId: data.gitlabProviderId || "",
+				gitlabId: data.gitlabId || "",
 			});
 		}
 	}, [form.reset, data, form]);
@@ -122,7 +122,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabRepository: data.repository.repo,
 			gitlabOwner: data.repository.owner,
 			gitlabBuildPath: data.buildPath,
-			gitlabProviderId: data.gitlabProviderId,
+			gitlabId: data.gitlabId,
 			applicationId,
 		})
 			.then(async () => {
@@ -145,7 +145,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="gitlabProviderId"
+							name="gitlabId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<FormLabel>Gitlab Account</FormLabel>
@@ -169,8 +169,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										<SelectContent>
 											{gitlabProviders?.map((gitlabProvider) => (
 												<SelectItem
-													key={gitlabProvider.gitlabProviderId}
-													value={gitlabProvider.gitlabProviderId}
+													key={gitlabProvider.gitlabId}
+													value={gitlabProvider.gitlabId}
 												>
 													{gitlabProvider.gitProvider.name}
 												</SelectItem>

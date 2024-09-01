@@ -176,15 +176,15 @@ export const cloneRawGithubRepository = async (
 };
 
 interface GetGithubRepositories {
-	githubProviderId?: string;
+	githubId?: string;
 }
 
 export const getGithubRepositories = async (input: GetGithubRepositories) => {
-	if (!input.githubProviderId) {
+	if (!input.githubId) {
 		return [];
 	}
 
-	const githubProvider = await getGithubProvider(input.githubProviderId);
+	const githubProvider = await getGithubProvider(input.githubId);
 
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,
@@ -207,14 +207,14 @@ export const getGithubRepositories = async (input: GetGithubRepositories) => {
 interface GetGithubBranches {
 	owner: string;
 	repo: string;
-	githubProviderId?: string;
+	githubId?: string;
 }
 
 export const getGithubBranches = async (input: GetGithubBranches) => {
-	if (!input.githubProviderId) {
+	if (!input.githubId) {
 		return [];
 	}
-	const githubProvider = await getGithubProvider(input.githubProviderId);
+	const githubProvider = await getGithubProvider(input.githubId);
 
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,

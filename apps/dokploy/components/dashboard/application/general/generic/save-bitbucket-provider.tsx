@@ -47,7 +47,7 @@ const BitbucketProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	bitbucketProviderId: z.string().min(1, "Bitbucket Provider is required"),
+	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 });
 
 type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
@@ -71,14 +71,14 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 				owner: "",
 				repo: "",
 			},
-			bitbucketProviderId: "",
+			bitbucketId: "",
 			branch: "",
 		},
 		resolver: zodResolver(BitbucketProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const bitbucketProviderId = form.watch("bitbucketProviderId");
+	const bitbucketId = form.watch("bitbucketId");
 
 	const {
 		data: repositories,
@@ -86,7 +86,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 		error,
 		isError,
 	} = api.gitProvider.getBitbucketRepositories.useQuery({
-		bitbucketProviderId,
+		bitbucketId,
 	});
 
 	const {
@@ -97,11 +97,10 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			bitbucketProviderId,
+			bitbucketId,
 		},
 		{
-			enabled:
-				!!repository?.owner && !!repository?.repo && !!bitbucketProviderId,
+			enabled: !!repository?.owner && !!repository?.repo && !!bitbucketId,
 		},
 	);
 
@@ -114,7 +113,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 					owner: data.bitbucketOwner || "",
 				},
 				buildPath: data.bitbucketBuildPath || "/",
-				bitbucketProviderId: data.bitbucketProviderId || "",
+				bitbucketId: data.bitbucketId || "",
 			});
 		}
 	}, [form.reset, data, form]);
@@ -125,7 +124,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketRepository: data.repository.repo,
 			bitbucketOwner: data.repository.owner,
 			bitbucketBuildPath: data.buildPath,
-			bitbucketProviderId: data.bitbucketProviderId,
+			bitbucketId: data.bitbucketId,
 			applicationId,
 		})
 			.then(async () => {
@@ -150,7 +149,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="bitbucketProviderId"
+							name="bitbucketId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<FormLabel>Bitbucket Account</FormLabel>
@@ -174,8 +173,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										<SelectContent>
 											{bitbucketProviders?.map((bitbucketProvider) => (
 												<SelectItem
-													key={bitbucketProvider.bitbucketProviderId}
-													value={bitbucketProvider.bitbucketProviderId}
+													key={bitbucketProvider.bitbucketId}
+													value={bitbucketProvider.bitbucketId}
 												>
 													{bitbucketProvider.gitProvider.name}
 												</SelectItem>

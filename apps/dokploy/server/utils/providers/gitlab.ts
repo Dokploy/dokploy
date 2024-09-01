@@ -152,17 +152,17 @@ export const cloneGitlabRepository = async (
 };
 
 interface GetGitlabRepositories {
-	gitlabProviderId?: string;
+	gitlabId?: string;
 }
 
 export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
-	if (!input.gitlabProviderId) {
+	if (!input.gitlabId) {
 		return [];
 	}
 
-	await refreshGitlabToken(input.gitlabProviderId);
+	await refreshGitlabToken(input.gitlabId);
 
-	const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
+	const gitlabProvider = await getGitlabProvider(input.gitlabId);
 	const response = await fetch(
 		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
@@ -192,15 +192,15 @@ export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
 interface GetGitlabBranches {
 	owner: string;
 	repo: string;
-	gitlabProviderId?: string;
+	gitlabId?: string;
 }
 
 export const getGitlabBranches = async (input: GetGitlabBranches) => {
-	if (!input.gitlabProviderId) {
+	if (!input.gitlabId) {
 		return [];
 	}
 
-	const gitlabProvider = await getGitlabProvider(input.gitlabProviderId);
+	const gitlabProvider = await getGitlabProvider(input.gitlabId);
 
 	const projectResponse = await fetch(
 		`https://gitlab.com/api/v4/projects?search=${input.repo}&owned=true&page=1&per_page=100`,

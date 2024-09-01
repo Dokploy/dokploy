@@ -209,7 +209,7 @@ export const applicationRouter = createTRPCRouter({
 				owner: input.owner,
 				buildPath: input.buildPath,
 				applicationStatus: "idle",
-				githubProviderId: input.githubProviderId,
+				githubId: input.githubId,
 			});
 
 			return true;
@@ -224,7 +224,7 @@ export const applicationRouter = createTRPCRouter({
 				gitlabBuildPath: input.gitlabBuildPath,
 				sourceType: "gitlab",
 				applicationStatus: "idle",
-				gitlabProviderId: input.gitlabProviderId,
+				gitlabId: input.gitlabId,
 			});
 
 			return true;
@@ -239,7 +239,7 @@ export const applicationRouter = createTRPCRouter({
 				bitbucketBuildPath: input.bitbucketBuildPath,
 				sourceType: "bitbucket",
 				applicationStatus: "idle",
-				bitbucketProviderId: input.bitbucketProviderId,
+				bitbucketId: input.bitbucketId,
 			});
 
 			return true;

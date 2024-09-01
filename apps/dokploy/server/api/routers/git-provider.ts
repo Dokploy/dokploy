@@ -129,7 +129,7 @@ export const gitProvider = createTRPCRouter({
 	getGitlabRepositories: protectedProcedure
 		.input(
 			z.object({
-				gitlabProviderId: z.string().optional(),
+				gitlabId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -141,7 +141,7 @@ export const gitProvider = createTRPCRouter({
 			z.object({
 				owner: z.string(),
 				repo: z.string(),
-				gitlabProviderId: z.string().optional(),
+				gitlabId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -150,7 +150,7 @@ export const gitProvider = createTRPCRouter({
 	getBitbucketRepositories: protectedProcedure
 		.input(
 			z.object({
-				bitbucketProviderId: z.string().optional(),
+				bitbucketId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -161,7 +161,7 @@ export const gitProvider = createTRPCRouter({
 			z.object({
 				owner: z.string(),
 				repo: z.string(),
-				bitbucketProviderId: z.string().optional(),
+				bitbucketId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -170,7 +170,7 @@ export const gitProvider = createTRPCRouter({
 	getRepositories: protectedProcedure
 		.input(
 			z.object({
-				githubProviderId: z.string().optional(),
+				githubId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {

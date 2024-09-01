@@ -71,7 +71,7 @@ export const apiTraefikConfig = z.object({
 export const apiGetBranches = z.object({
 	repo: z.string().min(1),
 	owner: z.string().min(1),
-	githubProviderId: z.string().optional(),
+	githubId: z.string().optional(),
 });
 export const apiModifyTraefikConfig = z.object({
 	path: z.string().min(1),

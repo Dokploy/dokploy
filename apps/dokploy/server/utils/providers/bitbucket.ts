@@ -111,18 +111,16 @@ export const cloneRawBitbucketRepository = async (
 };
 
 interface GetBitbucketRepositories {
-	bitbucketProviderId?: string;
+	bitbucketId?: string;
 }
 
 export const getBitbucketRepositories = async (
 	input: GetBitbucketRepositories,
 ) => {
-	if (!input.bitbucketProviderId) {
+	if (!input.bitbucketId) {
 		return [];
 	}
-	const bitbucketProvider = await getBitbucketProvider(
-		input.bitbucketProviderId,
-	);
+	const bitbucketProvider = await getBitbucketProvider(input.bitbucketId);
 
 	const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketProvider.bitbucketUsername}`;
 
@@ -168,16 +166,14 @@ export const getBitbucketRepositories = async (
 interface GetBitbucketBranches {
 	owner: string;
 	repo: string;
-	bitbucketProviderId?: string;
+	bitbucketId?: string;
 }
 
 export const getBitbucketBranches = async (input: GetBitbucketBranches) => {
-	if (!input.bitbucketProviderId) {
+	if (!input.bitbucketId) {
 		return [];
 	}
-	const bitbucketProvider = await getBitbucketProvider(
-		input.bitbucketProviderId,
-	);
+	const bitbucketProvider = await getBitbucketProvider(input.bitbucketId);
 	const { owner, repo } = input;
 	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches`;
 
