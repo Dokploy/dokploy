@@ -37,7 +37,7 @@ export default async function handler(
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 	const expiresAt = Math.floor(Date.now() / 1000) + result.expires_in;
-	const updatedGiltab = await updateGitlabProvider(gitlab.gitlabProviderId, {
+	const updatedGiltab = await updateGitlabProvider(gitlab.gitlabId, {
 		accessToken: result.access_token,
 		refreshToken: result.refresh_token,
 		expiresAt,

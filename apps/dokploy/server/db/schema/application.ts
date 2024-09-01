@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -186,20 +185,14 @@ export const applications = pgTable("application", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
-	githubProviderId: text("githubProviderId").references(
-		() => githubProvider.githubProviderId,
-		{
-			onDelete: "set null",
-		},
-	),
-	gitlabProviderId: text("gitlabProviderId").references(
-		() => gitlabProvider.gitlabProviderId,
-		{
-			onDelete: "set null",
-		},
-	),
-	bitbucketProviderId: text("bitbucketProviderId").references(
-		() => bitbucketProvider.bitbucketProviderId,
+	githubId: text("githubId").references(() => githubProvider.githubId, {
+		onDelete: "set null",
+	}),
+	gitlabId: text("gitlabId").references(() => gitlabProvider.gitlabId, {
+		onDelete: "set null",
+	}),
+	bitbucketId: text("bitbucketId").references(
+		() => bitbucketProvider.bitbucketId,
 		{
 			onDelete: "set null",
 		},
@@ -228,16 +221,16 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 		}),
 		githubProvider: one(githubProvider, {
-			fields: [applications.githubProviderId],
-			references: [githubProvider.githubProviderId],
+			fields: [applications.githubId],
+			references: [githubProvider.githubId],
 		}),
 		gitlabProvider: one(gitlabProvider, {
-			fields: [applications.gitlabProviderId],
-			references: [gitlabProvider.gitlabProviderId],
+			fields: [applications.gitlabId],
+			references: [gitlabProvider.gitlabId],
 		}),
 		bitbucketProvider: one(bitbucketProvider, {
-			fields: [applications.bitbucketProviderId],
-			references: [bitbucketProvider.bitbucketProviderId],
+			fields: [applications.bitbucketId],
+			references: [bitbucketProvider.bitbucketId],
 		}),
 	}),
 );
@@ -416,7 +409,7 @@ export const apiSaveGithubProvider = createSchema
 		branch: true,
 		owner: true,
 		buildPath: true,
-		githubProviderId: true,
+		githubId: true,
 	})
 	.required();
 
@@ -427,7 +420,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabBuildPath: true,
 		gitlabOwner: true,
 		gitlabRepository: true,
-		gitlabProviderId: true,
+		gitlabId: true,
 	})
 	.required();
 
@@ -437,7 +430,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
-		bitbucketProviderId: true,
+		bitbucketId: true,
 		applicationId: true,
 	})
 	.required();

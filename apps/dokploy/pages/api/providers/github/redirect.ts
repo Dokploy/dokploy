@@ -50,7 +50,7 @@ export default async function handler(
 			.set({
 				githubInstallationId: installation_id,
 			})
-			.where(eq(githubProvider.githubProviderId, value as string))
+			.where(eq(githubProvider.githubId, value as string))
 			.returning();
 	}
 

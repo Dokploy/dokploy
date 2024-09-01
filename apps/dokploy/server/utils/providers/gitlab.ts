@@ -88,18 +88,18 @@ export const cloneGitlabRepository = async (
 		gitlabRepository,
 		gitlabOwner,
 		gitlabBranch,
-		gitlabProviderId,
+		gitlabId,
 		gitlabProvider,
 	} = entity;
 
-	if (!gitlabProviderId) {
+	if (!gitlabId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Gitlab Provider not found",
 		});
 	}
 
-	await refreshGitlabToken(gitlabProviderId);
+	await refreshGitlabToken(gitlabId);
 
 	const requirements = getErrorCloneRequirements(entity);
 
@@ -258,18 +258,18 @@ export const cloneRawGitlabRepository = async (
 		gitlabRepository,
 		gitlabOwner,
 		gitlabBranch,
-		gitlabProviderId,
+		gitlabId,
 		gitlabProvider,
 	} = entity;
 
-	if (!gitlabProviderId) {
+	if (!gitlabId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Gitlab Provider not found",
 		});
 	}
 
-	await refreshGitlabToken(gitlabProviderId);
+	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);

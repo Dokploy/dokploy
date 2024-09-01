@@ -77,9 +77,9 @@ export const cloneGithubRepository = async (
 	isCompose = false,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, repository, owner, branch, githubProviderId } = entity;
+	const { appName, repository, owner, branch, githubId } = entity;
 
-	if (!githubProviderId) {
+	if (!githubId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "GitHub Provider not found",
@@ -102,7 +102,7 @@ export const cloneGithubRepository = async (
 		});
 	}
 
-	const githubProvider = await getGithubProvider(githubProviderId);
+	const githubProvider = await getGithubProvider(githubId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);
@@ -143,15 +143,15 @@ export const cloneGithubRepository = async (
 export const cloneRawGithubRepository = async (
 	entity: ApplicationWithGithub,
 ) => {
-	const { appName, repository, owner, branch, githubProviderId } = entity;
+	const { appName, repository, owner, branch, githubId } = entity;
 
-	if (!githubProviderId) {
+	if (!githubId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "GitHub Provider not found",
 		});
 	}
-	const githubProvider = await getGithubProvider(githubProviderId);
+	const githubProvider = await getGithubProvider(githubId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);

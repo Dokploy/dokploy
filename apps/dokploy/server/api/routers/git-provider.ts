@@ -31,9 +31,9 @@ export const gitProvider = createTRPCRouter({
 	getAll: protectedProcedure.query(async () => {
 		return await db.query.gitProvider.findMany({
 			with: {
-				gitlabProvider: true,
-				bitbucketProvider: true,
-				githubProvider: true,
+				gitlab: true,
+				bitbucket: true,
+				github: true,
 			},
 		});
 	}),
@@ -86,7 +86,7 @@ export const gitProvider = createTRPCRouter({
 			.filter((provider) => haveGithubRequirements(provider))
 			.map((provider) => {
 				return {
-					githubProviderId: provider.githubProviderId,
+					githubId: provider.githubId,
 					gitProvider: {
 						...provider.gitProvider,
 					},
@@ -105,7 +105,7 @@ export const gitProvider = createTRPCRouter({
 			.filter((provider) => haveGitlabRequirements(provider))
 			.map((provider) => {
 				return {
-					gitlabProviderId: provider.gitlabProviderId,
+					gitlabId: provider.gitlabId,
 					gitProvider: {
 						...provider.gitProvider,
 					},
@@ -120,7 +120,7 @@ export const gitProvider = createTRPCRouter({
 				gitProvider: true,
 			},
 			columns: {
-				bitbucketProviderId: true,
+				bitbucketId: true,
 			},
 		});
 		return result;
@@ -182,3 +182,20 @@ export const gitProvider = createTRPCRouter({
 			return await getGithubBranches(input);
 		}),
 });
+// 1725175543
+// {
+// 	access_token: '11d422887d8fac712191ee9b09dfdb043a705938cd67a4a39f36b4bc65b3106d',
+// 	token_type: 'Bearer',
+// 	expires_in: 7200,
+// 	refresh_token: '3806d8022d32886c19d91eb9d1cea9328b864387f39c5d0469d08c48e18b674e',
+// 	scope: 'api read_user read_repository',
+// 	created_at: 1725167656
+//   }
+// {
+// 	access_token: 'd256b52b10bf72ebf2784f8c0528e48a04a7d249c28695b6cc105b47b09c7336',
+// 	token_type: 'Bearer',
+// 	expires_in: 7200,
+// 	refresh_token: '265eb87d0bbef410e0c30a2c239c4fa3698943219a439fb43cf2f8227d1fcaf2',
+// 	scope: 'api read_user read_repository',
+// 	created_at: 1725167803
+//   }

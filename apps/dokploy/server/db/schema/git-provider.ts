@@ -27,15 +27,15 @@ export const gitProvider = pgTable("git_provider", {
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
-	githubProvider: one(githubProvider, {
+	github: one(githubProvider, {
 		fields: [gitProvider.gitProviderId],
 		references: [githubProvider.gitProviderId],
 	}),
-	gitlabProvider: one(gitlabProvider, {
+	gitlab: one(gitlabProvider, {
 		fields: [gitProvider.gitProviderId],
 		references: [gitlabProvider.gitProviderId],
 	}),
-	bitbucketProvider: one(bitbucketProvider, {
+	bitbucket: one(bitbucketProvider, {
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucketProvider.gitProviderId],
 	}),
@@ -46,7 +46,7 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 }));
 
 export const githubProvider = pgTable("github_provider", {
-	githubProviderId: text("githubProviderId")
+	githubId: text("githubId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
@@ -73,7 +73,7 @@ export const githubProviderRelations = relations(
 );
 
 export const gitlabProvider = pgTable("gitlab_provider", {
-	gitlabProviderId: text("gitlabProviderId")
+	gitlabId: text("gitlabId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
@@ -100,7 +100,7 @@ export const gitlabProviderRelations = relations(
 );
 
 export const bitbucketProvider = pgTable("bitbucket_provider", {
-	bitbucketProviderId: text("bitbucketProviderId")
+	bitbucketId: text("bitbucketId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),

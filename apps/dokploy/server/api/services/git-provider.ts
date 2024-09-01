@@ -119,9 +119,9 @@ export const removeGithubProvider = async (gitProviderId: string) => {
 	return result[0];
 };
 
-export const getGithubProvider = async (githubProviderId: string) => {
+export const getGithubProvider = async (githubId: string) => {
 	const githubProviderResult = await db.query.githubProvider.findFirst({
-		where: eq(githubProvider.githubProviderId, githubProviderId),
+		where: eq(githubProvider.githubId, githubId),
 	});
 
 	if (!githubProviderResult) {
@@ -142,9 +142,9 @@ export const haveGithubRequirements = (githubProvider: GithubProvider) => {
 	);
 };
 
-export const getGitlabProvider = async (gitlabProviderId: string) => {
+export const getGitlabProvider = async (gitlabId: string) => {
 	const gitlabProviderResult = await db.query.gitlabProvider.findFirst({
-		where: eq(gitlabProvider.gitlabProviderId, gitlabProviderId),
+		where: eq(gitlabProvider.gitlabId, gitlabId),
 	});
 
 	if (!gitlabProviderResult) {
@@ -158,7 +158,7 @@ export const getGitlabProvider = async (gitlabProviderId: string) => {
 };
 
 export const updateGitlabProvider = async (
-	gitlabProviderId: string,
+	gitlabId: string,
 	input: Partial<GitlabProvider>,
 ) => {
 	const result = await db
@@ -166,15 +166,15 @@ export const updateGitlabProvider = async (
 		.set({
 			...input,
 		})
-		.where(eq(gitlabProvider.gitlabProviderId, gitlabProviderId))
+		.where(eq(gitlabProvider.gitlabId, gitlabId))
 		.returning();
 
 	return result[0];
 };
 
-export const getBitbucketProvider = async (bitbucketProviderId: string) => {
+export const getBitbucketProvider = async (bitbucketId: string) => {
 	const bitbucketProviderResult = await db.query.bitbucketProvider.findFirst({
-		where: eq(bitbucketProvider.bitbucketProviderId, bitbucketProviderId),
+		where: eq(bitbucketProvider.bitbucketId, bitbucketId),
 	});
 
 	if (!bitbucketProviderResult) {

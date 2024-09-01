@@ -23,11 +23,11 @@ export const cloneBitbucketRepository = async (
 		bitbucketRepository,
 		bitbucketOwner,
 		bitbucketBranch,
-		bitbucketProviderId,
+		bitbucketId,
 		bitbucketProvider,
 	} = entity;
 
-	if (!bitbucketProviderId) {
+	if (!bitbucketId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Bitbucket Provider not found",
@@ -77,11 +77,11 @@ export const cloneRawBitbucketRepository = async (
 		bitbucketRepository,
 		bitbucketOwner,
 		bitbucketBranch,
-		bitbucketProviderId,
+		bitbucketId,
 		bitbucketProvider,
 	} = entity;
 
-	if (!bitbucketProviderId) {
+	if (!bitbucketId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Bitbucket Provider not found",
