@@ -133,6 +133,7 @@ export const applications = pgTable("application", {
 	buildPath: text("buildPath").default("/"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
+	gitlabProjectId: integer("gitlabProjectId"),
 	gitlabRepository: text("gitlabRepository"),
 	gitlabOwner: text("gitlabOwner"),
 	gitlabBranch: text("gitlabBranch"),
@@ -421,6 +422,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabOwner: true,
 		gitlabRepository: true,
 		gitlabId: true,
+		gitlabProjectId: true,
 	})
 	.required();
 

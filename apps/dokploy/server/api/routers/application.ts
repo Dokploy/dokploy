@@ -225,6 +225,7 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "gitlab",
 				applicationStatus: "idle",
 				gitlabId: input.gitlabId,
+				gitlabProjectId: input.gitlabProjectId,
 			});
 
 			return true;

@@ -139,6 +139,7 @@ export const gitProvider = createTRPCRouter({
 	getGitlabBranches: protectedProcedure
 		.input(
 			z.object({
+				id: z.number().nullable(),
 				owner: z.string(),
 				repo: z.string(),
 				gitlabId: z.string().optional(),

@@ -45,6 +45,8 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
 
+	console.log("Refreshed token");
+
 	await updateGitlabProvider(gitlabProviderId, {
 		accessToken: data.access_token,
 		refreshToken: data.refresh_token,
@@ -151,11 +153,9 @@ export const cloneGitlabRepository = async (
 	}
 };
 
-interface GetGitlabRepositories {
+export const getGitlabRepositories = async (input: {
 	gitlabId?: string;
-}
-
-export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
+}) => {
 	if (!input.gitlabId) {
 		return [];
 	}
@@ -180,7 +180,9 @@ export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
 	}
 
 	const repositories = await response.json();
+
 	return repositories as {
+		id: number;
 		name: string;
 		url: string;
 		owner: {
@@ -189,46 +191,20 @@ export const getGitlabRepositories = async (input: GetGitlabRepositories) => {
 	}[];
 };
 
-interface GetGitlabBranches {
+export const getGitlabBranches = async (input: {
+	id: number | null;
+	gitlabId?: string;
 	owner: string;
 	repo: string;
-	gitlabId?: string;
-}
-
-export const getGitlabBranches = async (input: GetGitlabBranches) => {
-	if (!input.gitlabId) {
+}) => {
+	if (!input.gitlabId || !input.id) {
 		return [];
 	}
 
 	const gitlabProvider = await getGitlabProvider(input.gitlabId);
 
-	const projectResponse = await fetch(
-		`https://gitlab.com/api/v4/projects?search=${input.repo}&owned=true&page=1&per_page=100`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
-
-	if (!projectResponse.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${projectResponse.statusText}`,
-		});
-	}
-
-	const projects = await projectResponse.json();
-	const project = projects.find(
-		(p) => p.namespace.path === input.owner && p.name === input.repo,
-	);
-
-	if (!project) {
-		throw new Error(`Project not found: ${input.owner}/${input.repo}`);
-	}
-
 	const branchesResponse = await fetch(
-		`https://gitlab.com/api/v4/projects/${project.id}/repository/branches`,
+		`https://gitlab.com/api/v4/projects/${input.id}/repository/branches`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -243,6 +219,7 @@ export const getGitlabBranches = async (input: GetGitlabBranches) => {
 	const branches = await branchesResponse.json();
 
 	return branches as {
+		id: string;
 		name: string;
 		commit: {
 			id: string;

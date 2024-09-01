@@ -218,7 +218,7 @@ export const BitbucketIcon = ({ className }: Props) => {
 					y1="21.921%"
 					y2="75.234%"
 				>
-					<stop offset="7%" stopColor="currentColor" stop-opacity=".4" />
+					<stop offset="7%" stopColor="currentColor" stopOpacity=".4" />
 					<stop offset="100%" stopColor="currentColor" />
 				</linearGradient>
 			</defs>

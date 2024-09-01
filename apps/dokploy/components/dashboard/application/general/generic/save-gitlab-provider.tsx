@@ -44,6 +44,7 @@ const GitlabProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
+			id: z.number().nullable(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -69,6 +70,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
+				id: null,
 			},
 			gitlabId: "",
 			branch: "",
@@ -95,6 +97,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
+			id: repository?.id,
 			gitlabId: gitlabId,
 		},
 		{
@@ -109,6 +112,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				repository: {
 					repo: data.gitlabRepository || "",
 					owner: data.gitlabOwner || "",
+					id: data.gitlabProjectId,
 				},
 				buildPath: data.gitlabBuildPath || "/",
 				gitlabId: data.gitlabId || "",
@@ -124,6 +128,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabBuildPath: data.buildPath,
 			gitlabId: data.gitlabId,
 			applicationId,
+			gitlabProjectId: data.repository.id,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -155,6 +160,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 											form.setValue("repository", {
 												owner: "",
 												repo: "",
+												id: null,
 											});
 											form.setValue("branch", "");
 										}}
@@ -234,6 +240,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																		form.setValue("repository", {
 																			owner: repo.owner.username as string,
 																			repo: repo.name,
+																			id: repo.id,
 																		});
 																		form.setValue("branch", "");
 																	}}
