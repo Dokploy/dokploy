@@ -22,6 +22,11 @@ export default async function handler(
 	const signature = req.headers["x-hub-signature-256"];
 	const github = req.body;
 
+	if(!github?.installation.id) {
+		res.status(400).json({ message: "Github Installation not found" });
+		return;
+	}
+
 	const githubResult = await db.query.githubProvider.findFirst({
 		where: eq(githubProvider.githubInstallationId, github.installation.id),
 	});

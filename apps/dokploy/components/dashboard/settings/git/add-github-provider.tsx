@@ -27,13 +27,13 @@ export const AddGithubProvider = () => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/redirect?authId=${data?.id}`,
+				redirect_url: `${origin}/api/providers/github/setup?authId=${data?.id}`,
 				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
 				url: origin,
 				hook_attributes: {
 					url: `${url}/api/deploy/github`,
 				},
-				callback_urls: [`${origin}/api/providers/github/redirect`],
+				callback_urls: [`${origin}/api/providers/github/setup`],
 				public: false,
 				request_oauth_on_install: true,
 				default_permissions: {
