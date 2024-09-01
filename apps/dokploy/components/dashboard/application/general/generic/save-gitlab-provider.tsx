@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -37,7 +38,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const GithubProviderSchema = z.object({
+const GitlabProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
 	repository: z
 		.object({
@@ -46,87 +47,90 @@ const GithubProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
-	githubProviderId: z.string().min(1, "Github Provider is required"),
+	gitlabProviderId: z.string().min(1, "Gitlab Provider is required"),
 });
 
-type GithubProvider = z.infer<typeof GithubProviderSchema>;
+type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
 
 interface Props {
 	applicationId: string;
 }
 
-export const SaveGithubProvider = ({ applicationId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
+export const SaveGitlabProvider = ({ applicationId }: Props) => {
+	const { data: gitlabProviders } = api.gitProvider.gitlabProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
-	const { mutateAsync, isLoading: isSavingGithubProvider } =
-		api.application.saveGithubProvider.useMutation();
+	const { mutateAsync, isLoading: isSavingGitlabProvider } =
+		api.application.saveGitlabProvider.useMutation();
 
-	const form = useForm<GithubProvider>({
+	const form = useForm<GitlabProvider>({
 		defaultValues: {
 			buildPath: "/",
 			repository: {
 				owner: "",
 				repo: "",
 			},
-			githubProviderId: "",
+			gitlabProviderId: "",
 			branch: "",
 		},
-		resolver: zodResolver(GithubProviderSchema),
+		resolver: zodResolver(GitlabProviderSchema),
 	});
 
 	const repository = form.watch("repository");
-	const githubProviderId = form.watch("githubProviderId");
+	const gitlabProviderId = form.watch("gitlabProviderId");
 
-	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.admin.getRepositories.useQuery({
-			githubProviderId,
-		});
+	const {
+		data: repositories,
+		isLoading: isLoadingRepositories,
+		error,
+	} = api.gitProvider.getGitlabRepositories.useQuery({
+		gitlabProviderId,
+	});
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.admin.getBranches.useQuery(
+	} = api.gitProvider.getGitlabBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
-			githubProviderId,
+			gitlabProviderId: gitlabProviderId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!githubProviderId,
+			enabled: !!repository?.owner && !!repository?.repo && !!gitlabProviderId,
 		},
 	);
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				branch: data.branch || "",
+				branch: data.gitlabBranch || "",
 				repository: {
-					repo: data.repository || "",
-					owner: data.owner || "",
+					repo: data.gitlabRepository || "",
+					owner: data.gitlabOwner || "",
 				},
-				buildPath: data.buildPath || "/",
-				githubProviderId: data.githubProviderId || "",
+				buildPath: data.gitlabBuildPath || "/",
+				gitlabProviderId: data.gitlabProviderId || "",
 			});
 		}
 	}, [form.reset, data, form]);
 
-	const onSubmit = async (data: GithubProvider) => {
+	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
-			branch: data.branch,
-			repository: data.repository.repo,
+			gitlabBranch: data.branch,
+			gitlabRepository: data.repository.repo,
+			gitlabOwner: data.repository.owner,
+			gitlabBuildPath: data.buildPath,
+			gitlabProviderId: data.gitlabProviderId,
 			applicationId,
-			owner: data.repository.owner,
-			buildPath: data.buildPath,
-			githubProviderId: data.githubProviderId,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the github provider");
+				toast.error("Error to save the gitlab provider");
 			});
 	};
 
@@ -137,13 +141,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid w-full gap-4 py-3"
 				>
+					{error && <AlertBlock type="error">{error?.message}</AlertBlock>}
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}
-							name="githubProviderId"
+							name="gitlabProviderId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Github Account</FormLabel>
+									<FormLabel>Gitlab Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -158,16 +163,16 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue placeholder="Select a Gitlab Account" />
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											{githubProviders?.map((githubProvider) => (
+											{gitlabProviders?.map((gitlabProvider) => (
 												<SelectItem
-													key={githubProvider.githubProviderId}
-													value={githubProvider.githubProviderId}
+													key={gitlabProvider.gitlabProviderId}
+													value={gitlabProvider.gitlabProviderId}
 												>
-													{githubProvider.gitProvider.name}
+													{gitlabProvider.gitProvider.name}
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -220,29 +225,31 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
-														{repositories?.map((repo) => (
-															<CommandItem
-																value={repo.url}
-																key={repo.url}
-																onSelect={() => {
-																	form.setValue("repository", {
-																		owner: repo.owner.login as string,
-																		repo: repo.name,
-																	});
-																	form.setValue("branch", "");
-																}}
-															>
-																{repo.name}
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
+														{repositories?.map((repo) => {
+															return (
+																<CommandItem
+																	value={repo.url}
+																	key={repo.url}
+																	onSelect={() => {
+																		form.setValue("repository", {
+																			owner: repo.owner.username as string,
+																			repo: repo.name,
+																		});
+																		form.setValue("branch", "");
+																	}}
+																>
+																	{repo.name}
+																	<CheckIcon
+																		className={cn(
+																			"ml-auto h-4 w-4",
+																			repo.name === field.value.repo
+																				? "opacity-100"
+																				: "opacity-0",
+																		)}
+																	/>
+																</CommandItem>
+															);
+														})}
 													</CommandGroup>
 												</ScrollArea>
 											</Command>
@@ -307,7 +314,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 														{branches?.map((branch) => (
 															<CommandItem
 																value={branch.name}
-																key={branch.commit.sha}
+																key={branch.commit.id}
 																onSelect={() => {
 																	form.setValue("branch", branch.name);
 																}}
@@ -350,7 +357,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 					</div>
 					<div className="flex w-full justify-end">
 						<Button
-							isLoading={isSavingGithubProvider}
+							isLoading={isSavingGitlabProvider}
 							type="submit"
 							className="w-fit"
 						>

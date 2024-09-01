@@ -1,0 +1,1 @@
+ALTER TABLE "gitlab_provider" DROP COLUMN IF EXISTS "token";

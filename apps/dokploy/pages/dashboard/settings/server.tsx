@@ -1,4 +1,3 @@
-import { GithubSetup } from "@/components/dashboard/settings/github/github-setup";
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -11,7 +10,6 @@ const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<WebDomain />
-			<GithubSetup />
 			<WebServer />
 		</div>
 	);

@@ -25,6 +25,8 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { z } from "zod";
+import { getGithubProvider } from "../services/git-provider";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async () => {
@@ -101,55 +103,61 @@ export const adminRouter = createTRPCRouter({
 		}
 	}),
 
-	getRepositories: protectedProcedure.query(async () => {
-		const admin = await findAdmin();
-
-		const completeRequirements = haveGithubRequirements(admin);
-
-		if (!completeRequirements) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Admin need to setup correctly github account",
-			});
-		}
-
-		const octokit = new Octokit({
-			authStrategy: createAppAuth,
-			auth: {
-				appId: admin.githubAppId,
-				privateKey: admin.githubPrivateKey,
-				installationId: admin.githubInstallationId,
-			},
-		});
-
-		const repositories = (await octokit.paginate(
-			octokit.rest.apps.listReposAccessibleToInstallation,
-		)) as unknown as Awaited<
-			ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
-		>["data"]["repositories"];
-
-		return repositories;
-	}),
-	getBranches: protectedProcedure
-		.input(apiGetBranches)
+	getRepositories: protectedProcedure
+		.input(
+			z.object({
+				githubProviderId: z.string().optional(),
+			}),
+		)
 		.query(async ({ input }) => {
-			const admin = await findAdmin();
-
-			const completeRequirements = haveGithubRequirements(admin);
-
-			if (!completeRequirements) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Admin need to setup correctly github account",
-				});
+			if (!input.githubProviderId) {
+				return [];
 			}
+
+			const githubProvider = await getGithubProvider(input.githubProviderId);
 
 			const octokit = new Octokit({
 				authStrategy: createAppAuth,
 				auth: {
-					appId: admin.githubAppId,
-					privateKey: admin.githubPrivateKey,
-					installationId: admin.githubInstallationId,
+					appId: githubProvider.githubAppId,
+					privateKey: githubProvider.githubPrivateKey,
+					installationId: githubProvider.githubInstallationId,
+				},
+			});
+
+			const repositories = (await octokit.paginate(
+				octokit.rest.apps.listReposAccessibleToInstallation,
+			)) as unknown as Awaited<
+				ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
+			>["data"]["repositories"];
+
+			return repositories;
+		}),
+	getBranches: protectedProcedure
+		.input(apiGetBranches)
+		.query(async ({ input }) => {
+			// const admin = await findAdmin();
+
+			// const completeRequirements = haveGithubRequirements(admin);
+
+			// if (!completeRequirements) {
+			// 	throw new TRPCError({
+			// 		code: "BAD_REQUEST",
+			// 		message: "Admin need to setup correctly github account",
+			// 	});
+			// }
+
+			if (!input.githubProviderId) {
+				return [];
+			}
+			const githubProvider = await getGithubProvider(input.githubProviderId);
+
+			const octokit = new Octokit({
+				authStrategy: createAppAuth,
+				auth: {
+					appId: githubProvider.githubAppId,
+					privateKey: githubProvider.githubPrivateKey,
+					installationId: githubProvider.githubInstallationId,
 				},
 			});
 

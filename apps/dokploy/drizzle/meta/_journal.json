@@ -232,6 +232,97 @@
       "when": 1723705257806,
       "tag": "0032_flashy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1725143717048,
+      "tag": "0033_polite_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1725144512654,
+      "tag": "0034_keen_dark_phoenix",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1725145310771,
+      "tag": "0035_crazy_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1725151725193,
+      "tag": "0036_faulty_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1725152188339,
+      "tag": "0037_busy_the_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1725154857832,
+      "tag": "0038_eminent_spiral",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1725155725647,
+      "tag": "0039_wakeful_starbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1725156536999,
+      "tag": "0040_yummy_gambit",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1725157793284,
+      "tag": "0041_tranquil_may_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1725158531995,
+      "tag": "0042_blue_vindicator",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1725158814900,
+      "tag": "0043_daily_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1725160501885,
+      "tag": "0044_wide_human_torch",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1725162377005,
+      "tag": "0045_dazzling_liz_osborn",
+      "breakpoints": true
     }
   ]
 }

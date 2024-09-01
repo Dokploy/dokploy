@@ -1,0 +1,1 @@
+ALTER TABLE "github_provider" ADD COLUMN "githubAppName" text;

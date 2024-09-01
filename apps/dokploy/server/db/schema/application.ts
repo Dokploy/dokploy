@@ -22,11 +22,18 @@ import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+import {
+	bitbucketProvider,
+	githubProvider,
+	gitlabProvider,
+} from "./git-provider";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
 	"github",
+	"gitlab",
+	"bitbucket",
 	"drop",
 ]);
 
@@ -126,6 +133,16 @@ export const applications = pgTable("application", {
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
+	// Gitlab
+	gitlabRepository: text("gitlabRepository"),
+	gitlabOwner: text("gitlabOwner"),
+	gitlabBranch: text("gitlabBranch"),
+	gitlabBuildPath: text("gitlabBuildPath").default("/"),
+	// Bitbucket
+	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketOwner: text("bitbucketOwner"),
+	bitbucketBranch: text("bitbucketBranch"),
+	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
 	// Docker
 	username: text("username"),
 	password: text("password"),
@@ -169,6 +186,24 @@ export const applications = pgTable("application", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	githubProviderId: text("githubProviderId").references(
+		() => githubProvider.githubProviderId,
+		{
+			onDelete: "set null",
+		},
+	),
+	gitlabProviderId: text("gitlabProviderId").references(
+		() => gitlabProvider.gitlabProviderId,
+		{
+			onDelete: "set null",
+		},
+	),
+	bitbucketProviderId: text("bitbucketProviderId").references(
+		() => bitbucketProvider.bitbucketProviderId,
+		{
+			onDelete: "set null",
+		},
+	),
 });
 
 export const applicationsRelations = relations(
@@ -191,6 +226,18 @@ export const applicationsRelations = relations(
 		registry: one(registry, {
 			fields: [applications.registryId],
 			references: [registry.registryId],
+		}),
+		githubProvider: one(githubProvider, {
+			fields: [applications.githubProviderId],
+			references: [githubProvider.githubProviderId],
+		}),
+		gitlabProvider: one(gitlabProvider, {
+			fields: [applications.gitlabProviderId],
+			references: [gitlabProvider.gitlabProviderId],
+		}),
+		bitbucketProvider: one(bitbucketProvider, {
+			fields: [applications.bitbucketProviderId],
+			references: [bitbucketProvider.bitbucketProviderId],
 		}),
 	}),
 );
@@ -369,6 +416,29 @@ export const apiSaveGithubProvider = createSchema
 		branch: true,
 		owner: true,
 		buildPath: true,
+		githubProviderId: true,
+	})
+	.required();
+
+export const apiSaveGitlabProvider = createSchema
+	.pick({
+		applicationId: true,
+		gitlabBranch: true,
+		gitlabBuildPath: true,
+		gitlabOwner: true,
+		gitlabRepository: true,
+		gitlabProviderId: true,
+	})
+	.required();
+
+export const apiSaveBitbucketProvider = createSchema
+	.pick({
+		bitbucketBranch: true,
+		bitbucketBuildPath: true,
+		bitbucketOwner: true,
+		bitbucketRepository: true,
+		bitbucketProviderId: true,
+		applicationId: true,
 	})
 	.required();
 
