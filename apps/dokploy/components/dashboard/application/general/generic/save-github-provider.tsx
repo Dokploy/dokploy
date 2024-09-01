@@ -79,7 +79,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 	const githubProviderId = form.watch("githubProviderId");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.admin.getRepositories.useQuery({
+		api.gitProvider.getRepositories.useQuery({
 			githubProviderId,
 		});
 
@@ -87,7 +87,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.admin.getBranches.useQuery(
+	} = api.gitProvider.getBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,

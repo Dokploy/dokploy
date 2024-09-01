@@ -3,12 +3,14 @@ import { db } from "@/server/db";
 import {
 	apiCreateBitbucketProvider,
 	apiCreateGitlabProvider,
+	apiGetBranches,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
 	createBitbucketProvider,
 	createGitlabProvider,
 	getBitbucketProvider,
+	getGithubProvider,
 	getGitlabProvider,
 	haveGithubRequirements,
 	removeGithubProvider,
@@ -18,6 +20,8 @@ import {
 	haveGitlabRequirements,
 	refreshGitlabToken,
 } from "@/server/utils/providers/gitlab";
+import { Octokit } from "octokit";
+import { createAppAuth } from "@octokit/auth-app";
 
 export const gitProvider = createTRPCRouter({
 	getAll: protectedProcedure.query(async () => {
@@ -328,6 +332,76 @@ export const gitProvider = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	getRepositories: protectedProcedure
+		.input(
+			z.object({
+				githubProviderId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (!input.githubProviderId) {
+				return [];
+			}
+
+			const githubProvider = await getGithubProvider(input.githubProviderId);
+
+			const octokit = new Octokit({
+				authStrategy: createAppAuth,
+				auth: {
+					appId: githubProvider.githubAppId,
+					privateKey: githubProvider.githubPrivateKey,
+					installationId: githubProvider.githubInstallationId,
+				},
+			});
+
+			const repositories = (await octokit.paginate(
+				octokit.rest.apps.listReposAccessibleToInstallation,
+			)) as unknown as Awaited<
+				ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
+			>["data"]["repositories"];
+
+			return repositories;
+		}),
+	getBranches: protectedProcedure
+		.input(apiGetBranches)
+		.query(async ({ input }) => {
+			// const admin = await findAdmin();
+
+			// const completeRequirements = haveGithubRequirements(admin);
+
+			// if (!completeRequirements) {
+			// 	throw new TRPCError({
+			// 		code: "BAD_REQUEST",
+			// 		message: "Admin need to setup correctly github account",
+			// 	});
+			// }
+
+			if (!input.githubProviderId) {
+				return [];
+			}
+			const githubProvider = await getGithubProvider(input.githubProviderId);
+
+			const octokit = new Octokit({
+				authStrategy: createAppAuth,
+				auth: {
+					appId: githubProvider.githubAppId,
+					privateKey: githubProvider.githubPrivateKey,
+					installationId: githubProvider.githubInstallationId,
+				},
+			});
+
+			const branches = (await octokit.paginate(
+				octokit.rest.repos.listBranches,
+				{
+					owner: input.owner,
+					repo: input.repo,
+				},
+			)) as unknown as Awaited<
+				ReturnType<typeof octokit.rest.repos.listBranches>
+			>["data"];
+
+			return branches;
 		}),
 });
 // 1725175543
