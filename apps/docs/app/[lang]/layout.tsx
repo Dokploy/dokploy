@@ -72,14 +72,14 @@ export default function Layout({
 							name: "English",
 						},
 						cn: {
-							name: "Chinese",
-							toc: "目錄",
-							search: "搜尋文檔",
-							lastUpdate: "最後更新於",
-							searchNoResult: "沒有結果",
-							previousPage: "上一頁",
-							nextPage: "下一頁",
-							chooseLanguage: "選擇語言",
+							name: "中文",
+							toc: "目录",
+							search: "搜索文档",
+							lastUpdate: "最后更新于",
+							searchNoResult: "没有结果",
+							previousPage: "上一页",
+							nextPage: "下一页",
+							chooseLanguage: "选择语言",
 						},
 					}}
 				>
@@ -88,7 +88,7 @@ export default function Layout({
 							i18n
 							tree={pageTree[params.lang]}
 							nav={{
-								title: params.lang === "cn" ? "目錄" : "Dokploy",
+								title: params.lang === "cn" ? "目录" : "Dokploy",
 								url: `/${params.lang}`,
 								transparentMode: "none",
 							}}

@@ -1,0 +1,73 @@
+---
+title: "Docker Compose 设置"
+description: "了解如何为 Docker Compose 应用程序设置域名"
+---
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+本指南详细说明了如何为你的 Docker Compose 应用程序设置域名。
+
+## 创建 DNS 记录
+
+1. 添加一个 `A` 记录到你的 DNS 设置中：
+   - **名称：** 输入你希望指向的路径（例如，`app` 对应 `app.yourdomain.com`）。
+   - **值：** 输入你的服务器 IP 地址，例如 `1.2.3.4`。
+
+## Docker Compose 域名设置
+
+要使 Docker Compose 服务或容器通过域名访问，需要在现有的 Docker Compose 文件中添加两部分内容。
+
+<Steps>
+<Step>
+添加 `dokploy-network` 网络到每个服务。
+
+```yaml
+services:
+  app:
+    image: nextjs-app
+    networks:
+      - dokploy-network
+    ports:
+      - "3000"
+
+networks:
+  dokploy-network:
+    external: true
+```
+</Step>
+
+<Step>
+添加 Traefik 标签，使服务可以通过域名访问。
+
+1. 如果你使用的是默认的 Cloudflare 配置，添加以下标签：
+
+- `traefik.http.routers.<unique-name>.entrypoints=web`
+
+2. 如果你使用的是 Let's Encrypt 或 Cloudflare 的 Full Strict 模式，添加以下标签：
+
+- `traefik.http.routers.<unique-name>.entrypoints=websecure`
+- `traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt`
+
+```yaml
+services:
+  app:
+    image: nextjs-app
+    networks:
+      - dokploy-network
+    ports:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<unique-name>.entrypoints=websecure"
+      - "traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt"
+      - "traefik.http.routers.<unique-name>.rule=Host(`app.yourdomain.com`)"
+      - "traefik.http.services.<unique-name>.loadbalancer.server.port=3000"
+networks:
+  dokploy-network:
+    external: true
+```
+</Step>
+</Steps>
+
+### 基本 `docker-compose.yml` 文件示例
+
+有关基本 `docker-compose.yml` 文件的示例，请参阅 [Docker Compose Quickstart](/docs/core/docker-compose/example#tutorial) 文档。

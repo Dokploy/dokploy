@@ -1,0 +1,85 @@
+---
+title: 自动部署
+description: "了解如何将您的应用程序自动部署到 Dokploy。"
+---
+
+将应用程序自动部署到 Dokploy 可以通过两种主要方法实现：使用 Webhooks 或 Dokploy API。每种方法都支持各种平台，并提供简化的部署流程。
+
+## GitHub
+
+对于 GitHub，我们提供无需任何配置的自动部署。这将在您推送到代码库时自动部署您的应用程序。
+
+## Webhook URL
+
+Webhooks 允许您在源代码库中进行更改时自动部署应用程序。
+
+- GitHub
+- GitLab
+- Bitbucket
+- Gitea
+- DockerHub
+
+### 配置步骤
+
+1. **启用自动部署**：在 Dokploy 的应用程序设置的一般选项卡中切换“自动部署”按钮。
+2. **获取 Webhook URL**：从部署日志中找到 Webhook URL。
+
+<ImageZoom
+  src="/assets/webhook-url.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}
+/>
+
+3. **配置您的代码库**：
+   - 转到您选择的平台上的代码库设置。
+   - 添加由 Dokploy 提供的 webhook URL。
+   - 确保设置与触发 webhook 所需的配置匹配。
+
+<ImageZoom
+  src="/assets/webhook-github.png"
+  alt="Webhook URL"
+  width={1000}
+  height={500}
+/>
+
+#### 重要提示
+
+- **分支匹配**：使用基于 Git 的提供商（GitHub、GitLab 等）时，请确保 Dokploy 中配置的分支与您打算推送的分支匹配。不匹配将导致“分支不匹配”错误。
+- **Docker 标签**：对于使用 DockerHub 的部署，请确保推送的标签与 Dokploy 中指定的标签匹配。
+- 所有提供商的步骤都是相同的。
+
+### API 方法
+
+通过 Dokploy API 从任何地方以编程方式部署您的应用程序。
+
+### 使用 API 部署的步骤
+
+步骤：
+
+1. **生成令牌**：在 Dokploy 的个人资料设置中创建一个 API 令牌。
+2. **获取应用程序 ID**：
+
+```http
+curl -X 'GET' \
+  'https://your-domain/api/project.all' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer <token>'
+```
+
+此命令列出所有项目和服务。确定您希望部署的应用程序的 applicationId。
+
+3. **触发部署**：
+
+```http
+curl -X 'POST' \
+  'https://your-domain/api/application.deploy' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{
+  "applicationId": "string"
+}'
+```
+
+此 API 方法允许灵活的、可编程的部署选项，适用于自动化系统或不便于直接代码库集成的情况。通过这种方式，您可以从任何地方部署您的应用程序，您可以使用 webhook URL 或 API。

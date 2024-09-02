@@ -1,96 +1,88 @@
 ---
-title: Cluster (Advanced)
-description: "Learn how to set up and manage a cluster in Dokploy with docker swarm."
+title: 集群（高级）
+description: "了解如何在 Dokploy 中使用 Docker Swarm 设置和管理集群。"
 sidebar:
   order: 1
 ---
 
+对于大多数情况，除非您需要扩展应用程序，否则您可能不需要使用集群。集群是由多个节点组成的，它们协同工作以提供一个统一的服务。在 Dokploy 中，集群管理着一组服务器，共同协作以提供这一统一服务。
 
-For most suitables cases you may not need to use a cluster, unless you need to scale your application.
-A cluster is a group of nodes that work together to provide a single, unified service. In Dokploy, clusters manage a group of servers collaborating to deliver this unified service.
+我们在后台使用 Traefik 来为应用程序进行流量负载均衡。
 
-We use traefik under the hood to load balance the traffic to the application.
+建议在使用集群之前先阅读 [Traefik 文档](https://doc.traefik.io/traefik/routing/providers/swarm/)，以更好地理解它的工作原理。
 
+要开始向您的集群添加节点，您需要一个注册表。节点需要注册表来拉取镜像。
 
-We recommend to read the [Traefik Docs](https://doc.traefik.io/traefik/routing/providers/swarm/) before using a cluster, to have a better understanding of how it works.
+## 要求
 
-To start adding nodes to your cluster, you need a registry. The nodes require the registry to pull images .
+- 已安装 Dokploy 的服务器。
+- 用于存储镜像的注册表。
+- 用于添加为节点的额外服务器（VPS）。
 
-## Requirements
+## 注册表选项
 
-- A server with Dokploy installed.
-- A registry to store your images.
-- Additional servers (VPS) to add as nodes.
+我们提供两种方法将注册表添加到您的集群中：
 
-## Registry Options
+- **自定义注册表（免费）**：在您的服务器上设置私有注册表。
+- **外部注册表（付费）**：使用外部注册表，如 Docker Hub、DigitalOcean、AWS ECR 等。
 
-We provide two methods to add a registry to your cluster:
+您可以看到可以添加两种类型的注册表：
 
-- **Custom Registry (Free)**: Set up a private registry on your server.
-- **External Registry (Paid)**: Use external registries like Docker Hub, DigitalOcean, AWS ECR, etc.
+<ImageZoom src="/assets/images/cluster/registry.png" width={800} height={630} alt='home og image' className="rounded-lg" />
 
+## 向集群添加节点
 
-You can see you can add two types of registries:
+一旦有了注册表，您可以通过以下步骤向集群添加节点：
 
-<ImageZoom  src="/assets/images/cluster/registry.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+1. 点击 `Add Node` 按钮。
+2. 您将看到两个标签：`Worker` 和 `Manager`。
+3. 选择您要添加的节点类型。
+4. 按照提供的两步进行操作：
+   - 安装 Docker 引擎。
+   - 安装 Dokploy 代理。这两个节点类型的步骤是相同的。
+5. 在新服务器上运行提供的命令。
+6. 运行命令后，进入 `server/settings/cluster`。您将在表格中看到 Worker 和 Manager 节点的条目。
 
+<ImageZoom src="/assets/images/cluster/nodes.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+<ImageZoom src="/assets/images/cluster/cluster.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+<ImageZoom src="/assets/images/cluster/application.png" width={800} height={630} alt='home og image' className="rounded-lg" />
 
-## Adding Nodes to a Cluster
+## 部署应用程序
 
-Once you have a registry, you can add nodes to your cluster by following these steps:
+一旦您将节点连接到集群，您可以按以下步骤部署应用程序：
 
-1. Click the `Add Node` button.
-2. You will see two tabs: `Worker` and `Manager`.
-3. Select the type of node you want to add.
-4. Follow the two steps provided:
-   - Install the Docker engine.
-   - Install the Dokploy agent. These steps are the same for both node types.
-5. Run the provided commands on the new server.
-6. After running the commands, go to `server/settings/cluster`. You will see entries for both the worker and manager nodes in the table.
+1. 在项目中创建一个应用程序。
+2. Fork 仓库 [Dokploy/swarm-test](https://github.com/Dokploy/swarm-test)。
+3. 将其保存为 GitHub 提供商。
+4. 进入应用程序的高级选项卡。
+5. 在“集群设置”部分：
+   - 更改副本数量（默认是 1）。
+   - 选择节点拉取镜像的注册表。
+6. 现在，您可以将应用程序部署到集群（通过点击 `Deploy` 按钮）。
 
-<ImageZoom  src="/assets/images/cluster/nodes.png" width={800} height={630} alt='home og image' className="rounded-lg" />
-<ImageZoom  src="/assets/images/cluster/cluster.png" width={800} height={630} alt='home og image' className="rounded-lg" />
-<ImageZoom  src="/assets/images/cluster/application.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+事实上，这是实现多节点部署的一个简单方法。Traefik 将处理负载均衡，并将流量路由到应用程序最可用的节点。
 
+要进一步增强此设置，您可以使用 AWS、DigitalOcean 或 Google Cloud 等服务的负载均衡器。这些负载均衡器在路由请求之前会进行健康检查，以确保只有健康的节点接收流量。如果节点未通过健康检查，负载均衡器将自动将请求路由到另一个节点。此设置提供了更稳健和可扩展的部署。
 
-## Deploying an Application
+要向集群添加管理节点，请按照添加 Worker 节点的相同步骤进行操作。然而，如果运行 Dokploy 的管理节点发生故障，所有其他节点将变得不可访问。这是因为我们目前为集群设置了单一入口点。为确保高可用性，您应该有多个管理节点。
 
-Once you have linked nodes to the cluster, you can deploy an application as follows:
+要实现这一点，您需要将所有持久性和 Traefik 信息复制到新的管理节点。这将为集群创建多个入口点。您可以使用 rsync、aws data sync 或其他工具在节点之间同步所有必要信息。
 
-1. Create an application in a project.
-2. Fork the repository [Dokploy/swarm-test](https://github.com/Dokploy/swarm-test).
-3. Save it as a GitHub provider.
-4. Go to the advanced tab of the application.
-5. In the "Cluster Settings" section:
-   - Change the number of replicas (default is 1).
-   - Select the registry for the nodes to pull images from.
-6. Now you can deploy the application to the cluster (By clicking the `Deploy` button).
+## 自定义应用程序
 
+您可以在“Swarm 设置”部分自定义应用程序。在这里，您几乎可以修改与 Swarm 应用模式相关的所有设置。
 
-In fact, this is a straightforward way to achieve multi-node deployments. Traefik will handle load balancing and route traffic to the node where the application is most available.
+界面中提供了每个设置的占位符和预期格式。所有字段必须为 JSON 值。
 
-To further enhance this setup, you can use load balancers from services like AWS, DigitalOcean, or Google Cloud. These load balancers perform health checks before routing requests to ensure that only healthy nodes receive traffic. If a node fails the health check, the load balancer will automatically route the request to another node. This setup provides a more robust and scalable deployment.
+#### 可自定义设置：
 
-To add manager nodes to the cluster, follow the same steps as adding a worker node. However, if the manager node (where Dokploy is running) fails, all other nodes will become inaccessible. This is because we currently have a single entry point for the cluster. To ensure high availability, you should have multiple manager nodes.
+- 健康检查
+- 重启策略
+- 放置策略
+- 更新配置
+- 回滚配置
+- 模式
+- 网络
+- 标签
 
-To achieve this, you need to replicate all persistent and Traefik information to the new manager nodes. This will create multiple entry points for the cluster. You can use tools like rsync, aws data sync, or any other tool to synchronize all the necessary information between the nodes.
-
-
-## Customizing the Application
-
-You can customize the application in the "Swarm Settings" section. Here, you can modify almost every setting related to the swarm application mode.
-
-In the interface, placeholders and expected formats for each setting are provided. All fields must be JSON values.
-
-#### Customizable Settings:
-
-- Healthcheck
-- Restart Policy
-- Placement
-- Update Config
-- Rollback Config
-- Mode
-- Network
-- Labels
-
-<ImageZoom  src="/assets/images/cluster/swarm-settings.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+<ImageZoom src="/assets/images/cluster/swarm-settings.png" width={800} height={630} alt='home og image' className="rounded-lg" />
