@@ -4,6 +4,7 @@ import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import {
 	BitbucketIcon,
 	GithubIcon,
+	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { AddGithubProvider } from "./github/add-github-provider";
@@ -49,6 +50,15 @@ export const ShowGitProviders = () => {
 				</CardContent>
 			</Card>
 			<div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1">
+				{data && data.length === 0 && (
+					<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
+						<GitIcon className="size-8" />
+						<span className="text-base text-muted-foreground">
+							No Git Providers found. To add a provider, create a new one such
+							as GitHub, GitLab, or Bitbucket.
+						</span>
+					</div>
+				)}
 				{data?.map((gitProvider, index) => {
 					const isGithub = gitProvider.providerType === "github";
 					const isGitlab = gitProvider.providerType === "gitlab";

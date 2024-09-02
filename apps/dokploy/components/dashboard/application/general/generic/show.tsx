@@ -106,8 +106,8 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						{githubProviders && githubProviders?.length > 0 ? (
 							<SaveGithubProvider applicationId={applicationId} />
 						) : (
-							<div className="flex flex-col items-center gap-3">
-								<LockIcon className="size-8 text-muted-foreground" />
+							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+								<GithubIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using GitHub, you need to configure your account
 									first. Please, go to{" "}
