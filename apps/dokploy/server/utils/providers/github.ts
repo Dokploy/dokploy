@@ -12,6 +12,7 @@ import {
 	type Github,
 } from "@/server/api/services/git-provider";
 import type { Compose } from "@/server/api/services/compose";
+import type { apiFindGithubBranches } from "@/server/db/schema";
 
 export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -176,16 +177,12 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 	}
 };
 
-interface GetGithubRepositories {
-	githubId?: string;
-}
-
-export const getGithubRepositories = async (input: GetGithubRepositories) => {
-	if (!input.githubId) {
+export const getGithubRepositories = async (githubId?: string) => {
+	if (!githubId) {
 		return [];
 	}
 
-	const githubProvider = await findGithubById(input.githubId);
+	const githubProvider = await findGithubById(githubId);
 
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,
@@ -205,13 +202,9 @@ export const getGithubRepositories = async (input: GetGithubRepositories) => {
 	return repositories;
 };
 
-interface GetGithubBranches {
-	owner: string;
-	repo: string;
-	githubId?: string;
-}
-
-export const getGithubBranches = async (input: GetGithubBranches) => {
+export const getGithubBranches = async (
+	input: typeof apiFindGithubBranches._type,
+) => {
 	if (!input.githubId) {
 		return [];
 	}

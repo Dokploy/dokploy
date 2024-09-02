@@ -3,14 +3,23 @@ import { db } from "@/server/db";
 import {
 	apiCreateBitbucket,
 	apiCreateGitlab,
-	apiGetBranches,
+	apiFindBitbucketBranches,
+	apiFindGithubBranches,
+	apiFindGitlabBranches,
+	apiFindOneBitbucket,
+	apiFindOneGithub,
+	apiFindOneGitlab,
+	apiRemoveGitProvider,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
 	createBitbucket,
 	createGitlab,
+	findBitbucketById,
+	findGithubById,
+	findGitlabById,
 	haveGithubRequirements,
-	removeGithub,
+	removeGitProvider,
 } from "../services/git-provider";
 import { z } from "zod";
 import {
@@ -37,11 +46,26 @@ export const gitProvider = createTRPCRouter({
 			},
 		});
 	}),
+	oneGithub: protectedProcedure
+		.input(apiFindOneGithub)
+		.query(async ({ input }) => {
+			return await findGithubById(input.githubId);
+		}),
+	oneGitlab: protectedProcedure
+		.input(apiFindOneGitlab)
+		.query(async ({ input }) => {
+			return await findGitlabById(input.gitlabId);
+		}),
+	oneBitbucket: protectedProcedure
+		.input(apiFindOneBitbucket)
+		.query(async ({ input }) => {
+			return await findBitbucketById(input.bitbucketId);
+		}),
 	remove: protectedProcedure
-		.input(z.object({ gitProviderId: z.string() }))
+		.input(apiRemoveGitProvider)
 		.mutation(async ({ input }) => {
 			try {
-				return await removeGithub(input.gitProviderId);
+				return await removeGitProvider(input.gitProviderId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -127,64 +151,34 @@ export const gitProvider = createTRPCRouter({
 	}),
 
 	getGitlabRepositories: protectedProcedure
-		.input(
-			z.object({
-				gitlabId: z.string().optional(),
-			}),
-		)
+		.input(apiFindOneGitlab)
 		.query(async ({ input }) => {
-			return await getGitlabRepositories(input);
+			return await getGitlabRepositories(input.gitlabId);
 		}),
 
 	getGitlabBranches: protectedProcedure
-		.input(
-			z.object({
-				id: z.number().nullable(),
-				owner: z.string(),
-				repo: z.string(),
-				gitlabId: z.string().optional(),
-			}),
-		)
+		.input(apiFindGitlabBranches)
 		.query(async ({ input }) => {
 			return await getGitlabBranches(input);
 		}),
 	getBitbucketRepositories: protectedProcedure
-		.input(
-			z.object({
-				bitbucketId: z.string().optional(),
-			}),
-		)
+		.input(apiFindOneBitbucket)
 		.query(async ({ input }) => {
-			return await getBitbucketRepositories(input);
+			return await getBitbucketRepositories(input.bitbucketId);
 		}),
 	getBitbucketBranches: protectedProcedure
-		.input(
-			z.object({
-				owner: z.string(),
-				repo: z.string(),
-				bitbucketId: z.string().optional(),
-			}),
-		)
+		.input(apiFindBitbucketBranches)
 		.query(async ({ input }) => {
 			return await getBitbucketBranches(input);
 		}),
-	getRepositories: protectedProcedure
-		.input(
-			z.object({
-				githubId: z.string().optional(),
-			}),
-		)
+	getGithubRepositories: protectedProcedure
+		.input(apiFindOneGithub)
 		.query(async ({ input }) => {
-			return await getGithubRepositories(input);
+			return await getGithubRepositories(input.githubId);
 		}),
-	getBranches: protectedProcedure
-		.input(apiGetBranches)
+	getGithubBranches: protectedProcedure
+		.input(apiFindGithubBranches)
 		.query(async ({ input }) => {
 			return await getGithubBranches(input);
 		}),
-	// getGithub: protectedProcedure
-	// 	.input(apiGetGithub)
-	// 	.query(async ({ input }) => {
-	// 		return await findGithub(input);
-	// 	}),
 });

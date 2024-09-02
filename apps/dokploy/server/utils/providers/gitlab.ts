@@ -150,16 +150,14 @@ export const cloneGitlabRepository = async (
 	}
 };
 
-export const getGitlabRepositories = async (input: {
-	gitlabId?: string;
-}) => {
-	if (!input.gitlabId) {
+export const getGitlabRepositories = async (gitlabId?: string) => {
+	if (!gitlabId) {
 		return [];
 	}
 
-	await refreshGitlabToken(input.gitlabId);
+	await refreshGitlabToken(gitlabId);
 
-	const gitlabProvider = await findGitlabById(input.gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
 		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,

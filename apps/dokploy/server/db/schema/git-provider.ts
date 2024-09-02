@@ -115,6 +115,12 @@ export const bitbucketProviderRelations = relations(bitbucket, ({ one }) => ({
 
 const createSchema = createInsertSchema(gitProvider);
 
+export const apiRemoveGitProvider = createSchema
+	.extend({
+		gitProviderId: z.string().min(1),
+	})
+	.pick({ gitProviderId: true });
+
 export const apiCreateGithub = createSchema.extend({
 	githubAppName: z.string().optional(),
 	githubAppId: z.number().optional(),
@@ -126,6 +132,18 @@ export const apiCreateGithub = createSchema.extend({
 	gitProviderId: z.string().optional(),
 });
 
+export const apiFindGithubBranches = z.object({
+	repo: z.string().min(1),
+	owner: z.string().min(1),
+	githubId: z.string().optional(),
+});
+
+export const apiFindOneGithub = createSchema
+	.extend({
+		githubId: z.string().min(1),
+	})
+	.pick({ githubId: true });
+
 export const apiCreateGitlab = createSchema.extend({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
@@ -134,9 +152,45 @@ export const apiCreateGitlab = createSchema.extend({
 	redirectUri: z.string().optional(),
 });
 
+export const apiFindOneGitlab = createSchema
+	.extend({
+		gitlabId: z.string().min(1),
+	})
+	.pick({ gitlabId: true });
+
+export const apiFindGitlabBranches = z.object({
+	id: z.number().nullable(),
+	owner: z.string(),
+	repo: z.string(),
+	gitlabId: z.string().optional(),
+});
 export const apiCreateBitbucket = createSchema.extend({
 	bitbucketUsername: z.string().optional(),
 	appPassword: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),
 	gitProviderId: z.string().optional(),
+});
+
+export const apiFindOneBitbucket = createSchema
+	.extend({
+		bitbucketId: z.string().min(1),
+	})
+	.pick({ bitbucketId: true });
+
+export const apiFindBitbucketBranches = z.object({
+	owner: z.string(),
+	repo: z.string(),
+	bitbucketId: z.string().optional(),
+});
+
+export const apiUpdateBitbucket = createSchema.extend({
+	bitbucketUsername: z.string().optional(),
+	bitbucketWorkspaceName: z.string().optional(),
+});
+
+export const apiUpdateGitlab = createSchema.extend({
+	applicationId: z.string().optional(),
+	secret: z.string().optional(),
+	groupName: z.string().optional(),
+	redirectUri: z.string().optional(),
 });

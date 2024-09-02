@@ -106,7 +106,7 @@ export const createBitbucket = async (
 	});
 };
 
-export const removeGithub = async (gitProviderId: string) => {
+export const removeGitProvider = async (gitProviderId: string) => {
 	const result = await db
 		.delete(gitProvider)
 		.where(eq(gitProvider.gitProviderId, gitProviderId))

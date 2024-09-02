@@ -7,6 +7,7 @@ import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
 import { findBitbucketById } from "@/server/api/services/git-provider";
 import type { Compose } from "@/server/api/services/compose";
+import type { apiFindBitbucketBranches } from "@/server/db/schema";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -113,17 +114,11 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	}
 };
 
-interface GetBitbucketRepositories {
-	bitbucketId?: string;
-}
-
-export const getBitbucketRepositories = async (
-	input: GetBitbucketRepositories,
-) => {
-	if (!input.bitbucketId) {
+export const getBitbucketRepositories = async (bitbucketId?: string) => {
+	if (!bitbucketId) {
 		return [];
 	}
-	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
 
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
@@ -169,13 +164,9 @@ export const getBitbucketRepositories = async (
 	}
 };
 
-interface GetBitbucketBranches {
-	owner: string;
-	repo: string;
-	bitbucketId?: string;
-}
-
-export const getBitbucketBranches = async (input: GetBitbucketBranches) => {
+export const getBitbucketBranches = async (
+	input: typeof apiFindBitbucketBranches._type,
+) => {
 	if (!input.bitbucketId) {
 		return [];
 	}
