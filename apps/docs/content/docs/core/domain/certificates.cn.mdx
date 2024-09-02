@@ -1,0 +1,59 @@
+---
+title: "证书"
+description: "了解如何为 Dokploy 面板设置证书"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+在为 Dokploy 使用域名时，我们提供三种证书选项：
+
+- 不使用 (`None`)
+- 使用免费的 SSL 证书（来自 [Let's Encrypt](https://letsencrypt.org/)）
+- 使用自定义 SSL 证书
+
+## 不使用（None）
+
+选择 `None` 意味着我们不会分配 `tlsResolver`，因此你的 DNS 提供商可以从他们的服务器实现 SSL 证书。
+
+<Callout title="Cloudflare">当你在 Cloudflare 上注册域名时，Cloudflare 会自动分配 SSL 证书，因此你需要在 Dokploy 中选择 `None` 并禁用 HTTPS。</Callout>
+
+## Let's Encrypt
+
+使用来自 [Let's Encrypt](https://letsencrypt.org/) 的免费 SSL 证书是最简单的选项，但它有一些限制：
+
+1. **速率限制**：在特定时间范围内，每个域名和账户可发放的证书数量有限制。
+2. **有效期短**：证书仅有效 90 天，但 Traefik 会自动为你续期。
+3. **通配符证书**：虽然支持，但获取通配符证书需要 DNS-01 验证，可能会更复杂。
+4. **仅域名验证**：Let's Encrypt 仅提供域名验证（DV）证书，这意味着它们只验证域名所有权，而不验证背后的组织。
+5. **无担保**：证书没有任何担保或责任覆盖，可能不适用于所有用例。
+
+### 其他提供商
+
+对于由 Cloudflare 以外的提供商管理的域名，流程非常简单：
+
+1. 在 Dokploy 中选择 `Let's Encrypt` 并启用 `HTTPS`。
+2. 确保 DNS 记录已正确设置为指向你的服务器。
+3. 其余工作由 Traefik 处理，证书应在大约 20 秒内生成。
+
+### Cloudflare 设置
+
+如果你的域名由 Cloudflare 管理：
+
+1. 确保你的域名在 Cloudflare 中设置为 `Full (Strict)` 模式。
+2. 在 Dokploy 中选择 `Let's Encrypt` 并启用 `HTTPS`。
+
+Cloudflare 配置步骤：
+
+1. 登录 Cloudflare 并导航至 `Websites` -> `Your Domain` -> `SSL/TLS` -> `Overview`。
+2. 你会看到四种模式（Off、Flexible、Full、Full (Strict)）。
+3. 要使用 Let's Encrypt，选择 `Full (Strict)`。
+
+<Callout>
+  **注意**：在应用程序中创建域名时，确保使用 `Let's Encrypt` 证书并启用 `HTTPS`。证书的生成通常需要大约 20 秒。如果证书未生成，请重启 Traefik 并重试。
+</Callout>
+
+## 自定义 SSL   
+
+我们提供了创建证书并让 Traefik 引用它的方法，但这并不意味着它会自动生效。你需要调整 Traefik 配置以使用它。
+
+你可以在[这里](https://docs.traefik.io/https/acme/#custom-ssl-certificates)阅读更多关于如何创建自定义证书的内容。
