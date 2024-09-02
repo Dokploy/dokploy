@@ -1,1 +1,0 @@
-ALTER TABLE "compose" ADD COLUMN "gitlabHttpUrl" text;

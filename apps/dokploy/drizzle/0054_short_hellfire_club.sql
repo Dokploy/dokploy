@@ -1,1 +1,0 @@
-ALTER TABLE "user" ADD COLUMN "canAccessToGitProviders" boolean DEFAULT false NOT NULL;

@@ -1,1 +1,0 @@
-ALTER TABLE "gitlab_provider" ADD COLUMN "token" text;

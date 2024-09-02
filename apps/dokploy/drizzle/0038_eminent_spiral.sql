@@ -1,1 +1,0 @@
-ALTER TABLE "gitlab_provider" RENAME COLUMN "github_provider_id" TO "gitlabProviderId";

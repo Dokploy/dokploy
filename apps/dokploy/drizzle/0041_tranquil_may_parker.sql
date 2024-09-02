@@ -1,1 +1,0 @@
-ALTER TABLE "gitlab_provider" ADD COLUMN "redirect_uri" text;

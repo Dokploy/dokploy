@@ -1,1 +1,0 @@
-ALTER TABLE "gitlab_provider" RENAME COLUMN "application_secret" TO "secret";

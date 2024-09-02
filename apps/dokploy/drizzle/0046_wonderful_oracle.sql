@@ -1,1 +1,0 @@
-ALTER TABLE "gitlab_provider" ADD COLUMN "expires_at" integer;
