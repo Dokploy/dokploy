@@ -232,6 +232,13 @@
       "when": 1723705257806,
       "tag": "0032_flashy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1725250322137,
+      "tag": "0033_white_hawkeye",
+      "breakpoints": true
     }
   ]
 }

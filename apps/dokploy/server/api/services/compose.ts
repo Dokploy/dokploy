@@ -5,17 +5,18 @@ import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { buildCompose } from "@/server/utils/builders/compose";
 import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { execAsync } from "@/server/utils/process/execAsync";
+import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
 import { cloneGitRepository } from "@/server/utils/providers/git";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
+import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
 import { createComposeFile } from "@/server/utils/providers/raw";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin, getDokployUrl } from "./admin";
+import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
 
@@ -92,6 +93,9 @@ export const findComposeById = async (composeId: string) => {
 			deployments: true,
 			mounts: true,
 			domains: true,
+			github: true,
+			gitlab: true,
+			bitbucket: true,
 		},
 	});
 	if (!result) {
@@ -151,7 +155,6 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const admin = await findAdmin();
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
@@ -161,7 +164,11 @@ export const deployCompose = async ({
 
 	try {
 		if (compose.sourceType === "github") {
-			await cloneGithubRepository(admin, compose, deployment.logPath, true);
+			await cloneGithubRepository(compose, deployment.logPath);
+		} else if (compose.sourceType === "gitlab") {
+			await cloneGitlabRepository(compose, deployment.logPath);
+		} else if (compose.sourceType === "bitbucket") {
+			await cloneBitbucketRepository(compose, deployment.logPath);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "raw") {

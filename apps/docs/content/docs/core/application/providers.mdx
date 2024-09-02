@@ -6,14 +6,30 @@ description: Learn how to use providers in your application.
 Dokploy offers several deployment methods, streamlining the process whether you're utilizing GitHub, any Git provider, Docker, or automated deployments.
 
 - GitHub
+- Gitlab
+- Bitbucket
 - Git (Any Git Provider)
 - Docker
 
 ## GitHub
 
-Deploying via GitHub is straightforward:
+Deploying via GitHub:
 
-1. Configure your GitHub repository in the `/dashboard/settings/server`.
+1. Configure your GitHub repository in the `/dashboard/settings/git-providers`.
+2. When creating an application, Dokploy automatically retrieves the available repositories and branches.
+
+## Gitlab
+
+Deploying via Gitlab:
+
+1. Configure your Gitlab repository in the `/dashboard/settings/git-providers`.
+2. When creating an application, Dokploy automatically retrieves the available repositories and branches.
+
+## Bitbucket
+
+Deploying via Bitbucket:
+
+1. Configure your Bitbucket repository in the `/dashboard/settings/git-providers`.
 2. When creating an application, Dokploy automatically retrieves the available repositories and branches.
 
 ## Git
@@ -27,11 +43,21 @@ For deployments from any Git repository, whether public or private, you can use 
 
 For private repositories, authenticate using SSH. We provide a lock icon to generate an SSH key.
 
-<ImageZoom src="/assets/dokploy-ssh-key.png" width={800} height={630} className="rounded-lg"/>
+<ImageZoom
+  src="/assets/dokploy-ssh-key.png"
+  width={800}
+  height={630}
+  className="rounded-lg"
+/>
 
 You can then copy the SSH key and paste it into the settings of your account.
 
-<ImageZoom src="/assets/private-repository.png" width={800} height={630} className="rounded-lg"/>
+<ImageZoom
+  src="/assets/private-repository.png"
+  width={800}
+  height={630}
+  className="rounded-lg"
+/>
 
 This enables you to pull repositories from your private repository, a method consistent across nearly all providers.
 
