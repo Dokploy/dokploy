@@ -1,16 +1,16 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import type { InferResultType } from "@/server/types/with";
 
 import type { Compose } from "@/server/api/services/compose";
-import type { apiFindGithubBranches } from "@/server/db/schema";
 import { type Github, findGithubById } from "@/server/api/services/github";
+import type { apiFindGithubBranches } from "@/server/db/schema";
 
 export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {

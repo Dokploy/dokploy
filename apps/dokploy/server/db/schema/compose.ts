@@ -4,13 +4,13 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { bitbucket, github, gitlab } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
-import { bitbucket, github, gitlab } from ".";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",

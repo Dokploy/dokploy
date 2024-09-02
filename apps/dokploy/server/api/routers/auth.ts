@@ -13,6 +13,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { db } from "../../db";
+import { getUserByToken } from "../services/admin";
 import {
 	createAdmin,
 	createUser,
@@ -28,7 +29,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { getUserByToken } from "../services/admin";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure

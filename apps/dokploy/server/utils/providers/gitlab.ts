@@ -1,17 +1,17 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
+import type { Compose } from "@/server/api/services/compose";
+import {
+	type Gitlab,
+	findGitlabById,
+	updateGitlab,
+} from "@/server/api/services/gitlab";
 import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import type { apiGitlabTestConnection } from "@/server/db/schema";
+import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import type { InferResultType } from "@/server/types/with";
-import type { Compose } from "@/server/api/services/compose";
-import {
-	findGitlabById,
-	updateGitlab,
-	type Gitlab,
-} from "@/server/api/services/gitlab";
-import type { apiGitlabTestConnection } from "@/server/db/schema";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);

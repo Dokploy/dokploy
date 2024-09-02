@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { type apiCreateGithub, github, gitProvider } from "@/server/db/schema";
+import { type apiCreateGithub, gitProvider, github } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 

@@ -2,9 +2,9 @@ import { db } from "@/server/db";
 import {
 	type apiCreateGitlab,
 	type bitbucket,
+	gitProvider,
 	type github,
 	gitlab,
-	gitProvider,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";

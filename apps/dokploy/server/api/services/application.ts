@@ -20,9 +20,9 @@ import { createDeployment, updateDeploymentStatus } from "./deployment";
 
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
-import { validUniqueServerAppName } from "./project";
-import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
 import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
+import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
+import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (

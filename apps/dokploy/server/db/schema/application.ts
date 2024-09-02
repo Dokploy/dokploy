@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { bitbucket, github, gitlab } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -21,7 +22,6 @@ import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { bitbucket, github, gitlab } from ".";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",

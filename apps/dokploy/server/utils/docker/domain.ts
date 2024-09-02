@@ -5,16 +5,16 @@ import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
 import { COMPOSE_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import { cloneRawBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
+import { cloneRawGitlabRepository } from "../providers/gitlab";
 import { createComposeFileRaw } from "../providers/raw";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { cloneRawGitlabRepository } from "../providers/gitlab";
-import { cloneRawBitbucketRepository } from "../providers/bitbucket";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {

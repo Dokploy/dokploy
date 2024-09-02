@@ -1,22 +1,22 @@
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import {
 	BitbucketIcon,
-	GithubIcon,
 	GitIcon,
+	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
-import { AddGithubProvider } from "./github/add-github-provider";
-import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import Link from "next/link";
-import { RemoveGitProvider } from "./remove-git-provider";
 import { useUrl } from "@/utils/hooks/use-url";
-import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
-import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 import { formatDate } from "date-fns";
+import Link from "next/link";
+import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
+import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
+import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
+import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
+import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
+import { RemoveGitProvider } from "./remove-git-provider";
 
 export const ShowGitProviders = () => {
 	const { data } = api.gitProvider.getAll.useQuery();

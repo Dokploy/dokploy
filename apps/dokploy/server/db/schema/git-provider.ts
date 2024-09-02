@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, pgEnum } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";

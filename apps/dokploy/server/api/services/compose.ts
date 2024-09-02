@@ -8,8 +8,10 @@ import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { execAsync } from "@/server/utils/process/execAsync";
+import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
 import { cloneGitRepository } from "@/server/utils/providers/git";
 import { cloneGithubRepository } from "@/server/utils/providers/github";
+import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
 import { createComposeFile } from "@/server/utils/providers/raw";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
@@ -17,8 +19,6 @@ import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
-import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
 
 export type Compose = typeof compose.$inferSelect;
 
