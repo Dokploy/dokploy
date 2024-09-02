@@ -45,7 +45,7 @@ export default async function handler(
 	});
 
 	const verified = await webhooks.verify(
-		JSON.stringify(github),
+		JSON.stringify(githubBody),
 		signature as string,
 	);
 
