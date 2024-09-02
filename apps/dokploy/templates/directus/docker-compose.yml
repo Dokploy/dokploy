@@ -64,6 +64,3 @@ volumes:
   directus_uploads:
   directus_extensions:
   directus_database:
-networks:
-  dokploy-network:
-    external: true
