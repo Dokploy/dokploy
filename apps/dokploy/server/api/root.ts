@@ -25,7 +25,10 @@ import { securityRouter } from "./routers/security";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { userRouter } from "./routers/user";
-import { gitProvider } from "./routers/git-provider";
+import { gitProviderRouter } from "./routers/git-provider";
+import { bitbucketRouter } from "./routers/bitbucket";
+import { githubRouter } from "./routers/github";
+import { gitlabRouter } from "./routers/gitlab";
 
 /**
  * This is the primary router for your server.
@@ -59,7 +62,10 @@ export const appRouter = createTRPCRouter({
 	cluster: clusterRouter,
 	notification: notificationRouter,
 	sshKey: sshRouter,
-	gitProvider: gitProvider,
+	gitProvider: gitProviderRouter,
+	bitbucket: bitbucketRouter,
+	gitlab: gitlabRouter,
+	github: githubRouter,
 });
 
 // export type definition of API

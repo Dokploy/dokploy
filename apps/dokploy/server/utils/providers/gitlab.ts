@@ -4,13 +4,14 @@ import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import {
-	findGitlabById,
-	type Gitlab,
-	updateGitlab,
-} from "@/server/api/services/git-provider";
 import type { InferResultType } from "@/server/types/with";
 import type { Compose } from "@/server/api/services/compose";
+import {
+	findGitlabById,
+	updateGitlabComplete,
+	type Gitlab,
+} from "@/server/api/services/gitlab";
+import type { apiGitlabTestConnection } from "@/server/db/schema";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);
@@ -21,7 +22,6 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 		gitlabProvider.expiresAt &&
 		currentTime + safetyMargin < gitlabProvider.expiresAt
 	) {
-		console.log("Token still valid, no need to refresh");
 		return;
 	}
 
@@ -48,7 +48,7 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	console.log("Refreshed token");
 
-	await updateGitlab(gitlabProviderId, {
+	await updateGitlabComplete(gitlabProviderId, {
 		accessToken: data.access_token,
 		refreshToken: data.refresh_token,
 		expiresAt,
@@ -283,4 +283,47 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	} catch (error) {
 		throw error;
 	}
+};
+
+export const testGitlabConnection = async (
+	input: typeof apiGitlabTestConnection._type,
+) => {
+	const { gitlabId, groupName } = input;
+
+	if (!gitlabId) {
+		throw new Error("Gitlab provider not found");
+	}
+
+	await refreshGitlabToken(gitlabId);
+
+	const gitlabProvider = await findGitlabById(gitlabId);
+
+	const response = await fetch(
+		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		{
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Failed to fetch repositories: ${response.statusText}`,
+		});
+	}
+
+	const repositories = await response.json();
+
+	const filteredRepos = repositories.filter((repo: any) => {
+		const { full_path, kind } = repo.namespace;
+
+		if (groupName) {
+			return full_path.toLowerCase().includes(groupName) && kind === "group";
+		}
+		return kind === "user";
+	});
+
+	return filteredRepos.length;
 };

@@ -59,7 +59,7 @@ interface Props {
 }
 
 export const SaveGitlabProvider = ({ applicationId }: Props) => {
-	const { data: gitlabProviders } = api.gitProvider.gitlabProviders.useQuery();
+	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isLoading: isSavingGitlabProvider } =
@@ -87,15 +87,20 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 		data: repositories,
 		isLoading: isLoadingRepositories,
 		error,
-	} = api.gitProvider.getGitlabRepositories.useQuery({
-		gitlabId,
-	});
+	} = api.gitlab.getGitlabRepositories.useQuery(
+		{
+			gitlabId,
+		},
+		{
+			enabled: !!gitlabId,
+		},
+	);
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getGitlabBranches.useQuery(
+	} = api.gitlab.getGitlabBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,

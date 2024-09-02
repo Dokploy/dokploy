@@ -3,6 +3,7 @@ import { type apiCreateGithub, github, gitProvider } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
+export type Github = typeof github.$inferSelect;
 export const createGithub = async (input: typeof apiCreateGithub._type) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -33,11 +34,25 @@ export const createGithub = async (input: typeof apiCreateGithub._type) => {
 	});
 };
 
-export const removeGitProvider = async (gitProviderId: string) => {
-	const result = await db
-		.delete(gitProvider)
-		.where(eq(gitProvider.gitProviderId, gitProviderId))
-		.returning();
+export const findGithubById = async (githubId: string) => {
+	const githubProviderResult = await db.query.github.findFirst({
+		where: eq(github.githubId, githubId),
+	});
 
-	return result[0];
+	if (!githubProviderResult) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Github Provider not found",
+		});
+	}
+
+	return githubProviderResult;
+};
+
+export const haveGithubRequirements = (github: Github) => {
+	return !!(
+		github?.githubAppId &&
+		github?.githubPrivateKey &&
+		github?.githubInstallationId
+	);
 };

@@ -58,7 +58,7 @@ interface Props {
 
 export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 	const { data: bitbucketProviders } =
-		api.gitProvider.bitbucketProviders.useQuery();
+		api.bitbucket.bitbucketProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
 	const { mutateAsync, isLoading: isSavingBitbucketProvider } =
@@ -85,15 +85,20 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		isLoading: isLoadingRepositories,
 		error,
 		isError,
-	} = api.gitProvider.getBitbucketRepositories.useQuery({
-		bitbucketId,
-	});
+	} = api.bitbucket.getBitbucketRepositories.useQuery(
+		{
+			bitbucketId,
+		},
+		{
+			enabled: !!bitbucketId,
+		},
+	);
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getBitbucketBranches.useQuery(
+	} = api.bitbucket.getBitbucketBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,

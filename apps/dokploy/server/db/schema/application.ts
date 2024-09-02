@@ -21,7 +21,7 @@ import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { bitbucket, github, gitlab } from "./git-provider";
+import { bitbucket, github, gitlab } from ".";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",

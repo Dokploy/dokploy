@@ -56,7 +56,7 @@ interface Props {
 }
 
 export const SaveGithubProviderCompose = ({ composeId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
+	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
 	const { mutateAsync, isLoading: isSavingGithubProvider } =
@@ -79,15 +79,20 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 	const githubId = form.watch("githubId");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.gitProvider.getRepositories.useQuery({
-			githubId,
-		});
+		api.github.getGithubRepositories.useQuery(
+			{
+				githubId,
+			},
+			{
+				enabled: !!githubId,
+			},
+		);
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getBranches.useQuery(
+	} = api.github.getGithubBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,

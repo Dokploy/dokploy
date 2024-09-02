@@ -1,4 +1,4 @@
-import { BitbucketIcon } from "@/components/icons/data-tools-icons";
+import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit } from "lucide-react";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,66 +32,60 @@ const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	workspaceName: z.string().optional(),
+	groupName: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
 
 interface Props {
-	bitbucketId: string;
+	gitlabId: string;
 }
 
-export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
-	const { data: bitbucket } = api.bitbucket.one.useQuery(
+export const EditGitlabProvider = ({ gitlabId }: Props) => {
+	const { data: gitlab } = api.gitlab.one.useQuery(
 		{
-			bitbucketId,
+			gitlabId,
 		},
 		{
-			enabled: !!bitbucketId,
+			enabled: !!gitlabId,
 		},
 	);
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { mutateAsync, error, isError } = api.bitbucket.update.useMutation();
+	const { mutateAsync, error, isError } = api.gitlab.update.useMutation();
 	const { mutateAsync: testConnection, isLoading } =
-		api.bitbucket.testConnection.useMutation();
+		api.gitlab.testConnection.useMutation();
 	const form = useForm<Schema>({
 		defaultValues: {
-			username: "",
-			workspaceName: "",
+			groupName: "",
+			name: "",
 		},
 		resolver: zodResolver(Schema),
 	});
 
-	const username = form.watch("username");
-	const workspaceName = form.watch("workspaceName");
+	const groupName = form.watch("groupName");
 
 	useEffect(() => {
 		form.reset({
-			username: bitbucket?.bitbucketUsername || "",
-			workspaceName: bitbucket?.bitbucketWorkspaceName || "",
-			name: bitbucket?.gitProvider.name || "",
+			groupName: gitlab?.groupName || "",
+			name: gitlab?.gitProvider.name || "",
 		});
 	}, [form, isOpen]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			bitbucketId,
-			gitProviderId: bitbucket?.gitProviderId || "",
-			bitbucketUsername: data.username,
-			bitbucketWorkspaceName: data.workspaceName || "",
+			gitlabId,
+			gitProviderId: gitlab?.gitProviderId || "",
+			groupName: data.groupName || "",
 			name: data.name || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket updated successfully");
+				toast.success("Gitlab updated successfully");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update Bitbucket");
+				toast.error("Error to update Gitlab");
 			});
 	};
 
@@ -103,7 +99,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Bitbucket Provider <BitbucketIcon className="size-5" />
+						Update GitLab Provider <GitlabIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -132,32 +128,16 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormField
-									control={form.control}
-									name="username"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Bitbucket Username</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Your Bitbucket username"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
 
 								<FormField
 									control={form.control}
-									name="workspaceName"
+									name="groupName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Workspace Name (Optional)</FormLabel>
+											<FormLabel>Group Name (Optional)</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization accounts"
+													placeholder="For organization/group access"
 													{...field}
 												/>
 											</FormControl>
@@ -173,9 +153,8 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 										isLoading={isLoading}
 										onClick={async () => {
 											await testConnection({
-												bitbucketId,
-												bitbucketUsername: username,
-												workspaceName: workspaceName,
+												gitlabId,
+												groupName: groupName || "",
 											})
 												.then(async (message) => {
 													toast.info(`Message: ${message}`);

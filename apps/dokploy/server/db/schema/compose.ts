@@ -10,7 +10,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
-import { bitbucket, github, gitlab } from "./git-provider";
+import { bitbucket, github, gitlab } from ".";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",

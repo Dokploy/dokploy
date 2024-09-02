@@ -5,9 +5,12 @@ import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
-import { findBitbucketById } from "@/server/api/services/git-provider";
 import type { Compose } from "@/server/api/services/compose";
-import type { apiFindBitbucketBranches } from "@/server/db/schema";
+import type {
+	apiBitbucketTestConnection,
+	apiFindBitbucketBranches,
+} from "@/server/db/schema";
+import { findBitbucketById } from "@/server/api/services/bitbucket";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -206,6 +209,53 @@ export const getBitbucketBranches = async (
 				sha: string;
 			};
 		}[];
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const testBitbucketConnection = async (
+	input: typeof apiBitbucketTestConnection._type,
+) => {
+	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
+
+	if (!bitbucketProvider) {
+		throw new Error("Bitbucket provider not found");
+	}
+
+	const { bitbucketUsername, workspaceName } = input;
+
+	const username = workspaceName || bitbucketUsername;
+
+	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
+	try {
+		const response = await fetch(url, {
+			method: "GET",
+			headers: {
+				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+			},
+		});
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Failed to fetch repositories: ${response.statusText}`,
+			});
+		}
+
+		const data = await response.json();
+
+		const mappedData = data.values.map((repo: any) => {
+			return {
+				name: repo.name,
+				url: repo.links.html.href,
+				owner: {
+					username: repo.workspace.slug,
+				},
+			};
+		}) as [];
+
+		return mappedData.length;
 	} catch (error) {
 		throw error;
 	}

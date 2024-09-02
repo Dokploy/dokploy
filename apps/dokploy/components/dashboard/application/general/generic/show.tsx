@@ -25,10 +25,10 @@ interface Props {
 }
 
 export const ShowProviderForm = ({ applicationId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
-	const { data: gitlabProviders } = api.gitProvider.gitlabProviders.useQuery();
+	const { data: githubProviders } = api.github.githubProviders.useQuery();
+	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data: bitbucketProviders } =
-		api.gitProvider.bitbucketProviders.useQuery();
+		api.bitbucket.bitbucketProviders.useQuery();
 
 	const { data: application } = api.application.one.useQuery({ applicationId });
 	const [tab, setSab] = useState<TabState>(application?.sourceType || "github");

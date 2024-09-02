@@ -7,12 +7,10 @@ import { Octokit } from "octokit";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
-import {
-	findGithubById,
-	type Github,
-} from "@/server/api/services/git-provider";
+
 import type { Compose } from "@/server/api/services/compose";
 import type { apiFindGithubBranches } from "@/server/db/schema";
+import { type Github, findGithubById } from "@/server/api/services/github";
 
 export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {

@@ -56,7 +56,7 @@ interface Props {
 }
 
 export const SaveGithubProvider = ({ applicationId }: Props) => {
-	const { data: githubProviders } = api.gitProvider.githubProviders.useQuery();
+	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isLoading: isSavingGithubProvider } =
@@ -79,15 +79,20 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 	const githubId = form.watch("githubId");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.gitProvider.getGithubRepositories.useQuery({
-			githubId,
-		});
+		api.github.getGithubRepositories.useQuery(
+			{
+				githubId,
+			},
+			{
+				enabled: !!githubId,
+			},
+		);
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitProvider.getGithubBranches.useQuery(
+	} = api.github.getGithubBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,

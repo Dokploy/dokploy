@@ -53,8 +53,7 @@ export const AddGitlabProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
 	const { data: auth } = api.auth.get.useQuery();
-	const { mutateAsync, error, isError } =
-		api.gitProvider.createGitlab.useMutation();
+	const { mutateAsync, error, isError } = api.gitlab.create.useMutation();
 	const webhookUrl = `${url}/api/providers/gitlab/callback`;
 
 	const form = useForm<Schema>({

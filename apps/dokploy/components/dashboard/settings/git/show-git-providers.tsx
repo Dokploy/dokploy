@@ -12,6 +12,9 @@ import { api } from "@/utils/api";
 import Link from "next/link";
 import { RemoveGitProvider } from "./remove-git-provider";
 import { useUrl } from "@/utils/hooks/use-url";
+import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
+import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
+import { formatDate } from "date-fns";
 
 export const ShowGitProviders = () => {
 	const { data } = api.gitProvider.getAll.useQuery();
@@ -48,6 +51,7 @@ export const ShowGitProviders = () => {
 				{data?.map((gitProvider, index) => {
 					const isGithub = gitProvider.providerType === "github";
 					const isGitlab = gitProvider.providerType === "gitlab";
+					const isBitbucket = gitProvider.providerType === "bitbucket";
 					const haveGithubRequirements =
 						gitProvider.providerType === "github" &&
 						gitProvider.github?.githubPrivateKey &&
@@ -61,7 +65,7 @@ export const ShowGitProviders = () => {
 							className="space-y-4"
 							key={`${gitProvider.gitProviderId}-${index}`}
 						>
-							<Card className="flex sm:flex-row max-sm:gap-2 flex-col justify-between items-center p-4 h-full">
+							<Card className="flex sm:flex-row max-sm:gap-2 flex-col justify-between items-center p-4 h-full bg-transparent">
 								<div className="flex items-center space-x-4 w-full">
 									{gitProvider.providerType === "github" && (
 										<GithubIcon className="w-6 h-6" />
@@ -72,7 +76,7 @@ export const ShowGitProviders = () => {
 									{gitProvider.providerType === "bitbucket" && (
 										<BitbucketIcon className="w-6 h-6" />
 									)}
-									<div>
+									<div className="flex flex-col gap-1">
 										<p className="font-medium">
 											{gitProvider.providerType === "github"
 												? "GitHub"
@@ -83,6 +87,15 @@ export const ShowGitProviders = () => {
 										<p className="text-sm text-muted-foreground">
 											{gitProvider.name}
 										</p>
+										<span>
+											<p className="text-sm text-muted-foreground">
+												Created{" "}
+												{formatDate(
+													gitProvider.createdAt,
+													"yyyy-MM-dd hh:mm:ss a",
+												)}
+											</p>
+										</span>
 									</div>
 								</div>
 								<div className="flex  sm:gap-4 sm:flex-row flex-col">
@@ -92,7 +105,7 @@ export const ShowGitProviders = () => {
 												href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 												className={buttonVariants({ className: "w-fit" })}
 											>
-												Install Github App
+												Install
 											</Link>
 										</div>
 									)}
@@ -107,7 +120,7 @@ export const ShowGitProviders = () => {
 													variant: "secondary",
 												})}
 											>
-												<span className="text-sm">Manage Github App</span>
+												<span className="text-sm">Manage</span>
 											</Link>
 										</div>
 									)}
@@ -125,15 +138,26 @@ export const ShowGitProviders = () => {
 													variant: "secondary",
 												})}
 											>
-												<span className="text-sm">Install Gitlab App</span>
+												<span className="text-sm">Install</span>
 											</Link>
 										</div>
 									)}
-
-									<RemoveGitProvider
-										gitProviderId={gitProvider.gitProviderId}
-										gitProviderType={gitProvider.providerType}
-									/>
+									<div className="flex flex-row gap-1">
+										{isBitbucket && (
+											<EditBitbucketProvider
+												bitbucketId={gitProvider.bitbucket.bitbucketId}
+											/>
+										)}
+										{isGitlab && haveGitlabRequirements && (
+											<EditGitlabProvider
+												gitlabId={gitProvider.gitlab.gitlabId}
+											/>
+										)}
+										<RemoveGitProvider
+											gitProviderId={gitProvider.gitProviderId}
+											gitProviderType={gitProvider.providerType}
+										/>
+									</div>
 								</div>
 							</Card>
 						</div>
