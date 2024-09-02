@@ -28,6 +28,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { getUserByToken } from "../services/admin";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
@@ -61,6 +62,13 @@ export const authRouter = createTRPCRouter({
 		.input(apiCreateUser)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				const token = await getUserByToken(input.token);
+				if (token.isExpired) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid token",
+					});
+				}
 				const newUser = await createUser(input);
 				const session = await lucia.createSession(newUser?.authId || "", {});
 				ctx.res.appendHeader(

@@ -3,30 +3,18 @@ import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
 	apiFindOneToken,
-	apiGetBranches,
 	apiRemoveUser,
 	users,
 } from "@/server/db/schema";
-import { haveGithubRequirements } from "@/server/utils/providers/github";
-import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { Octokit } from "octokit";
 import {
 	createInvitation,
 	findAdmin,
 	getUserByToken,
 	removeUserByAuthId,
-	updateAdmin,
 } from "../services/admin";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "../trpc";
-import { z } from "zod";
-import { getGithubProvider } from "../services/git-provider";
+import { adminProcedure, createTRPCRouter, publicProcedure } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async () => {
@@ -85,10 +73,4 @@ export const adminRouter = createTRPCRouter({
 				});
 			}
 		}),
-
-	// haveGithubConfigured: protectedProcedure.query(async () => {
-	// 	const adminResponse = await findAdmin();
-
-	// 	return haveGithubRequirements(adminResponse);
-	// }),
 });

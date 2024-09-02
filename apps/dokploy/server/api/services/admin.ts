@@ -129,13 +129,9 @@ export const getUserByToken = async (token: string) => {
 			message: "Invitation not found",
 		});
 	}
-
-	const now = new Date();
-	const isExpired = isAfter(now, new Date(user.expirationDate));
-
 	return {
 		...user,
-		isExpired,
+		isExpired: user.isRegistered,
 	};
 };
 

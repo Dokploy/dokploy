@@ -95,6 +95,16 @@ export const SettingsLayout = ({ children }: Props) => {
 									},
 								]
 							: []),
+						...(user?.canAccessToGitProviders
+							? [
+									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+								]
+							: []),
 					]}
 				/>
 			</div>
