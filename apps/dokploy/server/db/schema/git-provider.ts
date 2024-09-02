@@ -27,17 +27,17 @@ export const gitProvider = pgTable("git_provider", {
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
-	github: one(githubProvider, {
+	github: one(github, {
 		fields: [gitProvider.gitProviderId],
-		references: [githubProvider.gitProviderId],
+		references: [github.gitProviderId],
 	}),
-	gitlab: one(gitlabProvider, {
+	gitlab: one(gitlab, {
 		fields: [gitProvider.gitProviderId],
-		references: [gitlabProvider.gitProviderId],
+		references: [gitlab.gitProviderId],
 	}),
-	bitbucket: one(bitbucketProvider, {
+	bitbucket: one(bitbucket, {
 		fields: [gitProvider.gitProviderId],
-		references: [bitbucketProvider.gitProviderId],
+		references: [bitbucket.gitProviderId],
 	}),
 	auth: one(auth, {
 		fields: [gitProvider.authId],
@@ -45,7 +45,7 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 	}),
 }));
 
-export const githubProvider = pgTable("github_provider", {
+export const github = pgTable("github", {
 	githubId: text("githubId")
 		.notNull()
 		.primaryKey()
@@ -62,17 +62,14 @@ export const githubProvider = pgTable("github_provider", {
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),
 });
 
-export const githubProviderRelations = relations(
-	githubProvider,
-	({ one, }) => ({
-		gitProvider: one(gitProvider, {
-			fields: [githubProvider.gitProviderId],
-			references: [gitProvider.gitProviderId],
-		}),
+export const githubProviderRelations = relations(github, ({ one }) => ({
+	gitProvider: one(gitProvider, {
+		fields: [github.gitProviderId],
+		references: [gitProvider.gitProviderId],
 	}),
-);
+}));
 
-export const gitlabProvider = pgTable("gitlab_provider", {
+export const gitlab = pgTable("gitlab", {
 	gitlabId: text("gitlabId")
 		.notNull()
 		.primaryKey()
@@ -89,17 +86,14 @@ export const gitlabProvider = pgTable("gitlab_provider", {
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),
 });
 
-export const gitlabProviderRelations = relations(
-	gitlabProvider,
-	({ one}) => ({
-		gitProvider: one(gitProvider, {
-			fields: [gitlabProvider.gitProviderId],
-			references: [gitProvider.gitProviderId],
-		}),
+export const gitlabProviderRelations = relations(gitlab, ({ one }) => ({
+	gitProvider: one(gitProvider, {
+		fields: [gitlab.gitProviderId],
+		references: [gitProvider.gitProviderId],
 	}),
-);
+}));
 
-export const bitbucketProvider = pgTable("bitbucket_provider", {
+export const bitbucket = pgTable("bitbucket", {
 	bitbucketId: text("bitbucketId")
 		.notNull()
 		.primaryKey()
@@ -112,19 +106,16 @@ export const bitbucketProvider = pgTable("bitbucket_provider", {
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),
 });
 
-export const bitbucketProviderRelations = relations(
-	bitbucketProvider,
-	({ one }) => ({
-		gitProvider: one(gitProvider, {
-			fields: [bitbucketProvider.gitProviderId],
-			references: [gitProvider.gitProviderId],
-		}),
+export const bitbucketProviderRelations = relations(bitbucket, ({ one }) => ({
+	gitProvider: one(gitProvider, {
+		fields: [bitbucket.gitProviderId],
+		references: [gitProvider.gitProviderId],
 	}),
-);
+}));
 
 const createSchema = createInsertSchema(gitProvider);
 
-export const apiCreateGithubProvider = createSchema.extend({
+export const apiCreateGithub = createSchema.extend({
 	githubAppName: z.string().optional(),
 	githubAppId: z.number().optional(),
 	githubClientId: z.string().optional(),
@@ -135,7 +126,7 @@ export const apiCreateGithubProvider = createSchema.extend({
 	gitProviderId: z.string().optional(),
 });
 
-export const apiCreateGitlabProvider = createSchema.extend({
+export const apiCreateGitlab = createSchema.extend({
 	applicationId: z.string().optional(),
 	secret: z.string().optional(),
 	groupName: z.string().optional(),
@@ -143,7 +134,7 @@ export const apiCreateGitlabProvider = createSchema.extend({
 	redirectUri: z.string().optional(),
 });
 
-export const apiCreateBitbucketProvider = createSchema.extend({
+export const apiCreateBitbucket = createSchema.extend({
 	bitbucketUsername: z.string().optional(),
 	appPassword: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),

@@ -1,6 +1,6 @@
-import { createGithubProvider } from "@/server/api/services/git-provider";
+import { createGithub } from "@/server/api/services/git-provider";
 import { db } from "@/server/db";
-import { githubProvider } from "@/server/db/schema";
+import { github } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
@@ -34,7 +34,7 @@ export default async function handler(
 			},
 		);
 
-		await createGithubProvider({
+		await createGithub({
 			name: data.name,
 			githubAppName: data.html_url,
 			githubAppId: data.id,
@@ -46,11 +46,11 @@ export default async function handler(
 		});
 	} else if (action === "gh_setup") {
 		await db
-			.update(githubProvider)
+			.update(github)
 			.set({
 				githubInstallationId: installation_id,
 			})
-			.where(eq(githubProvider.githubId, value as string))
+			.where(eq(github.githubId, value as string))
 			.returning();
 	}
 

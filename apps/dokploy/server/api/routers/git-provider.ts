@@ -1,16 +1,16 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
-	apiCreateBitbucketProvider,
-	apiCreateGitlabProvider,
+	apiCreateBitbucket,
+	apiCreateGitlab,
 	apiGetBranches,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
-	createBitbucketProvider,
-	createGitlabProvider,
+	createBitbucket,
+	createGitlab,
 	haveGithubRequirements,
-	removeGithubProvider,
+	removeGithub,
 } from "../services/git-provider";
 import { z } from "zod";
 import {
@@ -41,7 +41,7 @@ export const gitProvider = createTRPCRouter({
 		.input(z.object({ gitProviderId: z.string() }))
 		.mutation(async ({ input }) => {
 			try {
-				return await removeGithubProvider(input.gitProviderId);
+				return await removeGithub(input.gitProviderId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -49,11 +49,11 @@ export const gitProvider = createTRPCRouter({
 				});
 			}
 		}),
-	createGitlabProvider: protectedProcedure
-		.input(apiCreateGitlabProvider)
+	createGitlab: protectedProcedure
+		.input(apiCreateGitlab)
 		.mutation(async ({ input }) => {
 			try {
-				return await createGitlabProvider(input);
+				return await createGitlab(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -62,11 +62,11 @@ export const gitProvider = createTRPCRouter({
 				});
 			}
 		}),
-	createBitbucketProvider: protectedProcedure
-		.input(apiCreateBitbucketProvider)
+	createBitbucket: protectedProcedure
+		.input(apiCreateBitbucket)
 		.mutation(async ({ input }) => {
 			try {
-				return await createBitbucketProvider(input);
+				return await createBitbucket(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -76,7 +76,7 @@ export const gitProvider = createTRPCRouter({
 			}
 		}),
 	githubProviders: protectedProcedure.query(async () => {
-		const result = await db.query.githubProvider.findMany({
+		const result = await db.query.github.findMany({
 			with: {
 				gitProvider: true,
 			},
@@ -96,7 +96,7 @@ export const gitProvider = createTRPCRouter({
 		return filtered;
 	}),
 	gitlabProviders: protectedProcedure.query(async () => {
-		const result = await db.query.gitlabProvider.findMany({
+		const result = await db.query.gitlab.findMany({
 			with: {
 				gitProvider: true,
 			},
@@ -115,7 +115,7 @@ export const gitProvider = createTRPCRouter({
 		return filtered;
 	}),
 	bitbucketProviders: protectedProcedure.query(async () => {
-		const result = await db.query.bitbucketProvider.findMany({
+		const result = await db.query.bitbucket.findMany({
 			with: {
 				gitProvider: true,
 			},
@@ -182,21 +182,9 @@ export const gitProvider = createTRPCRouter({
 		.query(async ({ input }) => {
 			return await getGithubBranches(input);
 		}),
+	// getGithub: protectedProcedure
+	// 	.input(apiGetGithub)
+	// 	.query(async ({ input }) => {
+	// 		return await findGithub(input);
+	// 	}),
 });
-// 1725175543
-// {
-// 	access_token: '11d422887d8fac712191ee9b09dfdb043a705938cd67a4a39f36b4bc65b3106d',
-// 	token_type: 'Bearer',
-// 	expires_in: 7200,
-// 	refresh_token: '3806d8022d32886c19d91eb9d1cea9328b864387f39c5d0469d08c48e18b674e',
-// 	scope: 'api read_user read_repository',
-// 	created_at: 1725167656
-//   }
-// {
-// 	access_token: 'd256b52b10bf72ebf2784f8c0528e48a04a7d249c28695b6cc105b47b09c7336',
-// 	token_type: 'Bearer',
-// 	expires_in: 7200,
-// 	refresh_token: '265eb87d0bbef410e0c30a2c239c4fa3698943219a439fb43cf2f8227d1fcaf2',
-// 	scope: 'api read_user read_repository',
-// 	created_at: 1725167803
-//   }

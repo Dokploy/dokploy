@@ -93,9 +93,9 @@ export const findComposeById = async (composeId: string) => {
 			deployments: true,
 			mounts: true,
 			domains: true,
-			githubProvider: true,
-			gitlabProvider: true,
-			bitbucketProvider: true,
+			github: true,
+			gitlab: true,
+			bitbucket: true,
 		},
 	});
 	if (!result) {

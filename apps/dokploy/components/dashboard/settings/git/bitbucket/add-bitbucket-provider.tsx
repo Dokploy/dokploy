@@ -1,4 +1,8 @@
-import { GitlabIcon } from "@/components/icons/data-tools-icons";
+import {
+	BitbucketIcon,
+	GithubIcon,
+	GitlabIcon,
+} from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -21,77 +25,69 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
-	applicationId: z.string().min(1, {
-		message: "Application ID is required",
+	username: z.string().min(1, {
+		message: "Username is required",
 	}),
-	applicationSecret: z.string().min(1, {
-		message: "Application Secret is required",
+	password: z.string().min(1, {
+		message: "App Password is required",
 	}),
-
-	redirectUri: z.string().min(1, {
-		message: "Redirect URI is required",
-	}),
-	groupName: z.string().optional(),
+	workspaceName: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
 
-export const AddGitlabProvider = () => {
+export const AddBitbucketProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
-	const { data: auth } = api.auth.get.useQuery();
 	const { mutateAsync, error, isError } =
-		api.gitProvider.createGitlabProvider.useMutation();
-	const webhookUrl = `${url}/api/providers/gitlab/callback`;
-
+		api.gitProvider.createBitbucket.useMutation();
+	const { data: auth } = api.auth.get.useQuery();
+	const router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {
-			applicationId: "",
-			applicationSecret: "",
-			groupName: "",
-			redirectUri: webhookUrl,
+			username: "",
+			password: "",
+			workspaceName: "",
 		},
 		resolver: zodResolver(Schema),
 	});
 
 	useEffect(() => {
 		form.reset({
-			applicationId: "",
-			applicationSecret: "",
-			groupName: "",
-			redirectUri: webhookUrl,
+			username: "",
+			password: "",
+			workspaceName: "",
 		});
 	}, [form, isOpen]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			applicationId: data.applicationId || "",
-			secret: data.applicationSecret || "",
-			groupName: data.groupName || "",
+			bitbucketUsername: data.username,
+			appPassword: data.password,
+			bitbucketWorkspaceName: data.workspaceName || "",
 			authId: auth?.id || "",
 			name: data.name || "",
-			redirectUri: data.redirectUri || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("GitLab created successfully");
+				toast.success("Bitbucket configured successfully");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error configuring GitLab");
+				toast.error("Error configuring Bitbucket");
 			});
 	};
 
@@ -99,58 +95,58 @@ export const AddGitlabProvider = () => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button
-					variant="default"
-					className="flex items-center space-x-1 bg-purple-700 text-white hover:bg-purple-600"
+					variant="secondary"
+					className="flex items-center space-x-1 bg-blue-700 text-white hover:bg-blue-600"
 				>
-					<GitlabIcon />
-					<span>GitLab</span>
+					<BitbucketIcon />
+					<span>Bitbucket</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						GitLab Provider <GitlabIcon className="size-5" />
+						Bitbucket Provider <BitbucketIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
-						id="hook-form-add-gitlab"
+						id="hook-form-add-bitbucket"
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-1"
 					>
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
 								<p className="text-muted-foreground text-sm">
-									To integrate your GitLab account, you need to create a new
-									application in your GitLab settings. Follow these steps:
+									To integrate your Bitbucket account, you need to create a new
+									App Password in your Bitbucket settings. Follow these steps:
 								</p>
 								<ol className="list-decimal list-inside text-sm text-muted-foreground">
 									<li className="flex flex-row gap-2 items-center">
-										Go to your GitLab profile settings{" "}
+										Create new App Password{" "}
 										<Link
-											href="https://gitlab.com/-/profile/applications"
+											href="https://bitbucket.org/account/settings/app-passwords/new"
 											target="_blank"
 										>
 											<ExternalLink className="w-fit text-primary size-4" />
 										</Link>
 									</li>
-									<li>Navigate to Applications</li>
 									<li>
-										Create a new application with the following details:
+										When creating the App Password, ensure you grant the
+										following permissions:
 										<ul className="list-disc list-inside ml-4">
-											<li>Name: Dokploy</li>
-											<li>
-												Redirect URI:{" "}
-												<span className="text-primary">{webhookUrl}</span>{" "}
-											</li>
-											<li>Scopes: api, read_user, read_repository</li>
+											<li>Account: Read</li>
+											<li>Workspace membership: Read</li>
+											<li>Projects: Read</li>
+											<li>Repositories: Read</li>
+											<li>Pull requests: Read</li>
+											<li>Webhooks: Read and write</li>
 										</ul>
 									</li>
 									<li>
-										After creating, you'll receive an Application ID and Secret,
-										copy them and paste them below.
+										After creating, you'll receive an App Password. Copy it and
+										paste it below along with your Bitbucket username.
 									</li>
 								</ol>
 								<FormField
@@ -169,17 +165,15 @@ export const AddGitlabProvider = () => {
 										</FormItem>
 									)}
 								/>
-
 								<FormField
 									control={form.control}
-									name="redirectUri"
+									name="username"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Redirect URI</FormLabel>
+											<FormLabel>Bitbucket Username</FormLabel>
 											<FormControl>
 												<Input
-													disabled
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder="Your Bitbucket username"
 													{...field}
 												/>
 											</FormControl>
@@ -190,28 +184,14 @@ export const AddGitlabProvider = () => {
 
 								<FormField
 									control={form.control}
-									name="applicationId"
+									name="password"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Application ID</FormLabel>
-											<FormControl>
-												<Input placeholder="Application ID" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="applicationSecret"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Application Secret</FormLabel>
+											<FormLabel>App Password</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
-													placeholder="Application Secret"
+													placeholder="ATBBPDYUC94nR96Nj7Cqpp4pfwKk03573DD2"
 													{...field}
 												/>
 											</FormControl>
@@ -222,13 +202,13 @@ export const AddGitlabProvider = () => {
 
 								<FormField
 									control={form.control}
-									name="groupName"
+									name="workspaceName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Group Name (Optional)</FormLabel>
+											<FormLabel>Workspace Name (Optional)</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization/group access"
+													placeholder="For organization accounts"
 													{...field}
 												/>
 											</FormControl>
@@ -238,7 +218,7 @@ export const AddGitlabProvider = () => {
 								/>
 
 								<Button isLoading={form.formState.isSubmitting}>
-									Configure GitLab App
+									Configure Bitbucket
 								</Button>
 							</div>
 						</CardContent>

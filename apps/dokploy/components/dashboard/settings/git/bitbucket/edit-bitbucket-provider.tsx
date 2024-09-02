@@ -49,11 +49,12 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const AddBitbucketProvider = () => {
+	// const {data} = api.gitProvider.
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
 	const { mutateAsync, error, isError } =
-		api.gitProvider.createBitbucketProvider.useMutation();
+		api.gitProvider.createBitbucket.useMutation();
 	const { data: auth } = api.auth.get.useQuery();
 	const router = useRouter();
 	const form = useForm<Schema>({

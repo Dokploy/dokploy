@@ -10,11 +10,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
-import {
-	bitbucketProvider,
-	githubProvider,
-	gitlabProvider,
-} from "./git-provider";
+import { bitbucket, github, gitlab } from "./git-provider";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
@@ -76,18 +72,15 @@ export const compose = pgTable("compose", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 
-	githubId: text("githubId").references(() => githubProvider.githubId, {
+	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
-	gitlabId: text("gitlabId").references(() => gitlabProvider.gitlabId, {
+	gitlabId: text("gitlabId").references(() => gitlab.gitlabId, {
 		onDelete: "set null",
 	}),
-	bitbucketId: text("bitbucketId").references(
-		() => bitbucketProvider.bitbucketId,
-		{
-			onDelete: "set null",
-		},
-	),
+	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
+		onDelete: "set null",
+	}),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -102,17 +95,17 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		references: [sshKeys.sshKeyId],
 	}),
 	domains: many(domains),
-	githubProvider: one(githubProvider, {
+	github: one(github, {
 		fields: [compose.githubId],
-		references: [githubProvider.githubId],
+		references: [github.githubId],
 	}),
-	gitlabProvider: one(gitlabProvider, {
+	gitlab: one(gitlab, {
 		fields: [compose.gitlabId],
-		references: [gitlabProvider.gitlabId],
+		references: [gitlab.gitlabId],
 	}),
-	bitbucketProvider: one(bitbucketProvider, {
+	bitbucket: one(bitbucket, {
 		fields: [compose.bitbucketId],
-		references: [bitbucketProvider.bitbucketId],
+		references: [bitbucket.bitbucketId],
 	}),
 }));
 

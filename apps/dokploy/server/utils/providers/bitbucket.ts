@@ -5,17 +5,17 @@ import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
-import { getBitbucketProvider } from "@/server/api/services/git-provider";
+import { findBitbucketById } from "@/server/api/services/git-provider";
 import type { Compose } from "@/server/api/services/compose";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
-	{ bitbucketProvider: true }
+	{ bitbucket: true }
 >;
 
 export type ComposeWithBitbucket = InferResultType<
 	"compose",
-	{ bitbucketProvider: true }
+	{ bitbucket: true }
 >;
 
 export const cloneBitbucketRepository = async (
@@ -30,7 +30,7 @@ export const cloneBitbucketRepository = async (
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
-		bitbucketProvider,
+		bitbucket,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -44,7 +44,7 @@ export const cloneBitbucketRepository = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = `https://${bitbucket?.bitbucketUsername}:${bitbucket?.appPassword}@${repoclone}`;
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		await spawnAsync(
@@ -90,7 +90,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 		});
 	}
 
-	const bitbucketProvider = await getBitbucketProvider(bitbucketId);
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -123,7 +123,7 @@ export const getBitbucketRepositories = async (
 	if (!input.bitbucketId) {
 		return [];
 	}
-	const bitbucketProvider = await getBitbucketProvider(input.bitbucketId);
+	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
@@ -179,7 +179,7 @@ export const getBitbucketBranches = async (input: GetBitbucketBranches) => {
 	if (!input.bitbucketId) {
 		return [];
 	}
-	const bitbucketProvider = await getBitbucketProvider(input.bitbucketId);
+	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 	const { owner, repo } = input;
 	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches`;
 

@@ -1,13 +1,13 @@
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { AddGitlabProvider } from "./add-gitlab-provider";
+import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import {
 	BitbucketIcon,
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
-import { AddGithubProvider } from "./add-github-provider";
-import { AddBitbucketProvider } from "./add-bitbucket-provider";
+import { AddGithubProvider } from "./github/add-github-provider";
+import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { api } from "@/utils/api";
 import Link from "next/link";
 import { RemoveGitProvider } from "./remove-git-provider";

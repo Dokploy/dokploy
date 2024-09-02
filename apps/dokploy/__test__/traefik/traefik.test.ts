@@ -12,6 +12,7 @@ const baseApp: ApplicationNested = {
 	branch: null,
 	buildArgs: null,
 	buildPath: "/",
+	gitlabPathNamespace: "",
 	buildType: "nixpacks",
 	bitbucketBranch: "",
 	bitbucketBuildPath: "",

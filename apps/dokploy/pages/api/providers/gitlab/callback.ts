@@ -1,6 +1,6 @@
 import {
-	getGitlabProvider,
-	updateGitlabProvider,
+	findGitlabById,
+	updateGitlab,
 } from "@/server/api/services/git-provider";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -14,7 +14,7 @@ export default async function handler(
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 
-	const gitlab = await getGitlabProvider(gitlabId as string);
+	const gitlab = await findGitlabById(gitlabId as string);
 
 	const response = await fetch("https://gitlab.com/oauth/token", {
 		method: "POST",
@@ -37,7 +37,7 @@ export default async function handler(
 	}
 
 	const expiresAt = Math.floor(Date.now() / 1000) + result.expires_in;
-	await updateGitlabProvider(gitlab.gitlabId, {
+	await updateGitlab(gitlab.gitlabId, {
 		accessToken: result.access_token,
 		refreshToken: result.refresh_token,
 		expiresAt,

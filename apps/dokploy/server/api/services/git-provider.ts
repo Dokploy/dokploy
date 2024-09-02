@@ -1,22 +1,20 @@
 import { db } from "@/server/db";
 import {
-	type apiCreateBitbucketProvider,
-	type apiCreateGithubProvider,
-	type apiCreateGitlabProvider,
-	bitbucketProvider,
-	githubProvider,
-	gitlabProvider,
+	type apiCreateBitbucket,
+	type apiCreateGithub,
+	type apiCreateGitlab,
+	bitbucket,
+	github,
+	gitlab,
 	gitProvider,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-export type GithubProvider = typeof githubProvider.$inferSelect;
+export type Github = typeof github.$inferSelect;
 
-export type GitlabProvider = typeof gitlabProvider.$inferSelect;
-export const createGithubProvider = async (
-	input: typeof apiCreateGithubProvider._type,
-) => {
+export type Gitlab = typeof gitlab.$inferSelect;
+export const createGithub = async (input: typeof apiCreateGithub._type) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
@@ -36,7 +34,7 @@ export const createGithubProvider = async (
 		}
 
 		return await tx
-			.insert(githubProvider)
+			.insert(github)
 			.values({
 				...input,
 				gitProviderId: newGitProvider?.gitProviderId,
@@ -46,9 +44,7 @@ export const createGithubProvider = async (
 	});
 };
 
-export const createGitlabProvider = async (
-	input: typeof apiCreateGitlabProvider._type,
-) => {
+export const createGitlab = async (input: typeof apiCreateGitlab._type) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
@@ -68,7 +64,7 @@ export const createGitlabProvider = async (
 		}
 
 		await tx
-			.insert(gitlabProvider)
+			.insert(gitlab)
 			.values({
 				...input,
 				gitProviderId: newGitProvider?.gitProviderId,
@@ -78,8 +74,8 @@ export const createGitlabProvider = async (
 	});
 };
 
-export const createBitbucketProvider = async (
-	input: typeof apiCreateBitbucketProvider._type,
+export const createBitbucket = async (
+	input: typeof apiCreateBitbucket._type,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -100,7 +96,7 @@ export const createBitbucketProvider = async (
 		}
 
 		await tx
-			.insert(bitbucketProvider)
+			.insert(bitbucket)
 			.values({
 				...input,
 				gitProviderId: newGitProvider?.gitProviderId,
@@ -110,7 +106,7 @@ export const createBitbucketProvider = async (
 	});
 };
 
-export const removeGithubProvider = async (gitProviderId: string) => {
+export const removeGithub = async (gitProviderId: string) => {
 	const result = await db
 		.delete(gitProvider)
 		.where(eq(gitProvider.gitProviderId, gitProviderId))
@@ -119,9 +115,9 @@ export const removeGithubProvider = async (gitProviderId: string) => {
 	return result[0];
 };
 
-export const getGithubProvider = async (githubId: string) => {
-	const githubProviderResult = await db.query.githubProvider.findFirst({
-		where: eq(githubProvider.githubId, githubId),
+export const findGithubById = async (githubId: string) => {
+	const githubProviderResult = await db.query.github.findFirst({
+		where: eq(github.githubId, githubId),
 	});
 
 	if (!githubProviderResult) {
@@ -134,17 +130,17 @@ export const getGithubProvider = async (githubId: string) => {
 	return githubProviderResult;
 };
 
-export const haveGithubRequirements = (githubProvider: GithubProvider) => {
+export const haveGithubRequirements = (github: Github) => {
 	return !!(
-		githubProvider?.githubAppId &&
-		githubProvider?.githubPrivateKey &&
-		githubProvider?.githubInstallationId
+		github?.githubAppId &&
+		github?.githubPrivateKey &&
+		github?.githubInstallationId
 	);
 };
 
-export const getGitlabProvider = async (gitlabId: string) => {
-	const gitlabProviderResult = await db.query.gitlabProvider.findFirst({
-		where: eq(gitlabProvider.gitlabId, gitlabId),
+export const findGitlabById = async (gitlabId: string) => {
+	const gitlabProviderResult = await db.query.gitlab.findFirst({
+		where: eq(gitlab.gitlabId, gitlabId),
 	});
 
 	if (!gitlabProviderResult) {
@@ -157,24 +153,24 @@ export const getGitlabProvider = async (gitlabId: string) => {
 	return gitlabProviderResult;
 };
 
-export const updateGitlabProvider = async (
+export const updateGitlab = async (
 	gitlabId: string,
-	input: Partial<GitlabProvider>,
+	input: Partial<Gitlab>,
 ) => {
 	const result = await db
-		.update(gitlabProvider)
+		.update(gitlab)
 		.set({
 			...input,
 		})
-		.where(eq(gitlabProvider.gitlabId, gitlabId))
+		.where(eq(gitlab.gitlabId, gitlabId))
 		.returning();
 
 	return result[0];
 };
 
-export const getBitbucketProvider = async (bitbucketId: string) => {
-	const bitbucketProviderResult = await db.query.bitbucketProvider.findFirst({
-		where: eq(bitbucketProvider.bitbucketId, bitbucketId),
+export const findBitbucketById = async (bitbucketId: string) => {
+	const bitbucketProviderResult = await db.query.bitbucket.findFirst({
+		where: eq(bitbucket.bitbucketId, bitbucketId),
 	});
 
 	if (!bitbucketProviderResult) {

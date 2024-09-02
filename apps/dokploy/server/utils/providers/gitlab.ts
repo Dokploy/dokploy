@@ -5,15 +5,15 @@ import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import {
-	getGitlabProvider,
-	type GitlabProvider,
-	updateGitlabProvider,
+	findGitlabById,
+	type Gitlab,
+	updateGitlab,
 } from "@/server/api/services/git-provider";
 import type { InferResultType } from "@/server/types/with";
 import type { Compose } from "@/server/api/services/compose";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
-	const gitlabProvider = await getGitlabProvider(gitlabProviderId);
+	const gitlabProvider = await findGitlabById(gitlabProviderId);
 	const currentTime = Math.floor(Date.now() / 1000);
 
 	const safetyMargin = 60;
@@ -48,7 +48,7 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	console.log("Refreshed token");
 
-	await updateGitlabProvider(gitlabProviderId, {
+	await updateGitlab(gitlabProviderId, {
 		accessToken: data.access_token,
 		refreshToken: data.refresh_token,
 		expiresAt,
@@ -56,7 +56,7 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	return data;
 };
 
-export const haveGitlabRequirements = (gitlabProvider: GitlabProvider) => {
+export const haveGitlabRequirements = (gitlabProvider: Gitlab) => {
 	return !!(gitlabProvider?.accessToken && gitlabProvider?.refreshToken);
 };
 
@@ -77,13 +77,10 @@ const getErrorCloneRequirements = (entity: {
 
 export type ApplicationWithGitlab = InferResultType<
 	"applications",
-	{ gitlabProvider: true }
+	{ gitlab: true }
 >;
 
-export type ComposeWithGitlab = InferResultType<
-	"compose",
-	{ gitlabProvider: true }
->;
+export type ComposeWithGitlab = InferResultType<"compose", { gitlab: true }>;
 
 export const cloneGitlabRepository = async (
 	entity: ApplicationWithGitlab | ComposeWithGitlab,
@@ -91,13 +88,8 @@ export const cloneGitlabRepository = async (
 	isCompose = false,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const {
-		appName,
-		gitlabBranch,
-		gitlabId,
-		gitlabProvider,
-		gitlabPathNamespace,
-	} = entity;
+	const { appName, gitlabBranch, gitlabId, gitlab, gitlabPathNamespace } =
+		entity;
 
 	if (!gitlabId) {
 		throw new TRPCError({
@@ -127,7 +119,7 @@ export const cloneGitlabRepository = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
-	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
+	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
 
 	try {
 		writeStream.write(`\nClonning Repo ${repoclone} to ${outputPath}: ✅\n`);
@@ -167,7 +159,7 @@ export const getGitlabRepositories = async (input: {
 
 	await refreshGitlabToken(input.gitlabId);
 
-	const gitlabProvider = await getGitlabProvider(input.gitlabId);
+	const gitlabProvider = await findGitlabById(input.gitlabId);
 
 	const response = await fetch(
 		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
@@ -227,7 +219,7 @@ export const getGitlabBranches = async (input: {
 		return [];
 	}
 
-	const gitlabProvider = await getGitlabProvider(input.gitlabId);
+	const gitlabProvider = await findGitlabById(input.gitlabId);
 
 	const branchesResponse = await fetch(
 		`https://gitlab.com/api/v4/projects/${input.id}/repository/branches`,
@@ -270,7 +262,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 		});
 	}
 
-	const gitlabProvider = await getGitlabProvider(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;

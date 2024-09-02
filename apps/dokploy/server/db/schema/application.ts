@@ -21,11 +21,7 @@ import { security } from "./security";
 import { applicationStatus } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import {
-	bitbucketProvider,
-	githubProvider,
-	gitlabProvider,
-} from "./git-provider";
+import { bitbucket, github, gitlab } from "./git-provider";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",
@@ -187,18 +183,15 @@ export const applications = pgTable("application", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
-	githubId: text("githubId").references(() => githubProvider.githubId, {
+	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
-	gitlabId: text("gitlabId").references(() => gitlabProvider.gitlabId, {
+	gitlabId: text("gitlabId").references(() => gitlab.gitlabId, {
 		onDelete: "set null",
 	}),
-	bitbucketId: text("bitbucketId").references(
-		() => bitbucketProvider.bitbucketId,
-		{
-			onDelete: "set null",
-		},
-	),
+	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
+		onDelete: "set null",
+	}),
 });
 
 export const applicationsRelations = relations(
@@ -222,17 +215,17 @@ export const applicationsRelations = relations(
 			fields: [applications.registryId],
 			references: [registry.registryId],
 		}),
-		githubProvider: one(githubProvider, {
+		github: one(github, {
 			fields: [applications.githubId],
-			references: [githubProvider.githubId],
+			references: [github.githubId],
 		}),
-		gitlabProvider: one(gitlabProvider, {
+		gitlab: one(gitlab, {
 			fields: [applications.gitlabId],
-			references: [gitlabProvider.gitlabId],
+			references: [gitlab.gitlabId],
 		}),
-		bitbucketProvider: one(bitbucketProvider, {
+		bitbucket: one(bitbucket, {
 			fields: [applications.bitbucketId],
-			references: [bitbucketProvider.bitbucketId],
+			references: [bitbucket.bitbucketId],
 		}),
 	}),
 );

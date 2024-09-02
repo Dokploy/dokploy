@@ -83,9 +83,9 @@ export const findApplicationById = async (applicationId: string) => {
 			security: true,
 			ports: true,
 			registry: true,
-			gitlabProvider: true,
-			githubProvider: true,
-			bitbucketProvider: true,
+			gitlab: true,
+			github: true,
+			bitbucket: true,
 		},
 	});
 	if (!application) {

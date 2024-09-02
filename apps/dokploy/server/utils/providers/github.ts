@@ -8,12 +8,12 @@ import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import type { InferResultType } from "@/server/types/with";
 import {
-	getGithubProvider,
-	type GithubProvider,
+	findGithubById,
+	type Github,
 } from "@/server/api/services/git-provider";
 import type { Compose } from "@/server/api/services/compose";
 
-export const authGithub = (githubProvider: GithubProvider) => {
+export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
@@ -45,7 +45,7 @@ export const getGithubToken = async (
 	return installation.token;
 };
 
-export const haveGithubRequirements = (githubProvider: GithubProvider) => {
+export const haveGithubRequirements = (githubProvider: Github) => {
 	return !!(
 		githubProvider?.githubAppId &&
 		githubProvider?.githubPrivateKey &&
@@ -70,13 +70,10 @@ const getErrorCloneRequirements = (entity: {
 
 export type ApplicationWithGithub = InferResultType<
 	"applications",
-	{ githubProvider: true }
+	{ github: true }
 >;
 
-export type ComposeWithGithub = InferResultType<
-	"compose",
-	{ githubProvider: true }
->;
+export type ComposeWithGithub = InferResultType<"compose", { github: true }>;
 export const cloneGithubRepository = async (
 	entity: ApplicationWithGithub | ComposeWithGithub,
 	logPath: string,
@@ -108,7 +105,7 @@ export const cloneGithubRepository = async (
 		});
 	}
 
-	const githubProvider = await getGithubProvider(githubId);
+	const githubProvider = await findGithubById(githubId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);
@@ -155,7 +152,7 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 			message: "GitHub Provider not found",
 		});
 	}
-	const githubProvider = await getGithubProvider(githubId);
+	const githubProvider = await findGithubById(githubId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);
@@ -188,7 +185,7 @@ export const getGithubRepositories = async (input: GetGithubRepositories) => {
 		return [];
 	}
 
-	const githubProvider = await getGithubProvider(input.githubId);
+	const githubProvider = await findGithubById(input.githubId);
 
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,
@@ -218,7 +215,7 @@ export const getGithubBranches = async (input: GetGithubBranches) => {
 	if (!input.githubId) {
 		return [];
 	}
-	const githubProvider = await getGithubProvider(input.githubId);
+	const githubProvider = await findGithubById(input.githubId);
 
 	const octokit = new Octokit({
 		authStrategy: createAppAuth,
