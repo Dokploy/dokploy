@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
-import { GitBranch, LockIcon } from "lucide-react";
+import { CodeIcon, GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ComposeFileEditor } from "../compose-file-editor";
@@ -87,8 +87,9 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							</TabsTrigger>
 							<TabsTrigger
 								value="raw"
-								className="rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
+								<CodeIcon className="size-4 " />
 								Raw
 							</TabsTrigger>
 						</TabsList>

@@ -1,6 +1,4 @@
 import { ShowGitProviders } from "@/components/dashboard/settings/git/show-git-providers";
-import { GitlabSetup } from "@/components/dashboard/settings/github/gitlab-setup";
-import { ShowDestinations } from "@/components/dashboard/settings/ssh-keys/show-ssh-keys";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
@@ -14,8 +12,6 @@ const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowGitProviders />
-			{/* <ShowDestinations /> */}
-			{/* <GitlabSetup /> */}
 		</div>
 	);
 };
@@ -41,7 +37,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { req, res, resolvedUrl } = ctx;
+	const { req, res } = ctx;
 	const helpers = createServerSideHelpers({
 		router: appRouter,
 		ctx: {
@@ -63,7 +59,7 @@ export async function getServerSideProps(
 				authId: auth.id,
 			});
 
-			if (!user.canAccessToSSHKeys) {
+			if (!user.canAccessToGitProviders) {
 				return {
 					redirect: {
 						permanent: true,

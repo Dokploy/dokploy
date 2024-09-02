@@ -10,7 +10,7 @@ import { AddGithubProvider } from "./add-github-provider";
 import { AddBitbucketProvider } from "./add-bitbucket-provider";
 import { api } from "@/utils/api";
 import Link from "next/link";
-import { RemoveGitProvider } from "../github/remove-github-app";
+import { RemoveGitProvider } from "./remove-git-provider";
 import { useUrl } from "@/utils/hooks/use-url";
 
 export const ShowGitProviders = () => {
@@ -32,7 +32,7 @@ export const ShowGitProviders = () => {
 			<div className="space-y-2">
 				<h1 className="text-2xl font-bold">Git Providers</h1>
 				<p className="text-muted-foreground">
-					Connect your Git Providers to use it for login.
+					Connect your Git provider for authentication.
 				</p>
 			</div>
 			<Card className=" bg-transparent">

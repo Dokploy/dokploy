@@ -146,7 +146,6 @@ export const deployApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
-	const admin = await findAdmin();
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,

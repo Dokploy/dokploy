@@ -379,6 +379,13 @@
       "when": 1725232936525,
       "tag": "0053_fearless_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1725238308102,
+      "tag": "0054_short_hellfire_club",
+      "breakpoints": true
     }
   ]
 }
