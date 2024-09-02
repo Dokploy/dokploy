@@ -166,7 +166,13 @@ export const AddDomainCompose = ({
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<div className="flex flex-col gap-4">
+					<AlertBlock type="info">
+						Deploy is required to apply changes after creating or updating a
+						domain.
+					</AlertBlock>
+					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				</div>
 
 				<Form {...form}>
 					<form
