@@ -1,11 +1,17 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { apiFindGithubBranches, apiFindOneGithub } from "@/server/db/schema";
+import {
+	apiFindGithubBranches,
+	apiFindOneGithub,
+	apiUpdateGithub,
+} from "@/server/db/schema";
 import { db } from "@/server/db";
 import { findGithubById, haveGithubRequirements } from "../services/github";
 import {
 	getGithubRepositories,
 	getGithubBranches,
 } from "@/server/utils/providers/github";
+import { updateGitProvider } from "../services/git-provider";
+import { TRPCError } from "@trpc/server";
 
 export const githubRouter = createTRPCRouter({
 	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {
@@ -41,9 +47,25 @@ export const githubRouter = createTRPCRouter({
 
 		return filtered;
 	}),
+
 	testConnection: protectedProcedure
 		.input(apiFindOneGithub)
-		.query(async ({ input }) => {
-			return await findGithubById(input.githubId);
+		.mutation(async ({ input }) => {
+			try {
+				const result = await getGithubRepositories(input.githubId);
+				return `Found ${result.length} repositories`;
+			} catch (err) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: err instanceof Error ? err?.message : `Error: ${err}`,
+				});
+			}
+		}),
+	update: protectedProcedure
+		.input(apiUpdateGithub)
+		.mutation(async ({ input }) => {
+			await updateGitProvider(input.gitProviderId, {
+				name: input.name,
+			});
 		}),
 });

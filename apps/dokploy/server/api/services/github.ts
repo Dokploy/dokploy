@@ -37,6 +37,9 @@ export const createGithub = async (input: typeof apiCreateGithub._type) => {
 export const findGithubById = async (githubId: string) => {
 	const githubProviderResult = await db.query.github.findFirst({
 		where: eq(github.githubId, githubId),
+		with: {
+			gitProvider: true,
+		},
 	});
 
 	if (!githubProviderResult) {
@@ -55,4 +58,18 @@ export const haveGithubRequirements = (github: Github) => {
 		github?.githubPrivateKey &&
 		github?.githubInstallationId
 	);
+};
+
+export const updateGithub = async (
+	githubId: string,
+	input: Partial<Github>,
+) => {
+	return await db
+		.update(github)
+		.set({
+			...input,
+		})
+		.where(eq(github.githubId, githubId))
+		.returning()
+		.then((response) => response[0]);
 };

@@ -15,6 +15,7 @@ import { useUrl } from "@/utils/hooks/use-url";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 import { formatDate } from "date-fns";
+import { EditGithubProvider } from "./github/edit-github-provider";
 
 export const ShowGitProviders = () => {
 	const { data } = api.gitProvider.getAll.useQuery();
@@ -151,6 +152,11 @@ export const ShowGitProviders = () => {
 										{isGitlab && haveGitlabRequirements && (
 											<EditGitlabProvider
 												gitlabId={gitProvider.gitlab.gitlabId}
+											/>
+										)}
+										{isGithub && haveGithubRequirements && (
+											<EditGithubProvider
+												githubId={gitProvider.github.githubId}
 											/>
 										)}
 										<RemoveGitProvider
