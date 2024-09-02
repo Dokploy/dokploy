@@ -28,6 +28,11 @@
 		"reference-api/reference-registry",
 		"reference-api/reference-security",
 		"reference-api/reference-settings",
+		"reference-api/reference-sshKey",
+		"reference-api/reference-gitProvider",
+		"reference-api/reference-bitbucket",
+		"reference-api/reference-github",
+		"reference-api/reference-gitlab",
 		"reference-api/reference-user"
 	]
 }

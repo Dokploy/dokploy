@@ -1,5 +1,5 @@
 ---
-title: destination
+title: bitbucket
 full: true
 ---
 
@@ -9,9 +9,9 @@ import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, Exa
 
 <API>
 
-<APIInfo method={"POST"} route={"/destination.create"}>
+<APIInfo method={"POST"} route={"/bitbucket.create"}>
 
-## destination-create
+## bitbucket-create
 
 ### Authorization
 
@@ -23,29 +23,35 @@ In: `header`
 
 ### Request Body
 
-<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"bitbucketId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketUsername"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"appPassword"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketWorkspaceName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitProviderId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"authId"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"accessKey"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
 
-</Property>
-
-<Property name={"bucket"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"region"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"endpoint"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"secretAccessKey"} type={"string"} required={true} deprecated={undefined}>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -63,14 +69,15 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/destination.create" \
+curl -X POST "http://localhost:3000/api/bitbucket.create" \
   -d '{
-  "name": "string",
-  "accessKey": "string",
-  "bucket": "string",
-  "region": "string",
-  "endpoint": "string",
-  "secretAccessKey": "string"
+  "bitbucketId": "string",
+  "bitbucketUsername": "string",
+  "appPassword": "string",
+  "bitbucketWorkspaceName": "string",
+  "gitProviderId": "string",
+  "authId": "string",
+  "name": "string"
 }'
 ```
 
@@ -79,7 +86,7 @@ curl -X POST "http://localhost:3000/api/destination.create" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/destination.create", {
+fetch("http://localhost:3000/api/bitbucket.create", {
   method: "POST"
 });
 ```
@@ -136,136 +143,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/destination.testConnection"}>
+<APIInfo method={"GET"} route={"/bitbucket.one"}>
 
-## destination-testConnection
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length: `1`</span>
-
-</Property>
-
-<Property name={"accessKey"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"bucket"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"region"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"endpoint"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-<Property name={"secretAccessKey"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/destination.testConnection" \
-  -d '{
-  "name": "string",
-  "accessKey": "string",
-  "bucket": "string",
-  "region": "string",
-  "endpoint": "string",
-  "secretAccessKey": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/destination.testConnection", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
-<APIInfo method={"GET"} route={"/destination.one"}>
-
-## destination-one
+## bitbucket-one
 
 ### Authorization
 
@@ -277,7 +157,9 @@ In: `header`
 
 ### Query Parameters
 
-<Property name={"destinationId"} type={"string"} required={true} deprecated={false}>
+<Property name={"bitbucketId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -295,7 +177,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/destination.one?destinationId=string"
+curl -X GET "http://localhost:3000/api/bitbucket.one?bitbucketId=string"
 ```
 
 </Request>
@@ -303,7 +185,7 @@ curl -X GET "http://localhost:3000/api/destination.one?destinationId=string"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/destination.one?destinationId=string", {
+fetch("http://localhost:3000/api/bitbucket.one?bitbucketId=string", {
   method: "GET"
 });
 ```
@@ -360,9 +242,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"GET"} route={"/destination.all"}>
+<APIInfo method={"GET"} route={"/bitbucket.bitbucketProviders"}>
 
-## destination-all
+## bitbucket-bitbucketProviders
 
 ### Authorization
 
@@ -386,7 +268,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/destination.all"
+curl -X GET "http://localhost:3000/api/bitbucket.bitbucketProviders"
 ```
 
 </Request>
@@ -394,7 +276,7 @@ curl -X GET "http://localhost:3000/api/destination.all"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/destination.all", {
+fetch("http://localhost:3000/api/bitbucket.bitbucketProviders", {
   method: "GET"
 });
 ```
@@ -451,9 +333,213 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/destination.remove"}>
+<APIInfo method={"GET"} route={"/bitbucket.getBitbucketRepositories"}>
 
-## destination-remove
+## bitbucket-getBitbucketRepositories
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"bitbucketId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/bitbucket.getBitbucketRepositories?bitbucketId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/bitbucket.getBitbucketRepositories?bitbucketId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/bitbucket.getBitbucketBranches"}>
+
+## bitbucket-getBitbucketBranches
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"owner"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+<Property name={"repo"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+<Property name={"bitbucketId"} type={"string"} required={false} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/bitbucket.getBitbucketBranches?owner=string&repo=string&bitbucketId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/bitbucket.getBitbucketBranches?owner=string&repo=string&bitbucketId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/bitbucket.testConnection"}>
+
+## bitbucket-testConnection
 
 ### Authorization
 
@@ -465,7 +551,17 @@ In: `header`
 
 ### Request Body
 
-<Property name={"destinationId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"bitbucketId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"bitbucketUsername"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"workspaceName"} type={"string"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -483,9 +579,11 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/destination.remove" \
+curl -X POST "http://localhost:3000/api/bitbucket.testConnection" \
   -d '{
-  "destinationId": "string"
+  "bitbucketId": "string",
+  "bitbucketUsername": "string",
+  "workspaceName": "string"
 }'
 ```
 
@@ -494,7 +592,7 @@ curl -X POST "http://localhost:3000/api/destination.remove" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/destination.remove", {
+fetch("http://localhost:3000/api/bitbucket.testConnection", {
   method: "POST"
 });
 ```
@@ -551,9 +649,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/destination.update"}>
+<APIInfo method={"POST"} route={"/bitbucket.update"}>
 
-## destination-update
+## bitbucket-update
 
 ### Authorization
 
@@ -565,33 +663,31 @@ In: `header`
 
 ### Request Body
 
-<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"bitbucketId"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"accessKey"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"bitbucketUsername"} type={"string"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"bucket"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"appPassword"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"region"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"bitbucketWorkspaceName"} type={"string"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"endpoint"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"gitProviderId"} type={"string"} required={true} deprecated={undefined}>
 
 </Property>
 
-<Property name={"secretAccessKey"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
 
-</Property>
-
-<Property name={"destinationId"} type={"string"} required={true} deprecated={undefined}>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -609,15 +705,14 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/destination.update" \
+curl -X POST "http://localhost:3000/api/bitbucket.update" \
   -d '{
-  "name": "string",
-  "accessKey": "string",
-  "bucket": "string",
-  "region": "string",
-  "endpoint": "string",
-  "secretAccessKey": "string",
-  "destinationId": "string"
+  "bitbucketId": "string",
+  "bitbucketUsername": "string",
+  "appPassword": "string",
+  "bitbucketWorkspaceName": "string",
+  "gitProviderId": "string",
+  "name": "string"
 }'
 ```
 
@@ -626,7 +721,7 @@ curl -X POST "http://localhost:3000/api/destination.update" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/destination.update", {
+fetch("http://localhost:3000/api/bitbucket.update", {
   method: "POST"
 });
 ```

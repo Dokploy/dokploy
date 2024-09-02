@@ -1,5 +1,5 @@
 ---
-title: deployment
+title: gitProvider
 full: true
 ---
 
@@ -9,23 +9,15 @@ import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, Exa
 
 <API>
 
-<APIInfo method={"GET"} route={"/deployment.all"}>
+<APIInfo method={"GET"} route={"/gitProvider.getAll"}>
 
-## deployment-all
+## gitProvider-getAll
 
 ### Authorization
 
 <Property name={"Authorization"} type={"Bearer <token>"} required={true}>
 
 In: `header`
-
-</Property>
-
-### Query Parameters
-
-<Property name={"applicationId"} type={"string"} required={true} deprecated={false}>
-
-<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -43,7 +35,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/deployment.all?applicationId=string"
+curl -X GET "http://localhost:3000/api/gitProvider.getAll"
 ```
 
 </Request>
@@ -51,7 +43,7 @@ curl -X GET "http://localhost:3000/api/deployment.all?applicationId=string"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/deployment.all?applicationId=string", {
+fetch("http://localhost:3000/api/gitProvider.getAll", {
   method: "GET"
 });
 ```
@@ -108,9 +100,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"GET"} route={"/deployment.allByCompose"}>
+<APIInfo method={"POST"} route={"/gitProvider.remove"}>
 
-## deployment-allByCompose
+## gitProvider-remove
 
 ### Authorization
 
@@ -120,9 +112,9 @@ In: `header`
 
 </Property>
 
-### Query Parameters
+### Request Body
 
-<Property name={"composeId"} type={"string"} required={true} deprecated={false}>
+<Property name={"gitProviderId"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
@@ -142,7 +134,10 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/deployment.allByCompose?composeId=string"
+curl -X POST "http://localhost:3000/api/gitProvider.remove" \
+  -d '{
+  "gitProviderId": "string"
+}'
 ```
 
 </Request>
@@ -150,8 +145,8 @@ curl -X GET "http://localhost:3000/api/deployment.allByCompose?composeId=string"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/deployment.allByCompose?composeId=string", {
-  method: "GET"
+fetch("http://localhost:3000/api/gitProvider.remove", {
+  method: "POST"
 });
 ```
 

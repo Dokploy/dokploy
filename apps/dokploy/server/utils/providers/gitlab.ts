@@ -208,12 +208,12 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 };
 
 export const getGitlabBranches = async (input: {
-	id: number | null;
+	id?: number;
 	gitlabId?: string;
 	owner: string;
 	repo: string;
 }) => {
-	if (!input.gitlabId || !input.id) {
+	if (!input.gitlabId || !input.id || input.id === 0) {
 		return [];
 	}
 

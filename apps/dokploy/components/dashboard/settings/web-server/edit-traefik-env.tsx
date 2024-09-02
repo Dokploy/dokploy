@@ -60,7 +60,9 @@ export const EditTraefikEnv = ({ children }: Props) => {
 	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: Schema) => {
-		await mutateAsync(data.env)
+		await mutateAsync({
+			env: data.env,
+		})
 			.then(async () => {
 				toast.success("Traefik Env Updated");
 			})

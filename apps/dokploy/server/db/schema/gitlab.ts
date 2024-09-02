@@ -54,7 +54,7 @@ export const apiGitlabTestConnection = createSchema
 	.pick({ gitlabId: true, groupName: true });
 
 export const apiFindGitlabBranches = z.object({
-	id: z.number().nullable(),
+	id: z.number().optional(),
 	owner: z.string(),
 	repo: z.string(),
 	gitlabId: z.string().optional(),

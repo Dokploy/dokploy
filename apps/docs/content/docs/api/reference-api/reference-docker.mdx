@@ -116,7 +116,7 @@ In: `header`
 
 <Property name={"containerId"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -213,9 +213,13 @@ In: `header`
 
 ### Query Parameters
 
+<Property name={"appType"} type={"Any properties in string, string"} required={false} deprecated={false}>
+
+</Property>
+
 <Property name={"appName"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -233,7 +237,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/docker.getContainersByAppNameMatch?appName=string"
+curl -X GET "http://localhost:3000/api/docker.getContainersByAppNameMatch?appType=stack&appName=string"
 ```
 
 </Request>
@@ -241,7 +245,7 @@ curl -X GET "http://localhost:3000/api/docker.getContainersByAppNameMatch?appNam
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/docker.getContainersByAppNameMatch?appName=string", {
+fetch("http://localhost:3000/api/docker.getContainersByAppNameMatch?appType=stack&appName=string", {
   method: "GET"
 });
 ```
@@ -314,7 +318,7 @@ In: `header`
 
 <Property name={"appName"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 

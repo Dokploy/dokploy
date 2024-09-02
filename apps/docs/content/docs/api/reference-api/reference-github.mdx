@@ -1,5 +1,5 @@
 ---
-title: project
+title: github
 full: true
 ---
 
@@ -9,116 +9,9 @@ import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, Exa
 
 <API>
 
-<APIInfo method={"POST"} route={"/project.create"}>
+<APIInfo method={"GET"} route={"/github.one"}>
 
-## project-create
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length: `1`</span>
-
-</Property>
-
-<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/project.create" \
-  -d '{
-  "name": "string",
-  "description": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/project.create", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
-<APIInfo method={"GET"} route={"/project.one"}>
-
-## project-one
+## github-one
 
 ### Authorization
 
@@ -130,7 +23,7 @@ In: `header`
 
 ### Query Parameters
 
-<Property name={"projectId"} type={"string"} required={true} deprecated={false}>
+<Property name={"githubId"} type={"string"} required={true} deprecated={false}>
 
 <span>Minimum length: `1`</span>
 
@@ -150,7 +43,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/project.one?projectId=string"
+curl -X GET "http://localhost:3000/api/github.one?githubId=string"
 ```
 
 </Request>
@@ -158,7 +51,7 @@ curl -X GET "http://localhost:3000/api/project.one?projectId=string"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/project.one?projectId=string", {
+fetch("http://localhost:3000/api/github.one?githubId=string", {
   method: "GET"
 });
 ```
@@ -215,9 +108,217 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"GET"} route={"/project.all"}>
+<APIInfo method={"GET"} route={"/github.getGithubRepositories"}>
 
-## project-all
+## github-getGithubRepositories
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"githubId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/github.getGithubRepositories?githubId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/github.getGithubRepositories?githubId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/github.getGithubBranches"}>
+
+## github-getGithubBranches
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"repo"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"owner"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"githubId"} type={"string"} required={false} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/github.getGithubBranches?repo=string&owner=string&githubId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/github.getGithubBranches?repo=string&owner=string&githubId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/github.githubProviders"}>
+
+## github-githubProviders
 
 ### Authorization
 
@@ -241,7 +342,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/project.all"
+curl -X GET "http://localhost:3000/api/github.githubProviders"
 ```
 
 </Request>
@@ -249,7 +350,7 @@ curl -X GET "http://localhost:3000/api/project.all"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/project.all", {
+fetch("http://localhost:3000/api/github.githubProviders", {
   method: "GET"
 });
 ```
@@ -306,9 +407,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/project.remove"}>
+<APIInfo method={"POST"} route={"/github.testConnection"}>
 
-## project-remove
+## github-testConnection
 
 ### Authorization
 
@@ -320,7 +421,7 @@ In: `header`
 
 ### Request Body
 
-<Property name={"projectId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"githubId"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
@@ -340,9 +441,9 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/project.remove" \
+curl -X POST "http://localhost:3000/api/github.testConnection" \
   -d '{
-  "projectId": "string"
+  "githubId": "string"
 }'
 ```
 
@@ -351,7 +452,7 @@ curl -X POST "http://localhost:3000/api/project.remove" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/project.remove", {
+fetch("http://localhost:3000/api/github.testConnection", {
   method: "POST"
 });
 ```
@@ -408,9 +509,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/project.update"}>
+<APIInfo method={"POST"} route={"/github.update"}>
 
-## project-update
+## github-update
 
 ### Authorization
 
@@ -422,17 +523,47 @@ In: `header`
 
 ### Request Body
 
-<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"githubId"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"description"} type={"string | null"} required={false} deprecated={undefined}>
+<Property name={"githubAppName"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"projectId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"githubAppId"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubClientId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubClientSecret"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubInstallationId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubPrivateKey"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubWebhookSecret"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitProviderId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
 
 <span>Minimum length: `1`</span>
 
@@ -452,11 +583,18 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/project.update" \
+curl -X POST "http://localhost:3000/api/github.update" \
   -d '{
-  "name": "string",
-  "description": "string",
-  "projectId": "string"
+  "githubId": "string",
+  "githubAppName": "string",
+  "githubAppId": 0,
+  "githubClientId": "string",
+  "githubClientSecret": "string",
+  "githubInstallationId": "string",
+  "githubPrivateKey": "string",
+  "githubWebhookSecret": "string",
+  "gitProviderId": "string",
+  "name": "string"
 }'
 ```
 
@@ -465,7 +603,7 @@ curl -X POST "http://localhost:3000/api/project.update" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/project.update", {
+fetch("http://localhost:3000/api/github.update", {
   method: "POST"
 });
 ```
