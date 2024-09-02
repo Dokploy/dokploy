@@ -1,7 +1,4 @@
-import {
-	findGitlabById,
-	updateGitlab,
-} from "@/server/api/services/git-provider";
+import { findGitlabById, updateGitlab } from "@/server/api/services/gitlab";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(

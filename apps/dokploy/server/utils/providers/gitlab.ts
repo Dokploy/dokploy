@@ -8,7 +8,7 @@ import type { InferResultType } from "@/server/types/with";
 import type { Compose } from "@/server/api/services/compose";
 import {
 	findGitlabById,
-	updateGitlabComplete,
+	updateGitlab,
 	type Gitlab,
 } from "@/server/api/services/gitlab";
 import type { apiGitlabTestConnection } from "@/server/db/schema";
@@ -48,7 +48,7 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	console.log("Refreshed token");
 
-	await updateGitlabComplete(gitlabProviderId, {
+	await updateGitlab(gitlabProviderId, {
 		accessToken: data.access_token,
 		refreshToken: data.refresh_token,
 		expiresAt,

@@ -1,7 +1,6 @@
 import { db } from "@/server/db";
 import {
 	type apiCreateGitlab,
-	type apiUpdateGitlab,
 	type bitbucket,
 	type github,
 	gitlab,
@@ -63,33 +62,6 @@ export const findGitlabById = async (gitlabId: string) => {
 };
 
 export const updateGitlab = async (
-	gitlabId: string,
-	input: typeof apiUpdateGitlab._type,
-) => {
-	return await db.transaction(async (tx) => {
-		const result = await tx
-			.update(gitlab)
-			.set({
-				...input,
-			})
-			.where(eq(gitlab.gitlabId, gitlabId))
-			.returning();
-
-		if (input.name) {
-			await tx
-				.update(gitProvider)
-				.set({
-					name: input.name,
-				})
-				.where(eq(gitProvider.gitProviderId, input.gitProviderId))
-				.returning();
-		}
-
-		return result[0];
-	});
-};
-
-export const updateGitlabComplete = async (
 	gitlabId: string,
 	input: Partial<Gitlab>,
 ) => {

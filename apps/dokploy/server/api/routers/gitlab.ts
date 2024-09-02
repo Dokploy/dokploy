@@ -16,6 +16,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { createGitlab, findGitlabById, updateGitlab } from "../services/gitlab";
 import { db } from "@/server/db";
+import { updateGitProvider } from "../services/git-provider";
 
 export const gitlabRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -81,6 +82,12 @@ export const gitlabRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input }) => {
-			return await updateGitlab(input.gitlabId, input);
+			if (input.name) {
+				await updateGitProvider(input.gitProviderId, {
+					name: input.name,
+				});
+			} else {
+				await updateGitlab(input.gitlabId, input);
+			}
 		}),
 });
