@@ -1,6 +1,6 @@
 import { findAdmin } from "@/server/api/services/admin";
 import { db } from "@/server/db";
-import { applications, compose } from "@/server/db/schema";
+import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { Webhooks } from "@octokit/webhooks";
@@ -20,15 +20,15 @@ export default async function handler(
 	}
 
 	const signature = req.headers["x-hub-signature-256"];
-	const github = req.body;
+	const githubBody = req.body;
 
-	if (!github?.installation.id) {
+	if (!githubBody?.installation.id) {
 		res.status(400).json({ message: "Github Installation not found" });
 		return;
 	}
 
 	const githubResult = await db.query.github.findFirst({
-		where: eq(github.githubInstallationId, github.installation.id),
+		where: eq(github.githubInstallationId, githubBody.installation.id),
 	});
 
 	if (!githubResult) {
@@ -65,8 +65,8 @@ export default async function handler(
 	}
 
 	try {
-		const branchName = github?.ref?.replace("refs/heads/", "");
-		const repository = github?.repository?.name;
+		const branchName = githubBody?.ref?.replace("refs/heads/", "");
+		const repository = githubBody?.repository?.name;
 		const deploymentTitle = extractCommitMessage(req.headers, req.body);
 		const deploymentHash = extractHash(req.headers, req.body);
 
