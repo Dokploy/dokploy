@@ -123,9 +123,6 @@ importers:
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
-      '@gitbeaker/rest':
-        specifier: 40.1.3
-        version: 40.1.3
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.9.0(react-hook-form@7.52.1(react@18.2.0))
@@ -1639,18 +1636,6 @@ packages:
 
   '@formatjs/intl-localematcher@0.5.4':
     resolution: {integrity: sha512-zTwEpWOzZ2CiKcB93BLngUX59hQkuZjT2+SAQEscSm52peDW/getsawMcWF1rGRpMCX6D7nSJA3CzJ8gn13N/g==}
-
-  '@gitbeaker/core@40.1.3':
-    resolution: {integrity: sha512-704bRTVFI+2rropt/ZCxMp7HdlAbuOlvzlB5Hu8icBauh+NMOhAJFISDE3LG/Tbf1LXa1F5hSg8dVYzXYJNB9w==}
-    engines: {node: '>=18.20.0'}
-
-  '@gitbeaker/requester-utils@40.1.3':
-    resolution: {integrity: sha512-ruHu/lvvTdE6JPoUzEmiZY4Ef9U+5Iam5cgcB/vMYTfBx89iwlPGj/sGHIbJPWSdwoGnrn+sGp8+KygqDr3Zgw==}
-    engines: {node: '>=18.20.0'}
-
-  '@gitbeaker/rest@40.1.3':
-    resolution: {integrity: sha512-3xzImKoCTdlFyLUgnG+RjnWJmOtOhAFf7+A5+3r3nOCKOAZHGlknvPouNBQ2hCl8lRLBEHXgBA40ASv1SGvRfQ==}
-    engines: {node: '>=18.20.0'}
 
   '@hapi/bourne@3.0.0':
     resolution: {integrity: sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==}
@@ -6953,10 +6938,6 @@ packages:
   picocolors@1.0.1:
     resolution: {integrity: sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==}
 
-  picomatch-browser@2.2.6:
-    resolution: {integrity: sha512-0ypsOQt9D4e3hziV8O4elD9uN0z/jtUEfxVRtNaAAtXIyUx9m/SzlO020i8YNL2aL/E6blOvvHQcin6HZlFy/w==}
-    engines: {node: '>=8.6'}
-
   picomatch@2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
@@ -7190,9 +7171,6 @@ packages:
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
-
-  rate-limiter-flexible@4.0.1:
-    resolution: {integrity: sha512-2/dGHpDFpeA0+755oUkW+EKyklqLS9lu0go9pDsbhqQjZcxfRyJ6LA4JI0+HAdZ2bemD/oOjUeZQB2lCZqXQfQ==}
 
   raw-body@2.5.2:
     resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
@@ -8387,9 +8365,6 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
-
-  xcase@2.0.1:
-    resolution: {integrity: sha512-UmFXIPU+9Eg3E9m/728Bii0lAIuoc+6nbrNUKaRPJOFp91ih44qqGlWtxMB6kXFrRD6po+86ksHM5XHCfk6iPw==}
 
   xml-but-prettier@1.0.1:
     resolution: {integrity: sha512-C2CJaadHrZTqESlH03WOyw0oZTtoy2uEg6dSDF6YRg+9GnYNub53RRemLpnvtbHDFelxMx4LajiFsYeR6XJHgQ==}
@@ -9668,24 +9643,6 @@ snapshots:
   '@formatjs/intl-localematcher@0.5.4':
     dependencies:
       tslib: 2.6.3
-
-  '@gitbeaker/core@40.1.3':
-    dependencies:
-      '@gitbeaker/requester-utils': 40.1.3
-      qs: 6.12.3
-      xcase: 2.0.1
-
-  '@gitbeaker/requester-utils@40.1.3':
-    dependencies:
-      picomatch-browser: 2.2.6
-      qs: 6.12.3
-      rate-limiter-flexible: 4.0.1
-      xcase: 2.0.1
-
-  '@gitbeaker/rest@40.1.3':
-    dependencies:
-      '@gitbeaker/core': 40.1.3
-      '@gitbeaker/requester-utils': 40.1.3
 
   '@hapi/bourne@3.0.0': {}
 
@@ -14083,7 +14040,7 @@ snapshots:
       eslint: 8.45.0
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.45.0))(eslint@8.45.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1)(eslint@8.45.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.45.0))(eslint@8.45.0))(eslint@8.45.0)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.45.0)
       eslint-plugin-react: 7.35.0(eslint@8.45.0)
       eslint-plugin-react-hooks: 5.0.0-canary-7118f5dd7-20230705(eslint@8.45.0)
@@ -14107,7 +14064,7 @@ snapshots:
       enhanced-resolve: 5.17.1
       eslint: 8.45.0
       eslint-module-utils: 2.8.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.45.0))(eslint@8.45.0))(eslint@8.45.0)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1)(eslint@8.45.0)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.45.0))(eslint@8.45.0))(eslint@8.45.0)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.5
       is-core-module: 2.15.0
@@ -14129,7 +14086,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1)(eslint@8.45.0):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@6.21.0(eslint@8.45.0)(typescript@5.1.6))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.45.0))(eslint@8.45.0))(eslint@8.45.0):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -16409,8 +16366,6 @@ snapshots:
 
   picocolors@1.0.1: {}
 
-  picomatch-browser@2.2.6: {}
-
   picomatch@2.3.1: {}
 
   pidtree@0.6.0: {}
@@ -16582,8 +16537,6 @@ snapshots:
       safe-buffer: 5.2.1
 
   range-parser@1.2.1: {}
-
-  rate-limiter-flexible@4.0.1: {}
 
   raw-body@2.5.2:
     dependencies:
@@ -18071,8 +18024,6 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.16.0: {}
-
-  xcase@2.0.1: {}
 
   xml-but-prettier@1.0.1:
     dependencies:
