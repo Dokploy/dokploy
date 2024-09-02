@@ -13,6 +13,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { db } from "../../db";
+import { getUserByToken } from "../services/admin";
 import {
 	createAdmin,
 	createUser,
@@ -61,6 +62,13 @@ export const authRouter = createTRPCRouter({
 		.input(apiCreateUser)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				const token = await getUserByToken(input.token);
+				if (token.isExpired) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid token",
+					});
+				}
 				const newUser = await createUser(input);
 				const session = await lucia.createSession(newUser?.authId || "", {});
 				ctx.res.appendHeader(

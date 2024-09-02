@@ -70,6 +70,7 @@ export const apiCreateUser = createSchema
 	.pick({
 		password: true,
 		id: true,
+		token: true,
 	})
 	.required()
 	.extend({

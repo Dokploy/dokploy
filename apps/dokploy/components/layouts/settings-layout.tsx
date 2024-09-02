@@ -60,6 +60,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										href: "/dashboard/settings/ssh-keys",
 									},
 									{
+										title: "Git ",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+									{
 										title: "Users",
 										label: "",
 										icon: Users,
@@ -89,6 +95,16 @@ export const SettingsLayout = ({ children }: Props) => {
 									},
 								]
 							: []),
+						...(user?.canAccessToGitProviders
+							? [
+									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+								]
+							: []),
 					]}
 				/>
 			</div>
@@ -102,6 +118,7 @@ import {
 	Activity,
 	Bell,
 	Database,
+	GitBranch,
 	KeyRound,
 	type LucideIcon,
 	Route,

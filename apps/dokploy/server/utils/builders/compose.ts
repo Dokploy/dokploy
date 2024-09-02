@@ -18,15 +18,7 @@ export type ComposeNested = InferResultType<
 >;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const {
-		sourceType,
-		appName,
-		mounts,
-		composeType,
-		env,
-		composePath,
-		domains,
-	} = compose;
+	const { sourceType, appName, mounts, composeType, domains } = compose;
 	try {
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);

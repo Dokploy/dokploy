@@ -21,6 +21,13 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +46,7 @@ const GithubProviderSchema = z.object({
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
+	githubId: z.string().min(1, "Github Provider is required"),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -48,6 +56,7 @@ interface Props {
 }
 
 export const SaveGithubProviderCompose = ({ composeId }: Props) => {
+	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
 	const { mutateAsync, isLoading: isSavingGithubProvider } =
@@ -60,26 +69,38 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				owner: "",
 				repo: "",
 			},
+			githubId: "",
 			branch: "",
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
 
 	const repository = form.watch("repository");
+	const githubId = form.watch("githubId");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
-		api.admin.getRepositories.useQuery();
+		api.github.getGithubRepositories.useQuery(
+			{
+				githubId,
+			},
+			{
+				enabled: !!githubId,
+			},
+		);
 
 	const {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.admin.getBranches.useQuery(
+	} = api.github.getGithubBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repo: repository?.repo,
+			githubId,
 		},
-		{ enabled: !!repository?.owner && !!repository?.repo },
+		{
+			enabled: !!repository?.owner && !!repository?.repo && !!githubId,
+		},
 	);
 
 	useEffect(() => {
@@ -91,19 +112,21 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					owner: data.owner || "",
 				},
 				composePath: data.composePath,
+				githubId: data.githubId || "",
 			});
 		}
 	}, [form.reset, data, form]);
 
 	const onSubmit = async (data: GithubProvider) => {
-		console.log(data);
 		await mutateAsync({
 			branch: data.branch,
 			repository: data.repository.repo,
-			composeId: composeId,
+			composeId,
 			owner: data.repository.owner,
-			sourceType: "github",
 			composePath: data.composePath,
+			githubId: data.githubId,
+			sourceType: "github",
+			composeStatus: "idle",
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -122,6 +145,45 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 					className="grid w-full gap-4 py-3"
 				>
 					<div className="grid md:grid-cols-2 gap-4">
+						<FormField
+							control={form.control}
+							name="githubId"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2 flex flex-col">
+									<FormLabel>Github Account</FormLabel>
+									<Select
+										onValueChange={(value) => {
+											field.onChange(value);
+											form.setValue("repository", {
+												owner: "",
+												repo: "",
+											});
+											form.setValue("branch", "");
+										}}
+										defaultValue={field.value}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a Github Account" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{githubProviders?.map((githubProvider) => (
+												<SelectItem
+													key={githubProvider.githubId}
+													value={githubProvider.githubId}
+												>
+													{githubProvider.gitProvider.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
 						<FormField
 							control={form.control}
 							name="repository"
@@ -278,7 +340,6 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
-
 						<FormField
 							control={form.control}
 							name="composePath"

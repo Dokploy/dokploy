@@ -72,6 +72,10 @@ export const getBuildAppDirectory = (application: Application) => {
 
 	if (sourceType === "github") {
 		buildPath = application?.buildPath || "";
+	} else if (sourceType === "gitlab") {
+		buildPath = application?.gitlabBuildPath || "";
+	} else if (sourceType === "bitbucket") {
+		buildPath = application?.bitbucketBuildPath || "";
 	} else if (sourceType === "drop") {
 		buildPath = application?.dropBuildPath || "";
 	} else if (sourceType === "git") {

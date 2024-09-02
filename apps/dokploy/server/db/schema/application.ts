@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -11,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { bitbucket, github, gitlab } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -27,6 +27,8 @@ export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
 	"github",
+	"gitlab",
+	"bitbucket",
 	"drop",
 ]);
 
@@ -126,6 +128,18 @@ export const applications = pgTable("application", {
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
+	// Gitlab
+	gitlabProjectId: integer("gitlabProjectId"),
+	gitlabRepository: text("gitlabRepository"),
+	gitlabOwner: text("gitlabOwner"),
+	gitlabBranch: text("gitlabBranch"),
+	gitlabBuildPath: text("gitlabBuildPath").default("/"),
+	gitlabPathNamespace: text("gitlabPathNamespace"),
+	// Bitbucket
+	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketOwner: text("bitbucketOwner"),
+	bitbucketBranch: text("bitbucketBranch"),
+	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
 	// Docker
 	username: text("username"),
 	password: text("password"),
@@ -170,6 +184,15 @@ export const applications = pgTable("application", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	githubId: text("githubId").references(() => github.githubId, {
+		onDelete: "set null",
+	}),
+	gitlabId: text("gitlabId").references(() => gitlab.gitlabId, {
+		onDelete: "set null",
+	}),
+	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
+		onDelete: "set null",
+	}),
 });
 
 export const applicationsRelations = relations(
@@ -192,6 +215,18 @@ export const applicationsRelations = relations(
 		registry: one(registry, {
 			fields: [applications.registryId],
 			references: [registry.registryId],
+		}),
+		github: one(github, {
+			fields: [applications.githubId],
+			references: [github.githubId],
+		}),
+		gitlab: one(gitlab, {
+			fields: [applications.gitlabId],
+			references: [gitlab.gitlabId],
+		}),
+		bitbucket: one(bitbucket, {
+			fields: [applications.bitbucketId],
+			references: [bitbucket.bitbucketId],
 		}),
 	}),
 );
@@ -371,6 +406,31 @@ export const apiSaveGithubProvider = createSchema
 		branch: true,
 		owner: true,
 		buildPath: true,
+		githubId: true,
+	})
+	.required();
+
+export const apiSaveGitlabProvider = createSchema
+	.pick({
+		applicationId: true,
+		gitlabBranch: true,
+		gitlabBuildPath: true,
+		gitlabOwner: true,
+		gitlabRepository: true,
+		gitlabId: true,
+		gitlabProjectId: true,
+		gitlabPathNamespace: true,
+	})
+	.required();
+
+export const apiSaveBitbucketProvider = createSchema
+	.pick({
+		bitbucketBranch: true,
+		bitbucketBuildPath: true,
+		bitbucketOwner: true,
+		bitbucketRepository: true,
+		bitbucketId: true,
+		applicationId: true,
 	})
 	.required();
 
