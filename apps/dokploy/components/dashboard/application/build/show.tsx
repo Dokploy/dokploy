@@ -109,7 +109,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			dockerContextPath:
 				data.buildType === "dockerfile" ? data.dockerContextPath : null,
 			dockerBuildStage:
-					data.buildType === "dockerfile" ? data.dockerBuildStage : null,
+				data.buildType === "dockerfile" ? data.dockerBuildStage : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -255,22 +255,20 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												<div className="space-y-0.5">
 													<FormLabel>Docker Build Stage</FormLabel>
 													<FormDescription>
-														Allows you to target a specific stage in a Multi-stage
-														Dockerfile. If empty, Docker defaults to build
-														the last defined stage.
+														Allows you to target a specific stage in a
+														Multi-stage Dockerfile. If empty, Docker defaults to
+														build the last defined stage.
 													</FormDescription>
 												</div>
 												<FormControl>
 													<Input
-														placeholder={
-															"E.g. production"
-														}
+														placeholder={"E.g. production"}
 														{...field}
 														value={field.value ?? ""}
 													/>
 												</FormControl>
 											</FormItem>
-										)
+										);
 									}}
 								/>
 							</>

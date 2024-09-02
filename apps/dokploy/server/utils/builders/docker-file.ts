@@ -12,7 +12,8 @@ export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } = application;
+	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
+		application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -25,7 +26,7 @@ export const buildCustomDocker = async (
 
 		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
 
-		if (!!dockerBuildStage) {
+		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);
 		}
 
