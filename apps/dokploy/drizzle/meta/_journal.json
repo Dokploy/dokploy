@@ -239,6 +239,13 @@
       "when": 1725250322137,
       "tag": "0033_white_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1725256397019,
+      "tag": "0034_aspiring_secret_warriors",
+      "breakpoints": true
     }
   ]
 }
