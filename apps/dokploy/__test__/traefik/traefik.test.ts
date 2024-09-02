@@ -10,6 +10,7 @@ const baseApp: ApplicationNested = {
 	appName: "",
 	autoDeploy: true,
 	branch: null,
+	dockerBuildStage: "",
 	buildArgs: null,
 	buildPath: "/",
 	gitlabPathNamespace: "",

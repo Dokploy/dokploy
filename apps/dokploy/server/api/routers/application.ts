@@ -195,6 +195,7 @@ export const applicationRouter = createTRPCRouter({
 				dockerfile: input.dockerfile,
 				publishDirectory: input.publishDirectory,
 				dockerContextPath: input.dockerContextPath,
+				dockerBuildStage: input.dockerBuildStage,
 			});
 
 			return true;

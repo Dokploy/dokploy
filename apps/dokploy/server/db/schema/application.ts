@@ -156,6 +156,7 @@ export const applications = pgTable("application", {
 	),
 	dockerfile: text("dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
+	dockerBuildStage: text("dockerBuildStage"),
 	// Drop
 	dropBuildPath: text("dropBuildPath"),
 	// Docker swarm json
@@ -393,6 +394,7 @@ export const apiSaveBuildType = createSchema
 		buildType: true,
 		dockerfile: true,
 		dockerContextPath: true,
+		dockerBuildStage: true,
 	})
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true }));
