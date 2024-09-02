@@ -25,7 +25,7 @@ In: `header`
 
 <Property name={"name"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -39,7 +39,7 @@ In: `header`
 
 <Property name={"composeType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"docker-compose" | "stack"`</span>
+<span>Value in: `"docker-compose" | "stack"`</span>
 
 </Property>
 
@@ -149,7 +149,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -252,7 +252,7 @@ In: `header`
 
 <Property name={"name"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -278,13 +278,13 @@ In: `header`
 
 <Property name={"sourceType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"git" | "github" | "raw"`</span>
+<span>Value in: `"git" | "github" | "gitlab" | "bitbucket" | "raw"`</span>
 
 </Property>
 
 <Property name={"composeType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"docker-compose" | "stack"`</span>
+<span>Value in: `"docker-compose" | "stack"`</span>
 
 </Property>
 
@@ -304,6 +304,38 @@ In: `header`
 
 </Property>
 
+<Property name={"gitlabProjectId"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabRepository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabOwner"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabPathNamespace"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketRepository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketOwner"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
 <Property name={"customGitUrl"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
@@ -312,7 +344,7 @@ In: `header`
 
 </Property>
 
-<Property name={"customGitSSHKey"} type={"string | null"} required={false} deprecated={undefined}>
+<Property name={"customGitSSHKeyId"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -322,13 +354,13 @@ In: `header`
 
 <Property name={"composePath"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
 <Property name={"composeStatus"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"idle" | "running" | "done" | "error"`</span>
+<span>Value in: `"idle" | "running" | "done" | "error"`</span>
 
 </Property>
 
@@ -337,6 +369,18 @@ In: `header`
 </Property>
 
 <Property name={"createdAt"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketId"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -369,14 +413,25 @@ curl -X POST "http://localhost:3000/api/compose.update" \
   "owner": "string",
   "branch": "string",
   "autoDeploy": true,
+  "gitlabProjectId": 0,
+  "gitlabRepository": "string",
+  "gitlabOwner": "string",
+  "gitlabBranch": "string",
+  "gitlabPathNamespace": "string",
+  "bitbucketRepository": "string",
+  "bitbucketOwner": "string",
+  "bitbucketBranch": "string",
   "customGitUrl": "string",
   "customGitBranch": "string",
-  "customGitSSHKey": "string",
+  "customGitSSHKeyId": "string",
   "command": "string",
   "composePath": "string",
   "composeStatus": "idle",
   "projectId": "string",
-  "createdAt": "string"
+  "createdAt": "string",
+  "githubId": "string",
+  "gitlabId": "string",
+  "bitbucketId": "string"
 }'
 ```
 
@@ -458,7 +513,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -560,7 +615,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -646,9 +701,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"GET"} route={"/compose.allServices"}>
+<APIInfo method={"GET"} route={"/compose.loadServices"}>
 
-## compose-allServices
+## compose-loadServices
 
 ### Authorization
 
@@ -662,7 +717,13 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"type"} type={"Any properties in not unknown, string"} required={false} deprecated={false}>
+
+<span>Default: `"cache"`</span>
 
 </Property>
 
@@ -680,7 +741,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X GET "http://localhost:3000/api/compose.allServices?composeId=string"
+curl -X GET "http://localhost:3000/api/compose.loadServices?composeId=string&type=cache"
 ```
 
 </Request>
@@ -688,8 +749,110 @@ curl -X GET "http://localhost:3000/api/compose.allServices?composeId=string"
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/compose.allServices?composeId=string", {
+fetch("http://localhost:3000/api/compose.loadServices?composeId=string&type=cache", {
   method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/compose.fetchSourceType"}>
+
+## compose-fetchSourceType
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/compose.fetchSourceType" \
+  -d '{
+  "composeId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/compose.fetchSourceType", {
+  method: "POST"
 });
 ```
 
@@ -761,7 +924,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -852,6 +1015,105 @@ export interface Response {
 
 <API>
 
+<APIInfo method={"GET"} route={"/compose.getConvertedCompose"}>
+
+## compose-getConvertedCompose
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"composeId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/compose.getConvertedCompose?composeId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/compose.getConvertedCompose?composeId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
 <APIInfo method={"POST"} route={"/compose.deploy"}>
 
 ## compose-deploy
@@ -868,7 +1130,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -970,7 +1232,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1072,7 +1334,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1174,7 +1436,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={false}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1257,108 +1519,6 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/compose.generateSSHKey"}>
-
-## compose-generateSSHKey
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length:  `1`</span>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/compose.generateSSHKey" \
-  -d '{
-  "composeId": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/compose.generateSSHKey", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
 <APIInfo method={"POST"} route={"/compose.refreshToken"}>
 
 ## compose-refreshToken
@@ -1375,7 +1535,7 @@ In: `header`
 
 <Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1461,108 +1621,6 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/compose.removeSSHKey"}>
-
-## compose-removeSSHKey
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"composeId"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length:  `1`</span>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/compose.removeSSHKey" \
-  -d '{
-  "composeId": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/compose.removeSSHKey", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
 <APIInfo method={"POST"} route={"/compose.deployTemplate"}>
 
 ## compose-deployTemplate
@@ -1583,7 +1641,7 @@ In: `header`
 
 <Property name={"id"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1705,6 +1763,97 @@ curl -X GET "http://localhost:3000/api/compose.templates"
 
 ```js
 fetch("http://localhost:3000/api/compose.templates", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/compose.getTags"}>
+
+## compose-getTags
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/compose.getTags"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/compose.getTags", {
   method: "GET"
 });
 ```

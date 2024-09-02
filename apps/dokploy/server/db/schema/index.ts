@@ -23,3 +23,7 @@ export * from "./compose";
 export * from "./registry";
 export * from "./notification";
 export * from "./ssh-key";
+export * from "./git-provider";
+export * from "./bitbucket";
+export * from "./github";
+export * from "./gitlab";

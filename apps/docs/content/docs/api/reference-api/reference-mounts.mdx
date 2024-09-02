@@ -25,7 +25,7 @@ In: `header`
 
 <Property name={"type"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Value in:  `"bind" | "volume" | "file"`</span>
+<span>Value in: `"bind" | "volume" | "file"`</span>
 
 </Property>
 
@@ -43,21 +43,25 @@ In: `header`
 
 <Property name={"mountPath"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
 <Property name={"serviceType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Default:  `"application"`</span>
+<span>Default: `"application"`</span>
 
-<span>Value in:  `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
+<span>Value in: `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
+
+</Property>
+
+<Property name={"filePath"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
 <Property name={"serviceId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -83,6 +87,7 @@ curl -X POST "http://localhost:3000/api/mounts.create" \
   "content": "string",
   "mountPath": "string",
   "serviceType": "application",
+  "filePath": "string",
   "serviceId": "string"
 }'
 ```
@@ -362,13 +367,13 @@ In: `header`
 
 <Property name={"mountId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
 <Property name={"type"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"bind" | "volume" | "file"`</span>
+<span>Value in: `"bind" | "volume" | "file"`</span>
 
 </Property>
 
@@ -380,21 +385,25 @@ In: `header`
 
 </Property>
 
+<Property name={"filePath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
 <Property name={"content"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
 <Property name={"serviceType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Default:  `"application"`</span>
+<span>Default: `"application"`</span>
 
-<span>Value in:  `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
+<span>Value in: `"application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose"`</span>
 
 </Property>
 
 <Property name={"mountPath"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -446,6 +455,7 @@ curl -X POST "http://localhost:3000/api/mounts.update" \
   "type": "bind",
   "hostPath": "string",
   "volumeName": "string",
+  "filePath": "string",
   "content": "string",
   "serviceType": "application",
   "mountPath": "string",

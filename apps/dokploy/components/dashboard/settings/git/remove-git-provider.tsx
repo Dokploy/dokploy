@@ -17,31 +17,40 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, TrashIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
-export const RemoveGithubApp = () => {
-	const { refetch } = api.auth.get.useQuery();
+interface Props {
+	gitProviderId: string;
+	gitProviderType: "github" | "gitlab" | "bitbucket";
+}
+
+export const RemoveGitProvider = ({
+	gitProviderId,
+	gitProviderType,
+}: Props) => {
 	const utils = api.useUtils();
-	const { mutateAsync } = api.admin.cleanGithubApp.useMutation();
+	const { mutateAsync } = api.gitProvider.remove.useMutation();
 
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive">
-					Remove Current Github App
-					<TooltipProvider delayDuration={0}>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<InfoIcon className="size-4 fill-muted-destructive text-muted-destructive" />
-							</TooltipTrigger>
-							<TooltipContent>
-								We recommend deleting the GitHub app first, and then removing
-								the current one from here.
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
+				<Button variant="ghost">
+					<TrashIcon className="size-4 text-muted-destructive" />
+					{gitProviderType === "github" && (
+						<TooltipProvider delayDuration={0}>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<InfoIcon className="size-4 fill-muted-destructive text-muted-destructive" />
+								</TooltipTrigger>
+								<TooltipContent>
+									We recommend deleting the GitHub app first, and then removing
+									the current one from here.
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					)}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
@@ -56,15 +65,15 @@ export const RemoveGithubApp = () => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await mutateAsync()
+							await mutateAsync({
+								gitProviderId: gitProviderId,
+							})
 								.then(async () => {
-									await refetch();
-									utils.admin.one.invalidate();
-									await utils.admin.haveGithubConfigured.invalidate();
-									toast.success("Github application deleted succesfully.");
+									utils.gitProvider.getAll.invalidate();
+									toast.success("Git Provider deleted succesfully.");
 								})
 								.catch(() => {
-									toast.error("Error to delete your github application.");
+									toast.error("Error to delete your git provider.");
 								});
 						}}
 					>

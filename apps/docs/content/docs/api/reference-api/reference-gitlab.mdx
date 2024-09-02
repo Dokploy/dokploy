@@ -1,0 +1,816 @@
+---
+title: gitlab
+full: true
+---
+
+import { Root, API, APIInfo, APIExample, Responses, Response, ResponseTypes, ExampleResponse, TypeScriptResponse, Property, ObjectCollapsible, Requests, Request } from "fumadocs-ui/components/api";
+
+<Root>
+
+<API>
+
+<APIInfo method={"POST"} route={"/gitlab.create"}>
+
+## gitlab-create
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"gitlabId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"redirectUri"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"secret"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"accessToken"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"refreshToken"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"groupName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"expiresAt"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitProviderId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"authId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/gitlab.create" \
+  -d '{
+  "gitlabId": "string",
+  "applicationId": "string",
+  "redirectUri": "string",
+  "secret": "string",
+  "accessToken": "string",
+  "refreshToken": "string",
+  "groupName": "string",
+  "expiresAt": 0,
+  "gitProviderId": "string",
+  "authId": "string",
+  "name": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.create", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/gitlab.one"}>
+
+## gitlab-one
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"gitlabId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/gitlab.one?gitlabId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.one?gitlabId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/gitlab.gitlabProviders"}>
+
+## gitlab-gitlabProviders
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/gitlab.gitlabProviders"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.gitlabProviders", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/gitlab.getGitlabRepositories"}>
+
+## gitlab-getGitlabRepositories
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"gitlabId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/gitlab.getGitlabRepositories?gitlabId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.getGitlabRepositories?gitlabId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"GET"} route={"/gitlab.getGitlabBranches"}>
+
+## gitlab-getGitlabBranches
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Query Parameters
+
+<Property name={"id"} type={"number"} required={false} deprecated={false}>
+
+</Property>
+
+<Property name={"owner"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+<Property name={"repo"} type={"string"} required={true} deprecated={false}>
+
+</Property>
+
+<Property name={"gitlabId"} type={"string"} required={false} deprecated={false}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X GET "http://localhost:3000/api/gitlab.getGitlabBranches?id=0&owner=string&repo=string&gitlabId=string"
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.getGitlabBranches?id=0&owner=string&repo=string&gitlabId=string", {
+  method: "GET"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/gitlab.testConnection"}>
+
+## gitlab-testConnection
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"gitlabId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"groupName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/gitlab.testConnection" \
+  -d '{
+  "gitlabId": "string",
+  "groupName": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.testConnection", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/gitlab.update"}>
+
+## gitlab-update
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"gitlabId"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"redirectUri"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"secret"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"accessToken"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"refreshToken"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"groupName"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"expiresAt"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitProviderId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"name"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/gitlab.update" \
+  -d '{
+  "gitlabId": "string",
+  "applicationId": "string",
+  "redirectUri": "string",
+  "secret": "string",
+  "accessToken": "string",
+  "refreshToken": "string",
+  "groupName": "string",
+  "expiresAt": 0,
+  "gitProviderId": "string",
+  "name": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/gitlab.update", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+</Root>
