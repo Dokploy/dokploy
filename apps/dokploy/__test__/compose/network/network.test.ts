@@ -254,3 +254,82 @@ test("Add prefix to networks in compose file with multiple services and complex 
 
 	expect(updatedComposeData).toEqual(expectedComposeFile3);
 });
+
+const composeFile4 = `
+version: "3.8"
+
+services:
+  app:
+    image: myapp:latest
+    networks:
+      frontend:
+        aliases:
+          - app
+      backend:
+      dokploy-network:
+
+  worker:
+    image: worker:latest
+    networks:
+      - backend
+      - dokploy-network
+
+networks:
+  frontend:
+    driver: bridge
+    attachable: true
+
+  backend:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+
+  dokploy-network:
+    driver: bridge
+
+`;
+
+const expectedComposeFile4 = load(`
+version: "3.8"
+
+services:
+  app:
+    image: myapp:latest
+    networks:
+      frontend-testhash:
+        aliases:
+          - app
+      backend-testhash:
+      dokploy-network:
+
+  worker:
+    image: worker:latest
+    networks:
+      - backend-testhash
+      - dokploy-network
+
+networks:
+  frontend-testhash:
+    driver: bridge
+    attachable: true
+
+  backend-testhash:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+  
+  dokploy-network:
+    driver: bridge
+
+
+  
+`);
+
+test("Expect don't add prefix to dokploy-network in compose file with multiple services and complex network configurations", () => {
+	const composeData = load(composeFile4) as ComposeSpecification;
+
+	const prefix = "testhash";
+	const updatedComposeData = addPrefixToAllNetworks(composeData, prefix);
+	console.log(updatedComposeData);
+	expect(updatedComposeData).toEqual(expectedComposeFile4);
+});

@@ -9,7 +9,12 @@ export const addPrefixToNetworksRoot = (
 	networks: { [key: string]: DefinitionsNetwork },
 	prefix: string,
 ): { [key: string]: DefinitionsNetwork } => {
-	return _.mapKeys(networks, (_value, key) => `${key}-${prefix}`);
+	return _.mapKeys(networks, (_value, key) => {
+		if (key === "dokploy-network") {
+			return "dokploy-network";
+		}
+		return `${key}-${prefix}`;
+	});
 };
 
 export const addPrefixToServiceNetworks = (
@@ -20,15 +25,20 @@ export const addPrefixToServiceNetworks = (
 		if (service.networks) {
 			// 1 Case the most common
 			if (Array.isArray(service.networks)) {
-				service.networks = service.networks.map(
-					(network: string) => `${network}-${prefix}`,
-				);
+				service.networks = service.networks.map((network: string) => {
+					if (network === "dokploy-network") {
+						return "dokploy-network";
+					}
+					return `${network}-${prefix}`;
+				});
 			} else {
 				// 2 Case
-				service.networks = _.mapKeys(
-					service.networks,
-					(_value, key) => `${key}-${prefix}`,
-				);
+				service.networks = _.mapKeys(service.networks, (_value, key) => {
+					if (key === "dokploy-network") {
+						return "dokploy-network";
+					}
+					return `${key}-${prefix}`;
+				});
 
 				// 3 Case
 				service.networks = _.mapValues(service.networks, (value) => {
@@ -40,6 +50,7 @@ export const addPrefixToServiceNetworks = (
 							return `${innerKey}-${prefix}`;
 						});
 					}
+
 					return value;
 				});
 			}

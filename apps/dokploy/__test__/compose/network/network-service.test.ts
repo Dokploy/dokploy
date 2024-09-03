@@ -182,3 +182,92 @@ test("Add prefix to networks in services (combined case)", () => {
 	expect(redisNetworks).toHaveProperty(`backend-${prefix}`);
 	expect(redisNetworks).not.toHaveProperty("backend");
 });
+
+const composeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+`;
+
+test("It shoudn't add prefix to dokploy-network in services", () => {
+	const composeData = load(composeFile7) as ComposeSpecification;
+
+	const prefix = generateRandomHash();
+
+	if (!composeData?.services) {
+		return;
+	}
+	const networks = addPrefixToServiceNetworks(composeData.services, prefix);
+	const service = networks.web;
+
+	expect(service).toBeDefined();
+	expect(service?.networks).toContain("dokploy-network");
+});
+
+const composeFile8 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - frontend
+      - backend
+      - dokploy-network
+
+
+  api:
+    image: myapi:latest
+    networks:
+      frontend:
+        aliases:
+          - api
+      dokploy-network:
+        aliases:
+          - api
+  redis:
+    image: redis:alpine
+    networks:
+      dokploy-network:
+  db:
+    image: myapi:latest
+    networks:
+      dokploy-network:
+        aliases:
+          - apid
+	
+`;
+
+test("It shoudn't add prefix to dokploy-network in services multiples cases", () => {
+	const composeData = load(composeFile8) as ComposeSpecification;
+
+	const prefix = generateRandomHash();
+
+	if (!composeData?.services) {
+		return;
+	}
+	const networks = addPrefixToServiceNetworks(composeData.services, prefix);
+	const service = networks.web;
+	const api = networks.api;
+	const redis = networks.redis;
+	const db = networks.db;
+
+	const dbNetworks = db?.networks as {
+		[key: string]: unknown;
+	};
+
+	const apiNetworks = api?.networks as {
+		[key: string]: unknown;
+	};
+
+	expect(service).toBeDefined();
+	expect(service?.networks).toContain("dokploy-network");
+
+	expect(redis?.networks).toHaveProperty("dokploy-network");
+	expect(dbNetworks["dokploy-network"]).toBeDefined();
+	expect(apiNetworks["dokploy-network"]).toBeDefined();
+});

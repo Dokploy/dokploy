@@ -279,3 +279,55 @@ test("Add prefix to networks with static prefix", () => {
 	) as ComposeSpecification;
 	expect(networks).toStrictEqual(expectedComposeData.networks);
 });
+
+const composeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+`;
+
+const expectedComposeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1200
+
+  backend:
+    driver: bridge
+    attachable: true
+
+  external_network:
+    external: true
+    name: dokploy-network
+`;
+test("It shoudn't add prefix to dokploy-network", () => {
+	const composeData = load(composeFile7) as ComposeSpecification;
+
+	const prefix = generateRandomHash();
+
+	if (!composeData?.networks) {
+		return;
+	}
+	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+
+	expect(networks).toBeDefined();
+	for (const networkKey of Object.keys(networks)) {
+		expect(networkKey).toContain("dokploy-network");
+	}
+});
