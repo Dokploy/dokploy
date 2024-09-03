@@ -4,7 +4,7 @@ import locales from "./locales-imports";
 
 const i18n = InternationalizationKit.getInstance({
 	defaultLocale: "en-us",
-	fallbackLocales: ["en-us", "zh-hans-cn"],
+	fallbackLocales: ["en-us"],
 	localesData: locales as unknown as LocaleOptions["localesData"],
 	defaultPlaceholders: {
 		before: "@@",

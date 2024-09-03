@@ -43,7 +43,7 @@ const nextConfig = {
 			inputDirectory: "./i18n/locales/",
 			outputDirectory: "./i18n/InternationalizationKit/interface/",
 			outputImportDirectory: "./i18n/",
-			defaultLocale: "zh-hans-cn",
+			defaultLocale: "en-us",
 			fileType: "json",
 		}));
 		return config;
