@@ -3,9 +3,10 @@
  * for Docker builds.
  */
 
+import CopyWebpackPlugin from "copy-webpack-plugin";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import CopyWebpackPlugin from "copy-webpack-plugin";
+import SmartLocalePlugin from "./i18n/InternationalizationKit/smartLocale/smartLocale.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,13 @@ const nextConfig = {
 				],
 			}),
 		);
+		config.plugins.push(new SmartLocalePlugin({
+			inputDirectory: "./i18n/locales/",
+			outputDirectory: "./i18n/InternationalizationKit/interface/",
+			outputImportDirectory: "./i18n/",
+			defaultLocale: "zh-hans-cn",
+			fileType: "json",
+		}));
 		return config;
 	},
 

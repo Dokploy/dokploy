@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import i18n from "@/i18n";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { ThemeProvider } from "next-themes";
@@ -26,6 +27,7 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+	i18n.setLocale('en-us');
 	return (
 		<>
 			<style jsx global>{`
