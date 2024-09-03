@@ -1,12 +1,3 @@
-// enum TextDirection {
-//     LTR = "ltr",
-//     RTL = "rtl",
-// }
-
-// enum TextDirection {
-//     LTR = "ltr",
-//     RTL = "rtl",
-// }
 import type {
 	LocaleOptions,
 	PlaceholdersObject,
@@ -17,25 +8,20 @@ import Locales from "./interface/locales";
 import print from "./utils/print";
 
 class InternationalizationKit {
-	// static TextDirection = TextDirection;
 	private static instance: InternationalizationKit;
 	private currentLocale: string;
 	private fallbackLocales: string[];
 	private localesData: { [lang: string]: Locales };
-	private textData: Locales;
 	private numberFormat?: Intl.NumberFormatOptions;
 	private dateTimeFormat?: Intl.DateTimeFormatOptions;
-	// private textDirection?: TextDirection;
 	private defaultPlaceholders?: PlaceholdersObject;
 
 	private constructor(options: LocaleOptions) {
 		this.currentLocale = options.defaultLocale;
 		this.fallbackLocales = options.fallbackLocales;
 		this.localesData = options.localesData;
-		this.textData = options.localesData[options.defaultLocale] as Locales;
 		this.numberFormat = options.numberFormat;
 		this.dateTimeFormat = options.dateTimeFormat;
-		// this.textDirection = options.textDirection;
 		this.defaultPlaceholders = options.defaultPlaceholders;
 	}
 
@@ -111,9 +97,6 @@ class InternationalizationKit {
 
 	public setLocale(locale: string): void {
 		this.currentLocale = locale;
-		this.textData =
-			this.localesData[locale] ||
-			(this.localesData[this.fallbackLocales[0] as string] as Locales);
 	}
 
 	// 替换占位符的通用函数
@@ -166,8 +149,6 @@ class InternationalizationKit {
 			}
 		}
 
-		// let text = this.textData[key];
-
 		if (!text) {
 			print(`Text for key "${key}" not found.`, "warning");
 			return key;
@@ -182,11 +163,6 @@ class InternationalizationKit {
 			placeholdersText,
 			actualPlaceholders
 		);
-
-		// 文本方向
-		// if (this.textDirection) {
-		//     text = `<div dir="${this.textDirection}">${text}</div>`;
-		// }
 
 		return text;
 	}
