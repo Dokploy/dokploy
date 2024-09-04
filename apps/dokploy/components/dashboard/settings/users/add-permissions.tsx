@@ -21,7 +21,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { extractServices } from "@/pages/dashboard/project/[projectId]";
+import { extractServices } from "@/pages/[locale]/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";

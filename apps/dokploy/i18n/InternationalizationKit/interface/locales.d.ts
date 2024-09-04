@@ -522,6 +522,54 @@ interface Locales {
 	 */
 	'PAGE.webServerSettings.successCheckUpdates': string;
 	/**
+	 * Monitoring
+	 */
+	'PAGE.dockerMonitoring.title': string;
+	/**
+	 * Watch the usage of your server in the current app
+	 */
+	'PAGE.dockerMonitoring.description': string;
+	/**
+	 * CPU
+	 */
+	'PAGE.dockerMonitoring.cpu': string;
+	/**
+	 * Used: @@value@@%
+	 */
+	'PAGE.dockerMonitoring.cpuUsed': string;
+	/**
+	 * Memory
+	 */
+	'PAGE.dockerMonitoring.memory': string;
+	/**
+	 * Used: @@used@@ GB / Limit: @@limit@@ GB
+	 */
+	'PAGE.dockerMonitoring.memoryUsed': string;
+	/**
+	 * Space
+	 */
+	'PAGE.dockerMonitoring.space': string;
+	/**
+	 * Used: @@used@@ GB / Limit: @@limit@@ GB
+	 */
+	'PAGE.dockerMonitoring.spaceUsed': string;
+	/**
+	 * Block I/O
+	 */
+	'PAGE.dockerMonitoring.blockIO': string;
+	/**
+	 * Used: @@read@@ MB / Limit: @@write@@ MB
+	 */
+	'PAGE.dockerMonitoring.blockIOUsed': string;
+	/**
+	 * Network
+	 */
+	'PAGE.dockerMonitoring.network': string;
+	/**
+	 * In MB: @@input@@ MB / Out MB: @@output@@ MB
+	 */
+	'PAGE.dockerMonitoring.networkInOut': string;
+	/**
 	 * Name
 	 */
 	'FORM.addProject.name': string;

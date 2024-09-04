@@ -2,12 +2,14 @@ import "@/styles/globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
 import i18n from "@/i18n";
+import { Storefront, storefronts } from "@/i18n/storefronts";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import type { ReactElement, ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -27,7 +29,10 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
-	i18n.setLocale('en-us');
+	const { query: { locale } } = useRouter()
+	const storefront = storefronts.find((item) => item.id === locale) as Storefront;
+
+	i18n.setLocale(storefront?.defaultLanguageTag.toLocaleLowerCase());
 	return (
 		<>
 			<style jsx global>{`
