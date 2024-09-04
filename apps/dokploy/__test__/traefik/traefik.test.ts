@@ -107,7 +107,7 @@ test("Web entrypoint on http domain", async () => {
 	);
 
 	expect(router.middlewares).not.toContain("redirect-to-https");
-	expect(router.rule).not.toContain("PathSuffix");
+	expect(router.rule).not.toContain("PathPrefix");
 });
 
 test("Web entrypoint on http domain with custom path", async () => {
@@ -117,7 +117,7 @@ test("Web entrypoint on http domain with custom path", async () => {
 		"web",
 	);
 
-	expect(router.rule).toContain("PathSuffix(`/foo`)");
+	expect(router.rule).toContain("PathPrefix(`/foo`)");
 });
 
 test("Web entrypoint on http domain with redirect", async () => {
