@@ -75,7 +75,7 @@ export const writeDomainsToCompose = async (
 	}
 	let composeConverted = await addDomainToCompose(compose, domains);
 
-	if (compose.randomize && composeConverted && compose.prefix) {
+	if (compose.randomize && composeConverted) {
 		const result = randomizeSpecificationFile(composeConverted, compose.prefix);
 		composeConverted = result;
 	}
