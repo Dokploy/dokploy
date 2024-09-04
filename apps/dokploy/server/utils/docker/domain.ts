@@ -73,12 +73,7 @@ export const writeDomainsToCompose = async (
 	if (!domains.length) {
 		return;
 	}
-	let composeConverted = await addDomainToCompose(compose, domains);
-
-	if (compose.randomize && composeConverted) {
-		const result = randomizeSpecificationFile(composeConverted, compose.suffix);
-		composeConverted = result;
-	}
+	const composeConverted = await addDomainToCompose(compose, domains);
 
 	const path = getComposePath(compose);
 	const composeString = dump(composeConverted, { lineWidth: 1000 });
