@@ -46,7 +46,8 @@ export const ShowMonitoringCompose = ({
 
   const [containerId, setContainerId] = useState<string | undefined>();
 
-  const { mutateAsync: restart } = api.docker.restartContainer.useMutation();
+  const { mutateAsync: restart, isLoading } =
+    api.docker.restartContainer.useMutation();
 
   useEffect(() => {
     if (data && data?.length > 0) {
@@ -94,8 +95,10 @@ export const ShowMonitoringCompose = ({
               </SelectContent>
             </Select>
             <Button
+              isLoading={isLoading}
               onClick={async () => {
-                toast.success(`Restarting container ${containerId}`);
+                if (!containerId) return;
+                toast.success(`Restarting container ${containerAppName}`);
                 await restart({ containerId }).then(() => {
                   toast.success("Container restarted");
                 });
