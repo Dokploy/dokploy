@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import React from "react";
 
 import {
 	DropdownMenu,
@@ -19,6 +18,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import i18n from "@/i18n";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "./web-server/docker-terminal-modal";
@@ -74,36 +74,36 @@ export const WebServer = () => {
 	return (
 		<Card className="rounded-lg w-full bg-transparent">
 			<CardHeader>
-				<CardTitle className="text-xl">Web server settings</CardTitle>
-				<CardDescription>Reload or clean the web server.</CardDescription>
+				<CardTitle className="text-xl">{i18n.getText('PAGE.webServerSettings.title')}</CardTitle>
+				<CardDescription>{i18n.getText('PAGE.webServerSettings.description')}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<div className="grid md:grid-cols-2 gap-4">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild disabled={isLoading}>
 							<Button isLoading={isLoading} variant="outline">
-								Server
+								{i18n.getText('PAGE.webServerSettings.serverButton')}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56" align="start">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>{i18n.getText('PAGE.webServerSettings.actions')}</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuGroup>
 								<DropdownMenuItem
 									onClick={async () => {
 										await reloadServer()
 											.then(async () => {
-												toast.success("Server Reloaded");
+												toast.success(i18n.getText('PAGE.webServerSettings.serverReloadedSuccess'));
 											})
 											.catch(() => {
-												toast.success("Server Reloaded");
+												toast.success(i18n.getText('PAGE.webServerSettings.serverReloadedError'));
 											});
 									}}
 								>
-									<span>Reload</span>
+									<span>{i18n.getText('PAGE.webServerSettings.reloadServer')}</span>
 								</DropdownMenuItem>
 								<ShowModalLogs appName="dokploy">
-									<span>Watch logs</span>
+									<span>{i18n.getText('PAGE.webServerSettings.watchLogs')}</span>
 								</ShowModalLogs>
 
 								<ShowServerTraefikConfig>
@@ -111,7 +111,7 @@ export const WebServer = () => {
 										onSelect={(e) => e.preventDefault()}
 										className="w-full cursor-pointer space-x-3"
 									>
-										<span>View Traefik config</span>
+										<span>{i18n.getText('PAGE.webServerSettings.viewTraefikConfig')}</span>
 									</DropdownMenuItem>
 								</ShowServerTraefikConfig>
 
@@ -120,12 +120,12 @@ export const WebServer = () => {
 										onSelect={(e) => e.preventDefault()}
 										className="w-full cursor-pointer space-x-3"
 									>
-										<span>View middlewares config</span>
+										<span>{i18n.getText('PAGE.webServerSettings.viewMiddlewaresConfig')}</span>
 									</DropdownMenuItem>
 								</ShowServerMiddlewareConfig>
 
 								<TerminalModal>
-									<span>Enter the terminal</span>
+									<span>{i18n.getText('PAGE.webServerSettings.enterTerminal')}</span>
 								</TerminalModal>
 							</DropdownMenuGroup>
 						</DropdownMenuContent>
@@ -140,35 +140,35 @@ export const WebServer = () => {
 								isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
 								variant="outline"
 							>
-								Traefik
+								{i18n.getText('PAGE.webServerSettings.traefikButton')}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56" align="start">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>{i18n.getText('PAGE.webServerSettings.actions')}</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuGroup>
 								<DropdownMenuItem
 									onClick={async () => {
 										await reloadTraefik()
 											.then(async () => {
-												toast.success("Traefik Reloaded");
+												toast.success(i18n.getText('PAGE.webServerSettings.title'));
 											})
 											.catch(() => {
-												toast.error("Error to reload the traefik");
+												toast.error(i18n.getText('PAGE.webServerSettings.traefikReloadedError'));
 											});
 									}}
 								>
-									<span>Reload</span>
+									<span>{i18n.getText('PAGE.webServerSettings.reloadTraefik')}</span>
 								</DropdownMenuItem>
 								<ShowModalLogs appName="dokploy-traefik">
-									<span>Watch logs</span>
+									<span>{i18n.getText('PAGE.webServerSettings.watchLogs')}</span>
 								</ShowModalLogs>
 								<ShowMainTraefikConfig>
 									<DropdownMenuItem
 										onSelect={(e) => e.preventDefault()}
 										className="w-full cursor-pointer space-x-3"
 									>
-										<span>View Traefik config</span>
+										<span>{i18n.getText('PAGE.webServerSettings.viewTraefikConfig')}</span>
 									</DropdownMenuItem>
 								</ShowMainTraefikConfig>
 								<EditTraefikEnv>
@@ -176,7 +176,7 @@ export const WebServer = () => {
 										onSelect={(e) => e.preventDefault()}
 										className="w-full cursor-pointer space-x-3"
 									>
-										<span>Modify Env</span>
+										<span>{i18n.getText('PAGE.webServerSettings.modifyEnv')}</span>
 									</DropdownMenuItem>
 								</EditTraefikEnv>
 
@@ -210,7 +210,7 @@ export const WebServer = () => {
 										className="w-full cursor-pointer space-x-3"
 										onSelect={(e) => e.preventDefault()}
 									>
-										<span>Enter the terminal</span>
+										<span>{i18n.getText('PAGE.webServerSettings.enterTerminal')}</span>
 									</DropdownMenuItem>
 								</DockerTerminalModal>
 							</DropdownMenuGroup>
@@ -238,11 +238,11 @@ export const WebServer = () => {
 								}
 								variant="outline"
 							>
-								Space
+								{i18n.getText('PAGE.webServerSettings.spaceButton')}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-64" align="start">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>{i18n.getText('PAGE.webServerSettings.actions')}</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuGroup>
 								<DropdownMenuItem
@@ -250,28 +250,28 @@ export const WebServer = () => {
 									onClick={async () => {
 										await cleanUnusedImages()
 											.then(async () => {
-												toast.success("Cleaned images");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedImagesSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean images");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedImagesError'));
 											});
 									}}
 								>
-									<span>Clean unused images</span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanUnusedImages')}</span>
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="w-full cursor-pointer"
 									onClick={async () => {
 										await cleanUnusedVolumes()
 											.then(async () => {
-												toast.success("Cleaned volumes");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedVolumesSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean volumes");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedVolumesError'));
 											});
 									}}
 								>
-									<span>Clean unused volumes</span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanUnusedVolumes')}</span>
 								</DropdownMenuItem>
 
 								<DropdownMenuItem
@@ -279,14 +279,14 @@ export const WebServer = () => {
 									onClick={async () => {
 										await cleanStoppedContainers()
 											.then(async () => {
-												toast.success("Stopped containers cleaned");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedStoppedContainersSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean stopped containers");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedStoppedContainersError'));
 											});
 									}}
 								>
-									<span>Clean stopped containers</span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanStoppedContainers')}</span>
 								</DropdownMenuItem>
 
 								<DropdownMenuItem
@@ -294,42 +294,42 @@ export const WebServer = () => {
 									onClick={async () => {
 										await cleanDockerBuilder()
 											.then(async () => {
-												toast.success("Cleaned Docker Builder");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedDockerBuilderSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean Docker Builder");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedDockerBuilderError'));
 											});
 									}}
 								>
-									<span>Clean Docker Builder & System</span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanDockerBuilder')}</span>
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="w-full cursor-pointer"
 									onClick={async () => {
 										await cleanMonitoring()
 											.then(async () => {
-												toast.success("Cleaned Monitoring");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedMonitoringSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean Monitoring");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedMonitoringError'));
 											});
 									}}
 								>
-									<span>Clean Monitoring </span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanMonitoring')}</span>
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="w-full cursor-pointer"
 									onClick={async () => {
 										await cleanAll()
 											.then(async () => {
-												toast.success("Cleaned all");
+												toast.success(i18n.getText('PAGE.webServerSettings.cleanedAllSuccess'));
 											})
 											.catch(() => {
-												toast.error("Error to clean all");
+												toast.error(i18n.getText('PAGE.webServerSettings.cleanedAllError'));
 											});
 									}}
 								>
-									<span>Clean all</span>
+									<span>{i18n.getText('PAGE.webServerSettings.cleanAll')}</span>
 								</DropdownMenuItem>
 							</DropdownMenuGroup>
 						</DropdownMenuContent>
@@ -340,10 +340,14 @@ export const WebServer = () => {
 
 				<div className="flex items-center flex-wrap justify-between gap-4">
 					<span className="text-sm text-muted-foreground">
-						Server IP: {data?.serverIp}
+						{i18n.getText('PAGE.webServerSettings.serverIp', {
+							serverIp: data?.serverIp
+						})}
 					</span>
 					<span className="text-sm text-muted-foreground">
-						Version: {dokployVersion}
+						{i18n.getText('PAGE.webServerSettings.version', {
+							dokployVersion: dokployVersion
+						})}
 					</span>
 					<div className="flex items-center gap-4">
 						<Switch
@@ -353,16 +357,16 @@ export const WebServer = () => {
 									enableDockerCleanup: e,
 								})
 									.then(async () => {
-										toast.success("Docker Cleanup Enabled");
+										toast.success(i18n.getText('PAGE.webServerSettings.dockerCleanupEnabled'));
 									})
 									.catch(() => {
-										toast.error("Docker Cleanup Error");
+										toast.error(i18n.getText('PAGE.webServerSettings.dockerCleanupError'));
 									});
 
 								refetch();
 							}}
 						/>
-						<Label className="text-primary">Daily Docker Cleanup</Label>
+						<Label className="text-primary">{i18n.getText('PAGE.webServerSettings.dailyDockerCleanup')}</Label>
 					</div>
 				</div>
 			</CardContent>

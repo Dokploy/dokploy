@@ -5,6 +5,7 @@ import { api } from "@/utils/api";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import i18n from "@/i18n";
 
 interface TabInfo {
 	label: string;
@@ -21,41 +22,6 @@ export type TabState =
 	| "traefik"
 	| "docker";
 
-const tabMap: Record<TabState, TabInfo> = {
-	projects: {
-		label: "Projects",
-		description: "Manage your projects",
-		index: "/dashboard/projects",
-	},
-	monitoring: {
-		label: "Monitoring",
-		description: "Monitor your projects",
-		index: "/dashboard/monitoring",
-	},
-	traefik: {
-		label: "Traefik",
-		tabLabel: "Traefik File System",
-		description: "Manage your traefik",
-		index: "/dashboard/traefik",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
-		},
-	},
-	docker: {
-		label: "Docker",
-		description: "Manage your docker",
-		index: "/dashboard/docker",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToDocker);
-		},
-	},
-	settings: {
-		label: "Settings",
-		description: "Manage your settings",
-		index: "/dashboard/settings/server",
-	},
-};
-
 interface Props {
 	tab: TabState;
 	children: React.ReactNode;
@@ -63,6 +29,39 @@ interface Props {
 
 export const NavigationTabs = ({ tab, children }: Props) => {
 	const router = useRouter();
+	const tabMap: Record<TabState, TabInfo> = {
+		projects: {
+			label: i18n.getText('NAVIGATION.tabs.projects.label'),
+			description: i18n.getText('NAVIGATION.tabs.projects.description'),
+			index: "/dashboard/projects",
+		},
+		monitoring: {
+			label: i18n.getText('NAVIGATION.tabs.monitoring.label'),
+			description: i18n.getText('NAVIGATION.tabs.monitoring.description'),
+			index: "/dashboard/monitoring",
+		},
+		traefik: {
+			label: i18n.getText('NAVIGATION.tabs.traefik.label'),
+			description: i18n.getText('NAVIGATION.tabs.traefik.description'),
+			index: "/dashboard/traefik",
+			isShow: ({ rol, user }) => {
+				return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
+			},
+		},
+		docker: {
+			label: i18n.getText('NAVIGATION.tabs.docker.label'),
+			description: i18n.getText('NAVIGATION.tabs.docker.description'),
+			index: "/dashboard/docker",
+			isShow: ({ rol, user }) => {
+				return Boolean(rol === "admin" || user?.canAccessToDocker);
+			},
+		},
+		settings: {
+			label: i18n.getText('NAVIGATION.tabs.settings.label'),
+			description: i18n.getText('NAVIGATION.tabs.settings.description'),
+			index: "/dashboard/settings/server",
+		},
+	};
 
 	const { data } = api.auth.get.useQuery();
 	const [activeTab, setActiveTab] = useState<TabState>(tab);

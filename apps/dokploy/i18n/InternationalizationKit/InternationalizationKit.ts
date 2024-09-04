@@ -7,7 +7,6 @@ import type {
 import Locales from "./interface/locales";
 import print from "./utils/print";
 
-// 定义 localesData 的类型，可以是直接的 Locales 对象或返回 Promise 的函数
 type LocalesData = {
 	[lang: string]: Locales | (() => Promise<Locales>);
 };
@@ -17,7 +16,7 @@ class InternationalizationKit {
 	private currentLocale: string;
 	private fallbackLocales: string[];
 	private localesData: LocalesData;
-	private loadedLocales: { [lang: string]: Locales } = {};
+	private loadedLocales: { [lang: string]: Locales };
 	private numberFormat?: Intl.NumberFormatOptions;
 	private dateTimeFormat?: Intl.DateTimeFormatOptions;
 	private defaultPlaceholders?: PlaceholdersObject;
@@ -26,19 +25,17 @@ class InternationalizationKit {
 		this.currentLocale = options.defaultLocale;
 		this.fallbackLocales = options.fallbackLocales;
 		this.localesData = options.localesData;
+		this.loadedLocales = options.localesData as { [lang: string]: Locales };
 		this.numberFormat = options.numberFormat;
 		this.dateTimeFormat = options.dateTimeFormat;
 		this.defaultPlaceholders = options.defaultPlaceholders;
 
-		// 在实例初始化时加载所有语言数据
-		this.initializeLocales();
+		// this.initializeLocales();
 	}
 
 	private async initializeLocales() {
-		// 加载默认语言
 		await this.loadLocale(this.currentLocale);
 
-		// 加载所有后备语言
 		for (const fallbackLocale of this.fallbackLocales) {
 			await this.loadLocale(fallbackLocale);
 		}
@@ -55,7 +52,6 @@ class InternationalizationKit {
 		}
 
 		if (typeof localeData === "function") {
-			// 如果是函数，异步加载语言数据
 			if (!this.loadedLocales[locale]) {
 				try {
 					const data = await localeData();
@@ -68,7 +64,6 @@ class InternationalizationKit {
 				}
 			}
 		} else {
-			// 如果是对象，直接使用
 			this.loadedLocales[locale] = localeData;
 		}
 	}
@@ -87,10 +82,9 @@ class InternationalizationKit {
 		this.currentLocale = locale;
 	}
 
-	// 替换占位符的通用函数
 	private replacePlaceholders(
 		text: string,
-		placeholdersText?: { [key: string]: string },
+		placeholdersText?: { [key: string]: string | null | undefined },
 		placeholders?: PlaceholdersObject
 	): string {
 		let replacedText = text;
@@ -120,17 +114,15 @@ class InternationalizationKit {
 		return replacedText;
 	}
 
-	// 获取特定语言的文本
 	public getText(
 		key: keyof Locales,
-		placeholdersText?: { [key: string]: string },
+		placeholdersText?: { [key: string]: string | null | undefined },
 		placeholders?: PlaceholdersObject
 	): string {
 		let text: string | undefined =
 			this.loadedLocales[this.currentLocale]?.[key];
 
 		if (!text) {
-			// 如果当前语言未找到，尝试使用后备语言
 			for (const fallbackLang of this.fallbackLocales) {
 				text = this.loadedLocales[fallbackLang]?.[key];
 				if (text) break;
@@ -151,7 +143,6 @@ class InternationalizationKit {
 		);
 	}
 
-	// 日期时间格式化接受 Date 对象、时间戳或者日期字符串
 	public getDateTimeFormat(options: dateTimeFormatOptions): string {
 		const actualDateTimeFormat =
 			options.dateTimeFormat || this.dateTimeFormat;
@@ -170,7 +161,6 @@ class InternationalizationKit {
 		return new Intl.DateTimeFormat().format(options.date);
 	}
 
-	// 数字格式化接受数字或者大整数
 	public getNumberFormat(options: numberFormatOptions): string {
 		const actualLocale = options.locale || this.currentLocale;
 		const actualNumberFormat = options.numberFormat || this.numberFormat;

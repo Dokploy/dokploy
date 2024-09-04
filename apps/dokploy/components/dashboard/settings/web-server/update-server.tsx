@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UpdateWebServer } from "./update-webserver";
+import i18n from "@/i18n";
 
 export const UpdateServer = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<null | boolean>(
@@ -28,36 +29,35 @@ export const UpdateServer = () => {
 			<DialogTrigger asChild>
 				<Button variant="secondary">
 					<RefreshCcw className="h-4 w-4" />
-					Updates
+					{i18n.getText('PAGE.webServerSettings.updates')}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>Web Server Update</DialogTitle>
+					<DialogTitle>{i18n.getText('PAGE.webServerSettings.webServerUpdate')}</DialogTitle>
 					<DialogDescription>
-						Check new releases and update your dokploy
+					{i18n.getText('PAGE.webServerSettings.checkNewReleases')}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<span className="text-sm text-muted-foreground">
-						We suggest to update your dokploy to the latest version only if you:
+						{i18n.getText('PAGE.webServerSettings.suggestToUpdate')}
 					</span>
 					<ul className="list-disc list-inside text-sm text-muted-foreground">
-						<li>Want to try the latest features</li>
-						<li>Some bug that is blocking to use some features</li>
+						<li>{i18n.getText('PAGE.webServerSettings.wantToTryLatestFeatures')}</li>
+						<li>{i18n.getText('PAGE.webServerSettings.bugBlockingFeatures')}</li>
 					</ul>
 					<AlertBlock type="info">
-						Please we recommend to see the latest version to see if there are
-						any breaking changes before updating. Go to{" "}
+					{i18n.getText('PAGE.webServerSettings.recommendSeeLatestVersion')}{" "}
 						<Link
 							href="https://github.com/Dokploy/dokploy/releases"
 							target="_blank"
 							className="text-foreground"
 						>
-							Dokploy Releases
+							{i18n.getText('PAGE.webServerSettings.updates')}
 						</Link>{" "}
-						to check the latest version.
+						{i18n.getText('PAGE.webServerSettings.checkLatestVersion')}
 					</AlertBlock>
 
 					<div className="w-full flex flex-col gap-4">
@@ -65,7 +65,7 @@ export const UpdateServer = () => {
 							<div className="flex flex-col items-center gap-3">
 								<RefreshCcw className="size-6 self-center text-muted-foreground" />
 								<span className="text-sm text-muted-foreground">
-									You are using the latest version
+									{i18n.getText('PAGE.webServerSettings.usingLatestVersion')}
 								</span>
 							</div>
 						)}
@@ -81,13 +81,13 @@ export const UpdateServer = () => {
 										})
 										.catch(() => {
 											setIsUpdateAvailable(false);
-											toast.error("Error to check updates");
+											toast.error(i18n.getText('PAGE.webServerSettings.errorToCheckUpdates'));
 										});
-									toast.success("Check updates");
+									toast.success(i18n.getText('PAGE.webServerSettings.successCheckUpdates'));
 								}}
 								isLoading={isLoading}
 							>
-								Check updates
+								{i18n.getText('PAGE.webServerSettings.checkUpdates')}
 							</Button>
 						)}
 					</div>

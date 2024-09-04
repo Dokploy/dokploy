@@ -154,6 +154,418 @@ interface Locales {
 	 */
 	'PAGE.project.actions': string;
 	/**
+	 * Dokploy
+	 */
+	'NAVBAR.Dokploy': string;
+	/**
+	 * Support
+	 */
+	'NAVBAR.support': string;
+	/**
+	 * My Account
+	 */
+	'PAGE.account.myAccount': string;
+	/**
+	 * Projects
+	 */
+	'PAGE.account.projects': string;
+	/**
+	 * Monitoring
+	 */
+	'PAGE.account.monitoring': string;
+	/**
+	 * Traefik
+	 */
+	'PAGE.account.traefik': string;
+	/**
+	 * Docker
+	 */
+	'PAGE.account.docker': string;
+	/**
+	 * Settings
+	 */
+	'PAGE.account.settings': string;
+	/**
+	 * Log out
+	 */
+	'PAGE.account.logout': string;
+	/**
+	 * Server
+	 */
+	'PAGE.settings.server': string;
+	/**
+	 * Profile
+	 */
+	'PAGE.settings.profile': string;
+	/**
+	 * Appearance
+	 */
+	'PAGE.settings.appearance': string;
+	/**
+	 * S3 Destinations
+	 */
+	'PAGE.settings.destinations': string;
+	/**
+	 * Certificates
+	 */
+	'PAGE.settings.certificates': string;
+	/**
+	 * SSH Keys
+	 */
+	'PAGE.settings.sshKeys': string;
+	/**
+	 * Git
+	 */
+	'PAGE.settings.git': string;
+	/**
+	 * Users
+	 */
+	'PAGE.settings.users': string;
+	/**
+	 * Cluster
+	 */
+	'PAGE.settings.cluster': string;
+	/**
+	 * Notifications
+	 */
+	'PAGE.settings.notifications': string;
+	/**
+	 * Server Domain
+	 */
+	'PAGE.webDomain.title': string;
+	/**
+	 * Add your server domain to your application
+	 */
+	'PAGE.webDomain.description': string;
+	/**
+	 * Domain
+	 */
+	'PAGE.webDomain.domainLabel': string;
+	/**
+	 * dokploy.com
+	 */
+	'PAGE.webDomain.domainPlaceholder': string;
+	/**
+	 * Letsencrypt Email
+	 */
+	'PAGE.webDomain.letsEncryptEmailLabel': string;
+	/**
+	 * Dp4kz@example.com
+	 */
+	'PAGE.webDomain.letsEncryptEmailPlaceholder': string;
+	/**
+	 * Certificate
+	 */
+	'PAGE.webDomain.certificateLabel': string;
+	/**
+	 * Select a certificate
+	 */
+	'PAGE.webDomain.certificateSelectPlaceholder': string;
+	/**
+	 * None
+	 */
+	'PAGE.webDomain.certificateNone': string;
+	/**
+	 * Letsencrypt (Default)
+	 */
+	'PAGE.webDomain.certificateLetsEncrypt': string;
+	/**
+	 * Save
+	 */
+	'PAGE.webDomain.saveButton': string;
+	/**
+	 * URL is required
+	 */
+	'PAGE.webDomain.domainRequired': string;
+	/**
+	 * Email is required
+	 */
+	'PAGE.webDomain.emailRequired': string;
+	/**
+	 * Domain Assigned
+	 */
+	'PAGE.webDomain.toastSuccess': string;
+	/**
+	 * Error to assign the domain
+	 */
+	'PAGE.webDomain.toastError': string;
+	/**
+	 * Web server settings
+	 */
+	'PAGE.webServerSettings.title': string;
+	/**
+	 * Reload or clean the web server.
+	 */
+	'PAGE.webServerSettings.description': string;
+	/**
+	 * Server
+	 */
+	'PAGE.webServerSettings.serverButton': string;
+	/**
+	 * Actions
+	 */
+	'PAGE.webServerSettings.actions': string;
+	/**
+	 * Reload
+	 */
+	'PAGE.webServerSettings.reloadServer': string;
+	/**
+	 * Watch logs
+	 */
+	'PAGE.webServerSettings.watchLogs': string;
+	/**
+	 * View Traefik config
+	 */
+	'PAGE.webServerSettings.viewTraefikConfig': string;
+	/**
+	 * View middlewares config
+	 */
+	'PAGE.webServerSettings.viewMiddlewaresConfig': string;
+	/**
+	 * Enter the terminal
+	 */
+	'PAGE.webServerSettings.enterTerminal': string;
+	/**
+	 * Traefik
+	 */
+	'PAGE.webServerSettings.traefikButton': string;
+	/**
+	 * Reload
+	 */
+	'PAGE.webServerSettings.reloadTraefik': string;
+	/**
+	 * Modify Env
+	 */
+	'PAGE.webServerSettings.modifyEnv': string;
+	/**
+	 * @@enable@@ Dashboard
+	 */
+	'PAGE.webServerSettings.dashboard': string;
+	/**
+	 * Enable
+	 */
+	'PAGE.webServerSettings.enableDashboard': string;
+	/**
+	 * Disabled
+	 */
+	'PAGE.webServerSettings.disableDashboard': string;
+	/**
+	 * Space
+	 */
+	'PAGE.webServerSettings.spaceButton': string;
+	/**
+	 * Clean unused images
+	 */
+	'PAGE.webServerSettings.cleanUnusedImages': string;
+	/**
+	 * Clean unused volumes
+	 */
+	'PAGE.webServerSettings.cleanUnusedVolumes': string;
+	/**
+	 * Clean stopped containers
+	 */
+	'PAGE.webServerSettings.cleanStoppedContainers': string;
+	/**
+	 * Clean Docker Builder & System
+	 */
+	'PAGE.webServerSettings.cleanDockerBuilder': string;
+	/**
+	 * Clean Monitoring
+	 */
+	'PAGE.webServerSettings.cleanMonitoring': string;
+	/**
+	 * Clean all
+	 */
+	'PAGE.webServerSettings.cleanAll': string;
+	/**
+	 * Server IP: @@serverIp@@
+	 */
+	'PAGE.webServerSettings.serverIp': string;
+	/**
+	 * Version: @@dokployVersion@@
+	 */
+	'PAGE.webServerSettings.version': string;
+	/**
+	 * Daily Docker Cleanup
+	 */
+	'PAGE.webServerSettings.dailyDockerCleanup': string;
+	/**
+	 * Docker Cleanup Enabled
+	 */
+	'PAGE.webServerSettings.dockerCleanupEnabled': string;
+	/**
+	 * Docker Cleanup Error
+	 */
+	'PAGE.webServerSettings.dockerCleanupError': string;
+	/**
+	 * Server Reloaded
+	 */
+	'PAGE.webServerSettings.serverReloadedSuccess': string;
+	/**
+	 * Error reloading the server
+	 */
+	'PAGE.webServerSettings.serverReloadedError': string;
+	/**
+	 * Traefik Reloaded
+	 */
+	'PAGE.webServerSettings.traefikReloadedSuccess': string;
+	/**
+	 * Error to reload the traefik
+	 */
+	'PAGE.webServerSettings.traefikReloadedError': string;
+	/**
+	 * Cleaned images
+	 */
+	'PAGE.webServerSettings.cleanedImagesSuccess': string;
+	/**
+	 * Error to clean images
+	 */
+	'PAGE.webServerSettings.cleanedImagesError': string;
+	/**
+	 * Cleaned volumes
+	 */
+	'PAGE.webServerSettings.cleanedVolumesSuccess': string;
+	/**
+	 * Error to clean volumes
+	 */
+	'PAGE.webServerSettings.cleanedVolumesError': string;
+	/**
+	 * Stopped containers cleaned
+	 */
+	'PAGE.webServerSettings.cleanedStoppedContainersSuccess': string;
+	/**
+	 * Error to clean stopped containers
+	 */
+	'PAGE.webServerSettings.cleanedStoppedContainersError': string;
+	/**
+	 * Cleaned Docker Builder
+	 */
+	'PAGE.webServerSettings.cleanedDockerBuilderSuccess': string;
+	/**
+	 * Error to clean Docker Builder
+	 */
+	'PAGE.webServerSettings.cleanedDockerBuilderError': string;
+	/**
+	 * Cleaned Monitoring
+	 */
+	'PAGE.webServerSettings.cleanedMonitoringSuccess': string;
+	/**
+	 * Error to clean Monitoring
+	 */
+	'PAGE.webServerSettings.cleanedMonitoringError': string;
+	/**
+	 * Cleaned all
+	 */
+	'PAGE.webServerSettings.cleanedAllSuccess': string;
+	/**
+	 * Error to clean all
+	 */
+	'PAGE.webServerSettings.cleanedAllError': string;
+	/**
+	 * Enabled @@dashboard@@
+	 */
+	'PAGE.webServerSettings.dashboardEnabled': string;
+	/**
+	 * Disabled @@dashboard@@
+	 */
+	'PAGE.webServerSettings.dashboardDisabled': string;
+	/**
+	 * Updates
+	 */
+	'PAGE.webServerSettings.updates': string;
+	/**
+	 * Web Server Update
+	 */
+	'PAGE.webServerSettings.webServerUpdate': string;
+	/**
+	 * Check new releases and update your dokploy
+	 */
+	'PAGE.webServerSettings.checkNewReleases': string;
+	/**
+	 * We suggest to update your dokploy to the latest version only if you:
+	 */
+	'PAGE.webServerSettings.suggestToUpdate': string;
+	/**
+	 * Want to try the latest features
+	 */
+	'PAGE.webServerSettings.wantToTryLatestFeatures': string;
+	/**
+	 * Some bug that is blocking to use some features
+	 */
+	'PAGE.webServerSettings.bugBlockingFeatures': string;
+	/**
+	 * Please we recommend to see the latest version to see if there are any breaking changes before updating. Go to
+	 */
+	'PAGE.webServerSettings.recommendSeeLatestVersion': string;
+	/**
+	 * Dokploy Releases
+	 */
+	'PAGE.webServerSettings.dokployReleases': string;
+	/**
+	 * to check the latest version.
+	 */
+	'PAGE.webServerSettings.checkLatestVersion': string;
+	/**
+	 * You are using the latest version
+	 */
+	'PAGE.webServerSettings.usingLatestVersion': string;
+	/**
+	 * Check updates
+	 */
+	'PAGE.webServerSettings.checkUpdates': string;
+	/**
+	 * Error to check updates
+	 */
+	'PAGE.webServerSettings.errorToCheckUpdates': string;
+	/**
+	 * Check updates
+	 */
+	'PAGE.webServerSettings.successCheckUpdates': string;
+	/**
+	 * Name
+	 */
+	'FORM.addProject.name': string;
+	/**
+	 * Description
+	 */
+	'FORM.addProject.description': string;
+	/**
+	 * Create Project
+	 */
+	'FORM.addProject.createProject': string;
+	/**
+	 * Add a project
+	 */
+	'FORM.addProject.addAProject': string;
+	/**
+	 * The home of something big!
+	 */
+	'FORM.addProject.homeOfSomethingBig': string;
+	/**
+	 * Tesla
+	 */
+	'FORM.addProject.placeholderName': string;
+	/**
+	 * Description about your project...
+	 */
+	'FORM.addProject.placeholderDescription': string;
+	/**
+	 * Create
+	 */
+	'FORM.addProject.create': string;
+	/**
+	 * Project Created
+	 */
+	'FORM.addProject.projectCreated': string;
+	/**
+	 * Error to create a project
+	 */
+	'FORM.addProject.errorCreatingProject': string;
+	/**
+	 * Name is required
+	 */
+	'FORM.addProject.nameIsRequired': string;
+	/**
 	 * Projects
 	 */
 	'NAVIGATION.tabs.projects.label': string;

@@ -20,7 +20,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(data?.rol === "admin"
 							? [
 									{
-										title: "Server",
+										title: i18n.getText('PAGE.settings.server'),
 										icon: Activity,
 										href: "/dashboard/settings/server",
 									},
@@ -28,12 +28,12 @@ export const SettingsLayout = ({ children }: Props) => {
 							: []),
 
 						{
-							title: "Profile",
+							title: i18n.getText('PAGE.settings.profile'),
 							icon: User2,
 							href: "/dashboard/settings/profile",
 						},
 						{
-							title: "Appearance",
+							title: i18n.getText('PAGE.settings.appearance'),
 							label: "",
 							icon: Route,
 							href: "/dashboard/settings/appearance",
@@ -42,43 +42,43 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(data?.rol === "admin"
 							? [
 									{
-										title: "S3 Destinations",
+										title: i18n.getText('PAGE.settings.destinations'),
 										label: "",
 										icon: Database,
 										href: "/dashboard/settings/destinations",
 									},
 									{
-										title: "Certificates",
+										title: i18n.getText('PAGE.settings.certificates'),
 										label: "",
 										icon: ShieldCheck,
 										href: "/dashboard/settings/certificates",
 									},
 									{
-										title: "SSH Keys",
+										title: i18n.getText('PAGE.settings.sshKeys'),
 										label: "",
 										icon: KeyRound,
 										href: "/dashboard/settings/ssh-keys",
 									},
 									{
-										title: "Git ",
+										title: i18n.getText('PAGE.settings.git'),
 										label: "",
 										icon: GitBranch,
 										href: "/dashboard/settings/git-providers",
 									},
 									{
-										title: "Users",
+										title: i18n.getText('PAGE.settings.users'),
 										label: "",
 										icon: Users,
 										href: "/dashboard/settings/users",
 									},
 									{
-										title: "Cluster",
+										title: i18n.getText('PAGE.settings.cluster'),
 										label: "",
 										icon: Server,
 										href: "/dashboard/settings/cluster",
 									},
 									{
-										title: "Notifications",
+										title: i18n.getText('PAGE.settings.notifications'),
 										label: "",
 										icon: Bell,
 										href: "/dashboard/settings/notifications",
@@ -88,7 +88,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(user?.canAccessToSSHKeys
 							? [
 									{
-										title: "SSH Keys",
+										title: i18n.getText('PAGE.settings.sshKeys'),
 										label: "",
 										icon: KeyRound,
 										href: "/dashboard/settings/ssh-keys",
@@ -98,7 +98,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(user?.canAccessToGitProviders
 							? [
 									{
-										title: "Git",
+										title: i18n.getText('PAGE.settings.git'),
 										label: "",
 										icon: GitBranch,
 										href: "/dashboard/settings/git-providers",
@@ -133,6 +133,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
+import i18n from "@/i18n";
 
 interface NavProps {
 	links: {
