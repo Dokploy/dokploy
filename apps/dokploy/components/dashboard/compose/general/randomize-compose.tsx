@@ -1,5 +1,7 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import { CardTitle } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -8,25 +10,91 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	FormField,
+	FormItem,
+	FormLabel,
+	FormControl,
+	FormDescription,
+	FormMessage,
+	Form,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { Dices } from "lucide-react";
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Dices } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
 interface Props {
 	composeId: string;
 }
 
+const schema = z.object({
+	prefix: z.string(),
+	randomize: z.boolean().optional(),
+});
+
+type Schema = z.infer<typeof schema>;
+
 export const RandomizeCompose = ({ composeId }: Props) => {
 	const utils = api.useUtils();
-	const [prefix, setPrefix] = useState<string>("");
 	const [compose, setCompose] = useState<string>("");
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } =
 		api.compose.randomizeCompose.useMutation();
 
-	const onSubmit = async () => {
+	const { mutateAsync: updateCompose } = api.compose.update.useMutation();
+
+	const { data, refetch } = api.compose.one.useQuery(
+		{ composeId },
+		{ enabled: !!composeId },
+	);
+
+	const form = useForm<Schema>({
+		defaultValues: {
+			prefix: "",
+			randomize: false,
+		},
+		resolver: zodResolver(schema),
+	});
+
+	const prefix = form.watch("prefix");
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				prefix: data?.prefix || "",
+				randomize: data?.randomize || false,
+			});
+		}
+	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
+
+	const onSubmit = async (formData: Schema) => {
+		await updateCompose({
+			composeId,
+			prefix: formData?.prefix || "",
+			randomize: formData?.randomize || false,
+		})
+			.then(async (data) => {
+				randomizeCompose();
+				refetch();
+				toast.success("Compose updated");
+			})
+			.catch(() => {
+				toast.error("Error to randomize the compose");
+			});
+	};
+
+	const randomizeCompose = async () => {
 		await mutateAsync({
 			composeId,
 			prefix,
@@ -43,7 +111,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild onClick={() => onSubmit()}>
+			<DialogTrigger asChild onClick={() => randomizeCompose()}>
 				<Button className="max-lg:w-full" variant="outline">
 					<Dices className="h-4 w-4" />
 					Randomize Compose
@@ -69,29 +137,98 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 						<li>configs</li>
 						<li>secrets</li>
 					</ul>
-				</div>
-				<div className="flex flex-col lg:flex-row  gap-2">
-					<Input
-						placeholder="Enter a prefix (Optional, example: prod)"
-						onChange={(e) => setPrefix(e.target.value)}
-					/>
-					<Button
-						type="submit"
-						onClick={async () => {
-							await onSubmit();
-						}}
-						className="lg:w-fit w-full"
-					>
-						Random
-					</Button>
+					<AlertBlock type="info">
+						When you activate this option, we will include a env
+						`COMPOSE_PREFIX` variable to the compose file so you can use it in
+						your compose file.
+					</AlertBlock>
 				</div>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						id="hook-form-add-project"
+						className="grid w-full gap-4"
+					>
+						{isError && (
+							<div className="flex flex-row gap-4 rounded-lg items-center bg-red-50 p-2 dark:bg-red-950">
+								<AlertTriangle className="text-red-600 dark:text-red-400" />
+								<span className="text-sm text-red-600 dark:text-red-400">
+									{error?.message}
+								</span>
+							</div>
+						)}
 
-				<div className="p-4 bg-secondary rounded-lg">
-					<pre>
-						<code className="language-yaml">{compose}</code>
-					</pre>
-				</div>
+						<div className="flex flex-col lg:flex-col  gap-4 w-full ">
+							<div>
+								<FormField
+									control={form.control}
+									name="prefix"
+									render={({ field }) => (
+										<FormItem className="flex flex-col justify-center max-sm:items-center w-full">
+											<FormLabel>Prefix</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter a prefix (Optional, example: prod)"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="randomize"
+									render={({ field }) => (
+										<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Apply Randomize</FormLabel>
+												<FormDescription>
+													Apply randomize to the compose file.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="flex flex-col lg:flex-row  gap-4 w-full items-end justify-end">
+								<Button
+									form="hook-form-add-project"
+									type="submit"
+									className="lg:w-fit"
+								>
+									Save
+								</Button>
+								<Button
+									type="button"
+									variant="secondary"
+									onClick={async () => {
+										await randomizeCompose();
+									}}
+									className="lg:w-fit"
+								>
+									Random
+								</Button>
+							</div>
+						</div>
+						<pre>
+							<CodeEditor
+								value={compose || ""}
+								language="yaml"
+								readOnly
+								height="50rem"
+							/>
+						</pre>
+					</form>
+				</Form>
 			</DialogContent>
 		</Dialog>
 	);

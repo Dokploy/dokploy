@@ -15,6 +15,7 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
+import { randomizeSpecificationFile } from "./compose";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -72,7 +73,12 @@ export const writeDomainsToCompose = async (
 	if (!domains.length) {
 		return;
 	}
-	const composeConverted = await addDomainToCompose(compose, domains);
+	let composeConverted = await addDomainToCompose(compose, domains);
+
+	if (compose.randomize && composeConverted && compose.prefix) {
+		const result = randomizeSpecificationFile(composeConverted, compose.prefix);
+		composeConverted = result;
+	}
 
 	const path = getComposePath(compose);
 	const composeString = dump(composeConverted, { lineWidth: 1000 });

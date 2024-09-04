@@ -15,7 +15,10 @@ import {
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
+import {
+	randomizeComposeFile,
+	randomizeSpecificationFile,
+} from "@/server/utils/docker/compose";
 import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
@@ -149,7 +152,12 @@ export const composeRouter = createTRPCRouter({
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
 
-			const composeFile = await addDomainToCompose(compose, domains);
+			let composeFile = await addDomainToCompose(compose, domains);
+
+			if (compose.randomize && composeFile && compose.prefix) {
+				const result = randomizeSpecificationFile(composeFile, compose.prefix);
+				composeFile = result;
+			}
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});

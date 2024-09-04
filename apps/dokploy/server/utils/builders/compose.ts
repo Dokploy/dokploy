@@ -109,6 +109,10 @@ const createEnvFile = (compose: ComposeNested) => {
 		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
 	}
 
+	if (compose.randomize) {
+		envContent += `\nCOMPOSE_PREFIX=${compose.prefix}`;
+	}
+
 	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
