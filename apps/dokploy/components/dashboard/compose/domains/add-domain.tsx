@@ -197,7 +197,7 @@ export const AddDomainCompose = ({
 										render={({ field }) => (
 											<FormItem className="w-full">
 												<FormLabel>Service Name</FormLabel>
-												<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+												<div className="flex gap-2">
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
@@ -297,7 +297,7 @@ export const AddDomainCompose = ({
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Host</FormLabel>
-											<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+											<div className="flex gap-2">
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>
