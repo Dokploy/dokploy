@@ -5,30 +5,40 @@ import type {
 	DefinitionsService,
 } from "../types";
 
-export const addPrefixToNetworksRoot = (
+export const addSuffixToNetworksRoot = (
 	networks: { [key: string]: DefinitionsNetwork },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsNetwork } => {
-	return _.mapKeys(networks, (_value, key) => `${key}-${prefix}`);
+	return _.mapKeys(networks, (_value, key) => {
+		if (key === "dokploy-network") {
+			return "dokploy-network";
+		}
+		return `${key}-${suffix}`;
+	});
 };
 
-export const addPrefixToServiceNetworks = (
+export const addSuffixToServiceNetworks = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	return _.mapValues(services, (service) => {
 		if (service.networks) {
 			// 1 Case the most common
 			if (Array.isArray(service.networks)) {
-				service.networks = service.networks.map(
-					(network: string) => `${network}-${prefix}`,
-				);
+				service.networks = service.networks.map((network: string) => {
+					if (network === "dokploy-network") {
+						return "dokploy-network";
+					}
+					return `${network}-${suffix}`;
+				});
 			} else {
 				// 2 Case
-				service.networks = _.mapKeys(
-					service.networks,
-					(_value, key) => `${key}-${prefix}`,
-				);
+				service.networks = _.mapKeys(service.networks, (_value, key) => {
+					if (key === "dokploy-network") {
+						return "dokploy-network";
+					}
+					return `${key}-${suffix}`;
+				});
 
 				// 3 Case
 				service.networks = _.mapValues(service.networks, (value) => {
@@ -37,9 +47,10 @@ export const addPrefixToServiceNetworks = (
 							if (innerKey === "aliases") {
 								return "aliases";
 							}
-							return `${innerKey}-${prefix}`;
+							return `${innerKey}-${suffix}`;
 						});
 					}
+
 					return value;
 				});
 			}
@@ -48,23 +59,23 @@ export const addPrefixToServiceNetworks = (
 	});
 };
 
-export const addPrefixToAllNetworks = (
+export const addSuffixToAllNetworks = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
 	if (updatedComposeData.networks) {
-		updatedComposeData.networks = addPrefixToNetworksRoot(
+		updatedComposeData.networks = addSuffixToNetworksRoot(
 			updatedComposeData.networks,
-			prefix,
+			suffix,
 		);
 	}
 
 	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceNetworks(
+		updatedComposeData.services = addSuffixToServiceNetworks(
 			updatedComposeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

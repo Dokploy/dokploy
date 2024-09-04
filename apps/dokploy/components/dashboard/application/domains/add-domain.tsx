@@ -161,7 +161,7 @@ export const AddDomain = ({
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Host</FormLabel>
-											<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+											<div className="flex gap-2">
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>

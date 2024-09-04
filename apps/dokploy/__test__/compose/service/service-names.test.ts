@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToServiceNames } from "@/server/utils/docker/compose/service";
+import { addSuffixToServiceNames } from "@/server/utils/docker/compose/service";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -26,23 +26,23 @@ networks:
     driver: bridge
 `;
 
-test("Add prefix to service names in compose file", () => {
+test("Add suffix to service names in compose file", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToServiceNames(
+	const updatedComposeData = addSuffixToServiceNames(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	// Verificar que los nombres de los servicios han cambiado correctamente
-	expect(actualComposeData.services).toHaveProperty(`web-${prefix}`);
-	expect(actualComposeData.services).toHaveProperty(`api-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`web-${suffix}`);
+	expect(actualComposeData.services).toHaveProperty(`api-${suffix}`);
 	// Verificar que las claves originales no existen
 	expect(actualComposeData.services).not.toHaveProperty("web");
 	expect(actualComposeData.services).not.toHaveProperty("api");

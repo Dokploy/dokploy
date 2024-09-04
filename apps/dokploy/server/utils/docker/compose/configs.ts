@@ -5,23 +5,23 @@ import type {
 	DefinitionsService,
 } from "../types";
 
-export const addPrefixToConfigsRoot = (
+export const addSuffixToConfigsRoot = (
 	configs: { [key: string]: DefinitionsConfig },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsConfig } => {
 	const newConfigs: { [key: string]: DefinitionsConfig } = {};
 
 	_.forEach(configs, (config, configName) => {
-		const newConfigName = `${configName}-${prefix}`;
+		const newConfigName = `${configName}-${suffix}`;
 		newConfigs[newConfigName] = _.cloneDeep(config);
 	});
 
 	return newConfigs;
 };
 
-export const addPrefixToConfigsInServices = (
+export const addSuffixToConfigsInServices = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	const newServices: { [key: string]: DefinitionsService } = {};
 
@@ -32,12 +32,12 @@ export const addPrefixToConfigsInServices = (
 		if (_.has(newServiceConfig, "configs")) {
 			newServiceConfig.configs = _.map(newServiceConfig.configs, (config) => {
 				if (_.isString(config)) {
-					return `${config}-${prefix}`;
+					return `${config}-${suffix}`;
 				}
 				if (_.isObject(config) && config.source) {
 					return {
 						...config,
-						source: `${config.source}-${prefix}`,
+						source: `${config.source}-${suffix}`,
 					};
 				}
 				return config;
@@ -50,22 +50,22 @@ export const addPrefixToConfigsInServices = (
 	return newServices;
 };
 
-export const addPrefixToAllConfigs = (
+export const addSuffixToAllConfigs = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 	if (composeData?.configs) {
-		updatedComposeData.configs = addPrefixToConfigsRoot(
+		updatedComposeData.configs = addSuffixToConfigsRoot(
 			composeData.configs,
-			prefix,
+			suffix,
 		);
 	}
 
 	if (composeData?.services) {
-		updatedComposeData.services = addPrefixToConfigsInServices(
+		updatedComposeData.services = addSuffixToConfigsInServices(
 			composeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

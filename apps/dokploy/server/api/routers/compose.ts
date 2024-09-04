@@ -15,7 +15,10 @@ import {
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
-import { randomizeComposeFile } from "@/server/utils/docker/compose";
+import {
+	randomizeComposeFile,
+	randomizeSpecificationFile,
+} from "@/server/utils/docker/compose";
 import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
@@ -141,7 +144,7 @@ export const composeRouter = createTRPCRouter({
 	randomizeCompose: protectedProcedure
 		.input(apiRandomizeCompose)
 		.mutation(async ({ input }) => {
-			return await randomizeComposeFile(input.composeId, input.prefix);
+			return await randomizeComposeFile(input.composeId, input.suffix);
 		}),
 	getConvertedCompose: protectedProcedure
 		.input(apiFindCompose)
@@ -150,6 +153,7 @@ export const composeRouter = createTRPCRouter({
 			const domains = await findDomainsByComposeId(input.composeId);
 
 			const composeFile = await addDomainToCompose(compose, domains);
+
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});

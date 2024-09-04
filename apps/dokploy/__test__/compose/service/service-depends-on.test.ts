@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToServiceNames } from "@/server/utils/docker/compose/service";
+import { addSuffixToServiceNames } from "@/server/utils/docker/compose/service";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -32,49 +32,49 @@ networks:
     driver: bridge
 `;
 
-test("Add prefix to service names with depends_on (array) in compose file", () => {
+test("Add suffix to service names with depends_on (array) in compose file", () => {
 	const composeData = load(composeFile4) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToServiceNames(
+	const updatedComposeData = addSuffixToServiceNames(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	// Verificar que la nueva clave del servicio tiene el prefijo y la vieja clave no existe
-	expect(actualComposeData.services).toHaveProperty(`web-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`web-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`web-${suffix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`api-${suffix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que los nombres en depends_on tienen el prefijo
-	expect(actualComposeData.services?.[`web-${prefix}`]?.depends_on).toContain(
-		`db-${prefix}`,
+	expect(actualComposeData.services?.[`web-${suffix}`]?.depends_on).toContain(
+		`db-${suffix}`,
 	);
-	expect(actualComposeData.services?.[`web-${prefix}`]?.depends_on).toContain(
-		`api-${prefix}`,
+	expect(actualComposeData.services?.[`web-${suffix}`]?.depends_on).toContain(
+		`api-${suffix}`,
 	);
 
 	// Verificar que los servicios `db` y `api` también tienen el prefijo
-	expect(actualComposeData.services).toHaveProperty(`db-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`db-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("db");
-	expect(actualComposeData.services?.[`db-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`db-${suffix}`]?.image).toBe(
 		"postgres:latest",
 	);
-	expect(actualComposeData.services).toHaveProperty(`api-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`api-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("api");
-	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`api-${suffix}`]?.image).toBe(
 		"myapi:latest",
 	);
 });
@@ -102,49 +102,49 @@ networks:
     driver: bridge
 `;
 
-test("Add prefix to service names with depends_on (object) in compose file", () => {
+test("Add suffix to service names with depends_on (object) in compose file", () => {
 	const composeData = load(composeFile5) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToServiceNames(
+	const updatedComposeData = addSuffixToServiceNames(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	// Verificar que la nueva clave del servicio tiene el prefijo y la vieja clave no existe
-	expect(actualComposeData.services).toHaveProperty(`web-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`web-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`web-${suffix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`api-${suffix}`]?.image).toBe(
 		"myapi:latest",
 	);
 
 	// Verificar que los nombres en depends_on tienen el prefijo
-	const webDependsOn = actualComposeData.services?.[`web-${prefix}`]
+	const webDependsOn = actualComposeData.services?.[`web-${suffix}`]
 		?.depends_on as Record<string, any>;
-	expect(webDependsOn).toHaveProperty(`db-${prefix}`);
-	expect(webDependsOn).toHaveProperty(`api-${prefix}`);
-	expect(webDependsOn[`db-${prefix}`].condition).toBe("service_healthy");
-	expect(webDependsOn[`api-${prefix}`].condition).toBe("service_started");
+	expect(webDependsOn).toHaveProperty(`db-${suffix}`);
+	expect(webDependsOn).toHaveProperty(`api-${suffix}`);
+	expect(webDependsOn[`db-${suffix}`].condition).toBe("service_healthy");
+	expect(webDependsOn[`api-${suffix}`].condition).toBe("service_started");
 
 	// Verificar que los servicios `db` y `api` también tienen el prefijo
-	expect(actualComposeData.services).toHaveProperty(`db-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`db-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("db");
-	expect(actualComposeData.services?.[`db-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`db-${suffix}`]?.image).toBe(
 		"postgres:latest",
 	);
-	expect(actualComposeData.services).toHaveProperty(`api-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`api-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("api");
-	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`api-${suffix}`]?.image).toBe(
 		"myapi:latest",
 	);
 });
