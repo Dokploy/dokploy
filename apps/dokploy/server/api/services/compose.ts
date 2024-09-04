@@ -19,6 +19,7 @@ import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
+import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -117,7 +118,16 @@ export const loadServices = async (
 		await cloneCompose(compose);
 	}
 
-	const composeData = await loadDockerCompose(compose);
+	let composeData = await loadDockerCompose(compose);
+
+	if (compose.randomize && composeData) {
+		const randomizedCompose = randomizeSpecificationFile(
+			composeData,
+			compose.prefix,
+		);
+		composeData = randomizedCompose;
+	}
+
 	if (!composeData?.services) {
 		throw new TRPCError({
 			code: "NOT_FOUND",

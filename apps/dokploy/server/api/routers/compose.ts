@@ -152,12 +152,8 @@ export const composeRouter = createTRPCRouter({
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
 
-			let composeFile = await addDomainToCompose(compose, domains);
+			const composeFile = await addDomainToCompose(compose, domains);
 
-			if (compose.randomize && composeFile && compose.prefix) {
-				const result = randomizeSpecificationFile(composeFile, compose.prefix);
-				composeFile = result;
-			}
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});

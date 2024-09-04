@@ -94,10 +94,15 @@ export const addDomainToCompose = async (
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
-	const result = await loadDockerCompose(compose);
+	let result = await loadDockerCompose(compose);
 
 	if (!result || domains.length === 0) {
 		return null;
+	}
+
+	if (compose.randomize) {
+		const randomized = randomizeSpecificationFile(result, compose.prefix);
+		result = randomized;
 	}
 
 	for (const domain of domains) {

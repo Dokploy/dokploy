@@ -29,8 +29,11 @@ export const randomizeComposeFile = async (
 
 export const randomizeSpecificationFile = (
 	composeSpec: ComposeSpecification,
-	prefix: string,
+	prefix?: string,
 ) => {
+	if (!prefix) {
+		return composeSpec;
+	}
 	const newComposeFile = addPrefixToAllProperties(composeSpec, prefix);
 	return newComposeFile;
 };
