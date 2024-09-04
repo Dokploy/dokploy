@@ -5,21 +5,21 @@ import type {
 	DefinitionsService,
 } from "../types";
 
-export const addPrefixToNetworksRoot = (
+export const addSuffixToNetworksRoot = (
 	networks: { [key: string]: DefinitionsNetwork },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsNetwork } => {
 	return _.mapKeys(networks, (_value, key) => {
 		if (key === "dokploy-network") {
 			return "dokploy-network";
 		}
-		return `${key}-${prefix}`;
+		return `${key}-${suffix}`;
 	});
 };
 
-export const addPrefixToServiceNetworks = (
+export const addSuffixToServiceNetworks = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	return _.mapValues(services, (service) => {
 		if (service.networks) {
@@ -29,7 +29,7 @@ export const addPrefixToServiceNetworks = (
 					if (network === "dokploy-network") {
 						return "dokploy-network";
 					}
-					return `${network}-${prefix}`;
+					return `${network}-${suffix}`;
 				});
 			} else {
 				// 2 Case
@@ -37,7 +37,7 @@ export const addPrefixToServiceNetworks = (
 					if (key === "dokploy-network") {
 						return "dokploy-network";
 					}
-					return `${key}-${prefix}`;
+					return `${key}-${suffix}`;
 				});
 
 				// 3 Case
@@ -47,7 +47,7 @@ export const addPrefixToServiceNetworks = (
 							if (innerKey === "aliases") {
 								return "aliases";
 							}
-							return `${innerKey}-${prefix}`;
+							return `${innerKey}-${suffix}`;
 						});
 					}
 
@@ -59,23 +59,23 @@ export const addPrefixToServiceNetworks = (
 	});
 };
 
-export const addPrefixToAllNetworks = (
+export const addSuffixToAllNetworks = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
 	if (updatedComposeData.networks) {
-		updatedComposeData.networks = addPrefixToNetworksRoot(
+		updatedComposeData.networks = addSuffixToNetworksRoot(
 			updatedComposeData.networks,
-			prefix,
+			suffix,
 		);
 	}
 
 	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceNetworks(
+		updatedComposeData.services = addSuffixToServiceNetworks(
 			updatedComposeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

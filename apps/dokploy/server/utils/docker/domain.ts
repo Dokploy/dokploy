@@ -10,12 +10,12 @@ import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
 import { cloneRawGitlabRepository } from "../providers/gitlab";
 import { createComposeFileRaw } from "../providers/raw";
+import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { randomizeSpecificationFile } from "./compose";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -76,7 +76,7 @@ export const writeDomainsToCompose = async (
 	let composeConverted = await addDomainToCompose(compose, domains);
 
 	if (compose.randomize && composeConverted) {
-		const result = randomizeSpecificationFile(composeConverted, compose.prefix);
+		const result = randomizeSpecificationFile(composeConverted, compose.suffix);
 		composeConverted = result;
 	}
 
@@ -101,7 +101,7 @@ export const addDomainToCompose = async (
 	}
 
 	if (compose.randomize) {
-		const randomized = randomizeSpecificationFile(result, compose.prefix);
+		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
 

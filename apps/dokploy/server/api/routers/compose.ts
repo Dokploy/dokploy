@@ -144,7 +144,7 @@ export const composeRouter = createTRPCRouter({
 	randomizeCompose: protectedProcedure
 		.input(apiRandomizeCompose)
 		.mutation(async ({ input }) => {
-			return await randomizeComposeFile(input.composeId, input.prefix);
+			return await randomizeComposeFile(input.composeId, input.suffix);
 		}),
 	getConvertedCompose: protectedProcedure
 		.input(apiFindCompose)

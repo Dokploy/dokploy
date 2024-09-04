@@ -11,13 +11,13 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+	Form,
+	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
-	FormControl,
-	FormDescription,
 	FormMessage,
-	Form,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,7 +39,7 @@ interface Props {
 }
 
 const schema = z.object({
-	prefix: z.string(),
+	suffix: z.string(),
 	randomize: z.boolean().optional(),
 });
 
@@ -61,18 +61,18 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			prefix: "",
+			suffix: "",
 			randomize: false,
 		},
 		resolver: zodResolver(schema),
 	});
 
-	const prefix = form.watch("prefix");
+	const suffix = form.watch("suffix");
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				prefix: data?.prefix || "",
+				suffix: data?.suffix || "",
 				randomize: data?.randomize || false,
 			});
 		}
@@ -81,7 +81,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	const onSubmit = async (formData: Schema) => {
 		await updateCompose({
 			composeId,
-			prefix: formData?.prefix || "",
+			suffix: formData?.suffix || "",
 			randomize: formData?.randomize || false,
 		})
 			.then(async (data) => {
@@ -97,7 +97,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	const randomizeCompose = async () => {
 		await mutateAsync({
 			composeId,
-			prefix,
+			suffix,
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
@@ -127,7 +127,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 				</DialogHeader>
 				<div className="text-sm text-muted-foreground flex flex-col gap-2">
 					<span>
-						This will randomize the compose file and will add a prefix to the
+						This will randomize the compose file and will add a suffix to the
 						property to avoid conflicts
 					</span>
 					<ul className="list-disc list-inside">
@@ -163,13 +163,13 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 							<div>
 								<FormField
 									control={form.control}
-									name="prefix"
+									name="suffix"
 									render={({ field }) => (
 										<FormItem className="flex flex-col justify-center max-sm:items-center w-full">
-											<FormLabel>Prefix</FormLabel>
+											<FormLabel>Suffix</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Enter a prefix (Optional, example: prod)"
+													placeholder="Enter a suffix (Optional, example: prod)"
 													{...field}
 												/>
 											</FormControl>

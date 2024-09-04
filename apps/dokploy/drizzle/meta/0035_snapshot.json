@@ -1,5 +1,5 @@
 {
-  "id": "51601bf9-6706-4a79-9029-cbad20ea9e02",
+  "id": "bb060896-7fc0-4bf3-b579-65f118769de0",
   "prevId": "6a7ce86e-f628-4786-ab30-e160dcdb0a39",
   "version": "6",
   "dialect": "postgresql",
@@ -2602,8 +2602,8 @@
           "notNull": true,
           "default": "'./docker-compose.yml'"
         },
-        "prefix": {
-          "name": "prefix",
+        "suffix": {
+          "name": "suffix",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

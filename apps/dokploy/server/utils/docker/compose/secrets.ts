@@ -1,21 +1,21 @@
 import _ from "lodash";
 import type { ComposeSpecification, DefinitionsService } from "../types";
 
-export const addPrefixToSecretsRoot = (
+export const addSuffixToSecretsRoot = (
 	secrets: ComposeSpecification["secrets"],
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification["secrets"] => {
 	const newSecrets: ComposeSpecification["secrets"] = {};
 	_.forEach(secrets, (secretConfig, secretName) => {
-		const newSecretName = `${secretName}-${prefix}`;
+		const newSecretName = `${secretName}-${suffix}`;
 		newSecrets[newSecretName] = _.cloneDeep(secretConfig);
 	});
 	return newSecrets;
 };
 
-export const addPrefixToSecretsInServices = (
+export const addSuffixToSecretsInServices = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	const newServices: { [key: string]: DefinitionsService } = {};
 
@@ -26,12 +26,12 @@ export const addPrefixToSecretsInServices = (
 		if (_.has(newServiceConfig, "secrets")) {
 			newServiceConfig.secrets = _.map(newServiceConfig.secrets, (secret) => {
 				if (_.isString(secret)) {
-					return `${secret}-${prefix}`;
+					return `${secret}-${suffix}`;
 				}
 				if (_.isObject(secret) && secret.source) {
 					return {
 						...secret,
-						source: `${secret.source}-${prefix}`,
+						source: `${secret.source}-${suffix}`,
 					};
 				}
 				return secret;
@@ -44,23 +44,23 @@ export const addPrefixToSecretsInServices = (
 	return newServices;
 };
 
-export const addPrefixToAllSecrets = (
+export const addSuffixToAllSecrets = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
 	if (composeData?.secrets) {
-		updatedComposeData.secrets = addPrefixToSecretsRoot(
+		updatedComposeData.secrets = addSuffixToSecretsRoot(
 			composeData.secrets,
-			prefix,
+			suffix,
 		);
 	}
 
 	if (composeData?.services) {
-		updatedComposeData.services = addPrefixToSecretsInServices(
+		updatedComposeData.services = addSuffixToSecretsInServices(
 			composeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

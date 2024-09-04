@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { buildCompose } from "@/server/utils/builders/compose";
+import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
 import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
@@ -19,7 +20,6 @@ import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -123,7 +123,7 @@ export const loadServices = async (
 	if (compose.randomize && composeData) {
 		const randomizedCompose = randomizeSpecificationFile(
 			composeData,
-			compose.prefix,
+			compose.suffix,
 		);
 		composeData = randomizedCompose;
 	}

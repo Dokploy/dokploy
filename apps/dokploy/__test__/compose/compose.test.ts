@@ -1,4 +1,4 @@
-import { addPrefixToAllProperties } from "@/server/utils/docker/compose";
+import { addSuffixToAllProperties } from "@/server/utils/docker/compose";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -119,11 +119,11 @@ secrets:
     file: ./db_password.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all properties in compose file 1", () => {
+test("Add suffix to all properties in compose file 1", () => {
 	const composeData = load(composeFile1) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile1);
 });
@@ -242,11 +242,11 @@ secrets:
     file: ./db_password.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all properties in compose file 2", () => {
+test("Add suffix to all properties in compose file 2", () => {
 	const composeData = load(composeFile2) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile2);
 });
@@ -365,11 +365,11 @@ secrets:
     file: ./service_secret.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all properties in compose file 3", () => {
+test("Add suffix to all properties in compose file 3", () => {
 	const composeData = load(composeFile3) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile3);
 });
@@ -466,11 +466,11 @@ volumes:
     driver: local
 `) as ComposeSpecification;
 
-test("Add prefix to all properties in Plausible compose file", () => {
+test("Add suffix to all properties in Plausible compose file", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllProperties(composeData, prefix);
+	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile);
 });

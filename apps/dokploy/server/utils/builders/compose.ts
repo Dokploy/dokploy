@@ -110,7 +110,7 @@ const createEnvFile = (compose: ComposeNested) => {
 	}
 
 	if (compose.randomize) {
-		envContent += `\nCOMPOSE_PREFIX=${compose.prefix}`;
+		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
 	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
