@@ -1,17 +1,23 @@
 import type {
-	LocaleOptions,
-	PlaceholdersObject,
 	dateTimeFormatOptions,
+	LocaleOptions,
 	numberFormatOptions,
+	PlaceholdersObject,
 } from "./interface/interface";
 import Locales from "./interface/locales";
 import print from "./utils/print";
+
+// 定义 localesData 的类型，可以是直接的 Locales 对象或返回 Promise 的函数
+type LocalesData = {
+	[lang: string]: Locales | (() => Promise<Locales>);
+};
 
 class InternationalizationKit {
 	private static instance: InternationalizationKit;
 	private currentLocale: string;
 	private fallbackLocales: string[];
-	private localesData: { [lang: string]: Locales };
+	private localesData: LocalesData;
+	private loadedLocales: { [lang: string]: Locales } = {};
 	private numberFormat?: Intl.NumberFormatOptions;
 	private dateTimeFormat?: Intl.DateTimeFormatOptions;
 	private defaultPlaceholders?: PlaceholdersObject;
@@ -23,76 +29,58 @@ class InternationalizationKit {
 		this.numberFormat = options.numberFormat;
 		this.dateTimeFormat = options.dateTimeFormat;
 		this.defaultPlaceholders = options.defaultPlaceholders;
+
+		// 在实例初始化时加载所有语言数据
+		this.initializeLocales();
+	}
+
+	private async initializeLocales() {
+		// 加载默认语言
+		await this.loadLocale(this.currentLocale);
+
+		// 加载所有后备语言
+		for (const fallbackLocale of this.fallbackLocales) {
+			await this.loadLocale(fallbackLocale);
+		}
+
+		print("Locales data loaded successfully", "success");
+	}
+
+	private async loadLocale(locale: string) {
+		const localeData = this.localesData[locale];
+
+		if (!localeData) {
+			print(`Locale "${locale}" not found in localesData`, "error");
+			return;
+		}
+
+		if (typeof localeData === "function") {
+			// 如果是函数，异步加载语言数据
+			if (!this.loadedLocales[locale]) {
+				try {
+					const data = await localeData();
+					this.loadedLocales[locale] = data;
+				} catch (error) {
+					print(
+						`Error loading locale "${locale}": ${error}`,
+						"error"
+					);
+				}
+			}
+		} else {
+			// 如果是对象，直接使用
+			this.loadedLocales[locale] = localeData;
+		}
 	}
 
 	public static getInstance(options: LocaleOptions): InternationalizationKit {
-		try {
-			// 如果默认语言不在 localesData 中，则使用 fallbackLocales 中的第一个语言，如果 fallbackLocales 为空，则抛出错误
-			// this.validateLocale(options);
-
-			if (!InternationalizationKit.instance) {
-				InternationalizationKit.instance = new InternationalizationKit(
-					options
-				);
-
-				print("InternationalizationKit instance created", "success");
-			}
-			return InternationalizationKit.instance;
-		} catch (error) {
-			print(error, "error");
-			throw new Error(
-				"Error in creating InternationalizationKit instance"
-			);
-		}
-	}
-
-	private static validateLocale(options: LocaleOptions) {
-		const { defaultLocale, fallbackLocales, localesData } = options;
-		if (!localesData[defaultLocale]) {
-			print(
-				`Default locale "${defaultLocale}" not found in localesData`,
-				"error"
-			);
-		}
-
-		for (const fallbackLocale of fallbackLocales) {
-			if (!localesData[fallbackLocale]) {
-				print(
-					`Fallback locale "${fallbackLocale}" not found in localesData`,
-					"error"
-				);
-			}
-		}
-	}
-
-	public async loadRemoteLocale(
-		fetchFn: Promise<Response>,
-		locale: string
-	): Promise<void> {
 		if (!InternationalizationKit.instance) {
-			print(
-				"InternationalizationKit instance not created. Please initialize it first.",
-				"error"
+			InternationalizationKit.instance = new InternationalizationKit(
+				options
 			);
+			print("InternationalizationKit instance created", "success");
 		}
-
-		try {
-			const data: any = await fetchFn;
-
-			// Assuming the remote JSON structure matches the expected structure for locale data.
-			// Here you might want to add some logic to validate or process the data as needed.
-			// For example, if the data contains multiple locales, you might want to merge them
-			// with the existing localesData instead of just setting it for the currentLocale.
-
-			// Merging the loaded data into the existing localesData
-			// This is a simplistic approach; you might need more sophisticated merging logic
-			// depending on the structure of your localesData and the incoming data.
-			this.localesData[locale] = data;
-
-			// print(`Remote locale data for ${JSON.stringify(data)} loaded successfully`, 'success');
-		} catch (error) {
-			print(`Error loading remote locale: ${error}`, "error");
-		}
+		return InternationalizationKit.instance;
 	}
 
 	public setLocale(locale: string): void {
@@ -107,7 +95,7 @@ class InternationalizationKit {
 	): string {
 		let replacedText = text;
 
-		if (placeholders && placeholders) {
+		if (placeholders && placeholdersText) {
 			for (const placeholder in placeholdersText) {
 				if (
 					Object.prototype.hasOwnProperty.call(
@@ -138,13 +126,13 @@ class InternationalizationKit {
 		placeholdersText?: { [key: string]: string },
 		placeholders?: PlaceholdersObject
 	): string {
-		const textData = this.localesData[this.currentLocale] as Locales;
+		let text: string | undefined =
+			this.loadedLocales[this.currentLocale]?.[key];
 
-		let text = textData?.[key];
 		if (!text) {
-			// Fallback to fallback locales if text not found in current locale
+			// 如果当前语言未找到，尝试使用后备语言
 			for (const fallbackLang of this.fallbackLocales) {
-				text = this.localesData[fallbackLang]?.[key] as string;
+				text = this.loadedLocales[fallbackLang]?.[key];
 				if (text) break;
 			}
 		}
@@ -154,17 +142,13 @@ class InternationalizationKit {
 			return key;
 		}
 
-		// 如果 placeholders 为空，则使用默认的占位符对象
 		const actualPlaceholders = placeholders || this.defaultPlaceholders;
 
-		// 使用默认占位符替换文本中的占位符
-		text = this.replacePlaceholders(
+		return this.replacePlaceholders(
 			text,
 			placeholdersText,
 			actualPlaceholders
 		);
-
-		return text;
 	}
 
 	// 日期时间格式化接受 Date 对象、时间戳或者日期字符串
@@ -204,4 +188,5 @@ class InternationalizationKit {
 		return new Intl.NumberFormat().format(options.value);
 	}
 }
+
 export default InternationalizationKit;

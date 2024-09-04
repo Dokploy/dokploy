@@ -8,7 +8,7 @@ export interface PlaceholdersObject {
 export interface LocaleOptions {
 	defaultLocale: string;
 	fallbackLocales: string[];
-	localesData: { [lang: string]: Locales };
+	localesData: { [lang: string]: Locales | (() => Promise<Locales>) };
 	numberFormat?: Intl.NumberFormatOptions;
 	dateTimeFormat?: Intl.DateTimeFormatOptions;
 	defaultPlaceholders?: PlaceholdersObject;
