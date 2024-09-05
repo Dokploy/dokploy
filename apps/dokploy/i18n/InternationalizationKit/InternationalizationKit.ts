@@ -1,9 +1,4 @@
-import type {
-	dateTimeFormatOptions,
-	LocaleOptions,
-	numberFormatOptions,
-	PlaceholdersObject,
-} from "./interface/interface";
+import type { LocaleOptions, PlaceholdersObject } from "./interface/interface";
 import Locales from "./interface/locales";
 import print from "./utils/print";
 
@@ -17,8 +12,6 @@ class InternationalizationKit {
 	private fallbackLocales: string[];
 	private localesData: LocalesData;
 	private loadedLocales: { [lang: string]: Locales };
-	private numberFormat?: Intl.NumberFormatOptions;
-	private dateTimeFormat?: Intl.DateTimeFormatOptions;
 	private defaultPlaceholders?: PlaceholdersObject;
 
 	private constructor(options: LocaleOptions) {
@@ -26,8 +19,6 @@ class InternationalizationKit {
 		this.fallbackLocales = options.fallbackLocales;
 		this.localesData = options.localesData;
 		this.loadedLocales = options.localesData as { [lang: string]: Locales };
-		this.numberFormat = options.numberFormat;
-		this.dateTimeFormat = options.dateTimeFormat;
 		this.defaultPlaceholders = options.defaultPlaceholders;
 
 		// this.initializeLocales();
@@ -141,41 +132,6 @@ class InternationalizationKit {
 			placeholdersText,
 			actualPlaceholders
 		);
-	}
-
-	public getDateTimeFormat(options: dateTimeFormatOptions): string {
-		const actualDateTimeFormat =
-			options.dateTimeFormat || this.dateTimeFormat;
-		const actualLocale = options.locale || this.currentLocale;
-
-		if (actualLocale || actualDateTimeFormat) {
-			try {
-				return new Intl.DateTimeFormat(
-					actualLocale,
-					actualDateTimeFormat
-				).format(options.date);
-			} catch (error) {
-				print(`Error in getDateTimeFormat: ${error}`, "error");
-			}
-		}
-		return new Intl.DateTimeFormat().format(options.date);
-	}
-
-	public getNumberFormat(options: numberFormatOptions): string {
-		const actualLocale = options.locale || this.currentLocale;
-		const actualNumberFormat = options.numberFormat || this.numberFormat;
-
-		if (actualLocale || actualNumberFormat) {
-			try {
-				return new Intl.NumberFormat(
-					actualLocale,
-					actualNumberFormat
-				).format(options.value);
-			} catch (error) {
-				print(`Error in getNumberFormat: ${error}`, "error");
-			}
-		}
-		return new Intl.NumberFormat().format(options.value);
 	}
 }
 

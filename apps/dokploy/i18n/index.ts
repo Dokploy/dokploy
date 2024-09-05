@@ -10,15 +10,6 @@ const i18n = InternationalizationKit.getInstance({
 		before: "@@",
 		after: "@@",
 	},
-	numberFormat: {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	},
-	dateTimeFormat: {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	},
 });
 
 export default i18n;

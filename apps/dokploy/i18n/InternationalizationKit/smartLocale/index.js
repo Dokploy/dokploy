@@ -1,8 +1,19 @@
-// @ts-nocheck
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * A Webpack plugin to generate type definitions and import statements
+ * for localization files.
+ */
 class SmartLocalePlugin {
+	/**
+	 * @param {Object} options - Options for the plugin.
+	 * @param {string} options.inputDirectory - The directory containing input localization files.
+	 * @param {string} options.outputDirectory - The directory where type definition files will be written.
+	 * @param {string} options.outputImportDirectory - The directory for import statements.
+	 * @param {string} options.defaultLocale - The default locale to be used.
+	 * @param {string} options.fileType - The file type of localization files (e.g., json).
+	 */
 	constructor({ inputDirectory, outputDirectory, outputImportDirectory, defaultLocale, fileType }) {
 		this.inputDirectory = inputDirectory;
 		this.outputDirectory = outputDirectory;
@@ -13,6 +24,10 @@ class SmartLocalePlugin {
 		this.hasRun = false; // 添加一个标志来确保只运行一次
 	}
 
+	/**
+	 * Applies the plugin to the Webpack compiler.
+	 * @param {import('copy-webpack-plugin').Compiler} compiler - The Webpack compiler instance.
+	 */
 	apply(compiler) {
 		compiler.hooks.emit.tapAsync(this.name, (compilation, callback) => {
 			if (!this.hasRun) {
@@ -27,6 +42,9 @@ class SmartLocalePlugin {
 		});
 	}
 
+	/**
+	 * Generates type definitions for the localization keys.
+	 */
 	generateLocalesTypes() {
 		const localeRawData = fs.readFileSync(`${this.inputDirectory}${this.defaultLocale}.${this.fileType}`, 'utf-8');
 		const localeData = JSON.parse(localeRawData);
@@ -61,8 +79,17 @@ class SmartLocalePlugin {
 		this.generateImportStatements();
 	}
 
+	/**
+	 * Generates import statements for the localization files.
+	 */
 	generateImportStatements() {
+		/**
+		 * @type {string[]}
+		 */
 		const importStatements = [];
+		/**
+		 * @type {string[]}
+		 */
 		const localeMappings = [];
 
 		fs.readdirSync(this.inputDirectory).forEach((file) => {
