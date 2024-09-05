@@ -59,11 +59,29 @@ export function AppearanceForm() {
 		toast.success("Preferences Updated");
 	}
 
+	function setCookie(name: string, value: any, days = 7, path = '/', secure = true) {
+		let expires = '';
+		if (days) {
+			const date = new Date();
+			date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+			expires = "; expires=" + date.toUTCString();
+		}
+
+		let cookie = `${name}=${encodeURIComponent(value)}${expires}; path=${path}`;
+
+		if (secure) {
+			cookie += '; secure';
+		}
+
+		document.cookie = cookie;
+	}
+
 	function onLocaleSwitch(geo: string) {
-		document.cookie = `geo=${geo}; path=/;`;
+		setCookie('geo', geo, 365, '/')
 		const path = pathname?.replace("[locale]", geo)
 
-		window.location.replace(path);
+		history.replaceState(null, '', path);
+		location.reload();
 	}
 
 	return (
@@ -151,28 +169,28 @@ export function AppearanceForm() {
 			</Card>
 			<Card className="bg-transparent">
 				<CardHeader>
-					<CardTitle className="text-xl">国际化</CardTitle>
+					<CardTitle className="text-xl">Internationalization</CardTitle>
 					<CardDescription>
-						选择本地化
+						Choosing Localization
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-2">
 					<div className="space-y-8">
 						<div className="space-y-1 ">
-							<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">语言</label>
-							<p className="text-sm text-muted-foreground">选择语言</p>
+							<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Language</label>
+							<p className="text-sm text-muted-foreground">Language Selection</p>
 							<Select
 								value={locale}
 								onValueChange={(geo) => {
 									onLocaleSwitch(geo)
 								}}>
 								<SelectTrigger>
-									<SelectValue placeholder="选择语言" />
+									<SelectValue placeholder="Language Selection" />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
 										<SelectLabel>
-											选择语言
+											Language Selection
 										</SelectLabel>
 										{storefronts.map((item) => (
 											<SelectItem
