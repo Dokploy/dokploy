@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl'
 
 export function Footer() {
 	const t = useTranslations('HomePage')
+	const linkT = useTranslations('Link')
+
 	return (
 		<footer className="bg-black">
 			<Container>
@@ -26,10 +28,7 @@ export function Footer() {
 							<NavLink href="/#faqs">
 								{t('navigation.faqs')}
 							</NavLink>
-							<NavLink
-								href="https://docs.dokploy.com/get-started/introduction"
-								target="_blank"
-							>
+							<NavLink href={linkT('docs.intro')} target="_blank">
 								{t('navigation.docs')}
 							</NavLink>
 						</div>

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 
 export function CallToAction() {
 	const t = useTranslations('HomePage')
+	const linkT = useTranslations('Link')
 	return (
 		<section
 			id="get-started-today"
@@ -46,7 +47,7 @@ export function CallToAction() {
 					{/* @ts-expect-error */}
 					<Button className="mt-10 rounded-full" asChild>
 						<Link
-							href="https://docs.dokploy.com/get-started/installation"
+							href={linkT('docs.install')}
 							aria-label="Dokploy on GitHub"
 							target="_blank"
 							className="flex flex-row items-center gap-2"

@@ -69,6 +69,7 @@ function MobileNavIcon({ open }: { open: boolean }) {
 
 function MobileNavigation() {
 	const t = useTranslations('HomePage')
+	const linkT = useTranslations('Link')
 	return (
 		<Popover>
 			<Popover.Button
@@ -111,7 +112,7 @@ function MobileNavigation() {
 							{t('navigation.faqs')}
 						</MobileNavLink>
 						<MobileNavLink
-							href="https://docs.dokploy.com/get-started/introduction"
+							href={linkT('docs.intro')}
 							target="_blank"
 						>
 							{t('navigation.docs')}
@@ -125,6 +126,8 @@ function MobileNavigation() {
 
 export function Header() {
 	const t = useTranslations('HomePage')
+	const linkT = useTranslations('Link')
+
 	return (
 		<header className="bg-background py-10">
 			<Container>
@@ -141,10 +144,7 @@ export function Header() {
 							<NavLink href="/#faqs">
 								{t('navigation.faqs')}
 							</NavLink>
-							<NavLink
-								href="https://docs.dokploy.com/get-started/introduction"
-								target="_blank"
-							>
+							<NavLink href={linkT('docs.intro')} target="_blank">
 								{t('navigation.docs')}
 							</NavLink>
 						</div>

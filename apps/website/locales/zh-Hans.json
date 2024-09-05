@@ -83,5 +83,11 @@
 		"title": "糟糕！看起来你迷路了。",
 		"des": "让我们送你",
 		"action": "回家"
+	},
+	"Link": {
+		"docs": {
+			"intro": "https://docs.dokploy.com/cn/docs/core/get-started/introduction",
+			"install": "https://docs.dokploy.com/cn/docs/core/get-started/introduction"
+		}
 	}
 }

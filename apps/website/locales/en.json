@@ -83,5 +83,11 @@
 		"title": "Oops! Looks like you're lost.",
 		"des": "Let's get you back",
 		"action": "home"
+	},
+	"Link": {
+		"docs": {
+			"intro": "https://docs.dokploy.com/get-started/introduction",
+			"install": "https://docs.dokploy.com/en/docs/core/get-started/introduction"
+		}
 	}
 }
