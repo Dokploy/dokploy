@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { buildCompose } from "@/server/utils/builders/compose";
+import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
 import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
@@ -117,7 +118,16 @@ export const loadServices = async (
 		await cloneCompose(compose);
 	}
 
-	const composeData = await loadDockerCompose(compose);
+	let composeData = await loadDockerCompose(compose);
+
+	if (compose.randomize && composeData) {
+		const randomizedCompose = randomizeSpecificationFile(
+			composeData,
+			compose.suffix,
+		);
+		composeData = randomizedCompose;
+	}
+
 	if (!composeData?.services) {
 		throw new TRPCError({
 			code: "NOT_FOUND",

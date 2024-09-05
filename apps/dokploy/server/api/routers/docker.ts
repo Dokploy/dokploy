@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+	containerRestart,
 	getConfig,
 	getContainers,
 	getContainersByAppLabel,
@@ -11,6 +12,16 @@ export const dockerRouter = createTRPCRouter({
 	getContainers: protectedProcedure.query(async () => {
 		return await getContainers();
 	}),
+
+	restartContainer: protectedProcedure
+		.input(
+			z.object({
+				containerId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return await containerRestart(input.containerId);
+		}),
 
 	getConfig: protectedProcedure
 		.input(

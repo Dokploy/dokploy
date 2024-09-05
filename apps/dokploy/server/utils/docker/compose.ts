@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 import { findComposeById } from "@/server/api/services/compose";
 import { dump, load } from "js-yaml";
-import { addPrefixToAllConfigs } from "./compose/configs";
-import { addPrefixToAllNetworks } from "./compose/network";
-import { addPrefixToAllSecrets } from "./compose/secrets";
-import { addPrefixToAllServiceNames } from "./compose/service";
-import { addPrefixToAllVolumes } from "./compose/volume";
+import { addSuffixToAllConfigs } from "./compose/configs";
+import { addSuffixToAllNetworks } from "./compose/network";
+import { addSuffixToAllSecrets } from "./compose/secrets";
+import { addSuffixToAllServiceNames } from "./compose/service";
+import { addSuffixToAllVolumes } from "./compose/volume";
 import type { ComposeSpecification } from "./types";
 
 export const generateRandomHash = (): string => {
@@ -14,32 +14,43 @@ export const generateRandomHash = (): string => {
 
 export const randomizeComposeFile = async (
 	composeId: string,
-	prefix?: string,
+	suffix?: string,
 ) => {
 	const compose = await findComposeById(composeId);
 	const composeFile = compose.composeFile;
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const randomPrefix = prefix || generateRandomHash();
+	const randomSuffix = suffix || generateRandomHash();
 
-	const newComposeFile = addPrefixToAllProperties(composeData, randomPrefix);
+	const newComposeFile = addSuffixToAllProperties(composeData, randomSuffix);
 
 	return dump(newComposeFile);
 };
 
-export const addPrefixToAllProperties = (
+export const randomizeSpecificationFile = (
+	composeSpec: ComposeSpecification,
+	suffix?: string,
+) => {
+	if (!suffix) {
+		return composeSpec;
+	}
+	const newComposeFile = addSuffixToAllProperties(composeSpec, suffix);
+	return newComposeFile;
+};
+
+export const addSuffixToAllProperties = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	let updatedComposeData = { ...composeData };
 
-	updatedComposeData = addPrefixToAllServiceNames(updatedComposeData, prefix);
+	updatedComposeData = addSuffixToAllServiceNames(updatedComposeData, suffix);
 
-	updatedComposeData = addPrefixToAllVolumes(updatedComposeData, prefix);
+	updatedComposeData = addSuffixToAllVolumes(updatedComposeData, suffix);
 
-	updatedComposeData = addPrefixToAllNetworks(updatedComposeData, prefix);
-	updatedComposeData = addPrefixToAllConfigs(updatedComposeData, prefix);
+	updatedComposeData = addSuffixToAllNetworks(updatedComposeData, suffix);
+	updatedComposeData = addSuffixToAllConfigs(updatedComposeData, suffix);
 
-	updatedComposeData = addPrefixToAllSecrets(updatedComposeData, prefix);
+	updatedComposeData = addSuffixToAllSecrets(updatedComposeData, suffix);
 	return updatedComposeData;
 };

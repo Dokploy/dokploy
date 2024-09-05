@@ -1,6 +1,6 @@
 import {
-	addPrefixToAllServiceNames,
-	addPrefixToServiceNames,
+	addSuffixToAllServiceNames,
+	addSuffixToServiceNames,
 } from "@/server/utils/docker/compose/service";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
@@ -70,17 +70,17 @@ networks:
     driver: bridge
 `);
 
-test("Add prefix to all service names in compose file", () => {
+test("Add suffix to all service names in compose file", () => {
 	const composeData = load(composeFileCombinedAllCases) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
 	if (!composeData.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToServiceNames(
+	const updatedComposeData = addSuffixToServiceNames(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
@@ -175,11 +175,11 @@ networks:
     driver: bridge
 `) as ComposeSpecification;
 
-test("Add prefix to all service names in compose file 1", () => {
+test("Add suffix to all service names in compose file 1", () => {
 	const composeData = load(composeFile1) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllServiceNames(composeData, prefix);
+	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile1);
 });
@@ -270,11 +270,11 @@ networks:
     driver: bridge
 `) as ComposeSpecification;
 
-test("Add prefix to all service names in compose file 2", () => {
+test("Add suffix to all service names in compose file 2", () => {
 	const composeData = load(composeFile2) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllServiceNames(composeData, prefix);
+	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile2);
 });
@@ -365,11 +365,11 @@ networks:
     driver: bridge
 `) as ComposeSpecification;
 
-test("Add prefix to all service names in compose file 3", () => {
+test("Add suffix to all service names in compose file 3", () => {
 	const composeData = load(composeFile3) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllServiceNames(composeData, prefix);
+	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFile3);
 });

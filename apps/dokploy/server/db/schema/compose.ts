@@ -64,6 +64,8 @@ export const compose = pgTable("compose", {
 	command: text("command").notNull().default(""),
 	//
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
+	suffix: text("suffix").notNull().default(""),
+	randomize: boolean("randomize").notNull().default(false),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
@@ -157,6 +159,6 @@ export const apiRandomizeCompose = createSchema
 		composeId: true,
 	})
 	.extend({
-		prefix: z.string().optional(),
+		suffix: z.string().optional(),
 		composeId: z.string().min(1),
 	});

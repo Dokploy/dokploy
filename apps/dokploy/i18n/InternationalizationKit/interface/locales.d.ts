@@ -657,6 +657,14 @@ interface Locales {
 	 * Manage your settings
 	 */
 	'NAVIGATION.tabs.settings.description': string;
+	/**
+	 * Requests
+	 */
+	'NAVIGATION.tabs.requests.label': string;
+	/**
+	 * Manage your requests
+	 */
+	'NAVIGATION.tabs.requests.description': string;
 }
 
 export default Locales;

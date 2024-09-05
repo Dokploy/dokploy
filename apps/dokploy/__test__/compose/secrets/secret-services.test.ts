@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToSecretsInServices } from "@/server/utils/docker/compose/secrets";
+import { addSuffixToSecretsInServices } from "@/server/utils/docker/compose/secrets";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -18,22 +18,22 @@ secrets:
     file: ./db_password.txt
 `;
 
-test("Add prefix to secrets in services", () => {
+test("Add suffix to secrets in services", () => {
 	const composeData = load(composeFileSecretsServices) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
 
-	const updatedComposeData = addPrefixToSecretsInServices(
+	const updatedComposeData = addSuffixToSecretsInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	expect(actualComposeData.services?.db?.secrets).toContain(
-		`db_password-${prefix}`,
+		`db_password-${suffix}`,
 	);
 });
 
@@ -51,22 +51,22 @@ secrets:
     file: ./app_secret.txt
 `;
 
-test("Add prefix to secrets in services (Test 1)", () => {
+test("Add suffix to secrets in services (Test 1)", () => {
 	const composeData = load(composeFileSecretsServices1) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
 
-	const updatedComposeData = addPrefixToSecretsInServices(
+	const updatedComposeData = addSuffixToSecretsInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	expect(actualComposeData.services?.app?.secrets).toContain(
-		`app_secret-${prefix}`,
+		`app_secret-${suffix}`,
 	);
 });
 
@@ -90,24 +90,24 @@ secrets:
     file: ./frontend_secret.txt
 `;
 
-test("Add prefix to secrets in services (Test 2)", () => {
+test("Add suffix to secrets in services (Test 2)", () => {
 	const composeData = load(composeFileSecretsServices2) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
 
-	const updatedComposeData = addPrefixToSecretsInServices(
+	const updatedComposeData = addSuffixToSecretsInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	expect(actualComposeData.services?.backend?.secrets).toContain(
-		`backend_secret-${prefix}`,
+		`backend_secret-${suffix}`,
 	);
 	expect(actualComposeData.services?.frontend?.secrets).toContain(
-		`frontend_secret-${prefix}`,
+		`frontend_secret-${suffix}`,
 	);
 });

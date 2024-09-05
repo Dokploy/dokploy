@@ -34,6 +34,7 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"rotating-file-stream": "3.2.3",
 		"@aws-sdk/client-s3": "3.515.0",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
@@ -114,7 +115,7 @@
 		"react": "18.2.0",
 		"react-dom": "18.2.0",
 		"react-hook-form": "^7.49.3",
-		"recharts": "^2.12.3",
+		"recharts": "^2.12.7",
 		"slugify": "^1.6.6",
 		"sonner": "^1.4.0",
 		"superjson": "^2.2.1",
@@ -127,7 +128,9 @@
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
 		"zod": "^3.23.4",
-		"zod-form-data": "^2.0.2"
+		"zod-form-data": "^2.0.2",
+		"@radix-ui/react-primitive": "2.0.0",
+		"@radix-ui/react-use-controllable-state": "1.1.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",

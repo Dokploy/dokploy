@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToServiceNames } from "@/server/utils/docker/compose/service";
+import { addSuffixToServiceNames } from "@/server/utils/docker/compose/service";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -27,33 +27,33 @@ test("Generate random hash with 8 characters", () => {
 	expect(hash.length).toBe(8);
 });
 
-test("Add prefix to service names with container_name in compose file", () => {
+test("Add suffix to service names with container_name in compose file", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToServiceNames(
+	const updatedComposeData = addSuffixToServiceNames(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	// Verificar que el nombre del contenedor ha cambiado correctamente
-	expect(actualComposeData.services?.[`web-${prefix}`]?.container_name).toBe(
-		`web_container-${prefix}`,
+	expect(actualComposeData.services?.[`web-${suffix}`]?.container_name).toBe(
+		`web_container-${suffix}`,
 	);
 	// Verificar que la nueva clave del servicio tiene el prefijo y la vieja clave no existe
-	expect(actualComposeData.services).toHaveProperty(`web-${prefix}`);
+	expect(actualComposeData.services).toHaveProperty(`web-${suffix}`);
 	expect(actualComposeData.services).not.toHaveProperty("web");
 
 	// Verificar que la configuración de la imagen sigue igual
-	expect(actualComposeData.services?.[`web-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`web-${suffix}`]?.image).toBe(
 		"nginx:latest",
 	);
-	expect(actualComposeData.services?.[`api-${prefix}`]?.image).toBe(
+	expect(actualComposeData.services?.[`api-${suffix}`]?.image).toBe(
 		"myapi:latest",
 	);
 });

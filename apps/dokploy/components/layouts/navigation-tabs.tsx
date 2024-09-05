@@ -20,6 +20,7 @@ export type TabState =
 	| "monitoring"
 	| "settings"
 	| "traefik"
+	| "requests"
 	| "docker";
 
 interface Props {
@@ -31,35 +32,43 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 	const router = useRouter();
 	const tabMap: Record<TabState, TabInfo> = {
 		projects: {
-			label: i18n.getText('NAVIGATION.tabs.projects.label'),
-			description: i18n.getText('NAVIGATION.tabs.projects.description'),
+			label: i18n.getText("NAVIGATION.tabs.projects.label"),
+			description: i18n.getText("NAVIGATION.tabs.projects.description"),
 			index: "/dashboard/projects",
 		},
 		monitoring: {
-			label: i18n.getText('NAVIGATION.tabs.monitoring.label'),
-			description: i18n.getText('NAVIGATION.tabs.monitoring.description'),
+			label: i18n.getText("NAVIGATION.tabs.monitoring.label"),
+			description: i18n.getText("NAVIGATION.tabs.monitoring.description"),
 			index: "/dashboard/monitoring",
 		},
 		traefik: {
-			label: i18n.getText('NAVIGATION.tabs.traefik.label'),
-			description: i18n.getText('NAVIGATION.tabs.traefik.description'),
+			label: i18n.getText("NAVIGATION.tabs.traefik.label"),
+			description: i18n.getText("NAVIGATION.tabs.traefik.description"),
 			index: "/dashboard/traefik",
 			isShow: ({ rol, user }) => {
 				return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
 			},
 		},
 		docker: {
-			label: i18n.getText('NAVIGATION.tabs.docker.label'),
-			description: i18n.getText('NAVIGATION.tabs.docker.description'),
+			label: i18n.getText("NAVIGATION.tabs.docker.label"),
+			description: i18n.getText("NAVIGATION.tabs.docker.description"),
 			index: "/dashboard/docker",
 			isShow: ({ rol, user }) => {
 				return Boolean(rol === "admin" || user?.canAccessToDocker);
 			},
 		},
 		settings: {
-			label: i18n.getText('NAVIGATION.tabs.settings.label'),
-			description: i18n.getText('NAVIGATION.tabs.settings.description'),
+			label: i18n.getText("NAVIGATION.tabs.settings.label"),
+			description: i18n.getText("NAVIGATION.tabs.settings.description"),
 			index: "/dashboard/settings/server",
+		},
+		requests: {
+			label: i18n.getText("NAVIGATION.tabs.requests.label"),
+			description: i18n.getText("NAVIGATION.tabs.requests.description"),
+			index: "/dashboard/requests",
+			// isShow: ({ rol, user }) => {
+			// 	return Boolean(rol === "admin" || user?.canAccessToRequests);
+			// },
 		},
 	};
 

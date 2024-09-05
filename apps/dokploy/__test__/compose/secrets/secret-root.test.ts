@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToSecretsRoot } from "@/server/utils/docker/compose/secrets";
+import { addSuffixToSecretsRoot } from "@/server/utils/docker/compose/secrets";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { dump, load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -23,18 +23,18 @@ secrets:
     file: ./db_password.txt
 `;
 
-test("Add prefix to secrets in root property", () => {
+test("Add suffix to secrets in root property", () => {
 	const composeData = load(composeFileSecretsRoot) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {
 		return;
 	}
-	const secrets = addPrefixToSecretsRoot(composeData.secrets, prefix);
+	const secrets = addSuffixToSecretsRoot(composeData.secrets, suffix);
 	expect(secrets).toBeDefined();
 	if (secrets) {
 		for (const secretKey of Object.keys(secrets)) {
-			expect(secretKey).toContain(`-${prefix}`);
+			expect(secretKey).toContain(`-${suffix}`);
 			expect(secrets[secretKey]).toBeDefined();
 		}
 	}
@@ -52,19 +52,19 @@ secrets:
     file: ./api_key.txt
 `;
 
-test("Add prefix to secrets in root property (Test 1)", () => {
+test("Add suffix to secrets in root property (Test 1)", () => {
 	const composeData = load(composeFileSecretsRoot1) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {
 		return;
 	}
-	const secrets = addPrefixToSecretsRoot(composeData.secrets, prefix);
+	const secrets = addSuffixToSecretsRoot(composeData.secrets, suffix);
 	expect(secrets).toBeDefined();
 
 	if (secrets) {
 		for (const secretKey of Object.keys(secrets)) {
-			expect(secretKey).toContain(`-${prefix}`);
+			expect(secretKey).toContain(`-${suffix}`);
 			expect(secrets[secretKey]).toBeDefined();
 		}
 	}
@@ -84,19 +84,19 @@ secrets:
     external: true
 `;
 
-test("Add prefix to secrets in root property (Test 2)", () => {
+test("Add suffix to secrets in root property (Test 2)", () => {
 	const composeData = load(composeFileSecretsRoot2) as ComposeSpecification;
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {
 		return;
 	}
-	const secrets = addPrefixToSecretsRoot(composeData.secrets, prefix);
+	const secrets = addSuffixToSecretsRoot(composeData.secrets, suffix);
 	expect(secrets).toBeDefined();
 
 	if (secrets) {
 		for (const secretKey of Object.keys(secrets)) {
-			expect(secretKey).toContain(`-${prefix}`);
+			expect(secretKey).toContain(`-${suffix}`);
 			expect(secrets[secretKey]).toBeDefined();
 		}
 	}

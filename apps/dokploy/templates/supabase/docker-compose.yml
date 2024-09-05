@@ -15,7 +15,13 @@ services:
       - dokploy-network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/profile', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" ]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/api/profile', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})",
+        ]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -57,11 +63,6 @@ services:
     expose:
       - 8000
       - 8443
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.frontend-app.rule=Host(`${SUPABASE_HOST}`)
-      - traefik.http.routers.frontend-app.entrypoints=web
-      - traefik.http.services.frontend-app.loadbalancer.server.port=${KONG_HTTP_PORT}
     depends_on:
       analytics:
         condition: service_healthy
@@ -93,7 +94,15 @@ services:
       analytics:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health" ]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9999/health",
+        ]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -145,9 +154,6 @@ services:
       # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED="true"
       # GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI="pg-functions://postgres/public/password_verification_attempt"
 
-
-
-
   rest:
     container_name: supabase-rest
     image: postgrest/postgrest:v12.2.0
@@ -183,7 +189,18 @@ services:
       analytics:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "-H", "Authorization: Bearer ${ANON_KEY}", "http://localhost:4000/api/tenants/realtime-dev/health" ]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-sSfL",
+          "--head",
+          "-o",
+          "/dev/null",
+          "-H",
+          "Authorization: Bearer ${ANON_KEY}",
+          "http://localhost:4000/api/tenants/realtime-dev/health",
+        ]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -195,7 +212,7 @@ services:
       DB_USER: supabase_admin
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
-      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
       DB_ENC_KEY: supabaserealtime
       API_JWT_SECRET: ${JWT_SECRET}
       SECRET_KEY_BASE: UpNVntn3cDxHJpq99YMc1T1AQgQpc8kfYTuRgBiYa15BLrx8etQoXz3gZv1/u2oq
@@ -220,7 +237,15 @@ services:
       imgproxy:
         condition: service_started
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status" ]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:5000/status",
+        ]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -249,7 +274,7 @@ services:
     networks:
       - dokploy-network
     healthcheck:
-      test: [ "CMD", "imgproxy", "health" ]
+      test: ["CMD", "imgproxy", "health"]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -311,7 +336,7 @@ services:
     networks:
       - dokploy-network
     healthcheck:
-      test: [ "CMD", "curl", "http://localhost:4000/health" ]
+      test: ["CMD", "curl", "http://localhost:4000/health"]
       timeout: 5s
       interval: 5s
       retries: 10
@@ -410,13 +435,12 @@ services:
     healthcheck:
       test:
         [
-
           "CMD",
           "wget",
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://vector:9001/health"
+          "http://vector:9001/health",
         ]
       timeout: 5s
       interval: 5s
@@ -426,11 +450,10 @@ services:
       - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro
     environment:
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
-    command: [ "--config", "etc/vector/vector.yml" ]
+    command: ["--config", "etc/vector/vector.yml"]
 
 volumes:
   db-config:
-
 
 networks:
   dokploy-network:

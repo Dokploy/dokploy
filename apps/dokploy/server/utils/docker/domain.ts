@@ -10,6 +10,7 @@ import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
 import { cloneRawGitlabRepository } from "../providers/gitlab";
 import { createComposeFileRaw } from "../providers/raw";
+import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -88,10 +89,15 @@ export const addDomainToCompose = async (
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
-	const result = await loadDockerCompose(compose);
+	let result = await loadDockerCompose(compose);
 
 	if (!result || domains.length === 0) {
 		return null;
+	}
+
+	if (compose.randomize) {
+		const randomized = randomizeSpecificationFile(result, compose.suffix);
+		result = randomized;
 	}
 
 	for (const domain of domains) {

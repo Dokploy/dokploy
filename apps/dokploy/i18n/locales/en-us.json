@@ -172,5 +172,7 @@
 	"NAVIGATION.tabs.docker.label": "Docker",
 	"NAVIGATION.tabs.docker.description": "Manage your docker",
 	"NAVIGATION.tabs.settings.label": "Settings",
-	"NAVIGATION.tabs.settings.description": "Manage your settings"
+	"NAVIGATION.tabs.settings.description": "Manage your settings",
+	"NAVIGATION.tabs.requests.label": "Requests",
+	"NAVIGATION.tabs.requests.description": "Manage your requests"
 }

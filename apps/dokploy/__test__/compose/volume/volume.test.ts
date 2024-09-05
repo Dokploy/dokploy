@@ -1,7 +1,7 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
 import {
-	addPrefixToAllVolumes,
-	addPrefixToVolumesInServices,
+	addSuffixToAllVolumes,
+	addSuffixToVolumesInServices,
 } from "@/server/utils/docker/compose/volume";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
@@ -47,12 +47,12 @@ volumes:
     driver: local
 `) as ComposeSpecification;
 
-test("Add prefix to volumes with type: volume in services", () => {
+test("Add suffix to volumes with type: volume in services", () => {
 	const composeData = load(composeFileTypeVolume) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 	const actualComposeData = { ...composeData, ...updatedComposeData };
 
 	expect(actualComposeData).toEqual(expectedComposeFileTypeVolume);
@@ -96,12 +96,12 @@ volumes:
     driver: local
 `) as ComposeSpecification;
 
-test("Add prefix to mixed volumes in services", () => {
+test("Add suffix to mixed volumes in services", () => {
 	const composeData = load(composeFileTypeVolume1) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 	const actualComposeData = { ...composeData, ...updatedComposeData };
 
 	expect(actualComposeData).toEqual(expectedComposeFileTypeVolume1);
@@ -157,12 +157,12 @@ volumes:
       device: /path/to/app/logs
 `) as ComposeSpecification;
 
-test("Add prefix to complex volume configurations in services", () => {
+test("Add suffix to complex volume configurations in services", () => {
 	const composeData = load(composeFileTypeVolume2) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 	const actualComposeData = { ...composeData, ...updatedComposeData };
 
 	expect(actualComposeData).toEqual(expectedComposeFileTypeVolume2);
@@ -276,12 +276,12 @@ volumes:
       device: /path/to/shared/logs
 `) as ComposeSpecification;
 
-test("Add prefix to complex nested volumes configuration in services", () => {
+test("Add suffix to complex nested volumes configuration in services", () => {
 	const composeData = load(composeFileTypeVolume3) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 	const actualComposeData = { ...composeData, ...updatedComposeData };
 
 	expect(actualComposeData).toEqual(expectedComposeFileTypeVolume3);

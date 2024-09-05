@@ -22,6 +22,7 @@ const baseAdmin: Admin = {
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
+	enableLogRotation: false,
 };
 
 beforeEach(() => {
