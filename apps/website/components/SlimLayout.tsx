@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { Footer } from './Footer'
 import { Header } from './Header'
+import { useTranslations } from 'next-intl'
 
-export function SlimLayout({ children }: { children: React.ReactNode }) {
+export function SlimLayout() {
+	const t = useTranslations('404')
 	return (
 		<>
 			<div>
@@ -14,14 +16,13 @@ export function SlimLayout({ children }: { children: React.ReactNode }) {
 						404
 					</h1>
 					<p className="mb-4 text-lg text-muted-foreground">
-						Oops! Looks like you're lost.
+						{t('title')}
 					</p>
 					<p className="mt-4 text-muted-foreground">
-						Let's get you back{' '}
+						{t('des')}{' '}
 						<Link href="/" className="text-primary">
-							home
+							{t('action')}
 						</Link>
-						.
 					</p>
 				</div>
 			</main>

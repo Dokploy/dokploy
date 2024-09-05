@@ -78,5 +78,10 @@
 		"footer": {
 			"copyright": "版权属于 © {year} Dokploy， 保留所有权利"
 		}
+	},
+	"404": {
+		"title": "糟糕！看起来你迷路了。",
+		"des": "让我们送你",
+		"action": "回家"
 	}
 }

@@ -78,5 +78,10 @@
 		"footer": {
 			"copyright": "Copyright © {year} Dokploy. All rights reserved."
 		}
+	},
+	"404": {
+		"title": "Oops! Looks like you're lost.",
+		"des": "Let's get you back",
+		"action": "home"
 	}
 }
