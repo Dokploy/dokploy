@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Link } from '@/i18n/routing'
 import { Footer } from './Footer'
 import { Header } from './Header'
 import { useTranslations } from 'next-intl'

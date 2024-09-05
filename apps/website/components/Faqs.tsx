@@ -5,7 +5,7 @@ const faqs = [
 	[
 		{
 			question: 'faq.q1',
-			answer: 'faq.a2',
+			answer: 'faq.a1',
 		},
 		{
 			question: 'faq.q2',

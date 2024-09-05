@@ -3,7 +3,6 @@
 import { cn } from '@/lib/utils'
 import { Popover, Transition } from '@headlessui/react'
 import { HeartIcon } from 'lucide-react'
-import Link from 'next/link'
 import { Fragment } from 'react'
 import { Container } from './Container'
 import { NavLink } from './NavLink'
@@ -11,6 +10,7 @@ import { trackGAEvent } from './analitycs'
 import { Logo } from './shared/Logo'
 import { Button, buttonVariants } from './ui/button'
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/routing'
 
 function MobileNavLink({
 	href,
@@ -133,7 +133,7 @@ export function Header() {
 			<Container>
 				<nav className="relative z-50 flex justify-between">
 					<div className="flex items-center md:gap-x-12">
-						<Link href="#" aria-label="Home">
+						<Link href="/" aria-label="Home">
 							<Logo className="h-10 w-auto" />
 						</Link>
 						<div className="hidden md:flex md:gap-x-6">
