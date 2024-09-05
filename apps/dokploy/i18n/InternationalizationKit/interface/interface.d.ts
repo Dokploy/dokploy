@@ -1,4 +1,4 @@
-import Locales from "./locales";
+import type Locales from "./locales";
 
 export interface PlaceholdersObject {
 	before: string;
