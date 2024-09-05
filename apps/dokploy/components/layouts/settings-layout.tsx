@@ -119,6 +119,7 @@ import {
 	Bell,
 	Database,
 	GitBranch,
+	KeyIcon,
 	KeyRound,
 	type LucideIcon,
 	Route,

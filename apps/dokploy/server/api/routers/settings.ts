@@ -1,14 +1,17 @@
-import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
 	apiModifyTraefikConfig,
+	apiReadStatsLogs,
 	apiReadTraefikConfig,
 	apiSaveSSHKey,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
 import { initializeTraefik } from "@/server/setup/traefik-setup";
+import { logRotationManager } from "@/server/utils/access-log/handler";
+import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -26,6 +29,7 @@ import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
 	readConfigInPath,
+	readMonitoringConfig,
 	writeConfig,
 	writeTraefikConfigInPath,
 } from "@/server/utils/traefik/application";
@@ -349,5 +353,33 @@ export const settingsRouter = createTRPCRouter({
 		}
 
 		return false;
+	}),
+
+	readStatsLogs: adminProcedure.input(apiReadStatsLogs).query(({ input }) => {
+		const rawConfig = readMonitoringConfig();
+		const parsedConfig = parseRawConfig(
+			rawConfig as string,
+			input.page,
+			input.sort,
+			input.search,
+			input.status,
+		);
+
+		return parsedConfig;
+	}),
+	readStats: adminProcedure.query(() => {
+		const rawConfig = readMonitoringConfig();
+		const processedLogs = processLogs(rawConfig as string);
+		return processedLogs || [];
+	}),
+	activateLogRotate: adminProcedure.mutation(async () => {
+		await logRotationManager.activate();
+		return true;
+	}),
+	deactivateLogRotate: adminProcedure.mutation(async () => {
+		return await logRotationManager.deactivate();
+	}),
+	getLogRotateStatus: adminProcedure.query(async () => {
+		return await logRotationManager.getStatus();
 	}),
 });

@@ -330,6 +330,5 @@ test("Expect don't add suffix to dokploy-network in compose file with multiple s
 
 	const suffix = "testhash";
 	const updatedComposeData = addSuffixToAllNetworks(composeData, suffix);
-	console.log(updatedComposeData);
 	expect(updatedComposeData).toEqual(expectedComposeFile4);
 });

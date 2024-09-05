@@ -34,6 +34,12 @@
 
     --radius: 0.5rem;
     --overlay: rgba(0, 0, 0, 0.2);
+
+    --chart-1: 173 58% 39%;
+    --chart-2: 12 76% 61%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
 
   .dark {
@@ -65,7 +71,13 @@
     --input: 240 4% 10%;
     --ring: 240 4.9% 83.9%;
 
-    --overlay:  rgba(0, 0, 0, 0.5);
+    --overlay: rgba(0, 0, 0, 0.5);
+
+    --chart-1: 220 70% 50%;
+    --chart-5: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-2: 340 75% 55%;
   }
 }
 
@@ -125,7 +137,6 @@
   @apply min-h-[25rem];
 }
 
-
 @keyframes heartbeat {
   0% {
     transform: scale(1);
@@ -157,9 +168,8 @@
     background-color: white;
   }
 
-  .swagger-ui .info{
+  .swagger-ui .info {
     margin: 0px !important;
     padding-top: 1rem !important;
   }
-
 }
