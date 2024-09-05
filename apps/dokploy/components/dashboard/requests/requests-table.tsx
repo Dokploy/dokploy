@@ -245,15 +245,13 @@ export const RequestsTable = () => {
 												colSpan={columns.length}
 												className="h-24 text-center"
 											>
-												{/* {isLoading ? (
+												{statsLogs?.data.length === 0 && (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 														<span className="text-muted-foreground text-lg font-medium">
-															Loading...
+															No results.
 														</span>
 													</div>
-												) : (
-													<>No results.</>
-												)} */}
+												)}
 											</TableCell>
 										</TableRow>
 									)}
