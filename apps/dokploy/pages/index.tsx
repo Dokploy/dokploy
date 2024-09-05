@@ -34,19 +34,19 @@ const loginSchema = z.object({
 	email: z
 		.string()
 		.min(1, {
-			message: i18n.getText('PAGE.login.email.required'),
+			message: i18n.getText("PAGE.login.email.required"),
 		})
 		.email({
-			message: i18n.getText('PAGE.login.email.invalid'),
+			message: i18n.getText("PAGE.login.email.invalid"),
 		}),
 
 	password: z
 		.string()
 		.min(1, {
-			message: i18n.getText('PAGE.login.password.required'),
+			message: i18n.getText("PAGE.login.password.required"),
 		})
 		.min(8, {
-			message: i18n.getText('PAGE.login.password.minLength'),
+			message: i18n.getText("PAGE.login.password.minLength"),
 		}),
 });
 
@@ -89,14 +89,14 @@ export default function Home({ hasAdmin }: Props) {
 				if (data.is2FAEnabled) {
 					setTemp(data);
 				} else {
-					toast.success(i18n.getText('PAGE.login.success'), {
+					toast.success(i18n.getText("PAGE.login.success"), {
 						duration: 2000,
 					});
 					router.push("/dashboard/projects");
 				}
 			})
 			.catch(() => {
-				toast.error(i18n.getText('PAGE.login.failure'), {
+				toast.error(i18n.getText("PAGE.login.failure"), {
 					duration: 2000,
 				});
 			});
@@ -111,12 +111,14 @@ export default function Home({ hasAdmin }: Props) {
 				>
 					<Logo />
 					<span className="font-medium text-sm">
-						{i18n.getText('PAGE.login.Dokploy')}
+						{i18n.getText("PAGE.login.Dokploy")}
 					</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">{i18n.getText('PAGE.login.signIn')}</CardTitle>
+				<CardTitle className="text-2xl font-bold">
+					{i18n.getText("PAGE.login.signIn")}
+				</CardTitle>
 				<CardDescription>
-					{i18n.getText('PAGE.login.enterCredentials')}
+					{i18n.getText("PAGE.login.enterCredentials")}
 				</CardDescription>
 				<Card className="mx-auto w-full max-w-lg bg-transparent ">
 					<div className="p-3.5" />
@@ -133,9 +135,16 @@ export default function Home({ hasAdmin }: Props) {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>{i18n.getText('PAGE.login.emailLabel')}</FormLabel>
+													<FormLabel>
+														{i18n.getText("PAGE.login.emailLabel")}
+													</FormLabel>
 													<FormControl>
-														<Input placeholder={i18n.getText('PAGE.login.emailPlaceholder')} {...field} />
+														<Input
+															placeholder={i18n.getText(
+																"PAGE.login.emailPlaceholder",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -146,11 +155,15 @@ export default function Home({ hasAdmin }: Props) {
 											name="password"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>{i18n.getText('PAGE.login.passwordLabel')}</FormLabel>
+													<FormLabel>
+														{i18n.getText("PAGE.login.passwordLabel")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
-															placeholder={i18n.getText('PAGE.login.passwordPlaceholder')}
+															placeholder={i18n.getText(
+																"PAGE.login.passwordPlaceholder",
+															)}
 															{...field}
 														/>
 													</FormControl>
@@ -164,7 +177,7 @@ export default function Home({ hasAdmin }: Props) {
 											isLoading={isLoading}
 											className="w-full"
 										>
-											{i18n.getText('PAGE.login.loginButton')}
+											{i18n.getText("PAGE.login.loginButton")}
 										</Button>
 									</div>
 								</form>
@@ -175,21 +188,21 @@ export default function Home({ hasAdmin }: Props) {
 
 						{!hasAdmin && (
 							<div className="mt-4 text-center text-sm">
-								{i18n.getText('PAGE.login.dontHaveAccount')}
+								{i18n.getText("PAGE.login.dontHaveAccount")}
 								<Link className="underline" href="/register">
-								{i18n.getText('PAGE.login.signUpLink')}
+									{i18n.getText("PAGE.login.signUpLink")}
 								</Link>
 							</div>
 						)}
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								{i18n.getText('PAGE.login.needHelp')}
+								{i18n.getText("PAGE.login.needHelp")}
 								<Link
 									className="underline"
 									href="https://dokploy.com"
 									target="_blank"
 								>
-									{i18n.getText('PAGE.login.contactUsLink')}
+									{i18n.getText("PAGE.login.contactUsLink")}
 								</Link>
 							</div>
 
@@ -199,7 +212,7 @@ export default function Home({ hasAdmin }: Props) {
 									href="https://docs.dokploy.com/get-started/reset-password"
 									target="_blank"
 								>
-									{i18n.getText('PAGE.login.lostPasswordLink')}
+									{i18n.getText("PAGE.login.lostPasswordLink")}
 								</Link>
 							</div>
 						</div>

@@ -48,10 +48,7 @@ class InternationalizationKit {
 					const data = await localeData();
 					this.loadedLocales[locale] = data;
 				} catch (error) {
-					print(
-						`Error loading locale "${locale}": ${error}`,
-						"error"
-					);
+					print(`Error loading locale "${locale}": ${error}`, "error");
 				}
 			}
 		} else {
@@ -61,9 +58,7 @@ class InternationalizationKit {
 
 	public static getInstance(options: LocaleOptions): InternationalizationKit {
 		if (!InternationalizationKit.instance) {
-			InternationalizationKit.instance = new InternationalizationKit(
-				options
-			);
+			InternationalizationKit.instance = new InternationalizationKit(options);
 			print("InternationalizationKit instance created", "success");
 		}
 		return InternationalizationKit.instance;
@@ -76,27 +71,23 @@ class InternationalizationKit {
 	private replacePlaceholders(
 		text: string,
 		placeholdersText?: { [key: string]: string | null | undefined },
-		placeholders?: PlaceholdersObject
+		placeholders?: PlaceholdersObject,
 	): string {
 		let replacedText = text;
 
 		if (placeholders && placeholdersText) {
 			for (const placeholder in placeholdersText) {
 				if (
-					Object.prototype.hasOwnProperty.call(
-						placeholdersText,
-						placeholder
-					)
+					Object.prototype.hasOwnProperty.call(placeholdersText, placeholder)
 				) {
-					const placeholderValue =
-						placeholdersText[placeholder] || "";
+					const placeholderValue = placeholdersText[placeholder] || "";
 					const placeholderPattern = new RegExp(
 						`${placeholders.before}${placeholder}${placeholders.after}`,
-						"g"
+						"g",
 					);
 					replacedText = replacedText.replace(
 						placeholderPattern,
-						placeholderValue
+						placeholderValue,
 					);
 				}
 			}
@@ -108,7 +99,7 @@ class InternationalizationKit {
 	public getText(
 		key: keyof Locales,
 		placeholdersText?: { [key: string]: string | null | undefined },
-		placeholders?: PlaceholdersObject
+		placeholders?: PlaceholdersObject,
 	): string {
 		let text: string | undefined =
 			this.loadedLocales[this.currentLocale]?.[key];
@@ -127,11 +118,7 @@ class InternationalizationKit {
 
 		const actualPlaceholders = placeholders || this.defaultPlaceholders;
 
-		return this.replacePlaceholders(
-			text,
-			placeholdersText,
-			actualPlaceholders
-		);
+		return this.replacePlaceholders(text, placeholdersText, actualPlaceholders);
 	}
 }
 

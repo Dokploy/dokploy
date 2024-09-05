@@ -1,11 +1,11 @@
 import { AddProject } from "@/components/dashboard/projects/add";
+import i18n from "@/i18n";
 import type { Auth } from "@/server/api/services/auth";
 import type { User } from "@/server/api/services/user";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import i18n from "@/i18n";
 
 interface TabInfo {
 	label: string;

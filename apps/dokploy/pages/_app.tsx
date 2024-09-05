@@ -2,7 +2,7 @@ import "@/styles/globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
 import i18n from "@/i18n";
-import { Storefront, storefronts } from "@/i18n/storefronts";
+import { type Storefront, storefronts } from "@/i18n/storefronts";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { ThemeProvider } from "next-themes";
@@ -29,8 +29,12 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
-	const { query: { locale } } = useRouter()
-	const storefront = storefronts.find((item) => item.id === locale) as Storefront;
+	const {
+		query: { locale },
+	} = useRouter();
+	const storefront = storefronts.find(
+		(item) => item.id === locale,
+	) as Storefront;
 
 	i18n.setLocale(storefront?.attributes.defaultLanguageTag.toLocaleLowerCase());
 	return (

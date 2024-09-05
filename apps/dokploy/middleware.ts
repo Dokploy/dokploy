@@ -11,14 +11,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 			return NextResponse.redirect(
 				new URL(
 					`/${locale}${request.nextUrl.pathname}${request.nextUrl.search}`,
-					request.url
-				)
+					request.url,
+				),
 			);
 		}
 
 		return NextResponse.next();
 	}
-	
+
 	const originHeader = request.headers.get("Origin");
 	const hostHeader = request.headers.get("Host");
 

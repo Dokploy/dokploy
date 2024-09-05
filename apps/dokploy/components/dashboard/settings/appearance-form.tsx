@@ -20,7 +20,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { storefronts } from "@/i18n/storefronts";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/router";
@@ -59,28 +67,34 @@ export function AppearanceForm() {
 		toast.success("Preferences Updated");
 	}
 
-	function setCookie(name: string, value: any, days = 7, path = '/', secure = true) {
-		let expires = '';
+	function setCookie(
+		name: string,
+		value: any,
+		days = 7,
+		path = "/",
+		secure = true,
+	) {
+		let expires = "";
 		if (days) {
 			const date = new Date();
-			date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-			expires = "; expires=" + date.toUTCString();
+			date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+			expires = `; expires=${date.toUTCString()}`;
 		}
 
 		let cookie = `${name}=${encodeURIComponent(value)}${expires}; path=${path}`;
 
 		if (secure) {
-			cookie += '; secure';
+			cookie += "; secure";
 		}
 
 		document.cookie = cookie;
 	}
 
 	function onLocaleSwitch(geo: string) {
-		setCookie('geo', geo, 365, '/')
-		const path = pathname?.replace("[locale]", geo)
+		setCookie("geo", geo, 365, "/");
+		const path = pathname?.replace("[locale]", geo);
 
-		history.replaceState(null, '', path);
+		history.replaceState(null, "", path);
 		location.reload();
 	}
 
@@ -117,7 +131,10 @@ export function AppearanceForm() {
 												<FormItem>
 													<FormLabel className="[&:has([data-state=checked])>div]:border-primary">
 														<FormControl>
-															<RadioGroupItem value="light" className="sr-only" />
+															<RadioGroupItem
+																value="light"
+																className="sr-only"
+															/>
 														</FormControl>
 														<div className="items-center rounded-md border-2 border-muted p-1 hover:bg-accent transition-colors cursor-pointer">
 															<img src="/images/theme-light.svg" alt="light" />
@@ -130,7 +147,10 @@ export function AppearanceForm() {
 												<FormItem>
 													<FormLabel className="[&:has([data-state=checked])>div]:border-primary">
 														<FormControl>
-															<RadioGroupItem value="dark" className="sr-only" />
+															<RadioGroupItem
+																value="dark"
+																className="sr-only"
+															/>
 														</FormControl>
 														<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
 															<img src="/images/theme-dark.svg" alt="dark" />
@@ -149,7 +169,10 @@ export function AppearanceForm() {
 															/>
 														</FormControl>
 														<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
-															<img src="/images/theme-system.svg" alt="system" />
+															<img
+																src="/images/theme-system.svg"
+																alt="system"
+															/>
 														</div>
 														<span className="block w-full p-2 text-center font-normal">
 															System
@@ -170,34 +193,33 @@ export function AppearanceForm() {
 			<Card className="bg-transparent">
 				<CardHeader>
 					<CardTitle className="text-xl">Internationalization</CardTitle>
-					<CardDescription>
-						Choosing Localization
-					</CardDescription>
+					<CardDescription>Choosing Localization</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-2">
 					<div className="space-y-8">
 						<div className="space-y-1 ">
-							<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Language</label>
-							<p className="text-sm text-muted-foreground">Language Selection</p>
+							<label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+								Language
+							</label>
+							<p className="text-sm text-muted-foreground">
+								Language Selection
+							</p>
 							<Select
 								value={locale}
 								onValueChange={(geo) => {
-									onLocaleSwitch(geo)
-								}}>
+									onLocaleSwitch(geo);
+								}}
+							>
 								<SelectTrigger>
 									<SelectValue placeholder="Language Selection" />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
-										<SelectLabel>
-											Language Selection
-										</SelectLabel>
+										<SelectLabel>Language Selection</SelectLabel>
 										{storefronts.map((item) => (
-											<SelectItem
-												key={item.id}
-												value={item.id}
-											>
-												{item?.attributes.name} ({item?.attributes.defaultLanguageTag})
+											<SelectItem key={item.id} value={item.id}>
+												{item?.attributes.name} (
+												{item?.attributes.defaultLanguageTag})
 											</SelectItem>
 										))}
 									</SelectGroup>

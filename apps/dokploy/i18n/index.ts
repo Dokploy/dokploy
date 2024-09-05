@@ -1,5 +1,5 @@
-import { LocaleOptions } from "./InternationalizationKit/interface/interface";
 import InternationalizationKit from "./InternationalizationKit/InternationalizationKit";
+import type { LocaleOptions } from "./InternationalizationKit/interface/interface";
 import locales from "./locales-imports";
 
 const i18n = InternationalizationKit.getInstance({

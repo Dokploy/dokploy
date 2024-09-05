@@ -31,7 +31,7 @@ import { z } from "zod";
 
 const AddProjectSchema = z.object({
 	name: z.string().min(1, {
-		message: i18n.getText('FORM.addProject.nameIsRequired'),
+		message: i18n.getText("FORM.addProject.nameIsRequired"),
 	}),
 	description: z.string().optional(),
 });
@@ -65,12 +65,12 @@ export const AddProject = () => {
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
-				toast.success(i18n.getText('FORM.addProject.projectCreated'));
+				toast.success(i18n.getText("FORM.addProject.projectCreated"));
 				setIsOpen(false);
 				router.push(`/dashboard/project/${data.projectId}`);
 			})
 			.catch(() => {
-				toast.error(i18n.getText('FORM.addProject.errorCreatingProject'));
+				toast.error(i18n.getText("FORM.addProject.errorCreatingProject"));
 			});
 	};
 
@@ -79,13 +79,17 @@ export const AddProject = () => {
 			<DialogTrigger asChild>
 				<Button>
 					<PlusIcon className="h-4 w-4" />
-					{i18n.getText('FORM.addProject.createProject')}
+					{i18n.getText("FORM.addProject.createProject")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>{i18n.getText('FORM.addProject.addAProject')}</DialogTitle>
-					<DialogDescription>{i18n.getText('FORM.addProject.homeOfSomethingBig')}</DialogDescription>
+					<DialogTitle>
+						{i18n.getText("FORM.addProject.addAProject")}
+					</DialogTitle>
+					<DialogDescription>
+						{i18n.getText("FORM.addProject.homeOfSomethingBig")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
@@ -100,9 +104,16 @@ export const AddProject = () => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{i18n.getText('FORM.addProject.name')}</FormLabel>
+										<FormLabel>
+											{i18n.getText("FORM.addProject.name")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder={i18n.getText('FORM.addProject.placeholderName')} {...field} />
+											<Input
+												placeholder={i18n.getText(
+													"FORM.addProject.placeholderName",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -115,10 +126,14 @@ export const AddProject = () => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{i18n.getText('FORM.addProject.description')}</FormLabel>
+									<FormLabel>
+										{i18n.getText("FORM.addProject.description")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder={i18n.getText('FORM.addProject.placeholderDescription')}
+											placeholder={i18n.getText(
+												"FORM.addProject.placeholderDescription",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -136,7 +151,7 @@ export const AddProject = () => {
 							form="hook-form-add-project"
 							type="submit"
 						>
-							{i18n.getText('FORM.addProject.create')}
+							{i18n.getText("FORM.addProject.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

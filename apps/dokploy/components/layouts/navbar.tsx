@@ -39,7 +39,7 @@ export const Navbar = () => {
 					>
 						<Logo />
 						<span className="text-sm font-semibold text-primary max-sm:hidden">
-							{i18n.getText('NAVBAR.Dokploy')}
+							{i18n.getText("NAVBAR.Dokploy")}
 						</span>
 					</Link>
 				</div>
@@ -51,7 +51,9 @@ export const Navbar = () => {
 					href="https://opencollective.com/dokploy"
 					target="_blank"
 				>
-					<span className="text-sm font-semibold">{i18n.getText('NAVBAR.support')} </span>
+					<span className="text-sm font-semibold">
+						{i18n.getText("NAVBAR.support")}{" "}
+					</span>
 					<HeartIcon className="size-4 text-red-500 fill-red-600 animate-heartbeat " />
 				</Link>
 				<ul
@@ -76,7 +78,7 @@ export const Navbar = () => {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56" align="end">
 							<DropdownMenuLabel className="flex flex-col">
-								{i18n.getText('PAGE.account.myAccount')}
+								{i18n.getText("PAGE.account.myAccount")}
 								<span className="text-xs font-normal text-muted-foreground">
 									{data?.email}
 								</span>
@@ -89,7 +91,7 @@ export const Navbar = () => {
 										router.push("/dashboard/projects");
 									}}
 								>
-									{i18n.getText('PAGE.account.projects')}
+									{i18n.getText("PAGE.account.projects")}
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									className="cursor-pointer"
@@ -97,7 +99,7 @@ export const Navbar = () => {
 										router.push("/dashboard/monitoring");
 									}}
 								>
-									{i18n.getText('PAGE.account.monitoring')}
+									{i18n.getText("PAGE.account.monitoring")}
 								</DropdownMenuItem>
 								{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
 									<DropdownMenuItem
@@ -106,7 +108,7 @@ export const Navbar = () => {
 											router.push("/dashboard/traefik");
 										}}
 									>
-										{i18n.getText('PAGE.account.traefik')}
+										{i18n.getText("PAGE.account.traefik")}
 									</DropdownMenuItem>
 								)}
 								{(data?.rol === "admin" || user?.canAccessToDocker) && (
@@ -118,7 +120,7 @@ export const Navbar = () => {
 											});
 										}}
 									>
-										{i18n.getText('PAGE.account.docker')}
+										{i18n.getText("PAGE.account.docker")}
 									</DropdownMenuItem>
 								)}
 
@@ -128,7 +130,7 @@ export const Navbar = () => {
 										router.push("/dashboard/settings/server");
 									}}
 								>
-									{i18n.getText('PAGE.account.settings')}
+									{i18n.getText("PAGE.account.settings")}
 								</DropdownMenuItem>
 							</DropdownMenuGroup>
 							<DropdownMenuSeparator />
@@ -140,7 +142,7 @@ export const Navbar = () => {
 									});
 								}}
 							>
-								{i18n.getText('PAGE.account.logout')}
+								{i18n.getText("PAGE.account.logout")}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>

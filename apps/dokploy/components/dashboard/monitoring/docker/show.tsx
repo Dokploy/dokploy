@@ -190,30 +190,36 @@ export const DockerMonitoring = ({
 		<div>
 			<Card className="bg-background">
 				<CardHeader>
-					<CardTitle className="text-xl">{i18n.getText('PAGE.dockerMonitoring.title')}</CardTitle>
+					<CardTitle className="text-xl">
+						{i18n.getText("PAGE.dockerMonitoring.title")}
+					</CardTitle>
 					<CardDescription>
-						{i18n.getText('PAGE.dockerMonitoring.description')}
+						{i18n.getText("PAGE.dockerMonitoring.description")}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<div className="flex w-full gap-8 ">
 						<div className=" flex-row gap-8 grid md:grid-cols-2 w-full">
 							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">{i18n.getText('PAGE.dockerMonitoring.cpu')}</span>
+								<span className="text-base font-medium">
+									{i18n.getText("PAGE.dockerMonitoring.cpu")}
+								</span>
 								<span className="text-sm text-muted-foreground">
-									{i18n.getText('PAGE.dockerMonitoring.cpuUsed', {
-										value: currentData.cpu.value.toFixed(2)
+									{i18n.getText("PAGE.dockerMonitoring.cpuUsed", {
+										value: currentData.cpu.value.toFixed(2),
 									})}
 								</span>
 								<Progress value={currentData.cpu.value} className="w-[100%]" />
 								<DockerCpuChart acummulativeData={acummulativeData.cpu} />
 							</div>
 							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">{i18n.getText('PAGE.dockerMonitoring.memory')}</span>
+								<span className="text-base font-medium">
+									{i18n.getText("PAGE.dockerMonitoring.memory")}
+								</span>
 								<span className="text-sm text-muted-foreground">
-									{i18n.getText('PAGE.dockerMonitoring.memoryUsed', {
+									{i18n.getText("PAGE.dockerMonitoring.memoryUsed", {
 										used: (currentData.memory.value.used / 1024).toFixed(2),
-										limit: (currentData.memory.value.total / 1024).toFixed(2)
+										limit: (currentData.memory.value.total / 1024).toFixed(2),
 									})}
 								</span>
 								<Progress
@@ -227,11 +233,13 @@ export const DockerMonitoring = ({
 							</div>
 							{appName === "dokploy" && (
 								<div className="flex flex-col gap-2  w-full ">
-									<span className="text-base font-medium">{i18n.getText('PAGE.dockerMonitoring.space')}</span>
+									<span className="text-base font-medium">
+										{i18n.getText("PAGE.dockerMonitoring.space")}
+									</span>
 									<span className="text-sm text-muted-foreground">
-										{i18n.getText('PAGE.dockerMonitoring.spaceUsed', {
+										{i18n.getText("PAGE.dockerMonitoring.spaceUsed", {
 											used: currentData.disk.value.diskUsage,
-											limit: currentData.disk.value.diskTotal
+											limit: currentData.disk.value.diskTotal,
 										})}
 									</span>
 									<Progress
@@ -245,21 +253,25 @@ export const DockerMonitoring = ({
 								</div>
 							)}
 							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">{i18n.getText('PAGE.dockerMonitoring.blockIO')}</span>
+								<span className="text-base font-medium">
+									{i18n.getText("PAGE.dockerMonitoring.blockIO")}
+								</span>
 								<span className="text-sm text-muted-foreground">
-									{i18n.getText('PAGE.dockerMonitoring.blockIOUsed', {
+									{i18n.getText("PAGE.dockerMonitoring.blockIOUsed", {
 										read: currentData.block.value.readMb.toFixed(2),
-										write: currentData.block.value.writeMb.toFixed(3)
+										write: currentData.block.value.writeMb.toFixed(3),
 									})}
 								</span>
 								<DockerBlockChart acummulativeData={acummulativeData.block} />
 							</div>
 							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">{i18n.getText('PAGE.dockerMonitoring.network')}</span>
+								<span className="text-base font-medium">
+									{i18n.getText("PAGE.dockerMonitoring.network")}
+								</span>
 								<span className="text-sm text-muted-foreground">
-									{i18n.getText('PAGE.dockerMonitoring.networkInOut', {
+									{i18n.getText("PAGE.dockerMonitoring.networkInOut", {
 										input: currentData.network.value.inputMb.toFixed(2),
-										output: currentData.network.value.outputMb.toFixed(3)
+										output: currentData.network.value.outputMb.toFixed(3),
 									})}
 								</span>
 								<DockerNetworkChart

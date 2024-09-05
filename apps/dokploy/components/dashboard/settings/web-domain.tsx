@@ -31,8 +31,13 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const addServerDomain = z.object({
-	domain: z.string().min(1, { message: i18n.getText('PAGE.webDomain.domainRequired') }),
-	letsEncryptEmail: z.string().min(1, i18n.getText('PAGE.webDomain.domainRequired')).email(),
+	domain: z
+		.string()
+		.min(1, { message: i18n.getText("PAGE.webDomain.domainRequired") }),
+	letsEncryptEmail: z
+		.string()
+		.min(1, i18n.getText("PAGE.webDomain.domainRequired"))
+		.email(),
 	certificateType: z.enum(["letsencrypt", "none"]),
 });
 
@@ -69,19 +74,21 @@ export const WebDomain = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success(i18n.getText('PAGE.webDomain.toastSuccess'));
+				toast.success(i18n.getText("PAGE.webDomain.toastSuccess"));
 			})
 			.catch(() => {
-				toast.error(i18n.getText('PAGE.webDomain.toastError'));
+				toast.error(i18n.getText("PAGE.webDomain.toastError"));
 			});
 	};
 	return (
 		<div className="w-full">
 			<Card className="bg-transparent">
 				<CardHeader>
-					<CardTitle className="text-xl">{i18n.getText('PAGE.webDomain.title')}</CardTitle>
+					<CardTitle className="text-xl">
+						{i18n.getText("PAGE.webDomain.title")}
+					</CardTitle>
 					<CardDescription>
-					{i18n.getText('PAGE.webDomain.description')}
+						{i18n.getText("PAGE.webDomain.description")}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex w-full flex-col gap-4">
@@ -96,11 +103,15 @@ export const WebDomain = () => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>{i18n.getText('PAGE.webDomain.domainLabel')}</FormLabel>
+											<FormLabel>
+												{i18n.getText("PAGE.webDomain.domainLabel")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													className="w-full"
-													placeholder={i18n.getText('PAGE.webDomain.domainPlaceholder')}
+													placeholder={i18n.getText(
+														"PAGE.webDomain.domainPlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -116,11 +127,15 @@ export const WebDomain = () => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>{i18n.getText('PAGE.webDomain.letsEncryptEmailLabel')}</FormLabel>
+											<FormLabel>
+												{i18n.getText("PAGE.webDomain.letsEncryptEmailLabel")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													className="w-full"
-													placeholder={i18n.getText('PAGE.webDomain.letsEncryptEmailPlaceholder')}
+													placeholder={i18n.getText(
+														"PAGE.webDomain.letsEncryptEmailPlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -135,20 +150,30 @@ export const WebDomain = () => {
 								render={({ field }) => {
 									return (
 										<FormItem className="md:col-span-2">
-											<FormLabel>{i18n.getText('PAGE.webDomain.certificateLabel')}</FormLabel>
+											<FormLabel>
+												{i18n.getText("PAGE.webDomain.certificateLabel")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder={i18n.getText('PAGE.webDomain.certificateSelectPlaceholder')} />
+														<SelectValue
+															placeholder={i18n.getText(
+																"PAGE.webDomain.certificateSelectPlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={"none"}>{i18n.getText('PAGE.webDomain.certificateNone')}</SelectItem>
+													<SelectItem value={"none"}>
+														{i18n.getText("PAGE.webDomain.certificateNone")}
+													</SelectItem>
 													<SelectItem value={"letsencrypt"}>
-													{i18n.getText('PAGE.webDomain.certificateLetsEncrypt')}
+														{i18n.getText(
+															"PAGE.webDomain.certificateLetsEncrypt",
+														)}
 													</SelectItem>
 												</SelectContent>
 											</Select>
@@ -159,7 +184,7 @@ export const WebDomain = () => {
 							/>
 							<div>
 								<Button isLoading={isLoading} type="submit">
-								{i18n.getText('PAGE.webDomain.saveButton')}
+									{i18n.getText("PAGE.webDomain.saveButton")}
 								</Button>
 							</div>
 						</form>
