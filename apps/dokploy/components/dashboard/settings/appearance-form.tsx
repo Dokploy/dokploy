@@ -196,7 +196,9 @@ export function AppearanceForm() {
 											<SelectItem
 												key={item.id}
 												value={item.id}
-											>{item.label}</SelectItem>
+											>
+												{item?.attributes.name} ({item?.attributes.defaultLanguageTag})
+											</SelectItem>
 										))}
 									</SelectGroup>
 								</SelectContent>

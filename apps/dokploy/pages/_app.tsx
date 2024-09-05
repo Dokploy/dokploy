@@ -32,7 +32,7 @@ const MyApp = ({
 	const { query: { locale } } = useRouter()
 	const storefront = storefronts.find((item) => item.id === locale) as Storefront;
 
-	i18n.setLocale(storefront?.defaultLanguageTag.toLocaleLowerCase());
+	i18n.setLocale(storefront?.attributes.defaultLanguageTag.toLocaleLowerCase());
 	return (
 		<>
 			<style jsx global>{`
