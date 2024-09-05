@@ -72,7 +72,7 @@ export const createUser = async (input: typeof apiCreateUser._type) => {
 			.update(users)
 			.set({
 				isRegistered: true,
-				expirationDate: new Date().toISOString(),
+				expirationDate: undefined,
 			})
 			.where(eq(users.token, input.token))
 			.returning()

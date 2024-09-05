@@ -1,0 +1,107 @@
+---
+title: "示例"
+description: "学习如何在 Dokploy 中使用 Docker Compose"
+
+---
+
+## 教程
+
+在本教程中，我们将使用 Docker Compose 创建一个简单的应用程序，并将流量路由到可访问的域名。
+
+### 步骤
+
+1. 创建一个新项目。
+2. 创建一个新服务 `Compose`，并选择 Compose 类型为 `Docker Compose`。
+3. Fork 这个仓库：[Repo](https://github.com/Dokploy/docker-compose-test)。
+4. 选择提供商类型：GitHub 或 Git。
+5. 选择仓库：`Dokploy/docker-compose-test`。
+6. 选择分支：`main`。
+7. 将 Compose 路径设置为 `./docker-compose.yml` 并保存。
+![Docker compose configuration](/assets/images/compose/setup.png)
+
+### 更新你的 `docker-compose.yml`
+
+在现有的 `docker-compose.yml` 文件中添加以下内容：
+
+1. 为每个服务添加网络 `dokploy-network`。
+2. 添加 Traefik 标签，使服务能够通过域名访问。
+
+示例：
+
+让我们修改以下的 Compose 文件，使其能够在 Dokploy 中运行：
+```yaml
+version: "3"
+
+services:
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: prod.Dockerfile
+      args:
+        ENV_VARIABLE: ${ENV_VARIABLE}
+        NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+    restart: always
+    ports:
+      - 3000:3000
+    networks:
+      - my_network
+networks:
+  my_network:
+    external: true
+```
+
+
+更新版本，添加了 dokploy-network 和 Traefik 标签：
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout  type="warn">
+不要为每个服务设置 container_name 属性，否则会导致日志、指标和其他功能出现问题。
+</Callout>
+{/* :::danger
+不要为每个服务设置 container_name 属性，否则会导致日志、指标和其他功能出现问题。
+
+::: */}
+
+```yaml
+version: "3"
+
+services:
+  next-app:
+    build:
+      context: ./next-app
+      dockerfile: prod.Dockerfile
+      args:
+        ENV_VARIABLE: ${ENV_VARIABLE}
+        NEXT_PUBLIC_ENV_VARIABLE: ${NEXT_PUBLIC_ENV_VARIABLE}
+    restart: always
+    ports:
+      - 3000
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.<unique-name>.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.<unique-name>.entrypoints=websecure"
+      - "traefik.http.routers.<unique-name>.tls.certResolver=letsencrypt"
+      - "traefik.http.services.<unique-name>.loadbalancer.server.port=3000"
+networks:
+  dokploy-network:
+    external: true
+```
+
+确保将 A 记录指向您希望用于服务的域名。
+
+<ImageZoom  src="/assets/images/compose/domain.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+通过点击 "deploy" 部署应用程序，等待部署完成。然后给 Traefik 大约 10 秒的时间来生成证书。之后，您就可以通过设置的域名访问应用程序。
+
+<ImageZoom  src="/assets/images/compose/application.png" width={800} height={630} alt='home og image' className="rounded-lg" />
+
+**提示**:
+
+1. 为每个路由器设置唯一名称：`traefik.http.routers.<unique-name>` 
+2. 为每个服务设置唯一名称：`traefik.http.services.<unique-name>`
+3. 确保网络已连接到 `dokploy-network`
+4. 将入口点设置为 websecure，并将证书解析器设置为 letsencrypt，以生成证书。
+

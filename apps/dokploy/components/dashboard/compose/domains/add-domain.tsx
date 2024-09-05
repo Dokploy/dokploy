@@ -166,7 +166,13 @@ export const AddDomainCompose = ({
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<div className="flex flex-col gap-4">
+					<AlertBlock type="info">
+						Deploy is required to apply changes after creating or updating a
+						domain.
+					</AlertBlock>
+					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				</div>
 
 				<Form {...form}>
 					<form
@@ -191,7 +197,7 @@ export const AddDomainCompose = ({
 										render={({ field }) => (
 											<FormItem className="w-full">
 												<FormLabel>Service Name</FormLabel>
-												<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+												<div className="flex gap-2">
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
@@ -291,7 +297,7 @@ export const AddDomainCompose = ({
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Host</FormLabel>
-											<div className="flex max-lg:flex-wrap sm:flex-row gap-2">
+											<div className="flex gap-2">
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>

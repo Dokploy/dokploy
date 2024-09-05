@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { DockerMonitoring } from "../../monitoring/docker/show";
 
 interface Props {
@@ -42,9 +44,15 @@ export const ShowMonitoringCompose = ({
 		string | undefined
 	>();
 
+	const [containerId, setContainerId] = useState<string | undefined>();
+
+	const { mutateAsync: restart, isLoading } =
+		api.docker.restartContainer.useMutation();
+
 	useEffect(() => {
 		if (data && data?.length > 0) {
 			setContainerAppName(data[0]?.name);
+			setContainerId(data[0]?.containerId);
 		}
 	}, [data]);
 
@@ -57,24 +65,48 @@ export const ShowMonitoringCompose = ({
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<Label>Select a container to watch the monitoring</Label>
-					<Select onValueChange={setContainerAppName} value={containerAppName}>
-						<SelectTrigger>
-							<SelectValue placeholder="Select a container" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectGroup>
-								{data?.map((container) => (
-									<SelectItem
-										key={container.containerId}
-										value={container.name}
-									>
-										{container.name} ({container.containerId}) {container.state}
-									</SelectItem>
-								))}
-								<SelectLabel>Containers ({data?.length})</SelectLabel>
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+					<div className="flex flex-row gap-4">
+						<Select
+							onValueChange={(value) => {
+								setContainerAppName(value);
+								setContainerId(
+									data?.find((container) => container.name === value)
+										?.containerId,
+								);
+							}}
+							value={containerAppName}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder="Select a container" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{data?.map((container) => (
+										<SelectItem
+											key={container.containerId}
+											value={container.name}
+										>
+											{container.name} ({container.containerId}){" "}
+											{container.state}
+										</SelectItem>
+									))}
+									<SelectLabel>Containers ({data?.length})</SelectLabel>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+						<Button
+							isLoading={isLoading}
+							onClick={async () => {
+								if (!containerId) return;
+								toast.success(`Restarting container ${containerAppName}`);
+								await restart({ containerId }).then(() => {
+									toast.success("Container restarted");
+								});
+							}}
+						>
+							Restart
+						</Button>
+					</div>
 					<DockerMonitoring
 						appName={containerAppName || ""}
 						appType={appType}

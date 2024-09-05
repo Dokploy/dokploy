@@ -305,6 +305,10 @@ export const settingsRouter = createTRPCRouter({
 					"mongo",
 					"mariadb",
 					"sshRouter",
+					"gitProvider",
+					"bitbucket",
+					"github",
+					"gitlab",
 				],
 			});
 
@@ -326,9 +330,9 @@ export const settingsRouter = createTRPCRouter({
 	}),
 
 	writeTraefikEnv: adminProcedure
-		.input(z.string())
+		.input(z.object({ env: z.string() }))
 		.mutation(async ({ input }) => {
-			const envs = prepareEnvironmentVariables(input);
+			const envs = prepareEnvironmentVariables(input.env);
 			await initializeTraefik({
 				env: envs,
 			});

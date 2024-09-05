@@ -80,19 +80,6 @@ export default function RootLayout({
 		>
 			<GoogleAnalytics />
 			<body className="flex h-full flex-col">{children}</body>
-			<a
-				className="fixed bottom-0 right-0 m-4"
-				href="https://www.producthunt.com/posts/dokploy?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-dokploy"
-				target="_blank"
-				rel="noreferrer"
-			>
-				<img
-					src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=454418&theme=light"
-					alt="Dokploy - Open&#0045;source&#0032;alternative&#0032;to&#0032;Heroku&#0044;&#0032;Vercel&#0044;&#0032;and&#0032;Netlify&#0046; | Product Hunt"
-					width="250"
-					height="54"
-				/>
-			</a>
 		</html>
 	);
 }

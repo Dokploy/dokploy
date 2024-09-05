@@ -1,5 +1,6 @@
+import { createGithub } from "@/server/api/services/github";
 import { db } from "@/server/db";
-import { admins } from "@/server/db/schema";
+import { github } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
@@ -17,10 +18,12 @@ export default async function handler(
 ) {
 	const { code, state, installation_id, setup_action }: Query =
 		req.query as Query;
+
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
 	}
-	const [action, authId] = state?.split(":");
+	const [action, value] = state?.split(":");
+	// Value could be the authId or the githubProviderId
 
 	if (action === "gh_init") {
 		const octokit = new Octokit({});
@@ -31,27 +34,25 @@ export default async function handler(
 			},
 		);
 
-		const result = await db
-			.update(admins)
-			.set({
-				githubAppId: data.id,
-				githubAppName: data.html_url,
-				githubClientId: data.client_id,
-				githubClientSecret: data.client_secret,
-				githubWebhookSecret: data.webhook_secret,
-				githubPrivateKey: data.pem,
-			})
-			.where(eq(admins.authId, authId as string))
-			.returning();
+		await createGithub({
+			name: data.name,
+			githubAppName: data.html_url,
+			githubAppId: data.id,
+			githubClientId: data.client_id,
+			githubClientSecret: data.client_secret,
+			githubWebhookSecret: data.webhook_secret,
+			githubPrivateKey: data.pem,
+			authId: value as string,
+		});
 	} else if (action === "gh_setup") {
 		await db
-			.update(admins)
+			.update(github)
 			.set({
 				githubInstallationId: installation_id,
 			})
-			.where(eq(admins.authId, authId as string))
+			.where(eq(github.githubId, value as string))
 			.returning();
 	}
 
-	res.redirect(307, "/dashboard/settings/server");
+	res.redirect(307, "/dashboard/settings/git-providers");
 }

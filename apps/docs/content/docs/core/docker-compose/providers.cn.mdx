@@ -1,0 +1,40 @@
+---
+title: "提供商"
+description: "了解如何在 Dokploy 中使用 Docker Compose。"
+---
+
+Dokploy 提供几种部署方法，使得无论您是使用 GitHub、任何 Git 提供商、原始方法还是自动部署，流程都更加简化。
+
+- GitHub
+- Git（任何 Git 提供商）
+- 原始方法
+
+## GitHub
+
+通过 GitHub 部署非常简单：
+
+1. 在 `/dashboard/settings/server` 中配置您的 GitHub 存储库。
+2. 在创建应用程序时，Dokploy 会自动检索可用的存储库和分支。
+
+## Git
+
+对于来自任何 Git 存储库的部署，无论是公共的还是私有的，您可以使用 SSH 或 HTTPS：
+
+1. 输入存储库 URL。
+2. 指定您希望部署的分支。
+
+### 私有存储库
+
+对于私有存储库，请使用 SSH 进行身份验证。我们提供一个锁定图标以生成 SSH 密钥。
+
+<ImageZoom src="/assets/dokploy-ssh-compose.png" width={800} height={630} className="rounded-lg"/>
+
+然后，您可以复制 SSH 密钥并将其粘贴到您账户的设置中。
+
+<ImageZoom src="/assets/private-repository.png" width={800} height={630} className="rounded-lg"/>
+
+这使您能够从私有存储库中拉取代码，这种方法几乎适用于所有提供商。
+
+## 原始方法
+
+您可以直接在代码编辑器中指定 Docker Compose 文件并触发部署。

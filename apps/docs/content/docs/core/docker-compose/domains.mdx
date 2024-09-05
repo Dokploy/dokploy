@@ -10,12 +10,20 @@ Key Steps:
 1. Add the service to the `dokploy-network`.
 2. Use Traefik labels to configure routing.
 
+import { Callout } from "fumadocs-ui/components/callout";
+
+<Callout title="Attention" type="info">
+  Since v0.7.0 Dokploy support domains natively. This means that you can
+  configure your domain directly in the Dokploy UI, without doing the rest of
+  the steps.
+</Callout>
+
 Example Scenario
 
 Let's consider an application with three components: a frontend, a backend, and a database. We'll start with a basic Docker Compose file and then enhance it with domain configuration.
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   frontend:
@@ -60,7 +68,7 @@ volumes:
 First, we'll add the dokploy-network to our services:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   frontend:
@@ -90,28 +98,8 @@ Step 2: Configuring Traefik Labels
 
 Now, let's add Traefik labels to route domains to our services. We'll focus on the frontend and backend services:
 
-{/* It is necessary to add these labels:
-
-1. `traefik.enable=true`
-This label tells Traefik that this service should be routed by Traefik.
-2. `traefik.http.routers.<UNIQUE-RULE>.rule=Host('your-domain.dokploy.com')`
-This label tells Traefik that the domain to be used is `your-domain.dokploy.com`
-3. `traefik.http.routers.<UNIQUE-RULE>.entrypoints=web`
-This label tells Traefik that the service should be accessible via the `http` protocol.
-4. `traefik.http.services.<UNIQUE-RULE>.loadbalancer.server.port=3000`
-This label tells Traefik that the port to be used is `3000`
-
-Note: For loadbalancer.server.port, ensure you assign the port that your service is using. It's important to note that you do not need to expose the port like this:
-
-Nota: en el loadbalancer.server.port asegurate de asignar el puerto que tu servicio esta utilizando, y alcaramos no es necesario que expongas el puerto de esta manera
-
-'3000:3000' esto es incorrecto, unicamente debes de asignar el puerto que tu servicio esta utilizando, en este caso `3000`
-
-asegurate de crear los registros `A` que apunten a tu dominio, esto hazlo desde tu DNS provider. */}
-
-
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   frontend:
@@ -165,21 +153,18 @@ networks:
 
 Understanding Traefik Labels
 
-
-1. `traefik.enable=true`   Enables Traefik routing for the service.
+1. `traefik.enable=true` Enables Traefik routing for the service.
 2. `traefik.http.routers.<UNIQUE-RULE>.rule=Host('your-domain.dokploy.com')` Specifies the domain for the service
-3. `traefik.http.routers.<UNIQUE-RULE>.entrypoints=web`  Sets the service to be accessible via HTTP.
+3. `traefik.http.routers.<UNIQUE-RULE>.entrypoints=web` Sets the service to be accessible via HTTP.
 4. `traefik.http.services.<UNIQUE-RULE>.loadbalancer.server.port=3000` Specifies the port your service is using internally.
 
-**Note**: Replace `<UNIQUE-RULE>` with a unique identifier for each service (e.g., frontend-app, backend-app, etc.). 
-
+**Note**: Replace `<UNIQUE-RULE>` with a unique identifier for each service (e.g., frontend-app, backend-app, etc.).
 
 ## Important Considerations
 
 1. **Port Exposure**: Use `expose` instead of `ports` to expose ports to the host machine. This ensures that the ports are not exposed to the host machine.
 2. **DNS Configuration**: Ensure you create `A` records pointing to your domain in your DNS Provider Settings.
-3. **HTTPS**: For HTTPS, you can use Let's Encrypt or other SSL/TLS certificates. 
-
+3. **HTTPS**: For HTTPS, you can use Let's Encrypt or other SSL/TLS certificates.
 
 ## Deployment
 

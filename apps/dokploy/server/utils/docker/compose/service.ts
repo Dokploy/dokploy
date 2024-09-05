@@ -12,28 +12,28 @@ type DependsOnObject = NonNullable<
 		: never
 >;
 
-export const addPrefixToServiceNames = (
+export const addSuffixToServiceNames = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	const newServices: { [key: string]: DefinitionsService } = {};
 
 	for (const [serviceName, serviceConfig] of Object.entries(services)) {
-		const newServiceName = `${serviceName}-${prefix}`;
+		const newServiceName = `${serviceName}-${suffix}`;
 		const newServiceConfig = _.cloneDeep(serviceConfig);
 
 		// Reemplazar nombres de servicios en depends_on
 		if (newServiceConfig.depends_on) {
 			if (Array.isArray(newServiceConfig.depends_on)) {
 				newServiceConfig.depends_on = newServiceConfig.depends_on.map(
-					(dep) => `${dep}-${prefix}`,
+					(dep) => `${dep}-${suffix}`,
 				);
 			} else {
 				const newDependsOn: DependsOnObject = {};
 				for (const [depName, depConfig] of Object.entries(
 					newServiceConfig.depends_on,
 				)) {
-					newDependsOn[`${depName}-${prefix}`] = depConfig;
+					newDependsOn[`${depName}-${suffix}`] = depConfig;
 				}
 				newServiceConfig.depends_on = newDependsOn;
 			}
@@ -41,29 +41,29 @@ export const addPrefixToServiceNames = (
 
 		// Reemplazar nombre en container_name
 		if (newServiceConfig.container_name) {
-			newServiceConfig.container_name = `${newServiceConfig.container_name}-${prefix}`;
+			newServiceConfig.container_name = `${newServiceConfig.container_name}-${suffix}`;
 		}
 
 		// Reemplazar nombres de servicios en links
 		if (newServiceConfig.links) {
 			newServiceConfig.links = newServiceConfig.links.map(
-				(link) => `${link}-${prefix}`,
+				(link) => `${link}-${suffix}`,
 			);
 		}
 
 		// Reemplazar nombres de servicios en extends
 		if (newServiceConfig.extends) {
 			if (typeof newServiceConfig.extends === "string") {
-				newServiceConfig.extends = `${newServiceConfig.extends}-${prefix}`;
+				newServiceConfig.extends = `${newServiceConfig.extends}-${suffix}`;
 			} else {
-				newServiceConfig.extends.service = `${newServiceConfig.extends.service}-${prefix}`;
+				newServiceConfig.extends.service = `${newServiceConfig.extends.service}-${suffix}`;
 			}
 		}
 
 		// Reemplazar nombres de servicios en volumes_from
 		if (newServiceConfig.volumes_from) {
 			newServiceConfig.volumes_from = newServiceConfig.volumes_from.map(
-				(vol) => `${vol}-${prefix}`,
+				(vol) => `${vol}-${suffix}`,
 			);
 		}
 
@@ -73,16 +73,16 @@ export const addPrefixToServiceNames = (
 	return newServices;
 };
 
-export const addPrefixToAllServiceNames = (
+export const addSuffixToAllServiceNames = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
 	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToServiceNames(
+		updatedComposeData.services = addSuffixToServiceNames(
 			updatedComposeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

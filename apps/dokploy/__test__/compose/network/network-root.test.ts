@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToNetworksRoot } from "@/server/utils/docker/compose/network";
+import { addSuffixToNetworksRoot } from "@/server/utils/docker/compose/network";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -35,19 +35,19 @@ test("Generate random hash with 8 characters", () => {
 	expect(hash.length).toBe(8);
 });
 
-test("Add prefix to networks root property", () => {
+test("Add suffix to networks root property", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	expect(networks).toBeDefined();
 	for (const volumeKey of Object.keys(networks)) {
-		expect(volumeKey).toContain(`-${prefix}`);
+		expect(volumeKey).toContain(`-${suffix}`);
 	}
 });
 
@@ -79,19 +79,19 @@ networks:
     internal: true
 `;
 
-test("Add prefix to advanced networks root property (2 TRY)", () => {
+test("Add suffix to advanced networks root property (2 TRY)", () => {
 	const composeData = load(composeFile2) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	expect(networks).toBeDefined();
 	for (const networkKey of Object.keys(networks)) {
-		expect(networkKey).toContain(`-${prefix}`);
+		expect(networkKey).toContain(`-${suffix}`);
 	}
 });
 
@@ -120,19 +120,19 @@ networks:
     external: true
 `;
 
-test("Add prefix to networks with external properties", () => {
+test("Add suffix to networks with external properties", () => {
 	const composeData = load(composeFile3) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	expect(networks).toBeDefined();
 	for (const networkKey of Object.keys(networks)) {
-		expect(networkKey).toContain(`-${prefix}`);
+		expect(networkKey).toContain(`-${suffix}`);
 	}
 });
 
@@ -160,19 +160,19 @@ networks:
     external: true
 `;
 
-test("Add prefix to networks with IPAM configurations", () => {
+test("Add suffix to networks with IPAM configurations", () => {
 	const composeData = load(composeFile4) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	expect(networks).toBeDefined();
 	for (const networkKey of Object.keys(networks)) {
-		expect(networkKey).toContain(`-${prefix}`);
+		expect(networkKey).toContain(`-${suffix}`);
 	}
 });
 
@@ -201,19 +201,19 @@ networks:
     external: true
 `;
 
-test("Add prefix to networks with custom options", () => {
+test("Add suffix to networks with custom options", () => {
 	const composeData = load(composeFile5) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	expect(networks).toBeDefined();
 	for (const networkKey of Object.keys(networks)) {
-		expect(networkKey).toContain(`-${prefix}`);
+		expect(networkKey).toContain(`-${suffix}`);
 	}
 });
 
@@ -240,7 +240,7 @@ networks:
     external: true
 `;
 
-// Expected compose file with static prefix `testhash`
+// Expected compose file with static suffix `testhash`
 const expectedComposeFile6 = `
 version: "3.8"
 
@@ -264,18 +264,70 @@ networks:
     external: true
 `;
 
-test("Add prefix to networks with static prefix", () => {
+test("Add suffix to networks with static suffix", () => {
 	const composeData = load(composeFile6) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
 	if (!composeData?.networks) {
 		return;
 	}
-	const networks = addPrefixToNetworksRoot(composeData.networks, prefix);
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
 	const expectedComposeData = load(
 		expectedComposeFile6,
 	) as ComposeSpecification;
 	expect(networks).toStrictEqual(expectedComposeData.networks);
+});
+
+const composeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+`;
+
+const expectedComposeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1200
+
+  backend:
+    driver: bridge
+    attachable: true
+
+  external_network:
+    external: true
+    name: dokploy-network
+`;
+test("It shoudn't add suffix to dokploy-network", () => {
+	const composeData = load(composeFile7) as ComposeSpecification;
+
+	const suffix = generateRandomHash();
+
+	if (!composeData?.networks) {
+		return;
+	}
+	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
+
+	expect(networks).toBeDefined();
+	for (const networkKey of Object.keys(networks)) {
+		expect(networkKey).toContain("dokploy-network");
+	}
 });

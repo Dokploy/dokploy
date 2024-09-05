@@ -9,11 +9,13 @@ import {
 	apiFindMonitoringStats,
 	apiFindOneApplication,
 	apiReloadApplication,
+	apiSaveBitbucketProvider,
 	apiSaveBuildType,
 	apiSaveDockerProvider,
 	apiSaveEnvironmentVariables,
 	apiSaveGitProvider,
 	apiSaveGithubProvider,
+	apiSaveGitlabProvider,
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema/application";
@@ -193,6 +195,7 @@ export const applicationRouter = createTRPCRouter({
 				dockerfile: input.dockerfile,
 				publishDirectory: input.publishDirectory,
 				dockerContextPath: input.dockerContextPath,
+				dockerBuildStage: input.dockerBuildStage,
 			});
 
 			return true;
@@ -207,6 +210,39 @@ export const applicationRouter = createTRPCRouter({
 				owner: input.owner,
 				buildPath: input.buildPath,
 				applicationStatus: "idle",
+				githubId: input.githubId,
+			});
+
+			return true;
+		}),
+	saveGitlabProvider: protectedProcedure
+		.input(apiSaveGitlabProvider)
+		.mutation(async ({ input }) => {
+			await updateApplication(input.applicationId, {
+				gitlabRepository: input.gitlabRepository,
+				gitlabOwner: input.gitlabOwner,
+				gitlabBranch: input.gitlabBranch,
+				gitlabBuildPath: input.gitlabBuildPath,
+				sourceType: "gitlab",
+				applicationStatus: "idle",
+				gitlabId: input.gitlabId,
+				gitlabProjectId: input.gitlabProjectId,
+				gitlabPathNamespace: input.gitlabPathNamespace,
+			});
+
+			return true;
+		}),
+	saveBitbucketProvider: protectedProcedure
+		.input(apiSaveBitbucketProvider)
+		.mutation(async ({ input }) => {
+			await updateApplication(input.applicationId, {
+				bitbucketRepository: input.bitbucketRepository,
+				bitbucketOwner: input.bitbucketOwner,
+				bitbucketBranch: input.bitbucketBranch,
+				bitbucketBuildPath: input.bitbucketBuildPath,
+				sourceType: "bitbucket",
+				applicationStatus: "idle",
+				bitbucketId: input.bitbucketId,
 			});
 
 			return true;

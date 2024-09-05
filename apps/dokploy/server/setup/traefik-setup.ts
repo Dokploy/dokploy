@@ -20,7 +20,7 @@ export const initializeTraefik = async ({
 	enableDashboard = false,
 	env,
 }: TraefikOptions = {}) => {
-	const imageName = "traefik:v2.5";
+	const imageName = "traefik:v3.1.2";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
 		Name: containerName,
@@ -55,6 +55,9 @@ export const initializeTraefik = async ({
 			Replicated: {
 				Replicas: 1,
 			},
+		},
+		Labels: {
+			"traefik.enable": "true",
 		},
 		EndpointSpec: {
 			Ports: [
@@ -171,6 +174,10 @@ export const createDefaultTraefikConfig = () => {
 						},
 					}
 				: {
+						swarm: {
+							exposedByDefault: false,
+							watch: false,
+						},
 						docker: {
 							exposedByDefault: false,
 						},

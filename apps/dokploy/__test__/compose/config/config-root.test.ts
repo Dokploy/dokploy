@@ -1,5 +1,5 @@
 import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToConfigsRoot } from "@/server/utils/docker/compose/configs";
+import { addSuffixToConfigsRoot } from "@/server/utils/docker/compose/configs";
 import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
@@ -23,19 +23,19 @@ configs:
     file: ./web-config.yml
 `;
 
-test("Add prefix to configs in root property", () => {
+test("Add suffix to configs in root property", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.configs) {
 		return;
 	}
-	const configs = addPrefixToConfigsRoot(composeData.configs, prefix);
+	const configs = addSuffixToConfigsRoot(composeData.configs, suffix);
 
 	expect(configs).toBeDefined();
 	for (const configKey of Object.keys(configs)) {
-		expect(configKey).toContain(`-${prefix}`);
+		expect(configKey).toContain(`-${suffix}`);
 		expect(configs[configKey]).toBeDefined();
 	}
 });
@@ -59,23 +59,23 @@ configs:
     file: ./another-config.yml
 `;
 
-test("Add prefix to multiple configs in root property", () => {
+test("Add suffix to multiple configs in root property", () => {
 	const composeData = load(composeFileMultipleConfigs) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.configs) {
 		return;
 	}
-	const configs = addPrefixToConfigsRoot(composeData.configs, prefix);
+	const configs = addSuffixToConfigsRoot(composeData.configs, suffix);
 
 	expect(configs).toBeDefined();
 	for (const configKey of Object.keys(configs)) {
-		expect(configKey).toContain(`-${prefix}`);
+		expect(configKey).toContain(`-${suffix}`);
 		expect(configs[configKey]).toBeDefined();
 	}
-	expect(configs).toHaveProperty(`web-config-${prefix}`);
-	expect(configs).toHaveProperty(`another-config-${prefix}`);
+	expect(configs).toHaveProperty(`web-config-${suffix}`);
+	expect(configs).toHaveProperty(`another-config-${suffix}`);
 });
 
 const composeFileDifferentProperties = `
@@ -92,25 +92,25 @@ configs:
     external: true
 `;
 
-test("Add prefix to configs with different properties in root property", () => {
+test("Add suffix to configs with different properties in root property", () => {
 	const composeData = load(
 		composeFileDifferentProperties,
 	) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.configs) {
 		return;
 	}
-	const configs = addPrefixToConfigsRoot(composeData.configs, prefix);
+	const configs = addSuffixToConfigsRoot(composeData.configs, suffix);
 
 	expect(configs).toBeDefined();
 	for (const configKey of Object.keys(configs)) {
-		expect(configKey).toContain(`-${prefix}`);
+		expect(configKey).toContain(`-${suffix}`);
 		expect(configs[configKey]).toBeDefined();
 	}
-	expect(configs).toHaveProperty(`web-config-${prefix}`);
-	expect(configs).toHaveProperty(`special-config-${prefix}`);
+	expect(configs).toHaveProperty(`web-config-${suffix}`);
+	expect(configs).toHaveProperty(`special-config-${suffix}`);
 });
 
 const composeFileConfigRoot = `
@@ -162,15 +162,15 @@ configs:
     file: ./db-config.yml
 `) as ComposeSpecification;
 
-test("Add prefix to configs in root property", () => {
+test("Add suffix to configs in root property", () => {
 	const composeData = load(composeFileConfigRoot) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
 	if (!composeData?.configs) {
 		return;
 	}
-	const configs = addPrefixToConfigsRoot(composeData.configs, prefix);
+	const configs = addSuffixToConfigsRoot(composeData.configs, suffix);
 	const updatedComposeData = { ...composeData, configs };
 
 	// Verificar que el resultado coincide con el archivo esperado

@@ -1,5 +1,5 @@
 {
-  "id": "1db6392e-e3bf-424b-bbcd-0e687b2a3ff5",
+  "id": "4b757666-9e18-454e-9cfa-762d03bf378f",
   "prevId": "ce8a8861-2970-4889-ac2e-3cfe60d12736",
   "version": "6",
   "dialect": "postgresql",
@@ -136,6 +136,68 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": false
+        },
+        "gitlabProjectId": {
+          "name": "gitlabProjectId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabRepository": {
+          "name": "gitlabRepository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabOwner": {
+          "name": "gitlabOwner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabBranch": {
+          "name": "gitlabBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabBuildPath": {
+          "name": "gitlabBuildPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
+        },
+        "gitlabPathNamespace": {
+          "name": "gitlabPathNamespace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketRepository": {
+          "name": "bitbucketRepository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketOwner": {
+          "name": "bitbucketOwner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketBranch": {
+          "name": "bitbucketBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketBuildPath": {
+          "name": "bitbucketBuildPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
         },
         "username": {
           "name": "username",
@@ -291,6 +353,24 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "githubId": {
+          "name": "githubId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabId": {
+          "name": "gitlabId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketId": {
+          "name": "bitbucketId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -332,6 +412,45 @@
             "projectId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "application_githubId_github_githubId_fk": {
+          "name": "application_githubId_github_githubId_fk",
+          "tableFrom": "application",
+          "tableTo": "github",
+          "columnsFrom": [
+            "githubId"
+          ],
+          "columnsTo": [
+            "githubId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_gitlabId_gitlab_gitlabId_fk": {
+          "name": "application_gitlabId_gitlab_gitlabId_fk",
+          "tableFrom": "application",
+          "tableTo": "gitlab",
+          "columnsFrom": [
+            "gitlabId"
+          ],
+          "columnsTo": [
+            "gitlabId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_bitbucketId_bitbucket_bitbucketId_fk": {
+          "name": "application_bitbucketId_bitbucket_bitbucketId_fk",
+          "tableFrom": "application",
+          "tableTo": "bitbucket",
+          "columnsFrom": [
+            "bitbucketId"
+          ],
+          "columnsTo": [
+            "bitbucketId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -572,6 +691,13 @@
           "notNull": true,
           "default": false
         },
+        "canAccessToGitProviders": {
+          "name": "canAccessToGitProviders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "canAccessToTraefikFiles": {
           "name": "canAccessToTraefikFiles",
           "type": "boolean",
@@ -648,18 +774,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "githubAppId": {
-          "name": "githubAppId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "githubAppName": {
-          "name": "githubAppName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "serverIp": {
           "name": "serverIp",
           "type": "text",
@@ -680,36 +794,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "githubClientId": {
-          "name": "githubClientId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "githubClientSecret": {
-          "name": "githubClientSecret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "githubInstallationId": {
-          "name": "githubInstallationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "githubPrivateKey": {
-          "name": "githubPrivateKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "githubWebhookSecret": {
-          "name": "githubWebhookSecret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "letsEncryptEmail": {
           "name": "letsEncryptEmail",
           "type": "text",
@@ -724,13 +808,6 @@
         },
         "enableDockerCleanup": {
           "name": "enableDockerCleanup",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "enableLogRotation": {
-          "name": "enableLogRotation",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -2439,6 +2516,54 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gitlabProjectId": {
+          "name": "gitlabProjectId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabRepository": {
+          "name": "gitlabRepository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabOwner": {
+          "name": "gitlabOwner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabBranch": {
+          "name": "gitlabBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabPathNamespace": {
+          "name": "gitlabPathNamespace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketRepository": {
+          "name": "bitbucketRepository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketOwner": {
+          "name": "bitbucketOwner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketBranch": {
+          "name": "bitbucketBranch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "customGitUrl": {
           "name": "customGitUrl",
           "type": "text",
@@ -2490,6 +2615,24 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "githubId": {
+          "name": "githubId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitlabId": {
+          "name": "gitlabId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketId": {
+          "name": "bitbucketId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2518,6 +2661,45 @@
             "projectId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "compose_githubId_github_githubId_fk": {
+          "name": "compose_githubId_github_githubId_fk",
+          "tableFrom": "compose",
+          "tableTo": "github",
+          "columnsFrom": [
+            "githubId"
+          ],
+          "columnsTo": [
+            "githubId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_gitlabId_gitlab_gitlabId_fk": {
+          "name": "compose_gitlabId_gitlab_gitlabId_fk",
+          "tableFrom": "compose",
+          "tableTo": "gitlab",
+          "columnsFrom": [
+            "gitlabId"
+          ],
+          "columnsTo": [
+            "gitlabId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_bitbucketId_bitbucket_bitbucketId_fk": {
+          "name": "compose_bitbucketId_bitbucket_bitbucketId_fk",
+          "tableFrom": "compose",
+          "tableTo": "bitbucket",
+          "columnsFrom": [
+            "bitbucketId"
+          ],
+          "columnsTo": [
+            "bitbucketId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -2926,6 +3108,272 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "public.git_provider": {
+      "name": "git_provider",
+      "schema": "",
+      "columns": {
+        "gitProviderId": {
+          "name": "gitProviderId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "providerType": {
+          "name": "providerType",
+          "type": "gitProviderType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'github'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authId": {
+          "name": "authId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "git_provider_authId_auth_id_fk": {
+          "name": "git_provider_authId_auth_id_fk",
+          "tableFrom": "git_provider",
+          "tableTo": "auth",
+          "columnsFrom": [
+            "authId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.bitbucket": {
+      "name": "bitbucket",
+      "schema": "",
+      "columns": {
+        "bitbucketId": {
+          "name": "bitbucketId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "bitbucketUsername": {
+          "name": "bitbucketUsername",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "appPassword": {
+          "name": "appPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitbucketWorkspaceName": {
+          "name": "bitbucketWorkspaceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitProviderId": {
+          "name": "gitProviderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bitbucket_gitProviderId_git_provider_gitProviderId_fk": {
+          "name": "bitbucket_gitProviderId_git_provider_gitProviderId_fk",
+          "tableFrom": "bitbucket",
+          "tableTo": "git_provider",
+          "columnsFrom": [
+            "gitProviderId"
+          ],
+          "columnsTo": [
+            "gitProviderId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.github": {
+      "name": "github",
+      "schema": "",
+      "columns": {
+        "githubId": {
+          "name": "githubId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "githubAppName": {
+          "name": "githubAppName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubAppId": {
+          "name": "githubAppId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubClientId": {
+          "name": "githubClientId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubClientSecret": {
+          "name": "githubClientSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubInstallationId": {
+          "name": "githubInstallationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubPrivateKey": {
+          "name": "githubPrivateKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "githubWebhookSecret": {
+          "name": "githubWebhookSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitProviderId": {
+          "name": "gitProviderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "github_gitProviderId_git_provider_gitProviderId_fk": {
+          "name": "github_gitProviderId_git_provider_gitProviderId_fk",
+          "tableFrom": "github",
+          "tableTo": "git_provider",
+          "columnsFrom": [
+            "gitProviderId"
+          ],
+          "columnsTo": [
+            "gitProviderId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.gitlab": {
+      "name": "gitlab",
+      "schema": "",
+      "columns": {
+        "gitlabId": {
+          "name": "gitlabId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redirect_uri": {
+          "name": "redirect_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "group_name": {
+          "name": "group_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gitProviderId": {
+          "name": "gitProviderId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gitlab_gitProviderId_git_provider_gitProviderId_fk": {
+          "name": "gitlab_gitProviderId_git_provider_gitProviderId_fk",
+          "tableFrom": "gitlab",
+          "tableTo": "git_provider",
+          "columnsFrom": [
+            "gitProviderId"
+          ],
+          "columnsTo": [
+            "gitProviderId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -2947,6 +3395,8 @@
         "docker",
         "git",
         "github",
+        "gitlab",
+        "bitbucket",
         "drop"
       ]
     },
@@ -3047,6 +3497,8 @@
       "values": [
         "git",
         "github",
+        "gitlab",
+        "bitbucket",
         "raw"
       ]
     },
@@ -3066,6 +3518,15 @@
         "telegram",
         "discord",
         "email"
+      ]
+    },
+    "public.gitProviderType": {
+      "name": "gitProviderType",
+      "schema": "public",
+      "values": [
+        "github",
+        "gitlab",
+        "bitbucket"
       ]
     }
   },

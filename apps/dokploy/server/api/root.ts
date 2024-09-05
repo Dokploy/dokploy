@@ -3,6 +3,7 @@ import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
+import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
 import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
@@ -10,6 +11,9 @@ import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
+import { gitProviderRouter } from "./routers/git-provider";
+import { githubRouter } from "./routers/github";
+import { gitlabRouter } from "./routers/gitlab";
 import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
@@ -60,6 +64,10 @@ export const appRouter = createTRPCRouter({
 	notification: notificationRouter,
 	sshKey: sshRouter,
 	license: licenseRouter,
+	gitProvider: gitProviderRouter,
+	bitbucket: bitbucketRouter,
+	gitlab: gitlabRouter,
+	github: githubRouter,
 });
 
 // export type definition of API
