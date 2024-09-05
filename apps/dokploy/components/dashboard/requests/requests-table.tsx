@@ -49,6 +49,8 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DataTableFacetedFilter } from "./status-request-filter";
+import copy from "copy-to-clipboard";
+import { toast } from "sonner";
 
 export const priorities = [
 	{
@@ -318,7 +320,13 @@ export const RequestsTable = () => {
 												{key === "RequestAddr" ? (
 													<div className="flex items-center gap-2 bg-muted p-1 rounded">
 														<span>{value}</span>
-														<Copy className="h-4 w-4 text-muted-foreground cursor-pointer" />
+														<Copy
+															onClick={() => {
+																copy(value);
+																toast.success("Copied to clipboard");
+															}}
+															className="h-4 w-4 text-muted-foreground cursor-pointer"
+														/>
 													</div>
 												) : (
 													formatValue(key, value)
@@ -331,7 +339,26 @@ export const RequestsTable = () => {
 						</div>
 					</ScrollArea>
 					<div className="mt-4 pt-4 border-t">
-						<Button variant="outline" className="w-full gap-2">
+						<Button
+							variant="outline"
+							className="w-full gap-2"
+							onClick={() => {
+								const logs = JSON.stringify(selectedRow, null, 2);
+								const element = document.createElement("a");
+								element.setAttribute(
+									"href",
+									`data:text/plain;charset=utf-8,${encodeURIComponent(logs)}`,
+								);
+								element.setAttribute("download", "logs.json");
+
+								element.style.display = "none";
+								document.body.appendChild(element);
+
+								element.click();
+
+								document.body.removeChild(element);
+							}}
+						>
 							<Download className="h-4 w-4" />
 							Download as JSON
 						</Button>
