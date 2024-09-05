@@ -1,5 +1,4 @@
-import { api, type RouterOutputs } from "@/utils/api";
-import * as React from "react";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -7,7 +6,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { type RouterOutputs, api } from "@/utils/api";
+import * as React from "react";
 import { toast } from "sonner";
 import { RequestDistributionChart } from "./request-distribution-chart";
 import { RequestsTable } from "./requests-table";

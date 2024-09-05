@@ -1,8 +1,8 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
 import { config } from "dotenv";
-import { validateLemonSqueezyLicense } from "./utils";
+import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { validateLemonSqueezyLicense } from "./utils";
 
 config();
 

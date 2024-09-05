@@ -1,3 +1,9 @@
+import {
+	type ChartConfig,
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
 import { api } from "@/utils/api";
 import {
 	Area,
@@ -7,12 +13,6 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import {
-	type ChartConfig,
-	ChartContainer,
-	ChartTooltip,
-	ChartTooltipContent,
-} from "@/components/ui/chart";
 
 const chartConfig = {
 	views: {

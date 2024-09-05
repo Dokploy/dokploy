@@ -10,6 +10,8 @@ import {
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
 import { initializeTraefik } from "@/server/setup/traefik-setup";
+import { logRotationManager } from "@/server/utils/access-log/handler";
+import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -51,8 +53,6 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
-import { logRotationManager } from "@/server/utils/access-log/handler";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {

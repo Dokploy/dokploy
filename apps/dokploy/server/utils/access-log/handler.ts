@@ -1,7 +1,7 @@
-import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
-import { createStream, type RotatingFileStream } from "rotating-file-stream";
-import { execAsync } from "../process/execAsync";
 import { findAdmin, updateAdmin } from "@/server/api/services/admin";
+import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
+import { type RotatingFileStream, createStream } from "rotating-file-stream";
+import { execAsync } from "../process/execAsync";
 
 class LogRotationManager {
 	private static instance: LogRotationManager;

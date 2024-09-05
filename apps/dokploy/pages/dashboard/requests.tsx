@@ -1,9 +1,9 @@
+import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { validateRequest } from "@/server/auth/auth";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import * as React from "react";
-import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 
 export default function Requests() {
 	return <ShowRequests />;

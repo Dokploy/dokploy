@@ -1,24 +1,13 @@
-import { api } from "@/utils/api";
-import {
-	type SortingState,
-	type PaginationState,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getSortedRowModel,
-	useReactTable,
-	type ColumnFiltersState,
-	type VisibilityState,
-	flexRender,
-} from "@tanstack/react-table";
-import { useMemo, useState } from "react";
-import type { LogEntry } from "./show-requests";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Sheet,
 	SheetContent,
@@ -34,23 +23,34 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { columns, getStatusColor } from "./columns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { api } from "@/utils/api";
 import {
+	type ColumnFiltersState,
+	type PaginationState,
+	type SortingState,
+	type VisibilityState,
+	flexRender,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getSortedRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
+import copy from "copy-to-clipboard";
+import {
+	CheckCircle2Icon,
 	ChevronDown,
 	Copy,
 	Download,
-	InfoIcon,
-	CheckCircle2Icon,
-	TrendingUpIcon,
 	Globe,
+	InfoIcon,
 	Server,
+	TrendingUpIcon,
 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { DataTableFacetedFilter } from "./status-request-filter";
-import copy from "copy-to-clipboard";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { columns, getStatusColor } from "./columns";
+import type { LogEntry } from "./show-requests";
+import { DataTableFacetedFilter } from "./status-request-filter";
 
 export const priorities = [
 	{
