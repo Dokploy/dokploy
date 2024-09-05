@@ -1,5 +1,5 @@
 import type { LocaleOptions, PlaceholdersObject } from "./interface/interface";
-import Locales from "./interface/locales";
+import type Locales from "./interface/locales";
 import print from "./utils/print";
 
 type LocalesData = {
