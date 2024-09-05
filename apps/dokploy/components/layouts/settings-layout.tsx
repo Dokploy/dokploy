@@ -83,12 +83,6 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Bell,
 										href: "/dashboard/settings/notifications",
 									},
-									{
-										title: "License",
-										label: "",
-										icon: KeyIcon,
-										href: "/dashboard/settings/license",
-									},
 								]
 							: []),
 						...(user?.canAccessToSSHKeys
