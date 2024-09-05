@@ -1,15 +1,17 @@
-import Link from "next/link";
+import Link from 'next/link'
 
-import { Container } from "./Container";
-import { NavLink } from "./NavLink";
-import { Logo } from "./shared/Logo";
+import { Container } from './Container'
+import { NavLink } from './NavLink'
+import { Logo } from './shared/Logo'
+import { useTranslations } from 'next-intl'
 
 export function Footer() {
+	const t = useTranslations('HomePage')
 	return (
 		<footer className="bg-black">
 			<Container>
 				<div className="py-16">
-					<div className="flex flex-col gap-2 items-center">
+					<div className="flex flex-col items-center gap-2">
 						<Logo className="mx-auto h-10 w-auto" />
 						<span className="text-center text-sm font-medium text-primary">
 							Dokploy
@@ -17,14 +19,18 @@ export function Footer() {
 					</div>
 
 					<nav className="mt-10 text-sm" aria-label="quick links">
-						<div className="-my-1 flex justify-center gap-6 flex-wrap">
-							<NavLink href="/#features">Features</NavLink>
-							<NavLink href="/#faqs">Faqs</NavLink>
+						<div className="-my-1 flex flex-wrap justify-center gap-6">
+							<NavLink href="/#features">
+								{t('navigation.features')}
+							</NavLink>
+							<NavLink href="/#faqs">
+								{t('navigation.faqs')}
+							</NavLink>
 							<NavLink
 								href="https://docs.dokploy.com/get-started/introduction"
 								target="_blank"
 							>
-								Docs
+								{t('navigation.docs')}
 							</NavLink>
 						</div>
 					</nav>
@@ -57,11 +63,12 @@ export function Footer() {
 						</Link>
 					</div>
 					<p className="mt-6 text-sm text-muted-foreground sm:mt-0">
-						Copyright &copy; {new Date().getFullYear()} Dokploy. All rights
-						reserved.
+						{t('footer.copyright', {
+							year: new Date().getFullYear(),
+						})}
 					</p>
 				</div>
 			</Container>
 		</footer>
-	);
+	)
 }

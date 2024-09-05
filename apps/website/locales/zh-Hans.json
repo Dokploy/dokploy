@@ -1,0 +1,82 @@
+{
+	"HomePage": {
+		"navigation": {
+			"features": "特性",
+			"faqs": "FAQ",
+			"docs": "文档",
+			"support": "赞助",
+			"discord": "Discord"
+		},
+		"hero": {
+			"deploy": "部署在",
+			"anywhere": "任何设施之上",
+			"with": "",
+			"des": "以前所未有的简洁和高效提供一站式项目、数据的管理以及系统监控。",
+			"featuredIn": "发布于"
+		},
+		"primaryFeatures": {
+			"title": "全面掌控您的基础设施",
+			"des": "Dokploy 不仅简化您的项目部署和数据管理流程，同时还提供完备的数据备份，一切只在弹指间。",
+			"projects": "项目",
+			"projectsDes": "您所有的项目和所需的一切信息都将归集一处。",
+			"applications": "应用和数据库",
+			"applicationsDes": "Dokploy 通过集中管理您的应用和数据库来提升安全性和效率，并大大简化了跨基础设施的访问和管理。",
+			"compose": "Docker Compose",
+			"composeDes": "Dokploy 提供对复杂应用和服务的原生 Docker Compose 支持。",
+			"multinode": "多节点",
+			"multinodeDes": "Dokploy 使用 Docker Swarm 来管理集群，可自动将应用扩容至多个节点。",
+			"monitoring": "监控",
+			"monitoringDes": "随时掌控你的系统性能和应用健康，确保服务无间断运行。",
+			"backups": "备份",
+			"backupsDes": "使用 Dokploy 的自动备份功能来保护您的数据，并在需要时极速还原。"
+		},
+		"secondaryFeatures": {
+			"title": "先进的管理工具",
+			"des": "借助业界优秀的开源工具，Dokploy 不仅可以为您的基础设施提供精准的控制、详尽的监测、一流的安全，还能确保无缝的体验和强悍的性能。",
+			"templates": "开源模板",
+			"templatesSummary": "一键部署热门开源项目",
+			"templatesDes": "基于 Docker Compose 一键部署热门开源自建项目(Plausible 分析, Calcom 日历, Pocketbase, 等等.)",
+			"traefik": "实时 Traefik 配置",
+			"traefikSummary": "通过图形界面或API动态修改 Traefik 配置",
+			"traefikDes": "用户可通过直观的界面或API调整Traefik的配置，包括中间件、转发规则及SSL证书。此功能使得流量路由和安全设置的调整无需重启服务即可无缝进行。",
+			"users": "多用户权限管理",
+			"usersSummary": "对用户访问和管理项目及服务的权限进行细致控制",
+			"usersDes": "允许管理员为每个用户定义特定角色和权限，包括创建、修改或删除应用程序和数据库的能力。借助这一功能，Dokploy 为大型团队进行安全且高效的管理提供了有力支持。",
+			"terminal": "终端访问",
+			"terminalSummary": "从图形界面直接访问容器或者服务的终端",
+			"terminalDes": "DokPloy 内置的界面可以帮助开发者直接访问容器终端并执行任何命令。 "
+		},
+		"callToAction": {
+			"title": "释放自主部署的全部潜力",
+			"des": "借助我们的 PaaS 软件来简化部署流程，使用 Traefik 轻松管理 Docker 容器和流量，立即提高基础设施的效率和安全性。",
+			"button": "现在就部署"
+		},
+		"faq": {
+			"title": "常问问题",
+			"des": "如果您要寻找的问题不在下方，请通过我们的 GitHub 仓库提交 issue 或在我们的 Discord 提出问题。",
+			"q1": "什么是 dokploy?",
+			"a1": "Dokploy 是一个稳定易用的自部署解决方案，设计用于简化项目部署过程。您可以把 DokPloy 想象成一个自部署的 Vercel/Netlify/Heroku 平台。",
+			"q2": "为什么选择 Dokploy?",
+			"a2": "简洁, 灵活, 还有高效！",
+			"q3": "真的免费?",
+			"a3": "是的, dokploy 完全免费。不管是个人使用还是团队使用，都不收取费用。",
+			"q4": "这是开源的吗?",
+			"a4": "Dokploy 的所有代码皆可在我们的托管平台找到。",
+			"q5": "Dokploy 可以支持部署什么编程语言的项目？",
+			"a5": "Dokploy 对编程语言没有限制， 您可以部署任何您喜爱的语言或者框架。",
+			"q6": "想提出新的功能需求或者遇到了问题？",
+			"a6": "您可以前往我们的 Github 打开一个新的 issue，或者在我们的 GitHub讨论区 或 Discord 中发帖。",
+			"q7": "Dokploy是否内置遥测?",
+			"a7": "不，Dokploy不收集任何使用数据。",
+			"q8": "有什么用户社群可以便于我和其他用户交流吗？",
+			"a8": "您可以在我们的GitHub讨论区自由讨论，如果您愿意还可以加入我们的 Discord。",
+			"q9": "dokploy 可以支持部署哪种类型的应用？",
+			"a9": "Dokploy 支持很多应用，不仅包括 Docker 镜像，也可以从 Git Repository 直接启动，DokPloy 提供了丰富的自定义构建工具，如 Nixpacks, Dockerfiles, 抑或是 Buildpacks （就像 Heroku 和 Paketo）",
+			"q10": "Dokploy 支持哪些数据库？",
+			"a10": "Dokploy 支持 Postgres, MySQL, MariaDB, MongoDB, 以及 Redis。我们还提供方便的图形化管理工具以供使用。"
+		},
+		"footer": {
+			"copyright": "版权属于 © {year} Dokploy， 保留所有权利"
+		}
+	}
+}
