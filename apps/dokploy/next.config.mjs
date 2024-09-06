@@ -3,9 +3,9 @@
  * for Docker builds.
  */
 
+import CopyWebpackPlugin from "copy-webpack-plugin";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import CopyWebpackPlugin from "copy-webpack-plugin";
 import SmartLocalePlugin from "./i18n/InternationalizationKit/smartLocale/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,15 +39,18 @@ const nextConfig = {
 				],
 			}),
 		);
-		config.plugins.push(
-			new SmartLocalePlugin({
-				inputDirectory: "./i18n/locales/",
-				outputDirectory: "./i18n/InternationalizationKit/interface/",
-				outputImportDirectory: "./i18n/",
-				defaultLocale: "en-us",
-				fileType: "json",
-			}),
-		);
+
+		if (config.mode === 'development') {
+			config.plugins.push(
+				new SmartLocalePlugin({
+					inputDirectory: "./i18n/locales/",
+					outputDirectory: "./i18n/InternationalizationKit/interface/",
+					outputImportDirectory: "./i18n/",
+					defaultLocale: "en-us",
+					fileType: "json",
+				}),
+			);
+		}
 		return config;
 	},
 
