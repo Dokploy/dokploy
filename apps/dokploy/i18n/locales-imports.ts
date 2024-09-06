@@ -5,7 +5,7 @@ import zh_hans_cn from "./locales/zh-hans-cn.json";
 
 const locales = {
 	"en-us": en_us,
-	"zh-hans-cn": zh_hans_cn
+	"zh-hans-cn": zh_hans_cn,
 };
 
 export default locales;
