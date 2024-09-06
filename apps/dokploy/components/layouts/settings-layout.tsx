@@ -119,13 +119,14 @@ import {
 	Bell,
 	Database,
 	GitBranch,
+	KeyIcon,
 	KeyRound,
 	type LucideIcon,
 	Route,
 	Server,
 	ShieldCheck,
 	User2,
-	Users
+	Users,
 } from "lucide-react";
 import Link from "next/link";
 
