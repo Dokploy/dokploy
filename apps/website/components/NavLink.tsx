@@ -1,7 +1,7 @@
 "use client";
 
+import { Link } from "@/i18n/routing";
 import { trackGAEvent } from "./analitycs";
-import { Link } from '@/i18n/routing'
 
 export function NavLink({
 	href,

@@ -1,58 +1,57 @@
-import { useTranslations } from 'next-intl'
-import { Container } from './Container'
+import { useTranslations } from "next-intl";
+import { Container } from "./Container";
 
 const faqs = [
 	[
 		{
-			question: 'faq.q1',
-			answer: 'faq.a1',
+			question: "faq.q1",
+			answer: "faq.a1",
 		},
 		{
-			question: 'faq.q2',
-			answer: 'faq.a2',
+			question: "faq.q2",
+			answer: "faq.a2",
 		},
 		{
-			question: 'faq.q3',
-			answer: 'faq.a3',
+			question: "faq.q3",
+			answer: "faq.a3",
 		},
 		{
-			question: 'faq.q4',
-			answer: 'faq.a4',
+			question: "faq.q4",
+			answer: "faq.a4",
 		},
 	],
 	[
 		{
-			question: 'faq.q5',
-			answer: 'faq.a5',
+			question: "faq.q5",
+			answer: "faq.a5",
 		},
 		{
-			question: 'faq.q6',
-			answer: 'faq.a6',
+			question: "faq.q6",
+			answer: "faq.a6",
 		},
 		{
-			question: 'faq.q7',
+			question: "faq.q7",
 			answer: "faq.a7",
 		},
 	],
 	[
 		{
-			question:
-				'faq.q8',
-			answer: 'faq.a8',
+			question: "faq.q8",
+			answer: "faq.a8",
 		},
 		{
-			question: 'faq.q9',
-			answer: 'faq.a9',
+			question: "faq.q9",
+			answer: "faq.a9",
 		},
 		{
-			question: 'faq.q10',
-			answer: 'faq.a10',
+			question: "faq.q10",
+			answer: "faq.a10",
 		},
 	],
-]
+];
 
 export function Faqs() {
-	const t = useTranslations('HomePage')
+	const t = useTranslations("HomePage");
 	return (
 		<section
 			id="faqs"
@@ -65,10 +64,10 @@ export function Faqs() {
 						id="faq-title"
 						className="font-display text-3xl tracking-tight text-primary sm:text-4xl"
 					>
-						{t('faq.title')}
+						{t("faq.title")}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight text-muted-foreground">
-						{t('faq.des')}
+						{t("faq.des")}
 					</p>
 				</div>
 				<ul className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-3">
@@ -91,5 +90,5 @@ export function Faqs() {
 				</ul>
 			</Container>
 		</section>
-	)
+	);
 }

@@ -1,13 +1,13 @@
-import Link from 'next/link'
+import Link from "next/link";
 
-import { Container } from './Container'
-import { NavLink } from './NavLink'
-import { Logo } from './shared/Logo'
-import { useTranslations } from 'next-intl'
+import { useTranslations } from "next-intl";
+import { Container } from "./Container";
+import { NavLink } from "./NavLink";
+import { Logo } from "./shared/Logo";
 
 export function Footer() {
-	const t = useTranslations('HomePage')
-	const linkT = useTranslations('Link')
+	const t = useTranslations("HomePage");
+	const linkT = useTranslations("Link");
 
 	return (
 		<footer className="bg-black">
@@ -22,14 +22,10 @@ export function Footer() {
 
 					<nav className="mt-10 text-sm" aria-label="quick links">
 						<div className="-my-1 flex flex-wrap justify-center gap-6">
-							<NavLink href="/#features">
-								{t('navigation.features')}
-							</NavLink>
-							<NavLink href="/#faqs">
-								{t('navigation.faqs')}
-							</NavLink>
-							<NavLink href={linkT('docs.intro')} target="_blank">
-								{t('navigation.docs')}
+							<NavLink href="/#features">{t("navigation.features")}</NavLink>
+							<NavLink href="/#faqs">{t("navigation.faqs")}</NavLink>
+							<NavLink href={linkT("docs.intro")} target="_blank">
+								{t("navigation.docs")}
 							</NavLink>
 						</div>
 					</nav>
@@ -62,12 +58,12 @@ export function Footer() {
 						</Link>
 					</div>
 					<p className="mt-6 text-sm text-muted-foreground sm:mt-0">
-						{t('footer.copyright', {
+						{t("footer.copyright", {
 							year: new Date().getFullYear(),
 						})}
 					</p>
 				</div>
 			</Container>
 		</footer>
-	)
+	);
 }

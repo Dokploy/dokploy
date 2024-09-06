@@ -1,38 +1,38 @@
-'use client'
+"use client";
 
-import { cn } from '@/lib/utils'
-import { Tab } from '@headlessui/react'
-import { motion } from 'framer-motion'
-import { Layers, Terminal, Users } from 'lucide-react'
-import { Container } from './Container'
-import { useTranslations } from 'next-intl'
+import { cn } from "@/lib/utils";
+import { Tab } from "@headlessui/react";
+import { motion } from "framer-motion";
+import { Layers, Terminal, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Container } from "./Container";
 interface Feature {
-	name: React.ReactNode
-	summary: string
-	description: string
-	image: string
-	icon: React.ComponentType
+	name: React.ReactNode;
+	summary: string;
+	description: string;
+	image: string;
+	icon: React.ComponentType;
 }
 
 const features: Array<Feature> = [
 	{
-		name: 'secondaryFeatures.templates',
-		summary: 'secondaryFeatures.templatesSummary',
-		description: 'secondaryFeatures.templatesDes',
-		image: '/secondary/templates.png',
+		name: "secondaryFeatures.templates",
+		summary: "secondaryFeatures.templatesSummary",
+		description: "secondaryFeatures.templatesDes",
+		image: "/secondary/templates.png",
 		icon: function ReportingIcon() {
 			return (
 				<>
 					<Layers className="size-5 text-primary" />
 				</>
-			)
+			);
 		},
 	},
 	{
-		name: 'secondaryFeatures.traefik',
-		summary: 'secondaryFeatures.traefikSummary',
-		description: 'secondaryFeatures.traefikDes',
-		image: '/secondary/traefik.png',
+		name: "secondaryFeatures.traefik",
+		summary: "secondaryFeatures.traefikSummary",
+		description: "secondaryFeatures.traefikDes",
+		image: "/secondary/traefik.png",
 		icon: function ReportingIcon() {
 			return (
 				<>
@@ -82,12 +82,7 @@ const features: Array<Feature> = [
 								d="M299.847 285.567c10.027 58.288 105.304 42.877 91.619-15.91-12.271-52.716-94.951-38.124-91.619 15.91m-113.855 9.427c12.996 50.745 94.24 37.753 91.178-13.149-3.669-60.964-103.603-49.2-91.178 13.149m132.351 58.517c.044 7.79 1.843 15.403.289 24.148-1.935 3.656-5.729 4.043-9.001 5.52-4.524-.71-8.328-3.68-10.143-7.912-1.161-9.202.433-18.111.726-27.316l18.129 5.56z"
 								fill="#fff"
 							/>
-							<ellipse
-								cx="208.4"
-								cy="286.718"
-								rx="13.719"
-								ry="14.86"
-							/>
+							<ellipse cx="208.4" cy="286.718" rx="13.719" ry="14.86" />
 							<ellipse
 								cx="214.64"
 								cy="290.071"
@@ -95,19 +90,9 @@ const features: Array<Feature> = [
 								ry="3.777"
 								fill="#fff"
 							/>
-							<ellipse
-								cx="323.348"
-								cy="283.017"
-								rx="13.491"
-								ry="14.86"
-							/>
+							<ellipse cx="323.348" cy="283.017" rx="13.491" ry="14.86" />
 							<g fill="#fff">
-								<ellipse
-									cx="329.485"
-									cy="286.371"
-									rx="3.181"
-									ry="3.777"
-								/>
+								<ellipse cx="329.485" cy="286.371" rx="3.181" ry="3.777" />
 								<path d="M279.137 354.685c-5.986 14.507 3.338 43.515 19.579 22.119-1.161-9.202.433-18.111.726-27.316l-20.305 5.197z" />
 							</g>
 							<path
@@ -226,60 +211,60 @@ const features: Array<Feature> = [
 						</g>
 					</svg>
 				</>
-			)
+			);
 		},
 	},
 	{
-		name: 'secondaryFeatures.users',
-		summary: 'secondaryFeatures.usersSummary',
-		description: 'secondaryFeatures.usersDes',
-		image: '/secondary/users.png',
+		name: "secondaryFeatures.users",
+		summary: "secondaryFeatures.usersSummary",
+		description: "secondaryFeatures.usersDes",
+		image: "/secondary/users.png",
 		icon: function InventoryIcon() {
 			return (
 				<>
 					<Users className="size-5 text-primary" />
 				</>
-			)
+			);
 		},
 	},
 	{
-		name: 'secondaryFeatures.terminal',
-		summary: 'secondaryFeatures.terminalSummary',
-		description: 'secondaryFeatures.terminalDes',
-		image: '/secondary/terminal.png',
+		name: "secondaryFeatures.terminal",
+		summary: "secondaryFeatures.terminalSummary",
+		description: "secondaryFeatures.terminalDes",
+		image: "/secondary/terminal.png",
 		icon: function ContactsIcon() {
 			return (
 				<>
 					<Terminal className="size-5 text-primary" />
 				</>
-			)
+			);
 		},
 	},
-]
+];
 
 function Feature({
 	feature,
 	isActive,
 	className,
 	...props
-}: React.ComponentPropsWithoutRef<'div'> & {
-	feature: Feature
-	isActive: boolean
+}: React.ComponentPropsWithoutRef<"div"> & {
+	feature: Feature;
+	isActive: boolean;
 }) {
-	const t = useTranslations('HomePage')
+	const t = useTranslations("HomePage");
 	return (
 		<div
 			className={cn(
 				className,
-				!isActive ? 'opacity-75 hover:opacity-100 ' : 'rounded-xl',
-				' relative p-4',
+				!isActive ? "opacity-75 hover:opacity-100 " : "rounded-xl",
+				" relative p-4",
 			)}
 			{...props}
 		>
 			<div
 				className={cn(
-					'flex size-9 items-center justify-center rounded-lg',
-					isActive ? 'bg-border' : 'bg-muted',
+					"flex size-9 items-center justify-center rounded-lg",
+					isActive ? "bg-border" : "bg-muted",
 				)}
 			>
 				<feature.icon />
@@ -289,7 +274,7 @@ function Feature({
 					layoutId="bubble"
 					className="absolute inset-0 z-10 rounded-xl bg-white/5 mix-blend-difference"
 					transition={{
-						type: 'spring',
+						type: "spring",
 						bounce: 0.2,
 						duration: 0.6,
 					}}
@@ -297,8 +282,8 @@ function Feature({
 			)}
 			<h3
 				className={cn(
-					'mt-6 text-sm font-medium',
-					isActive ? 'text-primary' : 'text-primary/85',
+					"mt-6 text-sm font-medium",
+					isActive ? "text-primary" : "text-primary/85",
 				)}
 			>
 				{feature.name}
@@ -310,7 +295,7 @@ function Feature({
 				{t(feature.description)}
 			</p>
 		</div>
-	)
+	);
 }
 
 function FeaturesMobile() {
@@ -318,11 +303,7 @@ function FeaturesMobile() {
 		<div className="-mx-4 mt-20 flex flex-col gap-y-10 overflow-hidden px-4 sm:-mx-6 sm:px-6 lg:hidden">
 			{features.map((feature) => (
 				<div key={feature.summary}>
-					<Feature
-						feature={feature}
-						className="mx-auto max-w-2xl"
-						isActive
-					/>
+					<Feature feature={feature} className="mx-auto max-w-2xl" isActive />
 					<div className="relative mt-10 pb-10">
 						<div className="absolute -inset-x-4 bottom-0 top-8 bg-muted sm:-inset-x-6" />
 						<div className="relative mx-auto w-[52.75rem] overflow-hidden rounded-xl bg-white shadow-lg shadow-slate-900/5 ring-1 ring-slate-500/10">
@@ -337,11 +318,11 @@ function FeaturesMobile() {
 				</div>
 			))}
 		</div>
-	)
+	);
 }
 
 function FeaturesDesktop() {
-	const t = useTranslations('HomePage')
+	const t = useTranslations("HomePage");
 	return (
 		<Tab.Group as="div" className="hidden lg:mt-20 lg:block">
 			{({ selectedIndex }) => (
@@ -371,9 +352,8 @@ function FeaturesDesktop() {
 									static
 									key={feature.summary}
 									className={cn(
-										'px-5 transition duration-500 ease-in-out ui-not-focus-visible:outline-none',
-										featureIndex !== selectedIndex &&
-											'opacity-60',
+										"px-5 transition duration-500 ease-in-out ui-not-focus-visible:outline-none",
+										featureIndex !== selectedIndex && "opacity-60",
 									)}
 									style={{
 										transform: `translateX(-${selectedIndex * 100}%)`,
@@ -396,11 +376,11 @@ function FeaturesDesktop() {
 				</>
 			)}
 		</Tab.Group>
-	)
+	);
 }
 
 export function SecondaryFeatures() {
-	const t = useTranslations('HomePage')
+	const t = useTranslations("HomePage");
 	return (
 		<section
 			id="secondary-features"
@@ -410,15 +390,15 @@ export function SecondaryFeatures() {
 			<Container className="max-w-[95rem]">
 				<div className="mx-auto max-w-2xl md:text-center">
 					<h2 className="font-display text-3xl tracking-tight text-primary sm:text-4xl">
-						{t('secondaryFeatures.title')}
+						{t("secondaryFeatures.title")}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight  text-muted-foreground">
-						{t('secondaryFeatures.des')}
+						{t("secondaryFeatures.des")}
 					</p>
 				</div>
 				<FeaturesMobile />
 				<FeaturesDesktop />
 			</Container>
 		</section>
-	)
+	);
 }

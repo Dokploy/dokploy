@@ -7,8 +7,8 @@
 			"support": "赞助",
 			"discord": "Discord",
 			"i18nButtonPlaceholder": "语言",
-			"i18nEn":"English",
-			"i18nZh-Hans":"简体中文"
+			"i18nEn": "English",
+			"i18nZh-Hans": "简体中文"
 		},
 		"hero": {
 			"deploy": "部署在",

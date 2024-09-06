@@ -1,73 +1,73 @@
-'use client'
+"use client";
 
-import { Tab } from '@headlessui/react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { Tab } from "@headlessui/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-import { cn } from '@/lib/utils'
-import { Container } from './Container'
-import { useTranslations } from 'next-intl'
+import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { Container } from "./Container";
 
 const features = [
 	{
-		title: 'primaryFeatures.projects',
-		description: 'primaryFeatures.projectsDes',
-		image: '/primary/projects.png',
+		title: "primaryFeatures.projects",
+		description: "primaryFeatures.projectsDes",
+		image: "/primary/projects.png",
 	},
 	{
-		title: 'primaryFeatures.applications',
-		description: 'primaryFeatures.applicationsDes',
-		image: '/primary/applications.png',
+		title: "primaryFeatures.applications",
+		description: "primaryFeatures.applicationsDes",
+		image: "/primary/applications.png",
 	},
 	{
-		title: 'primaryFeatures.compose',
-		description: 'primaryFeatures.composeDes',
-		image: '/primary/compose.png',
+		title: "primaryFeatures.compose",
+		description: "primaryFeatures.composeDes",
+		image: "/primary/compose.png",
 	},
 	{
-		title: 'primaryFeatures.multinode',
-		description: 'primaryFeatures.multinodeDes',
-		image: '/primary/multinode.png',
+		title: "primaryFeatures.multinode",
+		description: "primaryFeatures.multinodeDes",
+		image: "/primary/multinode.png",
 	},
 	{
-		title: 'primaryFeatures.monitoring',
-		description: 'primaryFeatures.monitoringDes',
-		image: '/primary/monitoring.png',
+		title: "primaryFeatures.monitoring",
+		description: "primaryFeatures.monitoringDes",
+		image: "/primary/monitoring.png",
 	},
 	{
-		title: 'primaryFeatures.backups',
-		description: 'primaryFeatures.backupsDes',
-		image: '/primary/backups.png',
+		title: "primaryFeatures.backups",
+		description: "primaryFeatures.backupsDes",
+		image: "/primary/backups.png",
 	},
-]
+];
 
 export function PrimaryFeatures() {
-	const t = useTranslations('HomePage')
+	const t = useTranslations("HomePage");
 	const [tabOrientation, setTabOrientation] = useState<
-		'horizontal' | 'vertical'
-	>('horizontal')
+		"horizontal" | "vertical"
+	>("horizontal");
 
 	useEffect(() => {
-		const lgMediaQuery = window.matchMedia('(min-width: 1024px)')
+		const lgMediaQuery = window.matchMedia("(min-width: 1024px)");
 
 		function onMediaQueryChange({ matches }: { matches: boolean }) {
-			setTabOrientation(matches ? 'vertical' : 'horizontal')
+			setTabOrientation(matches ? "vertical" : "horizontal");
 		}
 
-		onMediaQueryChange(lgMediaQuery)
-		lgMediaQuery.addEventListener('change', onMediaQueryChange)
+		onMediaQueryChange(lgMediaQuery);
+		lgMediaQuery.addEventListener("change", onMediaQueryChange);
 
 		return () => {
-			lgMediaQuery.removeEventListener('change', onMediaQueryChange)
-		}
-	}, [])
+			lgMediaQuery.removeEventListener("change", onMediaQueryChange);
+		};
+	}, []);
 
-	const [isMounted, setIsMounted] = useState(false)
+	const [isMounted, setIsMounted] = useState(false);
 
 	// Cambiar isMounted a true después del primer render
 	useEffect(() => {
-		setIsMounted(true)
-	}, [])
+		setIsMounted(true);
+	}, []);
 
 	return (
 		<section
@@ -88,16 +88,16 @@ export function PrimaryFeatures() {
 			<Container className="relative">
 				<div className="max-w-2xl md:mx-auto md:text-center xl:max-w-none">
 					<h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl md:text-5xl">
-						{t('primaryFeatures.title')}
+						{t("primaryFeatures.title")}
 					</h2>
 					<p className="mt-6 text-lg tracking-tight text-muted-foreground">
-						{t('primaryFeatures.des')}
+						{t("primaryFeatures.des")}
 					</p>
 				</div>
 				<Tab.Group
 					as="div"
 					className="mt-16 grid grid-cols-1 items-center gap-y-2 pt-10 sm:gap-y-6 md:mt-20 lg:grid-cols-12 lg:pt-0"
-					vertical={tabOrientation === 'vertical'}
+					vertical={tabOrientation === "vertical"}
 				>
 					{({ selectedIndex }) => (
 						<>
@@ -113,12 +113,11 @@ export function PrimaryFeatures() {
 											initial={false}
 											key={`feature-${featureIndex}`}
 											className={cn(
-												'group relative rounded-full px-4 py-1 transition-colors lg:rounded-l-xl lg:rounded-r-none lg:p-6 ',
+												"group relative rounded-full px-4 py-1 transition-colors lg:rounded-l-xl lg:rounded-r-none lg:p-6 ",
 											)}
 										>
 											<AnimatePresence>
-												{selectedIndex ===
-													featureIndex && (
+												{selectedIndex === featureIndex && (
 													<motion.span
 														layoutId="tab"
 														className="absolute inset-0 z-10 rounded-full bg-white/5 mix-blend-difference lg:rounded-l-xl lg:rounded-r-none"
@@ -126,7 +125,7 @@ export function PrimaryFeatures() {
 														animate={{ opacity: 1 }}
 														exit={{ opacity: 0 }}
 														transition={{
-															type: 'spring',
+															type: "spring",
 															bounce: 0.2,
 															duration: 0.5,
 														}}
@@ -136,7 +135,7 @@ export function PrimaryFeatures() {
 											<h3>
 												<Tab
 													className={cn(
-														'font-display text-lg text-primary ui-not-focus-visible:outline-none',
+														"font-display text-lg text-primary ui-not-focus-visible:outline-none",
 													)}
 												>
 													<span className="absolute inset-0 rounded-full lg:rounded-l-xl lg:rounded-r-none" />
@@ -145,7 +144,7 @@ export function PrimaryFeatures() {
 											</h3>
 											<p
 												className={cn(
-													'mt-2 hidden text-sm text-muted-foreground lg:block',
+													"mt-2 hidden text-sm text-muted-foreground lg:block",
 												)}
 											>
 												{t(feature.description)}
@@ -166,19 +165,11 @@ export function PrimaryFeatures() {
 
 										<motion.div
 											key={feature.title}
-											initial={
-												isMounted
-													? { opacity: 0.8, x: 50 }
-													: {}
-											}
-											animate={
-												isMounted
-													? { opacity: 1, x: 0 }
-													: {}
-											}
+											initial={isMounted ? { opacity: 0.8, x: 50 } : {}}
+											animate={isMounted ? { opacity: 1, x: 0 } : {}}
 											exit={{ opacity: 0, x: -50 }}
 											transition={{
-												type: 'spring',
+												type: "spring",
 												bounce: 0.2,
 												duration: 0.6,
 											}}
@@ -199,5 +190,5 @@ export function PrimaryFeatures() {
 				</Tab.Group>
 			</Container>
 		</section>
-	)
+	);
 }

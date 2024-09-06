@@ -1,5 +1,5 @@
-import { SlimLayout } from '@/components/SlimLayout'
+import { SlimLayout } from "@/components/SlimLayout";
 
 export default function NotFound() {
-	return <SlimLayout />
+	return <SlimLayout />;
 }
