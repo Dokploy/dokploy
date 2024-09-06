@@ -24,6 +24,11 @@ export const ShowRequests = () => {
 	const { mutateAsync: deactivateLogRotate } =
 		api.settings.deactivateLogRotate.useMutation();
 
+	const { data: isActive, refetch } =
+		api.settings.haveActivateRequests.useQuery();
+	const { mutateAsync: toggleRequests } =
+		api.settings.toggleRequests.useMutation();
+
 	return (
 		<>
 			<Card className="bg-transparent mt-10">
@@ -33,39 +38,62 @@ export const ShowRequests = () => {
 						<CardDescription>
 							<span>Showing web and API requests over time</span>
 						</CardDescription>
-						{!isLogRotateActive && (
+						<div className="flex w-fit gap-4">
 							<Button
 								onClick={() => {
 									mutateAsync()
-										.then(() => {
-											toast.success("Log rotate activated");
-											refetchLogRotate();
+										.then(async () => {
+											await toggleRequests({ enable: !isActive })
+												.then(() => {
+													refetch();
+													toast.success("Access Log Added to Traefik");
+												})
+												.catch((err) => {
+													toast.error(err.message);
+												});
 										})
 										.catch((err) => {
 											toast.error(err.message);
 										});
 								}}
 							>
-								Activate Log Rotate
+								{isActive ? "Deactivate" : "Activate"}
 							</Button>
-						)}
-
-						{isLogRotateActive && (
-							<Button
-								onClick={() => {
-									deactivateLogRotate()
-										.then(() => {
-											toast.success("Log rotate deactivated");
-											refetchLogRotate();
-										})
-										.catch((err) => {
-											toast.error(err.message);
-										});
-								}}
-							>
-								Deactivate Log Rotate
-							</Button>
-						)}
+							{!isLogRotateActive && (
+								<Button
+									variant="secondary"
+									onClick={() => {
+										mutateAsync()
+											.then(() => {
+												toast.success("Log rotate activated");
+												refetchLogRotate();
+											})
+											.catch((err) => {
+												toast.error(err.message);
+											});
+									}}
+								>
+									Activate Log Rotate
+								</Button>
+							)}
+							{isLogRotateActive && (
+								<Button
+									variant="secondary"
+									onClick={() => {
+										deactivateLogRotate()
+											.then(() => {
+												toast.success("Log rotate deactivated");
+												refetchLogRotate();
+											})
+											.catch((err) => {
+												toast.error(err.message);
+											});
+									}}
+								>
+									Deactivate Log Rotate
+								</Button>
+							)}
+						</div>
 					</div>
 				</CardHeader>
 				<CardContent>

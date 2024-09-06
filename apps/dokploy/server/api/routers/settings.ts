@@ -53,6 +53,7 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { dump, load } from "js-yaml";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -382,4 +383,64 @@ export const settingsRouter = createTRPCRouter({
 	getLogRotateStatus: adminProcedure.query(async () => {
 		return await logRotationManager.getStatus();
 	}),
+	haveActivateRequests: adminProcedure.query(async () => {
+		const config = readMainConfig();
+
+		if (!config) return false;
+		const parsedConfig = load(config) as {
+			accessLog?: {
+				filePath: string;
+			};
+		};
+
+		return !!parsedConfig?.accessLog?.filePath;
+	}),
+	toggleRequests: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const config = readMainConfig();
+			if (!config) return false;
+
+			if (input.enable) {
+				const parsedConfig = load(config) as {
+					accessLog?: {
+						filePath: string;
+						format: string;
+						bufferingSize: number;
+						filters?: {
+							retryAttempts?: boolean;
+							minDuration?: string;
+						};
+					};
+				};
+				const config2 = {
+					accessLog: {
+						filePath: "/etc/dokploy/traefik/dynamic/access.log",
+						format: "json",
+						bufferingSize: 100,
+						filters: {
+							retryAttempts: true,
+							minDuration: "10ms",
+						},
+					},
+				};
+				parsedConfig.accessLog = config2.accessLog;
+				writeMainConfig(dump(parsedConfig));
+			} else {
+				const parsedConfig = load(config) as {
+					accessLog?: {
+						filePath: string;
+					};
+				};
+
+				delete parsedConfig.accessLog;
+				writeMainConfig(dump(parsedConfig));
+			}
+
+			return true;
+		}),
 });
