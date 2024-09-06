@@ -85,7 +85,7 @@ class SmartLocalePlugin {
 
 		for (const key of localesKeys) {
 			const text = localeData[key] || "";
-			typeDefinitions += `\t/**\n\t * ${text}\n\t */\n\t'${key}': string;\n`;
+			typeDefinitions += `\t/**\n\t * ${text}\n\t */\n\t"${key}": string;\n`;
 		}
 
 		typeDefinitions += "}\n\n";
@@ -118,9 +118,9 @@ class SmartLocalePlugin {
 					.replace(`.${this.fileType}`, "")
 					.replace(/-/g, "_");
 				const relativePath = `./${path.relative(this.outputImportDirectory, path.join(this.inputDirectory, file)).replace(/\\/g, "/")}`;
-				importStatements.push(`import ${localeName} from '${relativePath}';`);
+				importStatements.push(`import ${localeName} from "${relativePath}";`);
 				localeMappings.push(
-					`\t'${localeName.replace(/_/g, "-")}': ${localeName}`,
+					`\t"${localeName.replace(/_/g, "-")}": ${localeName}`,
 				);
 			}
 		}
