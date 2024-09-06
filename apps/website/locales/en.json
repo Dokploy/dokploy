@@ -5,7 +5,10 @@
 			"faqs": "FAQ",
 			"docs": "Docs",
 			"support": "Support",
-			"discord": "Discord"
+			"discord": "Discord",
+			"i18nButtonPlaceholder": "Language",
+			"i18nEn":"English",
+			"i18nZh-Hans":"简体中文"
 		},
 		"hero": {
 			"deploy": "Deploy",

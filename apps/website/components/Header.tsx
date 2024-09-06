@@ -3,14 +3,20 @@
 import { cn } from '@/lib/utils'
 import { Popover, Transition } from '@headlessui/react'
 import { HeartIcon } from 'lucide-react'
-import { Fragment } from 'react'
+import { Fragment, JSX, SVGProps } from 'react'
 import { Container } from './Container'
 import { NavLink } from './NavLink'
 import { trackGAEvent } from './analitycs'
 import { Logo } from './shared/Logo'
 import { Button, buttonVariants } from './ui/button'
-import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/routing'
+import { useLocale, useTranslations } from 'next-intl'
+import { Link, useRouter } from '@/i18n/routing'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+} from '@/components/ui/select'
 
 function MobileNavLink({
 	href,
@@ -66,6 +72,24 @@ function MobileNavIcon({ open }: { open: boolean }) {
 		</svg>
 	)
 }
+
+const I18nIcon = (props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width={24}
+		height={24}
+		fill="currentColor"
+		stroke="currentColor"
+		strokeWidth={0}
+		viewBox="0 0 512 512"
+		{...props}
+	>
+		<path
+			stroke="none"
+			d="m478.33 433.6-90-218a22 22 0 0 0-40.67 0l-90 218a22 22 0 1 0 40.67 16.79L316.66 406h102.67l18.33 44.39A22 22 0 0 0 458 464a22 22 0 0 0 20.32-30.4zM334.83 362 368 281.65 401.17 362zm-66.99-19.08a22 22 0 0 0-4.89-30.7c-.2-.15-15-11.13-36.49-34.73 39.65-53.68 62.11-114.75 71.27-143.49H330a22 22 0 0 0 0-44H214V70a22 22 0 0 0-44 0v20H54a22 22 0 0 0 0 44h197.25c-9.52 26.95-27.05 69.5-53.79 108.36-31.41-41.68-43.08-68.65-43.17-68.87a22 22 0 0 0-40.58 17c.58 1.38 14.55 34.23 52.86 83.93.92 1.19 1.83 2.35 2.74 3.51-39.24 44.35-77.74 71.86-93.85 80.74a22 22 0 1 0 21.07 38.63c2.16-1.18 48.6-26.89 101.63-85.59 22.52 24.08 38 35.44 38.93 36.1a22 22 0 0 0 30.75-4.9z"
+		/>
+	</svg>
+)
 
 function MobileNavigation() {
 	const t = useTranslations('HomePage')
@@ -125,6 +149,8 @@ function MobileNavigation() {
 }
 
 export function Header() {
+	const router = useRouter()
+	const locale = useLocale()
 	const t = useTranslations('HomePage')
 	const linkT = useTranslations('Link')
 
@@ -150,6 +176,33 @@ export function Header() {
 						</div>
 					</div>
 					<div className="flex items-center gap-x-2 md:gap-x-5">
+						<Select
+							onValueChange={(locale) => {
+								router.replace('/', {
+									locale: locale as 'en' | 'zh-Hans',
+								})
+							}}
+							value={locale}
+						>
+							<SelectTrigger
+								className={buttonVariants({
+									variant: 'outline',
+									className:
+										' flex items-center gap-2 !rounded-full visited:outline-none focus-within:outline-none focus:outline-none',
+								})}
+							>
+								<I18nIcon width={20} height={20} />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="en">
+									{t('navigation.i18nEn')}
+								</SelectItem>
+								<SelectItem value="zh-Hans">
+									{t('navigation.i18nZh-Hans')}
+								</SelectItem>
+							</SelectContent>
+						</Select>
+
 						<Link
 							className={buttonVariants({
 								variant: 'outline',
