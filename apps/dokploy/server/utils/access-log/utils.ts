@@ -17,6 +17,9 @@ export function processLogs(logString: string): HourlyData[] {
 		.map((entry) => {
 			try {
 				const log: LogEntry = JSON.parse(entry);
+				if (log.ServiceName === "dokploy-service-app@file") {
+					return null;
+				}
 				const date = new Date(log.StartUTC);
 				return `${date.toISOString().slice(0, 13)}:00:00Z`;
 			} catch (error) {
@@ -88,6 +91,8 @@ export function parseRawConfig(
 			const startIndex = page.pageIndex * page.pageSize;
 			parsedLogs = parsedLogs.slice(startIndex, startIndex + page.pageSize);
 		}
+
+		parsedLogs = parsedLogs.filter((log) => log.ServiceName !== "1");
 
 		return { data: parsedLogs, totalCount };
 	} catch (error) {
