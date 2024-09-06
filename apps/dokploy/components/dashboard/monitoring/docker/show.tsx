@@ -238,8 +238,8 @@ export const DockerMonitoring = ({
 									</span>
 									<span className="text-sm text-muted-foreground">
 										{i18n.getText("PAGE.dockerMonitoring.spaceUsed", {
-											used: currentData.disk.value.diskUsage,
-											limit: currentData.disk.value.diskTotal,
+											used: currentData?.disk?.value?.diskUsage.toString(),
+											limit: currentData?.disk?.value?.diskTotal.toString(),
 										})}
 									</span>
 									<Progress
