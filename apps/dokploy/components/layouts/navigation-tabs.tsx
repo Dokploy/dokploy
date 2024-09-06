@@ -57,11 +57,6 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 				return Boolean(rol === "admin" || user?.canAccessToDocker);
 			},
 		},
-		settings: {
-			label: i18n.getText("NAVIGATION.tabs.settings.label"),
-			description: i18n.getText("NAVIGATION.tabs.settings.description"),
-			index: "/dashboard/settings/server",
-		},
 		requests: {
 			label: i18n.getText("NAVIGATION.tabs.requests.label"),
 			description: i18n.getText("NAVIGATION.tabs.requests.description"),
@@ -69,6 +64,11 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 			// isShow: ({ rol, user }) => {
 			// 	return Boolean(rol === "admin" || user?.canAccessToRequests);
 			// },
+		},
+		settings: {
+			label: i18n.getText("NAVIGATION.tabs.settings.label"),
+			description: i18n.getText("NAVIGATION.tabs.settings.description"),
+			index: "/dashboard/settings/server",
 		},
 	};
 
