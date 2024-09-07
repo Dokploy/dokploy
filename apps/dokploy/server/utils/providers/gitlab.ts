@@ -61,16 +61,19 @@ export const haveGitlabRequirements = (gitlabProvider: Gitlab) => {
 };
 
 const getErrorCloneRequirements = (entity: {
-	repository?: string | null;
-	owner?: string | null;
-	branch?: string | null;
+	gitlabRepository?: string | null;
+	gitlabOwner?: string | null;
+	gitlabBranch?: string | null;
+	gitlabPathNamespace?: string | null;
 }) => {
 	const reasons: string[] = [];
-	const { repository, owner, branch } = entity;
+	const { gitlabBranch, gitlabOwner, gitlabRepository, gitlabPathNamespace } =
+		entity;
 
-	if (!repository) reasons.push("1. Repository not assigned.");
-	if (!owner) reasons.push("2. Owner not specified.");
-	if (!branch) reasons.push("3. Branch not defined.");
+	if (!gitlabRepository) reasons.push("1. Repository not assigned.");
+	if (!gitlabOwner) reasons.push("2. Owner not specified.");
+	if (!gitlabBranch) reasons.push("3. Branch not defined.");
+	if (!gitlabPathNamespace) reasons.push("4. Path namespace not defined.");
 
 	return reasons;
 };
