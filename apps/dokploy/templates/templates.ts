@@ -482,4 +482,19 @@ export const templates: TemplateData[] = [
 		tags: ["chatbot", "builder", "open-source"],
 		load: () => import("./typebot/index").then((m) => m.generate),
 	},
+	{
+		id: "gitea",
+		name: "Gitea",
+		version: "1.22.2",
+		description:
+			"Git with a cup of tea! Painless self-hosted all-in-one software development service, including Git hosting, code review, team collaboration, package registry and CI/CD.",
+		logo: "gitea.png",
+		links: {
+			github: "https://github.com/go-gitea/gitea.git",
+			website: "https://gitea.com/",
+			docs: "https://docs.gitea.com/installation/install-with-docker",
+		},
+		tags: ["self-hosted", "storage"],
+		load: () => import("./gitea/index").then((m) => m.generate),
+	},
 ];
