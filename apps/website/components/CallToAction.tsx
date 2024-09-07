@@ -39,7 +39,6 @@ export function CallToAction() {
 						{t("callToAction.des")}
 					</p>
 
-					{/* @ts-expect-error */}
 					<Button className="mt-10 rounded-full" asChild>
 						<Link
 							href={linkT("docs.install")}

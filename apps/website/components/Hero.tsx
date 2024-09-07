@@ -125,7 +125,6 @@ export function Hero() {
 								Discord
 							</Link>
 						</Button> */}
-						{/* @ts-expect-error */}
 						<Button className="rounded-xl" asChild>
 							<Link
 								href="https://github.com/dokploy/dokploy"

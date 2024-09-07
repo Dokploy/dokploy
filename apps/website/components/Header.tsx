@@ -202,7 +202,6 @@ export function Header() {
 							</span>
 							<HeartIcon className="animate-heartbeat size-4 fill-red-600 text-red-500 " />
 						</Link>
-						{/* @ts-expect-error */}
 						<Button
 							className="rounded-full bg-[#5965F2] hover:bg-[#4A55E0]"
 							asChild

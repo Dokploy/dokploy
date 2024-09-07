@@ -17,8 +17,6 @@
 		"@radix-ui/react-select": "^2.0.0",
 		"@radix-ui/react-slot": "^1.0.2",
 		"@types/node": "20.4.6",
-		"@types/react": "18.2.18",
-		"@types/react-dom": "18.2.7",
 		"autoprefixer": "^10.4.12",
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.0",
@@ -36,6 +34,8 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.7.0",
+		"@types/react": "18.3.5",
+		"@types/react-dom": "18.3.0",
 		"eslint": "8.45.0",
 		"eslint-config-next": "13.4.16",
 		"prettier": "^3.0.1",
