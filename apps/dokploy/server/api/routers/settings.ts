@@ -373,16 +373,24 @@ export const settingsRouter = createTRPCRouter({
 		const processedLogs = processLogs(rawConfig as string);
 		return processedLogs || [];
 	}),
-	activateLogRotate: adminProcedure.mutation(async () => {
-		await logRotationManager.activate();
-		return true;
-	}),
-	deactivateLogRotate: adminProcedure.mutation(async () => {
-		return await logRotationManager.deactivate();
-	}),
 	getLogRotateStatus: adminProcedure.query(async () => {
 		return await logRotationManager.getStatus();
 	}),
+	toggleLogRotate: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (input.enable) {
+				await logRotationManager.activate();
+			} else {
+				await logRotationManager.deactivate();
+			}
+
+			return true;
+		}),
 	haveActivateRequests: adminProcedure.query(async () => {
 		const config = readMainConfig();
 
@@ -402,22 +410,17 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const config = readMainConfig();
-			if (!config) return false;
+			const mainConfig = readMainConfig();
+			if (!mainConfig) return false;
+
+			const currentConfig = load(mainConfig) as {
+				accessLog?: {
+					filePath: string;
+				};
+			};
 
 			if (input.enable) {
-				const parsedConfig = load(config) as {
-					accessLog?: {
-						filePath: string;
-						format: string;
-						bufferingSize: number;
-						filters?: {
-							retryAttempts?: boolean;
-							minDuration?: string;
-						};
-					};
-				};
-				const config2 = {
+				const config = {
 					accessLog: {
 						filePath: "/etc/dokploy/traefik/dynamic/access.log",
 						format: "json",
@@ -428,18 +431,12 @@ export const settingsRouter = createTRPCRouter({
 						},
 					},
 				};
-				parsedConfig.accessLog = config2.accessLog;
-				writeMainConfig(dump(parsedConfig));
+				currentConfig.accessLog = config.accessLog;
 			} else {
-				const parsedConfig = load(config) as {
-					accessLog?: {
-						filePath: string;
-					};
-				};
-
-				delete parsedConfig.accessLog;
-				writeMainConfig(dump(parsedConfig));
+				currentConfig.accessLog = undefined;
 			}
+
+			writeMainConfig(dump(currentConfig));
 
 			return true;
 		}),

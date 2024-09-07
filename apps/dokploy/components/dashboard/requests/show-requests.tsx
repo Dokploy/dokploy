@@ -11,6 +11,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { RequestDistributionChart } from "./request-distribution-chart";
 import { RequestsTable } from "./requests-table";
+import { DialogAction } from "@/components/shared/dialog-action";
 
 export type LogEntry = NonNullable<
 	RouterOutputs["settings"]["readStatsLogs"]["data"]
@@ -20,9 +21,8 @@ export const ShowRequests = () => {
 	const { data: isLogRotateActive, refetch: refetchLogRotate } =
 		api.settings.getLogRotateStatus.useQuery();
 
-	const { mutateAsync } = api.settings.activateLogRotate.useMutation();
-	const { mutateAsync: deactivateLogRotate } =
-		api.settings.deactivateLogRotate.useMutation();
+	const { mutateAsync: toggleLogRotate } =
+		api.settings.toggleLogRotate.useMutation();
 
 	const { data: isActive, refetch } =
 		api.settings.haveActivateRequests.useQuery();
@@ -39,60 +39,57 @@ export const ShowRequests = () => {
 							<span>Showing web and API requests over time</span>
 						</CardDescription>
 						<div className="flex w-fit gap-4">
-							<Button
-								onClick={() => {
-									mutateAsync()
-										.then(async () => {
-											await toggleRequests({ enable: !isActive })
-												.then(() => {
-													refetch();
-													toast.success("Access Log Added to Traefik");
-												})
-												.catch((err) => {
-													toast.error(err.message);
-												});
+							<DialogAction
+								title={isActive ? "Deactivate Requests" : "Activate Requests"}
+								description="You will also need to restart Traefik to apply the changes"
+								onClick={async () => {
+									await toggleRequests({ enable: !isActive })
+										.then(() => {
+											refetch();
+											toast.success(
+												`Requests ${isActive ? "deactivated" : "activated"}`,
+											);
 										})
 										.catch((err) => {
 											toast.error(err.message);
 										});
 								}}
 							>
-								{isActive ? "Deactivate" : "Activate"}
-							</Button>
-							{!isLogRotateActive && (
-								<Button
-									variant="secondary"
-									onClick={() => {
-										mutateAsync()
-											.then(() => {
-												toast.success("Log rotate activated");
-												refetchLogRotate();
-											})
-											.catch((err) => {
-												toast.error(err.message);
-											});
-									}}
-								>
-									Activate Log Rotate
+								<Button>{isActive ? "Deactivate" : "Activate"}</Button>
+							</DialogAction>
+
+							<DialogAction
+								title={
+									isLogRotateActive
+										? "Activate Log Rotate"
+										: "Deactivate Log Rotate"
+								}
+								description={
+									isLogRotateActive
+										? "This will make the logs rotate on interval 1 day and maximum size of 100 MB and maximum 6 logs"
+										: "The log rotation will be disabled"
+								}
+								onClick={() => {
+									toggleLogRotate({
+										enable: !isLogRotateActive,
+									})
+										.then(() => {
+											toast.success(
+												`Log rotate ${isLogRotateActive ? "activated" : "deactivated"}`,
+											);
+											refetchLogRotate();
+										})
+										.catch((err) => {
+											toast.error(err.message);
+										});
+								}}
+							>
+								<Button variant="secondary">
+									{isLogRotateActive
+										? "Activate Log Rotate"
+										: "Deactivate Log Rotate"}
 								</Button>
-							)}
-							{isLogRotateActive && (
-								<Button
-									variant="secondary"
-									onClick={() => {
-										deactivateLogRotate()
-											.then(() => {
-												toast.success("Log rotate deactivated");
-												refetchLogRotate();
-											})
-											.catch((err) => {
-												toast.error(err.message);
-											});
-									}}
-								>
-									Deactivate Log Rotate
-								</Button>
-							)}
+							</DialogAction>
 						</div>
 					</div>
 				</CardHeader>
