@@ -1,14 +1,17 @@
-import { MAIN_TRAEFIK_PATH, MONITORING_PATH, docker } from "@/server/constants";
+import { MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
 	apiModifyTraefikConfig,
+	apiReadStatsLogs,
 	apiReadTraefikConfig,
 	apiSaveSSHKey,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
 import { initializeTraefik } from "@/server/setup/traefik-setup";
+import { logRotationManager } from "@/server/utils/access-log/handler";
+import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
 import {
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -26,6 +29,7 @@ import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
 	readConfigInPath,
+	readMonitoringConfig,
 	writeConfig,
 	writeTraefikConfigInPath,
 } from "@/server/utils/traefik/application";
@@ -37,6 +41,7 @@ import {
 } from "@/server/utils/traefik/web-server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
+import { dump, load } from "js-yaml";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { z } from "zod";
 import { appRouter } from "../root";
@@ -301,6 +306,10 @@ export const settingsRouter = createTRPCRouter({
 					"mongo",
 					"mariadb",
 					"sshRouter",
+					"gitProvider",
+					"bitbucket",
+					"github",
+					"gitlab",
 				],
 			});
 
@@ -322,9 +331,9 @@ export const settingsRouter = createTRPCRouter({
 	}),
 
 	writeTraefikEnv: adminProcedure
-		.input(z.string())
+		.input(z.object({ env: z.string() }))
 		.mutation(async ({ input }) => {
-			const envs = prepareEnvironmentVariables(input);
+			const envs = prepareEnvironmentVariables(input.env);
 			await initializeTraefik({
 				env: envs,
 			});
@@ -346,4 +355,89 @@ export const settingsRouter = createTRPCRouter({
 
 		return false;
 	}),
+
+	readStatsLogs: adminProcedure.input(apiReadStatsLogs).query(({ input }) => {
+		const rawConfig = readMonitoringConfig();
+		const parsedConfig = parseRawConfig(
+			rawConfig as string,
+			input.page,
+			input.sort,
+			input.search,
+			input.status,
+		);
+
+		return parsedConfig;
+	}),
+	readStats: adminProcedure.query(() => {
+		const rawConfig = readMonitoringConfig();
+		const processedLogs = processLogs(rawConfig as string);
+		return processedLogs || [];
+	}),
+	getLogRotateStatus: adminProcedure.query(async () => {
+		return await logRotationManager.getStatus();
+	}),
+	toggleLogRotate: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (input.enable) {
+				await logRotationManager.activate();
+			} else {
+				await logRotationManager.deactivate();
+			}
+
+			return true;
+		}),
+	haveActivateRequests: adminProcedure.query(async () => {
+		const config = readMainConfig();
+
+		if (!config) return false;
+		const parsedConfig = load(config) as {
+			accessLog?: {
+				filePath: string;
+			};
+		};
+
+		return !!parsedConfig?.accessLog?.filePath;
+	}),
+	toggleRequests: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const mainConfig = readMainConfig();
+			if (!mainConfig) return false;
+
+			const currentConfig = load(mainConfig) as {
+				accessLog?: {
+					filePath: string;
+				};
+			};
+
+			if (input.enable) {
+				const config = {
+					accessLog: {
+						filePath: "/etc/dokploy/traefik/dynamic/access.log",
+						format: "json",
+						bufferingSize: 100,
+						filters: {
+							retryAttempts: true,
+							minDuration: "10ms",
+						},
+					},
+				};
+				currentConfig.accessLog = config.accessLog;
+			} else {
+				currentConfig.accessLog = undefined;
+			}
+
+			writeMainConfig(dump(currentConfig));
+
+			return true;
+		}),
 });

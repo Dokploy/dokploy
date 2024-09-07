@@ -25,31 +25,49 @@ In: `header`
 
 <Property name={"host"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"path"} type={"string | null"} required={true} deprecated={undefined}>
+<Property name={"path"} type={"string | null"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
-
-</Property>
-
-<Property name={"port"} type={"number | null"} required={true} deprecated={undefined}>
+<span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"https"} type={"boolean"} required={true} deprecated={undefined}>
+<Property name={"port"} type={"number | null"} required={false} deprecated={undefined}>
+
+<span>Minimum: `1`</span>
+
+<span>Maximum: `65535`</span>
 
 </Property>
 
-<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"https"} type={"boolean"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"certificateType"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"applicationId"} type={"string | null"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"letsencrypt" | "none"`</span>
+</Property>
+
+<Property name={"certificateType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in: `"letsencrypt" | "none"`</span>
+
+</Property>
+
+<Property name={"composeId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"serviceName"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"domainType"} type={"string | null"} required={false} deprecated={undefined}>
+
+<span>Value in: `"compose" | "application"`</span>
 
 </Property>
 
@@ -71,10 +89,13 @@ curl -X POST "http://localhost:3000/api/domain.create" \
   -d '{
   "host": "string",
   "path": "string",
-  "port": 0,
+  "port": 1,
   "https": true,
   "applicationId": "string",
-  "certificateType": "letsencrypt"
+  "certificateType": "letsencrypt",
+  "composeId": "string",
+  "serviceName": "string",
+  "domainType": "compose"
 }'
 ```
 
@@ -237,9 +258,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/domain.generateDomain"}>
+<APIInfo method={"GET"} route={"/domain.byComposeId"}>
 
-## domain-generateDomain
+## domain-byComposeId
 
 ### Authorization
 
@@ -249,9 +270,11 @@ In: `header`
 
 </Property>
 
-### Request Body
+### Query Parameters
 
-<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"composeId"} type={"string"} required={true} deprecated={false}>
+
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -269,10 +292,7 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/domain.generateDomain" \
-  -d '{
-  "applicationId": "string"
-}'
+curl -X GET "http://localhost:3000/api/domain.byComposeId?composeId=string"
 ```
 
 </Request>
@@ -280,8 +300,8 @@ curl -X POST "http://localhost:3000/api/domain.generateDomain" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/domain.generateDomain", {
-  method: "POST"
+fetch("http://localhost:3000/api/domain.byComposeId?composeId=string", {
+  method: "GET"
 });
 ```
 
@@ -337,9 +357,9 @@ export interface Response {
 
 <API>
 
-<APIInfo method={"POST"} route={"/domain.generateWildcard"}>
+<APIInfo method={"POST"} route={"/domain.generateDomain"}>
 
-## domain-generateWildcard
+## domain-generateDomain
 
 ### Authorization
 
@@ -351,7 +371,9 @@ In: `header`
 
 ### Request Body
 
-<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"appName"} type={"string"} required={true} deprecated={undefined}>
+
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -369,9 +391,9 @@ In: `header`
 <Request value={"cURL"}>
 
 ```bash
-curl -X POST "http://localhost:3000/api/domain.generateWildcard" \
+curl -X POST "http://localhost:3000/api/domain.generateDomain" \
   -d '{
-  "applicationId": "string"
+  "appName": "string"
 }'
 ```
 
@@ -380,7 +402,7 @@ curl -X POST "http://localhost:3000/api/domain.generateWildcard" \
 <Request value={"JavaScript"}>
 
 ```js
-fetch("http://localhost:3000/api/domain.generateWildcard", {
+fetch("http://localhost:3000/api/domain.generateDomain", {
   method: "POST"
 });
 ```
@@ -451,35 +473,47 @@ In: `header`
 
 ### Request Body
 
-<Property name={"domainId"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length:  `1`</span>
-
-</Property>
-
 <Property name={"host"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"path"} type={"string | null"} required={true} deprecated={undefined}>
+<Property name={"path"} type={"string | null"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
-
-</Property>
-
-<Property name={"port"} type={"number | null"} required={true} deprecated={undefined}>
+<span>Minimum length: `1`</span>
 
 </Property>
 
-<Property name={"https"} type={"boolean"} required={true} deprecated={undefined}>
+<Property name={"port"} type={"number | null"} required={false} deprecated={undefined}>
+
+<span>Minimum: `1`</span>
+
+<span>Maximum: `65535`</span>
 
 </Property>
 
-<Property name={"certificateType"} type={"string"} required={true} deprecated={undefined}>
+<Property name={"https"} type={"boolean"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"letsencrypt" | "none"`</span>
+</Property>
+
+<Property name={"certificateType"} type={"string"} required={false} deprecated={undefined}>
+
+<span>Value in: `"letsencrypt" | "none"`</span>
+
+</Property>
+
+<Property name={"serviceName"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"domainType"} type={"string | null"} required={false} deprecated={undefined}>
+
+<span>Value in: `"compose" | "application"`</span>
+
+</Property>
+
+<Property name={"domainId"} type={"string"} required={true} deprecated={undefined}>
 
 </Property>
 
@@ -499,12 +533,14 @@ In: `header`
 ```bash
 curl -X POST "http://localhost:3000/api/domain.update" \
   -d '{
-  "domainId": "string",
   "host": "string",
   "path": "string",
-  "port": 0,
+  "port": 1,
   "https": true,
-  "certificateType": "letsencrypt"
+  "certificateType": "letsencrypt",
+  "serviceName": "string",
+  "domainType": "compose",
+  "domainId": "string"
 }'
 ```
 
@@ -585,8 +621,6 @@ In: `header`
 ### Query Parameters
 
 <Property name={"domainId"} type={"string"} required={true} deprecated={false}>
-
-<span>Minimum length:  `1`</span>
 
 </Property>
 
@@ -684,8 +718,6 @@ In: `header`
 ### Request Body
 
 <Property name={"domainId"} type={"string"} required={true} deprecated={undefined}>
-
-<span>Minimum length:  `1`</span>
 
 </Property>
 

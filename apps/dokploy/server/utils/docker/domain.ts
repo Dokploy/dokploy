@@ -1,13 +1,16 @@
-import fs, { existsSync, readFileSync, writeSync } from "node:fs";
+import fs, { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
 import { COMPOSE_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import { cloneRawBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRawRepository } from "../providers/git";
 import { cloneRawGithubRepository } from "../providers/github";
+import { cloneRawGitlabRepository } from "../providers/gitlab";
 import { createComposeFileRaw } from "../providers/raw";
+import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -17,6 +20,10 @@ import type {
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
 		await cloneRawGithubRepository(compose);
+	} else if (compose.sourceType === "gitlab") {
+		await cloneRawGitlabRepository(compose);
+	} else if (compose.sourceType === "bitbucket") {
+		await cloneRawBitbucketRepository(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneGitRawRepository(compose);
 	} else if (compose.sourceType === "raw") {
@@ -82,10 +89,15 @@ export const addDomainToCompose = async (
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
-	const result = await loadDockerCompose(compose);
+	let result = await loadDockerCompose(compose);
 
 	if (!result || domains.length === 0) {
 		return null;
+	}
+
+	if (compose.randomize) {
+		const randomized = randomizeSpecificationFile(result, compose.suffix);
+		result = randomized;
 	}
 
 	for (const domain of domains) {

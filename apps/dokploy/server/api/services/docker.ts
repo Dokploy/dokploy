@@ -150,3 +150,20 @@ export const getContainersByAppLabel = async (appName: string) => {
 
 	return [];
 };
+
+export const containerRestart = async (containerId: string) => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker container restart ${containerId}`,
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const config = JSON.parse(stdout);
+
+		return config;
+	} catch (error) {}
+};

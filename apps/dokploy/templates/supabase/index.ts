@@ -1,9 +1,9 @@
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
 	generateBase64,
-	generateHash,
 	generatePassword,
 	generateRandomDomain,
 } from "../utils";
@@ -61,8 +61,7 @@ export function generateSupabaseServiceJWT(secret: string): string {
 }
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const mainDomain = generateRandomDomain(schema);
 
 	const postgresPassword = generatePassword(32);
 	const jwtSecret = generateBase64(32);
@@ -71,9 +70,16 @@ export function generate(schema: Schema): Template {
 
 	const annonKey = generateSupabaseAnonJWT(jwtSecret);
 	const serviceRoleKey = generateSupabaseServiceJWT(jwtSecret);
+	const domains: DomainSchema[] = [
+		{
+			serviceName: "kong",
+			host: mainDomain,
+			port: 8000,
+		},
+	];
 
 	const envs = [
-		`SUPABASE_HOST=${randomDomain}`,
+		`SUPABASE_HOST=${mainDomain}`,
 		`POSTGRES_PASSWORD=${postgresPassword}`,
 		`JWT_SECRET=${jwtSecret}`,
 		`ANON_KEY=${annonKey}`,
@@ -114,7 +120,6 @@ export function generate(schema: Schema): Template {
 		"DOCKER_SOCKET_LOCATION=/var/run/docker.sock",
 		"GOOGLE_PROJECT_ID=GOOGLE_PROJECT_ID",
 		"GOOGLE_PROJECT_NUMBER=GOOGLE_PROJECT_NUMBER",
-		`HASH=${mainServiceHash}`,
 	];
 
 	const mounts: Template["mounts"] = [
@@ -983,6 +988,7 @@ sinks:
 	];
 
 	return {
+		domains,
 		envs,
 		mounts,
 	};

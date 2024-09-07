@@ -1,9 +1,10 @@
 import { sshKeys } from "@/server/db/schema/ssh-key";
 import { relations } from "drizzle-orm";
-import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { bitbucket, github, gitlab } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -14,6 +15,8 @@ import { generateAppName } from "./utils";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
+	"gitlab",
+	"bitbucket",
 	"raw",
 ]);
 
@@ -39,6 +42,16 @@ export const compose = pgTable("compose", {
 	owner: text("owner"),
 	branch: text("branch"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
+	// Gitlab
+	gitlabProjectId: integer("gitlabProjectId"),
+	gitlabRepository: text("gitlabRepository"),
+	gitlabOwner: text("gitlabOwner"),
+	gitlabBranch: text("gitlabBranch"),
+	gitlabPathNamespace: text("gitlabPathNamespace"),
+	// Bitbucket
+	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketOwner: text("bitbucketOwner"),
+	bitbucketBranch: text("bitbucketBranch"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -48,10 +61,11 @@ export const compose = pgTable("compose", {
 			onDelete: "set null",
 		},
 	),
-	//
 	command: text("command").notNull().default(""),
 	//
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
+	suffix: text("suffix").notNull().default(""),
+	randomize: boolean("randomize").notNull().default(false),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
@@ -59,6 +73,16 @@ export const compose = pgTable("compose", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+
+	githubId: text("githubId").references(() => github.githubId, {
+		onDelete: "set null",
+	}),
+	gitlabId: text("gitlabId").references(() => gitlab.gitlabId, {
+		onDelete: "set null",
+	}),
+	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
+		onDelete: "set null",
+	}),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -73,6 +97,18 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		references: [sshKeys.sshKeyId],
 	}),
 	domains: many(domains),
+	github: one(github, {
+		fields: [compose.githubId],
+		references: [github.githubId],
+	}),
+	gitlab: one(gitlab, {
+		fields: [compose.gitlabId],
+		references: [gitlab.gitlabId],
+	}),
+	bitbucket: one(bitbucket, {
+		fields: [compose.bitbucketId],
+		references: [bitbucket.bitbucketId],
+	}),
 }));
 
 const createSchema = createInsertSchema(compose, {
@@ -123,6 +159,6 @@ export const apiRandomizeCompose = createSchema
 		composeId: true,
 	})
 	.extend({
-		prefix: z.string().optional(),
+		suffix: z.string().optional(),
 		composeId: z.string().min(1),
 	});

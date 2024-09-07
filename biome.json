@@ -8,6 +8,9 @@
 	},
 	"linter": {
 		"rules": {
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			},
 			"complexity": {
 				"noUselessCatch": "off",
 				"noBannedTypes": "off"

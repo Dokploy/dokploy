@@ -232,6 +232,34 @@
       "when": 1723705257806,
       "tag": "0032_flashy_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1725250322137,
+      "tag": "0033_white_hawkeye",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1725256397019,
+      "tag": "0034_aspiring_secret_warriors",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1725429324584,
+      "tag": "0035_cool_gravity",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1725519351871,
+      "tag": "0036_tired_ronan",
+      "breakpoints": true
     }
   ]
 }

@@ -25,7 +25,7 @@ In: `header`
 
 <Property name={"name"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -750,6 +750,10 @@ In: `header`
 
 </Property>
 
+<Property name={"buildArgs"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
 | Status code | Description |
 | ----------- | ----------- |
 | `200` | Successful response |
@@ -767,7 +771,8 @@ In: `header`
 curl -X POST "http://localhost:3000/api/application.saveEnvironment" \
   -d '{
   "applicationId": "string",
-  "env": "string"
+  "env": "string",
+  "buildArgs": "string"
 }'
 ```
 
@@ -853,11 +858,19 @@ In: `header`
 
 <Property name={"buildType"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Value in:  `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks"`</span>
+<span>Value in: `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks" | "static"`</span>
 
 </Property>
 
 <Property name={"dockerfile"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"dockerContextPath"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"publishDirectory"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -879,7 +892,9 @@ curl -X POST "http://localhost:3000/api/application.saveBuildType" \
   -d '{
   "applicationId": "string",
   "buildType": "dockerfile",
-  "dockerfile": "string"
+  "dockerfile": "string",
+  "dockerContextPath": "string",
+  "publishDirectory": "string"
 }'
 ```
 
@@ -979,6 +994,10 @@ In: `header`
 
 </Property>
 
+<Property name={"githubId"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
 | Status code | Description |
 | ----------- | ----------- |
 | `200` | Successful response |
@@ -999,7 +1018,8 @@ curl -X POST "http://localhost:3000/api/application.saveGithubProvider" \
   "repository": "string",
   "branch": "string",
   "owner": "string",
-  "buildPath": "string"
+  "buildPath": "string",
+  "githubId": "string"
 }'
 ```
 
@@ -1009,6 +1029,266 @@ curl -X POST "http://localhost:3000/api/application.saveGithubProvider" \
 
 ```js
 fetch("http://localhost:3000/api/application.saveGithubProvider", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveGitlabProvider"}>
+
+## application-saveGitlabProvider
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabBranch"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabBuildPath"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabOwner"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabRepository"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabId"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabProjectId"} type={"number | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabPathNamespace"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveGitlabProvider" \
+  -d '{
+  "applicationId": "string",
+  "gitlabBranch": "string",
+  "gitlabBuildPath": "string",
+  "gitlabOwner": "string",
+  "gitlabRepository": "string",
+  "gitlabId": "string",
+  "gitlabProjectId": 0,
+  "gitlabPathNamespace": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveGitlabProvider", {
+  method: "POST"
+});
+```
+
+</Request>
+
+</Requests>
+
+<Responses items={["default"]}>
+
+<Response value={"default"}>
+
+<ResponseTypes>
+
+<ExampleResponse>
+
+```json
+{
+  "message": "string",
+  "code": "string",
+  "issues": [
+    {
+      "message": "string"
+    }
+  ]
+}
+```
+
+</ExampleResponse>
+
+<TypeScriptResponse>
+
+```ts
+export interface Response {
+  message: string;
+  code: string;
+  issues?: {
+    message: string;
+  }[];
+}
+```
+
+</TypeScriptResponse>
+
+</ResponseTypes>
+
+</Response>
+
+</Responses>
+
+</APIExample>
+
+</API>
+
+<API>
+
+<APIInfo method={"POST"} route={"/application.saveBitbucketProvider"}>
+
+## application-saveBitbucketProvider
+
+### Authorization
+
+<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
+
+In: `header`
+
+</Property>
+
+### Request Body
+
+<Property name={"bitbucketBranch"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketBuildPath"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketOwner"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketRepository"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketId"} type={"string | null"} required={true} deprecated={undefined}>
+
+</Property>
+
+<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
+
+</Property>
+
+| Status code | Description |
+| ----------- | ----------- |
+| `200` | Successful response |
+| `default` | Error response |
+
+</APIInfo>
+
+<APIExample>
+
+<Requests items={["cURL","JavaScript"]}>
+
+<Request value={"cURL"}>
+
+```bash
+curl -X POST "http://localhost:3000/api/application.saveBitbucketProvider" \
+  -d '{
+  "bitbucketBranch": "string",
+  "bitbucketBuildPath": "string",
+  "bitbucketOwner": "string",
+  "bitbucketRepository": "string",
+  "bitbucketId": "string",
+  "applicationId": "string"
+}'
+```
+
+</Request>
+
+<Request value={"JavaScript"}>
+
+```js
+fetch("http://localhost:3000/api/application.saveBitbucketProvider", {
   method: "POST"
 });
 ```
@@ -1210,6 +1490,10 @@ In: `header`
 
 </Property>
 
+<Property name={"customGitSSHKeyId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
 | Status code | Description |
 | ----------- | ----------- |
 | `200` | Successful response |
@@ -1229,7 +1513,8 @@ curl -X POST "http://localhost:3000/api/application.saveGitProdiver" \
   "customGitBranch": "string",
   "applicationId": "string",
   "customGitBuildPath": "string",
-  "customGitUrl": "string"
+  "customGitUrl": "string",
+  "customGitSSHKeyId": "string"
 }'
 ```
 
@@ -1239,206 +1524,6 @@ curl -X POST "http://localhost:3000/api/application.saveGitProdiver" \
 
 ```js
 fetch("http://localhost:3000/api/application.saveGitProdiver", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
-<APIInfo method={"POST"} route={"/application.generateSSHKey"}>
-
-## application-generateSSHKey
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/application.generateSSHKey" \
-  -d '{
-  "applicationId": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/application.generateSSHKey", {
-  method: "POST"
-});
-```
-
-</Request>
-
-</Requests>
-
-<Responses items={["default"]}>
-
-<Response value={"default"}>
-
-<ResponseTypes>
-
-<ExampleResponse>
-
-```json
-{
-  "message": "string",
-  "code": "string",
-  "issues": [
-    {
-      "message": "string"
-    }
-  ]
-}
-```
-
-</ExampleResponse>
-
-<TypeScriptResponse>
-
-```ts
-export interface Response {
-  message: string;
-  code: string;
-  issues?: {
-    message: string;
-  }[];
-}
-```
-
-</TypeScriptResponse>
-
-</ResponseTypes>
-
-</Response>
-
-</Responses>
-
-</APIExample>
-
-</API>
-
-<API>
-
-<APIInfo method={"POST"} route={"/application.removeSSHKey"}>
-
-## application-removeSSHKey
-
-### Authorization
-
-<Property name={"Authorization"} type={"Bearer <token>"} required={true}>
-
-In: `header`
-
-</Property>
-
-### Request Body
-
-<Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
-
-</Property>
-
-| Status code | Description |
-| ----------- | ----------- |
-| `200` | Successful response |
-| `default` | Error response |
-
-</APIInfo>
-
-<APIExample>
-
-<Requests items={["cURL","JavaScript"]}>
-
-<Request value={"cURL"}>
-
-```bash
-curl -X POST "http://localhost:3000/api/application.removeSSHKey" \
-  -d '{
-  "applicationId": "string"
-}'
-```
-
-</Request>
-
-<Request value={"JavaScript"}>
-
-```js
-fetch("http://localhost:3000/api/application.removeSSHKey", {
   method: "POST"
 });
 ```
@@ -1611,13 +1696,13 @@ In: `header`
 
 <Property name={"applicationId"} type={"string"} required={true} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
 <Property name={"name"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Minimum length:  `1`</span>
+<span>Minimum length: `1`</span>
 
 </Property>
 
@@ -1630,6 +1715,10 @@ In: `header`
 </Property>
 
 <Property name={"env"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"buildArgs"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -1671,7 +1760,7 @@ In: `header`
 
 <Property name={"sourceType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"github" | "docker" | "git"`</span>
+<span>Value in: `"github" | "docker" | "git"`</span>
 
 </Property>
 
@@ -1692,6 +1781,46 @@ In: `header`
 </Property>
 
 <Property name={"autoDeploy"} type={"boolean | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabProjectId"} type={"number | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabRepository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabOwner"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabBuildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabPathNamespace"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketRepository"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketOwner"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketBranch"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketBuildPath"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -1719,7 +1848,7 @@ In: `header`
 
 </Property>
 
-<Property name={"customGitSSHKey"} type={"string | null"} required={false} deprecated={undefined}>
+<Property name={"customGitSSHKeyId"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -1727,11 +1856,19 @@ In: `header`
 
 </Property>
 
+<Property name={"dockerContextPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"dropBuildPath"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
 <Property name={"healthCheckSwarm"} type={"object | null"} required={false} deprecated={undefined}>
 
 <ObjectCollapsible name={"healthCheckSwarm"}>
 
-<Property name={"Test"} type={"array of string"} required={false} deprecated={undefined}>
+<Property name={"Test"} type={"array<string>"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -1783,13 +1920,13 @@ In: `header`
 
 <ObjectCollapsible name={"placementSwarm"}>
 
-<Property name={"Constraints"} type={"array of string"} required={false} deprecated={undefined}>
+<Property name={"Constraints"} type={"array<string>"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"Preferences"} type={"array of object"} required={false} deprecated={undefined}>
+<Property name={"Preferences"} type={"array<object>"} required={false} deprecated={undefined}>
 
-<ObjectCollapsible name={"Preferences"}>
+<ObjectCollapsible name={"Object 1"}>
 
 <Property name={"Spread"} type={"object"} required={true} deprecated={undefined}>
 
@@ -1811,9 +1948,9 @@ In: `header`
 
 </Property>
 
-<Property name={"Platforms"} type={"array of object"} required={false} deprecated={undefined}>
+<Property name={"Platforms"} type={"array<object>"} required={false} deprecated={undefined}>
 
-<ObjectCollapsible name={"Platforms"}>
+<ObjectCollapsible name={"Object 1"}>
 
 <Property name={"Architecture"} type={"string"} required={true} deprecated={undefined}>
 
@@ -1959,15 +2096,15 @@ In: `header`
 
 </Property>
 
-<Property name={"networkSwarm"} type={"array of object | null"} required={false} deprecated={undefined}>
+<Property name={"networkSwarm"} type={"array<object> | null"} required={false} deprecated={undefined}>
 
-<ObjectCollapsible name={"networkSwarm"}>
+<ObjectCollapsible name={"Object 1"}>
 
 <Property name={"Target"} type={"string"} required={false} deprecated={undefined}>
 
 </Property>
 
-<Property name={"Aliases"} type={"array of string"} required={false} deprecated={undefined}>
+<Property name={"Aliases"} type={"array<string>"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -1989,13 +2126,17 @@ In: `header`
 
 <Property name={"applicationStatus"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"idle" | "running" | "done" | "error"`</span>
+<span>Value in: `"idle" | "running" | "done" | "error"`</span>
 
 </Property>
 
 <Property name={"buildType"} type={"string"} required={false} deprecated={undefined}>
 
-<span>Value in:  `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks"`</span>
+<span>Value in: `"dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks" | "static"`</span>
+
+</Property>
+
+<Property name={"publishDirectory"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -2008,6 +2149,18 @@ In: `header`
 </Property>
 
 <Property name={"projectId"} type={"string"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"githubId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"gitlabId"} type={"string | null"} required={false} deprecated={undefined}>
+
+</Property>
+
+<Property name={"bitbucketId"} type={"string | null"} required={false} deprecated={undefined}>
 
 </Property>
 
@@ -2032,6 +2185,7 @@ curl -X POST "http://localhost:3000/api/application.update" \
   "appName": "string",
   "description": "string",
   "env": "string",
+  "buildArgs": "string",
   "memoryReservation": 0,
   "memoryLimit": 0,
   "cpuReservation": 0,
@@ -2047,14 +2201,26 @@ curl -X POST "http://localhost:3000/api/application.update" \
   "branch": "string",
   "buildPath": "string",
   "autoDeploy": true,
+  "gitlabProjectId": 0,
+  "gitlabRepository": "string",
+  "gitlabOwner": "string",
+  "gitlabBranch": "string",
+  "gitlabBuildPath": "string",
+  "gitlabPathNamespace": "string",
+  "bitbucketRepository": "string",
+  "bitbucketOwner": "string",
+  "bitbucketBranch": "string",
+  "bitbucketBuildPath": "string",
   "username": "string",
   "password": "string",
   "dockerImage": "string",
   "customGitUrl": "string",
   "customGitBranch": "string",
   "customGitBuildPath": "string",
-  "customGitSSHKey": "string",
+  "customGitSSHKeyId": "string",
   "dockerfile": "string",
+  "dockerContextPath": "string",
+  "dropBuildPath": "string",
   "healthCheckSwarm": {
     "Test": [
       "string"
@@ -2132,9 +2298,13 @@ curl -X POST "http://localhost:3000/api/application.update" \
   "replicas": 0,
   "applicationStatus": "idle",
   "buildType": "dockerfile",
+  "publishDirectory": "string",
   "createdAt": "string",
   "registryId": "string",
-  "projectId": "string"
+  "projectId": "string",
+  "githubId": "string",
+  "gitlabId": "string",
+  "bitbucketId": "string"
 }'
 ```
 

@@ -6,16 +6,16 @@ import type {
 } from "../types";
 
 // Función para agregar prefijo a volúmenes
-export const addPrefixToVolumesRoot = (
+export const addSuffixToVolumesRoot = (
 	volumes: { [key: string]: DefinitionsVolume },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsVolume } => {
-	return _.mapKeys(volumes, (_value, key) => `${key}-${prefix}`);
+	return _.mapKeys(volumes, (_value, key) => `${key}-${suffix}`);
 };
 
-export const addPrefixToVolumesInServices = (
+export const addSuffixToVolumesInServices = (
 	services: { [key: string]: DefinitionsService },
-	prefix: string,
+	suffix: string,
 ): { [key: string]: DefinitionsService } => {
 	const newServices: { [key: string]: DefinitionsService } = {};
 
@@ -36,12 +36,12 @@ export const addPrefixToVolumesInServices = (
 					) {
 						return volume;
 					}
-					return `${volumeName}-${prefix}:${path}`;
+					return `${volumeName}-${suffix}:${path}`;
 				}
 				if (_.isObject(volume) && volume.type === "volume" && volume.source) {
 					return {
 						...volume,
-						source: `${volume.source}-${prefix}`,
+						source: `${volume.source}-${suffix}`,
 					};
 				}
 				return volume;
@@ -54,23 +54,23 @@ export const addPrefixToVolumesInServices = (
 	return newServices;
 };
 
-export const addPrefixToAllVolumes = (
+export const addSuffixToAllVolumes = (
 	composeData: ComposeSpecification,
-	prefix: string,
+	suffix: string,
 ): ComposeSpecification => {
 	const updatedComposeData = { ...composeData };
 
 	if (updatedComposeData.volumes) {
-		updatedComposeData.volumes = addPrefixToVolumesRoot(
+		updatedComposeData.volumes = addSuffixToVolumesRoot(
 			updatedComposeData.volumes,
-			prefix,
+			suffix,
 		);
 	}
 
 	if (updatedComposeData.services) {
-		updatedComposeData.services = addPrefixToVolumesInServices(
+		updatedComposeData.services = addSuffixToVolumesInServices(
 			updatedComposeData.services,
-			prefix,
+			suffix,
 		);
 	}
 

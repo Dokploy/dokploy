@@ -1,7 +1,7 @@
 import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Domain } from "@/server/api/services/domain";
-import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
+import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
@@ -69,6 +69,15 @@ export const loadOrCreateConfig = (appName: string): FileConfig => {
 
 export const readConfig = (appName: string) => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+	if (fs.existsSync(configPath)) {
+		const yamlStr = fs.readFileSync(configPath, "utf8");
+		return yamlStr;
+	}
+	return null;
+};
+
+export const readMonitoringConfig = () => {
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
 		const yamlStr = fs.readFileSync(configPath, "utf8");
 		return yamlStr;

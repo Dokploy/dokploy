@@ -34,6 +34,9 @@ export const users = pgTable("user", {
 	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
 	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
 	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
+	canAccessToGitProviders: boolean("canAccessToGitProviders")
+		.notNull()
+		.default(false),
 	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
 		.notNull()
 		.default(false),
@@ -109,6 +112,7 @@ export const apiAssignPermissions = createSchema
 		canAccessToDocker: true,
 		canAccessToAPI: true,
 		canAccessToSSHKeys: true,
+		canAccessToGitProviders: true,
 	})
 	.required();
 
