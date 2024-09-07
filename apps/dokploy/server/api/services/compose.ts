@@ -174,11 +174,11 @@ export const deployCompose = async ({
 
 	try {
 		if (compose.sourceType === "github") {
-			await cloneGithubRepository(compose, deployment.logPath);
+			await cloneGithubRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "gitlab") {
-			await cloneGitlabRepository(compose, deployment.logPath);
+			await cloneGitlabRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "bitbucket") {
-			await cloneBitbucketRepository(compose, deployment.logPath);
+			await cloneBitbucketRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "raw") {
