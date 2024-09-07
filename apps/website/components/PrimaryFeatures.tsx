@@ -5,48 +5,44 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import { Container } from "./Container";
 
 const features = [
 	{
-		title: "Projects",
-		description:
-			"Manage and organize all your projects in one place, keeping detailed track of progress and resource allocation.",
+		title: "primaryFeatures.projects",
+		description: "primaryFeatures.projectsDes",
 		image: "/primary/projects.png",
 	},
 	{
-		title: "Applications & Databases",
-		description:
-			"Centralize control over your applications and databases for enhanced security and efficiency, simplifying access and management across your infrastructure.",
+		title: "primaryFeatures.applications",
+		description: "primaryFeatures.applicationsDes",
 		image: "/primary/applications.png",
 	},
 	{
-		title: "Docker Compose",
-		description:
-			"Native Docker Compose support for manage complex applications and services with ease.",
+		title: "primaryFeatures.compose",
+		description: "primaryFeatures.composeDes",
 		image: "/primary/compose.png",
 	},
 	{
-		title: "Multi Node",
-		description:
-			"Scale applications to multiples nodes using docker swarm to manage the cluster.",
+		title: "primaryFeatures.multinode",
+		description: "primaryFeatures.multinodeDes",
 		image: "/primary/multinode.png",
 	},
 	{
-		title: "Monitoring",
-		description:
-			"Monitor your systems' performance and health in real time, ensuring continuous and uninterrupted operation.",
+		title: "primaryFeatures.monitoring",
+		description: "primaryFeatures.monitoringDes",
 		image: "/primary/monitoring.png",
 	},
 	{
-		title: "Backups",
-		description:
-			"Implement automatic and secure backup solutions to protect your critical data and restore it quickly when necessary.",
+		title: "primaryFeatures.backups",
+		description: "primaryFeatures.backupsDes",
 		image: "/primary/backups.png",
 	},
 ];
 
 export function PrimaryFeatures() {
+	const t = useTranslations("HomePage");
 	const [tabOrientation, setTabOrientation] = useState<
 		"horizontal" | "vertical"
 	>("horizontal");
@@ -92,11 +88,10 @@ export function PrimaryFeatures() {
 			<Container className="relative">
 				<div className="max-w-2xl md:mx-auto md:text-center xl:max-w-none">
 					<h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl md:text-5xl">
-						Comprehensive Control for Your Digital Ecosystem
+						{t("primaryFeatures.title")}
 					</h2>
 					<p className="mt-6 text-lg tracking-tight text-muted-foreground">
-						Simplify your project and data management, ensure robust monitoring,
-						and secure your backups—all without the fuss over minute details.
+						{t("primaryFeatures.des")}
 					</p>
 				</div>
 				<Tab.Group
@@ -118,14 +113,14 @@ export function PrimaryFeatures() {
 											initial={false}
 											key={`feature-${featureIndex}`}
 											className={cn(
-												"group relative rounded-full px-4 py-1 lg:rounded-l-xl lg:rounded-r-none lg:p-6 transition-colors ",
+												"group relative rounded-full px-4 py-1 transition-colors lg:rounded-l-xl lg:rounded-r-none lg:p-6 ",
 											)}
 										>
 											<AnimatePresence>
 												{selectedIndex === featureIndex && (
 													<motion.span
 														layoutId="tab"
-														className="absolute inset-0 z-10 bg-white/5 rounded-full mix-blend-difference lg:rounded-l-xl lg:rounded-r-none"
+														className="absolute inset-0 z-10 rounded-full bg-white/5 mix-blend-difference lg:rounded-l-xl lg:rounded-r-none"
 														initial={{ opacity: 1 }}
 														animate={{ opacity: 1 }}
 														exit={{ opacity: 0 }}
@@ -140,19 +135,19 @@ export function PrimaryFeatures() {
 											<h3>
 												<Tab
 													className={cn(
-														"font-display text-lg ui-not-focus-visible:outline-none text-primary",
+														"font-display text-lg text-primary ui-not-focus-visible:outline-none",
 													)}
 												>
 													<span className="absolute inset-0 rounded-full lg:rounded-l-xl lg:rounded-r-none" />
-													{feature.title}
+													{t(feature.title)}
 												</Tab>
 											</h3>
 											<p
 												className={cn(
-													"mt-2 hidden text-sm lg:block text-muted-foreground",
+													"mt-2 hidden text-sm text-muted-foreground lg:block",
 												)}
 											>
-												{feature.description}
+												{t(feature.description)}
 											</p>
 										</motion.div>
 									))}
@@ -164,7 +159,7 @@ export function PrimaryFeatures() {
 										<div className="relative sm:px-6 lg:hidden">
 											<div className="absolute -inset-x-4 bottom-[-4.25rem] top-[-6.5rem] bg-white/10 ring-1 ring-inset ring-white/10 sm:inset-x-0 sm:rounded-t-xl" />
 											<p className="relative mx-auto max-w-2xl text-base text-white sm:text-center">
-												{feature.description}
+												{t(feature.description)}
 											</p>
 										</div>
 
@@ -178,7 +173,7 @@ export function PrimaryFeatures() {
 												bounce: 0.2,
 												duration: 0.6,
 											}}
-											className="mt-10 h-[24rem] lg:h-[40rem] w-[45rem] overflow-hidden rounded-xl shadow-xl border  sm:w-auto lg:mt-0 lg:w-[67.8125rem]"
+											className="mt-10 h-[24rem] w-[45rem] overflow-hidden rounded-xl border shadow-xl sm:w-auto  lg:mt-0 lg:h-[40rem] lg:w-[67.8125rem]"
 										>
 											<img
 												alt=""

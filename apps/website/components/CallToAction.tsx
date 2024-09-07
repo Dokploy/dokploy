@@ -1,12 +1,15 @@
 import { Container } from "@/components/Container";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Button } from "./ui/button";
 
 export function CallToAction() {
+	const t = useTranslations("HomePage");
+	const linkT = useTranslations("Link");
 	return (
 		<section
 			id="get-started-today"
-			className="relative  overflow-hidden  py-10 bg-black border-y border-border/30"
+			className="relative  overflow-hidden  border-y border-border/30 bg-black py-10"
 		>
 			<svg
 				viewBox="0 0 2000 1000"
@@ -27,26 +30,23 @@ export function CallToAction() {
 					</radialGradient>
 				</defs>
 			</svg>
-			<Container className="z-30 relative">
+			<Container className="relative z-30">
 				<div className="mx-auto max-w-lg text-center">
 					<h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl">
-						Unlock Your Deployment Potential
+						{t("callToAction.title")}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight text-muted-foreground">
-						Streamline your deployments with our PaaS. Effortlessly manage
-						Docker containers and traffic with Traefik. Boost your
-						infrastructure's efficiency and security today
+						{t("callToAction.des")}
 					</p>
 
-					{/* @ts-expect-error */}
-					<Button className="rounded-full mt-10" asChild>
+					<Button className="mt-10 rounded-full" asChild>
 						<Link
-							href="https://docs.dokploy.com/get-started/installation"
+							href={linkT("docs.install")}
 							aria-label="Dokploy on GitHub"
 							target="_blank"
-							className="flex flex-row gap-2 items-center"
+							className="flex flex-row items-center gap-2"
 						>
-							Get Started Now
+							{t("callToAction.button")}
 						</Link>
 					</Button>
 				</div>

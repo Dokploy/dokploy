@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { trackGAEvent } from "./analitycs";
 
 export function NavLink({
