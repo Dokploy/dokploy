@@ -137,7 +137,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 											<FormLabel>Group Name (Optional)</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization/group access"
+													placeholder="For organization/group access use the slugish name of the group eg: my-org"
 													{...field}
 												/>
 											</FormControl>
