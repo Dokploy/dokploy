@@ -63,6 +63,10 @@ export function parseRawConfig(
 			.map((line) => JSON.parse(line) as LogEntry)
 			.value();
 
+		parsedLogs = parsedLogs.filter(
+			(log) => log.ServiceName !== "dokploy-service-app@file",
+		);
+
 		if (search) {
 			parsedLogs = parsedLogs.filter((log) =>
 				log.RequestPath.toLowerCase().includes(search.toLowerCase()),
@@ -89,10 +93,6 @@ export function parseRawConfig(
 			const startIndex = page.pageIndex * page.pageSize;
 			parsedLogs = parsedLogs.slice(startIndex, startIndex + page.pageSize);
 		}
-
-		parsedLogs = parsedLogs.filter(
-			(log) => log.ServiceName !== "dokploy-service-app@file",
-		);
 
 		const totalCount = parsedLogs.length;
 

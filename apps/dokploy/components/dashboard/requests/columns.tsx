@@ -49,8 +49,11 @@ export const columns: ColumnDef<LogEntry>[] = [
 			const log = row.original;
 			return (
 				<div className=" flex flex-col gap-2">
-					<div>
-						{log.RequestMethod} {log.RequestPath}
+					<div className="flex flex-row gap-3 ">
+						{log.RequestMethod}{" "}
+						{log.RequestPath.length > 100
+							? `${log.RequestPath.slice(0, 82)}...`
+							: log.RequestPath}
 					</div>
 					<div className="flex flex-row gap-3 w-full">
 						<Badge variant={getStatusColor(log.OriginStatus)}>
