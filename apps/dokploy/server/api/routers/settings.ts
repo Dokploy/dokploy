@@ -41,6 +41,7 @@ import {
 } from "@/server/utils/traefik/web-server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
+import { dump, load } from "js-yaml";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { z } from "zod";
 import { appRouter } from "../root";
@@ -372,14 +373,71 @@ export const settingsRouter = createTRPCRouter({
 		const processedLogs = processLogs(rawConfig as string);
 		return processedLogs || [];
 	}),
-	activateLogRotate: adminProcedure.mutation(async () => {
-		await logRotationManager.activate();
-		return true;
-	}),
-	deactivateLogRotate: adminProcedure.mutation(async () => {
-		return await logRotationManager.deactivate();
-	}),
 	getLogRotateStatus: adminProcedure.query(async () => {
 		return await logRotationManager.getStatus();
 	}),
+	toggleLogRotate: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (input.enable) {
+				await logRotationManager.activate();
+			} else {
+				await logRotationManager.deactivate();
+			}
+
+			return true;
+		}),
+	haveActivateRequests: adminProcedure.query(async () => {
+		const config = readMainConfig();
+
+		if (!config) return false;
+		const parsedConfig = load(config) as {
+			accessLog?: {
+				filePath: string;
+			};
+		};
+
+		return !!parsedConfig?.accessLog?.filePath;
+	}),
+	toggleRequests: adminProcedure
+		.input(
+			z.object({
+				enable: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const mainConfig = readMainConfig();
+			if (!mainConfig) return false;
+
+			const currentConfig = load(mainConfig) as {
+				accessLog?: {
+					filePath: string;
+				};
+			};
+
+			if (input.enable) {
+				const config = {
+					accessLog: {
+						filePath: "/etc/dokploy/traefik/dynamic/access.log",
+						format: "json",
+						bufferingSize: 100,
+						filters: {
+							retryAttempts: true,
+							minDuration: "10ms",
+						},
+					},
+				};
+				currentConfig.accessLog = config.accessLog;
+			} else {
+				currentConfig.accessLog = undefined;
+			}
+
+			writeMainConfig(dump(currentConfig));
+
+			return true;
+		}),
 });

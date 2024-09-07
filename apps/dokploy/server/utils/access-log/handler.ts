@@ -99,7 +99,7 @@ class LogRotationManager {
 				await this.deactivateStream();
 			}
 			await execAsync(
-				"docker kill -s USR1 $(docker ps -q --filter name=traefik)",
+				"docker kill -s USR1 $(docker ps -q --filter name=dokploy-traefik)",
 			);
 			console.log("USR1 Signal send to Traefik");
 		} catch (error) {
