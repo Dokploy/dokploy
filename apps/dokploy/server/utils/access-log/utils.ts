@@ -92,7 +92,9 @@ export function parseRawConfig(
 			parsedLogs = parsedLogs.slice(startIndex, startIndex + page.pageSize);
 		}
 
-		parsedLogs = parsedLogs.filter((log) => log.ServiceName !== "1");
+		parsedLogs = parsedLogs.filter(
+			(log) => log.ServiceName !== "dokploy-service-app@file",
+		);
 
 		return { data: parsedLogs, totalCount };
 	} catch (error) {
