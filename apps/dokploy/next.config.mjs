@@ -40,17 +40,17 @@ const nextConfig = {
 			}),
 		);
 
-		if (config.mode === "development") {
-			config.plugins.push(
-				new SmartLocalePlugin({
-					inputDirectory: "./i18n/locales/",
-					outputDirectory: "./i18n/InternationalizationKit/interface/",
-					outputImportDirectory: "./i18n/",
-					defaultLocale: "en-us",
-					fileType: "json",
-				}),
-			);
-		}
+		// if (config.mode === "development") {
+		// 	config.plugins.push(
+		// 		new SmartLocalePlugin({
+		// 			inputDirectory: "./i18n/locales/",
+		// 			outputDirectory: "./i18n/InternationalizationKit/interface/",
+		// 			outputImportDirectory: "./i18n/",
+		// 			defaultLocale: "en-us",
+		// 			fileType: "json",
+		// 		}),
+		// 	);
+		// }
 		return config;
 	},
 
