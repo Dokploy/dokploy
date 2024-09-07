@@ -75,8 +75,6 @@ export function parseRawConfig(
 			);
 		}
 
-		const totalCount = parsedLogs.length;
-
 		if (sort) {
 			parsedLogs = _.orderBy(
 				parsedLogs,
@@ -95,6 +93,8 @@ export function parseRawConfig(
 		parsedLogs = parsedLogs.filter(
 			(log) => log.ServiceName !== "dokploy-service-app@file",
 		);
+
+		const totalCount = parsedLogs.length;
 
 		return { data: parsedLogs, totalCount };
 	} catch (error) {
