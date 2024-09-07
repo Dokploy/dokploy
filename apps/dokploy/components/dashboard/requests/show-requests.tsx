@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -11,7 +12,6 @@ import * as React from "react";
 import { toast } from "sonner";
 import { RequestDistributionChart } from "./request-distribution-chart";
 import { RequestsTable } from "./requests-table";
-import { DialogAction } from "@/components/shared/dialog-action";
 
 export type LogEntry = NonNullable<
 	RouterOutputs["settings"]["readStatsLogs"]["data"]

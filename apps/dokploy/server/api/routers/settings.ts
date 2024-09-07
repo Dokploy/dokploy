@@ -41,6 +41,7 @@ import {
 } from "@/server/utils/traefik/web-server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
+import { dump, load } from "js-yaml";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { z } from "zod";
 import { appRouter } from "../root";
@@ -53,7 +54,6 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { dump, load } from "js-yaml";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
