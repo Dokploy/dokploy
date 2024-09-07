@@ -78,6 +78,7 @@ export function parseRawConfig(
 				status.some((range) => isStatusInRange(log.DownstreamStatus, range)),
 			);
 		}
+		const totalCount = parsedLogs.length;
 
 		if (sort) {
 			parsedLogs = _.orderBy(
@@ -93,8 +94,6 @@ export function parseRawConfig(
 			const startIndex = page.pageIndex * page.pageSize;
 			parsedLogs = parsedLogs.slice(startIndex, startIndex + page.pageSize);
 		}
-
-		const totalCount = parsedLogs.length;
 
 		return { data: parsedLogs, totalCount };
 	} catch (error) {
