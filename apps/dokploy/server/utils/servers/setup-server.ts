@@ -65,76 +65,17 @@ const connectToServer = async (serverId: string, logPath: string) => {
 			.on("ready", () => {
 				console.log("Client :: ready");
 				const bashCommand = `
-				# check if something is running on port 80
-				if ss -tulnp | grep ':80 ' >/dev/null; then
-					echo "Error: something is already running on port 80" >&2
-					exit 1
-				fi
-	
-				# check if something is running on port 443
-				if ss -tulnp | grep ':443 ' >/dev/null; then
-					echo "Error: something is already running on port 443" >&2
-					exit 1
-				fi
-	
+				
+				${validatePorts()}
+
 				command_exists() {
 					command -v "$@" > /dev/null 2>&1
 				}
-	
-				if command_exists docker; then
-					echo "Docker already installed ✅"
-				else
-					echo "Installing Docker ✅"
-					curl -sSL https://get.docker.com | sh -s -- --version 27.2.0
-				fi
-	
-				# Check if the node is already part of a Docker Swarm
-				if docker info | grep -q 'Swarm: active'; then
-					echo "Already part of a Docker Swarm ✅"
-				else
-					# Get IP address
-					get_ip() {
-						# Try to get IPv4
-						local ipv4=\$(curl -4s https://ifconfig.io 2>/dev/null)
-	
-						if [ -n "\$ipv4" ]; then
-							echo "\$ipv4"
-						else
-							# Try to get IPv6
-							local ipv6=\$(curl -6s https://ifconfig.io 2>/dev/null)
-							if [ -n "\$ipv6" ]; then
-								echo "\$ipv6"
-							fi
-						fi
-					}
-					advertise_addr=\$(get_ip)
-	
-					# Initialize Docker Swarm
-					docker swarm init --advertise-addr \$advertise_addr
-					echo "Swarm initialized ✅"
-				fi
-	
-				# Check if the dokploy-network already exists
-				if docker network ls | grep -q 'dokploy-network'; then
-					echo "Network dokploy-network already exists ✅"
-				else
-					# Create the dokploy-network if it doesn't exist
-					docker network create --driver overlay --attachable dokploy-network
-					echo "Network created ✅"
-				fi
-	
-				# Check if the /etc/dokploy directory exists
-				if [ -d /etc/dokploy ]; then
-					echo "/etc/dokploy already exists ✅"
-				else
-					# Create the /etc/dokploy directory
-					mkdir -p /etc/dokploy
-					chmod 777 /etc/dokploy
-					echo "Directory /etc/dokploy created ✅"
-				fi
-
+				${installDocker()}
+				${setupSwarm()}
+				${setupNetwork()}
+				${setupMainDirectory()}
 				${setupDirectories()}
-	
 				`;
 
 				client.exec(bashCommand, (err, stream) => {
@@ -198,8 +139,20 @@ const setupDirectories = () => {
 	return command;
 };
 
-export const setupSwarm = async () => {
-	const command = `
+const setupMainDirectory = () => `
+	# Check if the /etc/dokploy directory exists
+	if [ -d /etc/dokploy ]; then
+		echo "/etc/dokploy already exists ✅"
+	else
+		# Create the /etc/dokploy directory
+		mkdir -p /etc/dokploy
+		chmod 777 /etc/dokploy
+		
+		echo "Directory /etc/dokploy created ✅"
+	fi
+`;
+
+export const setupSwarm = () => `
 		# Check if the node is already part of a Docker Swarm
 		if docker info | grep -q 'Swarm: active'; then
 			echo "Already part of a Docker Swarm ✅"
@@ -227,9 +180,39 @@ export const setupSwarm = async () => {
 		fi
 	`;
 
-	console.log(command);
-	return command;
-};
+const setupNetwork = () => `
+	# Check if the dokploy-network already exists
+	if docker network ls | grep -q 'dokploy-network'; then
+		echo "Network dokploy-network already exists ✅"
+	else
+		# Create the dokploy-network if it doesn't exist
+		docker network create --driver overlay --attachable dokploy-network
+		echo "Network created ✅"
+	fi
+`;
+
+const installDocker = () => `
+	if command_exists docker; then
+		echo "Docker already installed ✅"
+	else
+		echo "Installing Docker ✅"
+		curl -sSL https://get.docker.com | sh -s -- --version 27.2.0
+	fi
+`;
+
+const validatePorts = () => `
+	# check if something is running on port 80
+	if ss -tulnp | grep ':80 ' >/dev/null; then
+		echo "Error: something is already running on port 80" >&2
+		exit 1
+	fi
+
+	# check if something is running on port 443
+	if ss -tulnp | grep ':443 ' >/dev/null; then
+		echo "Error: something is already running on port 443" >&2
+		exit 1
+	fi
+`;
 
 // mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik/dynamic" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/logs" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/ssh" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik/dynamic/certificates" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/monitoring"
 //     chmod 700 "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/ssh"
