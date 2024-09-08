@@ -1,12 +1,11 @@
-import { writeFileSync } from "node:fs";
 import type http from "node:http";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { spawn } from "node-pty";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { WebSocketServer } from "ws";
-import { findAdmin } from "../api/services/admin";
 import { validateWebSocketRequest } from "../auth/auth";
+import { findServerById } from "../api/services/server";
+import { SSH_PATH } from "../constants";
+import path from "node:path";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -50,63 +49,59 @@ export const setupTerminalWebSocketServer = (
 		}
 	});
 
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
-		const userSSH = url.searchParams.get("userSSH");
+		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateWebSocketRequest(req);
-		if (!user || !session) {
+		if (!user || !session || !serverId) {
 			ws.close();
 			return;
 		}
-		if (user) {
-			const admin = await findAdmin();
-			const privateKey = admin.sshPrivateKey || "";
-			const tempDir = tmpdir();
-			const tempKeyPath = join(tempDir, "temp_ssh_key");
-			writeFileSync(tempKeyPath, privateKey, { encoding: "utf8", mode: 0o600 });
 
-			const sshUser = userSSH;
-			const ip =
-				process.env.NODE_ENV === "production"
-					? await getPublicIpWithFallback()
-					: "localhost";
+		const server = await findServerById(serverId);
 
-			const sshCommand = [
-				"ssh",
-				...((process.env.NODE_ENV === "production" && ["-i", tempKeyPath]) ||
-					[]),
-				`${sshUser}@${ip}`,
-			];
-			const ptyProcess = spawn("ssh", sshCommand.slice(1), {
-				name: "xterm-256color",
-				cwd: process.env.HOME,
-				env: process.env,
-				encoding: "utf8",
-				cols: 80,
-				rows: 30,
-			});
-
-			ptyProcess.onData((data) => {
-				ws.send(data);
-			});
-			ws.on("message", (message) => {
-				try {
-					let command: string | Buffer[] | Buffer | ArrayBuffer;
-					if (Buffer.isBuffer(message)) {
-						command = message.toString("utf8");
-					} else {
-						command = message;
-					}
-					ptyProcess.write(command.toString());
-				} catch (error) {
-					console.log(error);
-				}
-			});
-
-			ws.on("close", () => {
-				ptyProcess.kill();
-			});
+		if (!server) {
+			ws.close();
+			return;
 		}
+
+		const privateKey = path.join(SSH_PATH, `${server.sshKeyId}_rsa`);
+		const sshCommand = [
+			"ssh",
+			"-o",
+			"StrictHostKeyChecking=no",
+			"-i",
+			privateKey,
+			`${server.username}@${server.ipAddress}`,
+		];
+		const ptyProcess = spawn("ssh", sshCommand.slice(1), {
+			name: "xterm-256color",
+			cwd: process.env.HOME,
+			env: process.env,
+			encoding: "utf8",
+			cols: 80,
+			rows: 30,
+		});
+
+		ptyProcess.onData((data) => {
+			ws.send(data);
+		});
+		ws.on("message", (message) => {
+			try {
+				let command: string | Buffer[] | Buffer | ArrayBuffer;
+				if (Buffer.isBuffer(message)) {
+					command = message.toString("utf8");
+				} else {
+					command = message;
+				}
+				ptyProcess.write(command.toString());
+			} catch (error) {
+				console.log(error);
+			}
+		});
+
+		ws.on("close", () => {
+			ptyProcess.kill();
+		});
 	});
 };

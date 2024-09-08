@@ -29,6 +29,7 @@ import { securityRouter } from "./routers/security";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { userRouter } from "./routers/user";
+import { serverRouter } from "./routers/server";
 
 /**
  * This is the primary router for your server.
@@ -66,6 +67,7 @@ export const appRouter = createTRPCRouter({
 	bitbucket: bitbucketRouter,
 	gitlab: gitlabRouter,
 	github: githubRouter,
+	server: serverRouter,
 });
 
 // export type definition of API

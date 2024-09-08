@@ -380,6 +380,9 @@ importers:
       sonner:
         specifier: ^1.4.0
         version: 1.5.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      ssh2:
+        specifier: 1.15.0
+        version: 1.15.0
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -459,6 +462,9 @@ importers:
       '@types/react-dom':
         specifier: 18.3.0
         version: 18.3.0
+      '@types/ssh2':
+        specifier: 1.15.1
+        version: 1.15.1
       '@types/swagger-ui-react':
         specifier: ^4.18.3
         version: 4.18.3
@@ -3832,8 +3838,8 @@ packages:
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
 
-  '@types/ssh2@1.15.0':
-    resolution: {integrity: sha512-YcT8jP5F8NzWeevWvcyrrLB3zcneVjzYY9ZDSMAMboI+2zR1qYWFhwsyOFVzT7Jorn67vqxC0FRiw8YyG9P1ww==}
+  '@types/ssh2@1.15.1':
+    resolution: {integrity: sha512-ZIbEqKAsi5gj35y4P4vkJYly642wIbY6PqoN0xiyQGshKUGXR9WQjF/iF9mXBQ8uBKy3ezfsCkcoHKhd0BzuDA==}
 
   '@types/swagger-ui-react@4.18.3':
     resolution: {integrity: sha512-Mo/R7IjDVwtiFPs84pWvh5pI9iyNGBjmfielxqbOh2Jv+8WVSDVe8Nu25kb5BOuV2xmGS3o33jr6nwDJMBcX+Q==}
@@ -12449,7 +12455,7 @@ snapshots:
   '@types/docker-modem@3.0.6':
     dependencies:
       '@types/node': 20.14.10
-      '@types/ssh2': 1.15.0
+      '@types/ssh2': 1.15.1
 
   '@types/dockerode@3.3.23':
     dependencies:
@@ -12579,7 +12585,7 @@ snapshots:
       '@types/node': 20.14.10
       '@types/send': 0.17.4
 
-  '@types/ssh2@1.15.0':
+  '@types/ssh2@1.15.1':
     dependencies:
       '@types/node': 18.19.42
 

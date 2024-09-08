@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
+	type apiCreateDeploymentServer,
 	deployments,
 } from "@/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
@@ -13,6 +14,7 @@ import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
 import { type Application, findApplicationById } from "./application";
 import { type Compose, findComposeById } from "./compose";
+import { findServerById, type Server } from "./server";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -239,4 +241,82 @@ export const updateDeploymentStatus = async (
 		.returning();
 
 	return application;
+};
+
+export const createServerDeployment = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentServer._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	try {
+		const server = await findServerById(deployment.serverId);
+
+		await removeLastFiveDeployments(deployment.serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${server.appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(LOGS_PATH, server.appName, fileName);
+		await fsPromises.mkdir(path.join(LOGS_PATH, server.appName), {
+			recursive: true,
+		});
+		await fsPromises.writeFile(logFilePath, "Initializing Setup Server");
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				serverId: server.serverId,
+				title: deployment.title || "Deployment",
+				description: deployment.description || "",
+				status: "running",
+				logPath: logFilePath,
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error to create the deployment",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		console.log(error);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error to create the deployment",
+		});
+	}
+};
+
+export const removeLastFiveDeployments = async (serverId: string) => {
+	const deploymentList = await db.query.deployments.findMany({
+		where: eq(deployments.serverId, serverId),
+		orderBy: desc(deployments.createdAt),
+	});
+	if (deploymentList.length >= 5) {
+		const deploymentsToDelete = deploymentList.slice(4);
+		for (const oldDeployment of deploymentsToDelete) {
+			const logPath = path.join(oldDeployment.logPath);
+			if (existsSync(logPath)) {
+				await fsPromises.unlink(logPath);
+			}
+			await removeDeployment(oldDeployment.deploymentId);
+		}
+	}
+};
+
+export const removeDeploymentsByServerId = async (server: Server) => {
+	const { appName } = server;
+	const logsPath = path.join(LOGS_PATH, appName);
+	await removeDirectoryIfExistsContent(logsPath);
+	await db
+		.delete(deployments)
+		.where(eq(deployments.serverId, server.serverId))
+		.returning();
+};
+
+export const findAllDeploymentsByServerId = async (serverId: string) => {
+	const deploymentsList = await db.query.deployments.findMany({
+		where: eq(deployments.serverId, serverId),
+		orderBy: desc(deployments.createdAt),
+	});
+	return deploymentsList;
 };

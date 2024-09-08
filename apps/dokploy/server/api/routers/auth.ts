@@ -29,20 +29,23 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { IS_CLOUD } from "@/server/constants";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure
 		.input(apiCreateAdmin)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const admin = await db.query.admins.findFirst({});
-
-				if (admin) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Admin already exists",
-					});
+				if (!IS_CLOUD) {
+					const admin = await db.query.admins.findFirst({});
+					if (admin) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Admin already exists",
+						});
+					}
 				}
+
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
@@ -51,6 +54,7 @@ export const authRouter = createTRPCRouter({
 				);
 				return true;
 			} catch (error) {
+				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to create the main admin",

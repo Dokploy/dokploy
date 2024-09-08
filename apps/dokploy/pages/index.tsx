@@ -69,8 +69,8 @@ export default function Home({ hasAdmin }: Props) {
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
-			email: "",
-			password: "",
+			email: "user1@hotmail.com",
+			password: "Password123",
 		},
 		resolver: zodResolver(loginSchema),
 	});

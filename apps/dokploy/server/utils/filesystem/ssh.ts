@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { SSH_PATH } from "@/server/constants";
 import { spawnAsync } from "../process/spawnAsync";
 
-const readSSHKey = async (id: string) => {
+export const readSSHKey = async (id: string) => {
 	try {
 		if (!fs.existsSync(SSH_PATH)) {
 			fs.mkdirSync(SSH_PATH, { recursive: true });

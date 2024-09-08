@@ -260,6 +260,27 @@
       "when": 1725519351871,
       "tag": "0036_tired_ronan",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1725773488051,
+      "tag": "0037_small_adam_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1725773967628,
+      "tag": "0038_thankful_magneto",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1725776089878,
+      "tag": "0039_military_doctor_faustus",
+      "breakpoints": true
     }
   ]
 }

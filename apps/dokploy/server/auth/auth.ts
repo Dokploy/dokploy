@@ -6,6 +6,8 @@ import { Lucia } from "lucia/dist/core.js";
 import type { Session, User } from "lucia/dist/core.js";
 import { db } from "../db";
 import { type DatabaseUser, auth, sessionTable } from "../db/schema";
+import { findUserByAuthId } from "../api/services/user";
+import { findAdminByAuthId } from "../api/services/admin";
 
 globalThis.crypto = webcrypto as Crypto;
 export const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable, auth);
@@ -22,6 +24,7 @@ export const lucia = new Lucia(adapter, {
 			email: attributes.email,
 			rol: attributes.rol,
 			secret: attributes.secret !== null,
+			adminId: attributes.adminId,
 		};
 	},
 });
@@ -29,12 +32,15 @@ export const lucia = new Lucia(adapter, {
 declare module "lucia" {
 	interface Register {
 		Lucia: typeof lucia;
-		DatabaseUserAttributes: Omit<DatabaseUser, "id"> & { authId: string };
+		DatabaseUserAttributes: Omit<DatabaseUser, "id"> & {
+			authId: string;
+			adminId: string;
+		};
 	}
 }
 
 export type ReturnValidateToken = Promise<{
-	user: (User & { authId: string }) | null;
+	user: (User & { authId: string; adminId: string }) | null;
 	session: Session | null;
 }>;
 
@@ -63,6 +69,17 @@ export async function validateRequest(
 			lucia.createBlankSessionCookie().serialize(),
 		);
 	}
+
+	if (result.user) {
+		if (result.user?.rol === "admin") {
+			const admin = await findAdminByAuthId(result.user.id);
+			result.user.adminId = admin.adminId;
+		} else if (result.user?.rol === "user") {
+			const userResult = await findUserByAuthId(result.user.id);
+			result.user.adminId = userResult.adminId;
+		}
+	}
+
 	return {
 		session: result.session,
 		...((result.user && {
@@ -72,6 +89,7 @@ export async function validateRequest(
 				rol: result.user.rol,
 				id: result.user.id,
 				secret: result.user.secret,
+				adminId: result.user.adminId,
 			},
 		}) || {
 			user: null,

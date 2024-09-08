@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { isAdminPresent } from "@/server/api/services/admin";
+import { IS_CLOUD } from "@/server/constants";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
@@ -220,6 +221,11 @@ const Register = ({ hasAdmin }: Props) => {
 
 export default Register;
 export async function getServerSideProps() {
+	if (IS_CLOUD) {
+		return {
+			props: {},
+		};
+	}
 	const hasAdmin = await isAdminPresent();
 
 	if (hasAdmin) {
