@@ -71,8 +71,10 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const domain = await findDomainById(input.domainId);
 			const result = await removeDomainById(input.domainId);
-			if (domain.application) {
-				await removeDomain(domain.application.appName, domain.uniqueConfigKey);
+
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				await removeDomain(application, domain.uniqueConfigKey);
 			}
 
 			return result;

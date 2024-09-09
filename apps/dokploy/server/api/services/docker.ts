@@ -1,5 +1,5 @@
 import { readSSHKey } from "@/server/utils/filesystem/ssh";
-import { execAsync } from "@/server/utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 import { tail } from "lodash";
 import { stderr, stdout } from "node:process";
 import { Client } from "ssh2";
@@ -86,40 +86,14 @@ export const getContainersByAppNameMatch = async (
 				? `${cmd} --filter='label=com.docker.compose.project=${appName}'`
 				: `${cmd} | grep ${appName}`;
 		if (serverId) {
-			const server = await findServerById(serverId);
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
-			if (!server.sshKeyId) return;
-			const keys = await readSSHKey(server.sshKeyId);
-			const client = new Client();
-			result = await new Promise<string[]>((resolve, reject) => {
-				let output = "";
-				client
-					.on("ready", () => {
-						client.exec(command, (err, stream) => {
-							if (err) {
-								console.error("Execution error:", err);
-								reject(err);
-								return;
-							}
-							stream
-								.on("close", () => {
-									client.end();
-									resolve(output.trim().split("\n"));
-								})
-								.on("data", (data: string) => {
-									output += data.toString();
-								})
-								.stderr.on("data", (data) => {});
-						});
-					})
-					.connect({
-						host: server.ipAddress,
-						port: server.port,
-						username: server.username,
-						privateKey: keys.privateKey,
-						timeout: 99999,
-					});
-			});
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
 		} else {
 			const { stdout, stderr } = await execAsync(command);
 

@@ -393,6 +393,24 @@ export const createFile = async (
 	}
 };
 
+export const getCreateFileCommand = (
+	outputPath: string,
+	filePath: string,
+	content: string,
+) => {
+	const fullPath = path.join(outputPath, filePath);
+	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+		return `mkdir -p ${fullPath};`;
+	}
+
+	const directory = path.dirname(fullPath);
+
+	return `
+		mkdir -p ${directory};
+		echo "${content}" > ${fullPath};
+	`;
+};
+
 export const getServiceContainer = async (appName: string) => {
 	try {
 		const filter = {

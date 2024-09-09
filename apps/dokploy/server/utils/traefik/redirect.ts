@@ -1,15 +1,32 @@
 import type { Redirect } from "@/server/api/services/redirect";
-import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import {
+	loadOrCreateConfig,
+	loadOrCreateConfigRemote,
+	writeTraefikConfig,
+	writeTraefikConfigRemote,
+} from "./application";
 import type { FileConfig } from "./file-types";
 import {
 	addMiddleware,
 	deleteMiddleware,
 	loadMiddlewares,
+	loadRemoteMiddlewares,
 	writeMiddleware,
 } from "./middleware";
+import type { ApplicationNested } from "../builders";
 
-export const updateRedirectMiddleware = (appName: string, data: Redirect) => {
-	const config = loadMiddlewares<FileConfig>();
+export const updateRedirectMiddleware = async (
+	application: ApplicationNested,
+	data: Redirect,
+) => {
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 	const middlewareName = `redirect-${appName}-${data.uniqueConfigKey}`;
 
 	if (config?.http?.middlewares?.[middlewareName]) {
@@ -22,10 +39,26 @@ export const updateRedirectMiddleware = (appName: string, data: Redirect) => {
 		};
 	}
 
-	writeMiddleware(config);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+	} else {
+		writeMiddleware(config);
+	}
 };
-export const createRedirectMiddleware = (appName: string, data: Redirect) => {
-	const config = loadMiddlewares<FileConfig>();
+export const createRedirectMiddleware = async (
+	application: ApplicationNested,
+	data: Redirect,
+) => {
+	const { appName, serverId } = application;
+
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
+
 	const middlewareName = `redirect-${appName}-${data.uniqueConfigKey}`;
 	const newMiddleware = {
 		[middlewareName]: {
@@ -44,25 +77,56 @@ export const createRedirectMiddleware = (appName: string, data: Redirect) => {
 		};
 	}
 
-	const appConfig = loadOrCreateConfig(appName);
+	let appConfig: FileConfig;
+
+	if (serverId) {
+		appConfig = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		appConfig = loadOrCreateConfig(appName);
+	}
 
 	addMiddleware(appConfig, middlewareName);
 
-	writeTraefikConfig(appConfig, appName);
-	writeMiddleware(config);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+		await writeTraefikConfigRemote(appConfig, appName, serverId);
+	} else {
+		writeMiddleware(config);
+		writeTraefikConfig(appConfig, appName);
+	}
 };
 
-export const removeRedirectMiddleware = (appName: string, data: Redirect) => {
-	const config = loadMiddlewares<FileConfig>();
+export const removeRedirectMiddleware = async (
+	application: ApplicationNested,
+	data: Redirect,
+) => {
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 	const middlewareName = `redirect-${appName}-${data.uniqueConfigKey}`;
 
 	if (config?.http?.middlewares?.[middlewareName]) {
 		delete config.http.middlewares[middlewareName];
 	}
-
-	const appConfig = loadOrCreateConfig(appName);
+	let appConfig: FileConfig;
+	if (serverId) {
+		appConfig = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		appConfig = loadOrCreateConfig(appName);
+	}
 
 	deleteMiddleware(appConfig, middlewareName);
-	writeTraefikConfig(appConfig, appName);
-	writeMiddleware(config);
+
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+		await writeTraefikConfigRemote(appConfig, appName, serverId);
+	} else {
+		writeTraefikConfig(appConfig, appName);
+		writeMiddleware(config);
+	}
 };

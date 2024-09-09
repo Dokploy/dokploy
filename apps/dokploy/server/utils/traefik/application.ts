@@ -1,12 +1,10 @@
 import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Domain } from "@/server/api/services/domain";
-import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH } from "@/server/constants";
+import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
-import { findServerById } from "@/server/api/services/server";
-import { Client } from "ssh2";
-import { readSSHKey } from "../filesystem/ssh";
+import { execAsyncRemote } from "../process/execAsync";
 
 export const createTraefikConfig = (appName: string) => {
 	const defaultPort = 3000;
@@ -58,6 +56,16 @@ export const removeTraefikConfig = async (appName: string) => {
 	} catch (error) {}
 };
 
+export const removeTraefikConfigRemote = async (
+	appName: string,
+	serverId: string,
+) => {
+	try {
+		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+		await execAsyncRemote(serverId, `rm ${configPath}`);
+	} catch (error) {}
+};
+
 export const loadOrCreateConfig = (appName: string): FileConfig => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	if (fs.existsSync(configPath)) {
@@ -74,56 +82,20 @@ export const loadOrCreateConfigRemote = async (
 	serverId: string,
 	appName: string,
 ) => {
-	const server = await findServerById(serverId);
-	if (!server.sshKeyId) return { http: { routers: {}, services: {} } };
-
-	const keys = await readSSHKey(server.sshKeyId);
-	const client = new Client();
-	let fileConfig: FileConfig;
+	const fileConfig: FileConfig = { http: { routers: {}, services: {} } };
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-	return new Promise<FileConfig>((resolve, reject) => {
-		client
-			.on("ready", () => {
-				client.exec(`cat ${configPath}`, (err, stream) => {
-					if (err) {
-						console.error("Execution error:", err);
-						return { http: { routers: {}, services: {} } };
-					}
-					stream
-						.on("close", (code, signal) => {
-							client.end();
-							if (code === 0) {
-								if (!fileConfig) {
-									fileConfig = { http: { routers: {}, services: {} } };
-								}
-								resolve(
-									(load(fileConfig) as FileConfig) || {
-										http: { routers: {}, services: {} },
-									},
-								);
-							} else {
-								console.log(fileConfig);
+	try {
+		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
 
-								resolve({ http: { routers: {}, services: {} } });
+		if (!stdout) return fileConfig;
 
-								// reject(new Error(`Command exited with code ${code}`));
-							}
-						})
-						.on("data", (data: string) => {
-							console.log(data.toString());
-							fileConfig = data.toString() as unknown as FileConfig;
-						})
-						.stderr.on("data", (data) => {});
-				});
-			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: keys.privateKey,
-				timeout: 99999,
-			});
-	});
+		const parsedConfig = (load(stdout) as FileConfig) || {
+			http: { routers: {}, services: {} },
+		};
+		return parsedConfig;
+	} catch (err) {
+		return fileConfig;
+	}
 };
 
 export const readConfig = (appName: string) => {
@@ -135,51 +107,15 @@ export const readConfig = (appName: string) => {
 	return null;
 };
 
-export const readConfigInServer = async (serverId: string, appName: string) => {
+export const readRemoteConfig = async (serverId: string, appName: string) => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-	let content = "";
-	// if (fs.existsSync(configPath)) {
-	// 	const yamlStr = fs.readFileSync(configPath, "utf8");
-	// 	return yamlStr;
-	// }
-
-	const client = new Client();
-	const server = await findServerById(serverId);
-	if (!server.sshKeyId) return;
-	const keys = await readSSHKey(server.sshKeyId);
-	return new Promise<string>((resolve, reject) => {
-		client
-			.on("ready", () => {
-				const bashCommand = `
-					cat ${configPath}
-				`;
-
-				client.exec(bashCommand, (err, stream) => {
-					if (err) {
-						reject(err);
-						return;
-					}
-					stream
-						.on("close", () => {
-							client.end();
-							resolve(content);
-						})
-						.on("data", (data: string) => {
-							content = data.toString();
-						})
-						.stderr.on("data", (data) => {
-							reject(new Error(`stderr: ${data.toString()}`));
-						});
-				});
-			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: keys.privateKey,
-				timeout: 99999,
-			});
-	});
+	try {
+		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		if (!stdout) return null;
+		return stdout;
+	} catch (err) {
+		return null;
+	}
 };
 
 export const readMonitoringConfig = () => {
@@ -228,8 +164,21 @@ export const writeTraefikConfig = (
 	try {
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		const yamlStr = dump(traefikConfig);
-		console.log(yamlStr);
 		fs.writeFileSync(configPath, yamlStr, "utf8");
+	} catch (e) {
+		console.error("Error saving the YAML config file:", e);
+	}
+};
+
+export const writeTraefikConfigRemote = async (
+	traefikConfig: FileConfig,
+	appName: string,
+	serverId: string,
+) => {
+	try {
+		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+		const yamlStr = dump(traefikConfig);
+		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}

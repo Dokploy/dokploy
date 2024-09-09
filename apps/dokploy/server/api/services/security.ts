@@ -44,7 +44,7 @@ export const createSecurity = async (
 					message: "Error to create the security",
 				});
 			}
-			await createSecurityMiddleware(application.appName, securityResponse);
+			await createSecurityMiddleware(application, securityResponse);
 			return true;
 		});
 	} catch (error) {
@@ -74,7 +74,7 @@ export const deleteSecurityById = async (securityId: string) => {
 
 		const application = await findApplicationById(result.applicationId);
 
-		removeSecurityMiddleware(application.appName, result);
+		await removeSecurityMiddleware(application, result);
 		return result;
 	} catch (error) {
 		throw new TRPCError({

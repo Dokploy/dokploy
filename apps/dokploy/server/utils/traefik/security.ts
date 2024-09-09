@@ -1,6 +1,11 @@
 import type { Security } from "@/server/api/services/security";
 import * as bcrypt from "bcrypt";
-import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import {
+	loadOrCreateConfig,
+	loadOrCreateConfigRemote,
+	writeTraefikConfig,
+	writeTraefikConfigRemote,
+} from "./application";
 import type {
 	BasicAuthMiddleware,
 	FileConfig,
@@ -10,14 +15,23 @@ import {
 	addMiddleware,
 	deleteMiddleware,
 	loadMiddlewares,
+	loadRemoteMiddlewares,
 	writeMiddleware,
 } from "./middleware";
+import type { ApplicationNested } from "../builders";
 
 export const createSecurityMiddleware = async (
-	appName: string,
+	application: ApplicationNested,
 	data: Security,
 ) => {
-	const config = loadMiddlewares<FileConfig>();
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 	const middlewareName = `auth-${appName}`;
 
 	const user = `${data.username}:${await bcrypt.hash(data.password, 10)}`;
@@ -38,17 +52,42 @@ export const createSecurityMiddleware = async (
 			};
 		}
 	}
+	let appConfig: FileConfig;
 
-	const appConfig = loadOrCreateConfig(appName);
-
+	if (serverId) {
+		appConfig = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		appConfig = loadOrCreateConfig(appName);
+	}
 	addMiddleware(appConfig, middlewareName);
-	writeTraefikConfig(appConfig, appName);
-	writeMiddleware(config);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+		await writeTraefikConfigRemote(appConfig, appName, serverId);
+	} else {
+		writeTraefikConfig(appConfig, appName);
+		writeMiddleware(config);
+	}
 };
 
-export const removeSecurityMiddleware = (appName: string, data: Security) => {
-	const config = loadMiddlewares<FileConfig>();
-	const appConfig = loadOrCreateConfig(appName);
+export const removeSecurityMiddleware = async (
+	application: ApplicationNested,
+	data: Security,
+) => {
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
+	let appConfig: FileConfig;
+
+	if (serverId) {
+		appConfig = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		appConfig = loadOrCreateConfig(appName);
+	}
 	const middlewareName = `auth-${appName}`;
 
 	if (config.http?.middlewares) {
@@ -67,12 +106,20 @@ export const removeSecurityMiddleware = (appName: string, data: Security) => {
 					delete config.http.middlewares[middlewareName];
 				}
 				deleteMiddleware(appConfig, middlewareName);
-				writeTraefikConfig(appConfig, appName);
+				if (serverId) {
+					await writeTraefikConfigRemote(appConfig, appName, serverId);
+				} else {
+					writeTraefikConfig(appConfig, appName);
+				}
 			}
 		}
 	}
 
-	writeMiddleware(config);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+	} else {
+		writeMiddleware(config);
+	}
 };
 
 const isBasicAuthMiddleware = (

@@ -23,11 +23,7 @@ import {
 	type DeploymentJob,
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
-import {
-	enqueueDeploymentJob,
-	myQueue,
-	redisConfig,
-} from "@/server/queues/queueSetup";
+import { enqueueDeploymentJob, myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
@@ -39,7 +35,7 @@ import {
 } from "@/server/utils/filesystem/directory";
 import {
 	readConfig,
-	readConfigInServer,
+	readRemoteConfig,
 	removeTraefikConfig,
 	writeConfig,
 } from "@/server/utils/traefik/application";
@@ -338,7 +334,7 @@ export const applicationRouter = createTRPCRouter({
 			const application = await findApplicationById(input.applicationId);
 			let traefikConfig = null;
 			if (application.serverId) {
-				traefikConfig = await readConfigInServer(
+				traefikConfig = await readRemoteConfig(
 					application.serverId,
 					application.appName,
 				);
