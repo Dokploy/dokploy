@@ -3,6 +3,9 @@ import { spawn } from "node-pty";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
 import { getShell } from "./utils";
+import { Client } from "ssh2";
+import { findServerById } from "../api/services/server";
+import { readSSHKey } from "../utils/filesystem/ssh";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -30,6 +33,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail");
+		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!containerId) {
@@ -42,41 +46,88 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 		try {
-			const shell = getShell();
-			const ptyProcess = spawn(
-				shell,
-				["-c", `docker container logs --tail ${tail} --follow ${containerId}`],
-				{
-					name: "xterm-256color",
-					cwd: process.env.HOME,
-					env: process.env,
-					encoding: "utf8",
-					cols: 80,
-					rows: 30,
-				},
-			);
+			if (serverId) {
+				const server = await findServerById(serverId);
 
-			ptyProcess.onData((data) => {
-				ws.send(data);
-			});
-			ws.on("close", () => {
-				ptyProcess.kill();
-			});
-			ws.on("message", (message) => {
-				try {
-					let command: string | Buffer[] | Buffer | ArrayBuffer;
-					if (Buffer.isBuffer(message)) {
-						command = message.toString("utf8");
-					} else {
-						command = message;
+				if (!server.sshKeyId) return;
+				const keys = await readSSHKey(server.sshKeyId);
+				const client = new Client();
+				new Promise<void>((resolve, reject) => {
+					client
+						.on("ready", () => {
+							const command = `
+						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
+					`;
+							client.exec(command, (err, stream) => {
+								if (err) {
+									console.error("Execution error:", err);
+									reject(err);
+									return;
+								}
+								stream
+									.on("close", () => {
+										console.log("Connection closed ✅");
+										client.end();
+										resolve();
+									})
+									.on("data", (data: string) => {
+										ws.send(data.toString());
+										// console.log(`OUTPUT: ${data.toString()}`);
+									})
+									.stderr.on("data", (data) => {
+										ws.send(data.toString());
+										// console.error(`STDERR: ${data.toString()}`);
+									});
+							});
+						})
+						.connect({
+							host: server.ipAddress,
+							port: server.port,
+							username: server.username,
+							privateKey: keys.privateKey,
+							timeout: 99999,
+						});
+				});
+			} else {
+				const shell = getShell();
+				const ptyProcess = spawn(
+					shell,
+					[
+						"-c",
+						`docker container logs --tail ${tail} --follow ${containerId}`,
+					],
+					{
+						name: "xterm-256color",
+						cwd: process.env.HOME,
+						env: process.env,
+						encoding: "utf8",
+						cols: 80,
+						rows: 30,
+					},
+				);
+
+				ptyProcess.onData((data) => {
+					ws.send(data);
+				});
+				ws.on("close", () => {
+					ptyProcess.kill();
+				});
+				ws.on("message", (message) => {
+					try {
+						let command: string | Buffer[] | Buffer | ArrayBuffer;
+						if (Buffer.isBuffer(message)) {
+							command = message.toString("utf8");
+						} else {
+							command = message;
+						}
+						ptyProcess.write(command.toString());
+					} catch (error) {
+						// @ts-ignore
+						const errorMessage = error?.message as unknown as string;
+						ws.send(errorMessage);
 					}
-					ptyProcess.write(command.toString());
-				} catch (error) {
-					// @ts-ignore
-					const errorMessage = error?.message as unknown as string;
-					ws.send(errorMessage);
-				}
-			});
+				});
+			}
 		} catch (error) {
 			// @ts-ignore
 			const errorMessage = error?.message as unknown as string;

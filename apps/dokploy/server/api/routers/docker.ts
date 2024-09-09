@@ -40,10 +40,15 @@ export const dockerRouter = createTRPCRouter({
 					.union([z.literal("stack"), z.literal("docker-compose")])
 					.optional(),
 				appName: z.string().min(1),
+				serverId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			return await getContainersByAppNameMatch(input.appName, input.appType);
+			return await getContainersByAppNameMatch(
+				input.appName,
+				input.appType,
+				input.serverId,
+			);
 		}),
 
 	getContainersByAppLabel: protectedProcedure

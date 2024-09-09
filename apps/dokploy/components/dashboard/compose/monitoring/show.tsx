@@ -23,17 +23,20 @@ import { DockerMonitoring } from "../../monitoring/docker/show";
 
 interface Props {
 	appName: string;
+	serverId?: string;
 	appType: "stack" | "docker-compose";
 }
 
 export const ShowMonitoringCompose = ({
 	appName,
 	appType = "stack",
+	serverId,
 }: Props) => {
 	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName: appName,
 			appType,
+			serverId,
 		},
 		{
 			enabled: !!appName,
@@ -108,6 +111,7 @@ export const ShowMonitoringCompose = ({
 						</Button>
 					</div>
 					<DockerMonitoring
+						serverId={serverId || ""}
 						appName={containerAppName || ""}
 						appType={appType}
 					/>

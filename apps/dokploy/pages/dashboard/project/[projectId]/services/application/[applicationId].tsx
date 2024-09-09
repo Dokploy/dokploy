@@ -159,7 +159,10 @@ const Service = (
 				</TabsContent>
 				<TabsContent value="logs">
 					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs appName={data?.appName || ""} />
+						<ShowDockerLogs
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						/>
 					</div>
 				</TabsContent>
 				<TabsContent value="deployments" className="w-full">

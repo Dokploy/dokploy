@@ -151,6 +151,7 @@ const Service = (
 				<TabsContent value="monitoring">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<ShowMonitoringCompose
+							serverId={data?.serverId || ""}
 							appName={data?.appName || ""}
 							appType={data?.composeType || "docker-compose"}
 						/>
@@ -160,6 +161,7 @@ const Service = (
 				<TabsContent value="logs">
 					<div className="flex flex-col gap-4 pt-2.5">
 						<ShowDockerLogsCompose
+							serverId={data?.serverId || ""}
 							appName={data?.appName || ""}
 							appType={data?.composeType || "docker-compose"}
 						/>

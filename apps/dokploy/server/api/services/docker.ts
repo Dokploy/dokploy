@@ -1,4 +1,9 @@
+import { readSSHKey } from "@/server/utils/filesystem/ssh";
 import { execAsync } from "@/server/utils/process/execAsync";
+import { tail } from "lodash";
+import { stderr, stdout } from "node:process";
+import { Client } from "ssh2";
+import { findServerById } from "./server";
 
 export const getContainers = async () => {
 	try {
@@ -69,25 +74,65 @@ export const getConfig = async (containerId: string) => {
 export const getContainersByAppNameMatch = async (
 	appName: string,
 	appType?: "stack" | "docker-compose",
+	serverId?: string,
 ) => {
 	try {
+		let result: string[] = [];
 		const cmd =
 			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'";
 
-		const { stdout, stderr } = await execAsync(
+		const command =
 			appType === "docker-compose"
 				? `${cmd} --filter='label=com.docker.compose.project=${appName}'`
-				: `${cmd} | grep ${appName}`,
-		);
+				: `${cmd} | grep ${appName}`;
+		if (serverId) {
+			const server = await findServerById(serverId);
 
-		if (stderr) {
-			return [];
+			if (!server.sshKeyId) return;
+			const keys = await readSSHKey(server.sshKeyId);
+			const client = new Client();
+			result = await new Promise<string[]>((resolve, reject) => {
+				let output = "";
+				client
+					.on("ready", () => {
+						client.exec(command, (err, stream) => {
+							if (err) {
+								console.error("Execution error:", err);
+								reject(err);
+								return;
+							}
+							stream
+								.on("close", () => {
+									client.end();
+									resolve(output.trim().split("\n"));
+								})
+								.on("data", (data: string) => {
+									output += data.toString();
+								})
+								.stderr.on("data", (data) => {});
+						});
+					})
+					.connect({
+						host: server.ipAddress,
+						port: server.port,
+						username: server.username,
+						privateKey: keys.privateKey,
+						timeout: 99999,
+					});
+			});
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
 		}
 
-		if (!stdout) return [];
-
-		const lines = stdout.trim().split("\n");
-		const containers = lines.map((line) => {
+		const containers = result.map((line) => {
 			const parts = line.split(" | ");
 			const containerId = parts[0]
 				? parts[0].replace("CONTAINER ID : ", "").trim()

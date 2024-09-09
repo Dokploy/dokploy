@@ -144,7 +144,10 @@ const MySql = (
 				</TabsContent>
 				<TabsContent value="logs">
 					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs appName={data?.appName || ""} />
+						<ShowDockerLogs
+							serverId={data?.serverId || ""}
+							appName={data?.appName || ""}
+						/>
 					</div>
 				</TabsContent>
 				<TabsContent value="backups">
