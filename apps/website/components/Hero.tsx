@@ -142,8 +142,8 @@ export function Hero() {
 				</div>
 				<div className="mt-16 flex flex-row justify-center gap-x-8 rounded-lg sm:gap-x-0  sm:gap-y-10 xl:gap-x-12 xl:gap-y-0">
 					<iframe
-						width="560"
-						height="315"
+						width="460"
+						height="215"
 						src="https://www.youtube-nocookie.com/embed/mznYKPvhcfw?si=vHvqP3HKy0V3XkOZ"
 						title="YouTube video player"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -152,8 +152,8 @@ export function Hero() {
 						className="rounded-xl"
 					/>
 				</div>
-
-				<div className="mt-16">
+				<ShowSponsors />
+				{/* <div className="mt-16">
 					<p className="font-display text-base  text-primary">
 						{t("hero.featuredIn")}
 					</p>
@@ -175,8 +175,116 @@ export function Hero() {
 							</li>
 						))}
 					</ul>
-				</div>
+				</div> */}
 			</div>
 		</Container>
 	);
 }
+
+export const ShowSponsors = () => {
+	return (
+		<div className="mt-20 flex flex-col justify-center gap-y-10">
+			<div className="flex flex-col gap-4 justify-start">
+				<h1 className="mx-auto max-w-2xl font-display text-3xl font-medium tracking-tight  text-primary  sm:text-5xl">
+					Sponsors
+				</h1>
+				<p className="mx-auto max-w-2xl text-lg tracking-tight text-muted-foreground">
+					Dokploy is an open source project that is maintained by a community of
+					volunteers. We would like to thank our sponsors for their support and
+					contributions to the project, which help us to continue to develop and
+					improve Dokploy.
+				</p>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-6 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Hero Sponsors 🎖
+				</h2>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					<a href="https://www.hostinger.com/vps-hosting?ref=dokploy">
+						<img
+							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
+							alt="hostinger.com"
+							className="rounded-xl"
+							width="200"
+						/>
+					</a>
+
+					<a href="https://www.lxaer.com?ref=dokploy">
+						<img
+							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
+							alt="lxaer.com"
+							className="rounded-xl"
+							width="200"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Premium Supporters 🥇
+				</h2>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					<a href="https://supafort.com/?ref=dokploy">
+						<img
+							src="https://supafort.com/build/q-4Ht4rBZR.webp"
+							alt="Supafort.com"
+							className="rounded-xl"
+							width="190"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Supporting Members 🥉
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://lightspeed.run/?ref=dokploy">
+						<img
+							src="https://github.com/lightspeedrun.png"
+							className="rounded-xl"
+							width="60px"
+							alt="Lightspeed.run"
+						/>
+					</a>
+					<a href="https://cloudblast.io/?ref=dokploy">
+						<img
+							src="https://cloudblast.io/img/logo-icon.193cf13e.svg"
+							className="rounded-xl"
+							width="250px"
+							alt="Cloudblast.io"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Supporting Members 🥉
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://steamsets.com/?ref=dokploy">
+						<img
+							src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4"
+							className="rounded-xl"
+							width="60px"
+							alt="Steamsets.com"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Individuals:
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://opencollective.com/dokploy">
+						<img
+							src="https://opencollective.com/dokploy/individuals.svg?width=890"
+							alt="Steamsets.com"
+						/>
+					</a>
+				</div>
+			</div>
+		</div>
+	);
+};
