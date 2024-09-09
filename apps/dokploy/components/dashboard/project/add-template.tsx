@@ -234,7 +234,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																</Link>
 															)}
 															<Link
-																href={`https://github.com/dokploy/dokploy/tree/canary/templates/${template.id}`}
+																href={`https://github.com/Dokploy/dokploy/tree/canary/apps/dokploy/templates/${template.id}`}
 																target="_blank"
 																className={
 																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
