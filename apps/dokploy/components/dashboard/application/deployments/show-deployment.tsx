@@ -11,7 +11,7 @@ interface Props {
 	logPath: string | null;
 	open: boolean;
 	onClose: () => void;
-	serverId: string;
+	serverId?: string;
 }
 export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	const [data, setData] = useState("");

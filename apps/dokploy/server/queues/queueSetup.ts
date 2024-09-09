@@ -3,8 +3,14 @@ import { findServerById, type Server } from "../api/services/server";
 import type { DeploymentJob } from "./deployments-queue";
 import {
 	deployApplication,
+	rebuildApplication,
 	updateApplicationStatus,
 } from "../api/services/application";
+import {
+	updateCompose,
+	deployCompose,
+	rebuildCompose,
+} from "../api/services/compose";
 
 export const redisConfig: ConnectionOptions = {
 	host: "31.220.108.27",
@@ -54,15 +60,42 @@ async function setupServerQueueAndWorker(server: Server) {
 			`deployments-${server.serverId}`,
 			async (job: Job<DeploymentJob>) => {
 				// Ejecuta el trabajo de despliegue
-				if (job.data.applicationType === "application") {
-					await updateApplicationStatus(job.data.applicationId, "running");
-					if (job.data.type === "deploy") {
-						await deployApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
+				try {
+					if (job.data.applicationType === "application") {
+						await updateApplicationStatus(job.data.applicationId, "running");
+						if (job.data.type === "redeploy") {
+							await rebuildApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "deploy") {
+							await deployApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
+					} else if (job.data.applicationType === "compose") {
+						await updateCompose(job.data.composeId, {
+							composeStatus: "running",
 						});
+						if (job.data.type === "deploy") {
+							await deployCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "redeploy") {
+							await rebuildCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
 					}
+				} catch (error) {
+					console.log("Error", error);
 				}
 			},
 			{

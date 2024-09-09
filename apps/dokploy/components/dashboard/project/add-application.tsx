@@ -173,9 +173,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 														{server.name}
 													</SelectItem>
 												))}
-												<SelectLabel>
-													Registries ({servers?.length})
-												</SelectLabel>
+												<SelectLabel>Servers ({servers?.length})</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>

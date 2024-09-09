@@ -100,14 +100,27 @@ export const createDeploymentCompose = async (
 	try {
 		const compose = await findComposeById(deployment.composeId);
 
-		await removeLastTenComposeDeployments(deployment.composeId);
+		// await removeLastTenComposeDeployments(deployment.composeId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
-		await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
-			recursive: true,
-		});
-		await fsPromises.writeFile(logFilePath, "Initializing deployment");
+
+		if (compose.serverId) {
+			const server = await findServerById(compose.serverId);
+
+			const command = `
+mkdir -p ${LOGS_PATH}/${compose.appName};
+echo "Initializing deployment" >> ${logFilePath};
+`;
+
+			await executeCommand(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+		}
+
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({

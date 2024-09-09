@@ -13,7 +13,7 @@ import {
 	type DeploymentJob,
 	cleanQueuesByCompose,
 } from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import { enqueueDeploymentJob, myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
 import {
 	randomizeComposeFile,
@@ -49,6 +49,7 @@ import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
 import { addNewService, checkServiceAccess } from "../services/user";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { findApplicationById } from "../services/application";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -162,6 +163,22 @@ export const composeRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
+			// const jobData: DeploymentJob = {
+			// 	composeId: input.composeId,
+			// 	titleLog: "Manual deployment",
+			// 	type: "deploy",
+			// 	applicationType: "compose",
+			// 	descriptionLog: "",
+			// };
+			// await myQueue.add(
+			// 	"deployments",
+			// 	{ ...jobData },
+			// 	{
+			// 		removeOnComplete: true,
+			// 		removeOnFail: true,
+			// 	},
+			// );
+			const compose = await findComposeById(input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Manual deployment",
@@ -169,14 +186,10 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: "",
 			};
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			if (!compose.serverId) {
+			} else {
+				await enqueueDeploymentJob(compose.serverId, jobData);
+			}
 		}),
 	redeploy: protectedProcedure
 		.input(apiFindCompose)

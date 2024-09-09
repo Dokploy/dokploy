@@ -59,7 +59,6 @@ import { addNewService, checkServiceAccess } from "../services/user";
 
 import { unzipDrop } from "@/server/utils/builders/drop";
 import { uploadFileSchema } from "@/utils/schema";
-import { Queue } from "bullmq";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure

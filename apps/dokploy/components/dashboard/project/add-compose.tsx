@@ -22,7 +22,9 @@ import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
@@ -51,6 +53,9 @@ const AddComposeSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
+	serverId: z.string().min(1, {
+		message: "Server is required",
+	}),
 });
 
 type AddCompose = z.infer<typeof AddComposeSchema>;
@@ -63,6 +68,7 @@ interface Props {
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const slug = slugify(projectName);
+	const { data: servers } = api.server.all.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
 
@@ -72,6 +78,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			description: "",
 			composeType: "docker-compose",
 			appName: `${slug}-`,
+			serverId: "",
 		},
 		resolver: zodResolver(AddComposeSchema),
 	});
@@ -87,6 +94,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			projectId,
 			composeType: data.composeType,
 			appName: data.appName,
+			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
@@ -148,6 +156,37 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="serverId"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Select a Server</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a Server" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name}
+													</SelectItem>
+												))}
+												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="appName"

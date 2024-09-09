@@ -65,6 +65,30 @@ Compose Type: ${composeType} ✅`;
 	}
 };
 
+export const getBuildComposeCommand = (
+	compose: ComposeNested,
+	logPath: string,
+) => {
+	const { sourceType, appName, mounts, composeType, domains } = compose;
+	const command = createCommand(compose);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const logContent = `
+App Name: ${appName}
+Build Compose 🐳
+Detected: ${mounts.length} mounts 📂
+Command: docker ${command}
+Source Type: docker ${sourceType} ✅
+Compose Type: ${composeType} ✅`;
+
+	const bashCommand = `
+echo "${logContent}" >> ${logPath};
+cd ${projectPath} || exit 1;
+docker ${command.split(" ").join(" ")} >> ${logPath} 2>&1;
+echo "Docker Compose Deployed: ✅" >> ${logPath};
+`;
+	return bashCommand;
+};
+
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
 

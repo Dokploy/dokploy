@@ -27,6 +27,13 @@ export const createComposeFile = async (compose: Compose, logPath: string) => {
 	}
 };
 
+export const getCreateComposeFileCommand = (compose: Compose) => {
+	const { appName, composeFile } = compose;
+	const outputPath = join(COMPOSE_PATH, appName, "code");
+	const filePath = join(outputPath, "docker-compose.yml");
+	return `echo "${composeFile}" > ${filePath}`;
+};
+
 export const createComposeFileRaw = async (compose: Compose) => {
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");

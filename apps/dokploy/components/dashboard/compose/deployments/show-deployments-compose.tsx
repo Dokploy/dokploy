@@ -111,6 +111,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 					</div>
 				)}
 				<ShowDeploymentCompose
+					serverId={data?.serverId || ""}
 					open={activeLog !== null}
 					onClose={() => setActiveLog(null)}
 					logPath={activeLog}

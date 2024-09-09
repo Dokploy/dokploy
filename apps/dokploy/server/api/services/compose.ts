@@ -3,23 +3,43 @@ import { COMPOSE_PATH } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
-import { buildCompose } from "@/server/utils/builders/compose";
+import {
+	buildCompose,
+	getBuildComposeCommand,
+} from "@/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
 import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { execAsync } from "@/server/utils/process/execAsync";
-import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
-import { cloneGitRepository } from "@/server/utils/providers/git";
-import { cloneGithubRepository } from "@/server/utils/providers/github";
-import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
-import { createComposeFile } from "@/server/utils/providers/raw";
+import {
+	cloneBitbucketRepository,
+	getBitbucketCloneCommand,
+} from "@/server/utils/providers/bitbucket";
+import {
+	cloneGitRepository,
+	getCustomGitCloneCommand,
+} from "@/server/utils/providers/git";
+import {
+	cloneGithubRepository,
+	getGithubCloneCommand,
+} from "@/server/utils/providers/github";
+import {
+	cloneGitlabRepository,
+	getGitlabCloneCommand,
+} from "@/server/utils/providers/gitlab";
+import {
+	createComposeFile,
+	getCreateComposeFileCommand,
+} from "@/server/utils/providers/raw";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
+import { getBuildCommand } from "@/server/utils/builders";
+import { executeCommand } from "@/server/utils/servers/command";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -97,6 +117,7 @@ export const findComposeById = async (composeId: string) => {
 			github: true,
 			gitlab: true,
 			bitbucket: true,
+			server: true,
 		},
 	});
 	if (!result) {
@@ -173,18 +194,55 @@ export const deployCompose = async ({
 	});
 
 	try {
-		if (compose.sourceType === "github") {
-			await cloneGithubRepository(compose, deployment.logPath, true);
-		} else if (compose.sourceType === "gitlab") {
-			await cloneGitlabRepository(compose, deployment.logPath, true);
-		} else if (compose.sourceType === "bitbucket") {
-			await cloneBitbucketRepository(compose, deployment.logPath, true);
-		} else if (compose.sourceType === "git") {
-			await cloneGitRepository(compose, deployment.logPath, true);
-		} else if (compose.sourceType === "raw") {
-			await createComposeFile(compose, deployment.logPath);
+		if (compose.serverId) {
+			let command = `
+			set -e
+		`;
+			if (compose.sourceType === "github") {
+				command += await getGithubCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "gitlab") {
+				command += await getGitlabCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "bitbucket") {
+				command += await getBitbucketCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "git") {
+				command += await getCustomGitCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "raw") {
+				command += getCreateComposeFileCommand(compose);
+			}
+			command += getBuildComposeCommand(compose, deployment.logPath);
+			await executeCommand(compose.serverId, command);
+		} else {
+			if (compose.sourceType === "github") {
+				await cloneGithubRepository(compose, deployment.logPath, true);
+			} else if (compose.sourceType === "gitlab") {
+				await cloneGitlabRepository(compose, deployment.logPath, true);
+			} else if (compose.sourceType === "bitbucket") {
+				await cloneBitbucketRepository(compose, deployment.logPath, true);
+			} else if (compose.sourceType === "git") {
+				await cloneGitRepository(compose, deployment.logPath, true);
+			} else if (compose.sourceType === "raw") {
+				await createComposeFile(compose, deployment.logPath);
+			}
+
+			await buildCompose(compose, deployment.logPath);
 		}
-		await buildCompose(compose, deployment.logPath);
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
