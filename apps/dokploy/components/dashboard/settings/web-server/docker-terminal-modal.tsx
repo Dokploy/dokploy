@@ -34,12 +34,14 @@ const Terminal = dynamic(
 interface Props {
 	appName: string;
 	children?: React.ReactNode;
+	serverId?: string;
 }
 
-export const DockerTerminalModal = ({ children, appName }: Props) => {
+export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
+			serverId,
 		},
 		{
 			enabled: !!appName,
@@ -82,6 +84,7 @@ export const DockerTerminalModal = ({ children, appName }: Props) => {
 					</SelectContent>
 				</Select>
 				<Terminal
+					serverId={serverId || ""}
 					id="terminal"
 					containerId={containerId || "select-a-container"}
 				/>

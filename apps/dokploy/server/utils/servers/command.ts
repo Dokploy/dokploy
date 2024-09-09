@@ -20,7 +20,6 @@ export const executeCommand = async (serverId: string, command: string) => {
 					}
 					stream
 						.on("close", (code, signal) => {
-							console.log("Connection closed ✅");
 							client.end();
 							if (code === 0) {
 								resolve();
@@ -28,12 +27,8 @@ export const executeCommand = async (serverId: string, command: string) => {
 								reject(new Error(`Command exited with code ${code}`));
 							}
 						})
-						.on("data", (data: string) => {
-							console.log(`OUTPUT: ${data.toString()}`);
-						})
-						.stderr.on("data", (data) => {
-							console.error(`STDERR: ${data.toString()}`);
-						});
+						.on("data", (data: string) => {})
+						.stderr.on("data", (data) => {});
 				});
 			})
 			.connect({
