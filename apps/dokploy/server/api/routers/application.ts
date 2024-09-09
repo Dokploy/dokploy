@@ -39,6 +39,7 @@ import {
 } from "@/server/utils/filesystem/directory";
 import {
 	readConfig,
+	readConfigInServer,
 	removeTraefikConfig,
 	writeConfig,
 } from "@/server/utils/traefik/application";
@@ -335,8 +336,15 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.query(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
-
-			const traefikConfig = readConfig(application.appName);
+			let traefikConfig = null;
+			if (application.serverId) {
+				traefikConfig = await readConfigInServer(
+					application.serverId,
+					application.appName,
+				);
+			} else {
+				traefikConfig = readConfig(application.appName);
+			}
 			return traefikConfig;
 		}),
 

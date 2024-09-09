@@ -47,9 +47,9 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
-		.input(apiCreateTraefikMeDomain)
+		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
-			return generateTraefikMeDomain(input.appName);
+			return generateTraefikMeDomain(input.applicationId);
 		}),
 
 	update: protectedProcedure

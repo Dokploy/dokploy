@@ -22,6 +22,7 @@ import { Client } from "ssh2";
 import { readSSHKey } from "../filesystem/ssh";
 import {
 	getDefaultMiddlewares,
+	getDefaultServerTraefikConfig,
 	getDefaultTraefikConfig,
 } from "@/server/setup/traefik-setup";
 
@@ -220,7 +221,7 @@ const validatePorts = () => `
 `;
 
 const createTraefikConfig = () => {
-	const config = getDefaultTraefikConfig();
+	const config = getDefaultServerTraefikConfig();
 
 	const command = `
 	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then

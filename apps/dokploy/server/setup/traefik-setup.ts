@@ -215,6 +215,55 @@ export const getDefaultTraefikConfig = () => {
 	return yamlStr;
 };
 
+export const getDefaultServerTraefikConfig = () => {
+	const configObject: MainTraefikConfig = {
+		providers: {
+			swarm: {
+				exposedByDefault: false,
+				watch: false,
+			},
+			docker: {
+				exposedByDefault: false,
+			},
+			file: {
+				directory: "/etc/dokploy/traefik/dynamic",
+				watch: true,
+			},
+		},
+		entryPoints: {
+			web: {
+				address: `:${TRAEFIK_PORT}`,
+			},
+			websecure: {
+				address: `:${TRAEFIK_SSL_PORT}`,
+				http: {
+					tls: {
+						certResolver: "letsencrypt",
+					},
+				},
+			},
+		},
+		api: {
+			insecure: true,
+		},
+		certificatesResolvers: {
+			letsencrypt: {
+				acme: {
+					email: "test@localhost.com",
+					storage: "/etc/dokploy/traefik/dynamic/acme.json",
+					httpChallenge: {
+						entryPoint: "web",
+					},
+				},
+			},
+		},
+	};
+
+	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
 export const createDefaultTraefikConfig = () => {
 	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
 	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");

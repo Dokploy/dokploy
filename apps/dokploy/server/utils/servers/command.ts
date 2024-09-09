@@ -11,7 +11,6 @@ export const executeCommand = async (serverId: string, command: string) => {
 	return new Promise<void>((resolve, reject) => {
 		client
 			.on("ready", () => {
-				console.log("Client :: ready", command);
 				client.exec(command, (err, stream) => {
 					if (err) {
 						console.error("Execution error:", err);

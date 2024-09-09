@@ -7,7 +7,7 @@ export const BASE_PATH =
 		: path.join(process.cwd(), ".docker");
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
 export const MAIN_TRAEFIK_PATH = `${BASE_PATH}/traefik`;
-export const DYNAMIC_TRAEFIK_PATH = `${BASE_PATH}/traefik/dynamic`;
+export const DYNAMIC_TRAEFIK_PATH = `/etc/dokploy/traefik/dynamic`;
 export const LOGS_PATH = `/etc/dokploy/logs`;
 export const APPLICATIONS_PATH = `/etc/dokploy/applications`;
 export const COMPOSE_PATH = `/etc/dokploy/compose`;

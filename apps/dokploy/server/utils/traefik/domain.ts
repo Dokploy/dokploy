@@ -3,14 +3,25 @@ import type { ApplicationNested } from "../builders";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
+	loadOrCreateConfigRemote,
 	removeTraefikConfig,
 	writeTraefikConfig,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
+import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
+import path from "node:path";
+import { dump } from "js-yaml";
+import { executeCommand } from "../servers/command";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
-	const config: FileConfig = loadOrCreateConfig(appName);
+	let config: FileConfig;
+
+	if (app.serverId) {
+		config = await loadOrCreateConfigRemote(app.serverId, appName);
+	} else {
+		config = loadOrCreateConfig(appName);
+	}
 	const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
 	const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
 	const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
@@ -36,7 +47,21 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	}
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
-	writeTraefikConfig(config, appName);
+
+	if (app.serverId) {
+		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+		const yamlStr = dump(config);
+
+		console.log(yamlStr);
+
+		const command = `
+		echo '${yamlStr}' > ${configPath}
+		`;
+
+		await executeCommand(app.serverId, command);
+	} else {
+		writeTraefikConfig(config, appName);
+	}
 };
 
 export const removeDomain = async (appName: string, uniqueKey: number) => {

@@ -1,9 +1,5 @@
 import { db } from "@/server/db";
-import {
-	type apiCreateDomain,
-	type apiFindDomainByApplication,
-	domains,
-} from "@/server/db/schema";
+import { type apiCreateDomain, domains } from "@/server/db/schema";
 import { manageDomain } from "@/server/utils/traefik/domain";
 import { generateRandomDomain } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
@@ -38,10 +34,10 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 };
 
 export const generateTraefikMeDomain = async (appName: string) => {
-	const admin = await findAdmin();
+	const application = await findApplicationById(appName);
 	return generateRandomDomain({
-		serverIp: admin.serverIp || "",
-		projectName: appName,
+		serverIp: application.server?.ipAddress || "",
+		projectName: application.appName,
 	});
 };
 
