@@ -9,6 +9,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
+import { server } from "./server";
 
 export const postgres = pgTable("postgres", {
 	postgresId: text("postgresId")
@@ -41,6 +42,9 @@ export const postgres = pgTable("postgres", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({
@@ -50,6 +54,10 @@ export const postgresRelations = relations(postgres, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [postgres.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(postgres, {
@@ -82,6 +90,7 @@ export const apiCreatePostgres = createSchema
 		dockerImage: true,
 		projectId: true,
 		description: true,
+		serverId: true,
 	})
 	.required();
 

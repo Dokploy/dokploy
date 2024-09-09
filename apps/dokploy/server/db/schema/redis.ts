@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -8,6 +7,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
+import { server } from "./server";
 
 export const redis = pgTable("redis", {
 	redisId: text("redisId")
@@ -38,6 +38,9 @@ export const redis = pgTable("redis", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
@@ -46,6 +49,10 @@ export const redisRelations = relations(redis, ({ one, many }) => ({
 		references: [projects.projectId],
 	}),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [redis.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(redis, {
@@ -75,6 +82,7 @@ export const apiCreateRedis = createSchema
 		dockerImage: true,
 		projectId: true,
 		description: true,
+		serverId: true,
 	})
 	.required();
 

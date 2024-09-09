@@ -9,6 +9,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
+import { server } from "./server";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -40,6 +41,9 @@ export const mongo = pgTable("mongo", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
@@ -49,6 +53,10 @@ export const mongoRelations = relations(mongo, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [mongo.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mongo, {
@@ -80,6 +88,7 @@ export const apiCreateMongo = createSchema
 		description: true,
 		databaseUser: true,
 		databasePassword: true,
+		serverId: true,
 	})
 	.required();
 

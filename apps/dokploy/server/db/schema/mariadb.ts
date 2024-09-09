@@ -9,6 +9,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
+import { server } from "./server";
 
 export const mariadb = pgTable("mariadb", {
 	mariadbId: text("mariadbId")
@@ -44,6 +45,9 @@ export const mariadb = pgTable("mariadb", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
@@ -53,6 +57,10 @@ export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [mariadb.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mariadb, {
@@ -88,6 +96,7 @@ export const apiCreateMariaDB = createSchema
 		databaseName: true,
 		databaseUser: true,
 		databasePassword: true,
+		serverId: true,
 	})
 	.required();
 

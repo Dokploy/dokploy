@@ -295,6 +295,13 @@
       "when": 1725830160928,
       "tag": "0041_mute_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1725856996201,
+      "tag": "0042_wandering_inhumans",
+      "breakpoints": true
     }
   ]
 }

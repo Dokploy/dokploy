@@ -130,20 +130,6 @@ export const mechanizeDockerContainer = async (
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
 	const docker = await getRemoteDocker(application.serverId);
-	// const server = await findServerById(application.serverId);
-	// if (!server.sshKeyId) return;
-	// const keys = await readSSHKey(server.sshKeyId);
-	// const docker = new Dockerode({
-	// 	host: server.ipAddress,
-	// 	port: server.port,
-	// 	username: server.username,
-	// 	protocol: "ssh",
-	// 	sshOptions: {
-	// 		privateKey: keys.privateKey,
-	// 	},
-	// });
-	// const results = await docker2.listContainers();
-	// console.log(results);
 
 	const settings: CreateServiceOptions = {
 		authconfig: authConfig,

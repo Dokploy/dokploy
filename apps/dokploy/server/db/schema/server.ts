@@ -7,7 +7,15 @@ import { admins } from "./admin";
 import { generateAppName } from "./utils";
 import { deployments } from "./deployment";
 import { sshKeys } from "./ssh-key";
-import { applications, compose } from ".";
+import {
+	applications,
+	compose,
+	mariadb,
+	mongo,
+	mysql,
+	postgres,
+	redis,
+} from ".";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -46,6 +54,11 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	}),
 	applications: many(applications),
 	compose: many(compose),
+	redis: many(redis),
+	mariadb: many(mariadb),
+	mongo: many(mongo),
+	mysql: many(mysql),
+	postgres: many(postgres),
 }));
 
 const createSchema = createInsertSchema(server, {

@@ -9,6 +9,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 type RedisWithMounts = Redis & {
 	mounts: Mount[];
@@ -42,6 +43,8 @@ export const buildRedis = async (redis: RedisWithMounts) => {
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
+
+	const docker = await getRemoteDocker(redis.serverId);
 
 	const settings: CreateServiceOptions = {
 		Name: appName,

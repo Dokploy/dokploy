@@ -8,6 +8,7 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { executeCommand } from "@/server/utils/servers/command";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
@@ -56,6 +57,7 @@ export const findMariadbById = async (mariadbId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -118,7 +120,15 @@ export const findMariadbByBackupId = async (backupId: string) => {
 export const deployMariadb = async (mariadbId: string) => {
 	const mariadb = await findMariadbById(mariadbId);
 	try {
-		await pullImage(mariadb.dockerImage);
+		if (mariadb.serverId) {
+			await executeCommand(
+				mariadb.serverId,
+				`docker pull ${mariadb.dockerImage}`,
+			);
+		} else {
+			await pullImage(mariadb.dockerImage);
+		}
+
 		await buildMariadb(mariadb);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "done",

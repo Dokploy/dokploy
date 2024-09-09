@@ -1,8 +1,4 @@
-import {
-	cliProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	applications,
@@ -34,7 +30,6 @@ import {
 	checkProjectAccess,
 	findUserByAuthId,
 } from "../services/user";
-import { findAdmin, findAdminByAuthId } from "../services/admin";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure

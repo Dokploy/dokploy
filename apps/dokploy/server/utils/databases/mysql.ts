@@ -9,6 +9,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 type MysqlWithMounts = MySql & {
 	mounts: Mount[];
@@ -50,6 +51,8 @@ export const buildMysql = async (mysql: MysqlWithMounts) => {
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
+
+	const docker = await getRemoteDocker(mysql.serverId);
 
 	const settings: CreateServiceOptions = {
 		Name: appName,

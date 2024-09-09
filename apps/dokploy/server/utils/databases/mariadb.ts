@@ -1,6 +1,5 @@
 import type { Mariadb } from "@/server/api/services/mariadb";
 import type { Mount } from "@/server/api/services/mount";
-import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -9,6 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 type MariadbWithMounts = Mariadb & {
 	mounts: Mount[];
@@ -44,6 +44,8 @@ export const buildMariadb = async (mariadb: MariadbWithMounts) => {
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mounts);
+
+	const docker = await getRemoteDocker(mariadb.serverId);
 
 	const settings: CreateServiceOptions = {
 		Name: appName,

@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -9,6 +8,7 @@ import { mounts } from "./mount";
 import { projects } from "./project";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
+import { server } from "./server";
 
 export const mysql = pgTable("mysql", {
 	mysqlId: text("mysqlId")
@@ -42,6 +42,9 @@ export const mysql = pgTable("mysql", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
@@ -51,6 +54,10 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [mysql.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mysql, {
@@ -86,6 +93,7 @@ export const apiCreateMySql = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		databaseRootPassword: true,
+		serverId: true,
 	})
 	.required();
 

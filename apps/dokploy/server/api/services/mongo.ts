@@ -8,6 +8,7 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
+import { executeCommand } from "@/server/utils/servers/command";
 
 export type Mongo = typeof mongo.$inferSelect;
 
@@ -52,6 +53,7 @@ export const findMongoById = async (mongoId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -114,7 +116,12 @@ export const removeMongoById = async (mongoId: string) => {
 export const deployMongo = async (mongoId: string) => {
 	const mongo = await findMongoById(mongoId);
 	try {
-		await pullImage(mongo.dockerImage);
+		if (mongo.serverId) {
+			await executeCommand(mongo.serverId, `docker pull ${mongo.dockerImage}`);
+		} else {
+			await pullImage(mongo.dockerImage);
+		}
+
 		await buildMongo(mongo);
 		await updateMongoById(mongoId, {
 			applicationStatus: "done",
