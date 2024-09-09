@@ -57,3 +57,44 @@ export const buildCustomDocker = async (
 		throw error;
 	}
 };
+
+export const getDockerCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
+		application;
+	const dockerFilePath = getBuildAppDirectory(application);
+
+	try {
+		const image = `${appName}`;
+
+		const defaultContextPath =
+			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
+		const args = prepareEnvironmentVariables(buildArgs);
+
+		const dockerContextPath =
+			getDockerContextPath(application) || defaultContextPath;
+
+		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
+
+		if (dockerBuildStage) {
+			commandArgs.push("--target", dockerBuildStage);
+		}
+
+		for (const arg of args) {
+			commandArgs.push("--build-arg", arg);
+		}
+
+		const command = `
+echo "Building ${appName}" >> ${logPath};
+cd ${dockerContextPath} || exit 1;
+docker ${commandArgs.join(" ")} >> ${logPath} 2>&1;
+echo "Docker build completed." >> ${logPath};
+		`;
+
+		return command;
+	} catch (error) {
+		throw error;
+	}
+};

@@ -153,17 +153,7 @@ export const createDefaultServerTraefikConfig = () => {
 	);
 };
 
-export const createDefaultTraefikConfig = () => {
-	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
-	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
-
-	if (existsSync(acmeJsonPath)) {
-		chmodSync(acmeJsonPath, "600");
-	}
-	if (existsSync(mainConfig)) {
-		console.log("Main config already exists");
-		return;
-	}
+export const getDefaultTraefikConfig = () => {
 	const configObject: MainTraefikConfig = {
 		providers: {
 			...(process.env.NODE_ENV === "development"
@@ -221,16 +211,27 @@ export const createDefaultTraefikConfig = () => {
 	};
 
 	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
+export const createDefaultTraefikConfig = () => {
+	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
+	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
+
+	if (existsSync(acmeJsonPath)) {
+		chmodSync(acmeJsonPath, "600");
+	}
+	if (existsSync(mainConfig)) {
+		console.log("Main config already exists");
+		return;
+	}
+	const yamlStr = getDefaultTraefikConfig();
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(mainConfig, yamlStr, "utf8");
 };
 
-export const createDefaultMiddlewares = () => {
-	const middlewaresPath = path.join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-	if (existsSync(middlewaresPath)) {
-		console.log("Default middlewares already exists");
-		return;
-	}
+export const getDefaultMiddlewares = () => {
 	const defaultMiddlewares = {
 		http: {
 			middlewares: {
@@ -244,6 +245,15 @@ export const createDefaultMiddlewares = () => {
 		},
 	};
 	const yamlStr = dump(defaultMiddlewares);
+	return yamlStr;
+};
+export const createDefaultMiddlewares = () => {
+	const middlewaresPath = path.join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
+	if (existsSync(middlewaresPath)) {
+		console.log("Default middlewares already exists");
+		return;
+	}
+	const yamlStr = getDefaultMiddlewares();
 	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(middlewaresPath, yamlStr, "utf8");
 };

@@ -23,7 +23,11 @@ import {
 	type DeploymentJob,
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import {
+	enqueueDeploymentJob,
+	myQueue,
+	redisConfig,
+} from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
@@ -55,6 +59,7 @@ import { addNewService, checkServiceAccess } from "../services/user";
 
 import { unzipDrop } from "@/server/utils/builders/drop";
 import { uploadFileSchema } from "@/utils/schema";
+import { Queue } from "bullmq";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -306,7 +311,8 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
@@ -314,14 +320,10 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 			};
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			if (!application.serverId) {
+			} else {
+				await enqueueDeploymentJob(application.serverId, jobData);
+			}
 		}),
 
 	cleanQueues: protectedProcedure

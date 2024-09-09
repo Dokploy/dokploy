@@ -12,6 +12,7 @@ import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import { executeCommand } from "../servers/command";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);
@@ -151,6 +152,78 @@ export const cloneGitlabRepository = async (
 	} finally {
 		writeStream.end();
 	}
+};
+
+export const getGitlabCloneCommand = async (
+	entity: ApplicationWithGitlab | ComposeWithGitlab,
+	logPath: string,
+	isCompose = false,
+) => {
+	const {
+		appName,
+		gitlabRepository,
+		gitlabOwner,
+		gitlabPathNamespace,
+		gitlabBranch,
+		gitlabId,
+		serverId,
+		gitlab,
+	} = entity;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
+	if (!gitlabId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitlab Provider not found",
+		});
+	}
+
+	const requirements = getErrorCloneRequirements(entity);
+
+	// Build log messages
+	let logMessages = "";
+	if (requirements.length > 0) {
+		logMessages += `\nGitLab Repository configuration failed for application: ${appName}\n`;
+		logMessages += "Reasons:\n";
+		logMessages += requirements.join("\n");
+		const escapedLogMessages = logMessages
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\n/g, "\\n");
+
+		const bashCommand = `
+            echo "${escapedLogMessages}" >> ${logPath};
+            exit 1;  # Exit with error code
+        `;
+
+		await executeCommand(serverId, bashCommand);
+		return;
+	}
+
+	await refreshGitlabToken(gitlabId);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
+
+	const cloneCommand = `
+rm -rf ${outputPath};
+mkdir -p ${outputPath};
+if ! git clone --branch ${gitlabBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "[ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	exit 1;
+fi
+echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+	`;
+
+	return cloneCommand;
 };
 
 export const getGitlabRepositories = async (gitlabId?: string) => {

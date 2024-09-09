@@ -4,7 +4,6 @@ import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 
-// TODO: integrate in the vps sudo chown -R $(whoami) ~/.docker
 export const buildPaketo = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
@@ -35,4 +34,36 @@ export const buildPaketo = async (
 	} catch (e) {
 		throw e;
 	}
+};
+
+export const getPaketoCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { env, appName } = application;
+
+	const buildAppDirectory = getBuildAppDirectory(application);
+	const envVariables = prepareEnvironmentVariables(env);
+
+	const args = [
+		"build",
+		appName,
+		"--path",
+		buildAppDirectory,
+		"--builder",
+		"paketobuildpacks/builder-jammy-full",
+	];
+
+	for (const env of envVariables) {
+		args.push("--env", env);
+	}
+
+	const command = `pack ${args.join(" ")}`;
+	const bashCommand = `
+echo "Starting Paketo build..." >> ${logPath};
+${command} >> ${logPath} 2>&1;
+echo "Paketo build completed." >> ${logPath};
+		`;
+
+	return bashCommand;
 };

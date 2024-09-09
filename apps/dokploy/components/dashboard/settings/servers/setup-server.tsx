@@ -41,8 +41,6 @@ export const SetupServer = ({ serverId }: Props) => {
 		},
 	);
 
-	const { mutateAsync } = api.server.setup.useMutation();
-
 	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const { data: deployments, refetch } = api.deployment.allByServer.useQuery(
 		{ serverId },
@@ -51,6 +49,14 @@ export const SetupServer = ({ serverId }: Props) => {
 			refetchInterval: 1000,
 		},
 	);
+
+	const { mutateAsync } = api.server.setup.useMutation({
+		// onMutate: async (variables) => {
+		// 	console.log("Running....");
+		// 	utils.deployment.allByServer.invalidate({ serverId: variables.serverId });
+		// 	// refetch();
+		// },
+	});
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -94,7 +100,7 @@ export const SetupServer = ({ serverId }: Props) => {
 													serverId: server?.serverId || "",
 												})
 													.then(async () => {
-														refetch();
+														// refetch();
 														toast.success("Server setup successfully");
 													})
 													.catch(() => {

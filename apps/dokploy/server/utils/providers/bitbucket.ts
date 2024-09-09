@@ -117,6 +117,55 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	}
 };
 
+export const getBitbucketCloneCommand = async (
+	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
+	logPath: string,
+	isCompose = false,
+) => {
+	const {
+		appName,
+		bitbucketRepository,
+		bitbucketOwner,
+		bitbucketBranch,
+		bitbucketId,
+		serverId,
+		bitbucket,
+	} = entity;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
+	if (!bitbucketId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Bitbucket Provider not found",
+		});
+	}
+
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+
+	const cloneCommand = `
+rm -rf ${outputPath};
+mkdir -p ${outputPath};
+if ! git clone --branch ${bitbucketBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "[ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	exit 1;
+fi
+echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+	`;
+
+	return cloneCommand;
+};
+
 export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	if (!bitbucketId) {
 		return [];

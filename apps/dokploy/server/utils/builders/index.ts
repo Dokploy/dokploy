@@ -1,8 +1,9 @@
 import { createWriteStream } from "node:fs";
-import { docker } from "@/server/constants";
+// import { docker } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage } from "../cluster/upload";
+import Dockerode from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -11,11 +12,14 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { buildCustomDocker } from "./docker-file";
-import { buildHeroku } from "./heroku";
-import { buildNixpacks } from "./nixpacks";
-import { buildPaketo } from "./paketo";
+import { buildCustomDocker, getDockerCommand } from "./docker-file";
+import { buildHeroku, getHerokuCommand } from "./heroku";
+import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
+import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildStatic } from "./static";
+import { findServerById } from "@/server/api/services/server";
+import { readSSHKey } from "../filesystem/ssh";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -65,6 +69,25 @@ export const buildApplication = async (
 	}
 };
 
+export const getBuildCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { buildType } = application;
+	switch (buildType) {
+		case "nixpacks":
+			return getNixpacksCommand(application, logPath);
+		case "heroku_buildpacks":
+			return getHerokuCommand(application, logPath);
+		case "paketo_buildpacks":
+			return getPaketoCommand(application, logPath);
+		// case "static":
+		// 	return buildStatic(application, writeStream);
+		case "dockerfile":
+			return getDockerCommand(application, logPath);
+	}
+};
+
 export const mechanizeDockerContainer = async (
 	application: ApplicationNested,
 ) => {
@@ -106,6 +129,21 @@ export const mechanizeDockerContainer = async (
 
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
+	const docker = await getRemoteDocker(application.serverId);
+	// const server = await findServerById(application.serverId);
+	// if (!server.sshKeyId) return;
+	// const keys = await readSSHKey(server.sshKeyId);
+	// const docker = new Dockerode({
+	// 	host: server.ipAddress,
+	// 	port: server.port,
+	// 	username: server.username,
+	// 	protocol: "ssh",
+	// 	sshOptions: {
+	// 		privateKey: keys.privateKey,
+	// 	},
+	// });
+	// const results = await docker2.listContainers();
+	// console.log(results);
 
 	const settings: CreateServiceOptions = {
 		authconfig: authConfig,

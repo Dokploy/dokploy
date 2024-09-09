@@ -1,0 +1,1 @@
+ALTER TABLE "server" ADD COLUMN "redisPassword" text DEFAULT 'xYBugfHkULig1iLN' NOT NULL;

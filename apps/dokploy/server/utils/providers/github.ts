@@ -11,6 +11,7 @@ import { spawnAsync } from "../process/spawnAsync";
 import type { Compose } from "@/server/api/services/compose";
 import { type Github, findGithubById } from "@/server/api/services/github";
 import type { apiFindGithubBranches } from "@/server/db/schema";
+import { executeCommand } from "../servers/command";
 
 export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -140,6 +141,63 @@ export const cloneGithubRepository = async (
 	} finally {
 		writeStream.end();
 	}
+};
+
+export const getGithubCloneCommand = async (
+	entity: ApplicationWithGithub | ComposeWithGithub,
+	logPath: string,
+	isCompose = false,
+) => {
+	const { appName, repository, owner, branch, githubId, serverId } = entity;
+
+	if (!githubId || !serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "GitHub Provider not found",
+		});
+	}
+
+	const requirements = getErrorCloneRequirements(entity);
+
+	// Build log messages
+	let logMessages = "";
+	if (requirements.length > 0) {
+		logMessages += `\nGitHub Repository configuration failed for application: ${appName}\n`;
+		logMessages += "Reasons:\n";
+		logMessages += requirements.join("\n");
+		const escapedLogMessages = logMessages
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\n/g, "\\n");
+
+		const bashCommand = `
+            echo "${escapedLogMessages}" >> ${logPath};
+            exit 1;  # Exit with error code
+        `;
+
+		await executeCommand(serverId, bashCommand);
+		return;
+	}
+
+	const githubProvider = await findGithubById(githubId);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const octokit = authGithub(githubProvider);
+	const token = await getGithubToken(octokit);
+	const repoclone = `github.com/${owner}/${repository}.git`;
+	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
+
+	const cloneCommand = `
+rm -rf ${outputPath};
+mkdir -p ${outputPath};
+if ! git clone --branch ${branch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "[ERROR] Fallo al clonar el repositorio ${repoclone}" >> ${logPath};
+	exit 1;
+fi
+echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+	`;
+
+	return cloneCommand;
 };
 
 export const cloneRawGithubRepository = async (entity: Compose) => {

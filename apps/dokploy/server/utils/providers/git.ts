@@ -87,6 +87,66 @@ export const cloneGitRepository = async (
 	}
 };
 
+export const getCustomGitCloneCommand = async (
+	entity: {
+		appName: string;
+		customGitUrl?: string | null;
+		customGitBranch?: string | null;
+		customGitSSHKeyId?: string | null;
+	},
+	logPath: string,
+	isCompose = false,
+) => {
+	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
+
+	if (!customGitUrl || !customGitBranch) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error: Repository not found",
+		});
+	}
+
+	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+
+	if (customGitSSHKeyId) {
+		await updateSSHKeyById({
+			sshKeyId: customGitSSHKeyId,
+			lastUsedAt: new Date().toISOString(),
+		});
+	}
+	try {
+		const command = [];
+		if (!isHttpOrHttps(customGitUrl)) {
+			command.push(addHostToKnownHostsCommand(customGitUrl));
+		}
+		command.push(`rm -rf ${outputPath};`);
+		command.push(`mkdir -p ${outputPath};`);
+		command.push(
+			`echo "Cloning Custom Git ${customGitUrl}" to ${outputPath}: ✅ >> ${logPath};`,
+		);
+		if (customGitSSHKeyId) {
+			command.push(
+				`GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}"`,
+			);
+		}
+
+		command.push(
+			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
+				echo "[ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
+				exit 1;
+			fi
+			`,
+		);
+		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath}`);
+		return command.join("\n");
+	} catch (error) {
+		throw error;
+	}
+};
+
 const isHttpOrHttps = (url: string): boolean => {
 	const regex = /^https?:\/\//;
 	return regex.test(url);
@@ -103,6 +163,13 @@ const addHostToKnownHosts = async (repositoryURL: string) => {
 		console.error(`Error adding host to known_hosts: ${error}`);
 		throw error;
 	}
+};
+
+const addHostToKnownHostsCommand = (repositoryURL: string) => {
+	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
+	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+
+	return `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath};`;
 };
 const sanitizeRepoPathSSH = (input: string) => {
 	const SSH_PATH_RE = new RegExp(

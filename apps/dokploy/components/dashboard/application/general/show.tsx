@@ -72,6 +72,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
+					{data?.server?.name || "No Server"}
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />

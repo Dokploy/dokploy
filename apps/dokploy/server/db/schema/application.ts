@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { bitbucket, github, gitlab } from ".";
+import { bitbucket, github, gitlab, server } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -193,6 +193,9 @@ export const applications = pgTable("application", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const applicationsRelations = relations(
@@ -227,6 +230,10 @@ export const applicationsRelations = relations(
 		bitbucket: one(bitbucket, {
 			fields: [applications.bitbucketId],
 			references: [bitbucket.bitbucketId],
+		}),
+		server: one(server, {
+			fields: [applications.serverId],
+			references: [server.serverId],
 		}),
 	}),
 );
@@ -373,6 +380,7 @@ export const apiCreateApplication = createSchema.pick({
 	appName: true,
 	description: true,
 	projectId: true,
+	serverId: true,
 });
 
 export const apiFindOneApplication = createSchema

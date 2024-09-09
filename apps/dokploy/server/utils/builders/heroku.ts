@@ -38,3 +38,35 @@ export const buildHeroku = async (
 		throw e;
 	}
 };
+
+export const getHerokuCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { env, appName } = application;
+
+	const buildAppDirectory = getBuildAppDirectory(application);
+	const envVariables = prepareEnvironmentVariables(env);
+
+	const args = [
+		"build",
+		appName,
+		"--path",
+		buildAppDirectory,
+		"--builder",
+		"heroku/builder:24",
+	];
+
+	for (const env of envVariables) {
+		args.push("--env", env);
+	}
+
+	const command = `pack ${args.join(" ")}`;
+	const bashCommand = `
+echo "Starting heroku build..." >> ${logPath};
+${command} >> ${logPath} 2>&1;
+echo "Heroku build completed." >> ${logPath};
+		`;
+
+	return bashCommand;
+};

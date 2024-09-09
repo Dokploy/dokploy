@@ -11,8 +11,9 @@ interface Props {
 	logPath: string | null;
 	open: boolean;
 	onClose: () => void;
+	serverId: string;
 }
-export const ShowDeployment = ({ logPath, open, onClose }: Props) => {
+export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	const [data, setData] = useState("");
 	const endOfLogsRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +22,7 @@ export const ShowDeployment = ({ logPath, open, onClose }: Props) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}`;
+		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}&serverId=${serverId}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {

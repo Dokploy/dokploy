@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import { type apiCreateServer, server } from "@/server/db/schema";
+import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
@@ -14,6 +15,7 @@ export const createServer = async (
 		.values({
 			...input,
 			adminId: adminId,
+			redisPassword: generatePassword(12),
 		})
 		.returning()
 		.then((value) => value[0]);

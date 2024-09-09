@@ -6,12 +6,13 @@ import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import { executeCommand } from "../servers/command";
 
 export const buildNixpacks = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName, publishDirectory } = application;
+	const { env, appName, publishDirectory, serverId } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
@@ -67,6 +68,58 @@ export const buildNixpacks = async (
 		return true;
 	} catch (e) {
 		await spawnAsync("docker", ["rm", buildContainerId], writeToStream);
+
+		throw e;
+	}
+};
+
+export const getNixpacksCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { env, appName, publishDirectory, serverId } = application;
+
+	const buildAppDirectory = getBuildAppDirectory(application);
+	const buildContainerId = `${appName}-${nanoid(10)}`;
+	const envVariables = prepareEnvironmentVariables(env);
+
+	try {
+		const args = ["build", buildAppDirectory, "--name", appName];
+
+		for (const env of envVariables) {
+			args.push("--env", env);
+		}
+
+		if (publishDirectory) {
+			/* No need for any start command, since we'll use nginx later on */
+			args.push("--no-error-without-start");
+		}
+
+		const command = `nixpacks ${args.join(" ")}`;
+		const bashCommand = `
+echo "Starting nixpacks build..." >> ${logPath};
+${command} >> ${logPath} 2>&1;
+echo "Nixpacks build completed." >> ${logPath};
+		`;
+
+		/*
+			 Run the container with the image created by nixpacks,
+			 and copy the artifacts on the host filesystem.
+			 Then, remove the container and create a static build.
+		 */
+
+		// if (publishDirectory) {
+		// 	bashCommand += `
+		// 		 docker create --name ${buildContainerId} ${appName}
+		// 		 docker cp ${buildContainerId}:/app/${publishDirectory} ${path.join(buildAppDirectory, publishDirectory)}
+		// 		 docker rm ${buildContainerId}
+		// 		 buildStatic ${application} ${writeStream}
+		// 		 `;
+		// }
+
+		return bashCommand;
+	} catch (e) {
+		//  await spawnAsync("docker", ["rm", buildContainerId], writeToStream);
 
 		throw e;
 	}

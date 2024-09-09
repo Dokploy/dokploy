@@ -4,7 +4,7 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { bitbucket, github, gitlab } from ".";
+import { bitbucket, github, gitlab, server } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -83,6 +83,9 @@ export const compose = pgTable("compose", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -108,6 +111,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	bitbucket: one(bitbucket, {
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
+	}),
+	server: one(server, {
+		fields: [compose.serverId],
+		references: [server.serverId],
 	}),
 }));
 

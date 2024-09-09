@@ -17,6 +17,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
@@ -33,12 +34,16 @@ const AddProjectSchema = z.object({
 		message: "Name is required",
 	}),
 	description: z.string().optional(),
+	serverId: z.string().min(1, {
+		message: "Server is required",
+	}),
 });
 
 type AddProject = z.infer<typeof AddProjectSchema>;
 
 export const AddProject = () => {
 	const utils = api.useUtils();
+	const { data: servers } = api.server.all.useQuery();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.project.create.useMutation();
 	const router = useRouter();
@@ -46,6 +51,7 @@ export const AddProject = () => {
 		defaultValues: {
 			description: "",
 			name: "",
+			serverId: "",
 		},
 		resolver: zodResolver(AddProjectSchema),
 	});
@@ -54,6 +60,7 @@ export const AddProject = () => {
 		form.reset({
 			description: "",
 			name: "",
+			serverId: "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
@@ -109,6 +116,7 @@ export const AddProject = () => {
 								)}
 							/>
 						</div>
+
 						<FormField
 							control={form.control}
 							name="description"

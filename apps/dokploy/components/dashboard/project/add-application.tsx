@@ -28,6 +28,15 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
@@ -43,6 +52,9 @@ const AddTemplateSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
+	serverId: z.string().min(1, {
+		message: "Server is required",
+	}),
 });
 
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
@@ -54,8 +66,10 @@ interface Props {
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: servers } = api.server.all.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -75,6 +89,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			appName: data.appName,
 			description: data.description,
 			projectId,
+			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
@@ -131,6 +146,39 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											}}
 										/>
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverId"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Select a Server</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a Server" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name}
+													</SelectItem>
+												))}
+												<SelectLabel>
+													Registries ({servers?.length})
+												</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}

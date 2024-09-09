@@ -6,6 +6,7 @@ import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
 import { execAsync } from "../process/execAsync";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 interface RegistryAuth {
 	username: string;
@@ -45,6 +46,51 @@ export const pullImage = async (
 					},
 				);
 			});
+		});
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const pullRemoteImage = async (
+	dockerImage: string,
+	serverId: string,
+	onData?: (data: any) => void,
+	authConfig?: Partial<RegistryAuth>,
+): Promise<void> => {
+	try {
+		if (!dockerImage) {
+			throw new Error("Docker image not found");
+		}
+
+		const remoteDocker = await getRemoteDocker(serverId);
+
+		await new Promise((resolve, reject) => {
+			remoteDocker.pull(
+				dockerImage,
+				{ authconfig: authConfig },
+				(err, stream) => {
+					if (err) {
+						reject(err);
+						return;
+					}
+
+					remoteDocker.modem.followProgress(
+						stream as Readable,
+						(err: Error | null, res) => {
+							if (!err) {
+								resolve(res);
+							}
+							if (err) {
+								reject(err);
+							}
+						},
+						(event) => {
+							onData?.(event);
+						},
+					);
+				},
+			);
 		});
 	} catch (error) {
 		throw error;

@@ -15,6 +15,7 @@ import { desc, eq } from "drizzle-orm";
 import { type Application, findApplicationById } from "./application";
 import { type Compose, findComposeById } from "./compose";
 import { findServerById, type Server } from "./server";
+import { executeCommand } from "@/server/utils/servers/command";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -43,14 +44,27 @@ export const createDeployment = async (
 	try {
 		const application = await findApplicationById(deployment.applicationId);
 
-		await removeLastTenDeployments(deployment.applicationId);
+		// await removeLastTenDeployments(deployment.applicationId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
-		await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
-			recursive: true,
-		});
-		await fsPromises.writeFile(logFilePath, "Initializing deployment");
+
+		if (application.serverId) {
+			const server = await findServerById(application.serverId);
+
+			const command = `
+				mkdir -p ${LOGS_PATH}/${application.appName};
+            	echo "Initializing deployment" >> ${logFilePath};
+			`;
+
+			await executeCommand(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+		}
+
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({

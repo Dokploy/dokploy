@@ -2,7 +2,7 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
-import { deploymentWorker } from "./queues/deployments-queue";
+// import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";
 import { initializeRedis } from "./setup/redis-setup";
@@ -23,6 +23,7 @@ import {
 	getPublicIpWithFallback,
 	setupTerminalWebSocketServer,
 } from "./wss/terminal";
+import { IS_CLOUD } from "./constants";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -43,14 +44,19 @@ void app.prepare().then(async () => {
 		setupDockerStatsMonitoringSocketServer(server);
 
 		if (process.env.NODE_ENV === "production") {
-			setupDirectories();
-			createDefaultMiddlewares();
-			await initializeNetwork();
-			createDefaultTraefikConfig();
-			createDefaultServerTraefikConfig();
-			await initializePostgres();
-			await initializeTraefik();
-			await initializeRedis();
+			if (!IS_CLOUD) {
+				setupDirectories();
+				createDefaultMiddlewares();
+				setupDirectories();
+				createDefaultMiddlewares();
+				await initializeNetwork();
+				createDefaultTraefikConfig();
+				createDefaultServerTraefikConfig();
+				await initializePostgres();
+				await initializeTraefik();
+				await initializeRedis();
+			}
+
 			initCronJobs();
 			welcomeServer();
 
@@ -62,7 +68,7 @@ void app.prepare().then(async () => {
 
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		deploymentWorker.run();
+		// deploymentWorker.run();
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

@@ -7,6 +7,7 @@ import { admins } from "./admin";
 import { generateAppName } from "./utils";
 import { deployments } from "./deployment";
 import { sshKeys } from "./ssh-key";
+import { applications, compose } from ".";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -21,6 +22,7 @@ export const server = pgTable("server", {
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
+	redisPassword: text("redisPassword").notNull().default("xYBugfHkULig1iLN"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -42,6 +44,8 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 		fields: [server.sshKeyId],
 		references: [sshKeys.sshKeyId],
 	}),
+	applications: many(applications),
+	compose: many(compose),
 }));
 
 const createSchema = createInsertSchema(server, {

@@ -47,3 +47,38 @@ export const buildDocker = async (
 		writeStream.end();
 	}
 };
+
+export const buildRemoteDocker = async (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { sourceType, dockerImage, username, password } = application;
+
+	try {
+		if (!dockerImage) {
+			throw new Error("Docker image not found");
+		}
+		let command = `
+echo "Building ${sourceType}" >> ${logPath};
+echo "Pulling ${dockerImage}" >> ${logPath};		
+		`;
+
+		if (username && password) {
+			command += `
+if ! docker login --username ${username} --password ${password} https://index.docker.io/v1/ >> ${logPath} 2>&1; then
+	echo "Error logging in to Docker Hub" >> ${logPath};
+	exit 1;
+fi
+`;
+		}
+
+		command += `
+echo "Pulling ${dockerImage}" >> ${logPath};
+docker pull ${dockerImage} >> ${logPath} 2>&1;
+`;
+
+		return command;
+	} catch (error) {
+		throw error;
+	}
+};

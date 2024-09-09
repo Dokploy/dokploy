@@ -17,9 +17,13 @@ import {
 	createServerDeployment,
 	updateDeploymentStatus,
 } from "@/server/api/services/deployment";
-import { chmodSync, createWriteStream } from "node:fs";
+import { createWriteStream } from "node:fs";
 import { Client } from "ssh2";
 import { readSSHKey } from "../filesystem/ssh";
+import {
+	getDefaultMiddlewares,
+	getDefaultTraefikConfig,
+} from "@/server/setup/traefik-setup";
 
 export const setupServer = async (serverId: string) => {
 	const server = await findServerById(serverId);
@@ -76,6 +80,12 @@ const connectToServer = async (serverId: string, logPath: string) => {
 				${setupNetwork()}
 				${setupMainDirectory()}
 				${setupDirectories()}
+				${createTraefikConfig()}
+				${createDefaultMiddlewares()}
+				${createTraefikInstance()}
+				${installNixpacks()}
+				${installBuildpacks()}
+				${setupRedis()}
 				`;
 
 				client.exec(bashCommand, (err, stream) => {
@@ -90,13 +100,11 @@ const connectToServer = async (serverId: string, logPath: string) => {
 							client.end();
 							resolve();
 						})
-						.on("data", (data) => {
+						.on("data", (data: string) => {
 							writeStream.write(data.toString());
-							console.log(`OUTPUT: ${data}`);
 						})
 						.stderr.on("data", (data) => {
 							writeStream.write(data.toString());
-							console.log(`STDERR: ${data}`);
 						});
 				});
 			})
@@ -105,7 +113,7 @@ const connectToServer = async (serverId: string, logPath: string) => {
 				port: server.port,
 				username: server.username,
 				privateKey: keys.privateKey,
-				timeout: 10000,
+				timeout: 99999,
 			});
 	});
 };
@@ -135,7 +143,6 @@ const setupDirectories = () => {
 	${chmodCommand}
 	`;
 
-	console.log(command);
 	return command;
 };
 
@@ -203,16 +210,102 @@ const installDocker = () => `
 const validatePorts = () => `
 	# check if something is running on port 80
 	if ss -tulnp | grep ':80 ' >/dev/null; then
-		echo "Error: something is already running on port 80" >&2
-		exit 1
+		echo "Something is already running on port 80" >&2
 	fi
 
 	# check if something is running on port 443
 	if ss -tulnp | grep ':443 ' >/dev/null; then
-		echo "Error: something is already running on port 443" >&2
-		exit 1
+		echo "Something is already running on port 443" >&2
 	fi
 `;
 
-// mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik/dynamic" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/logs" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/ssh" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/traefik/dynamic/certificates" && mkdir -p "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/monitoring"
-//     chmod 700 "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/ssh"
+const createTraefikConfig = () => {
+	const config = getDefaultTraefikConfig();
+
+	const command = `
+	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
+		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
+	fi
+	if [ -f "/etc/dokploy/traefik/traefik.yml" ]; then
+		echo "Traefik config already exists ✅"
+	else
+		echo "${config}" > /etc/dokploy/traefik/traefik.yml
+	fi
+	`;
+
+	return command;
+};
+
+export const createDefaultMiddlewares = () => {
+	const config = getDefaultMiddlewares();
+	const command = `
+	if [ -f "/etc/dokploy/traefik/dynamic/middlewares.yml" ]; then
+		echo "Middlewares config already exists ✅"
+	else
+		echo "${config}" > /etc/dokploy/traefik/dynamic/middlewares.yml
+	fi
+	`;
+	return command;
+};
+
+export const createTraefikInstance = () => {
+	const command = `
+	    # Check if dokpyloy-traefik exists
+		if docker service ls | grep -q 'dokploy-traefik'; then
+			echo "Traefik already exists ✅"
+		else
+			# Create the dokploy-traefik service
+		docker service create \
+			--name dokploy-traefik \
+			--replicas 1 \
+			--constraint 'node.role==manager' \
+			--network dokploy-network \
+			--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
+			--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
+			--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+			--label traefik.enable=true \
+			--publish mode=host,target=443,published=443 \
+			--publish mode=host,target=80,published=80 \
+			--publish mode=host,target=8080,published=8080 \
+			traefik:v3.1.2
+		fi
+	`;
+
+	return command;
+};
+
+const installNixpacks = () => `
+	if command_exists nixpacks; then
+		echo "Nixpacks already installed ✅"
+	else
+		VERSION=1.28.1 bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
+		echo "Nixpacks version 1.28.1 installed ✅"
+	fi
+`;
+
+const installBuildpacks = () => `
+	if command_exists pack; then
+		echo "Buildpacks already installed ✅"
+	else
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		echo "Buildpacks version 0.35.0 installed ✅"
+	fi
+`;
+
+const setupRedis = () => `
+	# Check if redis is already installed
+	if docker service ls | grep -q 'dokploy-redis'; then
+		echo "Redis already installed ✅"
+	else
+		# Install Redis
+		docker service create \
+		--name dokploy-redis \
+		--replicas 1 \
+		--constraint 'node.role==manager' \
+		--mount type=volume,source=redis-data-volume,target=/data \
+		--network dokploy-network \
+		--publish target=6379,published=6379,protocol=tcp,mode=host \
+		redis:7
+	fi
+
+`;
