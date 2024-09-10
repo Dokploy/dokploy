@@ -36,6 +36,7 @@ import { serverRouter } from "./routers/server";
  *
  * All routers added in /api/routers should be manually added here.
  */
+
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	docker: dockerRouter,

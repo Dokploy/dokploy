@@ -298,11 +298,7 @@ export const AddDomain = ({
 					</form>
 
 					<DialogFooter>
-						<Button
-							isLoading={form.formState.isSubmitting}
-							form="hook-form"
-							type="submit"
-						>
+						<Button isLoading={isLoading} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

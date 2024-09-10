@@ -12,7 +12,9 @@ import {
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import {
@@ -72,8 +74,11 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input }) => {
 			const service = await findMariadbById(input.mariadbId);
-
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",
 			});
@@ -83,13 +88,18 @@ export const mariadbRouter = createTRPCRouter({
 	stop: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input }) => {
-			const mongo = await findMariadbById(input.mariadbId);
-			await stopService(mongo.appName);
+			const mariadb = await findMariadbById(input.mariadbId);
+
+			if (mariadb.serverId) {
+				await stopServiceRemote(mariadb.serverId, mariadb.appName);
+			} else {
+				await stopService(mariadb.appName);
+			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "idle",
 			});
 
-			return mongo;
+			return mariadb;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
@@ -156,11 +166,21 @@ export const mariadbRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiResetMariadb)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.serverId) {
+				await stopServiceRemote(mariadb.serverId, mariadb.appName);
+			} else {
+				await stopService(mariadb.appName);
+			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+
+			if (mariadb.serverId) {
+				await startServiceRemote(mariadb.serverId, mariadb.appName);
+			} else {
+				await startService(mariadb.appName);
+			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",
 			});

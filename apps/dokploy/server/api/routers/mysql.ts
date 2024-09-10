@@ -12,7 +12,9 @@ import {
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { createMount } from "../services/mount";
@@ -73,7 +75,11 @@ export const mysqlRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const service = await findMySqlById(input.mysqlId);
 
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",
 			});
@@ -84,7 +90,11 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiFindOneMySql)
 		.mutation(async ({ input }) => {
 			const mongo = await findMySqlById(input.mysqlId);
-			await stopService(mongo.appName);
+			if (mongo.serverId) {
+				await stopServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await stopService(mongo.appName);
+			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "idle",
 			});
@@ -118,11 +128,20 @@ export const mysqlRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiResetMysql)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.serverId) {
+				await stopServiceRemote(mysql.serverId, mysql.appName);
+			} else {
+				await stopService(mysql.appName);
+			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+			if (mysql.serverId) {
+				await startServiceRemote(mysql.serverId, mysql.appName);
+			} else {
+				await startService(mysql.appName);
+			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",
 			});

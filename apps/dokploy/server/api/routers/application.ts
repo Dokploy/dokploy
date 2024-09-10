@@ -27,7 +27,9 @@ import { enqueueDeploymentJob, myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import {
 	removeDirectoryCode,
@@ -38,6 +40,7 @@ import {
 	readRemoteConfig,
 	removeTraefikConfig,
 	writeConfig,
+	writeConfigRemote,
 } from "@/server/utils/traefik/application";
 import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
 import { TRPCError } from "@trpc/server";
@@ -53,7 +56,6 @@ import {
 } from "../services/application";
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
-
 import { unzipDrop } from "@/server/utils/builders/drop";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -97,9 +99,19 @@ export const applicationRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiReloadApplication)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const application = await findApplicationById(input.applicationId);
+			if (application.serverId) {
+				await stopServiceRemote(application.serverId, input.appName);
+			} else {
+				await stopService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
-			await startService(input.appName);
+
+			if (application.serverId) {
+				await startServiceRemote(application.serverId, input.appName);
+			} else {
+				await startService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 			return true;
 		}),
@@ -143,7 +155,11 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
 			const service = await findApplicationById(input.applicationId);
-			await stopService(service.appName);
+			if (service.serverId) {
+				await stopServiceRemote(service.serverId, service.appName);
+			} else {
+				await stopService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
 
 			return service;
@@ -153,8 +169,11 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
 			const service = await findApplicationById(input.applicationId);
-
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 
 			return service;
@@ -387,7 +406,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(z.object({ applicationId: z.string(), traefikConfig: z.string() }))
 		.mutation(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
-			writeConfig(application.appName, input.traefikConfig);
+
+			if (application.serverId) {
+				await writeConfigRemote(
+					application.serverId,
+					application.appName,
+					input.traefikConfig,
+				);
+			} else {
+				writeConfig(application.appName, input.traefikConfig);
+			}
 			return true;
 		}),
 	readAppMonitoring: protectedProcedure

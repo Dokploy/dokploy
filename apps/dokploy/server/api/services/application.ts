@@ -169,7 +169,6 @@ export const deployApplication = async ({
 			`;
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand(application, deployment.logPath);
-				console.log(application);
 				command += getBuildCommand(application, deployment.logPath);
 			} else if (application.sourceType === "gitlab") {
 				command += await getGitlabCloneCommand(application, deployment.logPath);

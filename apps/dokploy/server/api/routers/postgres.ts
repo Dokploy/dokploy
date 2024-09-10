@@ -12,7 +12,9 @@ import {
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { createMount } from "../services/mount";
@@ -74,7 +76,11 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const service = await findPostgresById(input.postgresId);
 
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "done",
 			});
@@ -85,7 +91,11 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input }) => {
 			const postgres = await findPostgresById(input.postgresId);
-			await stopService(postgres.appName);
+			if (postgres.serverId) {
+				await stopServiceRemote(postgres.serverId, postgres.appName);
+			} else {
+				await stopService(postgres.appName);
+			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "idle",
 			});
@@ -152,11 +162,21 @@ export const postgresRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiResetPostgres)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.serverId) {
+				await stopServiceRemote(postgres.serverId, postgres.appName);
+			} else {
+				await stopService(postgres.appName);
+			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+
+			if (postgres.serverId) {
+				await startServiceRemote(postgres.serverId, postgres.appName);
+			} else {
+				await startService(postgres.appName);
+			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "done",
 			});

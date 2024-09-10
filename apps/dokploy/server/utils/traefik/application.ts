@@ -145,6 +145,19 @@ export const writeConfig = (appName: string, traefikConfig: string) => {
 	}
 };
 
+export const writeConfigRemote = async (
+	serverId: string,
+	appName: string,
+	traefikConfig: string,
+) => {
+	try {
+		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+		await execAsyncRemote(serverId, `echo '${traefikConfig}' > ${configPath}`);
+	} catch (e) {
+		console.error("Error saving the YAML config file:", e);
+	}
+};
+
 export const writeTraefikConfigInPath = (
 	pathFile: string,
 	traefikConfig: string,

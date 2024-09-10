@@ -5,7 +5,7 @@ import { APPLICATIONS_PATH, docker } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
-import { execAsync } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 interface RegistryAuth {
@@ -116,6 +116,15 @@ export const stopService = async (appName: string) => {
 	}
 };
 
+export const stopServiceRemote = async (serverId: string, appName: string) => {
+	try {
+		await execAsyncRemote(serverId, `docker service scale ${appName}=0 `);
+	} catch (error) {
+		console.error(error);
+		return error;
+	}
+};
+
 export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 	const opts = {
 		limit: 1,
@@ -190,6 +199,15 @@ export const cleanUpSystemPrune = async () => {
 export const startService = async (appName: string) => {
 	try {
 		await execAsync(`docker service scale ${appName}=1 `);
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+};
+
+export const startServiceRemote = async (serverId: string, appName: string) => {
+	try {
+		await execAsyncRemote(serverId, `docker service scale ${appName}=1 `);
 	} catch (error) {
 		console.error(error);
 		throw error;
