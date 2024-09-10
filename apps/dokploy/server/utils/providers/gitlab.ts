@@ -13,6 +13,7 @@ import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import { executeCommand } from "../servers/command";
+import { execAsyncRemote } from "../process/execAsync";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);
@@ -356,6 +357,39 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 			outputPath,
 			"--progress",
 		]);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
+	const { appName, gitlabPathNamespace, branch, gitlabId, serverId } = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!gitlabId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitlab Provider not found",
+		});
+	}
+	const gitlabProvider = await findGitlabById(gitlabId);
+
+	await refreshGitlabToken(gitlabId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
+	try {
+		await execAsyncRemote(
+			serverId,
+			`git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}`,
+		);
 	} catch (error) {
 		throw error;
 	}

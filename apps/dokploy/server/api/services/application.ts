@@ -164,30 +164,29 @@ export const deployApplication = async ({
 
 	try {
 		if (application.serverId) {
-			let command = `
-				set -e
-			`;
+			let command = "set -e";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand(application, deployment.logPath);
-				command += getBuildCommand(application, deployment.logPath);
 			} else if (application.sourceType === "gitlab") {
 				command += await getGitlabCloneCommand(application, deployment.logPath);
-				command += getBuildCommand(application, deployment.logPath);
 			} else if (application.sourceType === "bitbucket") {
 				command += await getBitbucketCloneCommand(
 					application,
 					deployment.logPath,
 				);
-				command += getBuildCommand(application, deployment.logPath);
 			} else if (application.sourceType === "git") {
 				command += await getCustomGitCloneCommand(
 					application,
 					deployment.logPath,
 				);
-				command += getBuildCommand(application, deployment.logPath);
 			} else if (application.sourceType === "docker") {
 				command += await buildRemoteDocker(application, deployment.logPath);
 			}
+
+			if (application.sourceType !== "docker") {
+				command += getBuildCommand(application, deployment.logPath);
+			}
+
 			await executeCommand(application.serverId, command);
 			await mechanizeDockerContainer(application);
 		} else {
@@ -209,6 +208,8 @@ export const deployApplication = async ({
 				await buildApplication(application, deployment.logPath);
 			}
 		}
+
+		console.log("Command", "Finish");
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");

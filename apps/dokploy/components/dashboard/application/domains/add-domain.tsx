@@ -174,9 +174,8 @@ export const AddDomain = ({
 																isLoading={isLoadingGenerate}
 																onClick={() => {
 																	generateDomain({
-																		applicationId:
-																			application?.applicationId || "",
-																		// appName: application?.appName || "",
+																		appName: application?.appName || "",
+																		serverId: application?.serverId || "",
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);

@@ -12,6 +12,7 @@ import type { Compose } from "@/server/api/services/compose";
 import { type Github, findGithubById } from "@/server/api/services/github";
 import type { apiFindGithubBranches } from "@/server/db/schema";
 import { executeCommand } from "../servers/command";
+import { execAsyncRemote } from "../process/execAsync";
 
 export const authGithub = (githubProvider: Github) => {
 	if (!haveGithubRequirements(githubProvider)) {
@@ -228,6 +229,39 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 			outputPath,
 			"--progress",
 		]);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
+	const { appName, repository, owner, branch, githubId, serverId } = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!githubId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "GitHub Provider not found",
+		});
+	}
+	const githubProvider = await findGithubById(githubId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const octokit = authGithub(githubProvider);
+	const token = await getGithubToken(octokit);
+	const repoclone = `github.com/${owner}/${repository}.git`;
+	await recreateDirectory(outputPath);
+	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
+	try {
+		await execAsyncRemote(
+			serverId,
+			`git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}`,
+		);
 	} catch (error) {
 		throw error;
 	}

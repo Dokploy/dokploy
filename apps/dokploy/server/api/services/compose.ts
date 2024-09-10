@@ -8,10 +8,15 @@ import {
 	getBuildComposeCommand,
 } from "@/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
-import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
+import {
+	cloneCompose,
+	cloneComposeRemote,
+	loadDockerCompose,
+	loadDockerComposeRemote,
+} from "@/server/utils/docker/domain";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
-import { execAsync } from "@/server/utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 import {
 	cloneBitbucketRepository,
 	getBitbucketCloneCommand,
@@ -38,8 +43,8 @@ import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { getBuildCommand } from "@/server/utils/builders";
 import { executeCommand } from "@/server/utils/servers/command";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -136,10 +141,20 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
-		await cloneCompose(compose);
+		if (compose.serverId) {
+			await cloneComposeRemote(compose);
+		} else {
+			await cloneCompose(compose);
+		}
 	}
 
-	let composeData = await loadDockerCompose(compose);
+	let composeData: ComposeSpecification | null;
+
+	if (compose.serverId) {
+		composeData = await loadDockerComposeRemote(compose);
+	} else {
+		composeData = await loadDockerCompose(compose);
+	}
 
 	if (compose.randomize && composeData) {
 		const randomizedCompose = randomizeSpecificationFile(
@@ -196,8 +211,8 @@ export const deployCompose = async ({
 	try {
 		if (compose.serverId) {
 			let command = `
-			set -e
-		`;
+			set -e;
+			`;
 			if (compose.sourceType === "github") {
 				command += await getGithubCloneCommand(
 					compose,
@@ -225,8 +240,23 @@ export const deployCompose = async ({
 			} else if (compose.sourceType === "raw") {
 				command += getCreateComposeFileCommand(compose);
 			}
-			command += getBuildComposeCommand(compose, deployment.logPath);
-			await executeCommand(compose.serverId, command);
+
+			// await executeCommand(compose.serverId, command);
+			command += await getBuildComposeCommand(compose, deployment.logPath);
+
+			console.log(command);
+
+			// console.log(buildCommand);
+			try {
+				const { stderr, stdout } = await execAsyncRemote(
+					compose.serverId,
+					command,
+				);
+				console.log(stderr);
+				console.log(stdout);
+			} catch (error) {
+				console.log(error);
+			}
 		} else {
 			if (compose.sourceType === "github") {
 				await cloneGithubRepository(compose, deployment.logPath, true);

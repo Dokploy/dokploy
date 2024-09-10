@@ -21,6 +21,7 @@ import {
 	removeDomainById,
 	updateDomainById,
 } from "../services/domain";
+import { z } from "zod";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -47,9 +48,9 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
-		.input(apiFindOneApplication)
+		.input(z.object({ serverId: z.string(), appName: z.string() }))
 		.mutation(async ({ input }) => {
-			return generateTraefikMeDomain(input.applicationId);
+			return generateTraefikMeDomain(input.serverId, input.appName);
 		}),
 
 	update: protectedProcedure

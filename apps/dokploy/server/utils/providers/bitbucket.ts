@@ -11,6 +11,7 @@ import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import { execAsyncRemote } from "../process/execAsync";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -112,6 +113,46 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 			outputPath,
 			"--progress",
 		]);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
+	const {
+		appName,
+		bitbucketRepository,
+		bitbucketOwner,
+		bitbucketBranch,
+		bitbucketId,
+		serverId,
+	} = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!bitbucketId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Bitbucket Provider not found",
+		});
+	}
+
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+
+	try {
+		await execAsyncRemote(
+			serverId,
+			`git clone --branch ${bitbucketBranch} --depth 1 ${cloneUrl} ${outputPath}`,
+		);
 	} catch (error) {
 		throw error;
 	}

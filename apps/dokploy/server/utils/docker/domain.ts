@@ -5,17 +5,33 @@ import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
 import { COMPOSE_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
-import { cloneRawBitbucketRepository } from "../providers/bitbucket";
-import { cloneGitRawRepository } from "../providers/git";
-import { cloneRawGithubRepository } from "../providers/github";
-import { cloneRawGitlabRepository } from "../providers/gitlab";
-import { createComposeFileRaw } from "../providers/raw";
+import {
+	cloneRawBitbucketRepository,
+	cloneRawBitbucketRepositoryRemote,
+} from "../providers/bitbucket";
+import {
+	cloneGitRawRepository,
+	cloneRawGitRepositoryRemote,
+} from "../providers/git";
+import {
+	cloneRawGithubRepository,
+	cloneRawGithubRepositoryRemote,
+} from "../providers/github";
+import {
+	cloneRawGitlabRepository,
+	cloneRawGitlabRepositoryRemote,
+} from "../providers/gitlab";
+import {
+	createComposeFileRaw,
+	createComposeFileRawRemote,
+} from "../providers/raw";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
+import { execAsyncRemote } from "../process/execAsync";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -28,6 +44,20 @@ export const cloneCompose = async (compose: Compose) => {
 		await cloneGitRawRepository(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRaw(compose);
+	}
+};
+
+export const cloneComposeRemote = async (compose: Compose) => {
+	if (compose.sourceType === "github") {
+		await cloneRawGithubRepositoryRemote(compose);
+	} else if (compose.sourceType === "gitlab") {
+		await cloneRawGitlabRepositoryRemote(compose);
+	} else if (compose.sourceType === "bitbucket") {
+		await cloneRawBitbucketRepositoryRemote(compose);
+	} else if (compose.sourceType === "git") {
+		await cloneRawGitRepositoryRemote(compose);
+	} else if (compose.sourceType === "raw") {
+		await createComposeFileRawRemote(compose);
 	}
 };
 
@@ -57,6 +87,23 @@ export const loadDockerCompose = async (
 	return null;
 };
 
+export const loadDockerComposeRemote = async (
+	compose: Compose,
+): Promise<ComposeSpecification | null> => {
+	const path = getComposePath(compose);
+	try {
+		if (!compose.serverId) {
+			return null;
+		}
+		const { stdout } = await execAsyncRemote(compose.serverId, `cat ${path}`);
+		if (!stdout) return null;
+		const parsedConfig = load(stdout) as ComposeSpecification;
+		return parsedConfig;
+	} catch (err) {
+		return null;
+	}
+};
+
 export const readComposeFile = async (compose: Compose) => {
 	const path = getComposePath(compose);
 	if (existsSync(path)) {
@@ -84,12 +131,39 @@ export const writeDomainsToCompose = async (
 	}
 };
 
+export const writeDomainsToComposeRemote = async (
+	compose: Compose,
+	domains: Domain[],
+) => {
+	if (!domains.length) {
+		return;
+	}
+	const composeConverted = await addDomainToCompose(compose, domains);
+	const path = getComposePath(compose);
+
+	try {
+		if (compose.serverId) {
+			const composeString = dump(composeConverted, { lineWidth: 1000 });
+			return `echo "${composeString}" >> ${path};`;
+		}
+	} catch (error) {
+		throw error;
+	}
+};
+
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
-	let result = await loadDockerCompose(compose);
+
+	let result: ComposeSpecification | null;
+
+	if (compose.serverId) {
+		result = await loadDockerComposeRemote(compose);
+	} else {
+		result = await loadDockerCompose(compose);
+	}
 
 	if (!result || domains.length === 0) {
 		return null;

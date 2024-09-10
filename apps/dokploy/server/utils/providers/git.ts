@@ -4,8 +4,9 @@ import { updateSSHKeyById } from "@/server/api/services/ssh-key";
 import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
-import { execAsync } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+import { Compose } from "@/server/api/services/compose";
 
 export const cloneGitRepository = async (
 	entity: {
@@ -143,6 +144,7 @@ export const getCustomGitCloneCommand = async (
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath}`);
 		return command.join("\n");
 	} catch (error) {
+		console.log(error);
 		throw error;
 	}
 };
@@ -260,6 +262,66 @@ export const cloneGitRawRepository = async (entity: {
 				},
 			},
 		);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
+	const {
+		appName,
+		customGitBranch,
+		customGitUrl,
+		customGitSSHKeyId,
+		serverId,
+	} = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!customGitUrl) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Git Provider not found",
+		});
+	}
+
+	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+
+	if (customGitSSHKeyId) {
+		await updateSSHKeyById({
+			sshKeyId: customGitSSHKeyId,
+			lastUsedAt: new Date().toISOString(),
+		});
+	}
+	try {
+		const command = [];
+		if (!isHttpOrHttps(customGitUrl)) {
+			command.push(addHostToKnownHostsCommand(customGitUrl));
+		}
+		command.push(`rm -rf ${outputPath};`);
+		command.push(`mkdir -p ${outputPath};`);
+		if (customGitSSHKeyId) {
+			command.push(
+				`GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}"`,
+			);
+		}
+
+		command.push(
+			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} ; then
+				echo "[ERROR] Fail to clone the repository ";
+				exit 1;
+			fi
+			`,
+		);
+
+		await execAsyncRemote(serverId, command.join("\n"));
 	} catch (error) {
 		throw error;
 	}

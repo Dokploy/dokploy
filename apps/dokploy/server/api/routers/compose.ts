@@ -152,9 +152,7 @@ export const composeRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
-
 			const composeFile = await addDomainToCompose(compose, domains);
-
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});

@@ -8,7 +8,10 @@ import { dirname, join } from "node:path";
 import { COMPOSE_PATH } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
-import { writeDomainsToCompose } from "../docker/domain";
+import {
+	writeDomainsToCompose,
+	writeDomainsToComposeRemote,
+} from "../docker/domain";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { spawnAsync } from "../process/spawnAsync";
 
@@ -65,13 +68,16 @@ Compose Type: ${composeType} ✅`;
 	}
 };
 
-export const getBuildComposeCommand = (
+export const getBuildComposeCommand = async (
 	compose: ComposeNested,
 	logPath: string,
 ) => {
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
+	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+
+	const newCompose = await writeDomainsToComposeRemote(compose, domains);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -80,8 +86,19 @@ Command: docker ${command}
 Source Type: docker ${sourceType} ✅
 Compose Type: ${composeType} ✅`;
 
+	const logBox = boxen(logContent, {
+		padding: {
+			left: 1,
+			right: 1,
+			bottom: 1,
+		},
+		width: 80,
+		borderStyle: "double",
+	});
+
 	const bashCommand = `
-echo "${logContent}" >> ${logPath};
+${newCompose}
+echo "${logBox}" >> ${logPath};
 cd ${projectPath} || exit 1;
 docker ${command.split(" ").join(" ")} >> ${logPath} 2>&1;
 echo "Docker Compose Deployed: ✅" >> ${logPath};
@@ -143,4 +160,27 @@ const createEnvFile = (compose: ComposeNested) => {
 		mkdirSync(dirname(envFilePath), { recursive: true });
 	}
 	writeFileSync(envFilePath, envFileContent);
+};
+
+export const getCreateEnvFileCommand = (compose: ComposeNested) => {
+	const { env, composePath, appName } = compose;
+	const composeFilePath =
+		join(COMPOSE_PATH, appName, "code", composePath) ||
+		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+
+	const envFilePath = join(dirname(composeFilePath), ".env");
+	let envContent = env || "";
+	if (!envContent.includes("DOCKER_CONFIG")) {
+		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
+	}
+
+	if (compose.randomize) {
+		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
+	}
+
+	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
+	return `
+	mkdir -p ${envFilePath};
+	echo "${envFileContent}" > ${envFilePath} 2>/dev/null;
+	`;
 };

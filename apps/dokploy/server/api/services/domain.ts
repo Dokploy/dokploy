@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { findAdmin } from "./admin";
 import { findApplicationById } from "./application";
+import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -33,11 +34,21 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 	});
 };
 
-export const generateTraefikMeDomain = async (appName: string) => {
-	const application = await findApplicationById(appName);
+export const generateTraefikMeDomain = async (
+	serverId: string,
+	appName: string,
+) => {
+	if (serverId) {
+		const server = await findServerById(serverId);
+		return generateRandomDomain({
+			serverIp: server.ipAddress,
+			projectName: appName,
+		});
+	}
+	const admin = await findAdmin();
 	return generateRandomDomain({
-		serverIp: application.server?.ipAddress || "",
-		projectName: application.appName,
+		serverIp: admin?.serverIp || "",
+		projectName: appName,
 	});
 };
 
