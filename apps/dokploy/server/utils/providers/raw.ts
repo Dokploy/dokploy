@@ -32,7 +32,13 @@ export const getCreateComposeFileCommand = (compose: Compose) => {
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");
-	return `echo "${composeFile}" > ${filePath}`;
+	const command = [];
+	command.push(`rm -rf ${outputPath};`);
+	command.push(`mkdir -p ${outputPath};`);
+	command.push(
+		`printf '%s' '${composeFile.replace(/'/g, "'\\''")}' > ${filePath};`,
+	);
+	return command.join("\n");
 };
 
 export const createComposeFileRaw = async (compose: Compose) => {
