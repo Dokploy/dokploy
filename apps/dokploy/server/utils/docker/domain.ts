@@ -144,7 +144,7 @@ export const writeDomainsToComposeRemote = async (
 	try {
 		if (compose.serverId) {
 			const composeString = dump(composeConverted, { lineWidth: 1000 });
-			return `echo "${composeString}" >> ${path};`;
+			return `printf '%s' '${composeString.replace(/'/g, "'\\''")}' > ${path}`;
 		}
 	} catch (error) {
 		throw error;
@@ -160,7 +160,7 @@ export const addDomainToCompose = async (
 	let result: ComposeSpecification | null;
 
 	if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose);
+		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
 	} else {
 		result = await loadDockerCompose(compose);
 	}

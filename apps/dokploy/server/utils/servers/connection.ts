@@ -11,7 +11,7 @@ export const connectSSH = async (serverId: string) => {
 
 	return new Promise<Client>((resolve, reject) => {
 		client
-			.on("ready", () => resolve(client))
+			.once("ready", () => resolve(client))
 			.on("error", reject)
 			.connect({
 				host: server.ipAddress,

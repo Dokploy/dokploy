@@ -14,6 +14,7 @@ import {
 } from "../docker/domain";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { spawnAsync } from "../process/spawnAsync";
+import { execAsyncRemote } from "../process/execAsync";
 
 export type ComposeNested = InferResultType<
 	"compose",
@@ -97,12 +98,16 @@ Compose Type: ${composeType} ✅`;
 	});
 
 	const bashCommand = `
-${newCompose}
 echo "${logBox}" >> ${logPath};
+${newCompose}
+${envCommand}
 cd ${projectPath} || exit 1;
 docker ${command.split(" ").join(" ")} >> ${logPath} 2>&1;
 echo "Docker Compose Deployed: ✅" >> ${logPath};
 `;
+
+	await execAsyncRemote(compose.serverId, bashCommand);
+
 	return bashCommand;
 };
 
@@ -180,7 +185,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 
 	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
 	return `
-	mkdir -p ${envFilePath};
-	echo "${envFileContent}" > ${envFilePath} 2>/dev/null;
+mkdir -p ${envFilePath};
+echo "${envFileContent}" > ${envFilePath};
 	`;
 };

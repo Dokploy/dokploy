@@ -94,11 +94,18 @@ export const getCustomGitCloneCommand = async (
 		customGitUrl?: string | null;
 		customGitBranch?: string | null;
 		customGitSSHKeyId?: string | null;
+		serverId: string | null;
 	},
 	logPath: string,
 	isCompose = false,
 ) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
+	const {
+		appName,
+		customGitUrl,
+		customGitBranch,
+		customGitSSHKeyId,
+		serverId,
+	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -141,7 +148,7 @@ export const getCustomGitCloneCommand = async (
 			fi
 			`,
 		);
-		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath}`);
+		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
 	} catch (error) {
 		console.log(error);

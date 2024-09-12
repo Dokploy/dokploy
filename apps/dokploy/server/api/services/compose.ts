@@ -241,22 +241,16 @@ export const deployCompose = async ({
 				command += getCreateComposeFileCommand(compose);
 			}
 
-			// await executeCommand(compose.serverId, command);
-			command += await getBuildComposeCommand(compose, deployment.logPath);
-
-			console.log(command);
-
-			// console.log(buildCommand);
-			try {
-				const { stderr, stdout } = await execAsyncRemote(
-					compose.serverId,
-					command,
-				);
-				console.log(stderr);
-				console.log(stdout);
-			} catch (error) {
-				console.log(error);
-			}
+			Promise.resolve()
+				.then(() => {
+					return execAsyncRemote(compose.serverId, command);
+				})
+				.then(() => {
+					return getBuildComposeCommand(compose, deployment.logPath);
+				})
+				.then(() => {
+					console.log(" ---- done ----");
+				});
 		} else {
 			if (compose.sourceType === "github") {
 				await cloneGithubRepository(compose, deployment.logPath, true);
