@@ -1,8 +1,8 @@
 <div align="center">
-   <h1 align="center">Dokploy</h1>
    <div>
-  <img style="object-fit: cover; border-radius:20px;" align="center" width="50%"src="https://dokploy.com/og.png" >
-
+    <a href="https://dokploy.com" target="_blank" rel="noopener">
+        <img style="object-fit: cover;" align="center" width="100%"src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." />
+    </a>
 </div>
 
 </br>
@@ -58,10 +58,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Hero Sponsors 🎖
 
-<div style="display: flex; gap: 30px; align-items: center;">
 <a href="https://www.hostinger.com/vps-hosting?ref=dokploy" target="_blank" ><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/></a>
-
-<a href="https://www.lxaer.com?ref=dokploy" target="_blank" ><img src=".github/sponsors/lxaer.png" alt="LXAER" width="150"/></a></div>
 
 ### Premium Supporters 🥇
 
