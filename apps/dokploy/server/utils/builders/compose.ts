@@ -98,6 +98,7 @@ Compose Type: ${composeType} ✅`;
 	});
 
 	const bashCommand = `
+set -e;
 echo "${logBox}" >> ${logPath};
 ${newCompose}
 ${envCommand}
