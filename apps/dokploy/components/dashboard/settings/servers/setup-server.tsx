@@ -46,16 +46,15 @@ export const SetupServer = ({ serverId }: Props) => {
 		{ serverId },
 		{
 			enabled: !!serverId,
-			refetchInterval: 1000,
 		},
 	);
 
-	const { mutateAsync } = api.server.setup.useMutation({
-		// onMutate: async (variables) => {
-		// 	console.log("Running....");
-		// 	utils.deployment.allByServer.invalidate({ serverId: variables.serverId });
-		// 	// refetch();
-		// },
+	const { mutateAsync, isLoading } = api.server.setup.useMutation({
+		onMutate: async (variables) => {
+			console.log("Running....");
+			refetch();
+			// refetch();
+		},
 	});
 
 	return (
@@ -108,7 +107,7 @@ export const SetupServer = ({ serverId }: Props) => {
 													});
 											}}
 										>
-											<Button>Setup Server</Button>
+											<Button isLoading={isLoading}>Setup Server</Button>
 										</DialogAction>
 									</div>
 								</CardHeader>

@@ -32,6 +32,7 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 import { execAsyncRemote } from "../process/execAsync";
+import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -144,13 +145,14 @@ export const writeDomainsToComposeRemote = async (
 	try {
 		if (compose.serverId) {
 			const composeString = dump(composeConverted, { lineWidth: 1000 });
-			return `printf '%s' '${composeString.replace(/'/g, "'\\''")}' > ${path}`;
+			const encodedContent = encodeBase64(composeString);
+			return `echo "${encodedContent}" | base64 -d > "${path}";`;
 		}
 	} catch (error) {
 		throw error;
 	}
 };
-
+// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],

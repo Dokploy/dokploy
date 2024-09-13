@@ -97,6 +97,7 @@ export const createComposeByTemplate = async (
 		.insert(compose)
 		.values({
 			...input,
+			serverId: "y91z1__c4SJbBe1TwQuaN",
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -241,16 +242,33 @@ export const deployCompose = async ({
 				command += getCreateComposeFileCommand(compose);
 			}
 
-			Promise.resolve()
-				.then(() => {
-					return execAsyncRemote(compose.serverId, command);
-				})
-				.then(() => {
-					return getBuildComposeCommand(compose, deployment.logPath);
-				})
-				.then(() => {
-					console.log(" ---- done ----");
-				});
+			// Promise.resolve()
+			// 	.then(() => {
+			// 		return execAsyncRemote(compose.serverId, command);
+			// 	})
+			// 	.then(() => {
+			// 		return getBuildComposeCommand(compose, deployment.logPath);
+			// 	})
+			// 	.catch((err) => {
+			// 		throw err;
+			// 	})
+			// 	.then(() => {
+			// 		console.log(" ---- done ----");
+			// 	});
+			async function* sequentialSteps() {
+				yield execAsyncRemote(compose.serverId, command);
+				yield getBuildComposeCommand(compose, deployment.logPath);
+			}
+
+			const steps = sequentialSteps();
+			for await (const step of steps) {
+				if (step.stderr) {
+					console.log(step.stderr);
+				}
+				step;
+			}
+
+			console.log(" ---- done ----");
 		} else {
 			if (compose.sourceType === "github") {
 				await cloneGithubRepository(compose, deployment.logPath, true);

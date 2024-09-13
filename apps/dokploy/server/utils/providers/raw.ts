@@ -5,6 +5,7 @@ import type { Compose } from "@/server/api/services/compose";
 import { COMPOSE_PATH } from "@/server/constants";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
+import { encodeBase64 } from "../docker/utils";
 
 export const createComposeFile = async (compose: Compose, logPath: string) => {
 	const { appName, composeFile } = compose;
@@ -32,13 +33,13 @@ export const getCreateComposeFileCommand = (compose: Compose) => {
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");
-	const command = [];
-	command.push(`rm -rf ${outputPath};`);
-	command.push(`mkdir -p ${outputPath};`);
-	command.push(
-		`printf '%s' '${composeFile.replace(/'/g, "'\\''")}' > ${filePath};`,
-	);
-	return command.join("\n");
+	const encodedContent = encodeBase64(composeFile);
+	const bashCommand = `
+		rm -rf ${outputPath};
+		mkdir -p ${outputPath};
+		echo "${encodedContent}" | base64 -d > "${filePath}";
+	`;
+	return bashCommand;
 };
 
 export const createComposeFileRaw = async (compose: Compose) => {
@@ -59,9 +60,10 @@ export const createComposeFileRawRemote = async (compose: Compose) => {
 	const filePath = join(outputPath, "docker-compose.yml");
 
 	try {
+		const encodedContent = encodeBase64(composeFile);
 		const command = `
 			mkdir -p ${outputPath};
-			echo "${composeFile}" > ${filePath};
+			echo "${encodedContent}" | base64 -d > "${filePath}";
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {

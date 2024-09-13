@@ -410,6 +410,8 @@ export const createFile = async (
 		throw error;
 	}
 };
+export const encodeBase64 = (content: string) =>
+	Buffer.from(content, "utf-8").toString("base64");
 
 export const getCreateFileCommand = (
 	outputPath: string,
@@ -422,10 +424,10 @@ export const getCreateFileCommand = (
 	}
 
 	const directory = path.dirname(fullPath);
-
+	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${directory};
-		echo "${content}" > ${fullPath};
+		echo "${encodedContent}" | base64 -d > "${fullPath}";
 	`;
 };
 

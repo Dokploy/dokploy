@@ -54,7 +54,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const client = new Client();
 				new Promise<void>((resolve, reject) => {
 					client
-						.on("ready", () => {
+						.once("ready", () => {
 							const command = `
 						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
 					`;

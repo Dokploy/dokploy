@@ -67,7 +67,7 @@ const connectToServer = async (serverId: string, logPath: string) => {
 	const keys = await readSSHKey(server.sshKeyId);
 	return new Promise<void>((resolve, reject) => {
 		client
-			.on("ready", () => {
+			.once("ready", () => {
 				console.log("Client :: ready");
 				const bashCommand = `
 				

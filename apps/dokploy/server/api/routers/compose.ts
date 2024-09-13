@@ -19,7 +19,11 @@ import {
 	randomizeComposeFile,
 	randomizeSpecificationFile,
 } from "@/server/utils/docker/compose";
-import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
+import {
+	addDomainToCompose,
+	cloneCompose,
+	cloneComposeRemote,
+} from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
@@ -131,7 +135,11 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				const compose = await findComposeById(input.composeId);
-				await cloneCompose(compose);
+				if (compose.serverId) {
+					await cloneComposeRemote(compose);
+				} else {
+					await cloneCompose(compose);
+				}
 				return compose.sourceType;
 			} catch (err) {
 				throw new TRPCError({

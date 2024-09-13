@@ -12,7 +12,7 @@ import {
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
-import { prepareEnvironmentVariables } from "../docker/utils";
+import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
 import { spawnAsync } from "../process/spawnAsync";
 import { execAsyncRemote } from "../process/execAsync";
 
@@ -106,9 +106,7 @@ docker ${command.split(" ").join(" ")} >> ${logPath} 2>&1;
 echo "Docker Compose Deployed: ✅" >> ${logPath};
 `;
 
-	await execAsyncRemote(compose.serverId, bashCommand);
-
-	return bashCommand;
+	return await execAsyncRemote(compose.serverId, bashCommand);
 };
 
 const sanitizeCommand = (command: string) => {
@@ -174,6 +172,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
+
 	let envContent = env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
 		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
@@ -184,8 +183,10 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	}
 
 	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
+
+	const encodedContent = encodeBase64(envFileContent);
 	return `
-mkdir -p ${envFilePath};
-echo "${envFileContent}" > ${envFilePath};
+touch ${envFilePath};
+echo "${encodedContent}" | base64 -d > "${envFilePath}";
 	`;
 };
