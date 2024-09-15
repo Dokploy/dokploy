@@ -9,7 +9,6 @@ import { COMPOSE_PATH } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
 import {
-	getComposePath,
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
@@ -114,11 +113,6 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-		if [ ! -f "${composePath}" ]; then
-			echo "❌ Error: Compose file not found" >> "${logPath}";
-			exit 1;
-		fi
-	
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
 	
 		echo "Docker Compose Deployed: ✅" >> "${logPath}"

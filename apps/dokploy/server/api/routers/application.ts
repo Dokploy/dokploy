@@ -397,7 +397,7 @@ export const applicationRouter = createTRPCRouter({
 			});
 
 			const app = await findApplicationById(input.applicationId as string);
-			await unzipDrop(zipFile, app.appName);
+			await unzipDrop(zipFile, app);
 
 			const jobData: DeploymentJob = {
 				applicationId: app.applicationId,
@@ -405,6 +405,7 @@ export const applicationRouter = createTRPCRouter({
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!app.serverId,
 			};
 			await myQueue.add(
 				"deployments",

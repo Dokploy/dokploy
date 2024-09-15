@@ -151,14 +151,21 @@ export const writeDomainsToComposeRemote = async (
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
+
+		if (!composeConverted) {
+			return `
+echo "❌ Error: Compose file not found" >> ${logPath};
+exit 1;
+			`;
+		}
 		if (compose.serverId) {
 			const composeString = dump(composeConverted, { lineWidth: 1000 });
 			const encodedContent = encodeBase64(composeString);
 			return `echo "${encodedContent}" | base64 -d > "${path}";`;
 		}
 	} catch (error) {
-		return `
-echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+		// @ts-ignore
+		return `echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
 exit 1;
 		`;
 	}

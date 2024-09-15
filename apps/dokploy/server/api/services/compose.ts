@@ -449,6 +449,9 @@ export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		if (compose.composeType === "docker-compose") {
+			console.log(
+				`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
+			);
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,

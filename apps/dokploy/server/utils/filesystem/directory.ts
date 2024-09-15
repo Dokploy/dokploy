@@ -17,6 +17,20 @@ export const recreateDirectory = async (pathFolder: string): Promise<void> => {
 	}
 };
 
+export const recreateDirectoryRemote = async (
+	pathFolder: string,
+	serverId: string | null,
+): Promise<void> => {
+	try {
+		await execAsyncRemote(
+			serverId,
+			`rm -rf ${pathFolder}; mkdir -p ${pathFolder}`,
+		);
+	} catch (error) {
+		console.error(`Error recreating directory '${pathFolder}':`, error);
+	}
+};
+
 export const removeDirectoryIfExistsContent = async (
 	path: string,
 ): Promise<void> => {
