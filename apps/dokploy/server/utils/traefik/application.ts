@@ -47,9 +47,20 @@ export const createTraefikConfig = (appName: string) => {
 	);
 };
 
-export const removeTraefikConfig = async (appName: string) => {
+export const removeTraefikConfig = async (
+	appName: string,
+	serverId?: string | null,
+) => {
 	try {
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+
+		if (serverId) {
+			await execAsyncRemote(serverId, `rm ${configPath}`);
+		} else {
+			if (fs.existsSync(configPath)) {
+				await fs.promises.unlink(configPath);
+			}
+		}
 		if (fs.existsSync(configPath)) {
 			await fs.promises.unlink(configPath);
 		}

@@ -24,6 +24,7 @@ import {
 	setupTerminalWebSocketServer,
 } from "./wss/terminal";
 import { IS_CLOUD } from "./constants";
+import { deploymentWorker } from "./queues/deployments-queue";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -68,7 +69,7 @@ void app.prepare().then(async () => {
 
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		// deploymentWorker.run();
+		deploymentWorker.run();
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

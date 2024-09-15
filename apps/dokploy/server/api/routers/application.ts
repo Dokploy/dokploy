@@ -23,7 +23,7 @@ import {
 	type DeploymentJob,
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
-import { enqueueDeploymentJob, myQueue } from "@/server/queues/queueSetup";
+import { myQueue } from "@/server/queues/queueSetup";
 import {
 	removeService,
 	startService,
@@ -134,12 +134,19 @@ export const applicationRouter = createTRPCRouter({
 				.returning();
 
 			const cleanupOperations = [
-				async () => deleteAllMiddlewares(application),
+				async () => await deleteAllMiddlewares(application),
 				async () => await removeDeployments(application),
-				async () => await removeDirectoryCode(application?.appName),
-				async () => await removeMonitoringDirectory(application?.appName),
-				async () => await removeTraefikConfig(application?.appName),
-				async () => await removeService(application?.appName),
+				async () =>
+					await removeDirectoryCode(application.appName, application.serverId),
+				async () =>
+					await removeMonitoringDirectory(
+						application.appName,
+						application.serverId,
+					),
+				async () =>
+					await removeTraefikConfig(application.appName, application.serverId),
+				async () =>
+					await removeService(application?.appName, application.serverId),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -327,7 +334,7 @@ export const applicationRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
-			const application = await findApplicationById(input.applicationId);
+			// const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
@@ -335,10 +342,18 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 			};
-			if (!application.serverId) {
-			} else {
-				await enqueueDeploymentJob(application.serverId, jobData);
-			}
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+			// if (!application.serverId) {
+			// } else {
+			// 	await enqueueDeploymentJob(application.serverId, jobData);
+			// }
 		}),
 
 	cleanQueues: protectedProcedure

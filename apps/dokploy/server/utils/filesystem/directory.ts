@@ -6,7 +6,7 @@ import {
 	COMPOSE_PATH,
 	MONITORING_PATH,
 } from "@/server/constants";
-import { execAsync } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {
 	try {
@@ -34,31 +34,54 @@ export const removeFileOrDirectory = async (path: string) => {
 	}
 };
 
-export const removeDirectoryCode = async (appName: string) => {
+export const removeDirectoryCode = async (
+	appName: string,
+	serverId?: string | null,
+) => {
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
-
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
 
-export const removeComposeDirectory = async (appName: string) => {
+export const removeComposeDirectory = async (
+	appName: string,
+	serverId?: string | null,
+) => {
 	const directoryPath = path.join(COMPOSE_PATH, appName);
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
 
-export const removeMonitoringDirectory = async (appName: string) => {
+export const removeMonitoringDirectory = async (
+	appName: string,
+	serverId?: string | null,
+) => {
 	const directoryPath = path.join(MONITORING_PATH, appName);
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;

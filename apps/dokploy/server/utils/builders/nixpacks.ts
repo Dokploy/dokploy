@@ -94,7 +94,7 @@ export const getNixpacksCommand = (
 			/* No need for any start command, since we'll use nginx later on */
 			args.push("--no-error-without-start");
 		}
-
+		console.log("args", args);
 		const command = `nixpacks ${args.join(" ")}`;
 		const bashCommand = `
 echo "Starting nixpacks build..." >> ${logPath};
@@ -107,6 +107,9 @@ echo "Nixpacks build completed." >> ${logPath};
 			 and copy the artifacts on the host filesystem.
 			 Then, remove the container and create a static build.
 		 */
+
+		if (publishDirectory) {
+		}
 
 		// if (publishDirectory) {
 		// 	bashCommand += `

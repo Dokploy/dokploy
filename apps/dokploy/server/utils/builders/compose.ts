@@ -98,14 +98,24 @@ Compose Type: ${composeType} ✅`;
 	});
 
 	const bashCommand = `
-set -e;
-echo "${logBox}" >> ${logPath};
-${newCompose}
-${envCommand}
-cd ${projectPath} || exit 1;
-docker ${command.split(" ").join(" ")} >> ${logPath} 2>&1;
-echo "Docker Compose Deployed: ✅" >> ${logPath};
-`;
+	set -e
+	{
+		echo "${logBox}" >> "${logPath}"
+	
+		${newCompose}
+	
+		${envCommand}
+	
+		cd "${projectPath}";
+	
+		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
+	
+		echo "Docker Compose Deployed: ✅" >> "${logPath}"
+	} || {
+		echo "Error: ❌ Script execution failed" >> "${logPath}"
+		exit 1
+	}
+	`;
 
 	return await execAsyncRemote(compose.serverId, bashCommand);
 };

@@ -38,6 +38,7 @@ import {
 } from "@/server/utils/providers/gitlab";
 import { validUniqueServerAppName } from "./project";
 import { executeCommand } from "@/server/utils/servers/command";
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -164,7 +165,7 @@ export const deployApplication = async ({
 
 	try {
 		if (application.serverId) {
-			let command = "set -e";
+			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand(application, deployment.logPath);
 			} else if (application.sourceType === "gitlab") {
@@ -186,8 +187,7 @@ export const deployApplication = async ({
 			if (application.sourceType !== "docker") {
 				command += getBuildCommand(application, deployment.logPath);
 			}
-
-			await executeCommand(application.serverId, command);
+			await execAsyncRemote(application.serverId, command);
 			await mechanizeDockerContainer(application);
 		} else {
 			if (application.sourceType === "github") {
@@ -208,8 +208,6 @@ export const deployApplication = async ({
 				await buildApplication(application, deployment.logPath);
 			}
 		}
-
-		console.log("Command", "Finish");
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
@@ -263,18 +261,31 @@ export const rebuildApplication = async ({
 	});
 
 	try {
-		if (application.sourceType === "github") {
-			await buildApplication(application, deployment.logPath);
-		} else if (application.sourceType === "gitlab") {
-			await buildApplication(application, deployment.logPath);
-		} else if (application.sourceType === "bitbucket") {
-			await buildApplication(application, deployment.logPath);
-		} else if (application.sourceType === "docker") {
-			await buildDocker(application, deployment.logPath);
-		} else if (application.sourceType === "git") {
-			await buildApplication(application, deployment.logPath);
-		} else if (application.sourceType === "drop") {
-			await buildApplication(application, deployment.logPath);
+		if (application.serverId) {
+			let command = "set -e;";
+			if (application.sourceType === "docker") {
+				command += await buildRemoteDocker(application, deployment.logPath);
+			}
+
+			if (application.sourceType !== "docker") {
+				command += getBuildCommand(application, deployment.logPath);
+			}
+			await execAsyncRemote(application.serverId, command);
+			await mechanizeDockerContainer(application);
+		} else {
+			if (application.sourceType === "github") {
+				await buildApplication(application, deployment.logPath);
+			} else if (application.sourceType === "gitlab") {
+				await buildApplication(application, deployment.logPath);
+			} else if (application.sourceType === "bitbucket") {
+				await buildApplication(application, deployment.logPath);
+			} else if (application.sourceType === "docker") {
+				await buildDocker(application, deployment.logPath);
+			} else if (application.sourceType === "git") {
+				await buildApplication(application, deployment.logPath);
+			} else if (application.sourceType === "drop") {
+				await buildApplication(application, deployment.logPath);
+			}
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");

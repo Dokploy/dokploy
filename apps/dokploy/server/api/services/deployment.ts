@@ -16,6 +16,7 @@ import { type Application, findApplicationById } from "./application";
 import { type Compose, findComposeById } from "./compose";
 import { findServerById, type Server } from "./server";
 import { executeCommand } from "@/server/utils/servers/command";
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -208,14 +209,23 @@ const removeLastTenComposeDeployments = async (composeId: string) => {
 export const removeDeployments = async (application: Application) => {
 	const { appName, applicationId } = application;
 	const logsPath = path.join(LOGS_PATH, appName);
-	await removeDirectoryIfExistsContent(logsPath);
+	if (application.serverId) {
+		await execAsyncRemote(application.serverId, `rm -rf ${logsPath}`);
+	} else {
+		await removeDirectoryIfExistsContent(logsPath);
+	}
 	await removeDeploymentsByApplicationId(applicationId);
 };
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
 	const { appName } = compose;
 	const logsPath = path.join(LOGS_PATH, appName);
-	await removeDirectoryIfExistsContent(logsPath);
+	if (compose.serverId) {
+		await execAsyncRemote(compose.serverId, `rm -rf ${logsPath}`);
+	} else {
+		await removeDirectoryIfExistsContent(logsPath);
+	}
+
 	await db
 		.delete(deployments)
 		.where(eq(deployments.composeId, compose.composeId))

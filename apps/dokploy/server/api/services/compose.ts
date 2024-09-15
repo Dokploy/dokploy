@@ -241,20 +241,6 @@ export const deployCompose = async ({
 			} else if (compose.sourceType === "raw") {
 				command += getCreateComposeFileCommand(compose);
 			}
-
-			// Promise.resolve()
-			// 	.then(() => {
-			// 		return execAsyncRemote(compose.serverId, command);
-			// 	})
-			// 	.then(() => {
-			// 		return getBuildComposeCommand(compose, deployment.logPath);
-			// 	})
-			// 	.catch((err) => {
-			// 		throw err;
-			// 	})
-			// 	.then(() => {
-			// 		console.log(" ---- done ----");
-			// 	});
 			async function* sequentialSteps() {
 				yield execAsyncRemote(compose.serverId, command);
 				yield getBuildComposeCommand(compose, deployment.logPath);
@@ -262,9 +248,6 @@ export const deployCompose = async ({
 
 			const steps = sequentialSteps();
 			for await (const step of steps) {
-				if (step.stderr) {
-					console.log(step.stderr);
-				}
 				step;
 			}
 
@@ -330,7 +313,12 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		await buildCompose(compose, deployment.logPath);
+		if (compose.serverId) {
+			await getBuildComposeCommand(compose, deployment.logPath);
+		} else {
+			await buildCompose(compose, deployment.logPath);
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -351,13 +339,24 @@ export const removeCompose = async (compose: Compose) => {
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
-			await execAsync(`docker stack rm ${compose.appName}`, {
+			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+			await execAsync(command, {
 				cwd: projectPath,
 			});
 		} else {
-			await execAsync(`docker compose -p ${compose.appName} down`, {
-				cwd: projectPath,
-			});
+			const command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command, {
+					cwd: projectPath,
+				});
+			}
 		}
 	} catch (error) {
 		throw error;
@@ -370,9 +369,16 @@ export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		if (compose.composeType === "docker-compose") {
-			await execAsync(`docker compose -p ${compose.appName} stop`, {
-				cwd: join(COMPOSE_PATH, compose.appName),
-			});
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
+				);
+			} else {
+				await execAsync(`docker compose -p ${compose.appName} stop`, {
+					cwd: join(COMPOSE_PATH, compose.appName),
+				});
+			}
 		}
 
 		await updateCompose(composeId, {

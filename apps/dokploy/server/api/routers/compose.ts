@@ -13,7 +13,7 @@ import {
 	type DeploymentJob,
 	cleanQueuesByCompose,
 } from "@/server/queues/deployments-queue";
-import { enqueueDeploymentJob, myQueue } from "@/server/queues/queueSetup";
+import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
 import {
 	randomizeComposeFile,
@@ -176,14 +176,7 @@ export const composeRouter = createTRPCRouter({
 			// 	applicationType: "compose",
 			// 	descriptionLog: "",
 			// };
-			// await myQueue.add(
-			// 	"deployments",
-			// 	{ ...jobData },
-			// 	{
-			// 		removeOnComplete: true,
-			// 		removeOnFail: true,
-			// 	},
-			// );
+
 			const compose = await findComposeById(input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
@@ -192,10 +185,18 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: "",
 			};
-			if (!compose.serverId) {
-			} else {
-				await enqueueDeploymentJob(compose.serverId, jobData);
-			}
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+			// if (!compose.serverId) {
+			// } else {
+			// 	await enqueueDeploymentJob(compose.serverId, jobData);
+			// }
 		}),
 	redeploy: protectedProcedure
 		.input(apiFindCompose)

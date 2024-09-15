@@ -30,8 +30,6 @@ export const buildHeroku = async (
 			if (writeStream.writable) {
 				writeStream.write(data);
 			}
-			// Stream the data
-			console.log(data);
 		});
 		return true;
 	} catch (e) {

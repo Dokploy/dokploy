@@ -181,6 +181,11 @@ export const getBitbucketCloneCommand = async (
 	}
 
 	if (!bitbucketId) {
+		const command = `
+			echo  "Error: ❌ Bitbucket Provider not found" >> ${logPath};
+			exit 1;
+		`;
+		await execAsyncRemote(serverId, command);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Bitbucket Provider not found",
@@ -198,7 +203,7 @@ export const getBitbucketCloneCommand = async (
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
 if ! git clone --branch ${bitbucketBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "[ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};

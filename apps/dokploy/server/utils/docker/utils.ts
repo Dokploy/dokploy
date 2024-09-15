@@ -214,9 +214,17 @@ export const startServiceRemote = async (serverId: string, appName: string) => {
 	}
 };
 
-export const removeService = async (appName: string) => {
+export const removeService = async (
+	appName: string,
+	serverId?: string | null,
+) => {
 	try {
-		await execAsync(`docker service rm ${appName}`);
+		const command = `docker service rm ${appName}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		return error;
 	}

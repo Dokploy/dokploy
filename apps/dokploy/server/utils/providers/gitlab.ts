@@ -179,6 +179,12 @@ export const getGitlabCloneCommand = async (
 	}
 
 	if (!gitlabId) {
+		const command = `
+			echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
+			exit 1;
+		`;
+
+		await execAsyncRemote(serverId, command);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Gitlab Provider not found",
@@ -203,7 +209,7 @@ export const getGitlabCloneCommand = async (
             exit 1;  # Exit with error code
         `;
 
-		await executeCommand(serverId, bashCommand);
+		await execAsyncRemote(serverId, bashCommand);
 		return;
 	}
 
@@ -218,7 +224,7 @@ export const getGitlabCloneCommand = async (
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
 if ! git clone --branch ${gitlabBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "[ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};

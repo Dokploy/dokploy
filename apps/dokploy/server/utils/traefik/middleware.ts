@@ -5,6 +5,7 @@ import { dump, load } from "js-yaml";
 import type { ApplicationNested } from "../builders";
 import type { FileConfig } from "./file-types";
 import { execAsyncRemote } from "../process/execAsync";
+import { writeTraefikConfigRemote } from "./application";
 
 export const addMiddleware = (config: FileConfig, middlewareName: string) => {
 	if (config.http?.routers) {
@@ -43,7 +44,7 @@ export const deleteMiddleware = (
 	}
 };
 
-export const deleteAllMiddlewares = (application: ApplicationNested) => {
+export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 	const config = loadMiddlewares<FileConfig>();
 	const { security, appName, redirects } = application;
 
@@ -60,7 +61,11 @@ export const deleteAllMiddlewares = (application: ApplicationNested) => {
 		}
 	}
 
-	writeMiddleware(config);
+	if (application.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", application.serverId);
+	} else {
+		writeMiddleware(config);
+	}
 };
 
 export const loadMiddlewares = <T>() => {

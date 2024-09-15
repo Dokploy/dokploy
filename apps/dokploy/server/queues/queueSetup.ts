@@ -13,10 +13,10 @@ import {
 } from "../api/services/compose";
 
 export const redisConfig: ConnectionOptions = {
-	host: "31.220.108.27",
-	password: "xYBugfHkULig1iLN",
-	// host: process.env.NODE_ENV === "production" ? "dokploy-redis" : "127.0.0.1",
-	port: 1233,
+	// host: "31.220.108.27",
+	// password: "xYBugfHkULig1iLN",
+	host: process.env.NODE_ENV === "production" ? "dokploy-redis" : "127.0.0.1",
+	// port: 1233,
 };
 // TODO: maybe add a options to clean the queue to the times
 const myQueue = new Queue("deployments", {
@@ -47,84 +47,4 @@ function createRedisConnection(server: Server) {
 		host: server.ipAddress,
 		port: "6379",
 	} as ConnectionOptions;
-}
-
-async function setupServerQueueAndWorker(server: Server) {
-	const connection = createRedisConnection(server);
-
-	if (!workersMap.has(server.serverId)) {
-		const queue = new Queue(`deployments-${server.serverId}`, {
-			connection,
-		});
-		const worker = new Worker(
-			`deployments-${server.serverId}`,
-			async (job: Job<DeploymentJob>) => {
-				// Ejecuta el trabajo de despliegue
-				try {
-					if (job.data.applicationType === "application") {
-						await updateApplicationStatus(job.data.applicationId, "running");
-						if (job.data.type === "redeploy") {
-							await rebuildApplication({
-								applicationId: job.data.applicationId,
-								titleLog: job.data.titleLog,
-								descriptionLog: job.data.descriptionLog,
-							});
-						} else if (job.data.type === "deploy") {
-							await deployApplication({
-								applicationId: job.data.applicationId,
-								titleLog: job.data.titleLog,
-								descriptionLog: job.data.descriptionLog,
-							});
-						}
-					} else if (job.data.applicationType === "compose") {
-						await updateCompose(job.data.composeId, {
-							composeStatus: "running",
-						});
-						if (job.data.type === "deploy") {
-							await deployCompose({
-								composeId: job.data.composeId,
-								titleLog: job.data.titleLog,
-								descriptionLog: job.data.descriptionLog,
-							});
-						} else if (job.data.type === "redeploy") {
-							await rebuildCompose({
-								composeId: job.data.composeId,
-								titleLog: job.data.titleLog,
-								descriptionLog: job.data.descriptionLog,
-							});
-						}
-					}
-				} catch (error) {
-					console.log("Error", error);
-				}
-			},
-			{
-				limiter: {
-					max: 1,
-					duration: 1000,
-				},
-				connection,
-			},
-		);
-		// Almacena worker y queue para reutilizar
-		workersMap.set(server.serverId, worker);
-		queuesMap.set(server.serverId, queue);
-	}
-	return {
-		queue: queuesMap.get(server.serverId),
-		worker: workersMap.get(server.serverId),
-	};
-}
-
-export async function enqueueDeploymentJob(
-	serverId: string,
-	jobData: DeploymentJob,
-) {
-	const server = await findServerById(serverId);
-	const { queue } = await setupServerQueueAndWorker(server);
-
-	await queue?.add(`deployments-${serverId}`, jobData, {
-		removeOnComplete: true,
-		removeOnFail: true,
-	});
 }

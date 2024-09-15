@@ -151,7 +151,20 @@ export const getGithubCloneCommand = async (
 ) => {
 	const { appName, repository, owner, branch, githubId, serverId } = entity;
 
-	if (!githubId || !serverId) {
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
+	if (!githubId) {
+		const command = `
+			echo  "Error: ❌ Github Provider not found" >> ${logPath};
+			exit 1;
+		`;
+
+		await executeCommand(serverId, command);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "GitHub Provider not found",
@@ -192,7 +205,7 @@ export const getGithubCloneCommand = async (
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
 if ! git clone --branch ${branch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "[ERROR] Fallo al clonar el repositorio ${repoclone}" >> ${logPath};
+	echo "❌ [ERROR] Fallo al clonar el repositorio ${repoclone}" >> ${logPath};
 	exit 1;
 fi
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};

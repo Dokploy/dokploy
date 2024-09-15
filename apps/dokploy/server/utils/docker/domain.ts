@@ -137,7 +137,7 @@ export const writeDomainsToComposeRemote = async (
 	domains: Domain[],
 ) => {
 	if (!domains.length) {
-		return;
+		return "";
 	}
 	const composeConverted = await addDomainToCompose(compose, domains);
 	const path = getComposePath(compose);

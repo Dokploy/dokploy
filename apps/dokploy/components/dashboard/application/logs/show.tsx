@@ -16,6 +16,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 export const DockerLogs = dynamic(
@@ -34,7 +35,7 @@ interface Props {
 }
 
 export const ShowDockerLogs = ({ appName, serverId }: Props) => {
-	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
 			serverId,
@@ -64,7 +65,14 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 				<Label>Select a container to view logs</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
-						<SelectValue placeholder="Select a container" />
+						{isLoading ? (
+							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+								<span>Loading...</span>
+								<Loader2 className="animate-spin size-4" />
+							</div>
+						) : (
+							<SelectValue placeholder="Select a container" />
+						)}
 					</SelectTrigger>
 					<SelectContent>
 						<SelectGroup>

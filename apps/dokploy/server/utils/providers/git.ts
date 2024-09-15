@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
-import { Compose } from "@/server/api/services/compose";
+import type { Compose } from "@/server/api/services/compose";
 
 export const cloneGitRepository = async (
 	entity: {
@@ -108,6 +108,12 @@ export const getCustomGitCloneCommand = async (
 	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
+		const command = `
+			echo  "Error: ❌ Repository not found" >> ${logPath};
+			exit 1;
+		`;
+
+		await execAsyncRemote(serverId, command);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error: Repository not found",
@@ -143,7 +149,7 @@ export const getCustomGitCloneCommand = async (
 
 		command.push(
 			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
-				echo "[ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
+				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
 			fi
 			`,
