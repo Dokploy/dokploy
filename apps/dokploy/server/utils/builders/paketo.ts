@@ -61,8 +61,11 @@ export const getPaketoCommand = (
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
 echo "Starting Paketo build..." >> ${logPath};
-${command} >> ${logPath} 2>&1;
-echo "Paketo build completed." >> ${logPath};
+${command} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ Paketo build failed" >> ${logPath};
+  exit 1;
+}
+echo "✅ Paketo build completed." >> ${logPath};
 		`;
 
 	return bashCommand;

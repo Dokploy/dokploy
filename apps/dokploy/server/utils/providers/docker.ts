@@ -59,24 +59,26 @@ export const buildRemoteDocker = async (
 			throw new Error("Docker image not found");
 		}
 		let command = `
-echo "Building ${sourceType}" >> ${logPath};
 echo "Pulling ${dockerImage}" >> ${logPath};		
 		`;
 
 		if (username && password) {
 			command += `
 if ! docker login --username ${username} --password ${password} https://index.docker.io/v1/ >> ${logPath} 2>&1; then
-	echo "Error logging in to Docker Hub" >> ${logPath};
+	echo "❌ Login failed" >> ${logPath};
 	exit 1;
 fi
 `;
 		}
 
 		command += `
-echo "Pulling ${dockerImage}" >> ${logPath};
-docker pull ${dockerImage} >> ${logPath} 2>&1;
-`;
+docker pull ${dockerImage} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ Pulling image failed" >> ${logPath};
+  exit 1;
+}
 
+echo "✅ Pulling image completed." >> ${logPath};
+`;
 		return command;
 	} catch (error) {
 		throw error;

@@ -9,6 +9,7 @@ import { COMPOSE_PATH } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
 import {
+	getComposePath,
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
@@ -73,12 +74,17 @@ export const getBuildComposeCommand = async (
 	compose: ComposeNested,
 	logPath: string,
 ) => {
-	const { sourceType, appName, mounts, composeType, domains } = compose;
+	const { sourceType, appName, mounts, composeType, domains, composePath } =
+		compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 
-	const newCompose = await writeDomainsToComposeRemote(compose, domains);
+	const newCompose = await writeDomainsToComposeRemote(
+		compose,
+		domains,
+		logPath,
+	);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -107,6 +113,11 @@ Compose Type: ${composeType} ✅`;
 		${envCommand}
 	
 		cd "${projectPath}";
+
+		if [ ! -f "${composePath}" ]; then
+			echo "❌ Error: Compose file not found" >> "${logPath}";
+			exit 1;
+		fi
 	
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
 	

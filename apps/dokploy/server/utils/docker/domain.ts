@@ -96,7 +96,14 @@ export const loadDockerComposeRemote = async (
 		if (!compose.serverId) {
 			return null;
 		}
-		const { stdout } = await execAsyncRemote(compose.serverId, `cat ${path}`);
+		const { stdout, stderr } = await execAsyncRemote(
+			compose.serverId,
+			`cat ${path}`,
+		);
+
+		if (stderr) {
+			return null;
+		}
 		if (!stdout) return null;
 		const parsedConfig = load(stdout) as ComposeSpecification;
 		return parsedConfig;
@@ -135,21 +142,25 @@ export const writeDomainsToCompose = async (
 export const writeDomainsToComposeRemote = async (
 	compose: Compose,
 	domains: Domain[],
+	logPath: string,
 ) => {
 	if (!domains.length) {
 		return "";
 	}
-	const composeConverted = await addDomainToCompose(compose, domains);
-	const path = getComposePath(compose);
 
 	try {
+		const composeConverted = await addDomainToCompose(compose, domains);
+		const path = getComposePath(compose);
 		if (compose.serverId) {
 			const composeString = dump(composeConverted, { lineWidth: 1000 });
 			const encodedContent = encodeBase64(composeString);
 			return `echo "${encodedContent}" | base64 -d > "${path}";`;
 		}
 	} catch (error) {
-		throw error;
+		return `
+echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+exit 1;
+		`;
 	}
 };
 // (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit

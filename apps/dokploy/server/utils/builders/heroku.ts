@@ -62,8 +62,11 @@ export const getHerokuCommand = (
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
 echo "Starting heroku build..." >> ${logPath};
-${command} >> ${logPath} 2>&1;
-echo "Heroku build completed." >> ${logPath};
+${command} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ Heroku build failed" >> ${logPath};
+  exit 1;
+}
+echo "✅ Heroku build completed." >> ${logPath};
 		`;
 
 	return bashCommand;

@@ -13,7 +13,6 @@ export const createEnvFile = (directory: string, env: string | null) => {
 
 export const createEnvFileCommand = (directory: string, env: string | null) => {
 	const envFilePath = join(dirname(directory), ".env");
-	// let command = ``
 	if (!existsSync(dirname(envFilePath))) {
 		mkdirSync(dirname(envFilePath), { recursive: true });
 	}

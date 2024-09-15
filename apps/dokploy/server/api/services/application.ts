@@ -261,9 +261,65 @@ export const rebuildApplication = async ({
 	});
 
 	try {
+		if (application.sourceType === "github") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitlab") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "bitbucket") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "docker") {
+			await buildDocker(application, deployment.logPath);
+		} else if (application.sourceType === "git") {
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "drop") {
+			await buildApplication(application, deployment.logPath);
+		}
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateApplicationStatus(applicationId, "done");
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateApplicationStatus(applicationId, "error");
+		throw error;
+	}
+
+	return true;
+};
+
+export const deployRemoteApplication = async ({
+	applicationId,
+	titleLog = "Manual deployment",
+	descriptionLog = "",
+}: {
+	applicationId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const deployment = await createDeployment({
+		applicationId: applicationId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
 		if (application.serverId) {
 			let command = "set -e;";
-			if (application.sourceType === "docker") {
+			if (application.sourceType === "github") {
+				command += await getGithubCloneCommand(application, deployment.logPath);
+			} else if (application.sourceType === "gitlab") {
+				command += await getGitlabCloneCommand(application, deployment.logPath);
+			} else if (application.sourceType === "bitbucket") {
+				command += await getBitbucketCloneCommand(
+					application,
+					deployment.logPath,
+				);
+			} else if (application.sourceType === "git") {
+				command += await getCustomGitCloneCommand(
+					application,
+					deployment.logPath,
+				);
+			} else if (application.sourceType === "docker") {
 				command += await buildRemoteDocker(application, deployment.logPath);
 			}
 
@@ -272,20 +328,67 @@ export const rebuildApplication = async ({
 			}
 			await execAsyncRemote(application.serverId, command);
 			await mechanizeDockerContainer(application);
-		} else {
-			if (application.sourceType === "github") {
-				await buildApplication(application, deployment.logPath);
-			} else if (application.sourceType === "gitlab") {
-				await buildApplication(application, deployment.logPath);
-			} else if (application.sourceType === "bitbucket") {
-				await buildApplication(application, deployment.logPath);
-			} else if (application.sourceType === "docker") {
-				await buildDocker(application, deployment.logPath);
-			} else if (application.sourceType === "git") {
-				await buildApplication(application, deployment.logPath);
-			} else if (application.sourceType === "drop") {
-				await buildApplication(application, deployment.logPath);
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateApplicationStatus(applicationId, "done");
+
+		await sendBuildSuccessNotifications({
+			projectName: application.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			buildLink,
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateApplicationStatus(applicationId, "error");
+		await sendBuildErrorNotifications({
+			projectName: application.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			// @ts-ignore
+			errorMessage: error?.message || "Error to build",
+			buildLink,
+		});
+
+		console.log(
+			"Error on ",
+			application.buildType,
+			"/",
+			application.sourceType,
+			error,
+		);
+
+		throw error;
+	}
+
+	return true;
+};
+
+export const rebuildRemoteApplication = async ({
+	applicationId,
+	titleLog = "Rebuild deployment",
+	descriptionLog = "",
+}: {
+	applicationId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const application = await findApplicationById(applicationId);
+	const deployment = await createDeployment({
+		applicationId: applicationId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (application.serverId) {
+			if (application.sourceType !== "docker") {
+				let command = "set -e;";
+				command += getBuildCommand(application, deployment.logPath);
+				await execAsyncRemote(application.serverId, command);
 			}
+			await mechanizeDockerContainer(application);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");

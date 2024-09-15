@@ -210,64 +210,18 @@ export const deployCompose = async ({
 	});
 
 	try {
-		if (compose.serverId) {
-			let command = `
-			set -e;
-			`;
-			if (compose.sourceType === "github") {
-				command += await getGithubCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "gitlab") {
-				command += await getGitlabCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "bitbucket") {
-				command += await getBitbucketCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "git") {
-				command += await getCustomGitCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "raw") {
-				command += getCreateComposeFileCommand(compose);
-			}
-			async function* sequentialSteps() {
-				yield execAsyncRemote(compose.serverId, command);
-				yield getBuildComposeCommand(compose, deployment.logPath);
-			}
-
-			const steps = sequentialSteps();
-			for await (const step of steps) {
-				step;
-			}
-
-			console.log(" ---- done ----");
-		} else {
-			if (compose.sourceType === "github") {
-				await cloneGithubRepository(compose, deployment.logPath, true);
-			} else if (compose.sourceType === "gitlab") {
-				await cloneGitlabRepository(compose, deployment.logPath, true);
-			} else if (compose.sourceType === "bitbucket") {
-				await cloneBitbucketRepository(compose, deployment.logPath, true);
-			} else if (compose.sourceType === "git") {
-				await cloneGitRepository(compose, deployment.logPath, true);
-			} else if (compose.sourceType === "raw") {
-				await createComposeFile(compose, deployment.logPath);
-			}
-
-			await buildCompose(compose, deployment.logPath);
+		if (compose.sourceType === "github") {
+			await cloneGithubRepository(compose, deployment.logPath, true);
+		} else if (compose.sourceType === "gitlab") {
+			await cloneGitlabRepository(compose, deployment.logPath, true);
+		} else if (compose.sourceType === "bitbucket") {
+			await cloneBitbucketRepository(compose, deployment.logPath, true);
+		} else if (compose.sourceType === "git") {
+			await cloneGitRepository(compose, deployment.logPath, true);
+		} else if (compose.sourceType === "raw") {
+			await createComposeFile(compose, deployment.logPath);
 		}
-
+		await buildCompose(compose, deployment.logPath);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -317,6 +271,132 @@ export const rebuildCompose = async ({
 			await getBuildComposeCommand(compose, deployment.logPath);
 		} else {
 			await buildCompose(compose, deployment.logPath);
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		throw error;
+	}
+
+	return true;
+};
+
+export const deployRemoteCompose = async ({
+	composeId,
+	titleLog = "Manual deployment",
+	descriptionLog = "",
+}: {
+	composeId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (compose.serverId) {
+			let command = "set -e;";
+
+			if (compose.sourceType === "github") {
+				command += await getGithubCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "gitlab") {
+				command += await getGitlabCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "bitbucket") {
+				command += await getBitbucketCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "git") {
+				command += await getCustomGitCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "raw") {
+				command += getCreateComposeFileCommand(compose, deployment.logPath);
+			}
+
+			async function* sequentialSteps() {
+				yield execAsyncRemote(compose.serverId, command);
+				yield getBuildComposeCommand(compose, deployment.logPath);
+			}
+
+			const steps = sequentialSteps();
+			for await (const step of steps) {
+				step;
+			}
+
+			console.log(" ---- done ----");
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+
+		await sendBuildSuccessNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			buildLink,
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		await sendBuildErrorNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			// @ts-ignore
+			errorMessage: error?.message || "Error to build",
+			buildLink,
+		});
+		throw error;
+	}
+};
+
+export const rebuildRemoteCompose = async ({
+	composeId,
+	titleLog = "Rebuild deployment",
+	descriptionLog = "",
+}: {
+	composeId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (compose.serverId) {
+			await getBuildComposeCommand(compose, deployment.logPath);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");

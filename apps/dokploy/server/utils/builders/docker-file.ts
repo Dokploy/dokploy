@@ -6,7 +6,7 @@ import {
 	getDockerContextPath,
 } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import { createEnvFile } from "./utils";
+import { createEnvFile, createEnvFileCommand } from "./utils";
 
 export const buildCustomDocker = async (
 	application: ApplicationNested,
@@ -86,11 +86,27 @@ export const getDockerCommand = (
 			commandArgs.push("--build-arg", arg);
 		}
 
-		const command = `
+		/*
+			Do not generate an environment file when publishDirectory is specified,
+			as it could be publicly exposed.
+		*/
+		let command = "";
+		if (!publishDirectory) {
+			command += createEnvFileCommand(dockerFilePath, env);
+		}
+
+		command = `
 echo "Building ${appName}" >> ${logPath};
-cd ${dockerContextPath} || exit 1;
-docker ${commandArgs.join(" ")} >> ${logPath} 2>&1;
-echo "Docker build completed." >> ${logPath};
+cd ${dockerContextPath} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ The path ${dockerContextPath} does not exist" >> ${logPath};
+  exit 1;
+}
+
+docker ${commandArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ Docker build failed" >> ${logPath};
+  exit 1;
+}
+echo "✅ Docker build completed." >> ${logPath};
 		`;
 
 		return command;

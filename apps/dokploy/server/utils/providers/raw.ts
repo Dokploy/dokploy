@@ -29,7 +29,10 @@ export const createComposeFile = async (compose: Compose, logPath: string) => {
 	}
 };
 
-export const getCreateComposeFileCommand = (compose: Compose) => {
+export const getCreateComposeFileCommand = (
+	compose: Compose,
+	logPath: string,
+) => {
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");
@@ -38,6 +41,7 @@ export const getCreateComposeFileCommand = (compose: Compose) => {
 		rm -rf ${outputPath};
 		mkdir -p ${outputPath};
 		echo "${encodedContent}" | base64 -d > "${filePath}";
+		echo "File 'docker-compose.yml' created: ✅" >> ${logPath};
 	`;
 	return bashCommand;
 };

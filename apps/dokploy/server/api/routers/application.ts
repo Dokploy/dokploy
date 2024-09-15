@@ -189,12 +189,14 @@ export const applicationRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
+			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
 				descriptionLog: "",
 				type: "redeploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -334,13 +336,14 @@ export const applicationRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
-			// const application = await findApplicationById(input.applicationId);
+			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -350,10 +353,6 @@ export const applicationRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			// if (!application.serverId) {
-			// } else {
-			// 	await enqueueDeploymentJob(application.serverId, jobData);
-			// }
 		}),
 
 	cleanQueues: protectedProcedure

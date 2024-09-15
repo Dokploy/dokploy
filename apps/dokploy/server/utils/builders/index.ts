@@ -16,7 +16,7 @@ import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
-import { buildStatic } from "./static";
+import { buildStatic, getStaticCommand } from "./static";
 import { findServerById } from "@/server/api/services/server";
 import { readSSHKey } from "../filesystem/ssh";
 import { getRemoteDocker } from "../servers/remote-docker";
@@ -81,8 +81,8 @@ export const getBuildCommand = (
 			return getHerokuCommand(application, logPath);
 		case "paketo_buildpacks":
 			return getPaketoCommand(application, logPath);
-		// case "static":
-		// 	return buildStatic(application, writeStream);
+		case "static":
+			return getStaticCommand(application, logPath);
 		case "dockerfile":
 			return getDockerCommand(application, logPath);
 	}
