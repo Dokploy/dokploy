@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Tab } from "@headlessui/react";
 import { motion } from "framer-motion";
 import { Layers, Terminal, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Container } from "./Container";
 interface Feature {
 	name: React.ReactNode;
@@ -15,10 +16,9 @@ interface Feature {
 
 const features: Array<Feature> = [
 	{
-		name: "Open Source Templates",
-		summary: "One click to deploy open source templates.",
-		description:
-			"Deploy open source templates with one click, powered by Docker Compose, (Plausible, Calcom, Pocketbase, etc.)",
+		name: "secondaryFeatures.templates",
+		summary: "secondaryFeatures.templatesSummary",
+		description: "secondaryFeatures.templatesDes",
 		image: "/secondary/templates.png",
 		icon: function ReportingIcon() {
 			return (
@@ -29,11 +29,9 @@ const features: Array<Feature> = [
 		},
 	},
 	{
-		name: "Real-Time Traefik Configuration",
-		summary:
-			" Modify Traefik settings on-the-fly via a graphical interface or API.",
-		description:
-			"Users can adjust Traefik's configuration, including middleware, forwarding rules, and SSL certificates through an intuitive interface or API. This feature enables seamless traffic routing and security adjustments without the need to restart services",
+		name: "secondaryFeatures.traefik",
+		summary: "secondaryFeatures.traefikSummary",
+		description: "secondaryFeatures.traefikDes",
 		image: "/secondary/traefik.png",
 		icon: function ReportingIcon() {
 			return (
@@ -217,11 +215,9 @@ const features: Array<Feature> = [
 		},
 	},
 	{
-		name: "User Permission Management",
-		summary:
-			"Detailed control over user permissions for accessing and managing projects and services.",
-		description:
-			"Allows administrators to define specific roles and permissions for each user, including the ability to create, modify, or delete applications and databases. This feature ensures secure and efficient management of large and diverse teams.",
+		name: "secondaryFeatures.users",
+		summary: "secondaryFeatures.usersSummary",
+		description: "secondaryFeatures.usersDes",
 		image: "/secondary/users.png",
 		icon: function InventoryIcon() {
 			return (
@@ -232,11 +228,9 @@ const features: Array<Feature> = [
 		},
 	},
 	{
-		name: "Terminal Access",
-		summary:
-			"Direct access to each container's and server terminal for advanced management.",
-		description:
-			"Provides an interface to access the command line of any active container, allowing developers to execute commands, manage services, and troubleshoot directly from the dashboard",
+		name: "secondaryFeatures.terminal",
+		summary: "secondaryFeatures.terminalSummary",
+		description: "secondaryFeatures.terminalDes",
 		image: "/secondary/terminal.png",
 		icon: function ContactsIcon() {
 			return (
@@ -257,18 +251,19 @@ function Feature({
 	feature: Feature;
 	isActive: boolean;
 }) {
+	const t = useTranslations("HomePage");
 	return (
 		<div
 			className={cn(
 				className,
 				!isActive ? "opacity-75 hover:opacity-100 " : "rounded-xl",
-				" p-4 relative",
+				" relative p-4",
 			)}
 			{...props}
 		>
 			<div
 				className={cn(
-					"size-9 rounded-lg flex items-center justify-center",
+					"flex size-9 items-center justify-center rounded-lg",
 					isActive ? "bg-border" : "bg-muted",
 				)}
 			>
@@ -277,7 +272,7 @@ function Feature({
 			{isActive && (
 				<motion.span
 					layoutId="bubble"
-					className="absolute inset-0 z-10 bg-white/5 mix-blend-difference rounded-xl"
+					className="absolute inset-0 z-10 rounded-xl bg-white/5 mix-blend-difference"
 					transition={{
 						type: "spring",
 						bounce: 0.2,
@@ -294,10 +289,10 @@ function Feature({
 				{feature.name}
 			</h3>
 			<p className="mt-2 font-display text-xl text-foreground">
-				{feature.summary}
+				{t(feature.summary)}
 			</p>
 			<p className="mt-4 text-sm text-muted-foreground">
-				{feature.description}
+				{t(feature.description)}
 			</p>
 		</div>
 	);
@@ -327,6 +322,7 @@ function FeaturesMobile() {
 }
 
 function FeaturesDesktop() {
+	const t = useTranslations("HomePage");
 	return (
 		<Tab.Group as="div" className="hidden lg:mt-20 lg:block">
 			{({ selectedIndex }) => (
@@ -340,7 +336,7 @@ function FeaturesDesktop() {
 									name: (
 										<Tab className="ui-not-focus-visible:outline-none">
 											<span className="absolute inset-0" />
-											{feature.name}
+											{t(feature.name)}
 										</Tab>
 									),
 								}}
@@ -359,7 +355,9 @@ function FeaturesDesktop() {
 										"px-5 transition duration-500 ease-in-out ui-not-focus-visible:outline-none",
 										featureIndex !== selectedIndex && "opacity-60",
 									)}
-									style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
+									style={{
+										transform: `translateX(-${selectedIndex * 100}%)`,
+									}}
 									aria-hidden={featureIndex !== selectedIndex}
 								>
 									<div className="w-[52.75rem] overflow-hidden rounded-xl bg-red-500 shadow-lg shadow-slate-900/5 ring-1 ring-slate-500/10">
@@ -382,21 +380,20 @@ function FeaturesDesktop() {
 }
 
 export function SecondaryFeatures() {
+	const t = useTranslations("HomePage");
 	return (
 		<section
 			id="secondary-features"
 			aria-label="Features for simplifying everyday business tasks"
-			className="pb-14 pt-20 sm:pb-20 sm:pt-32 lg:pb-32 bg-black"
+			className="bg-black pb-14 pt-20 sm:pb-20 sm:pt-32 lg:pb-32"
 		>
 			<Container className="max-w-[95rem]">
 				<div className="mx-auto max-w-2xl md:text-center">
 					<h2 className="font-display text-3xl tracking-tight text-primary sm:text-4xl">
-						Advanced Management Tools
+						{t("secondaryFeatures.title")}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight  text-muted-foreground">
-						Elevate your infrastructure with tools that offer precise control,
-						detailed monitoring, and enhanced security, ensuring seamless
-						management and robust performance.
+						{t("secondaryFeatures.des")}
 					</p>
 				</div>
 				<FeaturesMobile />

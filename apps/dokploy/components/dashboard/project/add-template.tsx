@@ -89,9 +89,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl p-0">
 				<div className="sticky top-0 z-10 flex flex-col gap-4 bg-background p-6 border-b">
 					<DialogHeader>
-						<DialogTitle>Create Template</DialogTitle>
+						<DialogTitle>Create from Template</DialogTitle>
 						<DialogDescription>
-							Deploy a open source template to your project
+							Create an open source application from a template
 						</DialogDescription>
 					</DialogHeader>
 					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -234,7 +234,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																</Link>
 															)}
 															<Link
-																href={`https://github.com/dokploy/dokploy/tree/canary/templates/${template.id}`}
+																href={`https://github.com/Dokploy/dokploy/tree/canary/apps/dokploy/templates/${template.id}`}
 																target="_blank"
 																className={
 																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
@@ -255,7 +255,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 													<AlertDialog>
 														<AlertDialogTrigger asChild>
 															<Button onSelect={(e) => e.preventDefault()}>
-																Deploy
+																Create
 															</Button>
 														</AlertDialogTrigger>
 														<AlertDialogContent>
@@ -264,8 +264,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	Are you absolutely sure?
 																</AlertDialogTitle>
 																<AlertDialogDescription>
-																	This will deploy {template.name} template to
-																	your project.
+																	This will create an application from the{" "}
+																	{template.name} template and add it to your
+																	project.
 																</AlertDialogDescription>
 															</AlertDialogHeader>
 															<AlertDialogFooter>
@@ -278,7 +279,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		})
 																			.then(async () => {
 																				toast.success(
-																					`${template.name} template created succesfully`,
+																					`Succesfully created ${template.name} application from template`,
 																				);
 
 																				utils.project.one.invalidate({
@@ -288,7 +289,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																			})
 																			.catch(() => {
 																				toast.error(
-																					`Error to delete ${template.name} template`,
+																					`Error creating ${template.name} application from template`,
 																				);
 																			});
 																	}}

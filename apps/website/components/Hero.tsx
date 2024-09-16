@@ -1,5 +1,6 @@
 "use client";
 import { Check, Copy } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Container } from "./Container";
@@ -38,6 +39,7 @@ const ProductHunt = () => {
 };
 
 export function Hero() {
+	const t = useTranslations("HomePage");
 	const [isCopied, setIsCopied] = useState(false);
 
 	useEffect(() => {
@@ -47,7 +49,7 @@ export function Hero() {
 		return () => clearTimeout(timer);
 	}, [isCopied]);
 	return (
-		<Container className="pb-16 pt-20 text-center lg:pt-32 bg-black">
+		<Container className="bg-black pb-16 pt-20 text-center lg:pt-32">
 			<div className="absolute inset-0">
 				<svg viewBox="0 0 2000 1000" xmlns="http://www.w3.org/2000/svg">
 					<mask id="b" x="0" y="0" width="2000" height="1000">
@@ -68,7 +70,7 @@ export function Hero() {
 
 			<div className="relative">
 				<h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight  text-muted-foreground  sm:text-7xl">
-					Deploy{" "}
+					{t("hero.deploy")}{" "}
 					<span className="relative whitespace-nowrap  text-primary">
 						<svg
 							aria-hidden="true"
@@ -78,18 +80,16 @@ export function Hero() {
 						>
 							<path d="M203.371.916c-26.013-2.078-76.686 1.963-124.73 9.946L67.3 12.749C35.421 18.062 18.2 21.766 6.004 25.934 1.244 27.561.828 27.778.874 28.61c.07 1.214.828 1.121 9.595-1.176 9.072-2.377 17.15-3.92 39.246-7.496C123.565 7.986 157.869 4.492 195.942 5.046c7.461.108 19.25 1.696 19.17 2.582-.107 1.183-7.874 4.31-25.75 10.366-21.992 7.45-35.43 12.534-36.701 13.884-2.173 2.308-.202 4.407 4.442 4.734 2.654.187 3.263.157 15.593-.78 35.401-2.686 57.944-3.488 88.365-3.143 46.327.526 75.721 2.23 130.788 7.584 19.787 1.924 20.814 1.98 24.557 1.332l.066-.011c1.201-.203 1.53-1.825.399-2.335-2.911-1.31-4.893-1.604-22.048-3.261-57.509-5.556-87.871-7.36-132.059-7.842-23.239-.254-33.617-.116-50.627.674-11.629.54-42.371 2.494-46.696 2.967-2.359.259 8.133-3.625 26.504-9.81 23.239-7.825 27.934-10.149 28.304-14.005.417-4.348-3.529-6-16.878-7.066Z" />
 						</svg>
-						<span className="relative"> Anywhere</span>
+						<span className="relative"> {t("hero.anywhere")}</span>
 					</span>{" "}
-					with Total Freedom and Ease.
+					{t("hero.with")}
 				</h1>
 				<p className="mx-auto mt-6 max-w-2xl text-lg tracking-tight text-muted-foreground">
-					Streamline your operations with our all-in-one platform—perfect for
-					managing projects, data, and system health with simplicity and
-					efficiency.
+					{t("hero.des")}
 				</p>
 				<div className="flex flex-col gap-6 md:gap-10">
-					<div className="mt-10 flex justify-center gap-6 items-center flex-wrap md:flex-nowrap">
-						<code className="font-sans border p-3 rounded-xl flex flex-row gap-4 items-center">
+					<div className="mt-10 flex flex-wrap items-center justify-center gap-6 md:flex-nowrap">
+						<code className="flex flex-row items-center gap-4 rounded-xl border p-3 font-sans">
 							curl -sSL https://dokploy.com/install.sh | sh
 							<button
 								type="button"
@@ -125,13 +125,12 @@ export function Hero() {
 								Discord
 							</Link>
 						</Button> */}
-						{/* @ts-expect-error */}
 						<Button className="rounded-xl" asChild>
 							<Link
 								href="https://github.com/dokploy/dokploy"
 								aria-label="Dokploy on GitHub"
 								target="_blank"
-								className="flex flex-row gap-2 items-center"
+								className="flex flex-row items-center gap-2"
 							>
 								<svg aria-hidden="true" className="h-6 w-6 fill-black">
 									<path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
@@ -141,10 +140,10 @@ export function Hero() {
 						</Button>
 					</div>
 				</div>
-				<div className="mt-16 flex justify-center gap-x-8 flex-row sm:gap-x-0 sm:gap-y-10  xl:gap-x-12 xl:gap-y-0 rounded-lg">
+				<div className="mt-16 flex flex-row justify-center gap-x-8 rounded-lg sm:gap-x-0  sm:gap-y-10 xl:gap-x-12 xl:gap-y-0">
 					<iframe
-						width="560"
-						height="315"
+						width="460"
+						height="215"
 						src="https://www.youtube-nocookie.com/embed/mznYKPvhcfw?si=vHvqP3HKy0V3XkOZ"
 						title="YouTube video player"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -153,9 +152,11 @@ export function Hero() {
 						className="rounded-xl"
 					/>
 				</div>
-
-				<div className="mt-16 ">
-					<p className="font-display text-base  text-primary">Featured in</p>
+				<ShowSponsors />
+				{/* <div className="mt-16">
+					<p className="font-display text-base  text-primary">
+						{t("hero.featuredIn")}
+					</p>
 					<ul className="mt-8 flex items-center justify-center gap-x-8 sm:flex-col sm:gap-x-0 sm:gap-y-10 xl:flex-row xl:gap-x-12 xl:gap-y-0">
 						{[
 							[
@@ -174,8 +175,116 @@ export function Hero() {
 							</li>
 						))}
 					</ul>
-				</div>
+				</div> */}
 			</div>
 		</Container>
 	);
 }
+
+export const ShowSponsors = () => {
+	return (
+		<div className="mt-20 flex flex-col justify-center gap-y-10">
+			<div className="flex flex-col gap-4 justify-start">
+				<h1 className="mx-auto max-w-2xl font-display text-3xl font-medium tracking-tight  text-primary  sm:text-5xl">
+					Sponsors
+				</h1>
+				<p className="mx-auto max-w-2xl text-lg tracking-tight text-muted-foreground">
+					Dokploy is an open source project that is maintained by a community of
+					volunteers. We would like to thank our sponsors for their support and
+					contributions to the project, which help us to continue to develop and
+					improve Dokploy.
+				</p>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-6 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Hero Sponsors 🎖
+				</h2>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					<a href="https://www.hostinger.com/vps-hosting?ref=dokploy">
+						<img
+							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
+							alt="hostinger.com"
+							className="rounded-xl"
+							width="200"
+						/>
+					</a>
+
+					<a href="https://www.lxaer.com?ref=dokploy">
+						<img
+							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
+							alt="lxaer.com"
+							className="rounded-xl"
+							width="200"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Premium Supporters 🥇
+				</h2>
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					<a href="https://supafort.com/?ref=dokploy">
+						<img
+							src="https://supafort.com/build/q-4Ht4rBZR.webp"
+							alt="Supafort.com"
+							className="rounded-xl"
+							width="190"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Supporting Members 🥉
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://lightspeed.run/?ref=dokploy">
+						<img
+							src="https://github.com/lightspeedrun.png"
+							className="rounded-xl"
+							width="60px"
+							alt="Lightspeed.run"
+						/>
+					</a>
+					<a href="https://cloudblast.io/?ref=dokploy">
+						<img
+							src="https://cloudblast.io/img/logo-icon.193cf13e.svg"
+							className="rounded-xl"
+							width="250px"
+							alt="Cloudblast.io"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Supporting Members 🥉
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://steamsets.com/?ref=dokploy">
+						<img
+							src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4"
+							className="rounded-xl"
+							width="60px"
+							alt="Steamsets.com"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Individuals:
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://opencollective.com/dokploy">
+						<img
+							src="https://opencollective.com/dokploy/individuals.svg?width=890"
+							alt="Steamsets.com"
+						/>
+					</a>
+				</div>
+			</div>
+		</div>
+	);
+};
