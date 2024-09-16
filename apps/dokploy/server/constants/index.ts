@@ -1,25 +1,17 @@
 import path from "node:path";
 import Docker from "dockerode";
 
-const IS_MULTI_SERVER = process.env.IS_MULTI_SERVER === "true";
-export const IS_CLOUD = process.env.IS_CLOUD === "true";
+// const IS_CLOUD = process.env.IS_CLOUD === "true";
 
 export const BASE_PATH =
 	process.env.NODE_ENV === "production"
 		? "/etc/dokploy"
 		: path.join(process.cwd(), ".docker");
-
-// IS_MULTI_SERVER
-// 	? "/etc/dokploy"
-// 	: process.env.NODE_ENV === "production"
-// 		? "/etc/dokploy"
-// 		: path.join(process.cwd(), ".docker");
-
 export const MAIN_TRAEFIK_PATH = `${BASE_PATH}/traefik`;
-export const DYNAMIC_TRAEFIK_PATH = `${BASE_PATH}/traefik/dynamic`;
-export const LOGS_PATH = `${BASE_PATH}/logs`;
-export const APPLICATIONS_PATH = `${BASE_PATH}/applications`;
-export const COMPOSE_PATH = `${BASE_PATH}/compose`;
+export const DYNAMIC_TRAEFIK_PATH = `/etc/dokploy/traefik/dynamic`;
+export const LOGS_PATH = `/etc/dokploy/logs`;
+export const APPLICATIONS_PATH = `/etc/dokploy/applications`;
+export const COMPOSE_PATH = `/etc/dokploy/compose`;
 export const SSH_PATH = `${BASE_PATH}/ssh`;
 export const CERTIFICATES_PATH = `${DYNAMIC_TRAEFIK_PATH}/certificates`;
 export const REGISTRY_PATH = `${DYNAMIC_TRAEFIK_PATH}/registry`;

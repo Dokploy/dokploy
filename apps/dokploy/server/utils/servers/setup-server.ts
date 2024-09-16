@@ -73,7 +73,6 @@ const connectToServer = async (serverId: string, logPath: string) => {
 				${createTraefikInstance()}
 				${installNixpacks()}
 				${installBuildpacks()}
-				${setupRedis()}
 				`;
 
 				client.exec(bashCommand, (err, stream) => {
@@ -278,22 +277,4 @@ const installBuildpacks = () => `
 		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version 0.35.0 installed ✅"
 	fi
-`;
-
-const setupRedis = () => `
-	# Check if redis is already installed
-	if docker service ls | grep -q 'dokploy-redis'; then
-		echo "Redis already installed ✅"
-	else
-		# Install Redis
-		docker service create \
-		--name dokploy-redis \
-		--replicas 1 \
-		--constraint 'node.role==manager' \
-		--mount type=volume,source=redis-data-volume,target=/data \
-		--network dokploy-network \
-		--publish target=6379,published=6379,protocol=tcp,mode=host \
-		redis:7
-	fi
-
 `;
