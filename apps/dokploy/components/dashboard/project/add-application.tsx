@@ -126,7 +126,10 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value?.trim() || "";
-												form.setValue("appName", `${slug}-${val.toLowerCase().replaceAll(" ", "-")}`);
+												form.setValue(
+													"appName",
+													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`
+												);
 												field.onChange(val);
 											}}
 										/>
