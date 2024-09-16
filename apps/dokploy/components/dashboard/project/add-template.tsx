@@ -264,8 +264,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	Are you absolutely sure?
 																</AlertDialogTitle>
 																<AlertDialogDescription>
-																	This will create an application from the {template.name}
-																	template and add it to your project.
+																	This will create an application from the {template.name} template and add it to your project.
 																</AlertDialogDescription>
 															</AlertDialogHeader>
 															<AlertDialogFooter>
