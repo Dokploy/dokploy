@@ -356,18 +356,28 @@ export const settingsRouter = createTRPCRouter({
 		return false;
 	}),
 
-	readStatsLogs: adminProcedure.input(apiReadStatsLogs).query(({ input }) => {
-		const rawConfig = readMonitoringConfig();
-		const parsedConfig = parseRawConfig(
-			rawConfig as string,
-			input.page,
-			input.sort,
-			input.search,
-			input.status,
-		);
+	readStatsLogs: adminProcedure
+		.meta({
+			openapi: {
+				path: "/read-stats-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiReadStatsLogs)
+		.query(({ input }) => {
+			const rawConfig = readMonitoringConfig();
+			const parsedConfig = parseRawConfig(
+				rawConfig as string,
+				input.page,
+				input.sort,
+				input.search,
+				input.status,
+			);
 
-		return parsedConfig;
-	}),
+			return parsedConfig;
+		}),
 	readStats: adminProcedure.query(() => {
 		const rawConfig = readMonitoringConfig();
 		const processedLogs = processLogs(rawConfig as string);
