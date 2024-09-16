@@ -137,8 +137,8 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												placeholder="Frontend"
 												{...field}
 												onChange={(e) => {
-													const val = e.target.value?.trim().toLowerCase() || "";
-													form.setValue("appName", `${slug}-${val}`);
+													const val = e.target.value?.trim() || "";
+													form.setValue("appName", `${slug}-${val.toLowerCase()}`);
 													field.onChange(val);
 												}}
 											/>
