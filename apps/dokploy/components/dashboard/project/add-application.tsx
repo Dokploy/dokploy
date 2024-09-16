@@ -128,7 +128,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 												const val = e.target.value?.trim() || "";
 												form.setValue(
 													"appName",
-													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`
+													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`,
 												);
 												field.onChange(val);
 											}}
