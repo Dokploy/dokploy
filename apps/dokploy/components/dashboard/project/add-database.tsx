@@ -341,7 +341,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													placeholder="Name"
 													{...field}
 													onChange={(e) => {
-														const val = e.target.value?.trim() || "";
+														const val = e.target.value?.trim().toLowerCase() || "";
 														form.setValue("appName", `${slug}-${val}`);
 														field.onChange(val);
 													}}
