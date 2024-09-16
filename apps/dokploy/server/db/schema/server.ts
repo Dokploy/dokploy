@@ -3,10 +3,6 @@ import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
-import { generateAppName } from "./utils";
-import { deployments } from "./deployment";
-import { sshKeys } from "./ssh-key";
 import {
 	applications,
 	compose,
@@ -16,6 +12,10 @@ import {
 	postgres,
 	redis,
 } from ".";
+import { admins } from "./admin";
+import { deployments } from "./deployment";
+import { sshKeys } from "./ssh-key";
+import { generateAppName } from "./utils";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")

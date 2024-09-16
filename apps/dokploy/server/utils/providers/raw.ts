@@ -3,9 +3,9 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import { COMPOSE_PATH } from "@/server/constants";
+import { encodeBase64 } from "../docker/utils";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
-import { encodeBase64 } from "../docker/utils";
 
 export const createComposeFile = async (compose: Compose, logPath: string) => {
 	const { appName, composeFile } = compose;

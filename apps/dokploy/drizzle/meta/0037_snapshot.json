@@ -1,5 +1,5 @@
 {
-  "id": "ae3c47b8-c680-4409-a6c6-8570862f1018",
+  "id": "8a72c5cc-bc93-4cd4-a129-6e86a7889b89",
   "prevId": "74cd1475-b79c-4226-b4e6-e5ddb9576025",
   "version": "6",
   "dialect": "postgresql",
@@ -377,6 +377,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -457,6 +463,19 @@
             "bitbucketId"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_serverId_server_serverId_fk": {
+          "name": "application_serverId_server_serverId_fk",
+          "tableFrom": "application",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -584,6 +603,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -597,6 +622,19 @@
           ],
           "columnsTo": [
             "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "postgres_serverId_server_serverId_fk": {
+          "name": "postgres_serverId_server_serverId_fk",
+          "tableFrom": "postgres",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1221,6 +1259,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1234,6 +1278,19 @@
           ],
           "columnsTo": [
             "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mariadb_serverId_server_serverId_fk": {
+          "name": "mariadb_serverId_server_serverId_fk",
+          "tableFrom": "mariadb",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1357,6 +1414,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1370,6 +1433,19 @@
           ],
           "columnsTo": [
             "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mongo_serverId_server_serverId_fk": {
+          "name": "mongo_serverId_server_serverId_fk",
+          "tableFrom": "mongo",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1505,6 +1581,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1518,6 +1600,19 @@
           ],
           "columnsTo": [
             "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mysql_serverId_server_serverId_fk": {
+          "name": "mysql_serverId_server_serverId_fk",
+          "tableFrom": "mysql",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1797,6 +1892,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -1828,6 +1929,19 @@
           ],
           "columnsTo": [
             "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_serverId_server_serverId_fk": {
+          "name": "deployment_serverId_server_serverId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2413,6 +2527,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2426,6 +2546,19 @@
           ],
           "columnsTo": [
             "projectId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "redis_serverId_server_serverId_fk": {
+          "name": "redis_serverId_server_serverId_fk",
+          "tableFrom": "redis",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2660,6 +2793,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2727,6 +2866,19 @@
             "bitbucketId"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_serverId_server_serverId_fk": {
+          "name": "compose_serverId_server_serverId_fk",
+          "tableFrom": "compose",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -3447,7 +3599,14 @@
           "name": "appName",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "redisPassword": {
+          "name": "redisPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'xYBugfHkULig1iLN'"
         },
         "createdAt": {
           "name": "createdAt",
@@ -3460,6 +3619,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "sshKeyId": {
+          "name": "sshKeyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3476,18 +3641,23 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "server_sshKeyId_ssh-key_sshKeyId_fk": {
+          "name": "server_sshKeyId_ssh-key_sshKeyId_fk",
+          "tableFrom": "server",
+          "tableTo": "ssh-key",
+          "columnsFrom": [
+            "sshKeyId"
+          ],
+          "columnsTo": [
+            "sshKeyId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "server_appName_unique": {
-          "name": "server_appName_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "appName"
-          ]
-        }
-      }
+      "uniqueConstraints": {}
     }
   },
   "enums": {

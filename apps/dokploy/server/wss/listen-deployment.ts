@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { WebSocketServer } from "ws";
-import { validateWebSocketRequest } from "../auth/auth";
-import { findServerById } from "../api/services/server";
-import { readSSHKey } from "../utils/filesystem/ssh";
 import { Client } from "ssh2";
+import { WebSocketServer } from "ws";
+import { findServerById } from "../api/services/server";
+import { validateWebSocketRequest } from "../auth/auth";
+import { readSSHKey } from "../utils/filesystem/ssh";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -38,12 +38,6 @@ export const setupDeploymentLogsWebSocketServer = (
 			ws.close(4000, "logPath no provided");
 			return;
 		}
-
-		// if (!serverId) {
-		// 	console.log("serverId no provided");
-		// 	ws.close(4000, "serverId no provided");
-		// 	return;
-		// }
 
 		if (!user || !session) {
 			ws.close();

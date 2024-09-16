@@ -6,9 +6,9 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { projects } from "./project";
+import { server } from "./server";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
-import { server } from "./server";
 
 export const mysql = pgTable("mysql", {
 	mysqlId: text("mysqlId")

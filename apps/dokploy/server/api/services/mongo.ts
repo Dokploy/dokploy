@@ -8,7 +8,8 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Mongo = typeof mongo.$inferSelect;
 
@@ -117,7 +118,7 @@ export const deployMongo = async (mongoId: string) => {
 	const mongo = await findMongoById(mongoId);
 	try {
 		if (mongo.serverId) {
-			await executeCommand(mongo.serverId, `docker pull ${mongo.dockerImage}`);
+			await execAsyncRemote(mongo.serverId, `docker pull ${mongo.dockerImage}`);
 		} else {
 			await pullImage(mongo.dockerImage);
 		}

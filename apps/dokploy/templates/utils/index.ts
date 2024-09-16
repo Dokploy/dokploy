@@ -2,10 +2,10 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Domain } from "@/server/api/services/domain";
+// import { IS_CLOUD } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
-import { IS_CLOUD } from "@/server/constants";
 
 export interface Schema {
 	serverIp: string;
@@ -29,7 +29,9 @@ export const generateRandomDomain = ({
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-");
-	return `${projectName}-${hash}${process.env.NODE_ENV === "production" || IS_CLOUD ? `-${slugIp}` : ""}.traefik.me`;
+
+	return "";
+	// return `${projectName}-${hash}${process.env.NODE_ENV === "production" || IS_CLOUD ? `-${slugIp}` : ""}.traefik.me`;
 };
 
 export const generateHash = (projectName: string, quantity = 3): string => {

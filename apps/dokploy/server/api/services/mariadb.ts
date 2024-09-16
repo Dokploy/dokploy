@@ -8,7 +8,8 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
@@ -121,7 +122,7 @@ export const deployMariadb = async (mariadbId: string) => {
 	const mariadb = await findMariadbById(mariadbId);
 	try {
 		if (mariadb.serverId) {
-			await executeCommand(
+			await execAsyncRemote(
 				mariadb.serverId,
 				`docker pull ${mariadb.dockerImage}`,
 			);

@@ -5,6 +5,7 @@ import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
 import { COMPOSE_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import { execAsyncRemote } from "../process/execAsync";
 import {
 	cloneRawBitbucketRepository,
 	cloneRawBitbucketRepositoryRemote,
@@ -31,7 +32,6 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { execAsyncRemote } from "../process/execAsync";
 import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {

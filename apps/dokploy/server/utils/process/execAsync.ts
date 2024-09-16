@@ -1,8 +1,8 @@
 import { exec } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@/server/api/services/server";
-import { readSSHKey } from "../filesystem/ssh";
 import { Client } from "ssh2";
+import { readSSHKey } from "../filesystem/ssh";
 export const execAsync = util.promisify(exec);
 
 export const execAsyncRemote = async (
@@ -25,7 +25,7 @@ export const execAsyncRemote = async (
 				conn.exec(command, (err, stream) => {
 					if (err) throw err;
 					stream
-						.on("close", (code, signal) => {
+						.on("close", (code: number, signal: string) => {
 							console.log(
 								`Stream :: close :: code: ${code}, signal: ${signal}`,
 							);
@@ -55,31 +55,5 @@ export const execAsyncRemote = async (
 				privateKey: keys.privateKey,
 				timeout: 99999,
 			});
-
-		// client.exec(command, (err, stream) => {
-		// 	if (err) {
-		// 		client.end();
-		// 		return reject(err);
-		// 	}
-
-		// 	let stdout = "";
-		// 	let stderr = "";
-
-		// 	stream
-		// 		.on("data", (data: string) => {
-		// 			stdout += data.toString();
-		// 		})
-		// 		.on("close", (code, signal) => {
-		// 			client.end();
-		// 			if (code === 0) {
-		// 				resolve({ stdout, stderr });
-		// 			} else {
-		// 				reject(new Error(`Command exited with code ${code}`));
-		// 			}
-		// 		})
-		// 		.stderr.on("data", (data) => {
-		// 			stderr += data.toString();
-		// 		});
-		// });
 	});
 };

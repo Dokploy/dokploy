@@ -17,10 +17,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DockerMonitoring } from "../../monitoring/docker/show";
-import { Loader2 } from "lucide-react";
 
 interface Props {
 	appName: string;
@@ -119,7 +119,6 @@ export const ShowMonitoringCompose = ({
 						</Button>
 					</div>
 					<DockerMonitoring
-						serverId={serverId || ""}
 						appName={containerAppName || ""}
 						appType={appType}
 					/>

@@ -1,16 +1,14 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateDomain,
-	apiCreateTraefikMeDomain,
 	apiFindCompose,
 	apiFindDomain,
-	apiFindDomainByApplication,
-	apiFindDomainByCompose,
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
 import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { findApplicationById } from "../services/application";
 import {
 	createDomain,
@@ -21,7 +19,6 @@ import {
 	removeDomainById,
 	updateDomainById,
 } from "../services/domain";
-import { z } from "zod";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure

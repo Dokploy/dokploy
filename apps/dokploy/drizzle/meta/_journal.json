@@ -264,43 +264,8 @@
     {
       "idx": 37,
       "version": "6",
-      "when": 1725773488051,
-      "tag": "0037_small_adam_warlock",
-      "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "6",
-      "when": 1725773967628,
-      "tag": "0038_thankful_magneto",
-      "breakpoints": true
-    },
-    {
-      "idx": 39,
-      "version": "6",
-      "when": 1725776089878,
-      "tag": "0039_military_doctor_faustus",
-      "breakpoints": true
-    },
-    {
-      "idx": 40,
-      "version": "6",
-      "when": 1725812869228,
-      "tag": "0040_bent_santa_claus",
-      "breakpoints": true
-    },
-    {
-      "idx": 41,
-      "version": "6",
-      "when": 1725830160928,
-      "tag": "0041_mute_polaris",
-      "breakpoints": true
-    },
-    {
-      "idx": 42,
-      "version": "6",
-      "when": 1725856996201,
-      "tag": "0042_wandering_inhumans",
+      "when": 1726462845274,
+      "tag": "0037_quick_callisto",
       "breakpoints": true
     }
   ]

@@ -8,7 +8,8 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Redis = typeof redis.$inferSelect;
 
@@ -94,7 +95,7 @@ export const deployRedis = async (redisId: string) => {
 	const redis = await findRedisById(redisId);
 	try {
 		if (redis.serverId) {
-			await executeCommand(redis.serverId, `docker pull ${redis.dockerImage}`);
+			await execAsyncRemote(redis.serverId, `docker pull ${redis.dockerImage}`);
 		} else {
 			await pullImage(redis.dockerImage);
 		}

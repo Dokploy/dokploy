@@ -1,5 +1,6 @@
 import { lucia, validateRequest } from "@/server/auth/auth";
 import { luciaToken } from "@/server/auth/token";
+import { IS_CLOUD } from "@/server/constants";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
@@ -29,7 +30,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { IS_CLOUD } from "@/server/constants";
 
 export const authRouter = createTRPCRouter({
 	createAdmin: publicProcedure

@@ -1,11 +1,11 @@
 import type http from "node:http";
+import path from "node:path";
 import { spawn } from "node-pty";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { WebSocketServer } from "ws";
-import { validateWebSocketRequest } from "../auth/auth";
 import { findServerById } from "../api/services/server";
+import { validateWebSocketRequest } from "../auth/auth";
 import { SSH_PATH } from "../constants";
-import path from "node:path";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore

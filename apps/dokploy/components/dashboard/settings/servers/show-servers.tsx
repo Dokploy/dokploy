@@ -1,12 +1,6 @@
-import { api } from "@/utils/api";
-import { format } from "date-fns";
-import { AddServer } from "./add-server";
-import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
-import Link from "next/link";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,8 +17,14 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { SetupServer } from "./setup-server";
+import { api } from "@/utils/api";
+import { format } from "date-fns";
+import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { TerminalModal } from "../web-server/terminal-modal";
+import { AddServer } from "./add-server";
+import { SetupServer } from "./setup-server";
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();

@@ -3,8 +3,8 @@ import path from "node:path";
 import type { Domain } from "@/server/api/services/domain";
 import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
 import { dump, load } from "js-yaml";
-import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 import { execAsyncRemote } from "../process/execAsync";
+import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {
 	const defaultPort = 3000;

@@ -1,30 +1,19 @@
-import { findServerById } from "@/server/api/services/server";
-import { recreateDirectory } from "../filesystem/directory";
-import { slugify } from "@/lib/slug";
+import { createWriteStream } from "node:fs";
 import path from "node:path";
-import {
-	APPLICATIONS_PATH,
-	BASE_PATH,
-	CERTIFICATES_PATH,
-	DYNAMIC_TRAEFIK_PATH,
-	getPaths,
-	LOGS_PATH,
-	MAIN_TRAEFIK_PATH,
-	MONITORING_PATH,
-	SSH_PATH,
-} from "@/server/constants";
+import { slugify } from "@/lib/slug";
 import {
 	createServerDeployment,
 	updateDeploymentStatus,
 } from "@/server/api/services/deployment";
-import { createWriteStream } from "node:fs";
-import { Client } from "ssh2";
-import { readSSHKey } from "../filesystem/ssh";
+import { findServerById } from "@/server/api/services/server";
+import { LOGS_PATH, SSH_PATH, getPaths } from "@/server/constants";
 import {
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
-	getDefaultTraefikConfig,
 } from "@/server/setup/traefik-setup";
+import { Client } from "ssh2";
+import { recreateDirectory } from "../filesystem/directory";
+import { readSSHKey } from "../filesystem/ssh";
 
 export const setupServer = async (serverId: string) => {
 	const server = await findServerById(serverId);
@@ -56,8 +45,6 @@ export const setupServer = async (serverId: string) => {
 		writeStream.close();
 	}
 };
-
-const setupTraefikInstance = async (serverId: string) => {};
 
 const connectToServer = async (serverId: string, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });

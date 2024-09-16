@@ -14,8 +14,8 @@ import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
 import { type Application, findApplicationById } from "./application";
 import { type Compose, findComposeById } from "./compose";
-import { findServerById, type Server } from "./server";
-import { executeCommand } from "@/server/utils/servers/command";
+import { type Server, findServerById } from "./server";
+
 import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Deployment = typeof deployments.$inferSelect;
@@ -58,7 +58,7 @@ export const createDeployment = async (
             	echo "Initializing deployment" >> ${logFilePath};
 			`;
 
-			await executeCommand(server.serverId, command);
+			await execAsyncRemote(server.serverId, command);
 		} else {
 			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
 				recursive: true,
@@ -114,7 +114,7 @@ mkdir -p ${LOGS_PATH}/${compose.appName};
 echo "Initializing deployment" >> ${logFilePath};
 `;
 
-			await executeCommand(server.serverId, command);
+			await execAsyncRemote(server.serverId, command);
 		} else {
 			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
 				recursive: true,

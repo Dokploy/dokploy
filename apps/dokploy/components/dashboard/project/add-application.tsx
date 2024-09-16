@@ -19,15 +19,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { slugify } from "@/lib/slug";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Folder } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import {
 	Select,
 	SelectContent,
@@ -37,6 +28,21 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { slugify } from "@/lib/slug";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Folder, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const AddTemplateSchema = z.object({
 	name: z.string().min(1, {
@@ -52,9 +58,7 @@ const AddTemplateSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
-	serverId: z.string().min(1, {
-		message: "Server is required",
-	}),
+	serverId: z.string().optional(),
 });
 
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
@@ -155,7 +159,27 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="serverId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Select a Server</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+													Select a Server (Optional)
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormLabel>
+											</TooltipTrigger>
+											<TooltipContent
+												className="z-[999] w-[300px]"
+												align="start"
+												side="top"
+											>
+												<span>
+													If not server is selected, the application will be
+													deployed on the server where the user is logged in.
+												</span>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}

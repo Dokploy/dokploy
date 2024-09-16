@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import {
 	APPLICATIONS_PATH,

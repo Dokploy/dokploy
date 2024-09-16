@@ -1,4 +1,5 @@
 import type { Redirect } from "@/server/api/services/redirect";
+import type { ApplicationNested } from "../builders";
 import {
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
@@ -13,7 +14,6 @@ import {
 	loadRemoteMiddlewares,
 	writeMiddleware,
 } from "./middleware";
-import type { ApplicationNested } from "../builders";
 
 export const updateRedirectMiddleware = async (
 	application: ApplicationNested,

@@ -124,7 +124,7 @@ export const WebServer = () => {
 									</DropdownMenuItem>
 								</ShowServerMiddlewareConfig>
 
-								<TerminalModal>
+								<TerminalModal serverId={""}>
 									<span>Enter the terminal</span>
 								</TerminalModal>
 							</DropdownMenuGroup>

@@ -8,16 +8,16 @@ import {
 	apiUpdateServer,
 	server,
 } from "@/server/db/schema";
+import { setupServer } from "@/server/utils/servers/setup-server";
 import { TRPCError } from "@trpc/server";
 import { desc } from "drizzle-orm";
+import { removeDeploymentsByServerId } from "../services/deployment";
 import {
+	createServer,
 	deleteServer,
 	findServerById,
 	updateServerById,
-	createServer,
 } from "../services/server";
-import { setupServer } from "@/server/utils/servers/setup-server";
-import { removeDeploymentsByServerId } from "../services/deployment";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure

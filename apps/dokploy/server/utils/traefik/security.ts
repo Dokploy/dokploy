@@ -1,5 +1,6 @@
 import type { Security } from "@/server/api/services/security";
 import * as bcrypt from "bcrypt";
+import type { ApplicationNested } from "../builders";
 import {
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
@@ -18,7 +19,6 @@ import {
 	loadRemoteMiddlewares,
 	writeMiddleware,
 } from "./middleware";
-import type { ApplicationNested } from "../builders";
 
 export const createSecurityMiddleware = async (
 	application: ApplicationNested,

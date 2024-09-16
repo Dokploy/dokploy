@@ -1,74 +1,49 @@
 import { promises } from "node:fs";
-import dockerstats from "dockerstats";
+import type Dockerode from "dockerode";
 import osUtils from "node-os-utils";
 import { MONITORING_PATH } from "../constants";
 
 export const recordAdvancedStats = async (
+	stats: Dockerode.ContainerStats,
 	appName: string,
-	containerId: string,
 ) => {
-	await promises.mkdir(`${MONITORING_PATH}/${appName}`, { recursive: true });
+	const path = `${MONITORING_PATH}/${appName}`;
 
-	const result = await dockerstats.dockerContainerStats(containerId);
+	await promises.mkdir(path, { recursive: true });
 
-	if (!result || result.length === 0 || !result[0]) return;
-
-	const { memoryStats, cpuStats, precpuStats, netIO, blockIO } = result[0];
-
-	const memoryUsage = memoryStats.usage / 1024 / 1024;
-	const memoryTotal = memoryStats.limit / 1024 / 1024;
-	const memoryFree = memoryTotal - memoryUsage;
-	const memoryUsedPercentage = (memoryUsage / memoryTotal) * 100;
-
-	const cpuDelta =
-		cpuStats.cpu_usage.total_usage - precpuStats.cpu_usage.total_usage;
-	const systemDelta = cpuStats.system_cpu_usage - precpuStats.system_cpu_usage;
-	const onlineCpus = cpuStats.online_cpus;
-
-	// Calcular el porcentaje de uso del CPU
-	const cpuPercent = (cpuDelta / systemDelta) * onlineCpus * 100;
-
-	// Extraer los valores de entrada y salida del objeto netIO
-	const networkInBytes = netIO.rx;
-	const networkOutBytes = netIO.wx;
-
-	// Convertir bytes a Megabytes
-	const networkInMB = networkInBytes / 1024 / 1024;
-	const networkOutMB = networkOutBytes / 1024 / 1024;
-
-	// BlockIO
-
-	const blockRead = blockIO.r;
-	const blockWrite = blockIO.w;
-
-	const blockInMBBlocks = blockRead / 1024 / 1024;
-	const blockOutMBBlocks = blockWrite / 1024 / 1024;
-
-	// Disk
-	const disk = await osUtils.drive.info("/");
-
-	const diskUsage = disk.usedGb;
-	const diskTotal = disk.totalGb;
-	const diskUsedPercentage = disk.usedPercentage;
-	const diskFree = disk.freeGb;
+	const cpuPercent = calculateCpuUsagePercent(
+		stats.cpu_stats,
+		stats.precpu_stats,
+	);
+	const memoryStats = calculateMemoryStats(stats.memory_stats);
+	const blockIO = calculateBlockIO(stats.blkio_stats);
+	const networkUsage = calculateNetworkUsage(stats.networks);
 
 	await updateStatsFile(appName, "cpu", cpuPercent);
 	await updateStatsFile(appName, "memory", {
-		used: memoryUsage,
-		free: memoryFree,
-		usedPercentage: memoryUsedPercentage,
-		total: memoryTotal,
+		used: memoryStats.used,
+		free: memoryStats.free,
+		usedPercentage: memoryStats.usedPercentage,
+		total: memoryStats.total,
 	});
 	await updateStatsFile(appName, "block", {
-		readMb: blockInMBBlocks,
-		writeMb: blockOutMBBlocks,
+		readMb: blockIO.readMb,
+		writeMb: blockIO.writeMb,
 	});
+
 	await updateStatsFile(appName, "network", {
-		inputMb: networkInMB,
-		outputMb: networkOutMB,
+		inputMb: networkUsage.inputMb,
+		outputMb: networkUsage.outputMb,
 	});
 
 	if (appName === "dokploy") {
+		const disk = await osUtils.drive.info("/");
+
+		const diskUsage = disk.usedGb;
+		const diskTotal = disk.totalGb;
+		const diskUsedPercentage = disk.usedPercentage;
+		const diskFree = disk.freeGb;
+
 		await updateStatsFile(appName, "disk", {
 			diskTotal: +diskTotal,
 			diskUsedPercentage: +diskUsedPercentage,
@@ -141,5 +116,79 @@ export const getLastAdvancedStatsFile = async (appName: string) => {
 		disk: await readLastValueStatsFile(appName, "disk"),
 		network: await readLastValueStatsFile(appName, "network"),
 		block: await readLastValueStatsFile(appName, "block"),
+	};
+};
+
+const calculateCpuUsagePercent = (
+	cpu_stats: Dockerode.ContainerStats["cpu_stats"],
+	precpu_stats: Dockerode.ContainerStats["precpu_stats"],
+) => {
+	const cpuDelta =
+		cpu_stats.cpu_usage.total_usage - precpu_stats.cpu_usage.total_usage;
+	const systemDelta =
+		cpu_stats.system_cpu_usage - precpu_stats.system_cpu_usage;
+
+	const numberCpus =
+		cpu_stats.online_cpus ||
+		(cpu_stats.cpu_usage.percpu_usage
+			? cpu_stats.cpu_usage.percpu_usage.length
+			: 1);
+
+	if (systemDelta > 0 && cpuDelta > 0) {
+		return (cpuDelta / systemDelta) * numberCpus * 100.0;
+	}
+	return 0;
+};
+
+const calculateMemoryStats = (
+	memory_stats: Dockerode.ContainerStats["memory_stats"],
+) => {
+	const usedMemory = memory_stats.usage - (memory_stats.stats.cache || 0);
+	const availableMemory = memory_stats.limit;
+	const memoryUsedPercentage = (usedMemory / availableMemory) * 100.0;
+
+	return {
+		used: usedMemory,
+		free: availableMemory - usedMemory,
+		usedPercentage: memoryUsedPercentage,
+		total: availableMemory,
+	};
+};
+const calculateBlockIO = (
+	blkio_stats: Dockerode.ContainerStats["blkio_stats"],
+) => {
+	let readIO = 0;
+	let writeIO = 0;
+	if (blkio_stats?.io_service_bytes_recursive) {
+		for (const io of blkio_stats.io_service_bytes_recursive) {
+			if (io.op === "read") {
+				readIO += io.value;
+			} else if (io.op === "write") {
+				writeIO += io.value;
+			}
+		}
+	}
+	return {
+		readMb: readIO / (1024 * 1024),
+		writeMb: writeIO / (1024 * 1024),
+	};
+};
+
+const calculateNetworkUsage = (
+	networks: Dockerode.ContainerStats["networks"],
+) => {
+	let totalRx = 0;
+	let totalTx = 0;
+
+	const stats = Object.keys(networks);
+
+	for (const interfaceName of stats) {
+		const net = networks[interfaceName];
+		totalRx += net?.rx_bytes || 0;
+		totalTx += net?.tx_bytes || 0;
+	}
+	return {
+		inputMb: totalRx / (1024 * 1024),
+		outputMb: totalTx / (1024 * 1024),
 	};
 };

@@ -8,7 +8,8 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type MySql = typeof mysql.$inferSelect;
 
@@ -122,7 +123,7 @@ export const deployMySql = async (mysqlId: string) => {
 	const mysql = await findMySqlById(mysqlId);
 	try {
 		if (mysql.serverId) {
-			await executeCommand(mysql.serverId, `docker pull ${mysql.dockerImage}`);
+			await execAsyncRemote(mysql.serverId, `docker pull ${mysql.dockerImage}`);
 		} else {
 			await pullImage(mysql.dockerImage);
 		}

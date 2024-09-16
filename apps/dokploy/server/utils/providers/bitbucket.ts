@@ -10,8 +10,8 @@ import type {
 import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
 import { execAsyncRemote } from "../process/execAsync";
+import { spawnAsync } from "../process/spawnAsync";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",

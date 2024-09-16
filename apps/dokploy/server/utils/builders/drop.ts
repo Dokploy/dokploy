@@ -1,16 +1,16 @@
 import fs from "node:fs/promises";
 import path, { join } from "node:path";
+import type { Application } from "@/server/api/services/application";
+import { findServerById } from "@/server/api/services/server";
 import { APPLICATIONS_PATH } from "@/server/constants";
 import AdmZip from "adm-zip";
+import { Client, type SFTPWrapper } from "ssh2";
 import {
 	recreateDirectory,
 	recreateDirectoryRemote,
 } from "../filesystem/directory";
-import type { Application } from "@/server/api/services/application";
-import { execAsyncRemote } from "../process/execAsync";
-import { Client, type SFTPWrapper } from "ssh2";
-import { findServerById } from "@/server/api/services/server";
 import { readSSHKey } from "../filesystem/ssh";
+import { execAsyncRemote } from "../process/execAsync";
 
 export const unzipDrop = async (zipFile: File, application: Application) => {
 	let sftp: SFTPWrapper | null = null;

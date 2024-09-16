@@ -1,11 +1,11 @@
 import type http from "node:http";
 import { spawn } from "node-pty";
-import { WebSocketServer } from "ws";
-import { validateWebSocketRequest } from "../auth/auth";
-import { getShell } from "./utils";
 import { Client } from "ssh2";
+import { WebSocketServer } from "ws";
 import { findServerById } from "../api/services/server";
+import { validateWebSocketRequest } from "../auth/auth";
 import { readSSHKey } from "../utils/filesystem/ssh";
+import { getShell } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

@@ -53,7 +53,6 @@ import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
 import { addNewService, checkServiceAccess } from "../services/user";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { findApplicationById } from "../services/application";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure

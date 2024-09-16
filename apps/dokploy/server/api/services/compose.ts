@@ -14,6 +14,7 @@ import {
 	loadDockerCompose,
 	loadDockerComposeRemote,
 } from "@/server/utils/docker/domain";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
 import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
@@ -43,8 +44,6 @@ import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -61,6 +60,7 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 			});
 		}
 	}
+
 	const newDestination = await db
 		.insert(compose)
 		.values({

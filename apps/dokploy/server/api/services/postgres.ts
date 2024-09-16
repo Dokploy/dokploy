@@ -8,7 +8,8 @@ import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-import { executeCommand } from "@/server/utils/servers/command";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Postgres = typeof postgres.$inferSelect;
 
@@ -116,7 +117,7 @@ export const deployPostgres = async (postgresId: string) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
 		if (postgres.serverId) {
-			await executeCommand(
+			await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
 			);

@@ -32,11 +32,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircuitBoard, Folder } from "lucide-react";
+import { CircuitBoard, HelpCircle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
@@ -53,9 +59,7 @@ const AddComposeSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
-	serverId: z.string().min(1, {
-		message: "Server is required",
-	}),
+	serverId: z.string().optional(),
 });
 
 type AddCompose = z.infer<typeof AddComposeSchema>;
@@ -78,7 +82,6 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			description: "",
 			composeType: "docker-compose",
 			appName: `${slug}-`,
-			serverId: "",
 		},
 		resolver: zodResolver(AddComposeSchema),
 	});
@@ -161,7 +164,27 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 							name="serverId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Select a Server</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+													Select a Server (Optional)
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormLabel>
+											</TooltipTrigger>
+											<TooltipContent
+												className="z-[999] w-[300px]"
+												align="start"
+												side="top"
+											>
+												<span>
+													If not server is selected, the application will be
+													deployed on the server where the user is logged in.
+												</span>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}

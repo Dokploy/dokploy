@@ -11,7 +11,6 @@ import { spawnAsync } from "../process/spawnAsync";
 import type { Compose } from "@/server/api/services/compose";
 import { type Github, findGithubById } from "@/server/api/services/github";
 import type { apiFindGithubBranches } from "@/server/db/schema";
-import { executeCommand } from "../servers/command";
 import { execAsyncRemote } from "../process/execAsync";
 
 export const authGithub = (githubProvider: Github) => {
@@ -164,7 +163,7 @@ export const getGithubCloneCommand = async (
 			exit 1;
 		`;
 
-		await executeCommand(serverId, command);
+		await execAsyncRemote(serverId, command);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "GitHub Provider not found",
@@ -189,7 +188,7 @@ export const getGithubCloneCommand = async (
             exit 1;  # Exit with error code
         `;
 
-		await executeCommand(serverId, bashCommand);
+		await execAsyncRemote(serverId, bashCommand);
 		return;
 	}
 

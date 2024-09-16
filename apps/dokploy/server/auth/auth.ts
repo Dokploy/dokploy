@@ -4,10 +4,10 @@ import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
 import { TimeSpan } from "lucia";
 import { Lucia } from "lucia/dist/core.js";
 import type { Session, User } from "lucia/dist/core.js";
+import { findAdminByAuthId } from "../api/services/admin";
+import { findUserByAuthId } from "../api/services/user";
 import { db } from "../db";
 import { type DatabaseUser, auth, sessionTable } from "../db/schema";
-import { findUserByAuthId } from "../api/services/user";
-import { findAdminByAuthId } from "../api/services/admin";
 
 globalThis.crypto = webcrypto as Crypto;
 export const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable, auth);

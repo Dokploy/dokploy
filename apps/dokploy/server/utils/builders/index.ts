@@ -1,9 +1,7 @@
 import { createWriteStream } from "node:fs";
-// import { docker } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage } from "../cluster/upload";
-import Dockerode from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -12,14 +10,12 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildStatic, getStaticCommand } from "./static";
-import { findServerById } from "@/server/api/services/server";
-import { readSSHKey } from "../filesystem/ssh";
-import { getRemoteDocker } from "../servers/remote-docker";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory

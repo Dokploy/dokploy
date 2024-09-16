@@ -1,4 +1,14 @@
+import { DateTooltip } from "@/components/shared/date-tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -12,17 +22,7 @@ import { useUrl } from "@/utils/hooks/use-url";
 import { RocketIcon, ServerIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
-import { DialogAction } from "@/components/shared/dialog-action";
 
 interface Props {
 	serverId: string;

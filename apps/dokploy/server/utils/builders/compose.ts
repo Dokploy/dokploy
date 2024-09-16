@@ -13,8 +13,8 @@ import {
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
 import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
-import { spawnAsync } from "../process/spawnAsync";
 import { execAsyncRemote } from "../process/execAsync";
+import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
 	"compose",

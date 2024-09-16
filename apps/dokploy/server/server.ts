@@ -2,6 +2,8 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
+// import { IS_CLOUD } from "./constants";
+import { deploymentWorker } from "./queues/deployments-queue";
 // import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";
@@ -23,8 +25,6 @@ import {
 	getPublicIpWithFallback,
 	setupTerminalWebSocketServer,
 } from "./wss/terminal";
-import { IS_CLOUD } from "./constants";
-import { deploymentWorker } from "./queues/deployments-queue";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -45,18 +45,16 @@ void app.prepare().then(async () => {
 		setupDockerStatsMonitoringSocketServer(server);
 
 		if (process.env.NODE_ENV === "production") {
-			if (!IS_CLOUD) {
-				setupDirectories();
-				createDefaultMiddlewares();
-				setupDirectories();
-				createDefaultMiddlewares();
-				await initializeNetwork();
-				createDefaultTraefikConfig();
-				createDefaultServerTraefikConfig();
-				await initializePostgres();
-				await initializeTraefik();
-				await initializeRedis();
-			}
+			setupDirectories();
+			createDefaultMiddlewares();
+			setupDirectories();
+			createDefaultMiddlewares();
+			await initializeNetwork();
+			createDefaultTraefikConfig();
+			createDefaultServerTraefikConfig();
+			await initializePostgres();
+			await initializeTraefik();
+			await initializeRedis();
 
 			initCronJobs();
 			welcomeServer();

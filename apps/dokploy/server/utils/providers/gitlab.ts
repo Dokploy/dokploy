@@ -11,9 +11,8 @@ import type { apiGitlabTestConnection } from "@/server/db/schema";
 import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
-import { executeCommand } from "../servers/command";
 import { execAsyncRemote } from "../process/execAsync";
+import { spawnAsync } from "../process/spawnAsync";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const gitlabProvider = await findGitlabById(gitlabProviderId);

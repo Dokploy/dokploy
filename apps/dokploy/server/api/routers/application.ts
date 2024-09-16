@@ -24,6 +24,7 @@ import {
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { unzipDrop } from "@/server/utils/builders/drop";
 import {
 	removeService,
 	startService,
@@ -43,6 +44,7 @@ import {
 	writeConfigRemote,
 } from "@/server/utils/traefik/application";
 import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
+import { uploadFileSchema } from "@/utils/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -56,8 +58,6 @@ import {
 } from "../services/application";
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
-import { unzipDrop } from "@/server/utils/builders/drop";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
