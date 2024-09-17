@@ -160,7 +160,7 @@ export const mongoRouter = createTRPCRouter({
 			const mongo = await findMongoById(input.mongoId);
 
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName),
+				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await removeMongoById(input.mongoId),
 			];
 

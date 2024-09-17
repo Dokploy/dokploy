@@ -16,6 +16,7 @@ import {
 	BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
@@ -119,10 +120,17 @@ const Service = (
 				}}
 			>
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList className="md:grid md:w-fit md:grid-cols-7 max-md:overflow-y-scroll justify-start">
+					<TabsList
+						className={cn(
+							"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+							data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+						)}
+					>
 						<TabsTrigger value="general">General</TabsTrigger>
 						<TabsTrigger value="environment">Environment</TabsTrigger>
-						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+						{!data?.serverId && (
+							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+						)}
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="deployments">Deployments</TabsTrigger>
 						<TabsTrigger value="domains">Domains</TabsTrigger>
@@ -147,16 +155,17 @@ const Service = (
 						<ShowEnvironmentCompose composeId={composeId} />
 					</div>
 				</TabsContent>
-
-				<TabsContent value="monitoring">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowMonitoringCompose
-							serverId={data?.serverId || ""}
-							appName={data?.appName || ""}
-							appType={data?.composeType || "docker-compose"}
-						/>
-					</div>
-				</TabsContent>
+				{!data?.serverId && (
+					<TabsContent value="monitoring">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowMonitoringCompose
+								serverId={data?.serverId || ""}
+								appName={data?.appName || ""}
+								appType={data?.composeType || "docker-compose"}
+							/>
+						</div>
+					</TabsContent>
+				)}
 
 				<TabsContent value="logs">
 					<div className="flex flex-col gap-4 pt-2.5">

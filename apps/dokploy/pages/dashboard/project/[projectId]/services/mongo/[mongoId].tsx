@@ -9,7 +9,6 @@ import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/gener
 import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
@@ -18,6 +17,7 @@ import {
 	BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
@@ -109,10 +109,17 @@ const Mongo = (
 				}}
 			>
 				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
+					<TabsList
+						className={cn(
+							"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+							data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
+						)}
+					>
 						<TabsTrigger value="general">General</TabsTrigger>
 						<TabsTrigger value="environment">Environment</TabsTrigger>
-						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+						{!data?.serverId && (
+							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+						)}
 						<TabsTrigger value="backups">Backups</TabsTrigger>
 						<TabsTrigger value="logs">Logs</TabsTrigger>
 						<TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -138,11 +145,13 @@ const Mongo = (
 						<ShowMongoEnvironment mongoId={mongoId} />
 					</div>
 				</TabsContent>
-				<TabsContent value="monitoring">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<DockerMonitoring appName={data?.appName || ""} />
-					</div>
-				</TabsContent>
+				{!data?.serverId && (
+					<TabsContent value="monitoring">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<DockerMonitoring appName={data?.appName || ""} />
+						</div>
+					</TabsContent>
+				)}
 				<TabsContent value="logs">
 					<div className="flex flex-col gap-4  pt-2.5">
 						<ShowDockerLogs

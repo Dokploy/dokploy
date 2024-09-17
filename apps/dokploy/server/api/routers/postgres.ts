@@ -135,7 +135,7 @@ export const postgresRouter = createTRPCRouter({
 			const postgres = await findPostgresById(input.postgresId);
 
 			const cleanupOperations = [
-				removeService(postgres.appName),
+				removeService(postgres.appName, postgres.serverId),
 				removePostgresById(input.postgresId),
 			];
 

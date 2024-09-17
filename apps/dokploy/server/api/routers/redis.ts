@@ -156,7 +156,7 @@ export const redisRouter = createTRPCRouter({
 			const redis = await findRedisById(input.redisId);
 
 			const cleanupOperations = [
-				async () => await removeService(redis?.appName),
+				async () => await removeService(redis?.appName, redis.serverId),
 				async () => await removeRedisById(input.redisId),
 			];
 

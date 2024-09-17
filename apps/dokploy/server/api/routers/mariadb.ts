@@ -135,7 +135,7 @@ export const mariadbRouter = createTRPCRouter({
 			const mongo = await findMariadbById(input.mariadbId);
 
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName),
+				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await removeMariadbById(input.mariadbId),
 			];
 

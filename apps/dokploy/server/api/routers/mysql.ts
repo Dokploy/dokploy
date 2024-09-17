@@ -156,7 +156,7 @@ export const mysqlRouter = createTRPCRouter({
 			const mongo = await findMySqlById(input.mysqlId);
 
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName),
+				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await removeMySqlById(input.mysqlId),
 			];
 
