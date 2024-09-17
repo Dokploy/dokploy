@@ -161,6 +161,7 @@ export const SetupServer = ({ serverId }: Props) => {
 											))}
 										</div>
 									)}
+
 									<ShowDeployment
 										open={activeLog !== null}
 										onClose={() => setActiveLog(null)}

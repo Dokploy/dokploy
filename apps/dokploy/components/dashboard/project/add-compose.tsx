@@ -29,6 +29,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,12 +43,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),

@@ -22,7 +22,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}&serverId=${serverId}`;
+		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {

@@ -1,6 +1,6 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { LOGS_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import {
 	type apiCreateDeployment,
@@ -46,6 +46,7 @@ export const createDeployment = async (
 		const application = await findApplicationById(deployment.applicationId);
 
 		// await removeLastTenDeployments(deployment.applicationId);
+		const { LOGS_PATH } = paths(!!application.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
@@ -102,6 +103,7 @@ export const createDeploymentCompose = async (
 		const compose = await findComposeById(deployment.composeId);
 
 		// await removeLastTenComposeDeployments(deployment.composeId);
+		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
@@ -208,6 +210,7 @@ const removeLastTenComposeDeployments = async (composeId: string) => {
 
 export const removeDeployments = async (application: Application) => {
 	const { appName, applicationId } = application;
+	const { LOGS_PATH } = paths(!!application.serverId);
 	const logsPath = path.join(LOGS_PATH, appName);
 	if (application.serverId) {
 		await execAsyncRemote(application.serverId, `rm -rf ${logsPath}`);
@@ -219,6 +222,7 @@ export const removeDeployments = async (application: Application) => {
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
 	const { appName } = compose;
+	const { LOGS_PATH } = paths(!!compose.serverId);
 	const logsPath = path.join(LOGS_PATH, appName);
 	if (compose.serverId) {
 		await execAsyncRemote(compose.serverId, `rm -rf ${logsPath}`);
@@ -287,8 +291,9 @@ export const createServerDeployment = async (
 	>,
 ) => {
 	try {
-		const server = await findServerById(deployment.serverId);
+		const { LOGS_PATH } = paths();
 
+		const server = await findServerById(deployment.serverId);
 		await removeLastFiveDeployments(deployment.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${server.appName}-${formattedDateTime}.log`;
@@ -341,6 +346,7 @@ export const removeLastFiveDeployments = async (serverId: string) => {
 };
 
 export const removeDeploymentsByServerId = async (server: Server) => {
+	const { LOGS_PATH } = paths();
 	const { appName } = server;
 	const logsPath = path.join(LOGS_PATH, appName);
 	await removeDirectoryIfExistsContent(logsPath);

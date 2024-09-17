@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path, { join } from "node:path";
 import type { Application } from "@/server/api/services/application";
 import { findServerById } from "@/server/api/services/server";
-import { APPLICATIONS_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import AdmZip from "adm-zip";
 import { Client, type SFTPWrapper } from "ssh2";
 import {
@@ -17,6 +17,7 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 
 	try {
 		const { appName } = application;
+		const { APPLICATIONS_PATH } = paths(!!application.serverId);
 		const outputPath = join(APPLICATIONS_PATH, appName, "code");
 		if (application.serverId) {
 			await recreateDirectoryRemote(outputPath, application.serverId);

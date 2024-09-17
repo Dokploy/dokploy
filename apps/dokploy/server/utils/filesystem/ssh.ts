@@ -1,9 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { SSH_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { spawnAsync } from "../process/spawnAsync";
 
 export const readSSHKey = async (id: string) => {
+	const { SSH_PATH } = paths();
 	try {
 		if (!fs.existsSync(SSH_PATH)) {
 			fs.mkdirSync(SSH_PATH, { recursive: true });
@@ -27,6 +28,7 @@ export const saveSSHKey = async (
 	publicKey: string,
 	privateKey: string,
 ) => {
+	const { SSH_PATH } = paths();
 	const applicationDirectory = SSH_PATH;
 
 	const privateKeyPath = path.join(applicationDirectory, `${id}_rsa`);
@@ -42,6 +44,7 @@ export const saveSSHKey = async (
 };
 
 export const generateSSHKey = async (type: "rsa" | "ed25519" = "rsa") => {
+	const { SSH_PATH } = paths();
 	const applicationDirectory = SSH_PATH;
 
 	if (!fs.existsSync(applicationDirectory)) {
@@ -85,6 +88,7 @@ export const generateSSHKey = async (type: "rsa" | "ed25519" = "rsa") => {
 
 export const removeSSHKey = async (id: string) => {
 	try {
+		const { SSH_PATH } = paths();
 		const publicKeyPath = path.join(SSH_PATH, `${id}_rsa.pub`);
 		const privateKeyPath = path.join(SSH_PATH, `${id}_rsa`);
 		await fs.promises.unlink(publicKeyPath);

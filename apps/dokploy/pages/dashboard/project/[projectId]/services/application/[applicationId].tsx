@@ -154,10 +154,7 @@ const Service = (
 				</TabsContent>
 				<TabsContent value="monitoring">
 					<div className="flex flex-col gap-4 pt-2.5">
-						<DockerMonitoring
-							appName={data?.appName || ""}
-							serverId={data?.serverId || ""}
-						/>
+						<DockerMonitoring appName={data?.appName || ""} />
 					</div>
 				</TabsContent>
 				<TabsContent value="logs">

@@ -1,12 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, docker } from "@/server/constants";
+import { docker, paths } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { MongoNested } from "../databases/mongo";
+import type { MariadbNested } from "../databases/mariadb";
+import type { MysqlNested } from "../databases/mysql";
+import type { PostgresNested } from "../databases/postgres";
+import type { RedisNested } from "../databases/redis";
 
 interface RegistryAuth {
 	username: string;
@@ -378,8 +383,16 @@ export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 
 export const generateFileMounts = (
 	appName: string,
-	mounts: ApplicationNested["mounts"],
+	service:
+		| ApplicationNested
+		| MongoNested
+		| MariadbNested
+		| MysqlNested
+		| PostgresNested
+		| RedisNested,
 ) => {
+	const { mounts } = service;
+	const { APPLICATIONS_PATH } = paths(!!service.serverId);
 	if (!mounts || mounts.length === 0) {
 		return [];
 	}

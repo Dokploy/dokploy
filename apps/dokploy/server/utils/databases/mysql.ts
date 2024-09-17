@@ -1,6 +1,3 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { MySql } from "@/server/api/services/mysql";
-import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -10,12 +7,11 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { InferResultType } from "@/server/types/with";
 
-type MysqlWithMounts = MySql & {
-	mounts: Mount[];
-};
+export type MysqlNested = InferResultType<"mysql", { mounts: true }>;
 
-export const buildMysql = async (mysql: MysqlWithMounts) => {
+export const buildMysql = async (mysql: MysqlNested) => {
 	const {
 		appName,
 		env,
@@ -50,7 +46,7 @@ export const buildMysql = async (mysql: MysqlWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultMysqlEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, mysql);
 
 	const docker = await getRemoteDocker(mysql.serverId);
 

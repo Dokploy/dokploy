@@ -5,7 +5,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
 import {
@@ -24,6 +24,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	try {
+		const { COMPOSE_PATH } = paths();
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
@@ -73,6 +74,7 @@ export const getBuildComposeCommand = async (
 	compose: ComposeNested,
 	logPath: string,
 ) => {
+	const { COMPOSE_PATH } = paths(true);
 	const { sourceType, appName, mounts, composeType, domains, composePath } =
 		compose;
 	const command = createCommand(compose);
@@ -158,6 +160,7 @@ export const createCommand = (compose: ComposeNested) => {
 };
 
 const createEnvFile = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths();
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||
@@ -182,6 +185,7 @@ const createEnvFile = (compose: ComposeNested) => {
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(true);
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||

@@ -1,6 +1,6 @@
 import type { CreateServiceOptions } from "dockerode";
 import { generateRandomPassword } from "../auth/random-password";
-import { REGISTRY_PATH, docker } from "../constants";
+import { paths, docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 import { execAsync } from "../utils/process/execAsync";
 
@@ -8,6 +8,7 @@ export const initializeRegistry = async (
 	username: string,
 	password: string,
 ) => {
+	const { REGISTRY_PATH } = paths();
 	const imageName = "registry:2.8.3";
 	const containerName = "dokploy-registry";
 	await generateRegistryPassword(username, password);
@@ -78,6 +79,7 @@ export const initializeRegistry = async (
 
 const generateRegistryPassword = async (username: string, password: string) => {
 	try {
+		const { REGISTRY_PATH } = paths();
 		const command = `htpasswd -nbB ${username} "${password}" > ${REGISTRY_PATH}/htpasswd`;
 		const result = await execAsync(command);
 		console.log("Password generated ✅");

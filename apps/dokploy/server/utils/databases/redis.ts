@@ -1,6 +1,3 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { Redis } from "@/server/api/services/redis";
-import { docker } from "@/server/constants";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -10,12 +7,10 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { InferResultType } from "@/server/types/with";
 
-type RedisWithMounts = Redis & {
-	mounts: Mount[];
-};
-
-export const buildRedis = async (redis: RedisWithMounts) => {
+export type RedisNested = InferResultType<"redis", { mounts: true }>;
+export const buildRedis = async (redis: RedisNested) => {
 	const {
 		appName,
 		env,
@@ -42,7 +37,7 @@ export const buildRedis = async (redis: RedisWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultRedisEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, redis);
 
 	const docker = await getRemoteDocker(redis.serverId);
 

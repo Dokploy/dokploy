@@ -9,12 +9,11 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { InferResultType } from "@/server/types/with";
 
-type MongoWithMounts = Mongo & {
-	mounts: Mount[];
-};
+export type MongoNested = InferResultType<"mongo", { mounts: true }>;
 
-export const buildMongo = async (mongo: MongoWithMounts) => {
+export const buildMongo = async (mongo: MongoNested) => {
 	const {
 		appName,
 		env,
@@ -42,7 +41,7 @@ export const buildMongo = async (mongo: MongoWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultMongoEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, mongo);
 
 	const docker = await getRemoteDocker(mongo.serverId);
 

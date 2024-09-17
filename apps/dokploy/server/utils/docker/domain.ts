@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import {
@@ -63,6 +63,7 @@ export const cloneComposeRemote = async (compose: Compose) => {
 };
 
 export const getComposePath = (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { appName, sourceType, composePath } = compose;
 	let path = "";
 

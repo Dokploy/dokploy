@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { DYNAMIC_TRAEFIK_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
@@ -69,6 +69,7 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 };
 
 export const loadMiddlewares = <T>() => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
 	if (!existsSync(configPath)) {
 		throw new Error(`File not found: ${configPath}`);
@@ -79,6 +80,7 @@ export const loadMiddlewares = <T>() => {
 };
 
 export const loadRemoteMiddlewares = async (serverId: string) => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
 
 	try {
@@ -98,6 +100,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 	}
 };
 export const writeMiddleware = <T>(config: T) => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
 	const newYamlContent = dump(config);
 	writeFileSync(configPath, newYamlContent, "utf8");

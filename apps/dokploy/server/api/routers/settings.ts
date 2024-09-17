@@ -1,4 +1,3 @@
-import { MAIN_TRAEFIK_PATH, MONITORING_PATH } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -54,6 +53,7 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { paths } from "@/server/constants";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -111,6 +111,7 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
+		const { MONITORING_PATH } = paths();
 		await recreateDirectory(MONITORING_PATH);
 		return true;
 	}),
@@ -237,6 +238,7 @@ export const settingsRouter = createTRPCRouter({
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 		}
+		const { MAIN_TRAEFIK_PATH } = paths();
 		const result = readDirectory(MAIN_TRAEFIK_PATH);
 		return result || [];
 	}),

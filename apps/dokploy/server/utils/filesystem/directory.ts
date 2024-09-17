@@ -1,11 +1,7 @@
 import fs, { promises as fsPromises } from "node:fs";
 import path from "node:path";
 import type { Application } from "@/server/api/services/application";
-import {
-	APPLICATIONS_PATH,
-	COMPOSE_PATH,
-	MONITORING_PATH,
-} from "@/server/constants";
+import { paths } from "@/server/constants";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {
@@ -52,6 +48,7 @@ export const removeDirectoryCode = async (
 	appName: string,
 	serverId?: string | null,
 ) => {
+	const { APPLICATIONS_PATH } = paths(!!serverId);
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
 	const command = `rm -rf ${directoryPath}`;
 	try {
@@ -70,6 +67,7 @@ export const removeComposeDirectory = async (
 	appName: string,
 	serverId?: string | null,
 ) => {
+	const { COMPOSE_PATH } = paths(!!serverId);
 	const directoryPath = path.join(COMPOSE_PATH, appName);
 	const command = `rm -rf ${directoryPath}`;
 	try {
@@ -88,6 +86,7 @@ export const removeMonitoringDirectory = async (
 	appName: string,
 	serverId?: string | null,
 ) => {
+	const { MONITORING_PATH } = paths(!!serverId);
 	const directoryPath = path.join(MONITORING_PATH, appName);
 	const command = `rm -rf ${directoryPath}`;
 	try {
@@ -103,6 +102,7 @@ export const removeMonitoringDirectory = async (
 };
 
 export const getBuildAppDirectory = (application: Application) => {
+	const { APPLICATIONS_PATH } = paths(!!application.serverId);
 	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
 		application;
 	let buildPath = "";
@@ -132,6 +132,7 @@ export const getBuildAppDirectory = (application: Application) => {
 };
 
 export const getDockerContextPath = (application: Application) => {
+	const { APPLICATIONS_PATH } = paths(!!application.serverId);
 	const { appName, dockerContextPath } = application;
 
 	if (!dockerContextPath) {

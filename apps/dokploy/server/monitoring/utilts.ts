@@ -1,12 +1,13 @@
 import { promises } from "node:fs";
 import type Dockerode from "dockerode";
 import osUtils from "node-os-utils";
-import { MONITORING_PATH } from "../constants";
+import { paths } from "../constants";
 
 export const recordAdvancedStats = async (
 	stats: Dockerode.ContainerStats,
 	appName: string,
 ) => {
+	const { MONITORING_PATH } = paths();
 	const path = `${MONITORING_PATH}/${appName}`;
 
 	await promises.mkdir(path, { recursive: true });
@@ -68,6 +69,7 @@ export const readStatsFile = async (
 	statType: "cpu" | "memory" | "disk" | "network" | "block",
 ) => {
 	try {
+		const { MONITORING_PATH } = paths();
 		const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
 		const data = await promises.readFile(filePath, "utf-8");
 		return JSON.parse(data);
@@ -81,6 +83,7 @@ export const updateStatsFile = async (
 	statType: "cpu" | "memory" | "disk" | "network" | "block",
 	value: number | string | unknown,
 ) => {
+	const { MONITORING_PATH } = paths();
 	const stats = await readStatsFile(appName, statType);
 	stats.push({ value, time: new Date() });
 
@@ -100,6 +103,7 @@ export const readLastValueStatsFile = async (
 	statType: "cpu" | "memory" | "disk" | "network" | "block",
 ) => {
 	try {
+		const { MONITORING_PATH } = paths();
 		const filePath = `${MONITORING_PATH}/${appName}/${statType}.json`;
 		const data = await promises.readFile(filePath, "utf-8");
 		const stats = JSON.parse(data);

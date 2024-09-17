@@ -1,5 +1,3 @@
-import type { Mariadb } from "@/server/api/services/mariadb";
-import type { Mount } from "@/server/api/services/mount";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -9,11 +7,10 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { InferResultType } from "@/server/types/with";
 
-type MariadbWithMounts = Mariadb & {
-	mounts: Mount[];
-};
-export const buildMariadb = async (mariadb: MariadbWithMounts) => {
+export type MariadbNested = InferResultType<"mariadb", { mounts: true }>;
+export const buildMariadb = async (mariadb: MariadbNested) => {
 	const {
 		appName,
 		env,
@@ -43,7 +40,7 @@ export const buildMariadb = async (mariadb: MariadbWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultMariadbEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, mariadb);
 
 	const docker = await getRemoteDocker(mariadb.serverId);
 

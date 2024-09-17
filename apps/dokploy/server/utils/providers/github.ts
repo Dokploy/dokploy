@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
@@ -79,6 +79,7 @@ export const cloneGithubRepository = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { appName, repository, owner, branch, githubId } = entity;
 
@@ -191,7 +192,7 @@ export const getGithubCloneCommand = async (
 		await execAsyncRemote(serverId, bashCommand);
 		return;
 	}
-
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	const githubProvider = await findGithubById(githubId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -222,6 +223,7 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 			message: "GitHub Provider not found",
 		});
 	}
+	const { COMPOSE_PATH } = paths();
 	const githubProvider = await findGithubById(githubId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -261,6 +263,8 @@ export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
 			message: "GitHub Provider not found",
 		});
 	}
+
+	const { COMPOSE_PATH } = paths(true);
 	const githubProvider = await findGithubById(githubId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");

@@ -43,8 +43,11 @@ export const setupDeploymentLogsWebSocketServer = (
 			ws.close();
 			return;
 		}
+
 		try {
+			console.log(serverId);
 			if (serverId) {
+				console.log("Entre aca");
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
@@ -87,6 +90,8 @@ export const setupDeploymentLogsWebSocketServer = (
 						});
 				});
 			} else {
+				console.log("Entre aca2");
+				console.log(logPath);
 				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
 
 				tail.stdout.on("data", (data) => {

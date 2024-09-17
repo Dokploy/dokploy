@@ -6,7 +6,7 @@ import {
 	updateDeploymentStatus,
 } from "@/server/api/services/deployment";
 import { findServerById } from "@/server/api/services/server";
-import { LOGS_PATH, SSH_PATH, getPaths } from "@/server/constants";
+import { paths } from "@/server/constants";
 import {
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
@@ -17,6 +17,7 @@ import { readSSHKey } from "../filesystem/ssh";
 
 export const setupServer = async (serverId: string) => {
 	const server = await findServerById(serverId);
+	const { LOGS_PATH } = paths();
 
 	const slugifyName = slugify(`server ${server.name}`);
 
@@ -29,8 +30,8 @@ export const setupServer = async (serverId: string) => {
 		title: "Setup Server",
 		description: "Setup Server",
 	});
-	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 
+	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 	try {
 		writeStream.write("\nInstalling Server Dependencies: ✅\n");
 		await connectToServer(serverId, deployment.logPath);
@@ -50,8 +51,18 @@ const connectToServer = async (serverId: string, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const client = new Client();
 	const server = await findServerById(serverId);
-	if (!server.sshKeyId) return;
+	if (!server.sshKeyId) {
+		writeStream.write("❌ No SSH Key found");
+		writeStream.close();
+		throw new Error("No SSH Key found");
+	}
 	const keys = await readSSHKey(server.sshKeyId);
+
+	if (!keys.privateKey) {
+		writeStream.write("❌ No SSH Key found");
+		writeStream.close();
+		throw new Error("No SSH Key found");
+	}
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
@@ -106,23 +117,12 @@ const connectToServer = async (serverId: string, logPath: string) => {
 };
 
 const setupDirectories = () => {
-	// const directories = [
-	// 	BASE_PATH,
-	// 	MAIN_TRAEFIK_PATH,
-	// 	DYNAMIC_TRAEFIK_PATH,
-	// 	LOGS_PATH,
-	// 	APPLICATIONS_PATH,
-	// 	SSH_PATH,
-	// 	CERTIFICATES_PATH,
-	// 	MONITORING_PATH,
-	// ];
-
-	const directories = getPaths("/etc/dokploy");
+	const { SSH_PATH } = paths(true);
+	const directories = Object.values(paths(true));
 
 	const createDirsCommand = directories
 		.map((dir) => `mkdir -p "${dir}"`)
 		.join(" && ");
-
 	const chmodCommand = `chmod 700 "${SSH_PATH}"`;
 
 	const command = `

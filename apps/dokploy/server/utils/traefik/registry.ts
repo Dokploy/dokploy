@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Registry } from "@/server/api/services/registry";
-import { REGISTRY_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import { removeDirectoryIfExistsContent } from "../filesystem/directory";
 import type { FileConfig, HttpRouter } from "./file-types";
 
 export const manageRegistry = async (registry: Registry) => {
+	const { REGISTRY_PATH } = paths();
 	if (!existsSync(REGISTRY_PATH)) {
 		mkdirSync(REGISTRY_PATH, { recursive: true });
 	}
@@ -36,6 +37,7 @@ export const manageRegistry = async (registry: Registry) => {
 };
 
 export const removeSelfHostedRegistry = async () => {
+	const { REGISTRY_PATH } = paths();
 	await removeDirectoryIfExistsContent(REGISTRY_PATH);
 };
 
@@ -60,6 +62,7 @@ const createRegistryRouterConfig = async (registry: Registry) => {
 };
 
 const loadOrCreateConfig = (): FileConfig => {
+	const { REGISTRY_PATH } = paths();
 	const configPath = join(REGISTRY_PATH, "registry.yml");
 	if (existsSync(configPath)) {
 		const yamlStr = readFileSync(configPath, "utf8");

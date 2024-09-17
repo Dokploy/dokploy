@@ -30,8 +30,7 @@ export const generateRandomDomain = ({
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-");
 
-	return "";
-	// return `${projectName}-${hash}${process.env.NODE_ENV === "production" || IS_CLOUD ? `-${slugIp}` : ""}.traefik.me`;
+	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 
 export const generateHash = (projectName: string, quantity = 3): string => {

@@ -6,7 +6,7 @@ import {
 	findGitlabById,
 	updateGitlab,
 } from "@/server/api/services/gitlab";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type { apiGitlabTestConnection } from "@/server/db/schema";
 import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
@@ -119,6 +119,8 @@ export const cloneGitlabRepository = async (
 			message: "Error: GitLab repository information is incomplete.",
 		});
 	}
+
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -212,6 +214,7 @@ export const getGitlabCloneCommand = async (
 		return;
 	}
 
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	await refreshGitlabToken(gitlabId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -343,7 +346,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	}
 
 	const gitlabProvider = await findGitlabById(gitlabId);
-
+	const { COMPOSE_PATH } = paths();
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -383,7 +386,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 		});
 	}
 	const gitlabProvider = await findGitlabById(gitlabId);
-
+	const { COMPOSE_PATH } = paths(true);
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");

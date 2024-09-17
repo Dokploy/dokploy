@@ -5,7 +5,7 @@ import { publicIpv4, publicIpv6 } from "public-ip";
 import { WebSocketServer } from "ws";
 import { findServerById } from "../api/services/server";
 import { validateWebSocketRequest } from "../auth/auth";
-import { SSH_PATH } from "../constants";
+import { paths } from "../constants";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -64,7 +64,7 @@ export const setupTerminalWebSocketServer = (
 			ws.close();
 			return;
 		}
-
+		const { SSH_PATH } = paths();
 		const privateKey = path.join(SSH_PATH, `${server.sshKeyId}_rsa`);
 		const sshCommand = [
 			"ssh",

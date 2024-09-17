@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
@@ -416,6 +416,7 @@ export const rebuildRemoteCompose = async ({
 
 export const removeCompose = async (compose: Compose) => {
 	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
@@ -448,6 +449,7 @@ export const removeCompose = async (compose: Compose) => {
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		if (compose.composeType === "docker-compose") {
 			console.log(
 				`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,

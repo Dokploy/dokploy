@@ -1,5 +1,5 @@
 import path from "node:path";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import {
 	type ServiceType,
@@ -214,23 +214,36 @@ export const deleteFileMount = async (mountId: string) => {
 export const getBaseFilesPath = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 
-	let absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+	let absoluteBasePath = "";
 	let appName = "";
 	let directoryPath = "";
 
 	if (mount.serviceType === "application" && mount.application) {
+		const { APPLICATIONS_PATH } = paths(!!mount.application.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.application.appName;
 	} else if (mount.serviceType === "postgres" && mount.postgres) {
+		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.postgres.appName;
 	} else if (mount.serviceType === "mariadb" && mount.mariadb) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mariadb.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mariadb.appName;
 	} else if (mount.serviceType === "mongo" && mount.mongo) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mongo.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mongo.appName;
 	} else if (mount.serviceType === "mysql" && mount.mysql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mysql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mysql.appName;
 	} else if (mount.serviceType === "redis" && mount.redis) {
+		const { APPLICATIONS_PATH } = paths(!!mount.redis.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.redis.appName;
 	} else if (mount.serviceType === "compose" && mount.compose) {
+		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
 		appName = mount.compose.appName;
 		absoluteBasePath = path.resolve(COMPOSE_PATH);
 	}

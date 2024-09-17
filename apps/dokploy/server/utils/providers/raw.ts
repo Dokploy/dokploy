@@ -2,12 +2,13 @@ import { createWriteStream } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { encodeBase64 } from "../docker/utils";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
 
 export const createComposeFile = async (compose: Compose, logPath: string) => {
+	const { COMPOSE_PATH } = paths();
 	const { appName, composeFile } = compose;
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const outputPath = join(COMPOSE_PATH, appName, "code");
@@ -33,6 +34,7 @@ export const getCreateComposeFileCommand = (
 	compose: Compose,
 	logPath: string,
 ) => {
+	const { COMPOSE_PATH } = paths(true);
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");
@@ -47,6 +49,7 @@ export const getCreateComposeFileCommand = (
 };
 
 export const createComposeFileRaw = async (compose: Compose) => {
+	const { COMPOSE_PATH } = paths();
 	const { appName, composeFile } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");
@@ -59,6 +62,7 @@ export const createComposeFileRaw = async (compose: Compose) => {
 };
 
 export const createComposeFileRawRemote = async (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(true);
 	const { appName, composeFile, serverId } = compose;
 	const outputPath = join(COMPOSE_PATH, appName, "code");
 	const filePath = join(outputPath, "docker-compose.yml");

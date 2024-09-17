@@ -120,7 +120,7 @@ export const mechanizeDockerContainer = async (
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(env);
 
 	const image = getImageName(application);

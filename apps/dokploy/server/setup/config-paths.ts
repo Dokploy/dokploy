@@ -1,14 +1,5 @@
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
-import {
-	APPLICATIONS_PATH,
-	BASE_PATH,
-	CERTIFICATES_PATH,
-	DYNAMIC_TRAEFIK_PATH,
-	LOGS_PATH,
-	MAIN_TRAEFIK_PATH,
-	MONITORING_PATH,
-	SSH_PATH,
-} from "../constants";
+import { paths } from "../constants";
 
 const createDirectoryIfNotExist = (dirPath: string) => {
 	if (!existsSync(dirPath)) {
@@ -18,6 +9,16 @@ const createDirectoryIfNotExist = (dirPath: string) => {
 };
 
 export const setupDirectories = () => {
+	const {
+		APPLICATIONS_PATH,
+		BASE_PATH,
+		CERTIFICATES_PATH,
+		DYNAMIC_TRAEFIK_PATH,
+		LOGS_PATH,
+		MAIN_TRAEFIK_PATH,
+		MONITORING_PATH,
+		SSH_PATH,
+	} = paths();
 	const directories = [
 		BASE_PATH,
 		MAIN_TRAEFIK_PATH,

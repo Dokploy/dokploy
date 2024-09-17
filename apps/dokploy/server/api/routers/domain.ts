@@ -45,9 +45,13 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
-		.input(z.object({ serverId: z.string(), appName: z.string() }))
-		.mutation(async ({ input }) => {
-			return generateTraefikMeDomain(input.serverId, input.appName);
+		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
+		.mutation(async ({ input, ctx }) => {
+			return generateTraefikMeDomain(
+				input.appName,
+				ctx.user.adminId,
+				input.serverId,
+			);
 		}),
 
 	update: protectedProcedure

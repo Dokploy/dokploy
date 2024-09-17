@@ -2,7 +2,7 @@ import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { findBitbucketById } from "@/server/api/services/bitbucket";
 import type { Compose } from "@/server/api/services/compose";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type {
 	apiBitbucketTestConnection,
 	apiFindBitbucketBranches,
@@ -28,6 +28,7 @@ export const cloneBitbucketRepository = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const {
 		appName,
@@ -80,6 +81,7 @@ export const cloneBitbucketRepository = async (
 };
 
 export const cloneRawBitbucketRepository = async (entity: Compose) => {
+	const { COMPOSE_PATH } = paths();
 	const {
 		appName,
 		bitbucketRepository,
@@ -119,6 +121,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 };
 
 export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(true);
 	const {
 		appName,
 		bitbucketRepository,
@@ -163,6 +166,7 @@ export const getBitbucketCloneCommand = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	const {
 		appName,
 		bitbucketRepository,
@@ -193,7 +197,7 @@ export const getBitbucketCloneCommand = async (
 	}
 
 	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = COMPOSE_PATH;
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;

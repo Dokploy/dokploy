@@ -4,7 +4,7 @@ import { manageDomain } from "@/server/utils/traefik/domain";
 import { generateRandomDomain } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
+import { findAdmin, findAdminById } from "./admin";
 import { findApplicationById } from "./application";
 import { findServerById } from "./server";
 
@@ -35,8 +35,9 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 };
 
 export const generateTraefikMeDomain = async (
-	serverId: string,
 	appName: string,
+	adminId: string,
+	serverId?: string,
 ) => {
 	if (serverId) {
 		const server = await findServerById(serverId);
@@ -45,7 +46,14 @@ export const generateTraefikMeDomain = async (
 			projectName: appName,
 		});
 	}
-	const admin = await findAdmin();
+
+	if (process.env.NODE_ENV === "development") {
+		return generateRandomDomain({
+			serverIp: "",
+			projectName: appName,
+		});
+	}
+	const admin = await findAdminById(adminId);
 	return generateRandomDomain({
 		serverIp: admin?.serverIp || "",
 		projectName: appName,

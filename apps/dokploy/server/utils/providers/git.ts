@@ -2,7 +2,7 @@ import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import { updateSSHKeyById } from "@/server/api/services/ssh-key";
-import { APPLICATIONS_PATH, COMPOSE_PATH, SSH_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -18,6 +18,7 @@ export const cloneGitRepository = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths();
 	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
 
 	if (!customGitUrl || !customGitBranch) {
@@ -99,6 +100,7 @@ export const getCustomGitCloneCommand = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	const {
 		appName,
 		customGitUrl,
@@ -168,6 +170,7 @@ const isHttpOrHttps = (url: string): boolean => {
 };
 
 const addHostToKnownHosts = async (repositoryURL: string) => {
+	const { SSH_PATH } = paths();
 	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
@@ -181,6 +184,7 @@ const addHostToKnownHosts = async (repositoryURL: string) => {
 };
 
 const addHostToKnownHostsCommand = (repositoryURL: string) => {
+	const { SSH_PATH } = paths();
 	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
@@ -237,6 +241,7 @@ export const cloneGitRawRepository = async (entity: {
 		});
 	}
 
+	const { SSH_PATH, COMPOSE_PATH } = paths();
 	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -302,6 +307,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		});
 	}
 
+	const { SSH_PATH, COMPOSE_PATH } = paths(true);
 	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
