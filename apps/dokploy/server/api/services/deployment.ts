@@ -12,8 +12,12 @@ import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/direct
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
-import { type Application, findApplicationById } from "./application";
-import { type Compose, findComposeById } from "./compose";
+import {
+	type Application,
+	findApplicationById,
+	updateApplicationStatus,
+} from "./application";
+import { type Compose, findComposeById, updateCompose } from "./compose";
 import { type Server, findServerById } from "./server";
 
 import { execAsyncRemote } from "@/server/utils/process/execAsync";
@@ -42,9 +46,9 @@ export const createDeployment = async (
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
-	try {
-		const application = await findApplicationById(deployment.applicationId);
+	const application = await findApplicationById(deployment.applicationId);
 
+	try {
 		// await removeLastTenDeployments(deployment.applicationId);
 		const { LOGS_PATH } = paths(!!application.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -85,6 +89,7 @@ export const createDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -99,9 +104,8 @@ export const createDeploymentCompose = async (
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
+	const compose = await findComposeById(deployment.composeId);
 	try {
-		const compose = await findComposeById(deployment.composeId);
-
 		// await removeLastTenComposeDeployments(deployment.composeId);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -142,6 +146,9 @@ echo "Initializing deployment" >> ${logFilePath};
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await updateCompose(compose.composeId, {
+			composeStatus: "error",
+		});
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
