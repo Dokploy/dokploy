@@ -1,6 +1,6 @@
 import type { Schema, Template } from "../utils";
 
-export async function generate(schema: Schema): Template {
+export function generate(schema: Schema): Template {
 	const envs = [
 		"DMS_HOSTNAME=mail.example.com",
 		"DMS_HEALTHCHECK_CMD='ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1'",
