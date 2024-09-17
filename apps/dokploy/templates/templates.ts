@@ -497,4 +497,18 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "storage"],
 		load: () => import("./gitea/index").then((m) => m.generate),
 	},
+    {
+        id: "mailserver",
+        name: "Mailserver",
+        version: "14.0",
+        description: "A fullstack but simple mail server with SMTP, IMAP, LDAP, Antispam, Antivirus, etc.",
+        logo: "mailserver.svg",
+        links: {
+            github: "https://github.com/docker-mailserver/docker-mailserver",
+            website: "https://docker-mailserver.github.io/docker-mailserver/v14.0/",
+            docs: "https://docker-mailserver.github.io/docker-mailserver/v14.0/config/environment/",
+        },
+        tags: ["self-hosted", "email"],
+        load: () => import("./mailserver/index").then((m) => m.generate),
+    },
 ];

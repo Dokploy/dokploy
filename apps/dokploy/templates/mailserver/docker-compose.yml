@@ -1,0 +1,54 @@
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    hostname: ${DMS_HOSTNAME}
+    ports:
+      - "25:25"    # SMTP (STARTTLS)
+      - "465:465"  # SMTP (Implicit TLS)
+      - "587:587"  # SMTP (STARTTLS)
+      - "143:143"  # IMAP (STARTTLS)
+      - "993:993"  # IMAP (Implicit TLS)
+    volumes:
+      - dms-mail-data:/var/mail/
+      - dms-mail-state:/var/mail-state/
+      - dms-mail-logs:/var/log/mail/
+      - dms-mail-config:/tmp/docker-mailserver/
+      - /etc/dokploy/traefik/dynamic/acme.json:/etc/letsencrypt/acme.json:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - ENABLE_FAIL2BAN=${DMS_ENABLE_FAIL2BAN}
+      - PERMIT_DOCKER=${DMS_PERMIT_DOCKER}
+      - SPOOF_PROTECTION=${DMS_SPOOF_PROTECTION}
+      - SSL_TYPE=${DMS_SSL_TYPE}
+      - SSL_DOMAIN=${DMS_SSL_DOMAIN}
+      - POSTMASTER_ADDRESS=${DMS_POSTMASTER_ADDRESS}
+    cap_add:
+      - NET_ADMIN
+    restart: always
+    stop_grace_period: 1m
+    healthcheck:
+      test: ${DMS_HEALTHCHECK_CMD}
+      timeout: ${DMS_HEALTHCHECK_TIMEOUT}
+      retries: ${DMS_HEALTHCHECK_RETRIES}
+    command: >
+      sh -c '
+        if [ ! -s /tmp/docker-mailserver/postfix-accounts.cf ]; then
+          echo "File does not exist or is empty. Running setup command...";
+          setup email add "${DMS_DEFAULT_USER}" "${DMS_DEFAULT_USER_PASS}";
+        else
+          echo "File exists and is not empty. Skipping setup command.";
+        fi
+        exec supervisord -c /etc/supervisor/supervisord.conf
+      '
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  dms-mail-data:
+  dms-mail-state:
+  dms-mail-logs:
+  dms-mail-config:
