@@ -26,7 +26,7 @@ import { TerminalModal } from "../web-server/terminal-modal";
 import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
 export const ShowServers = () => {
-	const { data, refetch } = api.server.all.useQuery();
+	const { data, refetch } = api.server.withSSHKey.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 

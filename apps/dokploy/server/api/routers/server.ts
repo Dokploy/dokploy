@@ -10,7 +10,7 @@ import {
 } from "@/server/db/schema";
 import { setupServer } from "@/server/utils/servers/setup-server";
 import { TRPCError } from "@trpc/server";
-import { desc } from "drizzle-orm";
+import { desc, isNotNull } from "drizzle-orm";
 import { removeDeploymentsByServerId } from "../services/deployment";
 import {
 	createServer,
@@ -44,6 +44,12 @@ export const serverRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
+		});
+	}),
+	withSSHKey: protectedProcedure.query(async ({ input, ctx }) => {
+		return await db.query.server.findMany({
+			orderBy: desc(server.createdAt),
+			where: isNotNull(server.sshKeyId),
 		});
 	}),
 	setup: protectedProcedure

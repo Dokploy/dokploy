@@ -73,7 +73,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
-	const { data: servers } = api.server.all.useQuery();
+	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();

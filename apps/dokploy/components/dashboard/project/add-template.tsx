@@ -20,6 +20,21 @@ import {
 	CommandItem,
 } from "@/components/ui/command";
 import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -43,12 +58,14 @@ import {
 	Code,
 	Github,
 	Globe,
+	HelpCircle,
 	PuzzleIcon,
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 interface Props {
 	projectId: string;
 }
@@ -58,9 +75,12 @@ export const AddTemplate = ({ projectId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const { data } = api.compose.templates.useQuery();
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: tags, isLoading: isLoadingTags } =
 		api.compose.getTags.useQuery();
 	const utils = api.useUtils();
+
+	const [serverId, setServerId] = useState<string | undefined>(undefined);
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.deployTemplate.useMutation();
 
@@ -109,7 +129,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 									role="combobox"
 									className={cn(
 										"md:max-w-[15rem] w-full justify-between !bg-input",
-										// !field.value && "text-muted-foreground",
 									)}
 								>
 									{isLoadingTags
@@ -267,30 +286,79 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	This will deploy {template.name} template to
 																	your project.
 																</AlertDialogDescription>
+
+																<div>
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
+																					Select a Server (Optional)
+																					<HelpCircle className="size-4 text-muted-foreground" />
+																				</Label>
+																			</TooltipTrigger>
+																			<TooltipContent
+																				className="z-[999] w-[300px]"
+																				align="start"
+																				side="top"
+																			>
+																				<span>
+																					If not server is selected, the
+																					application will be deployed on the
+																					server where the user is logged in.
+																				</span>
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+
+																	<Select
+																		onValueChange={(e) => {
+																			setServerId(e);
+																		}}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select a Server" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			<SelectGroup>
+																				{servers?.map((server) => (
+																					<SelectItem
+																						key={server.serverId}
+																						value={server.serverId}
+																					>
+																						{server.name}
+																					</SelectItem>
+																				))}
+																				<SelectLabel>
+																					Servers ({servers?.length})
+																				</SelectLabel>
+																			</SelectGroup>
+																		</SelectContent>
+																	</Select>
+																</div>
 															</AlertDialogHeader>
 															<AlertDialogFooter>
 																<AlertDialogCancel>Cancel</AlertDialogCancel>
 																<AlertDialogAction
+																	disabled={isLoading}
 																	onClick={async () => {
-																		await mutateAsync({
+																		const promise = mutateAsync({
 																			projectId,
+																			serverId: serverId || undefined,
 																			id: template.id,
-																		})
-																			.then(async () => {
-																				toast.success(
-																					`${template.name} template created succesfully`,
-																				);
-
+																		});
+																		toast.promise(promise, {
+																			loading: "Setting up...",
+																			success: (data) => {
 																				utils.project.one.invalidate({
 																					projectId,
 																				});
 																				setOpen(false);
-																			})
-																			.catch(() => {
-																				toast.error(
-																					`Error to delete ${template.name} template`,
-																				);
-																			});
+																				return `${template.name} template created succesfully`;
+																			},
+																			error: (err) => {
+																				return `Ocurred an error deploying ${template.name} template`;
+																			},
+																		});
 																	}}
 																>
 																	Confirm

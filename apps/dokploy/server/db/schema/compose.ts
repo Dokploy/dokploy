@@ -145,6 +145,7 @@ export const apiCreateComposeByTemplate = createSchema
 	})
 	.extend({
 		id: z.string().min(1),
+		serverId: z.string().optional(),
 	});
 
 export const apiFindCompose = z.object({

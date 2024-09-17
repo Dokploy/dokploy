@@ -97,7 +97,6 @@ export const createComposeByTemplate = async (
 		.insert(compose)
 		.values({
 			...input,
-			serverId: "y91z1__c4SJbBe1TwQuaN",
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -304,7 +303,6 @@ export const deployRemoteCompose = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
-
 	try {
 		if (compose.serverId) {
 			let command = "set -e;";
@@ -362,6 +360,7 @@ export const deployRemoteCompose = async ({
 			buildLink,
 		});
 	} catch (error) {
+		console.log(error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",

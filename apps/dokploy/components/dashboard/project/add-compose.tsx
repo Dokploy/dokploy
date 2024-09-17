@@ -72,7 +72,7 @@ interface Props {
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const slug = slugify(projectName);
-	const { data: servers } = api.server.all.useQuery();
+	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
 

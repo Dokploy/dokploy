@@ -37,7 +37,7 @@ import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
-import { findAdmin } from "../services/admin";
+import { findAdmin, findAdminById } from "../services/admin";
 import {
 	createCompose,
 	createComposeByTemplate,
@@ -53,6 +53,7 @@ import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
 import { addNewService, checkServiceAccess } from "../services/user";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { findServerById } from "../services/server";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -235,7 +236,8 @@ export const composeRouter = createTRPCRouter({
 
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
-			const admin = await findAdmin();
+			const admin = await findAdminById(ctx.user.adminId);
+			let serverIp = admin.serverIp;
 
 			if (!admin.serverIp) {
 				throw new TRPCError({
@@ -247,9 +249,14 @@ export const composeRouter = createTRPCRouter({
 
 			const project = await findProjectById(input.projectId);
 
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				serverIp = server.ipAddress;
+			}
+
 			const projectName = slugify(`${project.name} ${input.id}`);
 			const { envs, mounts, domains } = generate({
-				serverIp: admin.serverIp,
+				serverIp: serverIp || "",
 				projectName: projectName,
 			});
 
@@ -257,6 +264,7 @@ export const composeRouter = createTRPCRouter({
 				...input,
 				composeFile: composeFile,
 				env: envs?.join("\n"),
+				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
