@@ -72,6 +72,7 @@ const createSchema = createInsertSchema(redis, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateRedis = createSchema

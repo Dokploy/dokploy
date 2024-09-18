@@ -15,10 +15,7 @@ import {
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
-import {
-	randomizeComposeFile,
-	randomizeSpecificationFile,
-} from "@/server/utils/docker/compose";
+import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import {
 	addDomainToCompose,
 	cloneCompose,
@@ -252,8 +249,9 @@ export const composeRouter = createTRPCRouter({
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				serverIp = server.ipAddress;
+			} else if (process.env.NODE_ENV === "development") {
+				serverIp = "127.0.0.1";
 			}
-
 			const projectName = slugify(`${project.name} ${input.id}`);
 			const { envs, mounts, domains } = generate({
 				serverIp: serverIp || "",

@@ -83,6 +83,7 @@ const createSchema = createInsertSchema(mariadb, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateMariaDB = createSchema

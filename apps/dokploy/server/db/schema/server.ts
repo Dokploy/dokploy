@@ -95,5 +95,9 @@ export const apiUpdateServer = createSchema
 		name: true,
 		description: true,
 		serverId: true,
+		ipAddress: true,
+		port: true,
+		username: true,
+		sshKeyId: true,
 	})
 	.required();

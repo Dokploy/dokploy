@@ -116,8 +116,9 @@ export const removePostgresById = async (postgresId: string) => {
 export const deployPostgres = async (postgresId: string) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
+		const promises = [];
 		if (postgres.serverId) {
-			await execAsyncRemote(
+			const result = await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
 			);

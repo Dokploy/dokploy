@@ -74,6 +74,7 @@ const connectToServer = async (serverId: string, logPath: string) => {
 				command_exists() {
 					command -v "$@" > /dev/null 2>&1
 				}
+				${installRClone()}
 				${installDocker()}
 				${setupSwarm()}
 				${setupNetwork()}
@@ -234,6 +235,10 @@ export const createDefaultMiddlewares = () => {
 	`;
 	return command;
 };
+
+export const installRClone = () => `
+curl https://rclone.org/install.sh | sudo bash
+`;
 
 export const createTraefikInstance = () => {
 	const command = `

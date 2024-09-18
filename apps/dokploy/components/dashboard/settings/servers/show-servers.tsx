@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
+import { UpdateServer } from "./update-server";
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
@@ -83,6 +84,7 @@ export const ShowServers = () => {
 									<TableHead className="text-center">IP Address</TableHead>
 									<TableHead className="text-center">Port</TableHead>
 									<TableHead className="text-center">Username</TableHead>
+									<TableHead className="text-center">SSH Key</TableHead>
 									<TableHead className="text-center">Created</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
@@ -100,6 +102,11 @@ export const ShowServers = () => {
 											</TableCell>
 											<TableCell className="text-center">
 												{server.username}
+											</TableCell>
+											<TableCell className="text-right">
+												<span className="text-sm text-muted-foreground">
+													{server.sshKeyId ? "Yes" : "No"}
+												</span>
 											</TableCell>
 											<TableCell className="text-right">
 												<span className="text-sm text-muted-foreground">
@@ -121,7 +128,7 @@ export const ShowServers = () => {
 															<span>Enter the terminal</span>
 														</TerminalModal>
 														<SetupServer serverId={server.serverId} />
-
+														<UpdateServer serverId={server.serverId} />
 														<DialogAction
 															title={"Delete Server"}
 															description="This will delete the server and all associated data"

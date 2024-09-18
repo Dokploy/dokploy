@@ -45,9 +45,7 @@ export const setupDeploymentLogsWebSocketServer = (
 		}
 
 		try {
-			console.log(serverId);
 			if (serverId) {
-				console.log("Entre aca");
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
@@ -90,8 +88,6 @@ export const setupDeploymentLogsWebSocketServer = (
 						});
 				});
 			} else {
-				console.log("Entre aca2");
-				console.log(logPath);
 				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
 
 				tail.stdout.on("data", (data) => {
@@ -105,7 +101,7 @@ export const setupDeploymentLogsWebSocketServer = (
 		} catch (error) {
 			// @ts-ignore
 			//   const errorMessage = error?.message as unknown as string;
-			//   ws.send(errorMessage);
+			ws.send(errorMessage);
 		}
 	});
 };

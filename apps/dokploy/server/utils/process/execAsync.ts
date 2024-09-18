@@ -15,10 +15,12 @@ export const execAsyncRemote = async (
 
 	const keys = await readSSHKey(server.sshKeyId);
 
-	const conn = new Client();
 	let stdout = "";
 	let stderr = "";
 	return new Promise((resolve, reject) => {
+		const conn = new Client();
+
+		sleep(1000);
 		conn
 			.once("ready", () => {
 				console.log("Client :: ready");
@@ -56,4 +58,8 @@ export const execAsyncRemote = async (
 				timeout: 99999,
 			});
 	});
+};
+
+export const sleep = (ms: number) => {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 };

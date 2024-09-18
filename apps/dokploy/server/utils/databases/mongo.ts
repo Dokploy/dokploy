@@ -1,5 +1,3 @@
-import type { Mongo } from "@/server/api/services/mongo";
-import type { Mount } from "@/server/api/services/mount";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,

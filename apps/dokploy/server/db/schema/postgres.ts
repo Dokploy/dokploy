@@ -78,6 +78,7 @@ const createSchema = createInsertSchema(postgres, {
 	externalPort: z.number(),
 	createdAt: z.string(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreatePostgres = createSchema

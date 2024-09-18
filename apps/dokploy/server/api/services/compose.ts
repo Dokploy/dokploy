@@ -335,15 +335,8 @@ export const deployRemoteCompose = async ({
 				command += getCreateComposeFileCommand(compose, deployment.logPath);
 			}
 
-			async function* sequentialSteps() {
-				yield execAsyncRemote(compose.serverId, command);
-				yield getBuildComposeCommand(compose, deployment.logPath);
-			}
-
-			const steps = sequentialSteps();
-			for await (const step of steps) {
-				step;
-			}
+			await execAsyncRemote(compose.serverId, command);
+			await getBuildComposeCommand(compose, deployment.logPath);
 
 			console.log(" ---- done ----");
 		}

@@ -80,6 +80,7 @@ const createSchema = createInsertSchema(mysql, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateMySql = createSchema

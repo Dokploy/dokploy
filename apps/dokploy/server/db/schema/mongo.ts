@@ -77,6 +77,7 @@ const createSchema = createInsertSchema(mongo, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateMongo = createSchema

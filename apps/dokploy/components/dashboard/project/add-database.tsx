@@ -80,9 +80,7 @@ const baseDatabaseSchema = z.object({
 	databasePassword: z.string(),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
-	serverId: z.string().min(1, {
-		message: "Server is required",
-	}),
+	serverId: z.string().nullable(),
 });
 
 const mySchema = z.discriminatedUnion("type", [
@@ -174,6 +172,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			description: "",
 			databaseName: "",
 			databaseUser: "",
+			serverId: null,
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -222,6 +221,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
+				serverId: data.serverId,
 				projectId,
 			});
 		} else if (data.type === "mariadb") {
@@ -379,7 +379,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 											<FormLabel>Select a Server</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												defaultValue={field.value || ""}
 											>
 												<SelectTrigger>
 													<SelectValue placeholder="Select a Server" />
