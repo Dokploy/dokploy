@@ -27,7 +27,7 @@ export const domainRouter = createTRPCRouter({
 		.input(apiCreateDomain)
 		.mutation(async ({ input }) => {
 			try {
-				await createDomain(input);
+				return await createDomain(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
