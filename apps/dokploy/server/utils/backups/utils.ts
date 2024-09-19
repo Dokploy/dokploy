@@ -6,7 +6,7 @@ import { scheduleJob, scheduledJobs } from "node-schedule";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
-import { runPostgresBackup } from "./postgres";
+import { runPostgresBackup, runRemotePostgresBackup } from "./postgres";
 
 export const uploadToS3 = async (
 	destination: Destination,
@@ -42,7 +42,11 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		backup;
 	scheduleJob(backupId, schedule, async () => {
 		if (databaseType === "postgres" && postgres) {
-			await runPostgresBackup(postgres, backup);
+			if (postgres.serverId) {
+				await runRemotePostgresBackup(postgres, backup);
+			} else {
+				await runPostgresBackup(postgres, backup);
+			}
 		} else if (databaseType === "mysql" && mysql) {
 			await runMySqlBackup(mysql, backup);
 		} else if (databaseType === "mongo" && mongo) {

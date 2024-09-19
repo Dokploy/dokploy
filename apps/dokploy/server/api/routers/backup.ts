@@ -8,7 +8,10 @@ import {
 import { runMariadbBackup } from "@/server/utils/backups/mariadb";
 import { runMongoBackup } from "@/server/utils/backups/mongo";
 import { runMySqlBackup } from "@/server/utils/backups/mysql";
-import { runPostgresBackup } from "@/server/utils/backups/postgres";
+import {
+	runPostgresBackup,
+	runRemotePostgresBackup,
+} from "@/server/utils/backups/postgres";
 import {
 	removeScheduleBackup,
 	scheduleBackup,
@@ -89,7 +92,12 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const backup = await findBackupById(input.backupId);
 				const postgres = await findPostgresByBackupId(backup.backupId);
-				await runPostgresBackup(postgres, backup);
+
+				if (postgres.serverId) {
+					await runRemotePostgresBackup(postgres, backup);
+				} else {
+					await runPostgresBackup(postgres, backup);
+				}
 
 				return true;
 			} catch (error) {
