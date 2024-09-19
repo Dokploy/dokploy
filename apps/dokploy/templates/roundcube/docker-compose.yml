@@ -1,13 +1,9 @@
-version: '2'
 services:
   roundcubemail:
     image: roundcube/roundcubemail:latest
-    container_name: roundcubemail
     volumes:
       - ./www:/var/www/html
       - ./db/sqlite:/var/roundcube/db
-    ports:
-      - '9002:80'
     environment:
       - ROUNDCUBEMAIL_DB_TYPE=sqlite
       - ROUNDCUBEMAIL_SKIN=elastic
@@ -15,6 +11,7 @@ services:
       - ROUNDCUBEMAIL_SMTP_SERVER=${SMTP_SERVER}
     networks:
       - dokploy-network
+
 networks:
   dokploy-network:
-    external: true
+    external: true```
