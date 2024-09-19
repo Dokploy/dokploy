@@ -35,7 +35,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			await manageDomain(application, domain);
 		}
 
-    return domain;
+		return domain;
 	});
 };
 
