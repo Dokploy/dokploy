@@ -26,7 +26,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 		if (!domain) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the domain",
+				message: "Error creating domain",
 			});
 		}
 
@@ -34,6 +34,8 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
 		}
+
+		return domain;
 	});
 };
 
