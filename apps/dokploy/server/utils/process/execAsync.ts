@@ -24,31 +24,41 @@ export const execAsyncRemote = async (
 		conn
 			.once("ready", () => {
 				console.log("Client :: ready");
-				conn.exec(command, (err, stream) => {
-					if (err) throw err;
-					stream
-						.on("close", (code: number, signal: string) => {
-							console.log(
-								`Stream :: close :: code: ${code}, signal: ${signal}`,
-							);
-							conn.end();
-							if (code === 0) {
-								resolve({ stdout, stderr });
-							} else {
-								reject(
-									new Error(
-										`Command exited with code ${code}. Stderr: ${stderr}, command: ${command}`,
-									),
+				conn
+					.exec(command, (err, stream) => {
+						if (err) throw err;
+						stream
+							.on("close", (code: number, signal: string) => {
+								console.log(
+									`Stream :: close :: code: ${code}, signal: ${signal}`,
 								);
-							}
-						})
-						.on("data", (data: string) => {
-							stdout += data.toString();
-						})
-						.stderr.on("data", (data) => {
-							stderr += data.toString();
-						});
-				});
+								conn.end();
+								if (code === 0) {
+									resolve({ stdout, stderr });
+								} else {
+									reject(
+										new Error(
+											`Command exited with code ${code}. Stderr: ${stderr}, command: ${command}`,
+										),
+									);
+								}
+							})
+							.on("data", (data: string) => {
+								stdout += data.toString();
+							})
+							.stderr.on("data", (data) => {
+								stderr += data.toString();
+							});
+					})
+					.on("keyboard-interactive", () => {
+						console.log("Warning: Keyboard interactive, closing connection");
+						conn.end();
+						reject(
+							new Error(
+								"Password requested. Invalid SSH key or authentication issue.",
+							),
+						);
+					});
 			})
 			.connect({
 				host: server.ipAddress,
