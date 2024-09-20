@@ -38,7 +38,7 @@ export const DockerTerminal: React.FC<Props> = ({
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}&serverId=${serverId}`;
+		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
 
 		const ws = new WebSocket(wsUrl);
 
