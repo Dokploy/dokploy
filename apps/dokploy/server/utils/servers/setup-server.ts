@@ -107,6 +107,24 @@ const connectToServer = async (serverId: string, logPath: string) => {
 						});
 				});
 			})
+			.on("error", (err) => {
+				client.end();
+				if (err.level === "client-authentication") {
+					writeStream.write(
+						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+					);
+					reject(
+						new Error(
+							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+						),
+					);
+				} else {
+					writeStream.write(
+						`SSH connection error: ${err.message} ${err.level}`,
+					);
+					reject(new Error(`SSH connection error: ${err.message}`));
+				}
+			})
 			.connect({
 				host: server.ipAddress,
 				port: server.port,
