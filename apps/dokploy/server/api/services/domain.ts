@@ -14,7 +14,7 @@ import { findApplicationById } from "./application";
 export type Domain = typeof domains.$inferSelect;
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
-	await db.transaction(async (tx) => {
+	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
 			.values({
@@ -37,6 +37,8 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 		return domain;
 	});
+
+	return result;
 };
 
 export const generateTraefikMeDomain = async (appName: string) => {
