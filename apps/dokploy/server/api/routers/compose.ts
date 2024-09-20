@@ -48,9 +48,9 @@ import { removeDeploymentsByComposeId } from "../services/deployment";
 import { createDomain, findDomainsByComposeId } from "../services/domain";
 import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
+import { findServerById } from "../services/server";
 import { addNewService, checkServiceAccess } from "../services/user";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { findServerById } from "../services/server";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure

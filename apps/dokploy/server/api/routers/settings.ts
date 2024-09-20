@@ -1,3 +1,4 @@
+import { paths } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -53,7 +54,6 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { paths } from "@/server/constants";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {

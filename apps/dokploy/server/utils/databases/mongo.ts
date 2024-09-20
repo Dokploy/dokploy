@@ -1,3 +1,4 @@
+import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -7,7 +8,6 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
-import type { InferResultType } from "@/server/types/with";
 
 export type MongoNested = InferResultType<"mongo", { mounts: true }>;
 

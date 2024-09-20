@@ -2,9 +2,9 @@ import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Destination } from "@/server/api/services/destination";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { runMariadbBackup } from "./mariadb";
+import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { runMongoBackup } from "./mongo";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =

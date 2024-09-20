@@ -1,6 +1,6 @@
 import type { CreateServiceOptions } from "dockerode";
 import { generateRandomPassword } from "../auth/random-password";
-import { paths, docker } from "../constants";
+import { docker, paths } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 import { execAsync } from "../utils/process/execAsync";
 

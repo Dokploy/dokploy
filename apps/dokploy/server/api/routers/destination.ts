@@ -10,6 +10,7 @@ import {
 	apiRemoveDestination,
 	apiUpdateDestination,
 } from "@/server/db/schema";
+import { execAsync } from "@/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { findAdmin } from "../services/admin";
 import {
@@ -18,7 +19,6 @@ import {
 	removeDestinationById,
 	updateDestinationById,
 } from "../services/destination";
-import { execAsync } from "@/server/utils/process/execAsync";
 
 export const destinationRouter = createTRPCRouter({
 	create: adminProcedure

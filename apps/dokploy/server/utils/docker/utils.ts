@@ -5,13 +5,13 @@ import { docker, paths } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRemoteDocker } from "../servers/remote-docker";
-import type { MongoNested } from "../databases/mongo";
 import type { MariadbNested } from "../databases/mariadb";
+import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 interface RegistryAuth {
 	username: string;
