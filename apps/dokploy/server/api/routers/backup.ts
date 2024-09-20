@@ -5,9 +5,18 @@ import {
 	apiRemoveBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
-import { runMariadbBackup } from "@/server/utils/backups/mariadb";
-import { runMongoBackup } from "@/server/utils/backups/mongo";
-import { runMySqlBackup } from "@/server/utils/backups/mysql";
+import {
+	runMariadbBackup,
+	runRemoteMariadbBackup,
+} from "@/server/utils/backups/mariadb";
+import {
+	runMongoBackup,
+	runRemoteMongoBackup,
+} from "@/server/utils/backups/mongo";
+import {
+	runMySqlBackup,
+	runRemoteMySqlBackup,
+} from "@/server/utils/backups/mysql";
 import {
 	runPostgresBackup,
 	runRemotePostgresBackup,
@@ -116,7 +125,11 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const backup = await findBackupById(input.backupId);
 				const mysql = await findMySqlByBackupId(backup.backupId);
-				await runMySqlBackup(mysql, backup);
+				if (mysql.serverId) {
+					await runRemoteMySqlBackup(mysql, backup);
+				} else {
+					await runMySqlBackup(mysql, backup);
+				}
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -132,7 +145,12 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const backup = await findBackupById(input.backupId);
 				const mariadb = await findMariadbByBackupId(backup.backupId);
-				await runMariadbBackup(mariadb, backup);
+
+				if (mariadb.serverId) {
+					await runRemoteMariadbBackup(mariadb, backup);
+				} else {
+					await runMariadbBackup(mariadb, backup);
+				}
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -148,7 +166,12 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const backup = await findBackupById(input.backupId);
 				const mongo = await findMongoByBackupId(backup.backupId);
-				await runMongoBackup(mongo, backup);
+
+				if (mongo.serverId) {
+					await runRemoteMongoBackup(mongo, backup);
+				} else {
+					await runMongoBackup(mongo, backup);
+				}
 				return true;
 			} catch (error) {
 				throw new TRPCError({

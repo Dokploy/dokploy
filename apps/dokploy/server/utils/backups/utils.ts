@@ -3,9 +3,9 @@ import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Destination } from "@/server/api/services/destination";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { scheduleJob, scheduledJobs } from "node-schedule";
-import { runMariadbBackup } from "./mariadb";
-import { runMongoBackup } from "./mongo";
-import { runMySqlBackup } from "./mysql";
+import { runMariadbBackup, runRemoteMariadbBackup } from "./mariadb";
+import { runMongoBackup, runRemoteMongoBackup } from "./mongo";
+import { runMySqlBackup, runRemoteMySqlBackup } from "./mysql";
 import { runPostgresBackup, runRemotePostgresBackup } from "./postgres";
 
 export const uploadToS3 = async (
@@ -17,9 +17,7 @@ export const uploadToS3 = async (
 
 	const s3Client = new S3Client({
 		region: region,
-		...(endpoint && {
-			endpoint: endpoint,
-		}),
+		endpoint: endpoint,
 		credentials: {
 			accessKeyId: accessKey,
 			secretAccessKey: secretAccessKey,
@@ -36,7 +34,6 @@ export const uploadToS3 = async (
 
 	await s3Client.send(command);
 };
-
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
 		backup;
@@ -48,11 +45,23 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 				await runPostgresBackup(postgres, backup);
 			}
 		} else if (databaseType === "mysql" && mysql) {
-			await runMySqlBackup(mysql, backup);
+			if (mysql.serverId) {
+				await runRemoteMySqlBackup(mysql, backup);
+			} else {
+				await runMySqlBackup(mysql, backup);
+			}
 		} else if (databaseType === "mongo" && mongo) {
-			await runMongoBackup(mongo, backup);
+			if (mongo.serverId) {
+				await runRemoteMongoBackup(mongo, backup);
+			} else {
+				await runMongoBackup(mongo, backup);
+			}
 		} else if (databaseType === "mariadb" && mariadb) {
-			await runMariadbBackup(mariadb, backup);
+			if (mariadb.serverId) {
+				await runRemoteMariadbBackup(mariadb, backup);
+			} else {
+				await runMariadbBackup(mariadb, backup);
+			}
 		}
 	});
 };
