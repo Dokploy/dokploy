@@ -512,4 +512,18 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "email"],
 		load: () => import("./mailserver/index").then((m) => m.generate),
 	},
+	{
+		id: "erpnext",
+		name: "ERPNext",
+		version: "15.35.1",
+		description: "Free and Open Source Enterprise Resource Planning (ERP) ",
+		logo: "erpnext.png",
+		links: {
+			github: "https://github.com/frappe/erpnext",
+			website: "https://erpnext.com/",
+			docs: "https://sashagoncharov19.github.io/dokploy-template-docs/erpnext",
+		},
+		tags: ["self-hosted", "open-source", "analytics"],
+		load: () => import("./erpnext/index").then((m) => m.generate),
+	},
 ];
