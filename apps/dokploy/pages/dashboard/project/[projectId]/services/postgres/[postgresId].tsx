@@ -11,6 +11,7 @@ import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres"
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -81,7 +82,9 @@ const Postgresql = (
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-
+						<div>
+							<Badge>{data?.server?.name || "Dokploy Server"}</Badge>
+						</div>
 						{data?.description && (
 							<p className="text-sm text-muted-foreground  max-w-6xl">
 								{data?.description}

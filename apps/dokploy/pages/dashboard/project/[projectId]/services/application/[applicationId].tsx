@@ -16,6 +16,7 @@ import { UpdateApplication } from "@/components/dashboard/application/update-app
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -98,6 +99,9 @@ const Service = (
 								{data?.name}
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
+						</div>
+						<div>
+							<Badge>{data?.server?.name || "Dokploy Server"}</Badge>
 						</div>
 
 						{data?.description && (

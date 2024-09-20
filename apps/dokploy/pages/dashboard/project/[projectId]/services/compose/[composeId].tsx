@@ -10,6 +10,7 @@ import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -93,13 +94,16 @@ const Service = (
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-
+						<div>
+							<Badge>{data?.server?.name || "Dokploy Server"}</Badge>
+						</div>
 						{data?.description && (
 							<p className="text-sm text-muted-foreground max-w-6xl">
 								{data?.description}
 							</p>
 						)}
 					</div>
+
 					<div className="relative flex flex-row gap-4">
 						<div className="absolute -right-1  -top-2">
 							<StatusTooltip status={data?.composeStatus} />

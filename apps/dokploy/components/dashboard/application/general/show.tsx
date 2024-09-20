@@ -13,6 +13,7 @@ import { StartApplication } from "../start-application";
 import { StopApplication } from "../stop-application";
 import { DeployApplication } from "./deploy-application";
 import { ResetApplication } from "./reset-application";
+import { Badge } from "@/components/ui/badge";
 interface Props {
 	applicationId: string;
 }
@@ -75,7 +76,8 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
-					{data?.server?.name || "No Server"}
+
+					{/* {data?.server?.name || "No Server"} */}
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />

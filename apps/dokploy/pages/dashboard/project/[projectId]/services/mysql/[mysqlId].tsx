@@ -9,9 +9,9 @@ import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-gene
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -81,7 +81,9 @@ const MySql = (
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-
+						<div>
+							<Badge>{data?.server?.name || "Dokploy Server"}</Badge>
+						</div>
 						{data?.description && (
 							<p className="text-sm text-muted-foreground  max-w-6xl">
 								{data?.description}
