@@ -1,6 +1,6 @@
 import { lucia, validateRequest } from "@/server/auth/auth";
 import { luciaToken } from "@/server/auth/token";
-import { IS_CLOUD } from "@/server/constants";
+// import { IS_CLOUD } from "@/server/constants";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
@@ -36,15 +36,15 @@ export const authRouter = createTRPCRouter({
 		.input(apiCreateAdmin)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (!IS_CLOUD) {
-					const admin = await db.query.admins.findFirst({});
-					if (admin) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Admin already exists",
-						});
-					}
+				// if (!IS_CLOUD) {
+				const admin = await db.query.admins.findFirst({});
+				if (admin) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Admin already exists",
+					});
 				}
+				// }
 
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
