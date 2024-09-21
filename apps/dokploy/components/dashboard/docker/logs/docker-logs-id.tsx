@@ -8,7 +8,7 @@ import "@xterm/xterm/css/xterm.css";
 interface Props {
 	id: string;
 	containerId: string;
-	serverId?: string;
+	serverId?: string | null;
 }
 
 export const DockerLogsId: React.FC<Props> = ({

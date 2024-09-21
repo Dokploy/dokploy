@@ -31,6 +31,8 @@ import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { ShowModalLogs } from "../web-server/show-modal-logs";
 import { ToggleTraefikDashboard } from "./toggle-traefik-dashboard";
 import { EditTraefikEnv } from "../web-server/edit-traefik-env";
+import { ShowServer } from "./show-server";
+import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
@@ -171,6 +173,7 @@ export const ShowServers = () => {
 														<SetupServer serverId={server.serverId} />
 
 														<UpdateServer serverId={server.serverId} />
+														<ShowServer serverId={server.serverId} />
 														<DialogAction
 															title={"Delete Server"}
 															description="This will delete the server and all associated data"
@@ -196,6 +199,7 @@ export const ShowServers = () => {
 																Delete Server
 															</DropdownMenuItem>
 														</DialogAction>
+
 														<DropdownMenuSeparator />
 														<DropdownMenuLabel>Traefik</DropdownMenuLabel>
 														<DropdownMenuItem
@@ -214,6 +218,9 @@ export const ShowServers = () => {
 															<span>Reload</span>
 														</DropdownMenuItem>
 														<ShowTraefikFileSystemModal
+															serverId={server.serverId}
+														/>
+														<ShowDockerContainersModal
 															serverId={server.serverId}
 														/>
 														<ShowModalLogs

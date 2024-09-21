@@ -34,8 +34,14 @@ export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
 
-export const ShowContainers = () => {
-	const { data, isLoading } = api.docker.getContainers.useQuery();
+interface Props {
+	serverId?: string;
+}
+
+export const ShowContainers = ({ serverId }: Props) => {
+	const { data, isLoading } = api.docker.getContainers.useQuery({
+		serverId,
+	});
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],

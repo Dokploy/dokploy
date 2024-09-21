@@ -114,10 +114,16 @@ export const columns: ColumnDef<Container>[] = [
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuLabel>Actions</DropdownMenuLabel>
-						<ShowDockerModalLogs containerId={container.containerId}>
+						<ShowDockerModalLogs
+							containerId={container.containerId}
+							serverId={container.serverId}
+						>
 							View Logs
 						</ShowDockerModalLogs>
-						<ShowContainerConfig containerId={container.containerId} />
+						<ShowContainerConfig
+							containerId={container.containerId}
+							serverId={container.serverId}
+						/>
 						<DockerTerminalModal containerId={container.containerId}>
 							Terminal
 						</DockerTerminalModal>

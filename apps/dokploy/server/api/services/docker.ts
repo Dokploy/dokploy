@@ -1,11 +1,22 @@
 import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 
-export const getContainers = async () => {
+export const getContainers = async (serverId?: string | null) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | Image: {{.Image}} | Ports: {{.Ports}} | State: {{.State}} | Status: {{.Status}}'",
-		);
+		const command =
+			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | Image: {{.Image}} | Ports: {{.Ports}} | State: {{.State}} | Status: {{.Status}}'";
+		let stdout = "";
+		let stderr = "";
 
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
 			return;
@@ -41,6 +52,7 @@ export const getContainers = async () => {
 					ports,
 					state,
 					status,
+					serverId,
 				};
 			})
 			.filter((container) => !container.name.includes("dokploy"));
@@ -49,11 +61,23 @@ export const getContainers = async () => {
 	} catch (error) {}
 };
 
-export const getConfig = async (containerId: string) => {
+export const getConfig = async (
+	containerId: string,
+	serverId?: string | null,
+) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker inspect ${containerId} --format='{{json .}}'`,
-		);
+		const command = `docker inspect ${containerId} --format='{{json .}}'`;
+		let stdout = "";
+		let stderr = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);

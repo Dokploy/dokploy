@@ -9,9 +9,15 @@ import {
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const dockerRouter = createTRPCRouter({
-	getContainers: protectedProcedure.query(async () => {
-		return await getContainers();
-	}),
+	getContainers: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			return await getContainers(input.serverId);
+		}),
 
 	restartContainer: protectedProcedure
 		.input(
@@ -27,10 +33,11 @@ export const dockerRouter = createTRPCRouter({
 		.input(
 			z.object({
 				containerId: z.string().min(1),
+				serverId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			return await getConfig(input.containerId);
+			return await getConfig(input.containerId, input.serverId);
 		}),
 
 	getContainersByAppNameMatch: protectedProcedure
