@@ -6,6 +6,7 @@ import {
 	apiReadStatsLogs,
 	apiReadTraefikConfig,
 	apiSaveSSHKey,
+	apiStorage,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
@@ -20,11 +21,13 @@ import {
 	cleanUpUnusedVolumes,
 	prepareEnvironmentVariables,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { recreateDirectory } from "@/server/utils/filesystem/directory";
 import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
-import { execAsync } from "@/server/utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 import { spawnAsync } from "@/server/utils/process/spawnAsync";
 import {
 	readConfig,
@@ -63,16 +66,23 @@ export const settingsRouter = createTRPCRouter({
 		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
 	}),
-	reloadTraefik: adminProcedure.mutation(async () => {
-		try {
-			await stopService("dokploy-traefik");
-			await startService("dokploy-traefik");
-		} catch (err) {
-			console.error(err);
-		}
+	reloadTraefik: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			try {
+				if (input?.serverId) {
+					await stopServiceRemote(input.serverId, "dokploy-traefik");
+					await startServiceRemote(input.serverId, "dokploy-traefik");
+				} else {
+					await stopService("dokploy-traefik");
+					await startService("dokploy-traefik");
+				}
+			} catch (err) {
+				console.error(err);
+			}
 
-		return true;
-	}),
+			return true;
+		}),
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input }) => {
@@ -82,31 +92,42 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
-	cleanUnusedImages: adminProcedure.mutation(async () => {
-		await cleanUpUnusedImages();
-		return true;
-	}),
-	cleanUnusedVolumes: adminProcedure.mutation(async () => {
-		await cleanUpUnusedVolumes();
-		return true;
-	}),
-	cleanStoppedContainers: adminProcedure.mutation(async () => {
-		await cleanStoppedContainers();
-		return true;
-	}),
-	cleanDockerBuilder: adminProcedure.mutation(async () => {
-		await cleanUpDockerBuilder();
-	}),
-	cleanDockerPrune: adminProcedure.mutation(async () => {
-		await cleanUpSystemPrune();
-		await cleanUpDockerBuilder();
+	cleanUnusedImages: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			await cleanUpUnusedImages(input?.serverId);
+			return true;
+		}),
+	cleanUnusedVolumes: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			await cleanUpUnusedVolumes(input?.serverId);
+			return true;
+		}),
+	cleanStoppedContainers: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			await cleanStoppedContainers(input?.serverId);
+			return true;
+		}),
+	cleanDockerBuilder: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			await cleanUpDockerBuilder(input?.serverId);
+		}),
+	cleanDockerPrune: adminProcedure
+		.input(apiStorage)
+		.mutation(async ({ input }) => {
+			await cleanUpSystemPrune(input?.serverId);
+			await cleanUpDockerBuilder(input?.serverId);
 
-		return true;
-	}),
-	cleanAll: adminProcedure.mutation(async () => {
-		await cleanUpUnusedImages();
-		await cleanUpDockerBuilder();
-		await cleanUpSystemPrune();
+			return true;
+		}),
+	cleanAll: adminProcedure.input(apiStorage).mutation(async ({ input }) => {
+		await cleanUpUnusedImages(input?.serverId);
+		await cleanStoppedContainers(input?.serverId);
+		await cleanUpDockerBuilder(input?.serverId);
+		await cleanUpSystemPrune(input?.serverId);
 
 		return true;
 	}),
@@ -230,18 +251,20 @@ export const settingsRouter = createTRPCRouter({
 	getDokployVersion: adminProcedure.query(() => {
 		return getDokployVersion();
 	}),
-	readDirectories: protectedProcedure.query(async ({ ctx }) => {
-		if (ctx.user.rol === "user") {
-			const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
+	readDirectories: protectedProcedure
+		.input(apiStorage)
+		.query(async ({ ctx, input }) => {
+			if (ctx.user.rol === "user") {
+				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
-			if (!canAccess) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
+				if (!canAccess) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
 			}
-		}
-		const { MAIN_TRAEFIK_PATH } = paths();
-		const result = readDirectory(MAIN_TRAEFIK_PATH);
-		return result || [];
-	}),
+			const { MAIN_TRAEFIK_PATH } = paths(!!input?.serverId);
+			const result = await readDirectory(MAIN_TRAEFIK_PATH, input?.serverId);
+			return result || [];
+		}),
 
 	updateTraefikFile: protectedProcedure
 		.input(apiModifyTraefikConfig)
@@ -253,7 +276,11 @@ export const settingsRouter = createTRPCRouter({
 					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 			}
-			writeTraefikConfigInPath(input.path, input.traefikConfig);
+			await writeTraefikConfigInPath(
+				input.path,
+				input.traefikConfig,
+				input?.serverId,
+			);
 			return true;
 		}),
 
@@ -267,7 +294,7 @@ export const settingsRouter = createTRPCRouter({
 					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 			}
-			return readConfigInPath(input.path);
+			return readConfigInPath(input.path, input.serverId);
 		}),
 	getIp: protectedProcedure.query(async () => {
 		const admin = await findAdmin();
@@ -324,16 +351,20 @@ export const settingsRouter = createTRPCRouter({
 			return openApiDocument;
 		},
 	),
-	readTraefikEnv: adminProcedure.query(async () => {
-		const { stdout } = await execAsync(
-			"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik",
-		);
+	readTraefikEnv: adminProcedure.input(apiStorage).query(async ({ input }) => {
+		const command =
+			"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik";
 
-		return stdout.trim();
+		if (input?.serverId) {
+			const result = await execAsyncRemote(input.serverId, command);
+			return result.stdout.trim();
+		}
+		const result = await execAsync(command);
+		return result.stdout.trim();
 	}),
 
 	writeTraefikEnv: adminProcedure
-		.input(z.object({ env: z.string() }))
+		.input(z.object({ env: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input }) => {
 			const envs = prepareEnvironmentVariables(input.env);
 			await initializeTraefik({

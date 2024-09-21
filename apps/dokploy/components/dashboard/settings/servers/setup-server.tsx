@@ -49,13 +49,7 @@ export const SetupServer = ({ serverId }: Props) => {
 		},
 	);
 
-	const { mutateAsync, isLoading } = api.server.setup.useMutation({
-		onMutate: async (variables) => {
-			console.log("Running....");
-			refetch();
-			// refetch();
-		},
-	});
+	const { mutateAsync, isLoading } = api.server.setup.useMutation();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -99,7 +93,7 @@ export const SetupServer = ({ serverId }: Props) => {
 													serverId: server?.serverId || "",
 												})
 													.then(async () => {
-														// refetch();
+														refetch();
 														toast.success("Server setup successfully");
 													})
 													.catch(() => {

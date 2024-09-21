@@ -3,6 +3,9 @@ import { spawn } from "node-pty";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
 import { getShell } from "./utils";
+import { Client } from "ssh2";
+import { readSSHKey } from "../utils/filesystem/ssh";
+import { findServerById } from "../api/services/server";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -44,7 +47,123 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		}
 		try {
 			if (serverId) {
-				// const server = await findServerById(serverId);
+				const server = await findServerById(serverId);
+				if (!server.sshKeyId)
+					throw new Error("No SSH key available for this server");
+
+				const keys = await readSSHKey(server.sshKeyId);
+				const conn = new Client();
+				let stdout = "";
+				let stderr = "";
+				// conn
+				// 	.once("ready", () => {
+				// 		console.log("Client :: ready");
+				// 		conn.exec(
+				// 			`docker run -i ${containerId} ${activeWay}`,
+				// 			(err, stream) => {
+				// 				if (err) throw err;
+
+				// 				stream
+				// 					.on("close", (code: number, signal: string) => {
+				// 						console.log(
+				// 							`Stream :: close :: code: ${code}, signal: ${signal}`,
+				// 						);
+				// 						conn.end();
+				// 					})
+				// 					.on("data", (data: string) => {
+				// 						stdout += data.toString();
+				// 						ws.send(data.toString());
+				// 					})
+				// 					.stderr.on("data", (data) => {
+				// 						stderr += data.toString();
+				// 						ws.send(data.toString());
+				// 						console.error("Error: ", data.toString());
+				// 					});
+
+				// 				// Maneja la entrada de comandos desde WebSocket
+				// 				ws.on("message", (message) => {
+				// 					try {
+				// 						let command: string | Buffer[] | Buffer | ArrayBuffer;
+				// 						if (Buffer.isBuffer(message)) {
+				// 							command = message.toString("utf8");
+				// 						} else {
+				// 							command = message;
+				// 						}
+				// 						stream.write(command.toString());
+				// 					} catch (error) {
+				// 						// @ts-ignore
+				// 						const errorMessage = error?.message as unknown as string;
+				// 						ws.send(errorMessage);
+				// 					}
+				// 				});
+
+				// 				// Cuando se cierra la conexión WebSocket
+				// 				ws.on("close", () => {
+				// 					stream.end();
+				// 				});
+				// 			},
+				// 		);
+				// 	})p
+				// 	.connect({
+				// 		host: server.ipAddress,
+				// 		port: server.port,
+				// 		username: server.username,
+				// 		privateKey: keys.privateKey,
+				// 		timeout: 99999,
+				// 	});
+				// conn
+					// .once("ready", () => {
+					// 	console.log("Client :: ready");
+					// 	conn.shell((err, stream) => {
+					// 		if (err) throw err;
+
+					// 		stream
+					// 			.on("close", (code: number, signal: string) => {
+					// 				console.log(
+					// 					`Stream :: close :: code: ${code}, signal: ${signal}`,
+					// 				);
+					// 				conn.end();
+					// 			})
+					// 			.on("data", (data: string) => {
+					// 				stdout += data.toString();
+					// 				ws.send(data.toString());
+					// 			})
+					// 			.stderr.on("data", (data) => {
+					// 				stderr += data.toString();
+					// 				ws.send(data.toString());
+					// 				console.error("Error: ", data.toString());
+					// 			});
+					// 		stream.write(`docker exec -it ${containerId} ${activeWay}\n`);
+					// 		// Maneja la entrada de comandos desde WebSocket
+					// 		ws.on("message", (message) => {
+					// 			try {
+					// 				let command: string | Buffer[] | Buffer | ArrayBuffer;
+					// 				if (Buffer.isBuffer(message)) {
+					// 					command = message.toString("utf8");
+					// 				} else {
+					// 					command = message;
+					// 				}
+					// 				stream.write(command.toString());
+					// 			} catch (error) {
+					// 				// @ts-ignore
+					// 				const errorMessage = error?.message as unknown as string;
+					// 				ws.send(errorMessage);
+					// 			}
+					// 		});
+
+					// 		// Cuando se cierra la conexión WebSocket
+					// 		ws.on("close", () => {
+					// 			stream.end();
+					// 		});
+					// 	});
+					// })
+					// .connect({
+					// 	host: server.ipAddress,
+					// 	port: server.port,
+					// 	username: server.username,
+					// 	privateKey: keys.privateKey,
+					// 	timeout: 99999,
+					// });
 			} else {
 				const shell = getShell();
 				const ptyProcess = spawn(

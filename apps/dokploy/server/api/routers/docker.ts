@@ -55,9 +55,10 @@ export const dockerRouter = createTRPCRouter({
 		.input(
 			z.object({
 				appName: z.string().min(1),
+				serverId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			return await getContainersByAppLabel(input.appName);
+			return await getContainersByAppLabel(input.appName, input.serverId);
 		}),
 });

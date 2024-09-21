@@ -5,6 +5,7 @@ import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
+import { encodeBase64 } from "../docker/utils";
 
 export const createTraefikConfig = (appName: string) => {
 	const defaultPort = 3000;
@@ -146,8 +147,14 @@ export const readMonitoringConfig = () => {
 	return null;
 };
 
-export const readConfigInPath = (pathFile: string) => {
+export const readConfigInPath = async (pathFile: string, serverId?: string) => {
 	const configPath = path.join(pathFile);
+
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		if (!stdout) return null;
+		return stdout;
+	}
 	if (fs.existsSync(configPath)) {
 		const yamlStr = fs.readFileSync(configPath, "utf8");
 		return yamlStr;
@@ -179,12 +186,22 @@ export const writeConfigRemote = async (
 	}
 };
 
-export const writeTraefikConfigInPath = (
+export const writeTraefikConfigInPath = async (
 	pathFile: string,
 	traefikConfig: string,
+	serverId?: string,
 ) => {
 	try {
 		const configPath = path.join(pathFile);
+		if (serverId) {
+			const encoded = encodeBase64(traefikConfig);
+			await execAsyncRemote(
+				serverId,
+				`echo "${encoded}" | base64 -d > "${configPath}"`,
+			);
+		} else {
+			fs.writeFileSync(configPath, traefikConfig, "utf8");
+		}
 		fs.writeFileSync(configPath, traefikConfig, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);

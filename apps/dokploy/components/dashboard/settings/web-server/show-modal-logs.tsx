@@ -36,12 +36,14 @@ export const DockerLogsId = dynamic(
 interface Props {
 	appName: string;
 	children?: React.ReactNode;
+	serverId?: string;
 }
 
-export const ShowModalLogs = ({ appName, children }: Props) => {
+export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppLabel.useQuery(
 		{
 			appName,
+			serverId,
 		},
 		{
 			enabled: !!appName,
@@ -96,7 +98,11 @@ export const ShowModalLogs = ({ appName, children }: Props) => {
 							</SelectGroup>
 						</SelectContent>
 					</Select>
-					<DockerLogsId id="terminal" containerId={containerId || ""} />
+					<DockerLogsId
+						id="terminal"
+						containerId={containerId || ""}
+						serverId={serverId}
+					/>
 				</div>
 			</DialogContent>
 		</Dialog>

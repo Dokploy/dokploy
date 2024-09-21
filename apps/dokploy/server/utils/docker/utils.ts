@@ -149,27 +149,39 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 		});
 	});
 };
-export const cleanUpUnusedImages = async () => {
+export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
-		await execAsync("docker image prune --all --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker image prune --all --force");
+		} else {
+			await execAsync("docker image prune --all --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const cleanStoppedContainers = async () => {
+export const cleanStoppedContainers = async (serverId?: string) => {
 	try {
-		await execAsync("docker container prune --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker container prune --force");
+		} else {
+			await execAsync("docker container prune --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const cleanUpUnusedVolumes = async () => {
+export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
-		await execAsync("docker volume prune --all --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker volume prune --all --force");
+		} else {
+			await execAsync("docker volume prune --all --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
@@ -193,12 +205,23 @@ export const cleanUpInactiveContainers = async () => {
 	}
 };
 
-export const cleanUpDockerBuilder = async () => {
-	await execAsync("docker builder prune --all --force");
+export const cleanUpDockerBuilder = async (serverId?: string) => {
+	if (serverId) {
+		await execAsyncRemote(serverId, "docker builder prune --all --force");
+	} else {
+		await execAsync("docker builder prune --all --force");
+	}
 };
 
-export const cleanUpSystemPrune = async () => {
-	await execAsync("docker system prune --all --force --volumes");
+export const cleanUpSystemPrune = async (serverId?: string) => {
+	if (serverId) {
+		await execAsyncRemote(
+			serverId,
+			"docker system prune --all --force --volumes",
+		);
+	} else {
+		await execAsync("docker system prune --all --force --volumes");
+	}
 };
 
 export const startService = async (appName: string) => {
