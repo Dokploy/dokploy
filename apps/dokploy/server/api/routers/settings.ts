@@ -88,6 +88,7 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			await initializeTraefik({
 				enableDashboard: input.enableDashboard,
+				serverId: input.serverId,
 			});
 			return true;
 		}),
@@ -357,6 +358,7 @@ export const settingsRouter = createTRPCRouter({
 
 		if (input?.serverId) {
 			const result = await execAsyncRemote(input.serverId, command);
+			console.log(result);
 			return result.stdout.trim();
 		}
 		const result = await execAsync(command);
@@ -369,25 +371,38 @@ export const settingsRouter = createTRPCRouter({
 			const envs = prepareEnvironmentVariables(input.env);
 			await initializeTraefik({
 				env: envs,
+				serverId: input.serverId,
 			});
 
 			return true;
 		}),
-	haveTraefikDashboardPortEnabled: adminProcedure.query(async () => {
-		const { stdout } = await execAsync(
-			"docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik",
-		);
+	haveTraefikDashboardPortEnabled: adminProcedure
+		.input(apiStorage)
+		.query(async ({ input }) => {
+			const command = `docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik`;
 
-		const parsed: any[] = JSON.parse(stdout.trim());
-
-		for (const port of parsed) {
-			if (port.PublishedPort === 8080) {
-				return true;
+			let stdout = "";
+			if (input?.serverId) {
+				const result = await execAsyncRemote(input.serverId, command);
+				stdout = result.stdout;
+			} else {
+				const result = await execAsync(
+					"docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik",
+				);
+				stdout = result.stdout;
 			}
-		}
 
-		return false;
-	}),
+			const parsed: any[] = JSON.parse(stdout.trim());
+			console.log(parsed);
+
+			for (const port of parsed) {
+				if (port.PublishedPort === 8080) {
+					return true;
+				}
+			}
+
+			return false;
+		}),
 
 	readStatsLogs: adminProcedure.input(apiReadStatsLogs).query(({ input }) => {
 		const rawConfig = readMonitoringConfig();

@@ -3,7 +3,7 @@ import { docker } from "@/server/constants";
 import Dockerode from "dockerode";
 import { readSSHKey } from "../filesystem/ssh";
 
-export const getRemoteDocker = async (serverId: string | null) => {
+export const getRemoteDocker = async (serverId?: string | null) => {
 	if (!serverId) return docker;
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) return docker;

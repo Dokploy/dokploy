@@ -2,10 +2,11 @@ import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
-import { docker, paths } from "../constants";
-import { pullImage } from "../utils/docker/utils";
+import { paths } from "../constants";
+import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
@@ -14,13 +15,15 @@ const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 interface TraefikOptions {
 	enableDashboard?: boolean;
 	env?: string[];
+	serverId?: string;
 }
 
 export const initializeTraefik = async ({
 	enableDashboard = false,
 	env,
+	serverId,
 }: TraefikOptions = {}) => {
-	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths();
+	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = "traefik:v3.1.2";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
@@ -84,8 +87,13 @@ export const initializeTraefik = async ({
 			],
 		},
 	};
+	const docker = await getRemoteDocker(serverId);
 	try {
-		await pullImage(imageName);
+		if (serverId) {
+			await pullRemoteImage(imageName, serverId);
+		} else {
+			await pullImage(imageName);
+		}
 
 		const service = docker.getService(containerName);
 		const inspect = await service.inspect();

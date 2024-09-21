@@ -29,13 +29,12 @@ import { SetupServer } from "./setup-server";
 import { UpdateServer } from "./update-server";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { ShowModalLogs } from "../web-server/show-modal-logs";
+import { ToggleTraefikDashboard } from "./toggle-traefik-dashboard";
+import { EditTraefikEnv } from "../web-server/edit-traefik-env";
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
-
-	const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
-		api.settings.toggleDashboard.useMutation();
 
 	const {
 		mutateAsync: cleanDockerBuilder,
@@ -62,9 +61,6 @@ export const ShowServers = () => {
 
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
-
-	const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
-		api.settings.haveTraefikDashboardPortEnabled.useQuery();
 
 	return (
 		<div className="p-6 space-y-6">
@@ -226,35 +222,18 @@ export const ShowServers = () => {
 														>
 															<span>Watch logs</span>
 														</ShowModalLogs>
+														<EditTraefikEnv serverId={server.serverId}>
+															<DropdownMenuItem
+																onSelect={(e) => e.preventDefault()}
+																className="w-full cursor-pointer space-x-3"
+															>
+																<span>Modify Env</span>
+															</DropdownMenuItem>
+														</EditTraefikEnv>
+														<ToggleTraefikDashboard
+															serverId={server.serverId}
+														/>
 
-														{/* <DropdownMenuItem
-															onClick={async () => {
-																await toggleDashboard({
-																	enableDashboard:
-																		!haveTraefikDashboardPortEnabled,
-																	serverId: server.serverId,
-																})
-																	.then(async () => {
-																		toast.success(
-																			`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
-																		);
-																		refetchDashboard();
-																	})
-																	.catch(() => {
-																		toast.error(
-																			`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
-																		);
-																	});
-															}}
-															className="w-full cursor-pointer space-x-3"
-														>
-															<span>
-																{haveTraefikDashboardPortEnabled
-																	? "Disable"
-																	: "Enable"}{" "}
-																Dashboard
-															</span>
-														</DropdownMenuItem> */}
 														<DropdownMenuSeparator />
 
 														<DropdownMenuLabel>Storage</DropdownMenuLabel>

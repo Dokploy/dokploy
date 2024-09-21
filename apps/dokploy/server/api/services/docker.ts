@@ -135,7 +135,6 @@ export const getContainersByAppLabel = async (
 		let stderr = "";
 
 		const command = `docker ps --filter "label=com.docker.swarm.service.name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`;
-		console.log(command);
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
 			stdout = result.stdout;
