@@ -358,7 +358,6 @@ export const settingsRouter = createTRPCRouter({
 
 		if (input?.serverId) {
 			const result = await execAsyncRemote(input.serverId, command);
-			console.log(result);
 			return result.stdout.trim();
 		}
 		const result = await execAsync(command);
@@ -393,8 +392,6 @@ export const settingsRouter = createTRPCRouter({
 			}
 
 			const parsed: any[] = JSON.parse(stdout.trim());
-			console.log(parsed);
-
 			for (const port of parsed) {
 				if (port.PublishedPort === 8080) {
 					return true;

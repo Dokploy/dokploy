@@ -34,8 +34,7 @@ export const setupServer = async (serverId: string) => {
 	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 	try {
 		writeStream.write("\nInstalling Server Dependencies: ✅\n");
-		await connectToServer(serverId, deployment.logPath);
-
+		await installRequirements(serverId, deployment.logPath);
 		writeStream.close();
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -47,7 +46,7 @@ export const setupServer = async (serverId: string) => {
 	}
 };
 
-const connectToServer = async (serverId: string, logPath: string) => {
+const installRequirements = async (serverId: string, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const client = new Client();
 	const server = await findServerById(serverId);
@@ -276,7 +275,6 @@ export const createTraefikInstance = () => {
 			--label traefik.enable=true \
 			--publish mode=host,target=443,published=443 \
 			--publish mode=host,target=80,published=80 \
-			--publish mode=host,target=8080,published=8080 \
 			traefik:v3.1.2
 		fi
 	`;
