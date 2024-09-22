@@ -3,7 +3,6 @@ title: Installation
 description: "Get Dokploy up and running on your server within minutes with this easy-to-follow installation guide."
 ---
 
-
 Follow these steps in order to set up Dokploy locally and deploy it to your server, effectively managing Docker containers and applications:
 
 You need to follow this steps in the same order:
@@ -30,8 +29,9 @@ We have tested on the following Linux Distros:
 
 ### Providers
 
-- [DigitalOcean](https://www.digitalocean.com/pricing/droplets#basic-droplets)
-- [Hetzner](https://www.hetzner.com/cloud/)
+- [Hostinger](https://www.hostinger.com/vps-hosting?ref=dokploy) Get 20% Discount using this referral link: [Referral Link](https://hostinger.com?REFERRALCODE=1SIUMAURICI97)
+- [DigitalOcean](https://www.digitalocean.com/pricing/droplets#basic-droplets) Get 200$ credits for free with this referral link: [Referral Link](https://m.do.co/c/db24efd43f35)
+- [Hetzner](https://www.hetzner.com/cloud/) Get 20€ credits for free with this referral link: [Referral Link](https://hetzner.cloud/?ref=vou4fhxJ1W2D)
 - [Linode](https://www.linode.com/es/pricing/#compute-shared)
 - [Vultr](https://www.vultr.com/pricing/#cloud-compute)
 - [Scaleway](https://www.scaleway.com/en/pricing/?tags=baremetal,available)
@@ -42,11 +42,12 @@ We have tested on the following Linux Distros:
 
 To ensure a smooth experience with Dokploy, your server should have at least 2GB of RAM and 30GB of disk space. This specification helps to handle the resources consumed by Docker during builds and prevents system freezes.
 
+import { Callout } from "fumadocs-ui/components/callout";
 
-import { Callout } from 'fumadocs-ui/components/callout';
-
-<Callout>**Suggestion:** For cost efficiency with reliable service, we recommend Hetzner as the best value-for-money VPS provider.</Callout>
-
+<Callout>
+  **Suggestion:** For cost efficiency with reliable service, we recommend
+  Hetzner as the best value-for-money VPS provider.
+</Callout>
 
 ### Docker
 
@@ -64,9 +65,16 @@ After running the installation script, Dokploy and its dependencies will be set 
 
 Open your web browser and navigate to `http://your-ip-from-your-vps:3000`. You will be directed to the initial setup page where you can configure the administrative account for Dokploy.
 
-
 ### Initial Configuration
 
 1. **Create an Admin Account:** Fill in the necessary details to set up your administrator account. This account will be the admin account for Dokploy.
 
- <ImageZoom  src="/assets/images/setup.png" width={1300} height={650} alt='home og image' className="rounded-lg" />
+{" "}
+
+<ImageZoom
+  src="/assets/images/setup.png"
+  width={1300}
+  height={650}
+  alt="home og image"
+  className="rounded-lg"
+/>

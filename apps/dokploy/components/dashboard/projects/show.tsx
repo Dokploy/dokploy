@@ -63,8 +63,8 @@ export const ShowProjects = () => {
 						project?.mysql.length === 0 &&
 						project?.postgres.length === 0 &&
 						project?.redis.length === 0 &&
-						project?.applications.length === 0;
-					project?.compose.length === 0;
+						project?.applications.length === 0 &&
+						project?.compose.length === 0;
 
 					const totalServices =
 						project?.mariadb.length +

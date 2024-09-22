@@ -1,8 +1,8 @@
 <div align="center">
-   <h1 align="center">Dokploy</h1>
    <div>
-  <img style="object-fit: cover;" align="center" width="100%"src=".github/sponsors/logo.png" >
-
+    <a href="https://dokploy.com" target="_blank" rel="noopener">
+        <img style="object-fit: cover;" align="center" width="100%"src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." />
+    </a>
 </div>
 
 </br>
