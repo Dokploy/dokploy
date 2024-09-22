@@ -58,6 +58,10 @@ Compose Type: ${composeType} ✅`;
 			},
 			{
 				cwd: projectPath,
+				env: {
+					NODE_ENV: process.env.NODE_ENV,
+					PATH: process.env.PATH,
+				},
 			},
 		);
 
