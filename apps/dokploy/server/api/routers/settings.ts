@@ -6,7 +6,7 @@ import {
 	apiReadStatsLogs,
 	apiReadTraefikConfig,
 	apiSaveSSHKey,
-	apiStorage,
+	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
@@ -57,6 +57,7 @@ import {
 } from "../services/settings";
 import { canAccessToTraefikFiles } from "../services/user";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { findServerById, updateServerById } from "../services/server";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -67,7 +68,7 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 	reloadTraefik: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			try {
 				if (input?.serverId) {
@@ -94,44 +95,46 @@ export const settingsRouter = createTRPCRouter({
 		}),
 
 	cleanUnusedImages: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			await cleanUpUnusedImages(input?.serverId);
 			return true;
 		}),
 	cleanUnusedVolumes: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			await cleanUpUnusedVolumes(input?.serverId);
 			return true;
 		}),
 	cleanStoppedContainers: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			await cleanStoppedContainers(input?.serverId);
 			return true;
 		}),
 	cleanDockerBuilder: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			await cleanUpDockerBuilder(input?.serverId);
 		}),
 	cleanDockerPrune: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			await cleanUpSystemPrune(input?.serverId);
 			await cleanUpDockerBuilder(input?.serverId);
 
 			return true;
 		}),
-	cleanAll: adminProcedure.input(apiStorage).mutation(async ({ input }) => {
-		await cleanUpUnusedImages(input?.serverId);
-		await cleanStoppedContainers(input?.serverId);
-		await cleanUpDockerBuilder(input?.serverId);
-		await cleanUpSystemPrune(input?.serverId);
+	cleanAll: adminProcedure
+		.input(apiServerSchema)
+		.mutation(async ({ input }) => {
+			await cleanUpUnusedImages(input?.serverId);
+			await cleanStoppedContainers(input?.serverId);
+			await cleanUpDockerBuilder(input?.serverId);
+			await cleanUpSystemPrune(input?.serverId);
 
-		return true;
-	}),
+			return true;
+		}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
 		const { MONITORING_PATH } = paths();
 		await recreateDirectory(MONITORING_PATH);
@@ -175,25 +178,43 @@ export const settingsRouter = createTRPCRouter({
 	updateDockerCleanup: adminProcedure
 		.input(apiUpdateDockerCleanup)
 		.mutation(async ({ input, ctx }) => {
-			await updateAdmin(ctx.user.authId, {
-				enableDockerCleanup: input.enableDockerCleanup,
-			});
-
-			const admin = await findAdmin();
-
-			if (admin.enableDockerCleanup) {
-				scheduleJob("docker-cleanup", "0 0 * * *", async () => {
-					console.log(
-						`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
-					);
-					await cleanUpUnusedImages();
-					await cleanUpDockerBuilder();
-					await cleanUpSystemPrune();
-					await sendDockerCleanupNotifications();
+			if (input.serverId) {
+				await updateServerById(input.serverId, {
+					enableDockerCleanup: input.enableDockerCleanup,
 				});
+
+				const server = await findServerById(input.serverId);
+				if (server.enableDockerCleanup) {
+					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
+						console.log(
+							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
+						);
+						await cleanUpUnusedImages(server.serverId);
+						await cleanUpDockerBuilder(server.serverId);
+						await cleanUpSystemPrune(server.serverId);
+						await sendDockerCleanupNotifications();
+					});
+				}
 			} else {
-				const currentJob = scheduledJobs["docker-cleanup"];
-				currentJob?.cancel();
+				await updateAdmin(ctx.user.authId, {
+					enableDockerCleanup: input.enableDockerCleanup,
+				});
+				const admin = await findAdmin();
+
+				if (admin.enableDockerCleanup) {
+					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
+						console.log(
+							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
+						);
+						await cleanUpUnusedImages();
+						await cleanUpDockerBuilder();
+						await cleanUpSystemPrune();
+						await sendDockerCleanupNotifications();
+					});
+				} else {
+					const currentJob = scheduledJobs["docker-cleanup"];
+					currentJob?.cancel();
+				}
 			}
 
 			return true;
@@ -253,7 +274,7 @@ export const settingsRouter = createTRPCRouter({
 		return getDokployVersion();
 	}),
 	readDirectories: protectedProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
 			if (ctx.user.rol === "user") {
 				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
@@ -352,17 +373,19 @@ export const settingsRouter = createTRPCRouter({
 			return openApiDocument;
 		},
 	),
-	readTraefikEnv: adminProcedure.input(apiStorage).query(async ({ input }) => {
-		const command =
-			"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik";
+	readTraefikEnv: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			const command =
+				"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik";
 
-		if (input?.serverId) {
-			const result = await execAsyncRemote(input.serverId, command);
+			if (input?.serverId) {
+				const result = await execAsyncRemote(input.serverId, command);
+				return result.stdout.trim();
+			}
+			const result = await execAsync(command);
 			return result.stdout.trim();
-		}
-		const result = await execAsync(command);
-		return result.stdout.trim();
-	}),
+		}),
 
 	writeTraefikEnv: adminProcedure
 		.input(z.object({ env: z.string(), serverId: z.string().optional() }))
@@ -376,7 +399,7 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 	haveTraefikDashboardPortEnabled: adminProcedure
-		.input(apiStorage)
+		.input(apiServerSchema)
 		.query(async ({ input }) => {
 			const command = `docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik`;
 

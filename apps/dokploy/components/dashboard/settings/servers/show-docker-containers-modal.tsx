@@ -6,9 +6,8 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { ContainerIcon, FileTextIcon } from "lucide-react";
+import { ContainerIcon } from "lucide-react";
 import { useState } from "react";
-import { ShowTraefikSystem } from "../../file-system/show-traefik-system";
 import { ShowContainers } from "../../docker/show/show-containers";
 
 interface Props {
@@ -42,7 +41,6 @@ export const ShowDockerContainersModal = ({ serverId }: Props) => {
 
 				<div className="grid w-full gap-1">
 					<ShowContainers serverId={serverId} />
-					{/* <ShowTraefikSystem serverId={serverId} /> */}
 				</div>
 			</DialogContent>
 		</Dialog>

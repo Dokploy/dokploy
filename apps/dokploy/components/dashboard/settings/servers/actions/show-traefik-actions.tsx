@@ -1,4 +1,15 @@
-import { api } from "@/utils/api";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import React from "react";
+
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,37 +19,27 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { api } from "@/utils/api";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { ShowModalLogs } from "../web-server/show-modal-logs";
-import { DockerTerminalModal } from "../web-server/docker-terminal-modal";
-import { EditTraefikEnv } from "../web-server/edit-traefik-env";
-import { ShowMainTraefikConfig } from "../web-server/show-main-traefik-config";
+
+import { cn } from "@/lib/utils";
+import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
+import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
 interface Props {
 	serverId?: string;
 }
-export const TraefikActions = ({ serverId }: Props) => {
-	api.settings.reloadServer.useMutation();
+export const ShowTraefikActions = ({ serverId }: Props) => {
 	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
-	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
-		api.settings.cleanAll.useMutation();
+
 	const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
 		api.settings.toggleDashboard.useMutation();
 
-	const {
-		mutateAsync: cleanStoppedContainers,
-		isLoading: cleanStoppedContainersIsLoading,
-	} = api.settings.cleanStoppedContainers.useMutation();
-
-	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
-
-	const { mutateAsync: updateDockerCleanup } =
-		api.settings.updateDockerCleanup.useMutation();
-
 	const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
-		api.settings.haveTraefikDashboardPortEnabled.useQuery();
+		api.settings.haveTraefikDashboardPortEnabled.useQuery({
+			serverId,
+		});
 
 	return (
 		<DropdownMenu>
@@ -72,20 +73,9 @@ export const TraefikActions = ({ serverId }: Props) => {
 					>
 						<span>Reload</span>
 					</DropdownMenuItem>
-					<ShowModalLogs appName="dokploy-traefik">
+					<ShowModalLogs appName="dokploy-traefik" serverId={serverId}>
 						<span>Watch logs</span>
 					</ShowModalLogs>
-					{!serverId && (
-						<ShowMainTraefikConfig>
-							<DropdownMenuItem
-								onSelect={(e) => e.preventDefault()}
-								className="w-full cursor-pointer space-x-3"
-							>
-								<span>View Traefik config</span>
-							</DropdownMenuItem>
-						</ShowMainTraefikConfig>
-					)}
-
 					<EditTraefikEnv serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
@@ -119,15 +109,15 @@ export const TraefikActions = ({ serverId }: Props) => {
 							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
 						</span>
 					</DropdownMenuItem>
-
-					<DockerTerminalModal appName="dokploy-traefik" serverId={serverId}>
-						<DropdownMenuItem
-							className="w-full cursor-pointer space-x-3"
-							onSelect={(e) => e.preventDefault()}
-						>
-							<span>Enter the terminal</span>
-						</DropdownMenuItem>
-					</DockerTerminalModal>
+					{/* 
+								<DockerTerminalModal appName="dokploy-traefik">
+									<DropdownMenuItem
+										className="w-full cursor-pointer space-x-3"
+										onSelect={(e) => e.preventDefault()}
+									>
+										<span>Enter the terminal</span>
+									</DropdownMenuItem>
+								</DockerTerminalModal> */}
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

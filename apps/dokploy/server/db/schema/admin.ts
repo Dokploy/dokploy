@@ -63,7 +63,10 @@ export const apiUpdateDockerCleanup = createSchema
 	.pick({
 		enableDockerCleanup: true,
 	})
-	.required();
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});
 
 export const apiTraefikConfig = z.object({
 	traefikConfig: z.string().min(1),
@@ -84,7 +87,7 @@ export const apiEnableDashboard = z.object({
 	serverId: z.string().optional(),
 });
 
-export const apiStorage = z
+export const apiServerSchema = z
 	.object({
 		serverId: z.string().optional(),
 	})

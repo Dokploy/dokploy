@@ -105,20 +105,44 @@ echo "$json_output"
 	}
 	const items = readdirSync(dirPath, { withFileTypes: true });
 
-	return items.map((item) => {
-		const fullPath = join(dirPath, item.name);
-		if (item.isDirectory()) {
-			return {
-				id: fullPath,
-				name: item.name,
-				type: "directory",
-				children: readDirectory(fullPath),
-			};
+	const stack = [dirPath];
+	const result: TreeDataItem[] = [];
+	const parentMap: Record<string, TreeDataItem[]> = {};
+
+	while (stack.length > 0) {
+		const currentPath = stack.pop();
+		if (!currentPath) continue;
+
+		const items = readdirSync(currentPath, { withFileTypes: true });
+		const currentDirectoryResult: TreeDataItem[] = [];
+
+		for (const item of items) {
+			const fullPath = join(currentPath, item.name);
+			if (item.isDirectory()) {
+				stack.push(fullPath);
+				const directoryItem: TreeDataItem = {
+					id: fullPath,
+					name: item.name,
+					type: "directory",
+					children: [],
+				};
+				currentDirectoryResult.push(directoryItem);
+				parentMap[fullPath] = directoryItem.children as TreeDataItem[];
+			} else {
+				const fileItem: TreeDataItem = {
+					id: fullPath,
+					name: item.name,
+					type: "file",
+				};
+				currentDirectoryResult.push(fileItem);
+			}
 		}
-		return {
-			id: fullPath,
-			name: item.name,
-			type: "file",
-		};
-	}) as unknown as Promise<TreeDataItem[]>;
+
+		if (parentMap[currentPath]) {
+			parentMap[currentPath].push(...currentDirectoryResult);
+		} else {
+			result.push(...currentDirectoryResult);
+		}
+	}
+	return result;
 };

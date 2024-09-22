@@ -28,41 +28,13 @@ import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
 import { UpdateServer } from "./update-server";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
-import { ShowModalLogs } from "../web-server/show-modal-logs";
-import { ToggleTraefikDashboard } from "./toggle-traefik-dashboard";
-import { EditTraefikEnv } from "../web-server/edit-traefik-env";
-import { ShowServer } from "./show-server";
+import { ShowServerActions } from "./actions/show-server-actions";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
+
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
-
-	const {
-		mutateAsync: cleanDockerBuilder,
-		isLoading: cleanDockerBuilderIsLoading,
-	} = api.settings.cleanDockerBuilder.useMutation();
-
-	const {
-		mutateAsync: cleanUnusedImages,
-		isLoading: cleanUnusedImagesIsLoading,
-	} = api.settings.cleanUnusedImages.useMutation();
-
-	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
-		api.settings.reloadTraefik.useMutation();
-
-	const {
-		mutateAsync: cleanUnusedVolumes,
-		isLoading: cleanUnusedVolumesIsLoading,
-	} = api.settings.cleanUnusedVolumes.useMutation();
-
-	const {
-		mutateAsync: cleanStoppedContainers,
-		isLoading: cleanStoppedContainersIsLoading,
-	} = api.settings.cleanStoppedContainers.useMutation();
-
-	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
-		api.settings.cleanAll.useMutation();
 
 	return (
 		<div className="p-6 space-y-6">
@@ -149,17 +121,7 @@ export const ShowServers = () => {
 
 											<TableCell className="text-right flex justify-end">
 												<DropdownMenu>
-													<DropdownMenuTrigger
-														asChild
-														disabled={
-															cleanAllIsLoading ||
-															cleanDockerBuilderIsLoading ||
-															cleanUnusedImagesIsLoading ||
-															cleanUnusedVolumesIsLoading ||
-															cleanStoppedContainersIsLoading ||
-															reloadTraefikIsLoading
-														}
-													>
+													<DropdownMenuTrigger asChild>
 														<Button variant="ghost" className="h-8 w-8 p-0">
 															<span className="sr-only">Open menu</span>
 															<MoreHorizontal className="h-4 w-4" />
@@ -173,7 +135,7 @@ export const ShowServers = () => {
 														<SetupServer serverId={server.serverId} />
 
 														<UpdateServer serverId={server.serverId} />
-														<ShowServer serverId={server.serverId} />
+														<ShowServerActions serverId={server.serverId} />
 														<DialogAction
 															title={"Delete Server"}
 															description="This will delete the server and all associated data"
@@ -201,135 +163,14 @@ export const ShowServers = () => {
 														</DialogAction>
 
 														<DropdownMenuSeparator />
-														<DropdownMenuLabel>Traefik</DropdownMenuLabel>
-														<DropdownMenuItem
-															onClick={async () => {
-																await reloadTraefik({
-																	serverId: server.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Traefik Reloaded");
-																	})
-																	.catch(() => {
-																		toast.error("Error to reload the traefik");
-																	});
-															}}
-														>
-															<span>Reload</span>
-														</DropdownMenuItem>
+														<DropdownMenuLabel>Extra</DropdownMenuLabel>
+
 														<ShowTraefikFileSystemModal
 															serverId={server.serverId}
 														/>
 														<ShowDockerContainersModal
 															serverId={server.serverId}
 														/>
-														<ShowModalLogs
-															appName="dokploy-traefik"
-															serverId={server.serverId}
-														>
-															<span>Watch logs</span>
-														</ShowModalLogs>
-														<EditTraefikEnv serverId={server.serverId}>
-															<DropdownMenuItem
-																onSelect={(e) => e.preventDefault()}
-																className="w-full cursor-pointer space-x-3"
-															>
-																<span>Modify Env</span>
-															</DropdownMenuItem>
-														</EditTraefikEnv>
-														<ToggleTraefikDashboard
-															serverId={server.serverId}
-														/>
-
-														<DropdownMenuSeparator />
-
-														<DropdownMenuLabel>Storage</DropdownMenuLabel>
-														<DropdownMenuItem
-															className="w-full cursor-pointer"
-															onClick={async () => {
-																await cleanUnusedImages({
-																	serverId: server?.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Cleaned images");
-																	})
-																	.catch(() => {
-																		toast.error("Error to clean images");
-																	});
-															}}
-														>
-															<span>Clean unused images</span>
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															className="w-full cursor-pointer"
-															onClick={async () => {
-																await cleanUnusedVolumes({
-																	serverId: server?.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Cleaned volumes");
-																	})
-																	.catch(() => {
-																		toast.error("Error to clean volumes");
-																	});
-															}}
-														>
-															<span>Clean unused volumes</span>
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															className="w-full cursor-pointer"
-															onClick={async () => {
-																await cleanStoppedContainers({
-																	serverId: server?.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Stopped containers cleaned");
-																	})
-																	.catch(() => {
-																		toast.error(
-																			"Error to clean stopped containers",
-																		);
-																	});
-															}}
-														>
-															<span>Clean stopped containers</span>
-														</DropdownMenuItem>
-
-														<DropdownMenuItem
-															className="w-full cursor-pointer"
-															onClick={async () => {
-																await cleanDockerBuilder({
-																	serverId: server?.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Cleaned Docker Builder");
-																	})
-																	.catch(() => {
-																		toast.error(
-																			"Error to clean Docker Builder",
-																		);
-																	});
-															}}
-														>
-															<span>Clean Docker Builder & System</span>
-														</DropdownMenuItem>
-
-														<DropdownMenuItem
-															className="w-full cursor-pointer"
-															onClick={async () => {
-																await cleanAll({
-																	serverId: server?.serverId,
-																})
-																	.then(async () => {
-																		toast.success("Cleaned all");
-																	})
-																	.catch(() => {
-																		toast.error("Error to clean all");
-																	});
-															}}
-														>
-															<span>Clean all</span>
-														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>
 											</TableCell>

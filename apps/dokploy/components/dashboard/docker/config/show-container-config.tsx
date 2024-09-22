@@ -11,7 +11,7 @@ import { api } from "@/utils/api";
 
 interface Props {
 	containerId: string;
-	serverId?: string | null;
+	serverId?: string;
 }
 
 export const ShowContainerConfig = ({ containerId, serverId }: Props) => {

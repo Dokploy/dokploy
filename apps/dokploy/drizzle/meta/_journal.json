@@ -267,6 +267,20 @@
       "when": 1726462845274,
       "tag": "0037_quick_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1726962608998,
+      "tag": "0038_normal_spiral",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1726962717256,
+      "tag": "0039_cultured_norrin_radd",
+      "breakpoints": true
     }
   ]
 }

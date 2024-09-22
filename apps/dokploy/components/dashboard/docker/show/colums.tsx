@@ -122,7 +122,7 @@ export const columns: ColumnDef<Container>[] = [
 						</ShowDockerModalLogs>
 						<ShowContainerConfig
 							containerId={container.containerId}
-							serverId={container.serverId}
+							serverId={container.serverId || ""}
 						/>
 						<DockerTerminalModal containerId={container.containerId}>
 							Terminal

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -30,7 +30,7 @@ export const server = pgTable("server", {
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
-	redisPassword: text("redisPassword").notNull().default("xYBugfHkULig1iLN"),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
