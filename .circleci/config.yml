@@ -15,9 +15,7 @@ jobs:
           name: Build and push AMD64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            if [ "${CIRCLE_BRANCH}" == "139-multi-server-feature" ]; then
-              TAG="feature"
-            elif [ "${CIRCLE_BRANCH}" == "main" ]; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
               TAG="canary"
@@ -40,9 +38,7 @@ jobs:
           name: Build and push ARM64 image
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-            if [ "${CIRCLE_BRANCH}" == "139-multi-server-feature" ]; then
-              TAG="feature"
-            elif [ "${CIRCLE_BRANCH}" == "main" ]; then
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
               TAG="canary"
@@ -75,12 +71,6 @@ jobs:
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64
               docker manifest push dokploy/dokploy:${VERSION}
-            elif [ "${CIRCLE_BRANCH}" == "139-multi-server-feature" ]; then
-              TAG="feature"
-              docker manifest create dokploy/dokploy:${TAG} \
-                dokploy/dokploy:${TAG}-amd64 \
-                dokploy/dokploy:${TAG}-arm64
-              docker manifest push dokploy/dokploy:${TAG}
             else
               TAG="canary"
               docker manifest create dokploy/dokploy:${TAG} \
@@ -98,14 +88,12 @@ workflows:
               only:
                 - main
                 - canary
-                - 139-multi-server-feature
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - 139-multi-server-feature
       - combine-manifests:
           requires:
             - build-amd64
@@ -115,4 +103,3 @@ workflows:
               only:
                 - main
                 - canary
-                - 139-multi-server-feature
