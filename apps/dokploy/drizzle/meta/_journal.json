@@ -267,6 +267,13 @@
       "when": 1726988289562,
       "tag": "0037_legal_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1727036227151,
+      "tag": "0038_familiar_shockwave",
+      "breakpoints": true
     }
   ]
 }

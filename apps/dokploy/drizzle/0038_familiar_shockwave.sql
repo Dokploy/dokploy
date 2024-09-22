@@ -1,0 +1,1 @@
+ALTER TABLE "destination" ADD COLUMN "schema" json;

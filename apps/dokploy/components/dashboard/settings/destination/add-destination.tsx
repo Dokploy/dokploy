@@ -17,13 +17,29 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	getObjectSchema,
+	mergeFormValues,
+	providerSchemas,
+	providersData,
+} from "../../application/domains/schema";
+import { capitalize } from "lodash";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -38,43 +54,45 @@ type AddDestination = z.infer<typeof addDestination>;
 
 export const AddDestination = () => {
 	const utils = api.useUtils();
+	const [provider, setProviders] = useState<keyof typeof providerSchemas>("s3");
 
 	const { mutateAsync, isError, error, isLoading } =
 		api.destination.create.useMutation();
 	const { mutateAsync: testConnection, isLoading: isLoadingConnection } =
 		api.destination.testConnection.useMutation();
-	const form = useForm<AddDestination>({
+	const schema = providerSchemas[provider];
+	const form = useForm<z.infer<typeof schema>>({
 		defaultValues: {
-			accessKeyId: "",
-			bucket: "",
-			name: "",
-			region: "",
-			secretAccessKey: "",
-			endpoint: "",
+			...getObjectSchema(schema),
 		},
-		resolver: zodResolver(addDestination),
+		resolver: zodResolver(schema),
 	});
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	const {
+		register,
+		handleSubmit,
+		control,
+		formState: { errors },
+	} = form;
 
-	const onSubmit = async (data: AddDestination) => {
-		await mutateAsync({
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
-			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
-		})
-			.then(async () => {
-				toast.success("Destination Created");
-				await utils.destination.all.invalidate();
-			})
-			.catch(() => {
-				toast.error("Error to create the Destination");
-			});
+	const onSubmit = async (data: z.infer<typeof schema>) => {
+		// await mutateAsync({
+		// 	accessKey: data.accessKeyId,
+		// 	bucket: data.bucket,
+		// 	endpoint: data.endpoint,
+		// 	name: data.name,
+		// 	region: data.region,
+		// 	secretAccessKey: data.secretAccessKey,
+		// })
+		// 	.then(async () => {
+		// 		toast.success("Destination Created");
+		// 		await utils.destination.all.invalidate();
+		// 	})
+		// 	.catch(() => {
+		// 		toast.error("Error to create the Destination");
+		// 	});
 	};
+
+	const fields = Object.keys(schema.shape);
 	return (
 		<Dialog>
 			<DialogTrigger className="" asChild>
@@ -88,140 +106,117 @@ export const AddDestination = () => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-
 				<Form {...form}>
 					<form
 						id="hook-form-destination-add"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4 "
+						className="grid w-full gap-8 "
 					>
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<div className="flex flex-col gap-2">
+							{fields.map((input) => (
+								<FormField
+									control={control}
+									key={`${provider}.${input}`}
+									name={`${provider}.${input}`}
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>{capitalize(input)}</FormLabel>
+												<FormControl>
+													<Input placeholder={"Value"} {...field} />
+												</FormControl>
+												<span className="text-sm font-medium text-destructive">
+													{errors[input]?.message}
+												</span>
+											</FormItem>
+										);
+									}}
+								/>
+							))}
+						</div>
 					</form>
-
-					<DialogFooter className="flex w-full flex-row !justify-between pt-3">
-						<Button
-							isLoading={isLoadingConnection}
-							type="button"
-							variant="secondary"
-							onClick={async () => {
-								await testConnection({
-									accessKey: form.getValues("accessKeyId"),
-									bucket: form.getValues("bucket"),
-									endpoint: form.getValues("endpoint"),
-									name: "Test",
-									region: form.getValues("region"),
-									secretAccessKey: form.getValues("secretAccessKey"),
-								})
-									.then(async () => {
-										toast.success("Connection Success");
-									})
-									.catch(() => {
-										toast.error("Error to connect the provider");
-									});
-							}}
-						>
-							Test connection
-						</Button>
-						<Button
-							isLoading={isLoading}
-							form="hook-form-destination-add"
-							type="submit"
-						>
-							Create
-						</Button>
-					</DialogFooter>
 				</Form>
+				<Select
+					onValueChange={(e) => {
+						setProviders(e as keyof typeof providerSchemas);
+					}}
+					value={provider}
+				>
+					<SelectTrigger>
+						<SelectValue placeholder="Select a provider" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							{Object.keys(providerSchemas).map((registry) => (
+								<SelectItem key={registry} value={registry}>
+									{registry}
+								</SelectItem>
+							))}
+							<SelectLabel>Providers ({providersData?.length})</SelectLabel>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+				<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+					<Button
+						isLoading={isLoadingConnection}
+						type="button"
+						variant="secondary"
+						onClick={async () => {
+							const result = form.getValues()[provider];
+							const hola = mergeFormValues(schema, result);
+							console.log(hola);
+
+							// const getPropertiesByForm = (form: any) => {
+							// 	const initialValues = getInitialValues(schema);
+							// 	console.log(form, initialValues);
+							// 	const properties: any = {};
+							// 	for (const key in form) {
+							// 		const keysMatch = Object.keys(initialValues).filter(
+							// 			(k) => k === key,
+							// 		);
+							// 		if (keysMatch.length === 0) {
+							// 			continue;
+							// 		}
+
+							// 		properties[keysMatch[0]] = form[key] || "";
+							// 		console.log(key);
+							// 	}
+							// 	return properties;
+							// };
+							// const result = form.getValues();
+							// const properties = getPropertiesByForm(result);
+							// console.log(properties);
+							await testConnection({
+								json: {
+									...hola,
+									provider: provider,
+								},
+								// accessKey: form.getValues("accessKeyId"),
+								// bucket: form.getValues("bucket"),
+								// endpoint: form.getValues("endpoint"),
+								// name: "Test",
+								// region: form.getValues("region"),
+								// secretAccessKey: form.getValues("secretAccessKey"),
+							})
+								.then(async () => {
+									toast.success("Connection Success");
+								})
+								.catch(() => {
+									toast.error("Error to connect the provider");
+								});
+						}}
+					>
+						Test connection
+					</Button>
+					<Button
+						// isLoading={isLoading}
+						form="hook-form-destination-add"
+						type="submit"
+					>
+						Create
+					</Button>
+					{/* */}
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
