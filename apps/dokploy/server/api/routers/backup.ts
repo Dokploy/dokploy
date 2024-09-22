@@ -57,6 +57,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 
 				if (backup.enabled) {
+					removeScheduleBackup(input.backupId);
 					scheduleBackup(backup);
 				} else {
 					removeScheduleBackup(input.backupId);
