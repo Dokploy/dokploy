@@ -141,6 +141,9 @@ export const apiResetMariadb = createSchema
 	})
 	.required();
 
-export const apiUpdateMariaDB = createSchema.partial().extend({
-	mariadbId: z.string().min(1),
-});
+export const apiUpdateMariaDB = createSchema
+	.partial()
+	.extend({
+		mariadbId: z.string().min(1),
+	})
+	.omit({ serverId: true });

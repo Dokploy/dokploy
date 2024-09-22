@@ -30,6 +30,7 @@ import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
@@ -54,7 +55,7 @@ export const ShowServers = () => {
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1">
-				{sshKeys?.length === 0 ? (
+				{sshKeys?.length === 0 && data?.length === 0 ? (
 					<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 						<KeyIcon className="size-8" />
 						<span className="text-base text-muted-foreground">
@@ -96,6 +97,7 @@ export const ShowServers = () => {
 							</TableHeader>
 							<TableBody>
 								{data?.map((server) => {
+									const canDelete = server.totalSum === 0;
 									return (
 										<TableRow key={server.serverId}>
 											<TableCell className="w-[100px]">{server.name}</TableCell>
@@ -137,8 +139,26 @@ export const ShowServers = () => {
 														<UpdateServer serverId={server.serverId} />
 														<ShowServerActions serverId={server.serverId} />
 														<DialogAction
-															title={"Delete Server"}
-															description="This will delete the server and all associated data"
+															disabled={!canDelete}
+															title={
+																canDelete
+																	? "Delete Server"
+																	: "Server has active services"
+															}
+															description={
+																canDelete ? (
+																	"This will delete the server and all associated data"
+																) : (
+																	<div className="flex flex-col gap-2">
+																		You can not delete this server because it
+																		has active services.
+																		<AlertBlock type="warning">
+																			You have active services associated with
+																			this server, please delete them first.
+																		</AlertBlock>
+																	</div>
+																)
+															}
 															onClick={async () => {
 																await mutateAsync({
 																	serverId: server.serverId,

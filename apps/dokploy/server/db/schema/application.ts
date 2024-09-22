@@ -479,6 +479,9 @@ export const apiFindMonitoringStats = createSchema
 	})
 	.required();
 
-export const apiUpdateApplication = createSchema.partial().extend({
-	applicationId: z.string().min(1),
-});
+export const apiUpdateApplication = createSchema
+	.partial()
+	.extend({
+		applicationId: z.string().min(1),
+	})
+	.omit({ serverId: true });

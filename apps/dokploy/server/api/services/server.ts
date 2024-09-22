@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import { type apiCreateServer, server } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export type Server = typeof server.$inferSelect;
 
@@ -45,6 +45,15 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
+export const findServersByAdminId = async (adminId: string) => {
+	const servers = await db.query.server.findMany({
+		where: eq(server.adminId, adminId),
+		orderBy: desc(server.createdAt),
+	});
+
+	return servers;
+};
+
 export const deleteServer = async (serverId: string) => {
 	const currentServer = await db
 		.delete(server)
@@ -53,6 +62,40 @@ export const deleteServer = async (serverId: string) => {
 		.then((value) => value[0]);
 
 	return currentServer;
+};
+
+export const haveActiveServices = async (serverId: string) => {
+	const currentServer = await db.query.server.findFirst({
+		where: eq(server.serverId, serverId),
+		with: {
+			applications: true,
+			compose: true,
+			redis: true,
+			mariadb: true,
+			mongo: true,
+			mysql: true,
+			postgres: true,
+		},
+	});
+
+	if (!currentServer) {
+		return false;
+	}
+
+	const total =
+		currentServer?.applications?.length +
+		currentServer?.compose?.length +
+		currentServer?.redis?.length +
+		currentServer?.mariadb?.length +
+		currentServer?.mongo?.length +
+		currentServer?.mysql?.length +
+		currentServer?.postgres?.length;
+
+	if (total === 0) {
+		return false;
+	}
+
+	return true;
 };
 
 export const updateServerById = async (

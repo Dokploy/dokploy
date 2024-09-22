@@ -127,6 +127,9 @@ export const apiResetRedis = createSchema
 	})
 	.required();
 
-export const apiUpdateRedis = createSchema.partial().extend({
-	redisId: z.string().min(1),
-});
+export const apiUpdateRedis = createSchema
+	.partial()
+	.extend({
+		redisId: z.string().min(1),
+	})
+	.omit({ serverId: true });

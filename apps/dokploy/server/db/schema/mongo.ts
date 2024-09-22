@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -126,9 +125,12 @@ export const apiDeployMongo = createSchema
 	})
 	.required();
 
-export const apiUpdateMongo = createSchema.partial().extend({
-	mongoId: z.string().min(1),
-});
+export const apiUpdateMongo = createSchema
+	.partial()
+	.extend({
+		mongoId: z.string().min(1),
+	})
+	.omit({ serverId: true });
 
 export const apiResetMongo = createSchema
 	.pick({

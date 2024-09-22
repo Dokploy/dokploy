@@ -138,6 +138,9 @@ export const apiDeployMySql = createSchema
 	})
 	.required();
 
-export const apiUpdateMySql = createSchema.partial().extend({
-	mysqlId: z.string().min(1),
-});
+export const apiUpdateMySql = createSchema
+	.partial()
+	.extend({
+		mysqlId: z.string().min(1),
+	})
+	.omit({ serverId: true });

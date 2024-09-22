@@ -157,11 +157,14 @@ export const apiFetchServices = z.object({
 	type: z.enum(["fetch", "cache"]).optional().default("cache"),
 });
 
-export const apiUpdateCompose = createSchema.partial().extend({
-	composeId: z.string(),
-	composeFile: z.string().optional(),
-	command: z.string().optional(),
-});
+export const apiUpdateCompose = createSchema
+	.partial()
+	.extend({
+		composeId: z.string(),
+		composeFile: z.string().optional(),
+		command: z.string().optional(),
+	})
+	.omit({ serverId: true });
 
 export const apiRandomizeCompose = createSchema
 	.pick({
