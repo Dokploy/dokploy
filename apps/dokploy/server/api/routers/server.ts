@@ -3,12 +3,11 @@ import { db } from "@/server/db";
 import {
 	apiCreateServer,
 	apiFindOneServer,
-	apiRemoveProject,
 	apiRemoveServer,
 	apiUpdateServer,
 	server,
 } from "@/server/db/schema";
-import { setupServer } from "@/server/utils/servers/setup-server";
+import { serverSetup } from "@/server/setup/server-setup";
 import { TRPCError } from "@trpc/server";
 import { desc, isNotNull } from "drizzle-orm";
 import { removeDeploymentsByServerId } from "../services/deployment";
@@ -56,7 +55,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const currentServer = await setupServer(input.serverId);
+				const currentServer = await serverSetup(input.serverId);
 				return currentServer;
 			} catch (error) {
 				throw new TRPCError({

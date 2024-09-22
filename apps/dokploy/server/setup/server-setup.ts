@@ -12,10 +12,10 @@ import {
 	getDefaultServerTraefikConfig,
 } from "@/server/setup/traefik-setup";
 import { Client } from "ssh2";
-import { recreateDirectory } from "../filesystem/directory";
-import { readSSHKey } from "../filesystem/ssh";
+import { recreateDirectory } from "../utils/filesystem/directory";
+import { readSSHKey } from "../utils/filesystem/ssh";
 
-export const setupServer = async (serverId: string) => {
+export const serverSetup = async (serverId: string) => {
 	const server = await findServerById(serverId);
 	const { LOGS_PATH } = paths();
 
