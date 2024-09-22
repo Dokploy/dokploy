@@ -179,7 +179,9 @@ export const SetupServer = ({ serverId }: Props) => {
 														type="button"
 														className="absolute right-2 top-2"
 														onClick={() => {
-															copy(server?.sshKey?.publicKey || "");
+															copy(
+																`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
+															);
 															toast.success("Copied to clipboard");
 														}}
 													>
