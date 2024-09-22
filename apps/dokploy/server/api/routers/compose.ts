@@ -187,12 +187,14 @@ export const composeRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
 				applicationType: "compose",
 				descriptionLog: "",
+				server: !!compose.serverId,
 			};
 			await myQueue.add(
 				"deployments",

@@ -63,6 +63,7 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
+				server: !!composeResult.serverId,
 			};
 			await myQueue.add(
 				"deployments",
