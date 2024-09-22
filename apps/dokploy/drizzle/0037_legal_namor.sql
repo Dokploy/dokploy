@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS "server" (
 	"port" integer NOT NULL,
 	"username" text DEFAULT 'root' NOT NULL,
 	"appName" text NOT NULL,
-	"redisPassword" text DEFAULT 'xYBugfHkULig1iLN' NOT NULL,
+	"enableDockerCleanup" boolean DEFAULT false NOT NULL,
 	"createdAt" text NOT NULL,
 	"adminId" text NOT NULL,
 	"sshKeyId" text

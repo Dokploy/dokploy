@@ -1,5 +1,5 @@
 {
-  "id": "8a72c5cc-bc93-4cd4-a129-6e86a7889b89",
+  "id": "19a70a39-f719-400b-b61e-6ddf1bcc6ac5",
   "prevId": "74cd1475-b79c-4226-b4e6-e5ddb9576025",
   "version": "6",
   "dialect": "postgresql",
@@ -3601,12 +3601,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "redisPassword": {
-          "name": "redisPassword",
-          "type": "text",
+        "enableDockerCleanup": {
+          "name": "enableDockerCleanup",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "'xYBugfHkULig1iLN'"
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",
