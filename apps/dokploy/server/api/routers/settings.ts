@@ -276,16 +276,20 @@ export const settingsRouter = createTRPCRouter({
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
-			if (ctx.user.rol === "user") {
-				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
+			try {
+				if (ctx.user.rol === "user") {
+					const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
-				if (!canAccess) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
+					if (!canAccess) {
+						throw new TRPCError({ code: "UNAUTHORIZED" });
+					}
 				}
+				const { MAIN_TRAEFIK_PATH } = paths(!!input?.serverId);
+				const result = await readDirectory(MAIN_TRAEFIK_PATH, input?.serverId);
+				return result || [];
+			} catch (error) {
+				throw error;
 			}
-			const { MAIN_TRAEFIK_PATH } = paths(!!input?.serverId);
-			const result = await readDirectory(MAIN_TRAEFIK_PATH, input?.serverId);
-			return result || [];
 		}),
 
 	updateTraefikFile: protectedProcedure

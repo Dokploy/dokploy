@@ -337,8 +337,6 @@ export const deployRemoteCompose = async ({
 
 			await execAsyncRemote(compose.serverId, command);
 			await getBuildComposeCommand(compose, deployment.logPath);
-
-			console.log(" ---- done ----");
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -443,9 +441,6 @@ export const stopCompose = async (composeId: string) => {
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		if (compose.composeType === "docker-compose") {
-			console.log(
-				`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
-			);
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,

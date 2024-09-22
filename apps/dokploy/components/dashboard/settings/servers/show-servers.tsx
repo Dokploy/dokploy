@@ -131,13 +131,18 @@ export const ShowServers = () => {
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
 														<DropdownMenuLabel>Actions</DropdownMenuLabel>
-														<TerminalModal serverId={server.serverId}>
-															<span>Enter the terminal</span>
-														</TerminalModal>
+														{server.sshKeyId && (
+															<TerminalModal serverId={server.serverId}>
+																<span>Enter the terminal</span>
+															</TerminalModal>
+														)}
+
 														<SetupServer serverId={server.serverId} />
 
 														<UpdateServer serverId={server.serverId} />
-														<ShowServerActions serverId={server.serverId} />
+														{server.sshKeyId && (
+															<ShowServerActions serverId={server.serverId} />
+														)}
 														<DialogAction
 															disabled={!canDelete}
 															title={
@@ -182,15 +187,19 @@ export const ShowServers = () => {
 															</DropdownMenuItem>
 														</DialogAction>
 
-														<DropdownMenuSeparator />
-														<DropdownMenuLabel>Extra</DropdownMenuLabel>
+														{server.sshKeyId && (
+															<>
+																<DropdownMenuSeparator />
+																<DropdownMenuLabel>Extra</DropdownMenuLabel>
 
-														<ShowTraefikFileSystemModal
-															serverId={server.serverId}
-														/>
-														<ShowDockerContainersModal
-															serverId={server.serverId}
-														/>
+																<ShowTraefikFileSystemModal
+																	serverId={server.serverId}
+																/>
+																<ShowDockerContainersModal
+																	serverId={server.serverId}
+																/>
+															</>
+														)}
 													</DropdownMenuContent>
 												</DropdownMenu>
 											</TableCell>

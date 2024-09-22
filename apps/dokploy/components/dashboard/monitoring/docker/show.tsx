@@ -150,8 +150,6 @@ export const DockerMonitoring = ({
 		});
 	}, [data]);
 
-	console.log(currentData);
-
 	useEffect(() => {
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;

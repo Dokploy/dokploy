@@ -17,14 +17,23 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 		isLoading,
 		error,
 		isError,
-	} = api.settings.readDirectories.useQuery({
-		serverId,
-	});
+	} = api.settings.readDirectories.useQuery(
+		{
+			serverId,
+		},
+		{
+			retry: 2,
+		},
+	);
 
 	return (
 		<div className={cn("mt-6 md:grid gap-4")}>
 			<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{isError && (
+					<AlertBlock type="error" className="w-full">
+						{error?.message}
+					</AlertBlock>
+				)}
 				{isLoading && (
 					<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 						<span className="text-muted-foreground text-lg font-medium">

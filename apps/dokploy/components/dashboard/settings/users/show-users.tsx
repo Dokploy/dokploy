@@ -41,8 +41,8 @@ export const ShowUsers = () => {
 	}, []);
 
 	return (
-		<div className="h-full col-span-2">
-			<Card className="bg-transparent h-full ">
+		<div className=" col-span-2">
+			<Card className="bg-transparent  ">
 				<CardHeader className="flex flex-row gap-2 justify-between w-full flex-wrap">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl">Users</CardTitle>
@@ -55,9 +55,9 @@ export const ShowUsers = () => {
 						</div>
 					)}
 				</CardHeader>
-				<CardContent className="space-y-2 h-full">
+				<CardContent className="space-y-2">
 					{data?.length === 0 ? (
-						<div className="flex flex-col items-center gap-3">
+						<div className="flex flex-col items-center gap-3 h-full">
 							<Users className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
 								To create a user, you need to add:

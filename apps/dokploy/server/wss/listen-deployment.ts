@@ -71,11 +71,9 @@ export const setupDeploymentLogsWebSocketServer = (
 									})
 									.on("data", (data: string) => {
 										ws.send(data.toString());
-										// console.log(`OUTPUT: ${data.toString()}`);
 									})
 									.stderr.on("data", (data) => {
 										ws.send(data.toString());
-										// console.error(`STDERR: ${data.toString()}`);
 									});
 							});
 						})

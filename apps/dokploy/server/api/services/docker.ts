@@ -58,7 +58,11 @@ export const getContainers = async (serverId?: string | null) => {
 			.filter((container) => !container.name.includes("dokploy"));
 
 		return containers;
-	} catch (error) {}
+	} catch (error) {
+		console.error(error);
+
+		return [];
+	}
 };
 
 export const getConfig = async (

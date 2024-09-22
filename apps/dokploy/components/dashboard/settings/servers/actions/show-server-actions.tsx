@@ -1,5 +1,11 @@
 import { CardDescription, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { ShowStorageActions } from "./show-storage-actions";
@@ -23,8 +29,8 @@ export const ShowServerActions = ({ serverId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl  overflow-y-auto max-h-screen ">
 				<div className="flex flex-col gap-1">
-					<CardTitle className="text-xl">Web server settings</CardTitle>
-					<CardDescription>Reload or clean the web server.</CardDescription>
+					<DialogTitle className="text-xl">Web server settings</DialogTitle>
+					<DialogDescription>Reload or clean the web server.</DialogDescription>
 				</div>
 
 				<div className="grid grid-cols-2 w-full gap-4">
