@@ -22,6 +22,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { validateRequest } from "../auth/auth";
 import { validateBearerToken } from "../auth/token";
+import { findAdminByAuthId } from "./services/admin";
+import { findUserByAuthId } from "./services/user";
 
 /**
  * 1. CONTEXT
@@ -32,7 +34,7 @@ import { validateBearerToken } from "../auth/token";
  */
 
 interface CreateContextOptions {
-	user: (User & { authId: string }) | null;
+	user: (User & { authId: string; adminId: string }) | null;
 	session: Session | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
@@ -86,6 +88,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 				rol: user.rol,
 				id: user.id,
 				secret: user.secret,
+				adminId: user.adminId,
 			},
 		}) || {
 			user: null,

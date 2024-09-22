@@ -35,7 +35,6 @@
 	},
 	"dependencies": {
 		"rotating-file-stream": "3.2.3",
-		"@aws-sdk/client-s3": "3.515.0",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
@@ -130,7 +129,8 @@
 		"zod": "^3.23.4",
 		"zod-form-data": "^2.0.2",
 		"@radix-ui/react-primitive": "2.0.0",
-		"@radix-ui/react-use-controllable-state": "1.1.0"
+		"@radix-ui/react-use-controllable-state": "1.1.0",
+		"ssh2": "1.15.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.8.3",
@@ -167,7 +167,8 @@
 		"typescript": "^5.4.2",
 		"vite-tsconfig-paths": "4.3.2",
 		"vitest": "^1.6.0",
-		"xterm-readline": "1.1.1"
+		"xterm-readline": "1.1.1",
+		"@types/ssh2": "1.15.1"
 	},
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"

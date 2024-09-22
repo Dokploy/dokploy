@@ -2,9 +2,10 @@ import { applications } from "@/server/db/schema/application";
 import { compose } from "@/server/db/schema/compose";
 import { sshKeyCreate, sshKeyType } from "@/server/db/validations";
 import { relations } from "drizzle-orm";
-import { pgTable, text, time } from "drizzle-orm/pg-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
+import { server } from "./server";
 
 export const sshKeys = pgTable("ssh-key", {
 	sshKeyId: text("sshKeyId")
@@ -23,6 +24,7 @@ export const sshKeys = pgTable("ssh-key", {
 export const sshKeysRelations = relations(sshKeys, ({ many }) => ({
 	applications: many(applications),
 	compose: many(compose),
+	servers: many(server),
 }));
 
 const createSchema = createInsertSchema(

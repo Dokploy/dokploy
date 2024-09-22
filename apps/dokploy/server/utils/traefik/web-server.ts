@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Admin } from "@/server/api/services/admin";
-import { MAIN_TRAEFIK_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { FileConfig } from "./file-types";
@@ -42,6 +42,7 @@ export const updateServerTraefik = (
 export const updateLetsEncryptEmail = (newEmail: string | null) => {
 	try {
 		if (!newEmail) return;
+		const { MAIN_TRAEFIK_PATH } = paths();
 		const configPath = join(MAIN_TRAEFIK_PATH, "traefik.yml");
 		const configContent = readFileSync(configPath, "utf8");
 		const config = load(configContent) as MainTraefikConfig;
@@ -58,6 +59,7 @@ export const updateLetsEncryptEmail = (newEmail: string | null) => {
 };
 
 export const readMainConfig = () => {
+	const { MAIN_TRAEFIK_PATH } = paths();
 	const configPath = join(MAIN_TRAEFIK_PATH, "traefik.yml");
 	if (existsSync(configPath)) {
 		const yamlStr = readFileSync(configPath, "utf8");
@@ -68,6 +70,7 @@ export const readMainConfig = () => {
 
 export const writeMainConfig = (traefikConfig: string) => {
 	try {
+		const { MAIN_TRAEFIK_PATH } = paths();
 		const configPath = join(MAIN_TRAEFIK_PATH, "traefik.yml");
 		writeFileSync(configPath, traefikConfig, "utf8");
 	} catch (e) {

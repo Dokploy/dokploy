@@ -1,6 +1,4 @@
-import type { Mount } from "@/server/api/services/mount";
-import type { Postgres } from "@/server/api/services/postgres";
-import { docker } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -9,12 +7,10 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 
-type PostgresWithMounts = Postgres & {
-	mounts: Mount[];
-};
-
-export const buildPostgres = async (postgres: PostgresWithMounts) => {
+export type PostgresNested = InferResultType<"postgres", { mounts: true }>;
+export const buildPostgres = async (postgres: PostgresNested) => {
 	const {
 		appName,
 		env,
@@ -43,7 +39,9 @@ export const buildPostgres = async (postgres: PostgresWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultPostgresEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, postgres);
+
+	const docker = await getRemoteDocker(postgres.serverId);
 
 	const settings: CreateServiceOptions = {
 		Name: appName,

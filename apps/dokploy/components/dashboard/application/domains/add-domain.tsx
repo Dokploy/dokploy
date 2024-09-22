@@ -175,6 +175,7 @@ export const AddDomain = ({
 																onClick={() => {
 																	generateDomain({
 																		appName: application?.appName || "",
+																		serverId: application?.serverId || "",
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -296,11 +297,7 @@ export const AddDomain = ({
 					</form>
 
 					<DialogFooter>
-						<Button
-							isLoading={form.formState.isSubmitting}
-							form="hook-form"
-							type="submit"
-						>
+						<Button isLoading={isLoading} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

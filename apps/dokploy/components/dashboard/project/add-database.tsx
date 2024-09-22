@@ -26,6 +26,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
@@ -71,6 +80,7 @@ const baseDatabaseSchema = z.object({
 	databasePassword: z.string(),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
+	serverId: z.string().nullable(),
 });
 
 const mySchema = z.discriminatedUnion("type", [
@@ -145,6 +155,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: servers } = api.server.withSSHKey.useQuery();
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
@@ -161,6 +172,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			description: "",
 			databaseName: "",
 			databaseUser: "",
+			serverId: null,
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -183,6 +195,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
 			projectId,
+			serverId: data.serverId,
 			description: data.description,
 		};
 
@@ -191,8 +204,10 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseName: data.databaseName,
+
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+				serverId: data.serverId,
 			});
 		} else if (data.type === "mongo") {
 			promise = mongoMutation.mutateAsync({
@@ -200,11 +215,13 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+				serverId: data.serverId,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
+				serverId: data.serverId,
 				projectId,
 			});
 		} else if (data.type === "mariadb") {
@@ -215,6 +232,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+				serverId: data.serverId,
 			});
 		} else if (data.type === "mysql") {
 			promise = mysqlMutation.mutateAsync({
@@ -224,6 +242,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,
+				serverId: data.serverId,
 			});
 		}
 
@@ -348,6 +367,39 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												/>
 											</FormControl>
 
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="serverId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Select a Server</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value || ""}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a Server" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectGroup>
+														{servers?.map((server) => (
+															<SelectItem
+																key={server.serverId}
+																value={server.serverId}
+															>
+																{server.name}
+															</SelectItem>
+														))}
+														<SelectLabel>
+															Servers ({servers?.length})
+														</SelectLabel>
+													</SelectGroup>
+												</SelectContent>
+											</Select>
 											<FormMessage />
 										</FormItem>
 									)}

@@ -63,7 +63,10 @@ export const apiUpdateDockerCleanup = createSchema
 	.pick({
 		enableDockerCleanup: true,
 	})
-	.required();
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});
 
 export const apiTraefikConfig = z.object({
 	traefikConfig: z.string().min(1),
@@ -72,14 +75,23 @@ export const apiTraefikConfig = z.object({
 export const apiModifyTraefikConfig = z.object({
 	path: z.string().min(1),
 	traefikConfig: z.string().min(1),
+	serverId: z.string().optional(),
 });
 export const apiReadTraefikConfig = z.object({
 	path: z.string().min(1),
+	serverId: z.string().optional(),
 });
 
 export const apiEnableDashboard = z.object({
 	enableDashboard: z.boolean().optional(),
+	serverId: z.string().optional(),
 });
+
+export const apiServerSchema = z
+	.object({
+		serverId: z.string().optional(),
+	})
+	.optional();
 
 export const apiReadStatsLogs = z.object({
 	page: z

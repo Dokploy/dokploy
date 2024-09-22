@@ -1,16 +1,14 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateDomain,
-	apiCreateTraefikMeDomain,
 	apiFindCompose,
 	apiFindDomain,
-	apiFindDomainByApplication,
-	apiFindDomainByCompose,
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
 import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { findApplicationById } from "../services/application";
 import {
 	createDomain,
@@ -47,9 +45,13 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
-		.input(apiCreateTraefikMeDomain)
-		.mutation(async ({ input }) => {
-			return generateTraefikMeDomain(input.appName);
+		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
+		.mutation(async ({ input, ctx }) => {
+			return generateTraefikMeDomain(
+				input.appName,
+				ctx.user.adminId,
+				input.serverId,
+			);
 		}),
 
 	update: protectedProcedure
@@ -71,8 +73,10 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const domain = await findDomainById(input.domainId);
 			const result = await removeDomainById(input.domainId);
-			if (domain.application) {
-				await removeDomain(domain.application.appName, domain.uniqueConfigKey);
+
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				await removeDomain(application, domain.uniqueConfigKey);
 			}
 
 			return result;

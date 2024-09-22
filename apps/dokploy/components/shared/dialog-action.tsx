@@ -11,10 +11,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface Props {
-	title?: string;
-	description?: string;
+	title?: string | React.ReactNode;
+	description?: string | React.ReactNode;
 	onClick: () => void;
 	children?: React.ReactNode;
+	disabled?: boolean;
 }
 
 export const DialogAction = ({
@@ -22,6 +23,7 @@ export const DialogAction = ({
 	children,
 	description,
 	title,
+	disabled,
 }: Props) => {
 	return (
 		<AlertDialog>
@@ -37,7 +39,9 @@ export const DialogAction = ({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction onClick={onClick}>Confirm</AlertDialogAction>
+					<AlertDialogAction disabled={disabled} onClick={onClick}>
+						Confirm
+					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>

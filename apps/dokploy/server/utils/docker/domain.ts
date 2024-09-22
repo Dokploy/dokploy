@@ -3,19 +3,36 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Compose } from "@/server/api/services/compose";
 import type { Domain } from "@/server/api/services/domain";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
-import { cloneRawBitbucketRepository } from "../providers/bitbucket";
-import { cloneGitRawRepository } from "../providers/git";
-import { cloneRawGithubRepository } from "../providers/github";
-import { cloneRawGitlabRepository } from "../providers/gitlab";
-import { createComposeFileRaw } from "../providers/raw";
+import { execAsyncRemote } from "../process/execAsync";
+import {
+	cloneRawBitbucketRepository,
+	cloneRawBitbucketRepositoryRemote,
+} from "../providers/bitbucket";
+import {
+	cloneGitRawRepository,
+	cloneRawGitRepositoryRemote,
+} from "../providers/git";
+import {
+	cloneRawGithubRepository,
+	cloneRawGithubRepositoryRemote,
+} from "../providers/github";
+import {
+	cloneRawGitlabRepository,
+	cloneRawGitlabRepositoryRemote,
+} from "../providers/gitlab";
+import {
+	createComposeFileRaw,
+	createComposeFileRawRemote,
+} from "../providers/raw";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
+import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -31,7 +48,22 @@ export const cloneCompose = async (compose: Compose) => {
 	}
 };
 
+export const cloneComposeRemote = async (compose: Compose) => {
+	if (compose.sourceType === "github") {
+		await cloneRawGithubRepositoryRemote(compose);
+	} else if (compose.sourceType === "gitlab") {
+		await cloneRawGitlabRepositoryRemote(compose);
+	} else if (compose.sourceType === "bitbucket") {
+		await cloneRawBitbucketRepositoryRemote(compose);
+	} else if (compose.sourceType === "git") {
+		await cloneRawGitRepositoryRemote(compose);
+	} else if (compose.sourceType === "raw") {
+		await createComposeFileRawRemote(compose);
+	}
+};
+
 export const getComposePath = (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { appName, sourceType, composePath } = compose;
 	let path = "";
 
@@ -55,6 +87,30 @@ export const loadDockerCompose = async (
 		return parsedConfig;
 	}
 	return null;
+};
+
+export const loadDockerComposeRemote = async (
+	compose: Compose,
+): Promise<ComposeSpecification | null> => {
+	const path = getComposePath(compose);
+	try {
+		if (!compose.serverId) {
+			return null;
+		}
+		const { stdout, stderr } = await execAsyncRemote(
+			compose.serverId,
+			`cat ${path}`,
+		);
+
+		if (stderr) {
+			return null;
+		}
+		if (!stdout) return null;
+		const parsedConfig = load(stdout) as ComposeSpecification;
+		return parsedConfig;
+	} catch (err) {
+		return null;
+	}
 };
 
 export const readComposeFile = async (compose: Compose) => {
@@ -84,12 +140,51 @@ export const writeDomainsToCompose = async (
 	}
 };
 
+export const writeDomainsToComposeRemote = async (
+	compose: Compose,
+	domains: Domain[],
+	logPath: string,
+) => {
+	if (!domains.length) {
+		return "";
+	}
+
+	try {
+		const composeConverted = await addDomainToCompose(compose, domains);
+		const path = getComposePath(compose);
+
+		if (!composeConverted) {
+			return `
+echo "❌ Error: Compose file not found" >> ${logPath};
+exit 1;
+			`;
+		}
+		if (compose.serverId) {
+			const composeString = dump(composeConverted, { lineWidth: 1000 });
+			const encodedContent = encodeBase64(composeString);
+			return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		}
+	} catch (error) {
+		// @ts-ignore
+		return `echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+exit 1;
+		`;
+	}
+};
+// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
-	let result = await loadDockerCompose(compose);
+
+	let result: ComposeSpecification | null;
+
+	if (compose.serverId) {
+		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
+	} else {
+		result = await loadDockerCompose(compose);
+	}
 
 	if (!result || domains.length === 0) {
 		return null;

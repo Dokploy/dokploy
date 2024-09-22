@@ -45,14 +45,17 @@ export const DeployApplication = ({ applicationId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							toast.success("Deploying Application....");
-
-							await refetch();
 							await deploy({
 								applicationId,
-							}).catch(() => {
-								toast.error("Error to deploy Application");
-							});
+							})
+								.then(async () => {
+									toast.success("Application deployed succesfully");
+									await refetch();
+								})
+
+								.catch(() => {
+									toast.error("Error to deploy Application");
+								});
 
 							await refetch();
 						}}

@@ -22,15 +22,23 @@ import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircuitBoard, Folder } from "lucide-react";
+import { CircuitBoard, HelpCircle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,6 +59,7 @@ const AddComposeSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 type AddCompose = z.infer<typeof AddComposeSchema>;
@@ -63,6 +72,7 @@ interface Props {
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const slug = slugify(projectName);
+	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
 
@@ -87,6 +97,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			projectId,
 			composeType: data.composeType,
 			appName: data.appName,
+			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
@@ -148,6 +159,57 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="serverId"
+							render={({ field }) => (
+								<FormItem>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+													Select a Server (Optional)
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormLabel>
+											</TooltipTrigger>
+											<TooltipContent
+												className="z-[999] w-[300px]"
+												align="start"
+												side="top"
+											>
+												<span>
+													If not server is selected, the application will be
+													deployed on the server where the user is logged in.
+												</span>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a Server" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name}
+													</SelectItem>
+												))}
+												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="appName"

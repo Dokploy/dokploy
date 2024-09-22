@@ -35,6 +35,7 @@ export const validateBearerToken = async (
 		session: result.session,
 		...((result.user && {
 			user: {
+				adminId: result.user.adminId,
 				authId: result.user.id,
 				email: result.user.email,
 				rol: result.user.rol,

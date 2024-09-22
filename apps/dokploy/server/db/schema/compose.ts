@@ -4,7 +4,7 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { bitbucket, github, gitlab } from ".";
+import { bitbucket, github, gitlab, server } from ".";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
 import { mounts } from "./mount";
@@ -83,6 +83,9 @@ export const compose = pgTable("compose", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -109,6 +112,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	server: one(server, {
+		fields: [compose.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(compose, {
@@ -129,6 +136,7 @@ export const apiCreateCompose = createSchema.pick({
 	projectId: true,
 	composeType: true,
 	appName: true,
+	serverId: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema
@@ -137,6 +145,7 @@ export const apiCreateComposeByTemplate = createSchema
 	})
 	.extend({
 		id: z.string().min(1),
+		serverId: z.string().optional(),
 	});
 
 export const apiFindCompose = z.object({
@@ -148,11 +157,14 @@ export const apiFetchServices = z.object({
 	type: z.enum(["fetch", "cache"]).optional().default("cache"),
 });
 
-export const apiUpdateCompose = createSchema.partial().extend({
-	composeId: z.string(),
-	composeFile: z.string().optional(),
-	command: z.string().optional(),
-});
+export const apiUpdateCompose = createSchema
+	.partial()
+	.extend({
+		composeId: z.string(),
+		composeFile: z.string().optional(),
+		command: z.string().optional(),
+	})
+	.omit({ serverId: true });
 
 export const apiRandomizeCompose = createSchema
 	.pick({

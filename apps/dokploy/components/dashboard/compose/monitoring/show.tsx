@@ -17,23 +17,27 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DockerMonitoring } from "../../monitoring/docker/show";
 
 interface Props {
 	appName: string;
+	serverId?: string;
 	appType: "stack" | "docker-compose";
 }
 
 export const ShowMonitoringCompose = ({
 	appName,
 	appType = "stack",
+	serverId,
 }: Props) => {
-	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName: appName,
 			appType,
+			serverId,
 		},
 		{
 			enabled: !!appName,
@@ -46,7 +50,7 @@ export const ShowMonitoringCompose = ({
 
 	const [containerId, setContainerId] = useState<string | undefined>();
 
-	const { mutateAsync: restart, isLoading } =
+	const { mutateAsync: restart, isLoading: isRestarting } =
 		api.docker.restartContainer.useMutation();
 
 	useEffect(() => {
@@ -77,7 +81,14 @@ export const ShowMonitoringCompose = ({
 							value={containerAppName}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder="Select a container" />
+								{isLoading ? (
+									<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+										<span>Loading...</span>
+										<Loader2 className="animate-spin size-4" />
+									</div>
+								) : (
+									<SelectValue placeholder="Select a container" />
+								)}
 							</SelectTrigger>
 							<SelectContent>
 								<SelectGroup>
@@ -95,7 +106,7 @@ export const ShowMonitoringCompose = ({
 							</SelectContent>
 						</Select>
 						<Button
-							isLoading={isLoading}
+							isLoading={isRestarting}
 							onClick={async () => {
 								if (!containerId) return;
 								toast.success(`Restarting container ${containerAppName}`);

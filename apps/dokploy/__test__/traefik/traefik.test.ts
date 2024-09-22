@@ -9,6 +9,7 @@ const baseApp: ApplicationNested = {
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
+	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
 	buildArgs: null,

@@ -2,7 +2,7 @@ import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { findBitbucketById } from "@/server/api/services/bitbucket";
 import type { Compose } from "@/server/api/services/compose";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type {
 	apiBitbucketTestConnection,
 	apiFindBitbucketBranches,
@@ -10,6 +10,7 @@ import type {
 import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
+import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ApplicationWithBitbucket = InferResultType<
@@ -27,6 +28,7 @@ export const cloneBitbucketRepository = async (
 	logPath: string,
 	isCompose = false,
 ) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const {
 		appName,
@@ -79,6 +81,7 @@ export const cloneBitbucketRepository = async (
 };
 
 export const cloneRawBitbucketRepository = async (entity: Compose) => {
+	const { COMPOSE_PATH } = paths();
 	const {
 		appName,
 		bitbucketRepository,
@@ -115,6 +118,102 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	} catch (error) {
 		throw error;
 	}
+};
+
+export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(true);
+	const {
+		appName,
+		bitbucketRepository,
+		bitbucketOwner,
+		bitbucketBranch,
+		bitbucketId,
+		serverId,
+	} = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!bitbucketId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Bitbucket Provider not found",
+		});
+	}
+
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+
+	try {
+		await execAsyncRemote(
+			serverId,
+			`git clone --branch ${bitbucketBranch} --depth 1 ${cloneUrl} ${outputPath}`,
+		);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getBitbucketCloneCommand = async (
+	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
+	logPath: string,
+	isCompose = false,
+) => {
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
+	const {
+		appName,
+		bitbucketRepository,
+		bitbucketOwner,
+		bitbucketBranch,
+		bitbucketId,
+		serverId,
+		bitbucket,
+	} = entity;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
+	if (!bitbucketId) {
+		const command = `
+			echo  "Error: ❌ Bitbucket Provider not found" >> ${logPath};
+			exit 1;
+		`;
+		await execAsyncRemote(serverId, command);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Bitbucket Provider not found",
+		});
+	}
+
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
+	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+
+	const cloneCommand = `
+rm -rf ${outputPath};
+mkdir -p ${outputPath};
+if ! git clone --branch ${bitbucketBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	exit 1;
+fi
+echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+	`;
+
+	return cloneCommand;
 };
 
 export const getBitbucketRepositories = async (bitbucketId?: string) => {

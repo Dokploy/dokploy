@@ -74,7 +74,7 @@ export const SettingsLayout = ({ children }: Props) => {
 									{
 										title: "Cluster",
 										label: "",
-										icon: Server,
+										icon: BoxesIcon,
 										href: "/dashboard/settings/cluster",
 									},
 									{
@@ -82,6 +82,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										label: "",
 										icon: Bell,
 										href: "/dashboard/settings/notifications",
+									},
+									{
+										title: "Servers",
+										label: "",
+										icon: Server,
+										href: "/dashboard/settings/servers",
 									},
 								]
 							: []),
@@ -117,6 +123,7 @@ export const SettingsLayout = ({ children }: Props) => {
 import {
 	Activity,
 	Bell,
+	BoxesIcon,
 	Database,
 	GitBranch,
 	KeyIcon,

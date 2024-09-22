@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+
 export type Mariadb = typeof mariadb.$inferSelect;
 
 export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
@@ -56,6 +58,7 @@ export const findMariadbById = async (mariadbId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -118,7 +121,15 @@ export const findMariadbByBackupId = async (backupId: string) => {
 export const deployMariadb = async (mariadbId: string) => {
 	const mariadb = await findMariadbById(mariadbId);
 	try {
-		await pullImage(mariadb.dockerImage);
+		if (mariadb.serverId) {
+			await execAsyncRemote(
+				mariadb.serverId,
+				`docker pull ${mariadb.dockerImage}`,
+			);
+		} else {
+			await pullImage(mariadb.dockerImage);
+		}
+
 		await buildMariadb(mariadb);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "done",

@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+
 export type Postgres = typeof postgres.$inferSelect;
 
 export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
@@ -45,13 +47,13 @@ export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
 
 	return newPostgres;
 };
-
 export const findPostgresById = async (postgresId: string) => {
 	const result = await db.query.postgres.findFirst({
 		where: eq(postgres.postgresId, postgresId),
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -114,7 +116,16 @@ export const removePostgresById = async (postgresId: string) => {
 export const deployPostgres = async (postgresId: string) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
-		await pullImage(postgres.dockerImage);
+		const promises = [];
+		if (postgres.serverId) {
+			const result = await execAsyncRemote(
+				postgres.serverId,
+				`docker pull ${postgres.dockerImage}`,
+			);
+		} else {
+			await pullImage(postgres.dockerImage);
+		}
+
 		await buildPostgres(postgres);
 		await updatePostgresById(postgresId, {
 			applicationStatus: "done",

@@ -19,11 +19,26 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Folder } from "lucide-react";
+import { Folder, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -43,6 +58,7 @@ const AddTemplateSchema = z.object({
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
@@ -54,8 +70,10 @@ interface Props {
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -75,6 +93,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			appName: data.appName,
 			description: data.description,
 			projectId,
+			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
@@ -131,6 +150,57 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											}}
 										/>
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverId"
+							render={({ field }) => (
+								<FormItem>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+													Select a Server (Optional)
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormLabel>
+											</TooltipTrigger>
+											<TooltipContent
+												className="z-[999] w-[300px]"
+												align="start"
+												side="top"
+											>
+												<span>
+													If not server is selected, the application will be
+													deployed on the server where the user is logged in.
+												</span>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a Server" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name}
+													</SelectItem>
+												))}
+												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}

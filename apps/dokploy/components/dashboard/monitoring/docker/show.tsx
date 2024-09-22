@@ -208,9 +208,7 @@ export const DockerMonitoring = ({
 							<div className="flex flex-col gap-2  w-full ">
 								<span className="text-base font-medium">Memory</span>
 								<span className="text-sm text-muted-foreground">
-									{`Used:  ${(currentData.memory.value.used / 1024).toFixed(
-										2,
-									)} GB / Limit: ${(currentData.memory.value.total / 1024).toFixed(2)} GB`}
+									{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
 								</span>
 								<Progress
 									value={currentData.memory.value.usedPercentage}
@@ -218,7 +216,7 @@ export const DockerMonitoring = ({
 								/>
 								<DockerMemoryChart
 									acummulativeData={acummulativeData.memory}
-									memoryLimitGB={currentData.memory.value.total / 1024}
+									memoryLimitGB={currentData.memory.value.total / 1024 ** 3}
 								/>
 							</div>
 							{appName === "dokploy" && (
@@ -240,9 +238,9 @@ export const DockerMonitoring = ({
 							<div className="flex flex-col gap-2  w-full ">
 								<span className="text-base font-medium">Block I/O</span>
 								<span className="text-sm text-muted-foreground">
-									{`Used:  ${currentData.block.value.readMb.toFixed(
+									{`Read:  ${currentData.block.value.readMb.toFixed(
 										2,
-									)} MB / Limit: ${currentData.block.value.writeMb.toFixed(
+									)} MB / Write: ${currentData.block.value.writeMb.toFixed(
 										3,
 									)} MB`}
 								</span>

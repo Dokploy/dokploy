@@ -278,6 +278,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<div className="px-4">
+					<AlertBlock type="info">
+						Changing settings such as placements may cause the logs/monitoring
+						to be unavailable.
+					</AlertBlock>
+				</div>
 
 				<Form {...form}>
 					<form

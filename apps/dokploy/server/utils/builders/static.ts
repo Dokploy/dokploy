@@ -1,7 +1,10 @@
 import type { WriteStream } from "node:fs";
-import { buildCustomDocker } from "@/server/utils/builders/docker-file";
+import {
+	buildCustomDocker,
+	getDockerCommand,
+} from "@/server/utils/builders/docker-file";
 import type { ApplicationNested } from ".";
-import { createFile } from "../docker/utils";
+import { createFile, getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 
 export const buildStatic = async (
@@ -35,4 +38,32 @@ export const buildStatic = async (
 	} catch (e) {
 		throw e;
 	}
+};
+
+export const getStaticCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { publishDirectory } = application;
+	const buildAppDirectory = getBuildAppDirectory(application);
+
+	let command = getCreateFileCommand(
+		buildAppDirectory,
+		"Dockerfile",
+		[
+			"FROM nginx:alpine",
+			"WORKDIR /usr/share/nginx/html/",
+			`COPY ${publishDirectory || "."} .`,
+		].join("\n"),
+	);
+
+	command += getDockerCommand(
+		{
+			...application,
+			buildType: "dockerfile",
+			dockerfile: "Dockerfile",
+		},
+		logPath,
+	);
+	return command;
 };

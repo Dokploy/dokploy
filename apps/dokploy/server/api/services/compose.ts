@@ -1,19 +1,43 @@
 import { join } from "node:path";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
-import { buildCompose } from "@/server/utils/builders/compose";
+import {
+	buildCompose,
+	getBuildComposeCommand,
+} from "@/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@/server/utils/docker/compose";
-import { cloneCompose, loadDockerCompose } from "@/server/utils/docker/domain";
+import {
+	cloneCompose,
+	cloneComposeRemote,
+	loadDockerCompose,
+	loadDockerComposeRemote,
+} from "@/server/utils/docker/domain";
+import type { ComposeSpecification } from "@/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
-import { execAsync } from "@/server/utils/process/execAsync";
-import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
-import { cloneGitRepository } from "@/server/utils/providers/git";
-import { cloneGithubRepository } from "@/server/utils/providers/github";
-import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
-import { createComposeFile } from "@/server/utils/providers/raw";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
+import {
+	cloneBitbucketRepository,
+	getBitbucketCloneCommand,
+} from "@/server/utils/providers/bitbucket";
+import {
+	cloneGitRepository,
+	getCustomGitCloneCommand,
+} from "@/server/utils/providers/git";
+import {
+	cloneGithubRepository,
+	getGithubCloneCommand,
+} from "@/server/utils/providers/github";
+import {
+	cloneGitlabRepository,
+	getGitlabCloneCommand,
+} from "@/server/utils/providers/gitlab";
+import {
+	createComposeFile,
+	getCreateComposeFileCommand,
+} from "@/server/utils/providers/raw";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -36,6 +60,7 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 			});
 		}
 	}
+
 	const newDestination = await db
 		.insert(compose)
 		.values({
@@ -97,6 +122,7 @@ export const findComposeById = async (composeId: string) => {
 			github: true,
 			gitlab: true,
 			bitbucket: true,
+			server: true,
 		},
 	});
 	if (!result) {
@@ -115,10 +141,20 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
-		await cloneCompose(compose);
+		if (compose.serverId) {
+			await cloneComposeRemote(compose);
+		} else {
+			await cloneCompose(compose);
+		}
 	}
 
-	let composeData = await loadDockerCompose(compose);
+	let composeData: ComposeSpecification | null;
+
+	if (compose.serverId) {
+		composeData = await loadDockerComposeRemote(compose);
+	} else {
+		composeData = await loadDockerCompose(compose);
+	}
 
 	if (compose.randomize && composeData) {
 		const randomizedCompose = randomizeSpecificationFile(
@@ -230,7 +266,129 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		await buildCompose(compose, deployment.logPath);
+		if (compose.serverId) {
+			await getBuildComposeCommand(compose, deployment.logPath);
+		} else {
+			await buildCompose(compose, deployment.logPath);
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		throw error;
+	}
+
+	return true;
+};
+
+export const deployRemoteCompose = async ({
+	composeId,
+	titleLog = "Manual deployment",
+	descriptionLog = "",
+}: {
+	composeId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+	try {
+		if (compose.serverId) {
+			let command = "set -e;";
+
+			if (compose.sourceType === "github") {
+				command += await getGithubCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "gitlab") {
+				command += await getGitlabCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "bitbucket") {
+				command += await getBitbucketCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "git") {
+				command += await getCustomGitCloneCommand(
+					compose,
+					deployment.logPath,
+					true,
+				);
+			} else if (compose.sourceType === "raw") {
+				command += getCreateComposeFileCommand(compose, deployment.logPath);
+			}
+
+			await execAsyncRemote(compose.serverId, command);
+			await getBuildComposeCommand(compose, deployment.logPath);
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+
+		await sendBuildSuccessNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			buildLink,
+		});
+	} catch (error) {
+		console.log(error);
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateCompose(composeId, {
+			composeStatus: "error",
+		});
+		await sendBuildErrorNotifications({
+			projectName: compose.project.name,
+			applicationName: compose.name,
+			applicationType: "compose",
+			// @ts-ignore
+			errorMessage: error?.message || "Error to build",
+			buildLink,
+		});
+		throw error;
+	}
+};
+
+export const rebuildRemoteCompose = async ({
+	composeId,
+	titleLog = "Rebuild deployment",
+	descriptionLog = "",
+}: {
+	composeId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const compose = await findComposeById(composeId);
+	const deployment = await createDeploymentCompose({
+		composeId: composeId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (compose.serverId) {
+			await getBuildComposeCommand(compose, deployment.logPath);
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -248,16 +406,28 @@ export const rebuildCompose = async ({
 
 export const removeCompose = async (compose: Compose) => {
 	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
-			await execAsync(`docker stack rm ${compose.appName}`, {
+			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+			await execAsync(command, {
 				cwd: projectPath,
 			});
 		} else {
-			await execAsync(`docker compose -p ${compose.appName} down`, {
-				cwd: projectPath,
-			});
+			const command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command, {
+					cwd: projectPath,
+				});
+			}
 		}
 	} catch (error) {
 		throw error;
@@ -269,10 +439,18 @@ export const removeCompose = async (compose: Compose) => {
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		if (compose.composeType === "docker-compose") {
-			await execAsync(`docker compose -p ${compose.appName} stop`, {
-				cwd: join(COMPOSE_PATH, compose.appName),
-			});
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
+				);
+			} else {
+				await execAsync(`docker compose -p ${compose.appName} stop`, {
+					cwd: join(COMPOSE_PATH, compose.appName),
+				});
+			}
 		}
 
 		await updateCompose(composeId, {

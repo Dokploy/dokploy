@@ -75,7 +75,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 				<StopCompose composeId={composeId} />
 			)}
 
-			<DockerTerminalModal appName={data?.appName || ""}>
+			<DockerTerminalModal
+				appName={data?.appName || ""}
+				serverId={data?.serverId || ""}
+			>
 				<Button variant="outline">
 					<Terminal />
 					Open Terminal
@@ -116,6 +119,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</DropdownMenuContent>
 				</DropdownMenu>
 			)}
+			{data?.server?.name}
 		</div>
 	);
 };

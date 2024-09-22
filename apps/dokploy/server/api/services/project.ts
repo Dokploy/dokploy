@@ -11,17 +11,18 @@ import {
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
 
 export type Project = typeof projects.$inferSelect;
 
-export const createProject = async (input: typeof apiCreateProject._type) => {
-	const admin = await findAdmin();
+export const createProject = async (
+	input: typeof apiCreateProject._type,
+	adminId: string,
+) => {
 	const newProject = await db
 		.insert(projects)
 		.values({
 			...input,
-			adminId: admin.adminId,
+			adminId: adminId,
 		})
 		.returning()
 		.then((value) => value[0]);

@@ -87,6 +87,7 @@ export default async function handler(
 				descriptionLog: `Hash: ${deploymentHash}`,
 				type: "deploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
 			await myQueue.add(
 				"deployments",
