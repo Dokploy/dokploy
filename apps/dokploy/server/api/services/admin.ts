@@ -11,7 +11,6 @@ import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 
 export type Admin = typeof admins.$inferSelect;
-
 export const createInvitation = async (
 	input: typeof apiCreateUserInvitation._type,
 ) => {
