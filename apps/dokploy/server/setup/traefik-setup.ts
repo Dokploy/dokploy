@@ -4,9 +4,9 @@ import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
 import { paths } from "../constants";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
-import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;

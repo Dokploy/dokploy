@@ -5,14 +5,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import React from "react";
-import { api } from "@/utils/api";
-import { UpdateServer } from "./web-server/update-server";
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+import React from "react";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
-import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
+import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
+import { UpdateServer } from "./web-server/update-server";
 
 interface Props {
 	className?: string;

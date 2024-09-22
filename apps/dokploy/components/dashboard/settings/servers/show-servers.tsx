@@ -24,12 +24,12 @@ import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { TerminalModal } from "../web-server/terminal-modal";
+import { ShowServerActions } from "./actions/show-server-actions";
 import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
-import { UpdateServer } from "./update-server";
-import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
-import { ShowServerActions } from "./actions/show-server-actions";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
+import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
+import { UpdateServer } from "./update-server";
 
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();

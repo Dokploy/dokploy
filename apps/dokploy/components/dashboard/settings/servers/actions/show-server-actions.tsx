@@ -1,9 +1,9 @@
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { ShowTraefikActions } from "./show-traefik-actions";
-import { CardTitle, CardDescription } from "@/components/ui/card";
 import { ShowStorageActions } from "./show-storage-actions";
+import { ShowTraefikActions } from "./show-traefik-actions";
 import { ToggleDockerCleanup } from "./toggle-docker-cleanup";
 interface Props {
 	serverId: string;

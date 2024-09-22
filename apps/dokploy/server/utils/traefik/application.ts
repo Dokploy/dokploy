@@ -3,9 +3,9 @@ import path from "node:path";
 import type { Domain } from "@/server/api/services/domain";
 import { paths } from "@/server/constants";
 import { dump, load } from "js-yaml";
+import { encodeBase64 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
-import { encodeBase64 } from "../docker/utils";
 
 export const createTraefikConfig = (appName: string) => {
 	const defaultPort = 3000;

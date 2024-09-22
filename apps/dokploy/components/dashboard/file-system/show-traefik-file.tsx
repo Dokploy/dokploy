@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../application/advanced/traefik/update-traefik-config";
-import { Loader2 } from "lucide-react";
 
 const UpdateServerMiddlewareConfigSchema = z.object({
 	traefikConfig: z.string(),

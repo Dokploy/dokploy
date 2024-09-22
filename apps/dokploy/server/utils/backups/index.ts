@@ -1,4 +1,5 @@
 import { findAdmin } from "@/server/api/services/admin";
+import { getAllServers } from "@/server/api/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import {
@@ -10,7 +11,6 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { getAllServers } from "@/server/api/services/server";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
