@@ -38,7 +38,10 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 						<StopPostgres postgresId={postgresId} />
 					)}
 
-					<DockerTerminalModal appName={data?.appName || ""}>
+					<DockerTerminalModal
+						appName={data?.appName || ""}
+						serverId={data?.serverId || ""}
+					>
 						<Button variant="outline">
 							<Terminal />
 							Open Terminal

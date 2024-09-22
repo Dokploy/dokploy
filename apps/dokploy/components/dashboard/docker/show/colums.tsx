@@ -124,7 +124,10 @@ export const columns: ColumnDef<Container>[] = [
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						/>
-						<DockerTerminalModal containerId={container.containerId}>
+						<DockerTerminalModal
+							containerId={container.containerId}
+							serverId={container.serverId || ""}
+						>
 							Terminal
 						</DockerTerminalModal>
 					</DropdownMenuContent>

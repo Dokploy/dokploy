@@ -34,7 +34,10 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 						) : (
 							<StopMongo mongoId={mongoId} />
 						)}
-						<DockerTerminalModal appName={data?.appName || ""}>
+						<DockerTerminalModal
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						>
 							<Button variant="outline">
 								<Terminal />
 								Open Terminal

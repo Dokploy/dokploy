@@ -37,7 +37,10 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							<StopRedis redisId={redisId} />
 						)}
 
-						<DockerTerminalModal appName={data?.appName || ""}>
+						<DockerTerminalModal
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						>
 							<Button variant="outline">
 								<Terminal />
 								Open Terminal

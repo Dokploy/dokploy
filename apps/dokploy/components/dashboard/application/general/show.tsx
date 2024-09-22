@@ -1,6 +1,5 @@
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
@@ -76,8 +75,6 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
-
-					{/* {data?.server?.name || "No Server"} */}
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />
