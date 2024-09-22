@@ -1,3 +1,5 @@
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -17,22 +19,20 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
+import copy from "copy-to-clipboard";
 import {
 	CopyIcon,
 	ExternalLinkIcon,
 	RocketIcon,
 	ServerIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CodeEditor } from "@/components/shared/code-editor";
-import copy from "copy-to-clipboard";
-import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	serverId: string;
@@ -58,8 +58,6 @@ export const SetupServer = ({ serverId }: Props) => {
 	);
 
 	const { mutateAsync, isLoading } = api.server.setup.useMutation();
-
-	console.log(server?.sshKey);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>

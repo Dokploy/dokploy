@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,6 @@ import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
