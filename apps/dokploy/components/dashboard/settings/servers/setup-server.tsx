@@ -29,9 +29,7 @@ interface Props {
 }
 
 export const SetupServer = ({ serverId }: Props) => {
-	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const url = useUrl();
 	const { data: server } = api.server.one.useQuery(
 		{
 			serverId,

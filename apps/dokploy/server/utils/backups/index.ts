@@ -10,6 +10,7 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { getAllServers } from "@/server/api/services/server";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -25,6 +26,22 @@ export const initCronJobs = async () => {
 			await cleanUpDockerBuilder();
 			await cleanUpSystemPrune();
 		});
+	}
+
+	const servers = await getAllServers();
+
+	for (const server of servers) {
+		const { appName, serverId } = server;
+		if (serverId) {
+			scheduleJob(serverId, "0 0 * * *", async () => {
+				console.log(
+					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
+				);
+				await cleanUpUnusedImages(serverId);
+				await cleanUpDockerBuilder(serverId);
+				await cleanUpSystemPrune(serverId);
+			});
+		}
 	}
 
 	const pgs = await db.query.postgres.findMany({
