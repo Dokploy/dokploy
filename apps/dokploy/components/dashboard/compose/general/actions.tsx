@@ -119,7 +119,6 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</DropdownMenuContent>
 				</DropdownMenu>
 			)}
-			{data?.server?.name}
 		</div>
 	);
 };
