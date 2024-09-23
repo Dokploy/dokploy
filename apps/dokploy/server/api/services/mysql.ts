@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+
 export type MySql = typeof mysql.$inferSelect;
 
 export const createMysql = async (input: typeof apiCreateMySql._type) => {
@@ -57,6 +59,7 @@ export const findMySqlById = async (mysqlId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -119,7 +122,12 @@ export const removeMySqlById = async (mysqlId: string) => {
 export const deployMySql = async (mysqlId: string) => {
 	const mysql = await findMySqlById(mysqlId);
 	try {
-		await pullImage(mysql.dockerImage);
+		if (mysql.serverId) {
+			await execAsyncRemote(mysql.serverId, `docker pull ${mysql.dockerImage}`);
+		} else {
+			await pullImage(mysql.dockerImage);
+		}
+
 		await buildMysql(mysql);
 		await updateMySqlById(mysqlId, {
 			applicationStatus: "done",

@@ -1,11 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
-import { APPLICATIONS_PATH, docker } from "@/server/constants";
+import { docker, paths } from "@/server/constants";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
-import { execAsync } from "../process/execAsync";
+import type { MariadbNested } from "../databases/mariadb";
+import type { MongoNested } from "../databases/mongo";
+import type { MysqlNested } from "../databases/mysql";
+import type { PostgresNested } from "../databases/postgres";
+import type { RedisNested } from "../databases/redis";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRemoteDocker } from "../servers/remote-docker";
 
 interface RegistryAuth {
 	username: string;
@@ -51,6 +57,51 @@ export const pullImage = async (
 	}
 };
 
+export const pullRemoteImage = async (
+	dockerImage: string,
+	serverId: string,
+	onData?: (data: any) => void,
+	authConfig?: Partial<RegistryAuth>,
+): Promise<void> => {
+	try {
+		if (!dockerImage) {
+			throw new Error("Docker image not found");
+		}
+
+		const remoteDocker = await getRemoteDocker(serverId);
+
+		await new Promise((resolve, reject) => {
+			remoteDocker.pull(
+				dockerImage,
+				{ authconfig: authConfig },
+				(err, stream) => {
+					if (err) {
+						reject(err);
+						return;
+					}
+
+					remoteDocker.modem.followProgress(
+						stream as Readable,
+						(err: Error | null, res) => {
+							if (!err) {
+								resolve(res);
+							}
+							if (err) {
+								reject(err);
+							}
+						},
+						(event) => {
+							onData?.(event);
+						},
+					);
+				},
+			);
+		});
+	} catch (error) {
+		throw error;
+	}
+};
+
 export const containerExists = async (containerName: string) => {
 	const container = docker.getContainer(containerName);
 	try {
@@ -64,6 +115,15 @@ export const containerExists = async (containerName: string) => {
 export const stopService = async (appName: string) => {
 	try {
 		await execAsync(`docker service scale ${appName}=0 `);
+	} catch (error) {
+		console.error(error);
+		return error;
+	}
+};
+
+export const stopServiceRemote = async (serverId: string, appName: string) => {
+	try {
+		await execAsyncRemote(serverId, `docker service scale ${appName}=0 `);
 	} catch (error) {
 		console.error(error);
 		return error;
@@ -89,27 +149,39 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 		});
 	});
 };
-export const cleanUpUnusedImages = async () => {
+export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
-		await execAsync("docker image prune --all --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker image prune --all --force");
+		} else {
+			await execAsync("docker image prune --all --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const cleanStoppedContainers = async () => {
+export const cleanStoppedContainers = async (serverId?: string) => {
 	try {
-		await execAsync("docker container prune --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker container prune --force");
+		} else {
+			await execAsync("docker container prune --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const cleanUpUnusedVolumes = async () => {
+export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
-		await execAsync("docker volume prune --all --force");
+		if (serverId) {
+			await execAsyncRemote(serverId, "docker volume prune --all --force");
+		} else {
+			await execAsync("docker volume prune --all --force");
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;
@@ -133,12 +205,23 @@ export const cleanUpInactiveContainers = async () => {
 	}
 };
 
-export const cleanUpDockerBuilder = async () => {
-	await execAsync("docker builder prune --all --force");
+export const cleanUpDockerBuilder = async (serverId?: string) => {
+	if (serverId) {
+		await execAsyncRemote(serverId, "docker builder prune --all --force");
+	} else {
+		await execAsync("docker builder prune --all --force");
+	}
 };
 
-export const cleanUpSystemPrune = async () => {
-	await execAsync("docker system prune --all --force --volumes");
+export const cleanUpSystemPrune = async (serverId?: string) => {
+	if (serverId) {
+		await execAsyncRemote(
+			serverId,
+			"docker system prune --all --force --volumes",
+		);
+	} else {
+		await execAsync("docker system prune --all --force --volumes");
+	}
 };
 
 export const startService = async (appName: string) => {
@@ -150,9 +233,26 @@ export const startService = async (appName: string) => {
 	}
 };
 
-export const removeService = async (appName: string) => {
+export const startServiceRemote = async (serverId: string, appName: string) => {
 	try {
-		await execAsync(`docker service rm ${appName}`);
+		await execAsyncRemote(serverId, `docker service scale ${appName}=1 `);
+	} catch (error) {
+		console.error(error);
+		throw error;
+	}
+};
+
+export const removeService = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker service rm ${appName}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		return error;
 	}
@@ -306,8 +406,16 @@ export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 
 export const generateFileMounts = (
 	appName: string,
-	mounts: ApplicationNested["mounts"],
+	service:
+		| ApplicationNested
+		| MongoNested
+		| MariadbNested
+		| MysqlNested
+		| PostgresNested
+		| RedisNested,
 ) => {
+	const { mounts } = service;
+	const { APPLICATIONS_PATH } = paths(!!service.serverId);
 	if (!mounts || mounts.length === 0) {
 		return [];
 	}
@@ -346,6 +454,26 @@ export const createFile = async (
 		throw error;
 	}
 };
+export const encodeBase64 = (content: string) =>
+	Buffer.from(content, "utf-8").toString("base64");
+
+export const getCreateFileCommand = (
+	outputPath: string,
+	filePath: string,
+	content: string,
+) => {
+	const fullPath = path.join(outputPath, filePath);
+	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+		return `mkdir -p ${fullPath};`;
+	}
+
+	const directory = path.dirname(fullPath);
+	const encodedContent = encodeBase64(content);
+	return `
+		mkdir -p ${directory};
+		echo "${encodedContent}" | base64 -d > "${fullPath}";
+	`;
+};
 
 export const getServiceContainer = async (appName: string) => {
 	try {
@@ -355,6 +483,32 @@ export const getServiceContainer = async (appName: string) => {
 		};
 
 		const containers = await docker.listContainers({
+			filters: JSON.stringify(filter),
+		});
+
+		if (containers.length === 0 || !containers[0]) {
+			throw new Error(`No container found with name: ${appName}`);
+		}
+
+		const container = containers[0];
+
+		return container;
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getRemoteServiceContainer = async (
+	serverId: string,
+	appName: string,
+) => {
+	try {
+		const filter = {
+			status: ["running"],
+			label: [`com.docker.swarm.service.name=${appName}`],
+		};
+		const remoteDocker = await getRemoteDocker(serverId);
+		const containers = await remoteDocker.listContainers({
 			filters: JSON.stringify(filter),
 		});
 

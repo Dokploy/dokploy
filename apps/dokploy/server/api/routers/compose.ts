@@ -15,11 +15,12 @@ import {
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { createCommand } from "@/server/utils/builders/compose";
+import { randomizeComposeFile } from "@/server/utils/docker/compose";
 import {
-	randomizeComposeFile,
-	randomizeSpecificationFile,
-} from "@/server/utils/docker/compose";
-import { addDomainToCompose, cloneCompose } from "@/server/utils/docker/domain";
+	addDomainToCompose,
+	cloneCompose,
+	cloneComposeRemote,
+} from "@/server/utils/docker/domain";
 import { removeComposeDirectory } from "@/server/utils/filesystem/directory";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
@@ -33,7 +34,7 @@ import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
-import { findAdmin } from "../services/admin";
+import { findAdmin, findAdminById } from "../services/admin";
 import {
 	createCompose,
 	createComposeByTemplate,
@@ -47,6 +48,7 @@ import { removeDeploymentsByComposeId } from "../services/deployment";
 import { createDomain, findDomainsByComposeId } from "../services/domain";
 import { createMount } from "../services/mount";
 import { findProjectById } from "../services/project";
+import { findServerById } from "../services/server";
 import { addNewService, checkServiceAccess } from "../services/user";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -130,7 +132,11 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				const compose = await findComposeById(input.composeId);
-				await cloneCompose(compose);
+				if (compose.serverId) {
+					await cloneComposeRemote(compose);
+				} else {
+					await cloneCompose(compose);
+				}
 				return compose.sourceType;
 			} catch (err) {
 				throw new TRPCError({
@@ -151,9 +157,7 @@ export const composeRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const compose = await findComposeById(input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
-
 			const composeFile = await addDomainToCompose(compose, domains);
-
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});
@@ -162,12 +166,14 @@ export const composeRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Manual deployment",
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: "",
+				server: !!compose.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -181,12 +187,14 @@ export const composeRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindCompose)
 		.mutation(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: "Rebuild deployment",
 				type: "redeploy",
 				applicationType: "compose",
 				descriptionLog: "",
+				server: !!compose.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -227,7 +235,8 @@ export const composeRouter = createTRPCRouter({
 
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
-			const admin = await findAdmin();
+			const admin = await findAdminById(ctx.user.adminId);
+			let serverIp = admin.serverIp;
 
 			if (!admin.serverIp) {
 				throw new TRPCError({
@@ -239,9 +248,15 @@ export const composeRouter = createTRPCRouter({
 
 			const project = await findProjectById(input.projectId);
 
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				serverIp = server.ipAddress;
+			} else if (process.env.NODE_ENV === "development") {
+				serverIp = "127.0.0.1";
+			}
 			const projectName = slugify(`${project.name} ${input.id}`);
 			const { envs, mounts, domains } = generate({
-				serverIp: admin.serverIp,
+				serverIp: serverIp || "",
 				projectName: projectName,
 			});
 
@@ -249,6 +264,7 @@ export const composeRouter = createTRPCRouter({
 				...input,
 				composeFile: composeFile,
 				env: envs?.join("\n"),
+				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,

@@ -7,10 +7,10 @@ import { AttachAddon } from "@xterm/addon-attach";
 
 interface Props {
 	id: string;
-	userSSH?: string;
+	serverId: string;
 }
 
-export const Terminal: React.FC<Props> = ({ id, userSSH = "root" }) => {
+export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 	const termRef = useRef(null);
 
 	useEffect(() => {
@@ -33,7 +33,7 @@ export const Terminal: React.FC<Props> = ({ id, userSSH = "root" }) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/terminal?userSSH=${userSSH}`;
+		const wsUrl = `${protocol}//${window.location.host}/terminal?serverId=${serverId}`;
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
@@ -46,7 +46,7 @@ export const Terminal: React.FC<Props> = ({ id, userSSH = "root" }) => {
 		return () => {
 			ws.readyState === WebSocket.OPEN && ws.close();
 		};
-	}, [id, userSSH]);
+	}, [id, serverId]);
 
 	return (
 		<div className="flex flex-col gap-4">

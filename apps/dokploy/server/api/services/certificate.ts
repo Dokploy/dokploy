@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CERTIFICATES_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCertificate, certificates } from "@/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
@@ -50,6 +50,7 @@ export const createCertificate = async (
 };
 
 export const removeCertificateById = async (certificateId: string) => {
+	const { CERTIFICATES_PATH } = paths();
 	const certificate = await findCertificateById(certificateId);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 
@@ -74,6 +75,7 @@ export const findCertificates = async () => {
 };
 
 const createCertificateFiles = (certificate: Certificate) => {
+	const { CERTIFICATES_PATH } = paths();
 	const dockerPath = "/etc/traefik";
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");

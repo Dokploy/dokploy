@@ -1,17 +1,27 @@
 import fs, { promises as fsPromises } from "node:fs";
 import path from "node:path";
 import type { Application } from "@/server/api/services/application";
-import {
-	APPLICATIONS_PATH,
-	COMPOSE_PATH,
-	MONITORING_PATH,
-} from "@/server/constants";
-import { execAsync } from "../process/execAsync";
+import { paths } from "@/server/constants";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const recreateDirectory = async (pathFolder: string): Promise<void> => {
 	try {
 		await removeDirectoryIfExistsContent(pathFolder);
 		await fsPromises.mkdir(pathFolder, { recursive: true });
+	} catch (error) {
+		console.error(`Error recreating directory '${pathFolder}':`, error);
+	}
+};
+
+export const recreateDirectoryRemote = async (
+	pathFolder: string,
+	serverId: string | null,
+): Promise<void> => {
+	try {
+		await execAsyncRemote(
+			serverId,
+			`rm -rf ${pathFolder}; mkdir -p ${pathFolder}`,
+		);
 	} catch (error) {
 		console.error(`Error recreating directory '${pathFolder}':`, error);
 	}
@@ -34,31 +44,57 @@ export const removeFileOrDirectory = async (path: string) => {
 	}
 };
 
-export const removeDirectoryCode = async (appName: string) => {
+export const removeDirectoryCode = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	const { APPLICATIONS_PATH } = paths(!!serverId);
 	const directoryPath = path.join(APPLICATIONS_PATH, appName);
-
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
 
-export const removeComposeDirectory = async (appName: string) => {
+export const removeComposeDirectory = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	const { COMPOSE_PATH } = paths(!!serverId);
 	const directoryPath = path.join(COMPOSE_PATH, appName);
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
 
-export const removeMonitoringDirectory = async (appName: string) => {
+export const removeMonitoringDirectory = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	const { MONITORING_PATH } = paths(!!serverId);
 	const directoryPath = path.join(MONITORING_PATH, appName);
+	const command = `rm -rf ${directoryPath}`;
 	try {
-		await execAsync(`rm -rf ${directoryPath}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(`Error to remove ${directoryPath}: ${error}`);
 		throw error;
@@ -66,6 +102,7 @@ export const removeMonitoringDirectory = async (appName: string) => {
 };
 
 export const getBuildAppDirectory = (application: Application) => {
+	const { APPLICATIONS_PATH } = paths(!!application.serverId);
 	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
 		application;
 	let buildPath = "";
@@ -95,6 +132,7 @@ export const getBuildAppDirectory = (application: Application) => {
 };
 
 export const getDockerContextPath = (application: Application) => {
+	const { APPLICATIONS_PATH } = paths(!!application.serverId);
 	const { appName, dockerContextPath } = application;
 
 	if (!dockerContextPath) {

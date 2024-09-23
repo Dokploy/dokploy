@@ -17,7 +17,7 @@ import {
 import { adminProcedure, createTRPCRouter, publicProcedure } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
-	one: adminProcedure.query(async () => {
+	one: adminProcedure.query(async ({ ctx }) => {
 		const { sshPrivateKey, ...rest } = await findAdmin();
 		return {
 			haveSSH: !!sshPrivateKey,

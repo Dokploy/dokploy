@@ -1,13 +1,29 @@
 import fs from "node:fs/promises";
 import path, { join } from "node:path";
-import { APPLICATIONS_PATH } from "@/server/constants";
+import type { Application } from "@/server/api/services/application";
+import { findServerById } from "@/server/api/services/server";
+import { paths } from "@/server/constants";
 import AdmZip from "adm-zip";
-import { recreateDirectory } from "../filesystem/directory";
+import { Client, type SFTPWrapper } from "ssh2";
+import {
+	recreateDirectory,
+	recreateDirectoryRemote,
+} from "../filesystem/directory";
+import { readSSHKey } from "../filesystem/ssh";
+import { execAsyncRemote } from "../process/execAsync";
 
-export const unzipDrop = async (zipFile: File, appName: string) => {
+export const unzipDrop = async (zipFile: File, application: Application) => {
+	let sftp: SFTPWrapper | null = null;
+
 	try {
+		const { appName } = application;
+		const { APPLICATIONS_PATH } = paths(!!application.serverId);
 		const outputPath = join(APPLICATIONS_PATH, appName, "code");
-		await recreateDirectory(outputPath);
+		if (application.serverId) {
+			await recreateDirectoryRemote(outputPath, application.serverId);
+		} else {
+			await recreateDirectory(outputPath);
+		}
 		const arrayBuffer = await zipFile.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);
 
@@ -28,6 +44,9 @@ export const unzipDrop = async (zipFile: File, appName: string) => {
 			? rootEntries[0]?.entryName.split("/")[0]
 			: "";
 
+		if (application.serverId) {
+			sftp = await getSFTPConnection(application.serverId);
+		}
 		for (const entry of zipEntries) {
 			let filePath = entry.entryName;
 
@@ -42,15 +61,64 @@ export const unzipDrop = async (zipFile: File, appName: string) => {
 			if (!filePath) continue;
 
 			const fullPath = path.join(outputPath, filePath);
-			if (entry.isDirectory) {
-				await fs.mkdir(fullPath, { recursive: true });
+
+			if (application.serverId) {
+				if (entry.isDirectory) {
+					await execAsyncRemote(application.serverId, `mkdir -p ${fullPath}`);
+				} else {
+					if (sftp === null) throw new Error("No SFTP connection available");
+					await uploadFileToServer(sftp, entry.getData(), fullPath);
+				}
 			} else {
-				await fs.mkdir(path.dirname(fullPath), { recursive: true });
-				await fs.writeFile(fullPath, entry.getData());
+				if (entry.isDirectory) {
+					await fs.mkdir(fullPath, { recursive: true });
+				} else {
+					await fs.mkdir(path.dirname(fullPath), { recursive: true });
+					await fs.writeFile(fullPath, entry.getData());
+				}
 			}
 		}
 	} catch (error) {
 		console.error("Error processing ZIP file:", error);
 		throw error;
+	} finally {
+		sftp?.end();
 	}
+};
+
+const getSFTPConnection = async (serverId: string): Promise<SFTPWrapper> => {
+	const server = await findServerById(serverId);
+	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
+
+	const keys = await readSSHKey(server.sshKeyId);
+	return new Promise((resolve, reject) => {
+		const conn = new Client();
+		conn
+			.on("ready", () => {
+				conn.sftp((err, sftp) => {
+					if (err) return reject(err);
+					resolve(sftp);
+				});
+			})
+			.connect({
+				host: server.ipAddress,
+				port: server.port,
+				username: server.username,
+				privateKey: keys.privateKey,
+				timeout: 99999,
+			});
+	});
+};
+
+const uploadFileToServer = (
+	sftp: SFTPWrapper,
+	data: Buffer,
+	remotePath: string,
+): Promise<void> => {
+	return new Promise((resolve, reject) => {
+		sftp.writeFile(remotePath, data, (err) => {
+			if (err) return reject(err);
+			resolve();
+		});
+	});
 };

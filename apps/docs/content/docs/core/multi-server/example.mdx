@@ -1,0 +1,117 @@
+---
+title: Example
+description: "Example to setup a remote server and deploy application in a VPS."
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Multi server allows you to deploy your apps remotely to different servers without needing to build and run them where the Dokploy UI is installed.
+
+## Requirements
+
+1. To install Dokploy UI, follow the [installation guide](en/docs/core/get-started/installation).
+
+2. Create an SSH key by going to `/dashboard/settings/ssh-keys` and add a new key. Be sure to copy the public key.
+
+   <ImageZoom
+     src="/assets/ssh-keys.png"
+     alt="Architecture Diagram"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+3. Decide which remote server to deploy your apps on. We recommend these reliable providers:
+
+- [Hostinger](https://www.hostinger.com/vps-hosting?ref=dokploy) Get 20% off with this [referral link](https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97).
+- [DigitalOcean](https://www.digitalocean.com/pricing/droplets#basic-droplets) Get $200 credits for free with this [referral link](https://m.do.co/c/db24efd43f35).
+- [Hetzner](https://www.hetzner.com/cloud/) Get €20 credits with this [referral link](https://hetzner.cloud/?ref=vou4fhxJ1W2D).
+- [Linode](https://www.linode.com/es/pricing/#compute-shared).
+- [Vultr](https://www.vultr.com/pricing/#cloud-compute).
+- [Scaleway](https://www.scaleway.com/en/pricing/?tags=baremetal,available).
+- [Google Cloud](https://cloud.google.com/).
+- [AWS](https://aws.amazon.com/ec2/pricing/).
+
+4. When creating the server, it should ask for SSH keys. Ideally, use your computer's public key and the key you generated in the previous step. Here's how to add the public key in Hostinger:
+
+   <ImageZoom
+     src="/assets/hostinger-add-sshkey.png"
+     alt="Adding SSH key"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+<Callout>The steps are similar across other providers.</Callout>
+
+5. Copy the server’s IP address and ensure you know the username (often `root`). Fill in all fields and click `Create`.
+
+   <ImageZoom
+     src="/assets/multi-server-add-server.png"
+     alt="Add server"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+6. To test connectivity, open the server dropdown and click `Enter Terminal`. If everything is correct, you should be able to interact with the remote server.
+
+7. Click `Setup Server` to proceed. There are two tabs: SSH Keys and Deployments. This guide explains the easy way, but you can follow the manual process via the Dokploy UI if you prefer.
+
+   <ImageZoom
+     src="/assets/multi-server-setup-2.png"
+     alt="Setup process"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+8. Click `Deployments`, then `Setup Server`. If everything is correct, you should see output similar to this:
+
+   <ImageZoom
+     src="/assets/multi-server-setup-3.png"
+     alt="Server setup output"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+<Callout>
+  You only need to run this setup once. If Dokploy updates later, check the
+  release notes to see if rerunning this command is required.
+</Callout>
+
+9. You're ready to deploy your apps! Let's test it out:
+
+   <ImageZoom
+     src="/assets/multi-server-add-app.png"
+     alt="Add app"
+     width={1000}
+     height={600}
+     className="rounded-lg"
+   />
+
+10. To check which server an app belongs to, you’ll see the server name at the top. If no server is selected, it defaults to `Dokploy Server`. Click `Deploy` to start building your app on the remote server. You can check the `Logs` tab to see the build process. For this example, we’ll use a test repo:  
+    Repo: `https://github.com/Dokploy/examples.git`  
+    Branch: `main`  
+    Build Path: `/astro`
+
+    <ImageZoom
+      src="/assets/multi-server-setup-app.png"
+      alt="App setup"
+      width={1000}
+      height={600}
+      className="rounded-lg"
+    />
+
+11. Once the build is done, go to `Domains` and create a free domain. Just click `Create` and you’re good to go! 🎊
+
+{" "}
+
+<ImageZoom
+  src="/assets/multi-server-finish.png"
+  alt="Finished setup"
+  width={1000}
+  height={600}
+  className="rounded-lg"
+/>

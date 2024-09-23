@@ -310,6 +310,7 @@ export const AddDomainCompose = ({
 																isLoading={isLoadingGenerate}
 																onClick={() => {
 																	generateDomain({
+																		serverId: compose?.serverId || "",
 																		appName: compose?.appName || "",
 																	})
 																		.then((domain) => {

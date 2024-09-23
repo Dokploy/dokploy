@@ -1,41 +1,10 @@
-import { readFile } from "node:fs/promises";
 import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Destination } from "@/server/api/services/destination";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-
-export const uploadToS3 = async (
-	destination: Destination,
-	destinationBucketPath: string,
-	filePath: string,
-) => {
-	const { accessKey, secretAccessKey, bucket, region, endpoint } = destination;
-
-	const s3Client = new S3Client({
-		region: region,
-		...(endpoint && {
-			endpoint: endpoint,
-		}),
-		credentials: {
-			accessKeyId: accessKey,
-			secretAccessKey: secretAccessKey,
-		},
-		forcePathStyle: true,
-	});
-
-	const fileContent = await readFile(filePath);
-	const command = new PutObjectCommand({
-		Bucket: bucket,
-		Key: destinationBucketPath,
-		Body: fileContent,
-	});
-
-	await s3Client.send(command);
-};
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
@@ -56,4 +25,19 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 export const removeScheduleBackup = (backupId: string) => {
 	const currentJob = scheduledJobs[backupId];
 	currentJob?.cancel();
+};
+
+export const getS3Credentials = (destination: Destination) => {
+	const { accessKey, secretAccessKey, bucket, region, endpoint } = destination;
+	const rcloneFlags = [
+		// `--s3-provider=Cloudflare`,
+		`--s3-access-key-id=${accessKey}`,
+		`--s3-secret-access-key=${secretAccessKey}`,
+		`--s3-region=${region}`,
+		`--s3-endpoint=${endpoint}`,
+		"--s3-no-check-bucket",
+		"--s3-force-path-style",
+	];
+
+	return rcloneFlags;
 };

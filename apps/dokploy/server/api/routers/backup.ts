@@ -57,6 +57,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 
 				if (backup.enabled) {
+					removeScheduleBackup(input.backupId);
 					scheduleBackup(backup);
 				} else {
 					removeScheduleBackup(input.backupId);
@@ -90,7 +91,6 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const postgres = await findPostgresByBackupId(backup.backupId);
 				await runPostgresBackup(postgres, backup);
-
 				return true;
 			} catch (error) {
 				console.log(error);

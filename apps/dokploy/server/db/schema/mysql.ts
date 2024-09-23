@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -7,6 +6,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { projects } from "./project";
+import { server } from "./server";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
 
@@ -42,6 +42,9 @@ export const mysql = pgTable("mysql", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
@@ -51,6 +54,10 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [mysql.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mysql, {
@@ -73,6 +80,7 @@ const createSchema = createInsertSchema(mysql, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateMySql = createSchema
@@ -86,6 +94,7 @@ export const apiCreateMySql = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		databaseRootPassword: true,
+		serverId: true,
 	})
 	.required();
 
@@ -129,6 +138,9 @@ export const apiDeployMySql = createSchema
 	})
 	.required();
 
-export const apiUpdateMySql = createSchema.partial().extend({
-	mysqlId: z.string().min(1),
-});
+export const apiUpdateMySql = createSchema
+	.partial()
+	.extend({
+		mysqlId: z.string().min(1),
+	})
+	.omit({ serverId: true });

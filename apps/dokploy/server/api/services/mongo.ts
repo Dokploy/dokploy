@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+
 export type Mongo = typeof mongo.$inferSelect;
 
 export const createMongo = async (input: typeof apiCreateMongo._type) => {
@@ -52,6 +54,7 @@ export const findMongoById = async (mongoId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 			backups: {
 				with: {
 					destination: true,
@@ -114,7 +117,12 @@ export const removeMongoById = async (mongoId: string) => {
 export const deployMongo = async (mongoId: string) => {
 	const mongo = await findMongoById(mongoId);
 	try {
-		await pullImage(mongo.dockerImage);
+		if (mongo.serverId) {
+			await execAsyncRemote(mongo.serverId, `docker pull ${mongo.dockerImage}`);
+		} else {
+			await pullImage(mongo.dockerImage);
+		}
+
 		await buildMongo(mongo);
 		await updateMongoById(mongoId, {
 			applicationStatus: "done",

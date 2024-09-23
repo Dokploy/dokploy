@@ -26,6 +26,7 @@ import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
 import { securityRouter } from "./routers/security";
+import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { userRouter } from "./routers/user";
@@ -35,6 +36,7 @@ import { userRouter } from "./routers/user";
  *
  * All routers added in /api/routers should be manually added here.
  */
+
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	docker: dockerRouter,
@@ -66,6 +68,7 @@ export const appRouter = createTRPCRouter({
 	bitbucket: bitbucketRouter,
 	gitlab: gitlabRouter,
 	github: githubRouter,
+	server: serverRouter,
 });
 
 // export type definition of API

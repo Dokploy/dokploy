@@ -10,7 +10,7 @@ import {
 	apiRemoveDestination,
 	apiUpdateDestination,
 } from "@/server/db/schema";
-import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
+import { execAsync } from "@/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { findAdmin } from "../services/admin";
 import {
@@ -39,22 +39,22 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
 			const { secretAccessKey, bucket, region, endpoint, accessKey } = input;
-			const s3Client = new S3Client({
-				region: region,
-				...(endpoint && {
-					endpoint: endpoint,
-				}),
-				credentials: {
-					accessKeyId: accessKey,
-					secretAccessKey: secretAccessKey,
-				},
-				forcePathStyle: true,
-			});
-			const headBucketCommand = new HeadBucketCommand({ Bucket: bucket });
 
 			try {
-				await s3Client.send(headBucketCommand);
+				const rcloneFlags = [
+					// `--s3-provider=Cloudflare`,
+					`--s3-access-key-id=${accessKey}`,
+					`--s3-secret-access-key=${secretAccessKey}`,
+					`--s3-region=${region}`,
+					`--s3-endpoint=${endpoint}`,
+					"--s3-no-check-bucket",
+					"--s3-force-path-style",
+				];
+				const rcloneDestination = `:s3:${bucket}`;
+				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+				await execAsync(rcloneCommand);
 			} catch (error) {
+				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to connect to bucket",

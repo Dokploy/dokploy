@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -29,12 +30,18 @@ type UpdateServerMiddlewareConfig = z.infer<
 
 interface Props {
 	path: string;
+	serverId?: string;
 }
 
-export const ShowTraefikFile = ({ path }: Props) => {
-	const { data, refetch } = api.settings.readTraefikFile.useQuery(
+export const ShowTraefikFile = ({ path, serverId }: Props) => {
+	const {
+		data,
+		refetch,
+		isLoading: isLoadingFile,
+	} = api.settings.readTraefikFile.useQuery(
 		{
 			path,
+			serverId,
 		},
 		{
 			enabled: !!path,
@@ -54,11 +61,9 @@ export const ShowTraefikFile = ({ path }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data) {
-			form.reset({
-				traefikConfig: data || "",
-			});
-		}
+		form.reset({
+			traefikConfig: data || "",
+		});
 	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: UpdateServerMiddlewareConfig) => {
@@ -74,6 +79,7 @@ export const ShowTraefikFile = ({ path }: Props) => {
 		await mutateAsync({
 			traefikConfig: data.traefikConfig,
 			path,
+			serverId,
 		})
 			.then(async () => {
 				toast.success("Traefik config Updated");
@@ -93,20 +99,28 @@ export const ShowTraefikFile = ({ path }: Props) => {
 					className="w-full relative z-[5]"
 				>
 					<div className="flex flex-col overflow-auto">
-						<FormField
-							control={form.control}
-							name="traefikConfig"
-							render={({ field }) => (
-								<FormItem className="relative">
-									<FormLabel>Traefik config</FormLabel>
-									<FormDescription className="break-all">
-										{path}
-									</FormDescription>
-									<FormControl>
-										<CodeEditor
-											lineWrapping
-											wrapperClassName="h-[35rem] font-mono"
-											placeholder={`http:
+						{isLoadingFile ? (
+							<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+								<span className="text-muted-foreground text-lg font-medium">
+									Loading...
+								</span>
+								<Loader2 className="animate-spin size-8 text-muted-foreground" />
+							</div>
+						) : (
+							<FormField
+								control={form.control}
+								name="traefikConfig"
+								render={({ field }) => (
+									<FormItem className="relative">
+										<FormLabel>Traefik config</FormLabel>
+										<FormDescription className="break-all">
+											{path}
+										</FormDescription>
+										<FormControl>
+											<CodeEditor
+												lineWrapping
+												wrapperClassName="h-[35rem] font-mono"
+												placeholder={`http:
 routers:
     router-name:
         rule: Host('domain.com')
@@ -116,31 +130,36 @@ routers:
         tls: false
         middlewares: []
                                                     `}
-											{...field}
-										/>
-									</FormControl>
+												{...field}
+											/>
+										</FormControl>
 
-									<pre>
-										<FormMessage />
-									</pre>
-									<div className="flex justify-end absolute z-50 right-6 top-8">
-										<Button
-											className="shadow-sm"
-											variant="secondary"
-											type="button"
-											onClick={async () => {
-												setCanEdit(!canEdit);
-											}}
-										>
-											{canEdit ? "Unlock" : "Lock"}
-										</Button>
-									</div>
-								</FormItem>
-							)}
-						/>
+										<pre>
+											<FormMessage />
+										</pre>
+										<div className="flex justify-end absolute z-50 right-6 top-8">
+											<Button
+												className="shadow-sm"
+												variant="secondary"
+												type="button"
+												onClick={async () => {
+													setCanEdit(!canEdit);
+												}}
+											>
+												{canEdit ? "Unlock" : "Lock"}
+											</Button>
+										</div>
+									</FormItem>
+								)}
+							/>
+						)}
 					</div>
 					<div className="flex justify-end">
-						<Button isLoading={isLoading} disabled={canEdit} type="submit">
+						<Button
+							isLoading={isLoading}
+							disabled={canEdit || isLoading}
+							type="submit"
+						>
 							Update
 						</Button>
 					</div>

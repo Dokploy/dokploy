@@ -1,6 +1,6 @@
 import type { WriteStream } from "node:fs";
 import path from "node:path";
-import { buildStatic } from "@/server/utils/builders/static";
+import { buildStatic, getStaticCommand } from "@/server/utils/builders/static";
 import { nanoid } from "nanoid";
 import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
@@ -11,7 +11,7 @@ export const buildNixpacks = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName, publishDirectory } = application;
+	const { env, appName, publishDirectory, serverId } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
@@ -70,4 +70,55 @@ export const buildNixpacks = async (
 
 		throw e;
 	}
+};
+
+export const getNixpacksCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { env, appName, publishDirectory, serverId } = application;
+
+	const buildAppDirectory = getBuildAppDirectory(application);
+	const buildContainerId = `${appName}-${nanoid(10)}`;
+	const envVariables = prepareEnvironmentVariables(env);
+
+	const args = ["build", buildAppDirectory, "--name", appName];
+
+	for (const env of envVariables) {
+		args.push("--env", env);
+	}
+
+	if (publishDirectory) {
+		/* No need for any start command, since we'll use nginx later on */
+		args.push("--no-error-without-start");
+	}
+	const command = `nixpacks ${args.join(" ")}`;
+	let bashCommand = `
+echo "Starting nixpacks build..." >> ${logPath};
+${command} >> ${logPath} 2>> ${logPath} || { 
+  echo "❌ Nixpacks build failed" >> ${logPath};
+  exit 1;
+}
+echo "✅ Nixpacks build completed." >> ${logPath};
+		`;
+
+	/*
+		Run the container with the image created by nixpacks,
+		and copy the artifacts on the host filesystem.
+		Then, remove the container and create a static build.
+	 */
+	if (publishDirectory) {
+		bashCommand += `
+docker create --name ${buildContainerId} ${appName}
+docker cp ${buildContainerId}:/app/${publishDirectory} ${path.join(buildAppDirectory, publishDirectory)} >> ${logPath} 2>> ${logPath} || { 
+	docker rm ${buildContainerId}
+	echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" >> ${logPath};
+	exit 1;
+}
+docker rm ${buildContainerId}
+${getStaticCommand(application, logPath)}
+			`;
+	}
+
+	return bashCommand;
 };

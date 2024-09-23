@@ -1,20 +1,17 @@
 import { db } from "@/server/db";
-import {
-	type apiCreateDomain,
-	type apiFindDomainByApplication,
-	domains,
-} from "@/server/db/schema";
+import { type apiCreateDomain, domains } from "@/server/db/schema";
 import { manageDomain } from "@/server/utils/traefik/domain";
 import { generateRandomDomain } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
+import { findAdmin, findAdminById } from "./admin";
 import { findApplicationById } from "./application";
+import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
-	await db.transaction(async (tx) => {
+	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
 			.values({
@@ -37,12 +34,32 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 		return domain;
 	});
+
+	return result;
 };
 
-export const generateTraefikMeDomain = async (appName: string) => {
-	const admin = await findAdmin();
+export const generateTraefikMeDomain = async (
+	appName: string,
+	adminId: string,
+	serverId?: string,
+) => {
+	if (serverId) {
+		const server = await findServerById(serverId);
+		return generateRandomDomain({
+			serverIp: server.ipAddress,
+			projectName: appName,
+		});
+	}
+
+	if (process.env.NODE_ENV === "development") {
+		return generateRandomDomain({
+			serverIp: "",
+			projectName: appName,
+		});
+	}
+	const admin = await findAdminById(adminId);
 	return generateRandomDomain({
-		serverIp: admin.serverIp || "",
+		serverIp: admin?.serverIp || "",
 		projectName: appName,
 	});
 };

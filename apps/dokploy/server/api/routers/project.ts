@@ -1,8 +1,4 @@
-import {
-	cliProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	applications,
@@ -43,7 +39,8 @@ export const projectRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkProjectAccess(ctx.user.authId, "create");
 				}
-				const project = await createProject(input);
+
+				const project = await createProject(input, ctx.user.adminId);
 				if (ctx.user.rol === "user") {
 					await addNewProject(ctx.user.authId, project.projectId);
 				}
@@ -153,6 +150,7 @@ export const projectRouter = createTRPCRouter({
 
 			return query;
 		}
+
 		return await db.query.projects.findMany({
 			with: {
 				applications: true,
@@ -163,6 +161,7 @@ export const projectRouter = createTRPCRouter({
 				redis: true,
 				compose: true,
 			},
+			where: eq(projects.adminId, ctx.user.adminId),
 			orderBy: desc(projects.createdAt),
 		});
 	}),

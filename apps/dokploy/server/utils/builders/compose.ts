@@ -5,11 +5,15 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import boxen from "boxen";
-import { writeDomainsToCompose } from "../docker/domain";
-import { prepareEnvironmentVariables } from "../docker/utils";
+import {
+	writeDomainsToCompose,
+	writeDomainsToComposeRemote,
+} from "../docker/domain";
+import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
+import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -20,6 +24,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	try {
+		const { COMPOSE_PATH } = paths();
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
@@ -69,6 +74,63 @@ Compose Type: ${composeType} ✅`;
 	}
 };
 
+export const getBuildComposeCommand = async (
+	compose: ComposeNested,
+	logPath: string,
+) => {
+	const { COMPOSE_PATH } = paths(true);
+	const { sourceType, appName, mounts, composeType, domains, composePath } =
+		compose;
+	const command = createCommand(compose);
+	const envCommand = getCreateEnvFileCommand(compose);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+
+	const newCompose = await writeDomainsToComposeRemote(
+		compose,
+		domains,
+		logPath,
+	);
+	const logContent = `
+App Name: ${appName}
+Build Compose 🐳
+Detected: ${mounts.length} mounts 📂
+Command: docker ${command}
+Source Type: docker ${sourceType} ✅
+Compose Type: ${composeType} ✅`;
+
+	const logBox = boxen(logContent, {
+		padding: {
+			left: 1,
+			right: 1,
+			bottom: 1,
+		},
+		width: 80,
+		borderStyle: "double",
+	});
+
+	const bashCommand = `
+	set -e
+	{
+		echo "${logBox}" >> "${logPath}"
+	
+		${newCompose}
+	
+		${envCommand}
+	
+		cd "${projectPath}";
+
+		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
+	
+		echo "Docker Compose Deployed: ✅" >> "${logPath}"
+	} || {
+		echo "Error: ❌ Script execution failed" >> "${logPath}"
+		exit 1
+	}
+	`;
+
+	return await execAsyncRemote(compose.serverId, bashCommand);
+};
+
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
 
@@ -102,6 +164,7 @@ export const createCommand = (compose: ComposeNested) => {
 };
 
 const createEnvFile = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths();
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||
@@ -123,4 +186,31 @@ const createEnvFile = (compose: ComposeNested) => {
 		mkdirSync(dirname(envFilePath), { recursive: true });
 	}
 	writeFileSync(envFilePath, envFileContent);
+};
+
+export const getCreateEnvFileCommand = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(true);
+	const { env, composePath, appName } = compose;
+	const composeFilePath =
+		join(COMPOSE_PATH, appName, "code", composePath) ||
+		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+
+	const envFilePath = join(dirname(composeFilePath), ".env");
+
+	let envContent = env || "";
+	if (!envContent.includes("DOCKER_CONFIG")) {
+		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
+	}
+
+	if (compose.randomize) {
+		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
+	}
+
+	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
+
+	const encodedContent = encodeBase64(envFileContent);
+	return `
+touch ${envFilePath};
+echo "${encodedContent}" | base64 -d > "${envFilePath}";
+	`;
 };

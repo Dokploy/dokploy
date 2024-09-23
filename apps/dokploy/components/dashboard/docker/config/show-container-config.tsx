@@ -11,12 +11,14 @@ import { api } from "@/utils/api";
 
 interface Props {
 	containerId: string;
+	serverId?: string;
 }
 
-export const ShowContainerConfig = ({ containerId }: Props) => {
+export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
+			serverId,
 		},
 		{
 			enabled: !!containerId,

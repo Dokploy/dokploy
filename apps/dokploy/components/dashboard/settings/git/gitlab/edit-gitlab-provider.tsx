@@ -19,10 +19,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit } from "lucide-react";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";

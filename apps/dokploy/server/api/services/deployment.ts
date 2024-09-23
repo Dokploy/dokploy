@@ -1,18 +1,26 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { LOGS_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
+	type apiCreateDeploymentServer,
 	deployments,
 } from "@/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
-import { type Application, findApplicationById } from "./application";
-import { type Compose, findComposeById } from "./compose";
+import {
+	type Application,
+	findApplicationById,
+	updateApplicationStatus,
+} from "./application";
+import { type Compose, findComposeById, updateCompose } from "./compose";
+import { type Server, findServerById } from "./server";
+
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -38,17 +46,31 @@ export const createDeployment = async (
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
-	try {
-		const application = await findApplicationById(deployment.applicationId);
+	const application = await findApplicationById(deployment.applicationId);
 
-		await removeLastTenDeployments(deployment.applicationId);
+	try {
+		// await removeLastTenDeployments(deployment.applicationId);
+		const { LOGS_PATH } = paths(!!application.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
-		await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
-			recursive: true,
-		});
-		await fsPromises.writeFile(logFilePath, "Initializing deployment");
+
+		if (application.serverId) {
+			const server = await findServerById(application.serverId);
+
+			const command = `
+				mkdir -p ${LOGS_PATH}/${application.appName};
+            	echo "Initializing deployment" >> ${logFilePath};
+			`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+		}
+
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
@@ -67,6 +89,7 @@ export const createDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -81,17 +104,30 @@ export const createDeploymentCompose = async (
 		"deploymentId" | "createdAt" | "status" | "logPath"
 	>,
 ) => {
+	const compose = await findComposeById(deployment.composeId);
 	try {
-		const compose = await findComposeById(deployment.composeId);
-
-		await removeLastTenComposeDeployments(deployment.composeId);
+		// await removeLastTenComposeDeployments(deployment.composeId);
+		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
-		await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
-			recursive: true,
-		});
-		await fsPromises.writeFile(logFilePath, "Initializing deployment");
+
+		if (compose.serverId) {
+			const server = await findServerById(compose.serverId);
+
+			const command = `
+mkdir -p ${LOGS_PATH}/${compose.appName};
+echo "Initializing deployment" >> ${logFilePath};
+`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+		}
+
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
@@ -110,6 +146,9 @@ export const createDeploymentCompose = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await updateCompose(compose.composeId, {
+			composeStatus: "error",
+		});
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -178,15 +217,26 @@ const removeLastTenComposeDeployments = async (composeId: string) => {
 
 export const removeDeployments = async (application: Application) => {
 	const { appName, applicationId } = application;
+	const { LOGS_PATH } = paths(!!application.serverId);
 	const logsPath = path.join(LOGS_PATH, appName);
-	await removeDirectoryIfExistsContent(logsPath);
+	if (application.serverId) {
+		await execAsyncRemote(application.serverId, `rm -rf ${logsPath}`);
+	} else {
+		await removeDirectoryIfExistsContent(logsPath);
+	}
 	await removeDeploymentsByApplicationId(applicationId);
 };
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
 	const { appName } = compose;
+	const { LOGS_PATH } = paths(!!compose.serverId);
 	const logsPath = path.join(LOGS_PATH, appName);
-	await removeDirectoryIfExistsContent(logsPath);
+	if (compose.serverId) {
+		await execAsyncRemote(compose.serverId, `rm -rf ${logsPath}`);
+	} else {
+		await removeDirectoryIfExistsContent(logsPath);
+	}
+
 	await db
 		.delete(deployments)
 		.where(eq(deployments.composeId, compose.composeId))
@@ -239,4 +289,84 @@ export const updateDeploymentStatus = async (
 		.returning();
 
 	return application;
+};
+
+export const createServerDeployment = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentServer._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	try {
+		const { LOGS_PATH } = paths();
+
+		const server = await findServerById(deployment.serverId);
+		await removeLastFiveDeployments(deployment.serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${server.appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(LOGS_PATH, server.appName, fileName);
+		await fsPromises.mkdir(path.join(LOGS_PATH, server.appName), {
+			recursive: true,
+		});
+		await fsPromises.writeFile(logFilePath, "Initializing Setup Server");
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				serverId: server.serverId,
+				title: deployment.title || "Deployment",
+				description: deployment.description || "",
+				status: "running",
+				logPath: logFilePath,
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error to create the deployment",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		console.log(error);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error to create the deployment",
+		});
+	}
+};
+
+export const removeLastFiveDeployments = async (serverId: string) => {
+	const deploymentList = await db.query.deployments.findMany({
+		where: eq(deployments.serverId, serverId),
+		orderBy: desc(deployments.createdAt),
+	});
+	if (deploymentList.length >= 5) {
+		const deploymentsToDelete = deploymentList.slice(4);
+		for (const oldDeployment of deploymentsToDelete) {
+			const logPath = path.join(oldDeployment.logPath);
+			if (existsSync(logPath)) {
+				await fsPromises.unlink(logPath);
+			}
+			await removeDeployment(oldDeployment.deploymentId);
+		}
+	}
+};
+
+export const removeDeploymentsByServerId = async (server: Server) => {
+	const { LOGS_PATH } = paths();
+	const { appName } = server;
+	const logsPath = path.join(LOGS_PATH, appName);
+	await removeDirectoryIfExistsContent(logsPath);
+	await db
+		.delete(deployments)
+		.where(eq(deployments.serverId, server.serverId))
+		.returning();
+};
+
+export const findAllDeploymentsByServerId = async (serverId: string) => {
+	const deploymentsList = await db.query.deployments.findMany({
+		where: eq(deployments.serverId, serverId),
+		orderBy: desc(deployments.createdAt),
+	});
+	return deploymentsList;
 };

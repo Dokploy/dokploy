@@ -46,7 +46,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close();
 			return;
 		}
-
 		const intervalId = setInterval(async () => {
 			try {
 				const filter = {
@@ -72,7 +71,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 
-				await recordAdvancedStats(appName, container?.Id);
+				const stats = await docker.getContainer(container.Id).stats({
+					stream: false,
+				});
+
+				await recordAdvancedStats(stats, appName);
 				const data = await getLastAdvancedStatsFile(appName);
 
 				ws.send(

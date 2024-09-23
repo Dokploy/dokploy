@@ -7,6 +7,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { mounts } from "./mount";
 import { projects } from "./project";
+import { server } from "./server";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
 
@@ -44,6 +45,9 @@ export const mariadb = pgTable("mariadb", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
@@ -53,6 +57,10 @@ export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [mariadb.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mariadb, {
@@ -75,6 +83,7 @@ const createSchema = createInsertSchema(mariadb, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateMariaDB = createSchema
@@ -88,6 +97,7 @@ export const apiCreateMariaDB = createSchema
 		databaseName: true,
 		databaseUser: true,
 		databasePassword: true,
+		serverId: true,
 	})
 	.required();
 
@@ -131,6 +141,9 @@ export const apiResetMariadb = createSchema
 	})
 	.required();
 
-export const apiUpdateMariaDB = createSchema.partial().extend({
-	mariadbId: z.string().min(1),
-});
+export const apiUpdateMariaDB = createSchema
+	.partial()
+	.extend({
+		mariadbId: z.string().min(1),
+	})
+	.omit({ serverId: true });
