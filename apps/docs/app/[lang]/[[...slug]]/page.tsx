@@ -74,7 +74,7 @@ export function generateMetadata({
 		},
 		twitter: {
 			card: "summary_large_image",
-			creator: "@siumauricio",
+			creator: "@getdokploy",
 			title: page.data.title,
 			description: page.data.description,
 			images: [
