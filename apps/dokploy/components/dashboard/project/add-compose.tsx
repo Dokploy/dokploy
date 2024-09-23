@@ -149,7 +149,10 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value?.trim() || "";
-													form.setValue("appName", `${slug}-${val}`);
+													form.setValue(
+														"appName",
+														`${slug}-${val.toLowerCase()}`,
+													);
 													field.onChange(val);
 												}}
 											/>
