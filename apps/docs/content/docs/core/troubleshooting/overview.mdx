@@ -3,4 +3,90 @@ title: Overview
 description: Solve the most common problems that occur when using Dokploy.
 ---
 
-WIP
+## Applications Domain Not Working?
+
+You see the deployment succeeded, and logs are running, but the domain isn't working? Here's what to check:
+
+1. **Correct Port Mapping**: Ensure the domain is using the correct port for your application. For example, if you're using Next.js, the port should be `3000`, or for Laravel, it should be `8000`. If you change the app port, update the domain to reflect that.
+2. **Avoid Using `Ports` in Advanced Settings**: Generally, there's no need to use the `Ports` feature unless you want to access your app via `IP:port`. Leaving this feature enabled may interfere with your domain.
+
+3. **Let's Encrypt Certificates**: It's crucial to point the domain to your server’s IP **before** adding it in Dokploy. If the domain is added first, the certificate won’t be generated, and you may need to recreate the domain or restart Traefik.
+
+4. **Listen on 0.0.0.0, Not 127.0.0.1**: If your app is bound to `127.0.0.1` (which is common in Vite apps), switch it to `0.0.0.0` to allow external access.
+
+## Logs and Monitoring Not Working After Changing Application Placement?
+
+This is expected behavior. If the application is running on a different node (worker), the UI won’t have access to logs or monitoring, as they're not on the same node.
+
+## Mounts Are Causing My Application Not to Run?
+
+Docker Swarm won't run your application if there are invalid mounts, even if the deployment shows as successful. Double-check your mounts to ensure they are valid.
+
+## Volumes in Docker Compose Not Working?
+
+For Docker Compose, all file mounts defined in the `volumes` section will be stored in the `files` folder. This is the default directory structure:
+
+## I added a volume to my docker compose, but is not finding the volume?
+
+For docker compose all the file mounts you've created in the volumes section will be stored to files folder, this is the default structure of the docker compose.
+
+```
+/application-name
+    /code
+    /files
+```
+
+So instead of using this invalid way to mount a volume:
+
+```yaml
+volumes:
+    - "/folder:/path/in/container" ❌
+```
+
+You should use this format:
+
+```yaml
+volumes:
+    - "../files/my-database:/var/lib/mysql" ✅
+    - "../files/my-configs:/etc/my-app/config" ✅
+```
+
+## Logs Not Loading When Deploying to a Remote Server?
+
+There are a few potential reasons for this:
+
+1. **Slow Server:**: If the server is too slow, it may struggle to handle concurrent requests, leading to SSL handshake errors.
+2. **Insufficient Disk Space:** If the server doesn't have enough disk space, the logs may not load.
+
+## Docker Compose Domain Not Working?
+
+When adding a domain in your Docker Compose file, it’s not necessary to expose the ports directly. Simply specify the port where your app is running. Exposing the ports can lead to conflicts with other applications or ports.
+
+Example of what not to do:
+
+```yaml
+services:
+  app:
+    image: dokploy/dokploy:latest
+    ports:
+      - 3000:3000
+```
+
+Recommended approach:
+
+```yaml
+services:
+  app:
+    image: dokploy/dokploy:latest
+    ports:
+      - 3000
+      - 80
+```
+
+Then, when creating the domain in Dokploy, specify the service name and port, like this:
+
+```yaml
+domain: my-app.com
+serviceName: app
+port: 3000
+```
