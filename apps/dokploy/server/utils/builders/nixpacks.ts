@@ -92,7 +92,6 @@ export const getNixpacksCommand = (
 		/* No need for any start command, since we'll use nginx later on */
 		args.push("--no-error-without-start");
 	}
-	console.log("args", args);
 	const command = `nixpacks ${args.join(" ")}`;
 	let bashCommand = `
 echo "Starting nixpacks build..." >> ${logPath};

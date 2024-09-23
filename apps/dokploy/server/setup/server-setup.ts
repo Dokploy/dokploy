@@ -65,7 +65,6 @@ const installRequirements = async (serverId: string, logPath: string) => {
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
-				console.log("Client :: ready");
 				const bashCommand = `
 				
 				${validatePorts()}

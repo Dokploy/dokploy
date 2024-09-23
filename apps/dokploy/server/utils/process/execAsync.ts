@@ -23,14 +23,10 @@ export const execAsyncRemote = async (
 		sleep(1000);
 		conn
 			.once("ready", () => {
-				console.log("Client :: ready");
 				conn.exec(command, (err, stream) => {
 					if (err) throw err;
 					stream
 						.on("close", (code: number, signal: string) => {
-							console.log(
-								`Stream :: close :: code: ${code}, signal: ${signal}`,
-							);
 							conn.end();
 							if (code === 0) {
 								resolve({ stdout, stderr });
