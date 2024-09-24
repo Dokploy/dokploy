@@ -509,7 +509,7 @@ export const templates: TemplateData[] = [
 			website: "https://roundcube.net/",
 			docs: "https://roundcube.net/about/",
 		},
-		tags: ["self-hosted", "mail", "webmail"],
+		tags: ["self-hosted", "email", "webmail"],
 		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
 ];
