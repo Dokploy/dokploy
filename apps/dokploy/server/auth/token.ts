@@ -1,9 +1,9 @@
 import type { IncomingMessage } from "node:http";
 import { TimeSpan } from "lucia";
 import { Lucia } from "lucia/dist/core.js";
-import { type ReturnValidateToken, adapter } from "./auth";
 import { findAdminByAuthId } from "../api/services/admin";
 import { findUserByAuthId } from "../api/services/user";
+import { type ReturnValidateToken, adapter } from "./auth";
 
 export const luciaToken = new Lucia(adapter, {
 	sessionCookie: {
