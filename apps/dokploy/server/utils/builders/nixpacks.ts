@@ -1,4 +1,4 @@
-import { mkdirSync, type WriteStream, existsSync } from "node:fs";
+import { type WriteStream, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { buildStatic, getStaticCommand } from "@/server/utils/builders/static";
 import { nanoid } from "nanoid";
