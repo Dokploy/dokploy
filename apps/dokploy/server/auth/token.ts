@@ -1,6 +1,8 @@
 import type { IncomingMessage } from "node:http";
 import { TimeSpan } from "lucia";
 import { Lucia } from "lucia/dist/core.js";
+import { findAdminByAuthId } from "../api/services/admin";
+import { findUserByAuthId } from "../api/services/user";
 import { type ReturnValidateToken, adapter } from "./auth";
 
 export const luciaToken = new Lucia(adapter, {
@@ -31,6 +33,16 @@ export const validateBearerToken = async (
 		};
 	}
 	const result = await luciaToken.validateSession(sessionId);
+
+	if (result.user) {
+		if (result.user?.rol === "admin") {
+			const admin = await findAdminByAuthId(result.user.id);
+			result.user.adminId = admin.adminId;
+		} else if (result.user?.rol === "user") {
+			const userResult = await findUserByAuthId(result.user.id);
+			result.user.adminId = userResult.adminId;
+		}
+	}
 	return {
 		session: result.session,
 		...((result.user && {
