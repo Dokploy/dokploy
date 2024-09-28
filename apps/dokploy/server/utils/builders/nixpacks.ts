@@ -1,4 +1,4 @@
-import type { WriteStream } from "node:fs";
+import { type WriteStream, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { buildStatic, getStaticCommand } from "@/server/utils/builders/static";
 import { nanoid } from "nanoid";
@@ -42,7 +42,6 @@ export const buildNixpacks = async (
 			and copy the artifacts on the host filesystem.
 			Then, remove the container and create a static build.
 		*/
-
 		if (publishDirectory) {
 			await spawnAsync(
 				"docker",
@@ -50,12 +49,22 @@ export const buildNixpacks = async (
 				writeToStream,
 			);
 
+			const localPath = path.join(buildAppDirectory, publishDirectory);
+
+			if (!existsSync(path.dirname(localPath))) {
+				mkdirSync(path.dirname(localPath), { recursive: true });
+			}
+
+			// https://docs.docker.com/reference/cli/docker/container/cp/
+			const isDirectory =
+				publishDirectory.endsWith("/") || !path.extname(publishDirectory);
+
 			await spawnAsync(
 				"docker",
 				[
 					"cp",
-					`${buildContainerId}:/app/${publishDirectory}`,
-					path.join(buildAppDirectory, publishDirectory),
+					`${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""}`,
+					localPath,
 				],
 				writeToStream,
 			);
@@ -108,9 +117,14 @@ echo "✅ Nixpacks build completed." >> ${logPath};
 		Then, remove the container and create a static build.
 	 */
 	if (publishDirectory) {
+		const localPath = path.join(buildAppDirectory, publishDirectory);
+		const isDirectory =
+			publishDirectory.endsWith("/") || !path.extname(publishDirectory);
+
 		bashCommand += `
 docker create --name ${buildContainerId} ${appName}
-docker cp ${buildContainerId}:/app/${publishDirectory} ${path.join(buildAppDirectory, publishDirectory)} >> ${logPath} 2>> ${logPath} || { 
+mkdir -p ${localPath}
+docker cp ${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""} ${path.join(buildAppDirectory, publishDirectory)} >> ${logPath} 2>> ${logPath} || { 
 	docker rm ${buildContainerId}
 	echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" >> ${logPath};
 	exit 1;
