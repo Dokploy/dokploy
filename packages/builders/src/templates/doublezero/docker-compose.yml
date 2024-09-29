@@ -1,0 +1,19 @@
+services:
+  doublezero:
+    restart: always
+    image: liltechnomancer/double-zero:0.2.1
+    volumes:
+      - db-data:/var/lib/doublezero/data
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      SQS_URL: ${SQS_URL}
+      SYSTEM_EMAIL: ${SYSTEM_EMAIL}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      PHX_HOST: ${DOUBLEZERO_HOST}
+      DATABASE_PATH: ./00.db
+
+volumes:
+  db-data:
+    driver: local

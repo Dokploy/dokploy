@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "dist/",
+    "target": "ESNext",
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": true,
+    "moduleResolution": "Node",
+    "baseUrl": ".",
+    "incremental": false,
+    "paths": {
+      "@/server/*": ["src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "./src/**/*"],
+  "exclude": ["**/dist", "tsup.ts"]
+}

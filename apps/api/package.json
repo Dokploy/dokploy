@@ -1,14 +1,29 @@
 {
 	"name": "my-app",
 	"scripts": {
-		"dev": "tsx watch src/index.ts"
+		"dev": "tsx watch src/index.ts",
+		"tsc": "tsc --project tsconfig.json"
 	},
 	"dependencies": {
+		"react": "18.2.0",
+		"react-dom": "18.2.0",
+		"@dokploy/builders": "workspace:*",
 		"@hono/node-server": "^1.12.1",
 		"hono": "^4.5.8",
-		"dotenv": "^16.3.1"
+		"dotenv": "^16.3.1",
+		"@upstash/qstash": "2.7.9",
+		"ioredis": "5.4.1",
+		"nats": "2.28.2",
+		"bullmq": "5.13.2",
+		"@nerimity/mimiqueue": "1.2.3",
+		"timers": "0.1.1",
+		"redis": "4.7.0",
+		"date-fns": "4.1.0"
 	},
 	"devDependencies": {
+		"typescript": "^5.4.2",
+		"@types/react": "^18.2.37",
+		"@types/react-dom": "^18.2.15",
 		"@types/node": "^20.11.17",
 		"tsx": "^4.7.1"
 	}

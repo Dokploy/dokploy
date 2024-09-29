@@ -3,7 +3,7 @@ import {
 	apiCreatePort,
 	apiFindOnePort,
 	apiUpdatePort,
-} from "@/server/db/schema/port";
+} from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
 	createPort,

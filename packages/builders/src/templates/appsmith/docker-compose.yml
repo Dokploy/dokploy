@@ -1,0 +1,6 @@
+version: "3.8"
+services:
+  appsmith:
+    image: index.docker.io/appsmith/appsmith-ee:v1.29
+    volumes:
+      - ../files/stacks:/appsmith-stacks

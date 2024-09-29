@@ -1,66 +1,57 @@
 import { serve } from "@hono/node-server";
-import { config } from "dotenv";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { validateLemonSqueezyLicense } from "./utils";
-
-config();
+import "dotenv/config";
+import { createClient } from "redis";
+import { Queue } from "@nerimity/mimiqueue";
+import { deployApplication } from "@dokploy/builders";
+// import { setTimeout } from "timers/promises";
 
 const app = new Hono();
-
-app.use(
-	"/*",
-	cors({
-		origin: ["http://localhost:3000", "http://localhost:3001"], // Ajusta esto a los orígenes de tu aplicación Next.js
-		allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-		allowHeaders: ["Content-Type", "Authorization"],
-		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
-		maxAge: 600,
-		credentials: true,
-	}),
-);
-
-export const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
-export const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
-
-app.get("/v1/health", (c) => {
-	return c.text("Hello Hono!");
+const redisClient = createClient({
+	socket: {
+		host: "localhost",
+		port: 6379,
+	},
+	// password: "xlfvpQ0ma2BkkkPX",
 });
 
-app.post("/v1/validate-license", async (c) => {
-	const { licenseKey } = await c.req.json();
-
-	if (!licenseKey) {
-		return c.json({ error: "License key is required" }, 400);
-	}
-
-	try {
-		const licenseValidation = await validateLemonSqueezyLicense(licenseKey);
-
-		if (licenseValidation.valid) {
-			return c.json({
-				valid: true,
-				message: "License is valid",
-				metadata: licenseValidation.meta,
-			});
-		}
-		return c.json(
+app.post("/publish", async (c) => {
+	const { userId, applicationId } = await c.req.json();
+	queue
+		.add(
 			{
-				valid: false,
-				message: licenseValidation.error || "Invalid license",
+				userId,
+				applicationId,
 			},
-			400,
-		);
-	} catch (error) {
-		console.error("Error during license validation:", error);
-		return c.json({ error: "Internal server error" }, 500);
-	}
-});
+			{ groupName: userId },
+		)
+		.then((res) => {
+			console.log(res);
+		});
 
+	return c.json({ message: `Despliegue encolado para el usuario ${userId}` });
+});
+// await redisClient.connect();
+// await redisClient.flushAll();
+
+const queue = new Queue({
+	name: "deployments",
+	process: async (data) => {
+		// await setTimeout(8000);
+		await deployApplication({
+			applicationId: data.applicationId,
+			titleLog: "HHHHH",
+			descriptionLog: "",
+		});
+		return { done: "lol", data };
+	},
+	redisClient,
+});
 const port = 4000;
-console.log(`Server is running on port ${port}`);
+(async () => {
+	await redisClient.connect();
+	await redisClient.flushAll();
+})();
 
-serve({
-	fetch: app.fetch,
-	port,
-});
+console.log("Starting Server ✅");
+serve({ fetch: app.fetch, port });

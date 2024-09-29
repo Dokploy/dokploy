@@ -1,7 +1,7 @@
 import { generateRandomPassword } from "@/server/auth/random-password";
 import { db } from "@/server/db";
 import { type apiCreatePostgres, backups, postgres } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
+import { generateAppName } from "@/server/db/schema";
 import { buildPostgres } from "@/server/utils/databases/postgres";
 import { pullImage } from "@/server/utils/docker/utils";
 import { generatePassword } from "@/templates/utils";

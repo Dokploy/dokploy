@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.8.3
+    volumes:
+      - meili_data:/meili_data
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: ${MEILI_ENV}
+
+volumes:
+  meili_data:
+    driver: local

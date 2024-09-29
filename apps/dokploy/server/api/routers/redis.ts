@@ -8,7 +8,7 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
-} from "@/server/db/schema/redis";
+} from "@/server/db/schema";
 import {
 	removeService,
 	startService,

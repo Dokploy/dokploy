@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10
+    volumes:
+      - config:/config
+      - cache:/cache
+      - media:/media
+    restart: "unless-stopped"
+    # Optional - alternative address used for autodiscovery
+    environment:
+      - JELLYFIN_PublishedServerUrl=http://${JELLYFIN_HOST}
+    # Optional - may be necessary for docker healthcheck to pass if running in host network mode
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+volumes:
+  config:
+  cache:
+  media:

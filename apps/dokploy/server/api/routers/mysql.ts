@@ -8,7 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
-} from "@/server/db/schema/mysql";
+} from "@/server/db/schema";
 import {
 	removeService,
 	startService,

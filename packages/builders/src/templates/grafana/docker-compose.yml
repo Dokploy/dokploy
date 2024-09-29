@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  grafana:
+    image: grafana/grafana-enterprise:9.5.20
+    restart: unless-stopped
+    volumes:
+      - grafana-storage:/var/lib/grafana
+volumes:
+  grafana-storage: {}

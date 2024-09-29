@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "dist/",
+    "target": "ESNext",
+    "isolatedModules": false,
+    "noEmit": false,
+    "moduleResolution": "Node",
+    "baseUrl": ".",
+    "paths": {
+      "@/server/*": ["./src/*"]
+    },
+    "jsx": "preserve",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "exclude": ["**/dist", "tsup.ts"]
+}

@@ -1,7 +1,7 @@
 import { generateRandomPassword } from "@/server/auth/random-password";
 import { db } from "@/server/db";
 import { type apiCreateRedis, redis } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
+import { generateAppName } from "@/server/db/schema";
 import { buildRedis } from "@/server/utils/databases/redis";
 import { pullImage } from "@/server/utils/docker/utils";
 import { generatePassword } from "@/templates/utils";

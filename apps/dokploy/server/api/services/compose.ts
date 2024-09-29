@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import { type apiCreateCompose, compose } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema/utils";
+import { generateAppName } from "@/server/db/schema";
 import {
 	buildCompose,
 	getBuildComposeCommand,

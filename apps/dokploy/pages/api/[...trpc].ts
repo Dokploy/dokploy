@@ -18,6 +18,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		res.status(401).json({ message: "Unauthorized" });
 		return;
 	}
+
+	console.log(user);
 	// @ts-ignore
 	return createOpenApiNextHandler({
 		router: appRouter,

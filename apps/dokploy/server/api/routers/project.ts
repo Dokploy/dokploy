@@ -15,7 +15,7 @@ import {
 	apiRemoveProject,
 	apiUpdateProject,
 	projects,
-} from "@/server/db/schema/project";
+} from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";

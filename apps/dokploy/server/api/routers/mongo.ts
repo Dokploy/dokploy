@@ -8,7 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
-} from "@/server/db/schema/mongo";
+} from "@/server/db/schema";
 import {
 	removeService,
 	startService,

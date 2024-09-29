@@ -1,0 +1,43 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:16
+    networks:
+      - dokploy-network
+    volumes:
+      - documenso-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=documenso
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=documenso
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U documenso"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  documenso:
+    image: documenso/documenso:v1.5.6-rc.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PORT=${DOCUMENSO_PORT}
+      - NEXTAUTH_URL=http://${DOCUMENSO_HOST}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXT_PRIVATE_ENCRYPTION_KEY=${NEXT_PRIVATE_ENCRYPTION_KEY}
+      - NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=${NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY}
+      - NEXT_PUBLIC_WEBAPP_URL=http://${DOCUMENSO_HOST}
+      - NEXT_PRIVATE_DATABASE_URL=postgres://documenso:password@postgres:5432/documenso
+      - NEXT_PRIVATE_DIRECT_DATABASE_URL=postgres://documenso:password@postgres:5432/documenso
+      - NEXT_PUBLIC_UPLOAD_TRANSPORT=database
+      - NEXT_PRIVATE_SMTP_TRANSPORT=smtp-auth
+      - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=/opt/documenso/cert.p12
+    ports:
+      - ${DOCUMENSO_PORT}
+    volumes:
+      - /opt/documenso/cert.p12:/opt/documenso/cert.p12
+
+volumes:
+  documenso-data:

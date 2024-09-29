@@ -3,3 +3,5 @@ packages:
   - "apps/docs"
   - "apps/website"
   - "apps/api"
+  - "apps/models"
+  - "packages/builders"

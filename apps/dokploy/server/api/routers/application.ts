@@ -18,7 +18,7 @@ import {
 	apiSaveGitlabProvider,
 	apiUpdateApplication,
 	applications,
-} from "@/server/db/schema/application";
+} from "@/server/db/schema";
 import {
 	type DeploymentJob,
 	cleanQueuesByApplication,
@@ -55,7 +55,7 @@ import {
 	getApplicationStats,
 	updateApplication,
 	updateApplicationStatus,
-} from "../services/application";
+} from "@dokploy/builders";
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
 

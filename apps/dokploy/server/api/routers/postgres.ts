@@ -8,7 +8,7 @@ import {
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
-} from "@/server/db/schema/postgres";
+} from "@/server/db/schema";
 import {
 	removeService,
 	startService,

@@ -23,7 +23,6 @@ class LogRotationManager {
 		if (isActive) {
 			await this.activateStream();
 		}
-		console.log(`Log rotation initialized. Active: ${isActive}`);
 	}
 
 	private async getStateFromDB(): Promise<boolean> {

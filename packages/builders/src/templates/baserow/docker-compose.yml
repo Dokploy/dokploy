@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  baserow:
+    image: baserow/baserow:1.25.2
+    environment:
+      BASEROW_PUBLIC_URL: "http://${BASEROW_HOST}"
+    volumes:
+      - baserow_data:/baserow/data
+volumes:
+  baserow_data:

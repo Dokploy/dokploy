@@ -8,7 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
-} from "@/server/db/schema/mariadb";
+} from "@/server/db/schema";
 import {
 	removeService,
 	startService,
