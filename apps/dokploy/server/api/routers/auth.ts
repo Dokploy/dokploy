@@ -14,8 +14,8 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { db } from "../../db";
-import { getUserByToken } from "../services/admin";
 import {
+	getUserByToken,
 	createAdmin,
 	createUser,
 	findAuthByEmail,
@@ -23,7 +23,7 @@ import {
 	generate2FASecret,
 	updateAuthById,
 	verify2FA,
-} from "../services/auth";
+} from "@dokploy/builders";
 import {
 	adminProcedure,
 	createTRPCRouter,

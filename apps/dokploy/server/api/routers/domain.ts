@@ -6,11 +6,12 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
-import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { findApplicationById } from "../services/application";
 import {
+	manageDomain,
+	removeDomain,
+	findApplicationById,
 	createDomain,
 	findDomainById,
 	findDomainsByApplicationId,
@@ -18,7 +19,7 @@ import {
 	generateTraefikMeDomain,
 	removeDomainById,
 	updateDomainById,
-} from "../services/domain";
+} from "@dokploy/builders";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure

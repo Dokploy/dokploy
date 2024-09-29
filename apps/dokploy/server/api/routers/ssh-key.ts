@@ -1,8 +1,4 @@
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateSshKey,
@@ -11,14 +7,14 @@ import {
 	apiRemoveSshKey,
 	apiUpdateSshKey,
 } from "@/server/db/schema";
-import { generateSSHKey } from "@/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
 import {
+	generateSSHKey,
 	createSshKey,
 	findSSHKeyById,
 	removeSSHKeyById,
 	updateSSHKeyById,
-} from "../services/ssh-key";
+} from "@dokploy/builders";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure

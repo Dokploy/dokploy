@@ -24,40 +24,36 @@ import {
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
-import { unzipDrop } from "@/server/utils/builders/drop";
 import {
+	unzipDrop,
 	removeService,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-} from "@/server/utils/docker/utils";
-import {
 	removeDirectoryCode,
 	removeMonitoringDirectory,
-} from "@/server/utils/filesystem/directory";
-import {
 	readConfig,
 	readRemoteConfig,
 	removeTraefikConfig,
 	writeConfig,
 	writeConfigRemote,
-} from "@/server/utils/traefik/application";
-import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
-import { uploadFileSchema } from "@/utils/schema";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { z } from "zod";
-import {
+	deleteAllMiddlewares,
 	createApplication,
 	findApplicationById,
 	getApplicationStats,
 	updateApplication,
 	updateApplicationStatus,
+	removeDeployments,
+	addNewService,
+	checkServiceAccess,
+	// uploadFileSchema
 } from "@dokploy/builders";
-import { removeDeployments } from "../services/deployment";
-import { addNewService, checkServiceAccess } from "../services/user";
+import { uploadFileSchema } from "@/utils/schema";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure

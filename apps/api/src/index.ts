@@ -47,11 +47,11 @@ const queue = new Queue({
 	},
 	redisClient,
 });
-const port = 4000;
+const port = process.env.PORT;
 (async () => {
 	await redisClient.connect();
 	await redisClient.flushAll();
 })();
 
-console.log("Starting Server ✅");
+console.log("Starting Server ✅", port);
 serve({ fetch: app.fetch, port });

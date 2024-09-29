@@ -20,12 +20,6 @@ import {
 	apiUpdateTelegram,
 	notifications,
 } from "@/server/db/schema";
-import {
-	sendDiscordNotification,
-	sendEmailNotification,
-	sendSlackNotification,
-	sendTelegramNotification,
-} from "@/server/utils/notifications/utils";
 import { TRPCError } from "@trpc/server";
 import { desc } from "drizzle-orm";
 import {
@@ -39,7 +33,11 @@ import {
 	updateEmailNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
-} from "../services/notification";
+	sendDiscordNotification,
+	sendEmailNotification,
+	sendSlackNotification,
+	sendTelegramNotification,
+} from "@dokploy/builders";
 
 export const notificationRouter = createTRPCRouter({
 	createSlack: adminProcedure

@@ -10,15 +10,15 @@ import {
 	apiRemoveDestination,
 	apiUpdateDestination,
 } from "@/server/db/schema";
-import { execAsync } from "@/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { findAdmin } from "../services/admin";
 import {
+	execAsync,
+	findAdmin,
 	createDestintation,
 	findDestinationById,
 	removeDestinationById,
 	updateDestinationById,
-} from "../services/destination";
+} from "@dokploy/builders";
 
 export const destinationRouter = createTRPCRouter({
 	create: adminProcedure

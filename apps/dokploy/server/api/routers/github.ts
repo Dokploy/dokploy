@@ -5,13 +5,14 @@ import {
 	apiFindOneGithub,
 	apiUpdateGithub,
 } from "@/server/db/schema";
+import { TRPCError } from "@trpc/server";
 import {
 	getGithubBranches,
 	getGithubRepositories,
-} from "@/server/utils/providers/github";
-import { TRPCError } from "@trpc/server";
-import { updateGitProvider } from "../services/git-provider";
-import { findGithubById, haveGithubRequirements } from "../services/github";
+	findGithubById,
+	haveGithubRequirements,
+	updateGitProvider,
+} from "@dokploy/builders";
 
 export const githubRouter = createTRPCRouter({
 	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {

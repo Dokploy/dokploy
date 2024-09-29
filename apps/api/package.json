@@ -1,7 +1,8 @@
 {
 	"name": "my-app",
 	"scripts": {
-		"dev": "tsx watch src/index.ts",
+		"dev": "PORT=4000 tsx watch src/index.ts",
+		"dev2": "PORT=4001 tsx watch src/index.ts",
 		"tsc": "tsc --project tsconfig.json"
 	},
 	"dependencies": {

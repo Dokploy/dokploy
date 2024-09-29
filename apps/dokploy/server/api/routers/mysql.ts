@@ -9,23 +9,24 @@ import {
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
 } from "@/server/db/schema";
-import {
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-} from "@/server/utils/docker/utils";
+
 import { TRPCError } from "@trpc/server";
-import { createMount } from "../services/mount";
+
 import {
+	addNewService,
+	checkServiceAccess,
 	createMysql,
 	deployMySql,
 	findMySqlById,
 	removeMySqlById,
 	updateMySqlById,
-} from "../services/mysql";
-import { addNewService, checkServiceAccess } from "../services/user";
+	createMount,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+} from "@dokploy/builders";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure

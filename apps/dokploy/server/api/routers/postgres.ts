@@ -9,23 +9,22 @@ import {
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
 } from "@/server/db/schema";
+import { TRPCError } from "@trpc/server";
 import {
 	removeService,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-} from "@/server/utils/docker/utils";
-import { TRPCError } from "@trpc/server";
-import { createMount } from "../services/mount";
-import {
+	createMount,
+	addNewService,
+	checkServiceAccess,
 	createPostgres,
 	deployPostgres,
 	findPostgresById,
 	removePostgresById,
 	updatePostgresById,
-} from "../services/postgres";
-import { addNewService, checkServiceAccess } from "../services/user";
+} from "@dokploy/builders";
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure

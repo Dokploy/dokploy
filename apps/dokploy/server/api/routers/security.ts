@@ -8,7 +8,7 @@ import {
 	deleteSecurityById,
 	findSecurityById,
 	updateSecurityById,
-} from "../services/security";
+} from "@dokploy/builders";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const securityRouter = createTRPCRouter({

@@ -8,15 +8,17 @@ import {
 } from "@/server/db/schema";
 
 import { db } from "@/server/db";
+import { TRPCError } from "@trpc/server";
 import {
 	getGitlabBranches,
 	getGitlabRepositories,
 	haveGitlabRequirements,
 	testGitlabConnection,
-} from "@/server/utils/providers/gitlab";
-import { TRPCError } from "@trpc/server";
-import { updateGitProvider } from "../services/git-provider";
-import { createGitlab, findGitlabById, updateGitlab } from "../services/gitlab";
+	createGitlab,
+	findGitlabById,
+	updateGitlab,
+	updateGitProvider,
+} from "@dokploy/builders";
 
 export const gitlabRouter = createTRPCRouter({
 	create: protectedProcedure

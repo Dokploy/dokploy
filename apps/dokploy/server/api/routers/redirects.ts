@@ -8,7 +8,7 @@ import {
 	findRedirectById,
 	removeRedirectById,
 	updateRedirectById,
-} from "../services/redirect";
+} from "@dokploy/builders";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const redirectsRouter = createTRPCRouter({

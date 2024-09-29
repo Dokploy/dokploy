@@ -9,23 +9,22 @@ import {
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
 } from "@/server/db/schema";
-import {
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-} from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import {
+	addNewService,
+	checkServiceAccess,
+	createMount,
 	createMongo,
 	deployMongo,
 	findMongoById,
 	removeMongoById,
 	updateMongoById,
-} from "../services/mongo";
-import { createMount } from "../services/mount";
-import { addNewService, checkServiceAccess } from "../services/user";
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+} from "@dokploy/builders";
 
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure

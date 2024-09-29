@@ -9,23 +9,24 @@ import {
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
 } from "@/server/db/schema";
+
+import { TRPCError } from "@trpc/server";
+
 import {
 	removeService,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-} from "@/server/utils/docker/utils";
-import { TRPCError } from "@trpc/server";
-import { createMount } from "../services/mount";
-import {
+	createMount,
+	addNewService,
+	checkServiceAccess,
 	createRedis,
 	deployRedis,
 	findRedisById,
 	removeRedisById,
 	updateRedisById,
-} from "../services/redis";
-import { addNewService, checkServiceAccess } from "../services/user";
+} from "@dokploy/builders";
 
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure

@@ -22,8 +22,6 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 import { validateRequest } from "../auth/auth";
 import { validateBearerToken } from "../auth/token";
-import { findAdminByAuthId } from "./services/admin";
-import { findUserByAuthId } from "./services/user";
 
 /**
  * 1. CONTEXT

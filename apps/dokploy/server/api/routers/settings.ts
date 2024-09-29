@@ -1,4 +1,3 @@
-import { paths } from "@/server/constants";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -10,10 +9,18 @@ import {
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
-import { initializeTraefik } from "@/server/setup/traefik-setup";
-import { logRotationManager } from "@/server/utils/access-log/handler";
-import { parseRawConfig, processLogs } from "@/server/utils/access-log/utils";
+import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
+import { TRPCError } from "@trpc/server";
+import { dump, load } from "js-yaml";
+import { scheduleJob, scheduledJobs } from "node-schedule";
+import { z } from "zod";
+import { appRouter } from "../root";
 import {
+	paths,
+	logRotationManager,
+	parseRawConfig,
+	processLogs,
+	initializeTraefik,
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
 	cleanUpSystemPrune,
@@ -24,39 +31,30 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-} from "@/server/utils/docker/utils";
-import { recreateDirectory } from "@/server/utils/filesystem/directory";
-import { sendDockerCleanupNotifications } from "@/server/utils/notifications/docker-cleanup";
-import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
-import { spawnAsync } from "@/server/utils/process/spawnAsync";
-import {
+	recreateDirectory,
+	sendDockerCleanupNotifications,
+	execAsync,
+	execAsyncRemote,
+	spawnAsync,
 	readConfig,
 	readConfigInPath,
 	readMonitoringConfig,
 	writeConfig,
 	writeTraefikConfigInPath,
-} from "@/server/utils/traefik/application";
-import {
 	readMainConfig,
 	updateLetsEncryptEmail,
 	updateServerTraefik,
 	writeMainConfig,
-} from "@/server/utils/traefik/web-server";
-import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
-import { TRPCError } from "@trpc/server";
-import { dump, load } from "js-yaml";
-import { scheduleJob, scheduledJobs } from "node-schedule";
-import { z } from "zod";
-import { appRouter } from "../root";
-import { findAdmin, updateAdmin } from "../services/admin";
-import { findServerById, updateServerById } from "../services/server";
-import {
+	findAdmin,
+	updateAdmin,
+	findServerById,
+	updateServerById,
+	canAccessToTraefikFiles,
 	getDokployImage,
 	getDokployVersion,
 	pullLatestRelease,
 	readDirectory,
-} from "../services/settings";
-import { canAccessToTraefikFiles } from "../services/user";
+} from "@dokploy/builders";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
@@ -371,7 +369,8 @@ export const settingsRouter = createTRPCRouter({
 			openApiDocument.info = {
 				title: "Dokploy API",
 				description: "Endpoints for dokploy",
-				version: getDokployVersion(),
+				// TODO: get version from package.json
+				version: "1.0.0",
 			};
 
 			return openApiDocument;
