@@ -4,18 +4,17 @@ import { config } from "dotenv";
 import next from "next";
 // import { IS_CLOUD } from "./constants";
 import { deploymentWorker } from "./queues/deployments-queue";
-// import { deploymentWorker } from "./queues/deployments-queue";
-import { setupDirectories } from "./setup/config-paths";
-import { initializePostgres } from "./setup/postgres-setup";
-import { initializeRedis } from "./setup/redis-setup";
-import { initializeNetwork } from "./setup/setup";
 import {
+	setupDirectories,
+	initializePostgres,
+	initializeRedis,
+	initializeNetwork,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initializeTraefik,
-} from "./setup/traefik-setup";
-import { initCronJobs } from "./utils/backups";
+	initCronJobs,
+} from "@dokploy/builders";
 import { sendDokployRestartNotifications } from "./utils/notifications/dokploy-restart";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";

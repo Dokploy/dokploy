@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawn } from "node-pty";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
+import { findServerById } from "@dokploy/builders";
 import { validateWebSocketRequest } from "../auth/auth";
 import { paths } from "../constants";
 

@@ -2,7 +2,7 @@ import type http from "node:http";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
+import { findServerById } from "@dokploy/builders";
 import { validateWebSocketRequest } from "../auth/auth";
 import { readSSHKey } from "../utils/filesystem/ssh";
 import { getShell } from "./utils";

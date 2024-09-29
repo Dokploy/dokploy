@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import type http from "node:http";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
+import { findServerById } from "@dokploy/builders";
 import { validateWebSocketRequest } from "../auth/auth";
 import { readSSHKey } from "../utils/filesystem/ssh";
 
