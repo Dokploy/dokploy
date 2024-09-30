@@ -14,7 +14,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --filter=./apps/a
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
+RUN pnpm --filter=@dokploy/builders build
 RUN pnpm --filter=./apps/api run build
+
 RUN pnpm --filter=./apps/api --prod deploy /prod/api
 
 RUN cp -R /usr/src/app/apps/api/.dist /prod/api/.dist
