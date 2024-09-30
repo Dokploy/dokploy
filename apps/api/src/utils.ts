@@ -1,6 +1,8 @@
-import { LEMON_SQUEEZY_API_KEY, LEMON_SQUEEZY_STORE_ID } from ".";
+// import { LEMON_SQUEEZY_API_KEY, LEMON_SQUEEZY_STORE_ID } from ".";
 import type { LemonSqueezyLicenseResponse } from "./types";
 
+const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
+const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
 export const validateLemonSqueezyLicense = async (
 	licenseKey: string,
 ): Promise<LemonSqueezyLicenseResponse> => {

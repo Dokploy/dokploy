@@ -14,6 +14,7 @@ import {
 	initializeTraefik,
 	initCronJobs,
 	sendDokployRestartNotifications,
+	IS_CLOUD,
 } from "@dokploy/builders";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
@@ -42,9 +43,7 @@ void app.prepare().then(async () => {
 		setupTerminalWebSocketServer(server);
 		setupDockerStatsMonitoringSocketServer(server);
 
-		if (process.env.NODE_ENV === "production") {
-			setupDirectories();
-			createDefaultMiddlewares();
+		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();
 			createDefaultMiddlewares();
 			await initializeNetwork();
@@ -63,9 +62,16 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 
+		if (IS_CLOUD) {
+			await migration();
+		}
+
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		deploymentWorker.run();
+
+		if (!IS_CLOUD) {
+			deploymentWorker.run();
+		}
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

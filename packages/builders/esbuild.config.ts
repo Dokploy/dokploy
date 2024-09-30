@@ -1,5 +1,4 @@
 import { build } from "esbuild";
-import TsconfigPathsPlugin from "@esbuild-plugins/tsconfig-paths";
 import path from "node:path";
 
 build({

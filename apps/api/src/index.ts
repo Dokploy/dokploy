@@ -4,7 +4,6 @@ import "dotenv/config";
 import { createClient } from "redis";
 import { Queue } from "@nerimity/mimiqueue";
 import { deployApplication } from "@dokploy/builders";
-// import { setTimeout } from "timers/promises";
 
 const app = new Hono();
 const redisClient = createClient({
@@ -47,7 +46,7 @@ const queue = new Queue({
 	},
 	redisClient,
 });
-const port = process.env.PORT;
+const port = Number.parseInt(process.env.PORT || "3000");
 (async () => {
 	await redisClient.connect();
 	await redisClient.flushAll();

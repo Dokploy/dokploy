@@ -5,10 +5,9 @@
     "moduleResolution": "Node",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "outDir": "dist",
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "traceResolution": true,
-    "diagnostics": true
-  }
+    "jsxImportSource": "hono/jsx"
+  },
+  "exclude": ["node_modules", "dist"]
 }
