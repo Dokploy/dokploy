@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Domain } from "@/server/api/services/domain";
+import type { Domain } from "@dokploy/builders";
 // import { IS_CLOUD } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";

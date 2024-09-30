@@ -51,10 +51,10 @@ import {
 	updateServerById,
 	canAccessToTraefikFiles,
 	getDokployImage,
-	getDokployVersion,
 	pullLatestRelease,
 	readDirectory,
 } from "@dokploy/builders";
+import packageInfo from "../../../package.json";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
@@ -269,7 +269,7 @@ export const settingsRouter = createTRPCRouter({
 	}),
 
 	getDokployVersion: adminProcedure.query(() => {
-		return getDokployVersion();
+		return packageInfo.version;
 	}),
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)

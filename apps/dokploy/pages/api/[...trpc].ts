@@ -1,7 +1,6 @@
 import { appRouter } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
-import { validateRequest } from "@/server/auth/auth";
-import { validateBearerToken } from "@/server/auth/token";
+import { validateRequest, validateBearerToken } from "@dokploy/builders";
 import { createOpenApiNextHandler } from "@dokploy/trpc-openapi";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -19,7 +18,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		return;
 	}
 
-	console.log(user);
 	// @ts-ignore
 	return createOpenApiNextHandler({
 		router: appRouter,

@@ -2,7 +2,7 @@ import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { validateRequest } from "@/server/auth/auth";
+import { validateRequest } from "@dokploy/builders";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 

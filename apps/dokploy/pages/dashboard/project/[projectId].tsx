@@ -29,8 +29,8 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { appRouter } from "@/server/api/root";
-import type { findProjectById } from "@/server/api/services/project";
-import { validateRequest } from "@/server/auth/auth";
+import type { findProjectById } from "@dokploy/builders";
+import { validateRequest } from "@dokploy/builders";
 import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard, FolderInput, GlobeIcon, PlusIcon } from "lucide-react";

@@ -20,8 +20,7 @@ import {
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { validateRequest } from "../auth/auth";
-import { validateBearerToken } from "../auth/token";
+import { validateRequest, validateBearerToken } from "@dokploy/builders";
 
 /**
  * 1. CONTEXT

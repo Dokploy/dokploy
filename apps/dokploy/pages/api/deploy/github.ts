@@ -1,4 +1,4 @@
-import { findAdmin } from "@/server/api/services/admin";
+import { findAdmin } from "@dokploy/builders";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";

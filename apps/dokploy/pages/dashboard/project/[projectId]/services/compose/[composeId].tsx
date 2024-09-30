@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
+import { validateRequest } from "@dokploy/builders";
 import { api } from "@/utils/api";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { CircuitBoard } from "lucide-react";

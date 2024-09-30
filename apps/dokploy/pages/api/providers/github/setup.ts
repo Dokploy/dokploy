@@ -1,4 +1,4 @@
-import { createGithub } from "@/server/api/services/github";
+import { createGithub } from "@dokploy/builders";
 import { db } from "@/server/db";
 import { github } from "@/server/db/schema";
 import { eq } from "drizzle-orm";

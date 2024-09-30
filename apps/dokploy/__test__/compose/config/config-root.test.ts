@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addSuffixToConfigsRoot } from "@/server/utils/docker/compose/configs";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/builders";
+import { addSuffixToConfigsRoot } from "@dokploy/builders";
+import type { ComposeSpecification } from "@dokploy/builders";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

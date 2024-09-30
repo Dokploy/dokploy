@@ -1,1 +1,1 @@
-export * from "@dokploy/builders";
+export * from "@dokploy/builders/dist/db/schema";

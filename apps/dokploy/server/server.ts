@@ -2,7 +2,6 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
-// import { IS_CLOUD } from "./constants";
 import { deploymentWorker } from "./queues/deployments-queue";
 import {
 	setupDirectories,
@@ -14,8 +13,8 @@ import {
 	createDefaultTraefikConfig,
 	initializeTraefik,
 	initCronJobs,
+	sendDokployRestartNotifications,
 } from "@dokploy/builders";
-import { sendDokployRestartNotifications } from "./utils/notifications/dokploy-restart";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";

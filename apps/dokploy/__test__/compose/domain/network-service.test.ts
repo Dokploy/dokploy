@@ -1,4 +1,4 @@
-import { addDokployNetworkToService } from "@/server/utils/docker/domain";
+import { addDokployNetworkToService } from "@dokploy/builders";
 import { describe, expect, it } from "vitest";
 
 describe("addDokployNetworkToService", () => {

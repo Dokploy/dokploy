@@ -2,7 +2,7 @@ import { ShowDestinations } from "@/components/dashboard/settings/ssh-keys/show-
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
+import { validateRequest } from "@dokploy/builders";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";

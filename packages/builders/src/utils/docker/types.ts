@@ -160,7 +160,7 @@ export type DefinitionsDevices = {
 	 */
 	[k: string]: unknown;
 }[];
-export type Deployment = {
+type Deployment = {
 	mode?: string;
 	endpoint_mode?: string;
 	replicas?: number;

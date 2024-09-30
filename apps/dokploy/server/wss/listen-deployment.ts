@@ -2,9 +2,11 @@ import { spawn } from "node:child_process";
 import type http from "node:http";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "@dokploy/builders";
-import { validateWebSocketRequest } from "../auth/auth";
-import { readSSHKey } from "../utils/filesystem/ssh";
+import {
+	findServerById,
+	readSSHKey,
+	validateWebSocketRequest,
+} from "@dokploy/builders";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { paths } from "@/server/constants";
 const { APPLICATIONS_PATH } = paths();
-import type { ApplicationNested } from "@/server/utils/builders";
-import { unzipDrop } from "@/server/utils/builders/drop";
+import type { ApplicationNested } from "@dokploy/builders";
+import { unzipDrop } from "@dokploy/builders";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 

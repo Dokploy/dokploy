@@ -8,6 +8,11 @@ import {
 	mysql,
 	postgres,
 	redis,
+	apiCreateProject,
+	apiFindOneProject,
+	apiRemoveProject,
+	apiUpdateProject,
+	projects,
 } from "@/server/db/schema";
 
 import { TRPCError } from "@trpc/server";
@@ -15,11 +20,6 @@ import { desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import {
-	apiCreateProject,
-	apiFindOneProject,
-	apiRemoveProject,
-	apiUpdateProject,
-	projects,
 	createProject,
 	deleteProject,
 	findProjectById,
