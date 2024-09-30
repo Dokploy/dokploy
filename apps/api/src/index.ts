@@ -7,10 +7,11 @@ import { deployApplication } from "@dokploy/builders";
 
 const app = new Hono();
 const redisClient = createClient({
-	socket: {
-		host: "localhost",
-		port: 6379,
-	},
+	// socket: {
+	// 	host: "localhost",
+	// 	port: 6379,
+	// },
+	url: process.env.REDIS_URL,
 	// password: "xlfvpQ0ma2BkkkPX",
 });
 
