@@ -9,8 +9,7 @@ WORKDIR /usr/src/app
 
 
 # Install dependencies
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --filter=./apps/api --frozen-lockfile
-
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
