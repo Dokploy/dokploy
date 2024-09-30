@@ -13,4 +13,9 @@ export default defineConfig({
 		exclude: ["**/node_modules/**", "**/dist/**", "**/.docker/**"],
 		pool: "forks",
 	},
+	define: {
+		"process.env": {
+			NODE: "test",
+		},
+	},
 });

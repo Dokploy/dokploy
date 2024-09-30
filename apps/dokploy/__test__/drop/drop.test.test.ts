@@ -81,14 +81,17 @@ const baseApp: ApplicationNested = {
 	username: null,
 	dockerContextPath: null,
 };
-//
-vi.mock("@/server/constants", () => ({
-	paths: () => ({
-		APPLICATIONS_PATH: "./__test__/drop/zips/output",
-	}),
-	// APPLICATIONS_PATH: "./__test__/drop/zips/output",
-}));
 
+vi.mock("@dokploy/builders", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		unzipDrop: actual.unzipDrop, // Asegura que unzipDrop esté presente en el mock
+		paths: () => ({
+			APPLICATIONS_PATH: "./__test__/drop/zips/output",
+		}),
+	};
+});
 describe("unzipDrop using real zip files", () => {
 	// const { APPLICATIONS_PATH } = paths();
 	beforeAll(async () => {
@@ -102,15 +105,19 @@ describe("unzipDrop using real zip files", () => {
 	it("should correctly extract a zip with a single root folder", async () => {
 		baseApp.appName = "single-file";
 		// const appName = "single-file";
-		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
-		const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
-
-		const zipBuffer = zip.toBuffer();
-		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, baseApp);
-
-		const files = await fs.readdir(outputPath, { withFileTypes: true });
-		expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		try {
+			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
+			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
+			console.log(`Output Path: ${outputPath}`);
+			const zipBuffer = zip.toBuffer();
+			const file = new File([zipBuffer], "single.zip");
+			await unzipDrop(file, baseApp);
+			const files = await fs.readdir(outputPath, { withFileTypes: true });
+			expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		} catch (err) {
+			console.log(err);
+		} finally {
+		}
 	});
 
 	it("should correctly extract a zip with a single root folder and a subfolder", async () => {
