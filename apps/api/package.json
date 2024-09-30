@@ -24,5 +24,6 @@
 		"@types/react-dom": "^18.2.15",
 		"@types/node": "^20.11.17",
 		"tsx": "^4.7.1"
-	}
+	},
+	"packageManager": "pnpm@9.5.0"
 }
