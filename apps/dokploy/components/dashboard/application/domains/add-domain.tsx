@@ -18,7 +18,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -228,12 +228,9 @@ export const AddDomain = ({
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
 												<FormControl>
-													<Input
+													<NumberInput
 														placeholder={"3000"}
 														{...field}
-														onChange={(e) => {
-															field.onChange(Number.parseInt(e.target.value));
-														}}
 													/>
 												</FormControl>
 												<FormMessage />

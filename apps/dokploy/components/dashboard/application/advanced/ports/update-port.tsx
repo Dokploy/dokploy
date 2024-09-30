@@ -17,7 +17,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -125,7 +125,7 @@ export const UpdatePort = ({ portId }: Props) => {
 									<FormItem>
 										<FormLabel>Published Port</FormLabel>
 										<FormControl>
-											<Input
+											<NumberInput
 												placeholder="1-65535"
 												{...field}
 												value={field.value?.toString() || ""}
@@ -134,10 +134,7 @@ export const UpdatePort = ({ portId }: Props) => {
 													if (value === "") {
 														field.onChange(0);
 													} else {
-														const number = Number.parseInt(value, 10);
-														if (!Number.isNaN(number)) {
-															field.onChange(number);
-														}
+														field.onChange(parseInt(value, 10));
 													}
 												}}
 											/>
@@ -158,17 +155,6 @@ export const UpdatePort = ({ portId }: Props) => {
 												placeholder="1-65535"
 												{...field}
 												value={field.value?.toString() || ""}
-												onChange={(e) => {
-													const value = e.target.value;
-													if (value === "") {
-														field.onChange(0);
-													} else {
-														const number = Number.parseInt(value, 10);
-														if (!Number.isNaN(number)) {
-															field.onChange(number);
-														}
-													}
-												}}
 											/>
 										</FormControl>
 
