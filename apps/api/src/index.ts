@@ -31,6 +31,11 @@ app.post("/publish", async (c) => {
 
 	return c.json({ message: `Despliegue encolado para el usuario ${userId}` });
 });
+
+app.get("/health", async (c) => {
+	return c.json({ status: "ok" });
+});
+
 // await redisClient.connect();
 // await redisClient.flushAll();
 
