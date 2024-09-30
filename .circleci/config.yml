@@ -19,66 +19,66 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
-              TAG="canary"
+              TAG="feature"
             fi
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
-            # docker push dokploy/dokploy:${TAG}-amd64
+            docker push dokploy/dokploy:${TAG}-amd64
 
-  # build-arm64:
-  #   machine:
-  #     image: ubuntu-2004:current
-  #     resource_class: arm.large
-  #   steps:
-  #     - checkout
-  #     - run:
-  #         name: Prepare .env file
-  #         command: |
-  #           cp apps/dokploy/.env.production.example .env.production
-  #           cp apps/dokploy/.env.production.example apps/dokploy/.env.production
-  #     - run:
-  #         name: Build and push ARM64 image
-  #         command: |
-  #           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
-  #           if [ "${CIRCLE_BRANCH}" == "main" ]; then
-  #             TAG="latest"
-  #           else
-  #             TAG="canary"
-  #           fi
-  #           docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
-  #           docker push dokploy/dokploy:${TAG}-arm64
+  build-arm64:
+    machine:
+      image: ubuntu-2004:current
+      resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Prepare .env file
+          command: |
+            cp apps/dokploy/.env.production.example .env.production
+            cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+      - run:
+          name: Build and push ARM64 image
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              TAG="latest"
+            else
+              TAG="feature"
+            fi
+            docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
+            docker push dokploy/dokploy:${TAG}-arm64
 
-  # combine-manifests:
-  #   docker:
-  #     - image: cimg/node:18.18.0
-  #   steps:
-  #     - checkout
-  #     - setup_remote_docker
-  #     - run:
-  #         name: Create and push multi-arch manifest
-  #         command: |
-  #           docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+  combine-manifests:
+    docker:
+      - image: cimg/node:18.18.0
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Create and push multi-arch manifest
+          command: |
+            docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
-  #           if [ "${CIRCLE_BRANCH}" == "main" ]; then
-  #             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-  #             echo $VERSION
-  #             TAG="latest"
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+              echo $VERSION
+              TAG="latest"
 
-  #             docker manifest create dokploy/dokploy:${TAG} \
-  #               dokploy/dokploy:${TAG}-amd64 \
-  #               dokploy/dokploy:${TAG}-arm64
-  #             docker manifest push dokploy/dokploy:${TAG}
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
 
-  #             docker manifest create dokploy/dokploy:${VERSION} \
-  #               dokploy/dokploy:${TAG}-amd64 \
-  #               dokploy/dokploy:${TAG}-arm64
-  #             docker manifest push dokploy/dokploy:${VERSION}
-  #           else
-  #             TAG="canary"
-  #             docker manifest create dokploy/dokploy:${TAG} \
-  #               dokploy/dokploy:${TAG}-amd64 \
-  #               dokploy/dokploy:${TAG}-arm64
-  #             docker manifest push dokploy/dokploy:${TAG}
-  #           fi
+              docker manifest create dokploy/dokploy:${VERSION} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${VERSION}
+            else
+              TAG="feature"
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
+            fi
 
 workflows:
   build-all:
@@ -88,21 +88,22 @@ workflows:
             branches:
               only:
                 - feat/cloud
-                # - main
-                # - canary
-                # -
-      # - build-arm64:
-      #     filters:
-      #       branches:
-      #         only:
-      #           - main
-      #           - canary
-      # - combine-manifests:
-      #     requires:
-      #       - build-amd64
-      #       - build-arm64
-      #     filters:
-      #       branches:
-      #         only:
-      #           - main
-      # - canary
+                - main
+                - canary
+      - build-arm64:
+          filters:
+            branches:
+              only:
+                - main
+                - canary
+                - feat/cloud
+      - combine-manifests:
+          requires:
+            - build-amd64
+            - build-arm64
+          filters:
+            branches:
+              only:
+                - main
+                - canary
+                - feat/cloud
