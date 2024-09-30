@@ -77,7 +77,6 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 				});
 			})
 			.catch((e) => {
-				console.log(e);
 				toast.error("Error to update the compose config");
 			});
 	};
