@@ -695,6 +695,9 @@ importers:
       tsup:
         specifier: 6.4.0
         version: 6.4.0(postcss@8.4.40)(typescript@5.5.3)
+      tsx:
+        specifier: ^4.7.1
+        version: 4.16.2
       typescript:
         specifier: ^5.4.2
         version: 5.5.3

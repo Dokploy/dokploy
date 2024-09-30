@@ -7,7 +7,7 @@
 	"scripts": {
 		"dev": "tsup --config ./tsup.ts --watch",
 		"build": "tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
-		"tsc": "tsc --project tsconfig.server.json",
+		"esbuild": "tsx ./esbuild.config.ts",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts"
 	},
 	"dependencies": {
@@ -48,6 +48,7 @@
 		"ssh2": "1.15.0"
 	},
 	"devDependencies": {
+		"tsx": "^4.7.1",
 		"tsc-alias": "1.8.10",
 		"@types/adm-zip": "^0.5.5",
 		"@types/bcrypt": "5.0.2",

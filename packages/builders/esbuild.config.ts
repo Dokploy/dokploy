@@ -1,25 +1,27 @@
-// import esbuild from "esbuild";
+import { build } from "esbuild";
+import TsconfigPathsPlugin from "@esbuild-plugins/tsconfig-paths";
+import path from "node:path";
 
-// try {
-// 	esbuild
-// 		.build({
-// 			entryPoints: ["./src/**/*.ts"],
-// 			bundle: true,
-// 			platform: "node",
-// 			format: "cjs",
-// 			target: "node18",
-// 			outExtension: { ".js": ".js" },
-// 			minify: true,
-// 			outdir: "dist",
-// 			tsconfig: "tsconfig.server.json",
-// 			packages: "external",
-// 			alias: {
-// 				"@/server": "./src",
-// 			},
-// 		})
-// 		.catch(() => {
-// 			return process.exit(1);
-// 		});
-// } catch (error) {
-// 	console.log(error);
-// }
+build({
+	entryPoints: ["./src/**/*.ts", "./src/**/*.tsx"], // Punto de entrada principal de tu aplicación
+	outdir: "dist",
+	bundle: false, // Cambia a true si deseas bundlear tu código
+	platform: "node",
+	format: "esm",
+	target: ["esnext"],
+	sourcemap: false,
+	tsconfig: "./tsconfig.server.json",
+	plugins: [
+		// TsconfigPathsPlugin({ tsconfig: "./tsconfig.server.json" }),
+		{
+			name: "AddJsExtensions",
+			setup(build) {
+				build.onResolve({ filter: /.*/ }, (args) => {
+					if (args.path.startsWith(".") && !path.extname(args.path)) {
+						return { path: `${args.path}.js` };
+					}
+				});
+			},
+		},
+	],
+}).catch(() => process.exit(1));

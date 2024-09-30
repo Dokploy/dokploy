@@ -10,10 +10,15 @@
     "moduleResolution": "Node",
     "baseUrl": ".",
     "incremental": false,
+    "jsx": "react-jsx",
     "paths": {
       "@/server/*": ["src/*"]
     }
   },
   "include": ["next-env.d.ts", "./src/**/*"],
-  "exclude": ["**/dist", "tsup.ts"]
+  "exclude": ["**/dist", "tsup.ts"],
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": false
+  }
 }
