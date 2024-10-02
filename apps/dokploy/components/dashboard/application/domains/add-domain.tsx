@@ -228,10 +228,7 @@ export const AddDomain = ({
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
 												<FormControl>
-													<NumberInput
-														placeholder={"3000"}
-														{...field}
-													/>
+													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>

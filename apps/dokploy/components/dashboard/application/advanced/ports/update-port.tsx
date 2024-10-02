@@ -134,7 +134,7 @@ export const UpdatePort = ({ portId }: Props) => {
 													if (value === "") {
 														field.onChange(0);
 													} else {
-														field.onChange(parseInt(value, 10));
+														field.onChange(Number.parseInt(value, 10));
 													}
 												}}
 											/>
