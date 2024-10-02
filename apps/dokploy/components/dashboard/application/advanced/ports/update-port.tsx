@@ -125,25 +125,14 @@ export const UpdatePort = ({ portId }: Props) => {
 									<FormItem>
 										<FormLabel>Published Port</FormLabel>
 										<FormControl>
-											<NumberInput
-												placeholder="1-65535"
-												{...field}
-												value={field.value?.toString() || ""}
-												onChange={(e) => {
-													const value = e.target.value;
-													if (value === "") {
-														field.onChange(0);
-													} else {
-														field.onChange(Number.parseInt(value, 10));
-													}
-												}}
-											/>
+											<NumberInput placeholder="1-65535" {...field} />
 										</FormControl>
 
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
+
 							<FormField
 								control={form.control}
 								name="targetPort"
@@ -151,11 +140,7 @@ export const UpdatePort = ({ portId }: Props) => {
 									<FormItem>
 										<FormLabel>Target Port</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="1-65535"
-												{...field}
-												value={field.value?.toString() || ""}
-											/>
+											<Input placeholder="1-65535" {...field} />
 										</FormControl>
 
 										<FormMessage />
