@@ -244,8 +244,6 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 
 		const data = await response.json();
 
-		console.log(data.values);
-
 		const mappedData = data.values.map((repo: any) => {
 			return {
 				name: repo.name,
