@@ -225,7 +225,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
 		bitbucketProvider.bitbucketUsername;
-	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
+	const url = `https://api.bitbucket.org/2.0/repositories/${username}?pagelen=100`;
 
 	try {
 		const response = await fetch(url, {
