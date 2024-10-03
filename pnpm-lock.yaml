@@ -42,9 +42,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@dokploy/builders':
-        specifier: workspace:*
-        version: link:../../packages/builders
       '@hono/node-server':
         specifier: ^1.12.1
         version: 1.12.1
@@ -149,9 +146,6 @@ importers:
       '@codemirror/view':
         specifier: 6.29.0
         version: 6.29.0
-      '@dokploy/builders':
-        specifier: workspace:*
-        version: link:../../packages/builders
       '@dokploy/trpc-openapi':
         specifier: 0.0.4
         version: 0.0.4(@trpc/server@10.45.2)(zod@3.23.8)
@@ -591,7 +585,7 @@ importers:
         version: 3.1.2
       otpauth:
         specifier: ^9.2.3
-        version: 9.3.1
+        version: 9.3.4
       postgres:
         specifier: 3.4.4
         version: 3.4.4
@@ -600,7 +594,7 @@ importers:
         version: 6.0.2
       qrcode:
         specifier: ^1.5.3
-        version: 1.5.3
+        version: 1.5.4
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -649,7 +643,7 @@ importers:
         version: 2.1.6
       '@types/nodemailer':
         specifier: ^6.4.15
-        version: 6.4.15
+        version: 6.4.16
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.5
@@ -1840,9 +1834,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@noble/hashes@1.4.0':
-    resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
-    engines: {node: '>= 16'}
+  '@noble/hashes@1.5.0':
+    resolution: {integrity: sha512-1j6kQFb7QRru7eKN3ZDvRcP13rugwdxZqCjbiAVZfIJwgj2A65UmT4TgARXGlXgnRkORLTDTrO19ZErt7+QXgA==}
+    engines: {node: ^14.21.3 || >=16}
 
   '@node-rs/argon2-android-arm-eabi@1.7.0':
     resolution: {integrity: sha512-udDqkr5P9E+wYX1SZwAVPdyfYvaF4ry9Tm+R9LkfSHbzWH0uhU6zjIwNRp7m+n4gx691rk+lqqDAIP8RLKwbhg==}
@@ -3519,8 +3513,8 @@ packages:
   '@types/node@20.4.6':
     resolution: {integrity: sha512-q0RkvNgMweWWIvSMDiXhflGUKMdIxBo2M2tYM/0kEGDueQByFzK4KZAgu5YHGFNxziTlppNpTIBcqHQAxlfHdA==}
 
-  '@types/nodemailer@6.4.15':
-    resolution: {integrity: sha512-0EBJxawVNjPkng1zm2vopRctuWVCxk34JcIlRuXSf54habUWdz1FB7wHDqOqvDa8Mtpt0Q3LTXQkAs2LNyK5jQ==}
+  '@types/nodemailer@6.4.16':
+    resolution: {integrity: sha512-uz6hN6Pp0upXMcilM61CoKyjT7sskBoOWpptkjjJp8jIMlTdc3xG01U7proKkXzruMS4hS0zqtHNkNPFB20rKQ==}
 
   '@types/prop-types@15.7.12':
     resolution: {integrity: sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==}
@@ -4735,9 +4729,6 @@ packages:
 
   emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
-
-  encode-utf8@1.0.3:
-    resolution: {integrity: sha512-ucAnuBEhUK4boH2HjVYG5Q2mQyPorvv0u/ocS+zhdw0S8AlHYY+GOFhP1Gio5z4icpP2ivFSvhtFjQi8+T9ppw==}
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
@@ -6729,8 +6720,8 @@ packages:
   oslo@1.2.0:
     resolution: {integrity: sha512-OoFX6rDsNcOQVAD2gQD/z03u4vEjWZLzJtwkmgfRF+KpQUXwdgEXErD7zNhyowmHwHefP+PM9Pw13pgpHMRlzw==}
 
-  otpauth@9.3.1:
-    resolution: {integrity: sha512-E6d2tMxPofHNk4sRFp+kqW7vQ+WJGO9VLI2N/W00DnI+ThskU12Qa10kyNSGklrzhN5c+wRUsN4GijVgCU2N9w==}
+  otpauth@9.3.4:
+    resolution: {integrity: sha512-qXv+lpsCUO9ewitLYfeDKbLYt7UUCivnU/fwGK2OqhgrCBsRkTUNKWsgKAhkXG3aistOY+jEeuL90JEBu6W3mQ==}
 
   p-cancelable@3.0.0:
     resolution: {integrity: sha512-mlVgR3PGuzlo0MmTdk4cXqXWlwQDLnONTAg6sm62XkMJEiRxN3GL3SffkYvqwonbkJBcrI7Uvv5Zh9yjvn2iUw==}
@@ -7047,8 +7038,8 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  qrcode@1.5.3:
-    resolution: {integrity: sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==}
+  qrcode@1.5.4:
+    resolution: {integrity: sha512-1ca71Zgiu6ORjHqFBDpnSMTR2ReToX4l1Au1VFLyVeBTFavzQnv5JxMFr3ukHVKpSrSA2MCk0lNJSykjUfz7Zg==}
     engines: {node: '>=10.13.0'}
     hasBin: true
 
@@ -9316,7 +9307,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@14.2.5':
     optional: true
 
-  '@noble/hashes@1.4.0': {}
+  '@noble/hashes@1.5.0': {}
 
   '@node-rs/argon2-android-arm-eabi@1.7.0':
     optional: true
@@ -11594,7 +11585,7 @@ snapshots:
 
   '@types/node@20.4.6': {}
 
-  '@types/nodemailer@6.4.15':
+  '@types/nodemailer@6.4.16':
     dependencies:
       '@types/node': 20.14.10
 
@@ -12837,8 +12828,6 @@ snapshots:
   emoji-regex@8.0.0: {}
 
   emoji-regex@9.2.2: {}
-
-  encode-utf8@1.0.3: {}
 
   end-of-stream@1.4.4:
     dependencies:
@@ -15452,9 +15441,9 @@ snapshots:
       '@node-rs/argon2': 1.7.0
       '@node-rs/bcrypt': 1.9.0
 
-  otpauth@9.3.1:
+  otpauth@9.3.4:
     dependencies:
-      '@noble/hashes': 1.4.0
+      '@noble/hashes': 1.5.0
 
   p-cancelable@3.0.0: {}
 
@@ -15708,10 +15697,9 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  qrcode@1.5.3:
+  qrcode@1.5.4:
     dependencies:
       dijkstrajs: 1.0.3
-      encode-utf8: 1.0.3
       pngjs: 5.0.0
       yargs: 15.4.1
 

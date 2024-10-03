@@ -1,16 +1,21 @@
 {
-	"extends": "./tsconfig.json",
-	"compilerOptions": {
-		"module": "ESNext",
-		"outDir": "dist/",
-		"target": "ESNext",
-		"isolatedModules": false,
-		"noEmit": false,
-		"moduleResolution": "Node",
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./*"]
-		}
-	},
-	"include": ["next-env.d.ts", "./server/**/*"]
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "dist/",
+    "target": "ESNext",
+    "isolatedModules": false,
+    "noEmit": false,
+    "moduleResolution": "Node",
+    "baseUrl": ".",
+    "paths": {
+      "@dokploy/builders": ["../../packages/builders/src"], // Apunta a las fuentes de `builders`
+      "@dokploy/builders/*": ["../../packages/builders/src/*"]
+    }
+  },
+  "references": [
+    { "path": "../../packages/builders" } // Referencia explícita a builders
+  ],
+
+  "include": ["next-env.d.ts", "./server/**/*"]
 }

@@ -34,7 +34,6 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
-		"@dokploy/builders": "workspace:*",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",

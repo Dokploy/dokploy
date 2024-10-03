@@ -4,7 +4,6 @@ import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { findServerById } from "@/server/services/server";
 import { validateWebSocketRequest } from "../auth/auth";
-import { readSSHKey } from "../utils/filesystem/ssh";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -49,7 +48,6 @@ export const setupDeploymentLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
-				const keys = await readSSHKey(server.sshKeyId);
 				const client = new Client();
 				new Promise<void>((resolve, reject) => {
 					client
@@ -81,7 +79,7 @@ export const setupDeploymentLogsWebSocketServer = (
 							host: server.ipAddress,
 							port: server.port,
 							username: server.username,
-							privateKey: keys.privateKey,
+							privateKey: server.sshKey?.privateKey,
 							timeout: 99999,
 						});
 				});
