@@ -53,6 +53,7 @@ import {
 	getDokployImage,
 	pullLatestRelease,
 	readDirectory,
+	IS_CLOUD,
 } from "@dokploy/builders";
 import packageInfo from "../../../package.json";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
@@ -521,4 +522,7 @@ export const settingsRouter = createTRPCRouter({
 
 			return true;
 		}),
+	isCloud: adminProcedure.query(async () => {
+		return IS_CLOUD;
+	}),
 });

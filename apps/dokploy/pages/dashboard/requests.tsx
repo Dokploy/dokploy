@@ -1,6 +1,6 @@
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/builders";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import * as React from "react";
@@ -14,6 +14,14 @@ Requests.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
 	const { user } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {

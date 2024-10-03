@@ -1,16 +1,14 @@
-import { WebDomain } from "@/components/dashboard/settings/web-domain";
-import { WebServer } from "@/components/dashboard/settings/web-server";
+import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/builders";
+import { validateRequest } from "@dokploy/builders";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 
 const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
-			<WebDomain />
-			<WebServer />
+			<ShowRegistry />
 		</div>
 	);
 };
@@ -27,28 +25,12 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	if (IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
-			},
-		};
-	}
-	const { user } = await validateRequest(ctx.req, ctx.res);
-	if (!user) {
+	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	if (!user || user.rol === "user") {
 		return {
 			redirect: {
 				permanent: true,
 				destination: "/",
-			},
-		};
-	}
-	if (user.rol === "user") {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/settings/profile",
 			},
 		};
 	}

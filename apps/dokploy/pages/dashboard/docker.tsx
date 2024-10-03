@@ -1,7 +1,7 @@
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/builders";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
@@ -19,6 +19,14 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
 	const { user, session } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {
@@ -28,7 +36,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { req, res, resolvedUrl } = ctx;
+	const { req, res } = ctx;
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,

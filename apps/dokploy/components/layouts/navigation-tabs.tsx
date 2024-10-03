@@ -1,9 +1,10 @@
 import { AddProject } from "@/components/dashboard/projects/add";
-import type { Auth, User } from "@dokploy/builders";
+import type { Auth, User, IS_CLOUD } from "@dokploy/builders";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { is } from "drizzle-orm";
 
 interface TabInfo {
 	label: string;
@@ -21,47 +22,56 @@ export type TabState =
 	| "requests"
 	| "docker";
 
-const tabMap: Record<TabState, TabInfo> = {
-	projects: {
-		label: "Projects",
-		description: "Manage your projects",
-		index: "/dashboard/projects",
-	},
-	monitoring: {
-		label: "Monitoring",
-		description: "Monitor your projects",
-		index: "/dashboard/monitoring",
-	},
-	traefik: {
-		label: "Traefik",
-		tabLabel: "Traefik File System",
-		description: "Manage your traefik",
-		index: "/dashboard/traefik",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
+const getTabMaps = (isCloud: boolean) => {
+	const tabMap: Record<TabState | undefined, TabInfo> = {
+		projects: {
+			label: "Projects",
+			description: "Manage your projects",
+			index: "/dashboard/projects",
 		},
-	},
-	docker: {
-		label: "Docker",
-		description: "Manage your docker",
-		index: "/dashboard/docker",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToDocker);
+		...(!isCloud && {
+			monitoring: {
+				label: "Monitoring",
+				description: "Monitor your projects",
+				index: "/dashboard/monitoring",
+			},
+			traefik: {
+				label: "Traefik",
+				tabLabel: "Traefik File System",
+				description: "Manage your traefik",
+				index: "/dashboard/traefik",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
+				},
+			},
+			docker: {
+				label: "Docker",
+				description: "Manage your docker",
+				index: "/dashboard/docker",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToDocker);
+				},
+			},
+			requests: {
+				label: "Requests",
+				description: "Manage your requests",
+				index: "/dashboard/requests",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToDocker);
+				},
+			},
+		}),
+
+		settings: {
+			label: "Settings",
+			description: "Manage your settings",
+			index: isCloud
+				? "/dashboard/settings/profile"
+				: "/dashboard/settings/server",
 		},
-	},
-	requests: {
-		label: "Requests",
-		description: "Manage your requests",
-		index: "/dashboard/requests",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToDocker);
-		},
-	},
-	settings: {
-		label: "Settings",
-		description: "Manage your settings",
-		index: "/dashboard/settings/server",
-	},
+	};
+
+	return tabMap;
 };
 
 interface Props {
@@ -71,9 +81,10 @@ interface Props {
 
 export const NavigationTabs = ({ tab, children }: Props) => {
 	const router = useRouter();
-
 	const { data } = api.auth.get.useQuery();
 	const [activeTab, setActiveTab] = useState<TabState>(tab);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const tabMap = useMemo(() => getTabMaps(isCloud ?? false), [isCloud]);
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
