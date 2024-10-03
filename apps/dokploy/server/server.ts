@@ -63,7 +63,7 @@ void app.prepare().then(async () => {
 		}
 
 		if (IS_CLOUD) {
-			await migration();
+			// await migration(); //TODO: Fix migration
 		}
 
 		server.listen(PORT);

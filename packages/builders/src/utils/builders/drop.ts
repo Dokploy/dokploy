@@ -9,7 +9,6 @@ import {
 	recreateDirectory,
 	recreateDirectoryRemote,
 } from "../filesystem/directory";
-import { readSSHKey } from "../filesystem/ssh";
 import { execAsyncRemote } from "../process/execAsync";
 
 export const unzipDrop = async (zipFile: File, application: Application) => {
@@ -90,7 +89,6 @@ const getSFTPConnection = async (serverId: string): Promise<SFTPWrapper> => {
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
 
-	const keys = await readSSHKey(server.sshKeyId);
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
 		conn
@@ -104,7 +102,7 @@ const getSFTPConnection = async (serverId: string): Promise<SFTPWrapper> => {
 				host: server.ipAddress,
 				port: server.port,
 				username: server.username,
-				privateKey: keys.privateKey,
+				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
 			});
 	});

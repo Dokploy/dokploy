@@ -12,6 +12,7 @@ export const sshKeys = pgTable("ssh-key", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
+	privateKey: text("privateKey").notNull().default(""),
 	publicKey: text("publicKey").notNull(),
 	name: text("name").notNull(),
 	description: text("description"),
@@ -37,6 +38,7 @@ export const apiCreateSshKey = createSchema
 	.pick({
 		name: true,
 		description: true,
+		privateKey: true,
 		publicKey: true,
 	})
 	.merge(sshKeyCreate.pick({ privateKey: true }));

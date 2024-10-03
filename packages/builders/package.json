@@ -5,9 +5,9 @@
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"scripts": {
-		"dev": "tsup --config ./tsup.ts --watch",
-		"build": "tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
-		"esbuild": "tsx ./esbuild.config.ts",
+		"dev": "tsc --project tsconfig.server.json --watch && tsc-alias -p tsconfig.server.json",
+		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
+		"esbuild": "tsx   --watch ./esbuild.config.ts  & tsc-alias -p tsconfig.server.json --watch",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts"
 	},
 	"dependencies": {

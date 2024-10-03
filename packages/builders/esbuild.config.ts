@@ -4,10 +4,8 @@ import path from "node:path";
 build({
 	entryPoints: ["./src/**/*.ts", "./src/**/*.tsx"], // Punto de entrada principal de tu aplicación
 	outdir: "dist",
-	bundle: false, // Cambia a true si deseas bundlear tu código
 	platform: "node",
 	format: "esm",
-	target: ["esnext"],
 	sourcemap: false,
 	tsconfig: "./tsconfig.server.json",
 	plugins: [

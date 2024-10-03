@@ -4,7 +4,6 @@ import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { findServerById } from "@/server/services/server";
 import { validateWebSocketRequest } from "../auth/auth";
-import { readSSHKey } from "../utils/filesystem/ssh";
 import { getShell } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -50,7 +49,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
-				const keys = await readSSHKey(server.sshKeyId);
 				const client = new Client();
 				new Promise<void>((resolve, reject) => {
 					client
@@ -82,7 +80,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 							host: server.ipAddress,
 							port: server.port,
 							username: server.username,
-							privateKey: keys.privateKey,
+							privateKey: server.sshKey?.privateKey,
 							timeout: 99999,
 						});
 				});
