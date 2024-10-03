@@ -48,6 +48,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 	const { data, refetch } = api.postgres.one.useQuery({ postgresId });
 	const { mutateAsync, isLoading } =
 		api.postgres.saveExternalPort.useMutation();
+	const getIp = data?.server?.ipAddress || ip;
 	const [connectionUrl, setConnectionUrl] = useState("");
 
 	const form = useForm<DockerProvider>({
@@ -79,10 +80,9 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 
 	useEffect(() => {
 		const buildConnectionUrl = () => {
-			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}/${data?.databaseName}`;
+			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -92,7 +92,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 		data?.databasePassword,
 		form,
 		data?.databaseName,
-		ip,
+		getIp,
 	]);
 
 	return (

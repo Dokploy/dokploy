@@ -68,7 +68,7 @@ export const destinationRouter = createTRPCRouter({
 			const destination = await findDestinationById(input.destinationId);
 			return destination;
 		}),
-	all: adminProcedure.query(async () => {
+	all: protectedProcedure.query(async () => {
 		return await db.query.destinations.findMany({});
 	}),
 	remove: adminProcedure

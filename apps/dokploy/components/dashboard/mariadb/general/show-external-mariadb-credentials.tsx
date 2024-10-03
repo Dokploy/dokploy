@@ -48,6 +48,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 	const { data, refetch } = api.mariadb.one.useQuery({ mariadbId });
 	const { mutateAsync, isLoading } = api.mariadb.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
+	const getIp = data?.server?.ipAddress || ip;
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
@@ -79,7 +80,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 		const buildConnectionUrl = () => {
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mariadb://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}/${data?.databaseName}`;
+			return `mariadb://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/${data?.databaseName}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -90,7 +91,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 		form,
 		data?.databaseName,
 		data?.databaseUser,
-		ip,
+		getIp,
 	]);
 	return (
 		<>
