@@ -62,8 +62,8 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 
-		if (IS_CLOUD) {
-			// await migration(); //TODO: Fix migration
+		if (IS_CLOUD && process.env.NODE_ENV === "production") {
+			await migration();
 		}
 
 		server.listen(PORT);
