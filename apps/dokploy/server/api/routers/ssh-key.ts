@@ -6,6 +6,7 @@ import {
 	apiGenerateSSHKey,
 	apiRemoveSshKey,
 	apiUpdateSshKey,
+	sshKeys,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
@@ -15,13 +16,17 @@ import {
 	removeSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/builders";
+import { eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateSshKey)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				await createSshKey(input);
+				await createSshKey({
+					...input,
+					adminId: ctx.user.adminId,
+				});
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -46,8 +51,10 @@ export const sshRouter = createTRPCRouter({
 		const sshKey = await findSSHKeyById(input.sshKeyId);
 		return sshKey;
 	}),
-	all: protectedProcedure.query(async () => {
-		return await db.query.sshKeys.findMany({});
+	all: protectedProcedure.query(async ({ ctx }) => {
+		return await db.query.sshKeys.findMany({
+			where: eq(sshKeys.adminId, ctx.user.adminId),
+		});
 	}),
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)

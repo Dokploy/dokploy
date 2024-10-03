@@ -23,6 +23,7 @@ import {
 	lucia,
 	validateRequest,
 	luciaToken,
+	IS_CLOUD,
 } from "@dokploy/builders";
 import {
 	adminProcedure,
@@ -36,15 +37,15 @@ export const authRouter = createTRPCRouter({
 		.input(apiCreateAdmin)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// if (!IS_CLOUD) {
-				const admin = await db.query.admins.findFirst({});
-				if (admin) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Admin already exists",
-					});
+				if (!IS_CLOUD) {
+					const admin = await db.query.admins.findFirst({});
+					if (admin) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Admin already exists",
+						});
+					}
 				}
-				// }
 
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});

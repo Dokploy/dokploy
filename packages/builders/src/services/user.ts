@@ -34,8 +34,9 @@ export const findUserByAuthId = async (authId: string) => {
 	return user;
 };
 
-export const findUsers = async () => {
-	const users = await db.query.users.findMany({
+export const findUsers = async (adminId: string) => {
+	const currentUsers = await db.query.users.findMany({
+		where: eq(users.adminId, adminId),
 		with: {
 			auth: {
 				columns: {
@@ -44,7 +45,7 @@ export const findUsers = async () => {
 			},
 		},
 	});
-	return users;
+	return currentUsers;
 };
 
 export const addNewProject = async (authId: string, projectId: string) => {

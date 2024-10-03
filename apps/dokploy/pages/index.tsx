@@ -179,13 +179,11 @@ export default function Home({ hasAdmin }: Props) {
 						)}
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								Need help?
 								<Link
-									className="underline"
-									href="https://dokploy.com"
-									target="_blank"
+									className="hover:underline text-muted-foreground"
+									href="/register"
 								>
-									Contact us
+									Create an account
 								</Link>
 							</div>
 
