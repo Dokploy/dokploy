@@ -17,6 +17,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,10 +43,9 @@ const updateRegistry = z.object({
 		message: "Username is required",
 	}),
 	password: z.string(),
-	registryUrl: z.string().min(1, {
-		message: "Registry URL is required",
-	}),
+	registryUrl: z.string(),
 	imagePrefix: z.string(),
+	serverId: z.string().optional(),
 });
 
 type UpdateRegistry = z.infer<typeof updateRegistry>;
@@ -48,6 +56,8 @@ interface Props {
 
 export const UpdateDockerRegistry = ({ registryId }: Props) => {
 	const utils = api.useUtils();
+	const { data: servers } = api.server.withSSHKey.useQuery();
+
 	const { mutateAsync: testRegistry, isLoading } =
 		api.registry.testRegistry.useMutation();
 	const { data, refetch } = api.registry.one.useQuery(
@@ -69,15 +79,19 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 			username: "",
 			password: "",
 			registryUrl: "",
+			serverId: "",
 		},
 		resolver: zodResolver(updateRegistry),
 	});
+
+	console.log(form.formState.errors);
 
 	const password = form.watch("password");
 	const username = form.watch("username");
 	const registryUrl = form.watch("registryUrl");
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
+	const serverId = form.watch("serverId");
 
 	useEffect(() => {
 		if (data) {
@@ -87,6 +101,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 				username: data.username || "",
 				password: "",
 				registryUrl: data.registryUrl || "",
+				serverId: "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -99,6 +114,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 			username: data.username,
 			registryUrl: data.registryUrl,
 			imagePrefix: data.imagePrefix,
+			serverId: data.serverId,
 		})
 			.then(async (data) => {
 				toast.success("Registry Updated");
@@ -224,13 +240,47 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter
-						className={cn(
-							isCloud ? "sm:justify-between " : "",
-							"flex flex-row w-full gap-4 flex-wrap",
-						)}
-					>
-						{isCloud && (
+					<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col">
+						<div className="flex flex-col gap-4 border p-2 rounded-lg">
+							<span className="text-sm text-muted-foreground">
+								Select a server to test the registry. If you don't have a server
+								choose the default one.
+							</span>
+							<FormField
+								control={form.control}
+								name="serverId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Server (Optional)</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select a server" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectGroup>
+														<SelectLabel>Servers</SelectLabel>
+														{servers?.map((server) => (
+															<SelectItem
+																key={server.serverId}
+																value={server.serverId}
+															>
+																{server.name}
+															</SelectItem>
+														))}
+														<SelectItem value={"none"}>None</SelectItem>
+													</SelectGroup>
+												</SelectContent>
+											</Select>
+										</FormControl>
+
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 							<Button
 								type="button"
 								variant={"secondary"}
@@ -243,6 +293,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 										registryName: registryName,
 										registryType: "cloud",
 										imagePrefix: imagePrefix,
+										serverId: serverId,
 									})
 										.then((data) => {
 											if (data) {
@@ -258,12 +309,12 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 							>
 								Test Registry
 							</Button>
-						)}
+						</div>
 
 						<Button
 							isLoading={form.formState.isSubmitting}
-							form="hook-form"
 							type="submit"
+							form="hook-form"
 						>
 							Update
 						</Button>

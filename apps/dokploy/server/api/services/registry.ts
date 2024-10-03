@@ -2,7 +2,7 @@ import { db } from "@/server/db";
 import { type apiCreateRegistry, registry } from "@/server/db/schema";
 import { initializeRegistry } from "@/server/setup/registry-setup";
 import { removeService } from "@/server/utils/docker/utils";
-import { execAsync } from "@/server/utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 import {
 	manageRegistry,
 	removeSelfHostedRegistry,
@@ -32,9 +32,10 @@ export const createRegistry = async (input: typeof apiCreateRegistry._type) => {
 				message: "Error input:  Inserting registry",
 			});
 		}
-
-		if (newRegistry.registryType === "cloud") {
-			const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		if (input.serverId && input.serverId !== "none") {
+			await execAsyncRemote(input.serverId, loginCommand);
+		} else if (newRegistry.registryType === "cloud") {
 			await execAsync(loginCommand);
 		}
 
@@ -76,7 +77,7 @@ export const removeRegistry = async (registryId: string) => {
 
 export const updateRegistry = async (
 	registryId: string,
-	registryData: Partial<Registry>,
+	registryData: Partial<Registry> & { serverId?: string | null },
 ) => {
 	try {
 		const response = await db
@@ -91,6 +92,13 @@ export const updateRegistry = async (
 		if (response?.registryType === "selfHosted") {
 			await manageRegistry(response);
 			await initializeRegistry(response.username, response.password);
+		}
+		const loginCommand = `echo ${response?.password} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
+
+		if (registryData?.serverId && registryData?.serverId !== "none") {
+			await execAsyncRemote(registryData.serverId, loginCommand);
+		} else if (response?.registryType === "cloud") {
+			await execAsync(loginCommand);
 		}
 
 		return response;
