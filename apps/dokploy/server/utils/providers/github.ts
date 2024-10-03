@@ -271,13 +271,13 @@ export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
 	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;
-	await recreateDirectory(outputPath);
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 	try {
-		await execAsyncRemote(
-			serverId,
-			`git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}`,
-		);
+		const command = `
+			rm -rf ${outputPath};
+			git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}
+		`;
+		await execAsyncRemote(serverId, command);
 	} catch (error) {
 		throw error;
 	}

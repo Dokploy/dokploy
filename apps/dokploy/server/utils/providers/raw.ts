@@ -70,6 +70,7 @@ export const createComposeFileRawRemote = async (compose: Compose) => {
 	try {
 		const encodedContent = encodeBase64(composeFile);
 		const command = `
+			rm -rf ${outputPath};
 			mkdir -p ${outputPath};
 			echo "${encodedContent}" | base64 -d > "${filePath}";
 		`;
