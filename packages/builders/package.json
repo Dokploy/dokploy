@@ -5,7 +5,7 @@
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"scripts": {
-		"dev": "tsc --project tsconfig.server.json --watch && tsc-alias -p tsconfig.server.json",
+		"dev": "rm -rf ./dist && tsc --project tsconfig.server.json  && tsc-alias -p tsconfig.server.json --watch",
 		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
 		"esbuild": "tsx   --watch ./esbuild.config.ts  & tsc-alias -p tsconfig.server.json --watch",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts"
