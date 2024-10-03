@@ -8,7 +8,7 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initializeTraefik,
-} from "../../packages/builders/src";
+} from "@dokploy/builders";
 
 (async () => {
 	try {

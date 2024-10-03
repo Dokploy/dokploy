@@ -2,7 +2,11 @@ import type http from "node:http";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById, validateWebSocketRequest } from "@dokploy/builders";
+import {
+	findServerById,
+	readSSHKey,
+	validateWebSocketRequest,
+} from "@dokploy/builders";
 import { getShell } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
@@ -49,6 +53,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				if (!server.sshKeyId)
 					throw new Error("No SSH key available for this server");
 
+				const keys = await readSSHKey(server.sshKeyId);
 				const conn = new Client();
 				let stdout = "";
 				let stderr = "";
@@ -104,7 +109,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						host: server.ipAddress,
 						port: server.port,
 						username: server.username,
-						privateKey: server.sshKey?.privateKey,
+						privateKey: keys.privateKey,
 						timeout: 99999,
 					});
 			} else {

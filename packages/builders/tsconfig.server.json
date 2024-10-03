@@ -8,7 +8,6 @@
     "noEmit": false,
     "declaration": true,
     "moduleResolution": "Node",
-    "rootDir": "./src",
     "baseUrl": ".",
     "incremental": false,
     "jsx": "react-jsx",

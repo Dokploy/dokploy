@@ -6,10 +6,14 @@ import {
 	type apiUpdateSshKey,
 	sshKeys,
 } from "@/server/db/schema";
+import { removeSSHKey, saveSSHKey } from "@/server/utils/filesystem/ssh";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-export const createSshKey = async (input: typeof apiCreateSshKey._type) => {
+export const createSshKey = async ({
+	privateKey,
+	...input
+}: typeof apiCreateSshKey._type) => {
 	await db.transaction(async (tx) => {
 		const sshKey = await tx
 			.insert(sshKeys)
@@ -17,6 +21,10 @@ export const createSshKey = async (input: typeof apiCreateSshKey._type) => {
 			.returning()
 			.then((response) => response[0])
 			.catch((e) => console.error(e));
+
+		if (sshKey) {
+			saveSSHKey(sshKey.sshKeyId, sshKey.publicKey, privateKey);
+		}
 
 		if (!sshKey) {
 			throw new TRPCError({
@@ -35,6 +43,8 @@ export const removeSSHKeyById = async (
 		.delete(sshKeys)
 		.where(eq(sshKeys.sshKeyId, sshKeyId))
 		.returning();
+
+	removeSSHKey(sshKeyId);
 
 	return result[0];
 };

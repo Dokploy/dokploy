@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@/server/services/server";
 import { Client } from "ssh2";
+import { readSSHKey } from "../filesystem/ssh";
 export const execAsync = util.promisify(exec);
 
 export const execAsyncRemote = async (
@@ -11,6 +12,8 @@ export const execAsyncRemote = async (
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
+
+	const keys = await readSSHKey(server.sshKeyId);
 
 	let stdout = "";
 	let stderr = "";
@@ -59,7 +62,7 @@ export const execAsyncRemote = async (
 				host: server.ipAddress,
 				port: server.port,
 				username: server.username,
-				privateKey: server.sshKey?.privateKey,
+				privateKey: keys.privateKey,
 				timeout: 99999,
 			});
 	});

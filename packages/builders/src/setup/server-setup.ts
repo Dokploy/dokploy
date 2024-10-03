@@ -12,6 +12,7 @@ import {
 } from "@/server/setup/traefik-setup";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
+import { readSSHKey } from "../utils/filesystem/ssh";
 
 import slug from "slugify";
 
@@ -69,7 +70,13 @@ const installRequirements = async (serverId: string, logPath: string) => {
 		writeStream.close();
 		throw new Error("No SSH Key found");
 	}
+	const keys = await readSSHKey(server.sshKeyId);
 
+	if (!keys.privateKey) {
+		writeStream.write("❌ No SSH Key found");
+		writeStream.close();
+		throw new Error("No SSH Key found");
+	}
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
@@ -135,7 +142,7 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				host: server.ipAddress,
 				port: server.port,
 				username: server.username,
-				privateKey: server.sshKey?.privateKey,
+				privateKey: keys.privateKey,
 				timeout: 99999,
 			});
 	});

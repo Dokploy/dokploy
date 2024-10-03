@@ -6,17 +6,16 @@
     "target": "es2022",
     "allowJs": true,
     "resolveJsonModule": true,
-    "composite": true,
     "moduleDetection": "force",
     "isolatedModules": true,
     /* Strictness */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "checkJs": true,
-    "rootDir": "./src",
+
     /* Bundled projects */
     "lib": ["dom", "dom.iterable", "ES2022"],
-    "noEmit": false,
+    "noEmit": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "preserve",

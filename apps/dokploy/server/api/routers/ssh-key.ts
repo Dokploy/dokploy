@@ -14,7 +14,6 @@ import {
 	findSSHKeyById,
 	removeSSHKeyById,
 	updateSSHKeyById,
-	execAsync,
 } from "@dokploy/builders";
 
 export const sshRouter = createTRPCRouter({

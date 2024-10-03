@@ -1,7 +1,0 @@
-{
-  "files": [],
-  "references": [
-    { "path": "./packages/builders" },
-    { "path": "./apps/dokploy" }
-  ]
-}

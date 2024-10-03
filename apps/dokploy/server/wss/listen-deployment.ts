@@ -2,7 +2,11 @@ import { spawn } from "node:child_process";
 import type http from "node:http";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById, validateWebSocketRequest } from "@dokploy/builders";
+import {
+	findServerById,
+	readSSHKey,
+	validateWebSocketRequest,
+} from "@dokploy/builders";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -47,6 +51,7 @@ export const setupDeploymentLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
+				const keys = await readSSHKey(server.sshKeyId);
 				const client = new Client();
 				new Promise<void>((resolve, reject) => {
 					client
@@ -78,7 +83,7 @@ export const setupDeploymentLogsWebSocketServer = (
 							host: server.ipAddress,
 							port: server.port,
 							username: server.username,
-							privateKey: server.sshKey?.privateKey,
+							privateKey: keys.privateKey,
 							timeout: 99999,
 						});
 				});
