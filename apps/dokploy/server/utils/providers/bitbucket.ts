@@ -225,7 +225,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
 		bitbucketProvider.bitbucketUsername;
-	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
+	const url = `https://api.bitbucket.org/2.0/repositories/${username}?pagelen=100`;
 
 	try {
 		const response = await fetch(url, {
@@ -243,6 +243,8 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 		}
 
 		const data = await response.json();
+
+		console.log(data.values);
 
 		const mappedData = data.values.map((repo: any) => {
 			return {
