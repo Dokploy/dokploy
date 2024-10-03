@@ -1,5 +1,5 @@
 {
-  "id": "e4ae5e44-8d12-400c-9d7d-3dbbf1e348e5",
+  "id": "8ffdfaff-f166-42dc-ac77-4fd9309d736a",
   "prevId": "19a70a39-f719-400b-b61e-6ddf1bcc6ac5",
   "version": "6",
   "dialect": "postgresql",
@@ -2923,7 +2923,8 @@
           "name": "registryUrl",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "''"
         },
         "createdAt": {
           "name": "createdAt",
@@ -3251,13 +3252,6 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true
-        },
-        "privateKey": {
-          "name": "privateKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
         },
         "publicKey": {
           "name": "publicKey",

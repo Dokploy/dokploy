@@ -39,7 +39,7 @@ import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircuitBoard, HelpCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -71,6 +71,7 @@ interface Props {
 
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
+	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
@@ -101,6 +102,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Compose Created");
+				setVisible(false);
 				await utils.project.one.invalidate({
 					projectId,
 				});
@@ -111,7 +113,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 	};
 
 	return (
-		<Dialog>
+		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"

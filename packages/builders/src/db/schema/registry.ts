@@ -23,7 +23,7 @@ export const registry = pgTable("registry", {
 	imagePrefix: text("imagePrefix"),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
-	registryUrl: text("registryUrl").notNull(),
+	registryUrl: text("registryUrl").notNull().default(""),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -45,7 +45,7 @@ const createSchema = createInsertSchema(registry, {
 	registryName: z.string().min(1),
 	username: z.string().min(1),
 	password: z.string().min(1),
-	registryUrl: z.string().min(1),
+	registryUrl: z.string(),
 	adminId: z.string().min(1),
 	registryId: z.string().min(1),
 	registryType: z.enum(["selfHosted", "cloud"]),
@@ -62,7 +62,10 @@ export const apiCreateRegistry = createSchema
 		registryType: z.enum(["selfHosted", "cloud"]),
 		imagePrefix: z.string().nullable().optional(),
 	})
-	.required();
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});
 
 export const apiTestRegistry = createSchema.pick({}).extend({
 	registryName: z.string().min(1),
@@ -71,6 +74,7 @@ export const apiTestRegistry = createSchema.pick({}).extend({
 	registryUrl: z.string(),
 	registryType: z.enum(["selfHosted", "cloud"]),
 	imagePrefix: z.string().nullable().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiRemoveRegistry = createSchema
@@ -87,6 +91,7 @@ export const apiFindOneRegistry = createSchema
 
 export const apiUpdateRegistry = createSchema.partial().extend({
 	registryId: z.string().min(1),
+	serverId: z.string().optional(),
 });
 
 export const apiEnableSelfHostedRegistry = createSchema

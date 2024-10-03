@@ -1,0 +1,1 @@
+ALTER TABLE "registry" ALTER COLUMN "registryUrl" SET DEFAULT '';

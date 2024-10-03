@@ -390,14 +390,14 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
 	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 	try {
-		await execAsyncRemote(
-			serverId,
-			`git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}`,
-		);
+		const command = `
+			rm -rf ${outputPath};
+			git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}
+		`;
+		await execAsyncRemote(serverId, command);
 	} catch (error) {
 		throw error;
 	}

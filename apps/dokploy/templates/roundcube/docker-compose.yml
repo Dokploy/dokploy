@@ -1,0 +1,17 @@
+services:
+  roundcubemail:
+    image: roundcube/roundcubemail:1.6.9-apache
+    volumes:
+      - ./www:/var/www/html
+      - ./db/sqlite:/var/roundcube/db
+    environment:
+      - ROUNDCUBEMAIL_DB_TYPE=sqlite
+      - ROUNDCUBEMAIL_SKIN=elastic
+      - ROUNDCUBEMAIL_DEFAULT_HOST=${DEFAULT_HOST}
+      - ROUNDCUBEMAIL_SMTP_SERVER=${SMTP_SERVER}
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

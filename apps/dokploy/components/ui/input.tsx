@@ -31,4 +31,39 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = "Input";
 
-export { Input };
+const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
+	({ className, errorMessage, ...props }, ref) => {
+		return (
+			<Input
+				type="text"
+				className={cn("text-left", className)}
+				ref={ref}
+				{...props}
+				value={props.value === undefined ? undefined : String(props.value)}
+				onChange={(e) => {
+					const value = e.target.value;
+					if (value === "") {
+						props.onChange?.(e);
+					} else {
+						const number = Number.parseInt(value, 10);
+						if (!Number.isNaN(number)) {
+							const syntheticEvent = {
+								...e,
+								target: {
+									...e.target,
+									value: number,
+								},
+							};
+							props.onChange?.(
+								syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>,
+							);
+						}
+					}
+				}}
+			/>
+		);
+	},
+);
+NumberInput.displayName = "NumberInput";
+
+export { Input, NumberInput };

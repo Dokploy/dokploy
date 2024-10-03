@@ -147,15 +147,15 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	const bitbucketProvider = await findBitbucketById(bitbucketId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
 	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
 
 	try {
-		await execAsyncRemote(
-			serverId,
-			`git clone --branch ${bitbucketBranch} --depth 1 ${cloneUrl} ${outputPath}`,
-		);
+		const command = `
+			rm -rf ${outputPath};
+			git clone --branch ${bitbucketBranch} --depth 1 ${cloneUrl} ${outputPath}
+		`;
+		await execAsyncRemote(serverId, command);
 	} catch (error) {
 		throw error;
 	}
@@ -225,7 +225,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
 		bitbucketProvider.bitbucketUsername;
-	const url = `https://api.bitbucket.org/2.0/repositories/${username}`;
+	const url = `https://api.bitbucket.org/2.0/repositories/${username}?pagelen=100`;
 
 	try {
 		const response = await fetch(url, {

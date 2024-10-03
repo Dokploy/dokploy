@@ -74,6 +74,8 @@ export const setupTerminalWebSocketServer = (
 			"StrictHostKeyChecking=no",
 			"-i",
 			privateKey,
+			"-p",
+			`${server.port}`,
 			`${server.username}@${server.ipAddress}`,
 		];
 		const ptyProcess = spawn("ssh", sshCommand.slice(1), {

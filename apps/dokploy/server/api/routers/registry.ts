@@ -8,6 +8,7 @@ import {
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import {
+	execAsyncRemote,
 	initializeRegistry,
 	execAsync,
 	manageRegistry,
@@ -58,7 +59,13 @@ export const registryRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
-				await execAsync(loginCommand);
+
+				if (input.serverId && input.serverId !== "none") {
+					await execAsyncRemote(input.serverId, loginCommand);
+				} else {
+					await execAsync(loginCommand);
+				}
+
 				return true;
 			} catch (error) {
 				console.log("Error Registry:", error);
@@ -78,6 +85,7 @@ export const registryRouter = createTRPCRouter({
 						? input.registryUrl
 						: "dokploy-registry.docker.localhost",
 				imagePrefix: null,
+				serverId: undefined,
 			});
 
 			await manageRegistry(selfHostedRegistry);
@@ -86,3 +94,17 @@ export const registryRouter = createTRPCRouter({
 			return selfHostedRegistry;
 		}),
 });
+
+const shellEscape = (str: string) => {
+	const ret = [];
+	let s = str;
+	if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
+		s = `'${s.replace(/'/g, "'\\''")}'`;
+		s = s
+			.replace(/^(?:'')+/g, "") // unduplicate single-quote at the beginning
+			.replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
+	}
+	ret.push(s);
+
+	return ret.join(" ");
+};

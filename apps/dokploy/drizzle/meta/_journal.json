@@ -271,15 +271,8 @@
     {
       "idx": 38,
       "version": "6",
-      "when": 1727903587684,
-      "tag": "0038_mushy_blindfold",
-      "breakpoints": true
-    },
-    {
-      "idx": 39,
-      "version": "6",
-      "when": 1727937385754,
-      "tag": "0039_workable_speed_demon",
+      "when": 1727942090102,
+      "tag": "0038_rapid_landau",
       "breakpoints": true
     }
   ]

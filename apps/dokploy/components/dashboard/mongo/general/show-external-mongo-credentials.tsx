@@ -48,7 +48,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 	const { data, refetch } = api.mongo.one.useQuery({ mongoId });
 	const { mutateAsync, isLoading } = api.mongo.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
-
+	const getIp = data?.server?.ipAddress || ip;
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
 		resolver: zodResolver(DockerProviderSchema),
@@ -80,7 +80,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 		const buildConnectionUrl = () => {
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${ip}:${port}`;
+			return `mongodb://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -90,7 +90,7 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 		data?.databasePassword,
 		form,
 		data?.databaseUser,
-		ip,
+		getIp,
 	]);
 
 	return (

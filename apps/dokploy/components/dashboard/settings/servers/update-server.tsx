@@ -228,7 +228,21 @@ export const UpdateServer = ({ serverId }: Props) => {
 									<FormItem>
 										<FormLabel>Port</FormLabel>
 										<FormControl>
-											<Input placeholder="22" {...field} />
+											<Input
+												placeholder="22"
+												{...field}
+												onChange={(e) => {
+													const value = e.target.value;
+													if (value === "") {
+														field.onChange(0);
+													} else {
+														const number = Number.parseInt(value, 10);
+														if (!Number.isNaN(number)) {
+															field.onChange(number);
+														}
+													}
+												}}
+											/>
 										</FormControl>
 
 										<FormMessage />
