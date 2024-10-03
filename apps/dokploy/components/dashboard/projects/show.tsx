@@ -33,9 +33,9 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 import { toast } from "sonner";
 import { UpdateProject } from "./update";
-import { Fragment } from "react";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
