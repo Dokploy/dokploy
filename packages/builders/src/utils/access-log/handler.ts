@@ -1,5 +1,5 @@
 import { findAdmin, updateAdmin } from "@/server/services/admin";
-import { paths } from "@/server/constants";
+import { IS_CLOUD, paths } from "@/server/constants";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
 import { execAsync } from "../process/execAsync";
 
@@ -8,6 +8,9 @@ class LogRotationManager {
 	private stream: RotatingFileStream | null = null;
 
 	private constructor() {
+		if (IS_CLOUD) {
+			return;
+		}
 		this.initialize().catch(console.error);
 	}
 
