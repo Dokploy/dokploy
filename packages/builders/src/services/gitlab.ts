@@ -11,13 +11,16 @@ import { eq } from "drizzle-orm";
 
 export type Gitlab = typeof gitlab.$inferSelect;
 
-export const createGitlab = async (input: typeof apiCreateGitlab._type) => {
+export const createGitlab = async (
+	input: typeof apiCreateGitlab._type,
+	adminId: string,
+) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "gitlab",
-				authId: input.authId,
+				adminId: adminId,
 				name: input.name,
 			})
 			.returning()

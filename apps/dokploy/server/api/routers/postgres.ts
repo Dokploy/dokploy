@@ -67,13 +67,27 @@ export const postgresRouter = createTRPCRouter({
 				await checkServiceAccess(ctx.user.authId, input.postgresId, "access");
 			}
 
-			return await findPostgresById(input.postgresId);
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this postgres",
+				});
+			}
+			return postgres;
 		}),
 
 	start: protectedProcedure
 		.input(apiFindOnePostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const service = await findPostgresById(input.postgresId);
+
+			if (service.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to start this postgres",
+				});
+			}
 
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
@@ -88,8 +102,14 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOnePostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this postgres",
+				});
+			}
 			if (postgres.serverId) {
 				await stopServiceRemote(postgres.serverId, postgres.appName);
 			} else {
@@ -103,8 +123,15 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortPostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
+
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this external port",
+				});
+			}
 			await updatePostgresById(input.postgresId, {
 				externalPort: input.externalPort,
 			});
@@ -113,13 +140,26 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this postgres",
+				});
+			}
 			return deployPostgres(input.postgresId);
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to change this postgres status",
+				});
+			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: input.applicationStatus,
 			});
@@ -133,6 +173,13 @@ export const postgresRouter = createTRPCRouter({
 			}
 			const postgres = await findPostgresById(input.postgresId);
 
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to delete this postgres",
+				});
+			}
+
 			const cleanupOperations = [
 				removeService(postgres.appName, postgres.serverId),
 				removePostgresById(input.postgresId),
@@ -144,7 +191,14 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesPostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this environment",
+				});
+			}
 			const service = await updatePostgresById(input.postgresId, {
 				env: input.env,
 			});
@@ -160,8 +214,14 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetPostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to reload this postgres",
+				});
+			}
 			if (postgres.serverId) {
 				await stopServiceRemote(postgres.serverId, postgres.appName);
 			} else {
@@ -183,8 +243,15 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdatePostgres)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const { postgresId, ...rest } = input;
+			const postgres = await findPostgresById(postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this postgres",
+				});
+			}
 			const service = await updatePostgresById(postgresId, {
 				...rest,
 			});

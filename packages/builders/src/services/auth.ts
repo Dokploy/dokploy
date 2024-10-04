@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import encode from "hi-base32";
 import { TOTP } from "otpauth";
 import QRCode from "qrcode";
+import { IS_CLOUD } from "../constants";
 
 export type Auth = typeof auth.$inferSelect;
 
@@ -37,13 +38,15 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 			});
 		}
 
-		await tx
-			.insert(admins)
-			.values({
-				authId: newAuth.id,
-				serverIp: await getPublicIpWithFallback(),
-			})
-			.returning();
+		if (!IS_CLOUD) {
+			await tx
+				.insert(admins)
+				.values({
+					authId: newAuth.id,
+					serverIp: await getPublicIpWithFallback(),
+				})
+				.returning();
+		}
 
 		return newAuth;
 	});

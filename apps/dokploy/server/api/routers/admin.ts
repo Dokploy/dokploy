@@ -10,16 +10,18 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import {
-	findAdmin,
 	createInvitation,
 	getUserByToken,
 	removeUserByAuthId,
+	findAdminById,
+	findUserByAuthId,
+	findUserById,
 } from "@dokploy/builders";
 import { adminProcedure, createTRPCRouter, publicProcedure } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async ({ ctx }) => {
-		const { sshPrivateKey, ...rest } = await findAdmin();
+		const { sshPrivateKey, ...rest } = await findAdminById(ctx.user.adminId);
 		return {
 			haveSSH: !!sshPrivateKey,
 			...rest,
@@ -27,9 +29,9 @@ export const adminRouter = createTRPCRouter({
 	}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				await createInvitation(input);
+				await createInvitation(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -41,8 +43,16 @@ export const adminRouter = createTRPCRouter({
 		}),
 	removeUser: adminProcedure
 		.input(apiRemoveUser)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const user = await findUserByAuthId(input.authId);
+
+				if (user.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to delete this user",
+					});
+				}
 				return await removeUserByAuthId(input.authId);
 			} catch (error) {
 				throw new TRPCError({
@@ -59,8 +69,16 @@ export const adminRouter = createTRPCRouter({
 		}),
 	assignPermissions: adminProcedure
 		.input(apiAssignPermissions)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const user = await findUserById(input.userId);
+
+				if (user.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to assign permissions",
+					});
+				}
 				await db
 					.update(users)
 					.set({
@@ -68,10 +86,7 @@ export const adminRouter = createTRPCRouter({
 					})
 					.where(eq(users.userId, input.userId));
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to assign permissions",
-				});
+				throw error;
 			}
 		}),
 });

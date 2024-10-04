@@ -13,10 +13,9 @@ import { eq } from "drizzle-orm";
 export type Admin = typeof admins.$inferSelect;
 export const createInvitation = async (
 	input: typeof apiCreateUserInvitation._type,
+	adminId: string,
 ) => {
 	await db.transaction(async (tx) => {
-		const admin = await findAdmin();
-
 		const result = await tx
 			.insert(auth)
 			.values({
@@ -39,7 +38,7 @@ export const createInvitation = async (
 		await tx
 			.insert(users)
 			.values({
-				adminId: admin.adminId,
+				adminId: adminId,
 				authId: result.id,
 				token,
 				expirationDate: expiresIn24Hours.toISOString(),

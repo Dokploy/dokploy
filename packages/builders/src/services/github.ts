@@ -4,13 +4,16 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 export type Github = typeof github.$inferSelect;
-export const createGithub = async (input: typeof apiCreateGithub._type) => {
+export const createGithub = async (
+	input: typeof apiCreateGithub._type,
+	adminId: string,
+) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "github",
-				authId: input.authId,
+				adminId: adminId,
 				name: input.name,
 			})
 			.returning()

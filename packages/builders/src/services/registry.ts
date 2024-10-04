@@ -9,19 +9,19 @@ import {
 } from "@/server/utils/traefik/registry";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
 
 export type Registry = typeof registry.$inferSelect;
 
-export const createRegistry = async (input: typeof apiCreateRegistry._type) => {
-	const admin = await findAdmin();
-
+export const createRegistry = async (
+	input: typeof apiCreateRegistry._type,
+	adminId: string,
+) => {
 	return await db.transaction(async (tx) => {
 		const newRegistry = await tx
 			.insert(registry)
 			.values({
 				...input,
-				adminId: admin.adminId,
+				adminId: adminId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -126,7 +126,9 @@ export const findRegistryById = async (registryId: string) => {
 	return registryResponse;
 };
 
-export const findAllRegistry = async () => {
-	const registryResponse = await db.query.registry.findMany();
+export const findAllRegistryByAdminId = async (adminId: string) => {
+	const registryResponse = await db.query.registry.findMany({
+		where: eq(registry.adminId, adminId),
+	});
 	return registryResponse;
 };
