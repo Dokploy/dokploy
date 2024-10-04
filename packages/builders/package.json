@@ -5,10 +5,10 @@
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"scripts": {
-		"dev": "rm -rf ./dist && tsc --project tsconfig.server.json  && tsc-alias -p tsconfig.server.json --watch",
 		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
-		"esbuild": "tsx   --watch ./esbuild.config.ts  & tsc-alias -p tsconfig.server.json --watch",
-		"build:types": "tsc --emitDeclarationOnly --experimenta-dts"
+		"build:types": "tsc --emitDeclarationOnly --experimenta-dts",
+		"dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
+		"esbuild": "tsx ./esbuild.config.ts"
 	},
 	"dependencies": {
 		"rotating-file-stream": "3.2.3",
@@ -67,7 +67,6 @@
 		"esbuild": "0.20.2",
 		"postcss": "^8.4.31",
 		"typescript": "^5.4.2",
-		"@types/ssh2": "1.15.1",
-		"tsup": "6.4.0"
+		"@types/ssh2": "1.15.1"
 	}
 }

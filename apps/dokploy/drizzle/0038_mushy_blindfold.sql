@@ -1,1 +1,0 @@
-ALTER TABLE "ssh-key" ADD COLUMN "privateKey" text DEFAULT '' NOT NULL;

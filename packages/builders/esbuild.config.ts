@@ -1,24 +1,28 @@
-import { build } from "esbuild";
-import path from "node:path";
+// import { build } from "esbuild";
+// import alias from "esbuild-plugin-alias";
+// import path from "node:path";
+// import { fileURLToPath } from "node:url";
+// const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+// const __dirname = path.dirname(__filename);
 
-build({
-	entryPoints: ["./src/**/*.ts", "./src/**/*.tsx"], // Punto de entrada principal de tu aplicación
-	outdir: "dist",
-	platform: "node",
-	format: "esm",
-	sourcemap: false,
-	tsconfig: "./tsconfig.server.json",
-	plugins: [
-		// TsconfigPathsPlugin({ tsconfig: "./tsconfig.server.json" }),
-		{
-			name: "AddJsExtensions",
-			setup(build) {
-				build.onResolve({ filter: /.*/ }, (args) => {
-					if (args.path.startsWith(".") && !path.extname(args.path)) {
-						return { path: `${args.path}.js` };
-					}
-				});
-			},
-		},
-	],
-}).catch(() => process.exit(1));
+// build({
+// 	entryPoints: ["./src/**/*.ts"],
+// 	// outfile: "./dist/index.js",
+// 	outdir: "./dist",
+// 	bundle: true,
+// 	minify: false,
+// 	platform: "node",
+// 	target: "esnext",
+// 	format: "esm",
+// 	plugins: [
+// 		alias({
+// 			"@/server": path.resolve(__dirname, "src"),
+// 		}),
+// 	],
+// 	packages: "external",
+// 	// Opcional: si deseas emitir declaraciones de tipos con esbuild-plugin-dts
+// })
+// 	.then(() => {
+// 		console.log("Build successful");
+// 	})
+// 	.catch(() => process.exit(1));
