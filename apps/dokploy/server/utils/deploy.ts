@@ -2,7 +2,7 @@ import type { DeploymentJob } from "../queues/deployments-queue";
 
 export const deploy = async (jobData: DeploymentJob) => {
 	try {
-		const result = await fetch("http://127.0.0.1:4000/deploy", {
+		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -13,6 +13,7 @@ export const deploy = async (jobData: DeploymentJob) => {
 		console.log(data);
 		return data;
 	} catch (error) {
+		console.log(error);
 		throw error;
 	}
 };
