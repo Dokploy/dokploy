@@ -110,7 +110,6 @@ export const ShowProjects = () => {
 														className="space-x-4 text-xs cursor-pointer justify-between"
 														target="_blank"
 														href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
-														onClick={(e) => e.stopPropagation()}
 													>
 														<span>{domain.host}</span>
 														<ExternalLink className="size-4 shrink-0" />
@@ -138,7 +137,10 @@ export const ShowProjects = () => {
 													<ExternalLinkIcon className="size-3.5" />
 												</Button>
 											</DropdownMenuTrigger>
-											<DropdownMenuContent className="w-[200px] space-y-2">
+											<DropdownMenuContent
+												className="w-[200px] space-y-2"
+												onClick={(e) => e.stopPropagation()}
+											>
 												{renderDomainsDropdown(project.applications)}
 												{renderDomainsDropdown(project.compose)}
 											</DropdownMenuContent>
