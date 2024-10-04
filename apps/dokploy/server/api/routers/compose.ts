@@ -52,7 +52,9 @@ import {
 	updateCompose,
 	findAdmin,
 	findAdminById,
+	IS_CLOUD,
 } from "@dokploy/builders";
+import { deploy } from "@/server/utils/deploy";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -240,6 +242,13 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: "",
 				server: !!compose.serverId,
 			};
+			console.log(jobData);
+
+			if (IS_CLOUD && compose.serverId) {
+				jobData.serverId = compose.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -267,6 +276,12 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: "",
 				server: !!compose.serverId,
 			};
+			if (IS_CLOUD && compose.serverId) {
+				jobData.serverId = compose.serverId;
+
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

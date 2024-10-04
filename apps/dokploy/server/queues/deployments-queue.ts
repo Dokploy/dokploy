@@ -21,6 +21,7 @@ type DeployJob =
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "application";
+			serverId?: string;
 	  }
 	| {
 			composeId: string;
@@ -29,6 +30,7 @@ type DeployJob =
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "compose";
+			serverId?: string;
 	  };
 
 export type DeploymentJob = DeployJob;

@@ -3,56 +3,42 @@ import { Hono } from "hono";
 import "dotenv/config";
 import { createClient } from "redis";
 import { Queue } from "@nerimity/mimiqueue";
-import { deployApplication } from "@dokploy/builders";
+import { zValidator } from "@hono/zod-validator";
+import { type DeployJob, deployJobSchema } from "./schema";
+import { deploy } from "./utils";
 
 const app = new Hono();
 const redisClient = createClient({
-	// socket: {
-	// 	host: "localhost",
-	// 	port: 6379,
-	// },
 	url: process.env.REDIS_URL,
-	// password: "xlfvpQ0ma2BkkkPX",
 });
 
-app.post("/publish", async (c) => {
-	const { userId, applicationId } = await c.req.json();
-	queue
-		.add(
-			{
-				userId,
-				applicationId,
-			},
-			{ groupName: userId },
-		)
-		.then((res) => {
-			console.log(res);
-		});
-
-	return c.json({ message: `Despliegue encolado para el usuario ${userId}` });
+app.post("/deploy", zValidator("json", deployJobSchema), (c) => {
+	const data = c.req.valid("json");
+	queue.add(data, { groupName: data.serverId }).then((res) => {
+		console.log(res);
+	});
+	return c.json(
+		{
+			message: "Deployment started",
+		},
+		200,
+	);
 });
 
 app.get("/health", async (c) => {
 	return c.json({ status: "ok" });
 });
 
-// await redisClient.connect();
-// await redisClient.flushAll();
-
 const queue = new Queue({
 	name: "deployments",
-	process: async (data) => {
-		// await setTimeout(8000);
-		await deployApplication({
-			applicationId: data.applicationId,
-			titleLog: "HHHHH",
-			descriptionLog: "",
-		});
-		return { done: "lol", data };
+	process: async (job: DeployJob) => {
+		console.log(job);
+		return await deploy(job);
 	},
 	redisClient,
 });
 const port = Number.parseInt(process.env.PORT || "3000");
+
 (async () => {
 	await redisClient.connect();
 	await redisClient.flushAll();

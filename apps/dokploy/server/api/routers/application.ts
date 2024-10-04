@@ -55,6 +55,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { deploy } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -234,6 +235,12 @@ export const applicationRouter = createTRPCRouter({
 				applicationType: "application",
 				server: !!application.serverId,
 			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -457,6 +464,12 @@ export const applicationRouter = createTRPCRouter({
 				applicationType: "application",
 				server: !!application.serverId,
 			};
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
