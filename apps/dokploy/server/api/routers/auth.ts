@@ -46,7 +46,6 @@ export const authRouter = createTRPCRouter({
 						});
 					}
 				}
-
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
@@ -55,12 +54,7 @@ export const authRouter = createTRPCRouter({
 				);
 				return true;
 			} catch (error) {
-				console.log(error);
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to create the main admin",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	createUser: publicProcedure

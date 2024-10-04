@@ -15,8 +15,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { IS_CLOUD, isAdminPresent } from "@dokploy/builders";
-// import { IS_CLOUD } from "@/server/constants";
+import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/builders";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
@@ -26,6 +25,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import type { GetServerSidePropsContext } from "next";
 
 const registerSchema = z
 	.object({
@@ -70,7 +70,7 @@ interface Props {
 	isCloud: boolean;
 }
 
-const Register = ({ hasAdmin, isCloud }: Props) => {
+const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
 	const { mutateAsync, error, isError } = api.auth.createAdmin.useMutation();
 
@@ -226,8 +226,18 @@ const Register = ({ hasAdmin, isCloud }: Props) => {
 };
 
 export default Register;
-export async function getServerSideProps() {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
+		const { user } = await validateRequest(context.req, context.res);
+
+		if (user) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/dashboard/projects",
+				},
+			};
+		}
 		return {
 			props: {
 				isCloud: true,
@@ -246,7 +256,6 @@ export async function getServerSideProps() {
 	}
 	return {
 		props: {
-			hasAdmin,
 			isCloud: false,
 		},
 	};

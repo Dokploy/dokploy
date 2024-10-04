@@ -38,15 +38,16 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 			});
 		}
 
-		if (!IS_CLOUD) {
-			await tx
-				.insert(admins)
-				.values({
-					authId: newAuth.id,
+		await tx
+			.insert(admins)
+			.values({
+				authId: newAuth.id,
+				...(!IS_CLOUD && {
 					serverIp: await getPublicIpWithFallback(),
-				})
-				.returning();
-		}
+				}),
+				serverIp: await getPublicIpWithFallback(),
+			})
+			.returning();
 
 		return newAuth;
 	});

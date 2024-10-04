@@ -69,14 +69,20 @@ export async function validateRequest(
 			lucia.createBlankSessionCookie().serialize(),
 		);
 	}
-
 	if (result.user) {
-		if (result.user?.rol === "admin") {
-			const admin = await findAdminByAuthId(result.user.id);
-			result.user.adminId = admin.adminId;
-		} else if (result.user?.rol === "user") {
-			const userResult = await findUserByAuthId(result.user.id);
-			result.user.adminId = userResult.adminId;
+		try {
+			if (result.user?.rol === "admin") {
+				const admin = await findAdminByAuthId(result.user.id);
+				result.user.adminId = admin.adminId;
+			} else if (result.user?.rol === "user") {
+				const userResult = await findUserByAuthId(result.user.id);
+				result.user.adminId = userResult.adminId;
+			}
+		} catch (error) {
+			return {
+				user: null,
+				session: null,
+			};
 		}
 	}
 
