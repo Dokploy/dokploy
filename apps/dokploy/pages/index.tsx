@@ -198,16 +198,19 @@ Home.getLayout = (page: ReactElement) => {
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
-		const { user } = await validateRequest(context.req, context.res);
+		try {
+			const { user } = await validateRequest(context.req, context.res);
 
-		if (user) {
-			return {
-				redirect: {
-					permanent: true,
-					destination: "/dashboard/projects",
-				},
-			};
-		}
+			if (user) {
+				return {
+					redirect: {
+						permanent: true,
+						destination: "/dashboard/projects",
+					},
+				};
+			}
+		} catch (error) {}
+
 		return {
 			props: {},
 		};
