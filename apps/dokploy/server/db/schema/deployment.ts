@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { server } from "./server";
 
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
@@ -28,6 +29,9 @@ export const deployments = pgTable("deployment", {
 	composeId: text("composeId").references(() => compose.composeId, {
 		onDelete: "cascade",
 	}),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -41,6 +45,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	compose: one(compose, {
 		fields: [deployments.composeId],
 		references: [compose.composeId],
+	}),
+	server: one(server, {
+		fields: [deployments.serverId],
+		references: [server.serverId],
 	}),
 }));
 
@@ -77,6 +85,18 @@ export const apiCreateDeploymentCompose = schema
 		composeId: z.string().min(1),
 	});
 
+export const apiCreateDeploymentServer = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		serverId: true,
+		description: true,
+	})
+	.extend({
+		serverId: z.string().min(1),
+	});
+
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,
@@ -92,5 +112,14 @@ export const apiFindAllByCompose = schema
 	})
 	.extend({
 		composeId: z.string().min(1),
+	})
+	.required();
+
+export const apiFindAllByServer = schema
+	.pick({
+		serverId: true,
+	})
+	.extend({
+		serverId: z.string().min(1),
 	})
 	.required();

@@ -1,5 +1,4 @@
 import { createWriteStream } from "node:fs";
-import { docker } from "@/server/constants";
 import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage } from "../cluster/upload";
@@ -11,11 +10,12 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { buildCustomDocker } from "./docker-file";
-import { buildHeroku } from "./heroku";
-import { buildNixpacks } from "./nixpacks";
-import { buildPaketo } from "./paketo";
-import { buildStatic } from "./static";
+import { getRemoteDocker } from "../servers/remote-docker";
+import { buildCustomDocker, getDockerCommand } from "./docker-file";
+import { buildHeroku, getHerokuCommand } from "./heroku";
+import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
+import { buildPaketo, getPaketoCommand } from "./paketo";
+import { buildStatic, getStaticCommand } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -65,6 +65,25 @@ export const buildApplication = async (
 	}
 };
 
+export const getBuildCommand = (
+	application: ApplicationNested,
+	logPath: string,
+) => {
+	const { buildType } = application;
+	switch (buildType) {
+		case "nixpacks":
+			return getNixpacksCommand(application, logPath);
+		case "heroku_buildpacks":
+			return getHerokuCommand(application, logPath);
+		case "paketo_buildpacks":
+			return getPaketoCommand(application, logPath);
+		case "static":
+			return getStaticCommand(application, logPath);
+		case "dockerfile":
+			return getDockerCommand(application, logPath);
+	}
+};
+
 export const mechanizeDockerContainer = async (
 	application: ApplicationNested,
 ) => {
@@ -101,11 +120,12 @@ export const mechanizeDockerContainer = async (
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(env);
 
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
+	const docker = await getRemoteDocker(application.serverId);
 
 	const settings: CreateServiceOptions = {
 		authconfig: authConfig,

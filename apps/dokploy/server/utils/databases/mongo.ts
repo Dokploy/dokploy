@@ -1,7 +1,4 @@
-import type { Mongo } from "@/server/api/services/mongo";
-import type { Mount } from "@/server/api/services/mount";
-import type { Postgres } from "@/server/api/services/postgres";
-import { docker } from "@/server/constants";
+import type { InferResultType } from "@/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
@@ -10,12 +7,11 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { getRemoteDocker } from "../servers/remote-docker";
 
-type MongoWithMounts = Mongo & {
-	mounts: Mount[];
-};
+export type MongoNested = InferResultType<"mongo", { mounts: true }>;
 
-export const buildMongo = async (mongo: MongoWithMounts) => {
+export const buildMongo = async (mongo: MongoNested) => {
 	const {
 		appName,
 		env,
@@ -43,7 +39,9 @@ export const buildMongo = async (mongo: MongoWithMounts) => {
 	const envVariables = prepareEnvironmentVariables(defaultMongoEnv);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
-	const filesMount = generateFileMounts(appName, mounts);
+	const filesMount = generateFileMounts(appName, mongo);
+
+	const docker = await getRemoteDocker(mongo.serverId);
 
 	const settings: CreateServiceOptions = {
 		Name: appName,

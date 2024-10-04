@@ -2,8 +2,9 @@ import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
-import { DYNAMIC_TRAEFIK_PATH, MAIN_TRAEFIK_PATH, docker } from "../constants";
-import { pullImage } from "../utils/docker/utils";
+import { paths } from "../constants";
+import { pullImage, pullRemoteImage } from "../utils/docker/utils";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
 
@@ -14,12 +15,15 @@ const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
 interface TraefikOptions {
 	enableDashboard?: boolean;
 	env?: string[];
+	serverId?: string;
 }
 
 export const initializeTraefik = async ({
 	enableDashboard = false,
 	env,
+	serverId,
 }: TraefikOptions = {}) => {
+	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = "traefik:v3.1.2";
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
@@ -83,8 +87,13 @@ export const initializeTraefik = async ({
 			],
 		},
 	};
+	const docker = await getRemoteDocker(serverId);
 	try {
-		await pullImage(imageName);
+		if (serverId) {
+			await pullRemoteImage(imageName, serverId);
+		} else {
+			await pullImage(imageName);
+		}
 
 		const service = docker.getService(containerName);
 		const inspect = await service.inspect();
@@ -115,6 +124,7 @@ export const initializeTraefik = async ({
 };
 
 export const createDefaultServerTraefikConfig = () => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
 
 	if (existsSync(configFilePath)) {
@@ -153,17 +163,7 @@ export const createDefaultServerTraefikConfig = () => {
 	);
 };
 
-export const createDefaultTraefikConfig = () => {
-	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
-	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
-
-	if (existsSync(acmeJsonPath)) {
-		chmodSync(acmeJsonPath, "600");
-	}
-	if (existsSync(mainConfig)) {
-		console.log("Main config already exists");
-		return;
-	}
+export const getDefaultTraefikConfig = () => {
 	const configObject: MainTraefikConfig = {
 		providers: {
 			...(process.env.NODE_ENV === "development"
@@ -221,16 +221,77 @@ export const createDefaultTraefikConfig = () => {
 	};
 
 	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
+export const getDefaultServerTraefikConfig = () => {
+	const configObject: MainTraefikConfig = {
+		providers: {
+			swarm: {
+				exposedByDefault: false,
+				watch: false,
+			},
+			docker: {
+				exposedByDefault: false,
+			},
+			file: {
+				directory: "/etc/dokploy/traefik/dynamic",
+				watch: true,
+			},
+		},
+		entryPoints: {
+			web: {
+				address: `:${TRAEFIK_PORT}`,
+			},
+			websecure: {
+				address: `:${TRAEFIK_SSL_PORT}`,
+				http: {
+					tls: {
+						certResolver: "letsencrypt",
+					},
+				},
+			},
+		},
+		api: {
+			insecure: true,
+		},
+		certificatesResolvers: {
+			letsencrypt: {
+				acme: {
+					email: "test@localhost.com",
+					storage: "/etc/dokploy/traefik/dynamic/acme.json",
+					httpChallenge: {
+						entryPoint: "web",
+					},
+				},
+			},
+		},
+	};
+
+	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
+export const createDefaultTraefikConfig = () => {
+	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths();
+	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
+	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
+
+	if (existsSync(acmeJsonPath)) {
+		chmodSync(acmeJsonPath, "600");
+	}
+	if (existsSync(mainConfig)) {
+		console.log("Main config already exists");
+		return;
+	}
+	const yamlStr = getDefaultTraefikConfig();
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(mainConfig, yamlStr, "utf8");
 };
 
-export const createDefaultMiddlewares = () => {
-	const middlewaresPath = path.join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-	if (existsSync(middlewaresPath)) {
-		console.log("Default middlewares already exists");
-		return;
-	}
+export const getDefaultMiddlewares = () => {
 	const defaultMiddlewares = {
 		http: {
 			middlewares: {
@@ -244,6 +305,16 @@ export const createDefaultMiddlewares = () => {
 		},
 	};
 	const yamlStr = dump(defaultMiddlewares);
+	return yamlStr;
+};
+export const createDefaultMiddlewares = () => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
+	const middlewaresPath = path.join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
+	if (existsSync(middlewaresPath)) {
+		console.log("Default middlewares already exists");
+		return;
+	}
+	const yamlStr = getDefaultMiddlewares();
 	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(middlewaresPath, yamlStr, "utf8");
 };

@@ -8,9 +8,14 @@ import { AttachAddon } from "@xterm/addon-attach";
 interface Props {
 	id: string;
 	containerId: string;
+	serverId?: string;
 }
 
-export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
+export const DockerTerminal: React.FC<Props> = ({
+	id,
+	containerId,
+	serverId,
+}) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	useEffect(() => {
@@ -33,7 +38,7 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}`;
+		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
 
 		const ws = new WebSocket(wsUrl);
 

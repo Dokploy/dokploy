@@ -12,7 +12,9 @@ import {
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import { createMount } from "../services/mount";
@@ -69,7 +71,12 @@ export const redisRouter = createTRPCRouter({
 		.input(apiFindOneRedis)
 		.mutation(async ({ input }) => {
 			const redis = await findRedisById(input.redisId);
-			await startService(redis.appName);
+
+			if (redis.serverId) {
+				await startServiceRemote(redis.serverId, redis.appName);
+			} else {
+				await startService(redis.appName);
+			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "done",
 			});
@@ -79,11 +86,21 @@ export const redisRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiResetRedis)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const redis = await findRedisById(input.redisId);
+			if (redis.serverId) {
+				await stopServiceRemote(redis.serverId, redis.appName);
+			} else {
+				await stopService(redis.appName);
+			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+
+			if (redis.serverId) {
+				await startServiceRemote(redis.serverId, redis.appName);
+			} else {
+				await startService(redis.appName);
+			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "done",
 			});
@@ -93,13 +110,17 @@ export const redisRouter = createTRPCRouter({
 	stop: protectedProcedure
 		.input(apiFindOneRedis)
 		.mutation(async ({ input }) => {
-			const mongo = await findRedisById(input.redisId);
-			await stopService(mongo.appName);
+			const redis = await findRedisById(input.redisId);
+			if (redis.serverId) {
+				await stopServiceRemote(redis.serverId, redis.appName);
+			} else {
+				await stopService(redis.appName);
+			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "idle",
 			});
 
-			return mongo;
+			return redis;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
@@ -135,7 +156,7 @@ export const redisRouter = createTRPCRouter({
 			const redis = await findRedisById(input.redisId);
 
 			const cleanupOperations = [
-				async () => await removeService(redis?.appName),
+				async () => await removeService(redis?.appName, redis.serverId),
 				async () => await removeRedisById(input.redisId),
 			];
 

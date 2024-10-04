@@ -12,7 +12,9 @@ import {
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
 import {
@@ -74,7 +76,11 @@ export const mongoRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const service = await findMongoById(input.mongoId);
 
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
 			});
@@ -85,7 +91,12 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiFindOneMongo)
 		.mutation(async ({ input }) => {
 			const mongo = await findMongoById(input.mongoId);
-			await stopService(mongo.appName);
+
+			if (mongo.serverId) {
+				await stopServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await stopService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "idle",
 			});
@@ -119,11 +130,21 @@ export const mongoRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiResetMongo)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.serverId) {
+				await stopServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await stopService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+
+			if (mongo.serverId) {
+				await startServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await startService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
 			});
@@ -139,7 +160,7 @@ export const mongoRouter = createTRPCRouter({
 			const mongo = await findMongoById(input.mongoId);
 
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName),
+				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await removeMongoById(input.mongoId),
 			];
 

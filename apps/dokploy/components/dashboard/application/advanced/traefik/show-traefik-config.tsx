@@ -7,7 +7,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { File } from "lucide-react";
+import { File, Loader2 } from "lucide-react";
 import React from "react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export const ShowTraefikConfig = ({ applicationId }: Props) => {
-	const { data } = api.application.readTraefikConfig.useQuery(
+	const { data, isLoading } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
 		},
@@ -35,7 +35,12 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{data === null ? (
+				{isLoading ? (
+					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
+						Loading...
+						<Loader2 className="animate-spin" />
+					</span>
+				) : !data ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<File className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">

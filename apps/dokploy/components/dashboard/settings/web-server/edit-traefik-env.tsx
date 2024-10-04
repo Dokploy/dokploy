@@ -33,12 +33,15 @@ type Schema = z.infer<typeof schema>;
 
 interface Props {
 	children?: React.ReactNode;
+	serverId?: string;
 }
 
-export const EditTraefikEnv = ({ children }: Props) => {
+export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	const [canEdit, setCanEdit] = useState(true);
 
-	const { data } = api.settings.readTraefikEnv.useQuery();
+	const { data } = api.settings.readTraefikEnv.useQuery({
+		serverId,
+	});
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.settings.writeTraefikEnv.useMutation();
@@ -62,6 +65,7 @@ export const EditTraefikEnv = ({ children }: Props) => {
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
 			env: data.env,
+			serverId,
 		})
 			.then(async () => {
 				toast.success("Traefik Env Updated");

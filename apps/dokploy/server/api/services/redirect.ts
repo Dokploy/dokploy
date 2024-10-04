@@ -46,7 +46,7 @@ export const createRedirect = async (
 
 			const application = await findApplicationById(redirect.applicationId);
 
-			createRedirectMiddleware(application.appName, redirect);
+			createRedirectMiddleware(application, redirect);
 		});
 
 		return true;
@@ -77,7 +77,7 @@ export const removeRedirectById = async (redirectId: string) => {
 
 		const application = await findApplicationById(response.applicationId);
 
-		removeRedirectMiddleware(application.appName, response);
+		await removeRedirectMiddleware(application, response);
 
 		return response;
 	} catch (error) {
@@ -111,7 +111,7 @@ export const updateRedirectById = async (
 		}
 		const application = await findApplicationById(redirect.applicationId);
 
-		updateRedirectMiddleware(application.appName, redirect);
+		await updateRedirectMiddleware(application, redirect);
 
 		return redirect;
 	} catch (error) {

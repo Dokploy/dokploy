@@ -1,11 +1,22 @@
-import { execAsync } from "@/server/utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
 
-export const getContainers = async () => {
+export const getContainers = async (serverId?: string | null) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | Image: {{.Image}} | Ports: {{.Ports}} | State: {{.State}} | Status: {{.Status}}'",
-		);
+		const command =
+			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | Image: {{.Image}} | Ports: {{.Ports}} | State: {{.State}} | Status: {{.Status}}'";
+		let stdout = "";
+		let stderr = "";
 
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
 			return;
@@ -41,19 +52,36 @@ export const getContainers = async () => {
 					ports,
 					state,
 					status,
+					serverId,
 				};
 			})
 			.filter((container) => !container.name.includes("dokploy"));
 
 		return containers;
-	} catch (error) {}
+	} catch (error) {
+		console.error(error);
+
+		return [];
+	}
 };
 
-export const getConfig = async (containerId: string) => {
+export const getConfig = async (
+	containerId: string,
+	serverId?: string | null,
+) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker inspect ${containerId} --format='{{json .}}'`,
-		);
+		const command = `docker inspect ${containerId} --format='{{json .}}'`;
+		let stdout = "";
+		let stderr = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
@@ -69,25 +97,39 @@ export const getConfig = async (containerId: string) => {
 export const getContainersByAppNameMatch = async (
 	appName: string,
 	appType?: "stack" | "docker-compose",
+	serverId?: string,
 ) => {
 	try {
+		let result: string[] = [];
 		const cmd =
 			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'";
 
-		const { stdout, stderr } = await execAsync(
+		const command =
 			appType === "docker-compose"
 				? `${cmd} --filter='label=com.docker.compose.project=${appName}'`
-				: `${cmd} | grep ${appName}`,
-		);
+				: `${cmd} | grep ${appName}`;
+		if (serverId) {
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
-		if (stderr) {
-			return [];
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
 		}
 
-		if (!stdout) return [];
-
-		const lines = stdout.trim().split("\n");
-		const containers = lines.map((line) => {
+		const containers = result.map((line) => {
 			const parts = line.split(" | ");
 			const containerId = parts[0]
 				? parts[0].replace("CONTAINER ID : ", "").trim()
@@ -112,12 +154,24 @@ export const getContainersByAppNameMatch = async (
 	return [];
 };
 
-export const getContainersByAppLabel = async (appName: string) => {
+export const getContainersByAppLabel = async (
+	appName: string,
+	serverId?: string,
+) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker ps --filter "label=com.docker.swarm.service.name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`,
-		);
+		let stdout = "";
+		let stderr = "";
 
+		const command = `docker ps --filter "label=com.docker.swarm.service.name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`;
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
 			return;

@@ -17,6 +17,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -34,12 +35,14 @@ const Terminal = dynamic(
 interface Props {
 	appName: string;
 	children?: React.ReactNode;
+	serverId?: string;
 }
 
-export const DockerTerminalModal = ({ children, appName }: Props) => {
-	const { data } = api.docker.getContainersByAppNameMatch.useQuery(
+export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
+	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
+			serverId,
 		},
 		{
 			enabled: !!appName,
@@ -65,7 +68,14 @@ export const DockerTerminalModal = ({ children, appName }: Props) => {
 				<Label>Select a container to view logs</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
-						<SelectValue placeholder="Select a container" />
+						{isLoading ? (
+							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+								<span>Loading...</span>
+								<Loader2 className="animate-spin size-4" />
+							</div>
+						) : (
+							<SelectValue placeholder="Select a container" />
+						)}
 					</SelectTrigger>
 					<SelectContent>
 						<SelectGroup>
@@ -82,6 +92,7 @@ export const DockerTerminalModal = ({ children, appName }: Props) => {
 					</SelectContent>
 				</Select>
 				<Terminal
+					serverId={serverId || ""}
 					id="terminal"
 					containerId={containerId || "select-a-container"}
 				/>

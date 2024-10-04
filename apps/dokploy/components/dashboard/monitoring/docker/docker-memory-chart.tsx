@@ -23,7 +23,7 @@ export const DockerMemoryChart = ({
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,
-			usage: (item.value.used / 1024).toFixed(2),
+			usage: (item.value.used / 1024 ** 3).toFixed(2),
 		};
 	});
 	return (

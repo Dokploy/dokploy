@@ -1,4 +1,5 @@
 import { findAdmin } from "@/server/api/services/admin";
+import { getAllServers } from "@/server/api/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import {
@@ -25,6 +26,22 @@ export const initCronJobs = async () => {
 			await cleanUpDockerBuilder();
 			await cleanUpSystemPrune();
 		});
+	}
+
+	const servers = await getAllServers();
+
+	for (const server of servers) {
+		const { appName, serverId } = server;
+		if (serverId) {
+			scheduleJob(serverId, "0 0 * * *", async () => {
+				console.log(
+					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
+				);
+				await cleanUpUnusedImages(serverId);
+				await cleanUpDockerBuilder(serverId);
+				await cleanUpSystemPrune(serverId);
+			});
+		}
 	}
 
 	const pgs = await db.query.postgres.findMany({

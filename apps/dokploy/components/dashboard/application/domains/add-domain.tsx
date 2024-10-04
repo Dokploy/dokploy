@@ -18,7 +18,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -140,7 +140,7 @@ export const AddDomain = ({
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
@@ -175,6 +175,7 @@ export const AddDomain = ({
 																onClick={() => {
 																	generateDomain({
 																		appName: application?.appName || "",
+																		serverId: application?.serverId || "",
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -227,19 +228,36 @@ export const AddDomain = ({
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
 												<FormControl>
-													<Input
-														placeholder={"3000"}
-														{...field}
-														onChange={(e) => {
-															field.onChange(Number.parseInt(e.target.value));
-														}}
-													/>
+													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>
 										);
 									}}
 								/>
+
+								<FormField
+									control={form.control}
+									name="https"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>HTTPS</FormLabel>
+												<FormDescription>
+													Automatically provision SSL Certificate.
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
 								{form.getValues().https && (
 									<FormField
 										control={form.control}
@@ -269,38 +287,12 @@ export const AddDomain = ({
 										)}
 									/>
 								)}
-
-								<FormField
-									control={form.control}
-									name="https"
-									render={({ field }) => (
-										<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
-												<FormDescription>
-													Automatically provision SSL Certificate.
-												</FormDescription>
-												<FormMessage />
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
 							</div>
 						</div>
 					</form>
 
 					<DialogFooter>
-						<Button
-							isLoading={form.formState.isSubmitting}
-							form="hook-form"
-							type="submit"
-						>
+						<Button isLoading={isLoading} form="hook-form" type="submit">
 							{dictionary.submit}
 						</Button>
 					</DialogFooter>

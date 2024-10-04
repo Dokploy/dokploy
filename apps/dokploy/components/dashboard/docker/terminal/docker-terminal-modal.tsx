@@ -18,10 +18,15 @@ const Terminal = dynamic(
 
 interface Props {
 	containerId: string;
+	serverId?: string;
 	children?: React.ReactNode;
 }
 
-export const DockerTerminalModal = ({ children, containerId }: Props) => {
+export const DockerTerminalModal = ({
+	children,
+	containerId,
+	serverId,
+}: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -40,7 +45,11 @@ export const DockerTerminalModal = ({ children, containerId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 
-				<Terminal id="terminal" containerId={containerId} />
+				<Terminal
+					id="terminal"
+					containerId={containerId}
+					serverId={serverId || ""}
+				/>
 			</DialogContent>
 		</Dialog>
 	);

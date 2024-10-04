@@ -24,10 +24,13 @@ import {
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { unzipDrop } from "@/server/utils/builders/drop";
 import {
 	removeService,
 	startService,
+	startServiceRemote,
 	stopService,
+	stopServiceRemote,
 } from "@/server/utils/docker/utils";
 import {
 	removeDirectoryCode,
@@ -35,10 +38,13 @@ import {
 } from "@/server/utils/filesystem/directory";
 import {
 	readConfig,
+	readRemoteConfig,
 	removeTraefikConfig,
 	writeConfig,
+	writeConfigRemote,
 } from "@/server/utils/traefik/application";
 import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
+import { uploadFileSchema } from "@/utils/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -52,9 +58,6 @@ import {
 } from "../services/application";
 import { removeDeployments } from "../services/deployment";
 import { addNewService, checkServiceAccess } from "../services/user";
-
-import { unzipDrop } from "@/server/utils/builders/drop";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -96,9 +99,19 @@ export const applicationRouter = createTRPCRouter({
 	reload: protectedProcedure
 		.input(apiReloadApplication)
 		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+			const application = await findApplicationById(input.applicationId);
+			if (application.serverId) {
+				await stopServiceRemote(application.serverId, input.appName);
+			} else {
+				await stopService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
-			await startService(input.appName);
+
+			if (application.serverId) {
+				await startServiceRemote(application.serverId, input.appName);
+			} else {
+				await startService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 			return true;
 		}),
@@ -121,12 +134,19 @@ export const applicationRouter = createTRPCRouter({
 				.returning();
 
 			const cleanupOperations = [
-				async () => deleteAllMiddlewares(application),
+				async () => await deleteAllMiddlewares(application),
 				async () => await removeDeployments(application),
-				async () => await removeDirectoryCode(application?.appName),
-				async () => await removeMonitoringDirectory(application?.appName),
-				async () => await removeTraefikConfig(application?.appName),
-				async () => await removeService(application?.appName),
+				async () =>
+					await removeDirectoryCode(application.appName, application.serverId),
+				async () =>
+					await removeMonitoringDirectory(
+						application.appName,
+						application.serverId,
+					),
+				async () =>
+					await removeTraefikConfig(application.appName, application.serverId),
+				async () =>
+					await removeService(application?.appName, application.serverId),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -142,7 +162,11 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
 			const service = await findApplicationById(input.applicationId);
-			await stopService(service.appName);
+			if (service.serverId) {
+				await stopServiceRemote(service.serverId, service.appName);
+			} else {
+				await stopService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
 
 			return service;
@@ -152,8 +176,11 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
 			const service = await findApplicationById(input.applicationId);
-
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 
 			return service;
@@ -162,12 +189,14 @@ export const applicationRouter = createTRPCRouter({
 	redeploy: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input }) => {
+			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
 				descriptionLog: "",
 				type: "redeploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -306,13 +335,15 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -334,8 +365,15 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.query(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
-
-			const traefikConfig = readConfig(application.appName);
+			let traefikConfig = null;
+			if (application.serverId) {
+				traefikConfig = await readRemoteConfig(
+					application.serverId,
+					application.appName,
+				);
+			} else {
+				traefikConfig = readConfig(application.appName);
+			}
 			return traefikConfig;
 		}),
 
@@ -359,7 +397,7 @@ export const applicationRouter = createTRPCRouter({
 			});
 
 			const app = await findApplicationById(input.applicationId as string);
-			await unzipDrop(zipFile, app.appName);
+			await unzipDrop(zipFile, app);
 
 			const jobData: DeploymentJob = {
 				applicationId: app.applicationId,
@@ -367,6 +405,7 @@ export const applicationRouter = createTRPCRouter({
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!app.serverId,
 			};
 			await myQueue.add(
 				"deployments",
@@ -382,7 +421,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(z.object({ applicationId: z.string(), traefikConfig: z.string() }))
 		.mutation(async ({ input }) => {
 			const application = await findApplicationById(input.applicationId);
-			writeConfig(application.appName, input.traefikConfig);
+
+			if (application.serverId) {
+				await writeConfigRemote(
+					application.serverId,
+					application.appName,
+					input.traefikConfig,
+				);
+			} else {
+				writeConfig(application.appName, input.traefikConfig);
+			}
 			return true;
 		}),
 	readAppMonitoring: protectedProcedure

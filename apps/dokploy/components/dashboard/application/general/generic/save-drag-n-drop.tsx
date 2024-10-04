@@ -130,7 +130,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 						type="submit"
 						className="w-fit"
 						isLoading={isLoading}
-						disabled={!zip}
+						disabled={!zip || isLoading}
 					>
 						Deploy{" "}
 					</Button>

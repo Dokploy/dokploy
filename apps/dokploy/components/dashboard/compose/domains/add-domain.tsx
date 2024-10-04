@@ -18,7 +18,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -161,7 +161,7 @@ export const AddDomainCompose = ({
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
@@ -190,7 +190,7 @@ export const AddDomainCompose = ({
 										{errorServices?.message}
 									</AlertBlock>
 								)}
-								<div className="flex flex-row gap-4 w-full items-end">
+								<div className="flex flex-row items-end w-full gap-4">
 									<FormField
 										control={form.control}
 										name="serviceName"
@@ -310,6 +310,7 @@ export const AddDomainCompose = ({
 																isLoading={isLoadingGenerate}
 																onClick={() => {
 																	generateDomain({
+																		serverId: compose?.serverId || "",
 																		appName: compose?.appName || "",
 																	})
 																		.then((domain) => {
@@ -363,19 +364,36 @@ export const AddDomainCompose = ({
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
 												<FormControl>
-													<Input
-														placeholder={"3000"}
-														{...field}
-														onChange={(e) => {
-															field.onChange(Number.parseInt(e.target.value));
-														}}
-													/>
+													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>
 										);
 									}}
 								/>
+
+								<FormField
+									control={form.control}
+									name="https"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>HTTPS</FormLabel>
+												<FormDescription>
+													Automatically provision SSL Certificate.
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
 								{https && (
 									<FormField
 										control={form.control}
@@ -405,28 +423,6 @@ export const AddDomainCompose = ({
 										)}
 									/>
 								)}
-
-								<FormField
-									control={form.control}
-									name="https"
-									render={({ field }) => (
-										<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
-												<FormDescription>
-													Automatically provision SSL Certificate.
-												</FormDescription>
-												<FormMessage />
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
 							</div>
 						</div>
 					</form>

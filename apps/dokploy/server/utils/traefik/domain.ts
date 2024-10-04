@@ -3,14 +3,23 @@ import type { ApplicationNested } from "../builders";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
+	loadOrCreateConfigRemote,
 	removeTraefikConfig,
+	removeTraefikConfigRemote,
 	writeTraefikConfig,
+	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
-	const config: FileConfig = loadOrCreateConfig(appName);
+	let config: FileConfig;
+
+	if (app.serverId) {
+		config = await loadOrCreateConfigRemote(app.serverId, appName);
+	} else {
+		config = loadOrCreateConfig(appName);
+	}
 	const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
 	const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
 	const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
@@ -36,11 +45,26 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	}
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
-	writeTraefikConfig(config, appName);
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, appName, app.serverId);
+	} else {
+		writeTraefikConfig(config, appName);
+	}
 };
 
-export const removeDomain = async (appName: string, uniqueKey: number) => {
-	const config: FileConfig = loadOrCreateConfig(appName);
+export const removeDomain = async (
+	application: ApplicationNested,
+	uniqueKey: number,
+) => {
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		config = loadOrCreateConfig(appName);
+	}
 
 	const routerKey = `${appName}-router-${uniqueKey}`;
 	const routerSecureKey = `${appName}-router-websecure-${uniqueKey}`;
@@ -61,9 +85,17 @@ export const removeDomain = async (appName: string, uniqueKey: number) => {
 		config?.http?.routers &&
 		Object.keys(config?.http?.routers).length === 0
 	) {
-		await removeTraefikConfig(appName);
+		if (serverId) {
+			await removeTraefikConfigRemote(appName, serverId);
+		} else {
+			await removeTraefikConfig(appName);
+		}
 	} else {
-		writeTraefikConfig(config, appName);
+		if (serverId) {
+			await writeTraefikConfigRemote(config, appName, serverId);
+		} else {
+			writeTraefikConfig(config, appName);
+		}
 	}
 };
 

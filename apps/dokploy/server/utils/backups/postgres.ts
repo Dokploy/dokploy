@@ -1,12 +1,14 @@
-import { unlink } from "node:fs/promises";
 import path from "node:path";
 import type { BackupSchedule } from "@/server/api/services/backup";
 import type { Postgres } from "@/server/api/services/postgres";
 import { findProjectById } from "@/server/api/services/project";
-import { getServiceContainer } from "../docker/utils";
+import {
+	getRemoteServiceContainer,
+	getServiceContainer,
+} from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync } from "../process/execAsync";
-import { uploadToS3 } from "./utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getS3Credentials } from "./utils";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -19,20 +21,29 @@ export const runPostgresBackup = async (
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = path.join(prefix, backupFileName);
-	const containerPath = `/backup/${backupFileName}`;
-	const hostPath = `./${backupFileName}`;
 	try {
-		const { Id: containerId } = await getServiceContainer(appName);
+		const rcloneFlags = getS3Credentials(destination);
+		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
-		await execAsync(
-			`docker exec ${containerId} /bin/bash -c "rm -rf /backup && mkdir -p /backup"`,
-		);
-		await execAsync(
-			`docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password  '${database}' | gzip > ${containerPath}"`,
-		);
-		await execAsync(`docker cp ${containerId}:${containerPath} ${hostPath}`);
+		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		if (postgres.serverId) {
+			const { Id: containerId } = await getRemoteServiceContainer(
+				postgres.serverId,
+				appName,
+			);
+			const pgDumpCommand = `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
 
-		await uploadToS3(destination, bucketDestination, hostPath);
+			await execAsyncRemote(
+				postgres.serverId,
+				`${pgDumpCommand} | ${rcloneCommand}`,
+			);
+		} else {
+			const { Id: containerId } = await getServiceContainer(appName);
+
+			const pgDumpCommand = `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+			await execAsync(`${pgDumpCommand} | ${rcloneCommand}`);
+		}
+
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
@@ -51,7 +62,6 @@ export const runPostgresBackup = async (
 
 		throw error;
 	} finally {
-		await unlink(hostPath);
 	}
 };
 

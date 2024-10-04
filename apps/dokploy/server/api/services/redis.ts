@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+
 export type Redis = typeof redis.$inferSelect;
 
 // https://github.com/drizzle-team/drizzle-orm/discussions/1483#discussioncomment-7523881
@@ -53,6 +55,7 @@ export const findRedisById = async (redisId: string) => {
 		with: {
 			project: true,
 			mounts: true,
+			server: true,
 		},
 	});
 	if (!result) {
@@ -91,7 +94,12 @@ export const removeRedisById = async (redisId: string) => {
 export const deployRedis = async (redisId: string) => {
 	const redis = await findRedisById(redisId);
 	try {
-		await pullImage(redis.dockerImage);
+		if (redis.serverId) {
+			await execAsyncRemote(redis.serverId, `docker pull ${redis.dockerImage}`);
+		} else {
+			await pullImage(redis.dockerImage);
+		}
+
 		await buildRedis(redis);
 		await updateRedisById(redisId, {
 			applicationStatus: "done",

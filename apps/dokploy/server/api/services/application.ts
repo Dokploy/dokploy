@@ -1,27 +1,42 @@
 import { docker } from "@/server/constants";
 import { db } from "@/server/db";
-import {
-	type apiCreateApplication,
-	applications,
-	domains,
-} from "@/server/db/schema";
+import { type apiCreateApplication, applications } from "@/server/db/schema";
 import { generateAppName } from "@/server/db/schema/utils";
 import { getAdvancedStats } from "@/server/monitoring/utilts";
-import { buildApplication } from "@/server/utils/builders";
-import { buildDocker } from "@/server/utils/providers/docker";
-import { cloneGitRepository } from "@/server/utils/providers/git";
-import { cloneGithubRepository } from "@/server/utils/providers/github";
+import {
+	buildApplication,
+	getBuildCommand,
+	mechanizeDockerContainer,
+} from "@/server/utils/builders";
+import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
+import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
+import {
+	cloneBitbucketRepository,
+	getBitbucketCloneCommand,
+} from "@/server/utils/providers/bitbucket";
+import {
+	buildDocker,
+	buildRemoteDocker,
+} from "@/server/utils/providers/docker";
+import {
+	cloneGitRepository,
+	getCustomGitCloneCommand,
+} from "@/server/utils/providers/git";
+import {
+	cloneGithubRepository,
+	getGithubCloneCommand,
+} from "@/server/utils/providers/github";
+import {
+	cloneGitlabRepository,
+	getGitlabCloneCommand,
+} from "@/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { generatePassword } from "@/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { findAdmin, getDokployUrl } from "./admin";
+import { getDokployUrl } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
-
-import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
-import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
-import { cloneBitbucketRepository } from "@/server/utils/providers/bitbucket";
-import { cloneGitlabRepository } from "@/server/utils/providers/gitlab";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
@@ -80,6 +95,7 @@ export const findApplicationById = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			server: true,
 		},
 	});
 	if (!application) {
@@ -164,6 +180,7 @@ export const deployApplication = async ({
 		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
 		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
@@ -228,6 +245,122 @@ export const rebuildApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
+		}
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateApplicationStatus(applicationId, "done");
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateApplicationStatus(applicationId, "error");
+		throw error;
+	}
+
+	return true;
+};
+
+export const deployRemoteApplication = async ({
+	applicationId,
+	titleLog = "Manual deployment",
+	descriptionLog = "",
+}: {
+	applicationId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const deployment = await createDeployment({
+		applicationId: applicationId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (application.serverId) {
+			let command = "set -e;";
+			if (application.sourceType === "github") {
+				command += await getGithubCloneCommand(application, deployment.logPath);
+			} else if (application.sourceType === "gitlab") {
+				command += await getGitlabCloneCommand(application, deployment.logPath);
+			} else if (application.sourceType === "bitbucket") {
+				command += await getBitbucketCloneCommand(
+					application,
+					deployment.logPath,
+				);
+			} else if (application.sourceType === "git") {
+				command += await getCustomGitCloneCommand(
+					application,
+					deployment.logPath,
+				);
+			} else if (application.sourceType === "docker") {
+				command += await buildRemoteDocker(application, deployment.logPath);
+			}
+
+			if (application.sourceType !== "docker") {
+				command += getBuildCommand(application, deployment.logPath);
+			}
+			await execAsyncRemote(application.serverId, command);
+			await mechanizeDockerContainer(application);
+		}
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
+		await updateApplicationStatus(applicationId, "done");
+
+		await sendBuildSuccessNotifications({
+			projectName: application.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			buildLink,
+		});
+	} catch (error) {
+		await updateDeploymentStatus(deployment.deploymentId, "error");
+		await updateApplicationStatus(applicationId, "error");
+		await sendBuildErrorNotifications({
+			projectName: application.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			// @ts-ignore
+			errorMessage: error?.message || "Error to build",
+			buildLink,
+		});
+
+		console.log(
+			"Error on ",
+			application.buildType,
+			"/",
+			application.sourceType,
+			error,
+		);
+
+		throw error;
+	}
+
+	return true;
+};
+
+export const rebuildRemoteApplication = async ({
+	applicationId,
+	titleLog = "Rebuild deployment",
+	descriptionLog = "",
+}: {
+	applicationId: string;
+	titleLog: string;
+	descriptionLog: string;
+}) => {
+	const application = await findApplicationById(applicationId);
+	const deployment = await createDeployment({
+		applicationId: applicationId,
+		title: titleLog,
+		description: descriptionLog,
+	});
+
+	try {
+		if (application.serverId) {
+			if (application.sourceType !== "docker") {
+				let command = "set -e;";
+				command += getBuildCommand(application, deployment.logPath);
+				await execAsyncRemote(application.serverId, command);
+			}
+			await mechanizeDockerContainer(application);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");

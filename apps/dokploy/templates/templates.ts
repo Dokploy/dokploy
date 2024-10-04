@@ -525,5 +525,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "open-source", "analytics"],
 		load: () => import("./erpnext/index").then((m) => m.generate),
+  },
+  {
+		id: "roundcube",
+		name: "Roundcube",
+		version: "1.6.9",
+		description:
+			"Free and open source webmail software for the masses, written in PHP.",
+		logo: "roundcube.svg",
+		links: {
+			github: "https://github.com/roundcube/roundcubemail",
+			website: "https://roundcube.net/",
+			docs: "https://roundcube.net/about/",
+		},
+		tags: ["self-hosted", "email", "webmail"],
+		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
 ];

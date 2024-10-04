@@ -2,7 +2,9 @@ import http from "node:http";
 import { migration } from "@/server/db/migration";
 import { config } from "dotenv";
 import next from "next";
+// import { IS_CLOUD } from "./constants";
 import { deploymentWorker } from "./queues/deployments-queue";
+// import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDirectories } from "./setup/config-paths";
 import { initializePostgres } from "./setup/postgres-setup";
 import { initializeRedis } from "./setup/redis-setup";
@@ -45,12 +47,15 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production") {
 			setupDirectories();
 			createDefaultMiddlewares();
+			setupDirectories();
+			createDefaultMiddlewares();
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
 			await initializePostgres();
 			await initializeTraefik();
 			await initializeRedis();
+
 			initCronJobs();
 			welcomeServer();
 

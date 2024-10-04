@@ -36,7 +36,10 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						) : (
 							<StopMariadb mariadbId={mariadbId} />
 						)}
-						<DockerTerminalModal appName={data?.appName || ""}>
+						<DockerTerminalModal
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						>
 							<Button variant="outline">
 								<Terminal />
 								Open Terminal

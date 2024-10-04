@@ -1,4 +1,3 @@
-import { generatePassword } from "@/templates/utils";
 import { relations } from "drizzle-orm";
 import { integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -6,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { mounts } from "./mount";
 import { projects } from "./project";
+import { server } from "./server";
 import { applicationStatus } from "./shared";
 import { generateAppName } from "./utils";
 
@@ -38,6 +38,9 @@ export const redis = pgTable("redis", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
@@ -46,6 +49,10 @@ export const redisRelations = relations(redis, ({ one, many }) => ({
 		references: [projects.projectId],
 	}),
 	mounts: many(mounts),
+	server: one(server, {
+		fields: [redis.serverId],
+		references: [server.serverId],
+	}),
 }));
 
 const createSchema = createInsertSchema(redis, {
@@ -65,6 +72,7 @@ const createSchema = createInsertSchema(redis, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
+	serverId: z.string().optional(),
 });
 
 export const apiCreateRedis = createSchema
@@ -75,6 +83,7 @@ export const apiCreateRedis = createSchema
 		dockerImage: true,
 		projectId: true,
 		description: true,
+		serverId: true,
 	})
 	.required();
 
@@ -118,6 +127,9 @@ export const apiResetRedis = createSchema
 	})
 	.required();
 
-export const apiUpdateRedis = createSchema.partial().extend({
-	redisId: z.string().min(1),
-});
+export const apiUpdateRedis = createSchema
+	.partial()
+	.extend({
+		redisId: z.string().min(1),
+	})
+	.omit({ serverId: true });

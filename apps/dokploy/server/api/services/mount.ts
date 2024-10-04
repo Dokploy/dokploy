@@ -1,14 +1,14 @@
-import { rmdir, stat, unlink } from "node:fs/promises";
-import path, { join } from "node:path";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import path from "node:path";
+import { paths } from "@/server/constants";
 import { db } from "@/server/db";
 import {
 	type ServiceType,
 	type apiCreateMount,
 	mounts,
 } from "@/server/db/schema";
-import { createFile } from "@/server/utils/docker/utils";
+import { createFile, getCreateFileCommand } from "@/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@/server/utils/filesystem/directory";
+import { execAsyncRemote } from "@/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { type SQL, eq, sql } from "drizzle-orm";
 
@@ -71,7 +71,19 @@ export const createFileMount = async (mountId: string) => {
 	try {
 		const mount = await findMountById(mountId);
 		const baseFilePath = await getBaseFilesPath(mountId);
-		await createFile(baseFilePath, mount.filePath || "", mount.content || "");
+
+		const serverId = await getServerId(mount);
+
+		if (serverId) {
+			const command = getCreateFileCommand(
+				baseFilePath,
+				mount.filePath || "",
+				mount.content || "",
+			);
+			await execAsyncRemote(serverId, command);
+		} else {
+			await createFile(baseFilePath, mount.filePath || "", mount.content || "");
+		}
 	} catch (error) {
 		console.log(`Error to create the file mount: ${error}`);
 		throw new TRPCError({
@@ -186,36 +198,83 @@ export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
+
 	const fullPath = path.join(basePath, mount.filePath);
 	try {
-		await removeFileOrDirectory(fullPath);
+		const serverId = await getServerId(mount);
+		if (serverId) {
+			const command = `rm -rf ${fullPath}`;
+			await execAsyncRemote(serverId, command);
+		} else {
+			await removeFileOrDirectory(fullPath);
+		}
 	} catch (error) {}
 };
 
 export const getBaseFilesPath = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 
-	let absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+	let absoluteBasePath = "";
 	let appName = "";
 	let directoryPath = "";
 
 	if (mount.serviceType === "application" && mount.application) {
+		const { APPLICATIONS_PATH } = paths(!!mount.application.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.application.appName;
 	} else if (mount.serviceType === "postgres" && mount.postgres) {
+		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.postgres.appName;
 	} else if (mount.serviceType === "mariadb" && mount.mariadb) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mariadb.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mariadb.appName;
 	} else if (mount.serviceType === "mongo" && mount.mongo) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mongo.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mongo.appName;
 	} else if (mount.serviceType === "mysql" && mount.mysql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mysql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mysql.appName;
 	} else if (mount.serviceType === "redis" && mount.redis) {
+		const { APPLICATIONS_PATH } = paths(!!mount.redis.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.redis.appName;
 	} else if (mount.serviceType === "compose" && mount.compose) {
+		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
 		appName = mount.compose.appName;
 		absoluteBasePath = path.resolve(COMPOSE_PATH);
 	}
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
 	return directoryPath;
+};
+
+type MountNested = Awaited<ReturnType<typeof findMountById>>;
+export const getServerId = async (mount: MountNested) => {
+	if (mount.serviceType === "application" && mount?.application?.serverId) {
+		return mount.application.serverId;
+	}
+	if (mount.serviceType === "postgres" && mount?.postgres?.serverId) {
+		return mount.postgres.serverId;
+	}
+	if (mount.serviceType === "mariadb" && mount?.mariadb?.serverId) {
+		return mount.mariadb.serverId;
+	}
+	if (mount.serviceType === "mongo" && mount?.mongo?.serverId) {
+		return mount.mongo.serverId;
+	}
+	if (mount.serviceType === "mysql" && mount?.mysql?.serverId) {
+		return mount.mysql.serverId;
+	}
+	if (mount.serviceType === "redis" && mount?.redis?.serverId) {
+		return mount.redis.serverId;
+	}
+	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
+		return mount.compose.serverId;
+	}
+
+	return null;
 };

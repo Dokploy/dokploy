@@ -6,11 +6,12 @@ import {
 	findGitlabById,
 	updateGitlab,
 } from "@/server/api/services/gitlab";
-import { APPLICATIONS_PATH, COMPOSE_PATH } from "@/server/constants";
+import { paths } from "@/server/constants";
 import type { apiGitlabTestConnection } from "@/server/db/schema";
 import type { InferResultType } from "@/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
+import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
@@ -118,6 +119,8 @@ export const cloneGitlabRepository = async (
 			message: "Error: GitLab repository information is incomplete.",
 		});
 	}
+
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -151,6 +154,85 @@ export const cloneGitlabRepository = async (
 	} finally {
 		writeStream.end();
 	}
+};
+
+export const getGitlabCloneCommand = async (
+	entity: ApplicationWithGitlab | ComposeWithGitlab,
+	logPath: string,
+	isCompose = false,
+) => {
+	const {
+		appName,
+		gitlabRepository,
+		gitlabOwner,
+		gitlabPathNamespace,
+		gitlabBranch,
+		gitlabId,
+		serverId,
+		gitlab,
+	} = entity;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
+	if (!gitlabId) {
+		const command = `
+			echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
+			exit 1;
+		`;
+
+		await execAsyncRemote(serverId, command);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitlab Provider not found",
+		});
+	}
+
+	const requirements = getErrorCloneRequirements(entity);
+
+	// Build log messages
+	let logMessages = "";
+	if (requirements.length > 0) {
+		logMessages += `\nGitLab Repository configuration failed for application: ${appName}\n`;
+		logMessages += "Reasons:\n";
+		logMessages += requirements.join("\n");
+		const escapedLogMessages = logMessages
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\n/g, "\\n");
+
+		const bashCommand = `
+            echo "${escapedLogMessages}" >> ${logPath};
+            exit 1;  # Exit with error code
+        `;
+
+		await execAsyncRemote(serverId, bashCommand);
+		return;
+	}
+
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
+	await refreshGitlabToken(gitlabId);
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
+
+	const cloneCommand = `
+rm -rf ${outputPath};
+mkdir -p ${outputPath};
+if ! git clone --branch ${gitlabBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+	exit 1;
+fi
+echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+	`;
+
+	return cloneCommand;
 };
 
 export const getGitlabRepositories = async (gitlabId?: string) => {
@@ -264,7 +346,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	}
 
 	const gitlabProvider = await findGitlabById(gitlabId);
-
+	const { COMPOSE_PATH } = paths();
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
@@ -283,6 +365,39 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 			outputPath,
 			"--progress",
 		]);
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
+	const { appName, gitlabPathNamespace, branch, gitlabId, serverId } = compose;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+	if (!gitlabId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitlab Provider not found",
+		});
+	}
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const { COMPOSE_PATH } = paths(true);
+	await refreshGitlabToken(gitlabId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
+	try {
+		const command = `
+			rm -rf ${outputPath};
+			git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}
+		`;
+		await execAsyncRemote(serverId, command);
 	} catch (error) {
 		throw error;
 	}
