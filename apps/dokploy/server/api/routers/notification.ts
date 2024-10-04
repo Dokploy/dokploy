@@ -21,7 +21,7 @@ import {
 	notifications,
 } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
 	createDiscordNotification,
 	createEmailNotification,
@@ -39,14 +39,14 @@ import {
 	sendTelegramNotification,
 } from "@dokploy/builders";
 
+// TODO: Uncomment the validations when is cloud ready
 export const notificationRouter = createTRPCRouter({
 	createSlack: adminProcedure
 		.input(apiCreateSlack)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createSlackNotification(input);
+				return await createSlackNotification(input, ctx.user.adminId);
 			} catch (error) {
-				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to create the notification",
@@ -56,15 +56,21 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	updateSlack: adminProcedure
 		.input(apiUpdateSlack)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await updateSlackNotification(input);
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to update the notification",
-					cause: error,
+				const notification = await findNotificationById(input.notificationId);
+				// if (notification.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not authorized to update this notification",
+				// 	});
+				// }
+				return await updateSlackNotification({
+					...input,
+					adminId: ctx.user.adminId,
 				});
+			} catch (error) {
+				throw error;
 			}
 		}),
 	testSlackConnection: adminProcedure
@@ -86,9 +92,9 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	createTelegram: adminProcedure
 		.input(apiCreateTelegram)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createTelegramNotification(input);
+				return await createTelegramNotification(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -100,9 +106,19 @@ export const notificationRouter = createTRPCRouter({
 
 	updateTelegram: adminProcedure
 		.input(apiUpdateTelegram)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await updateTelegramNotification(input);
+				const notification = await findNotificationById(input.notificationId);
+				// if (notification.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not authorized to update this notification",
+				// 	});
+				// }
+				return await updateTelegramNotification({
+					...input,
+					adminId: ctx.user.adminId,
+				});
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -127,7 +143,7 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	createDiscord: adminProcedure
 		.input(apiCreateDiscord)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				// go to your discord server
 				// go to settings
@@ -135,7 +151,7 @@ export const notificationRouter = createTRPCRouter({
 				// add a new integration
 				// select webhook
 				// copy the webhook url
-				return await createDiscordNotification(input);
+				return await createDiscordNotification(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -147,9 +163,19 @@ export const notificationRouter = createTRPCRouter({
 
 	updateDiscord: adminProcedure
 		.input(apiUpdateDiscord)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await updateDiscordNotification(input);
+				const notification = await findNotificationById(input.notificationId);
+				// if (notification.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not authorized to update this notification",
+				// 	});
+				// }
+				return await updateDiscordNotification({
+					...input,
+					adminId: ctx.user.adminId,
+				});
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -178,11 +204,10 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	createEmail: adminProcedure
 		.input(apiCreateEmail)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createEmailNotification(input);
+				return await createEmailNotification(input, ctx.user.adminId);
 			} catch (error) {
-				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to create the notification",
@@ -192,9 +217,19 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	updateEmail: adminProcedure
 		.input(apiUpdateEmail)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await updateEmailNotification(input);
+				const notification = await findNotificationById(input.notificationId);
+				// if (notification.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not authorized to update this notification",
+				// 	});
+				// }
+				return await updateEmailNotification({
+					...input,
+					adminId: ctx.user.adminId,
+				});
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -223,8 +258,15 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	remove: adminProcedure
 		.input(apiFindOneNotification)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const notification = await findNotificationById(input.notificationId);
+				// if (notification.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not authorized to delete this notification",
+				// 	});
+				// }
 				return await removeNotificationById(input.notificationId);
 			} catch (error) {
 				throw new TRPCError({
@@ -235,11 +277,17 @@ export const notificationRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneNotification)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
+			// if (notification.adminId !== ctx.user.adminId) {
+			// 	throw new TRPCError({
+			// 		code: "UNAUTHORIZED",
+			// 		message: "You are not authorized to access this notification",
+			// 	});
+			// }
 			return notification;
 		}),
-	all: adminProcedure.query(async () => {
+	all: adminProcedure.query(async ({ ctx }) => {
 		return await db.query.notifications.findMany({
 			with: {
 				slack: true,
@@ -248,6 +296,7 @@ export const notificationRouter = createTRPCRouter({
 				email: true,
 			},
 			orderBy: desc(notifications.createdAt),
+			// where: eq(notifications.adminId, ctx.user.adminId),
 		});
 	}),
 });

@@ -1,20 +1,19 @@
 import { db } from "@/server/db";
 import { type apiCreateDestination, destinations } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { findAdmin } from "./admin";
+import { and, eq } from "drizzle-orm";
 
 export type Destination = typeof destinations.$inferSelect;
 
 export const createDestintation = async (
 	input: typeof apiCreateDestination._type,
+	adminId: string,
 ) => {
-	const adminResponse = await findAdmin();
 	const newDestination = await db
 		.insert(destinations)
 		.values({
 			...input,
-			adminId: adminResponse.adminId,
+			adminId: adminId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -31,7 +30,7 @@ export const createDestintation = async (
 
 export const findDestinationById = async (destinationId: string) => {
 	const destination = await db.query.destinations.findFirst({
-		where: eq(destinations.destinationId, destinationId),
+		where: and(eq(destinations.destinationId, destinationId)),
 	});
 	if (!destination) {
 		throw new TRPCError({
@@ -42,10 +41,18 @@ export const findDestinationById = async (destinationId: string) => {
 	return destination;
 };
 
-export const removeDestinationById = async (destinationId: string) => {
+export const removeDestinationById = async (
+	destinationId: string,
+	adminId: string,
+) => {
 	const result = await db
 		.delete(destinations)
-		.where(eq(destinations.destinationId, destinationId))
+		.where(
+			and(
+				eq(destinations.destinationId, destinationId),
+				eq(destinations.adminId, adminId),
+			),
+		)
 		.returning();
 
 	return result[0];
@@ -60,7 +67,12 @@ export const updateDestinationById = async (
 		.set({
 			...destinationData,
 		})
-		.where(eq(destinations.destinationId, destinationId))
+		.where(
+			and(
+				eq(destinations.destinationId, destinationId),
+				eq(destinations.adminId, destinationData.adminId || ""),
+			),
+		)
 		.returning();
 
 	return result[0];

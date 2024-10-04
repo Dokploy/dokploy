@@ -23,9 +23,9 @@ import {
 export const gitlabRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateGitlab)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitlab(input);
+				return await createGitlab(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -83,13 +83,16 @@ export const gitlabRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateGitlab)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
+					adminId: ctx.user.adminId,
 				});
 			} else {
-				await updateGitlab(input.gitlabId, input);
+				await updateGitlab(input.gitlabId, {
+					...input,
+				});
 			}
 		}),
 });

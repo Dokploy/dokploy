@@ -21,6 +21,7 @@ export type Notification = typeof notifications.$inferSelect;
 
 export const createSlackNotification = async (
 	input: typeof apiCreateSlack._type,
+	adminId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newSlack = await tx
@@ -50,6 +51,7 @@ export const createSlackNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "slack",
+				adminId: adminId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -78,6 +80,7 @@ export const updateSlackNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				adminId: input.adminId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -106,6 +109,7 @@ export const updateSlackNotification = async (
 
 export const createTelegramNotification = async (
 	input: typeof apiCreateTelegram._type,
+	adminId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newTelegram = await tx
@@ -135,6 +139,7 @@ export const createTelegramNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "telegram",
+				adminId: adminId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -163,6 +168,7 @@ export const updateTelegramNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				adminId: input.adminId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -191,6 +197,7 @@ export const updateTelegramNotification = async (
 
 export const createDiscordNotification = async (
 	input: typeof apiCreateDiscord._type,
+	adminId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDiscord = await tx
@@ -219,6 +226,7 @@ export const createDiscordNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "discord",
+				adminId: adminId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -247,6 +255,7 @@ export const updateDiscordNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				adminId: input.adminId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -274,6 +283,7 @@ export const updateDiscordNotification = async (
 
 export const createEmailNotification = async (
 	input: typeof apiCreateEmail._type,
+	adminId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newEmail = await tx
@@ -307,6 +317,7 @@ export const createEmailNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "email",
+				adminId: adminId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -335,6 +346,7 @@ export const updateEmailNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				adminId: input.adminId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()

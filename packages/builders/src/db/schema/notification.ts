@@ -3,6 +3,7 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { admins } from "./admin";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -36,6 +37,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	emailId: text("emailId").references(() => email.emailId, {
+		onDelete: "cascade",
+	}),
+	adminId: text("adminId").references(() => admins.adminId, {
 		onDelete: "cascade",
 	}),
 });
@@ -96,6 +100,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.emailId],
 		references: [email.emailId],
 	}),
+	admin: one(admins, {
+		fields: [notifications.adminId],
+		references: [admins.adminId],
+	}),
 }));
 
 export const notificationsSchema = createInsertSchema(notifications);
@@ -118,6 +126,7 @@ export const apiCreateSlack = notificationsSchema
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
+	adminId: z.string().optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -143,6 +152,7 @@ export const apiCreateTelegram = notificationsSchema
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
+	adminId: z.string().optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
@@ -167,6 +177,7 @@ export const apiCreateDiscord = notificationsSchema
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
+	adminId: z.string().optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord.pick({
@@ -195,6 +206,7 @@ export const apiCreateEmail = notificationsSchema
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
+	adminId: z.string().optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({

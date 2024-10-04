@@ -15,9 +15,18 @@ import {
 } from "@dokploy/builders";
 
 export const githubRouter = createTRPCRouter({
-	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {
-		return await findGithubById(input.githubId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGithub)
+		.query(async ({ input, ctx }) => {
+			const githubProvider = await findGithubById(input.githubId);
+			// if (githubProvider.gitProvider.adminId !== ctx.user.adminId) { //TODO: Remove this line when the cloud version is ready
+			// 	throw new TRPCError({
+			// 		code: "UNAUTHORIZED",
+			// 		message: "You are not allowed to access this github provider",
+			// 	});
+			// }
+			return githubProvider;
+		}),
 	getGithubRepositories: protectedProcedure
 		.input(apiFindOneGithub)
 		.query(async ({ input }) => {
@@ -64,9 +73,17 @@ export const githubRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateGithub)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const githubProvider = await findGithubById(input.githubId);
+			// if (githubProvider.gitProvider.adminId !== ctx.user.adminId) { //TODO: Remove this line when the cloud version is ready
+			// 	throw new TRPCError({
+			// 		code: "UNAUTHORIZED",
+			// 		message: "You are not allowed to access this github provider",
+			// 	});
+			// }
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
+				adminId: ctx.user.adminId,
 			});
 		}),
 });

@@ -20,9 +20,9 @@ import { TRPCError } from "@trpc/server";
 export const bitbucketRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBitbucket)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createBitbucket(input);
+				return await createBitbucket(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -74,7 +74,10 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateBitbucket)
-		.mutation(async ({ input }) => {
-			return await updateBitbucket(input.bitbucketId, input);
+		.mutation(async ({ input, ctx }) => {
+			return await updateBitbucket(input.bitbucketId, {
+				...input,
+				adminId: ctx.user.adminId,
+			});
 		}),
 });

@@ -16,7 +16,6 @@ import {
 	removeSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/builders";
-import { eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -37,24 +36,38 @@ export const sshRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveSshKey)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const sshKey = await findSSHKeyById(input.sshKeyId);
+				// if (sshKey.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not allowed to delete this ssh key",
+				// 	});
+				// }
 				return await removeSSHKeyById(input.sshKeyId);
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to delete this ssh key",
-				});
+				throw error;
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneSshKey).query(async ({ input }) => {
-		const sshKey = await findSSHKeyById(input.sshKeyId);
-		return sshKey;
-	}),
+	one: protectedProcedure
+		.input(apiFindOneSshKey)
+		.query(async ({ input, ctx }) => {
+			const sshKey = await findSSHKeyById(input.sshKeyId);
+
+			if (sshKey.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this ssh key",
+				});
+			}
+			return sshKey;
+		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		return await db.query.sshKeys.findMany({
-			where: eq(sshKeys.adminId, ctx.user.adminId),
-		});
+		return await db.query.sshKeys.findMany({});
+		// return await db.query.sshKeys.findMany({
+		// 	where: eq(sshKeys.adminId, ctx.user.adminId),
+		// }); // TODO: Remove this line when the cloud version is ready
 	}),
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)
@@ -63,8 +76,15 @@ export const sshRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateSshKey)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const sshKey = await findSSHKeyById(input.sshKeyId);
+				// if (sshKey.adminId !== ctx.user.adminId) {
+				// 	throw new TRPCError({
+				// 		code: "UNAUTHORIZED",
+				// 		message: "You are not allowed to update this ssh key",
+				// 	});
+				// }
 				return await updateSSHKeyById(input);
 			} catch (error) {
 				throw new TRPCError({
