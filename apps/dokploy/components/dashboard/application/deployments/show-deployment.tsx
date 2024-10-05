@@ -16,6 +16,7 @@ interface Props {
 export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	const [data, setData] = useState("");
 	const endOfLogsRef = useRef<HTMLDivElement>(null);
+	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
 	useEffect(() => {
 		if (!open || !logPath) return;
@@ -24,12 +25,25 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 
 		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
 		const ws = new WebSocket(wsUrl);
+		wsRef.current = ws; // Store WebSocket instance in ref
 
 		ws.onmessage = (e) => {
 			setData((currentData) => currentData + e.data);
 		};
 
-		return () => ws.close();
+		ws.onerror = (error) => {
+			console.error("WebSocket error: ", error);
+		};
+
+		ws.onclose = () => {
+			console.log("WebSocket connection closed");
+			wsRef.current = null; // Clear reference on close
+		};
+
+		return () => {
+			ws.close();
+			wsRef.current = null;
+		};
 	}, [logPath, open]);
 
 	const scrollToBottom = () => {
@@ -46,6 +60,11 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 			onOpenChange={(e) => {
 				onClose();
 				if (!e) setData("");
+
+				if (!e && wsRef.current) {
+					wsRef.current.close(); // Close WebSocket when modal closes
+					setData("");
+				}
 			}}
 		>
 			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
