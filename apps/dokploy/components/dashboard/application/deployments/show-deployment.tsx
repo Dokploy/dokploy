@@ -21,6 +21,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	useEffect(() => {
 		if (!open || !logPath) return;
 
+		setData("");
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
@@ -61,13 +62,14 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 			open={open}
 			onOpenChange={(e) => {
 				onClose();
-				if (!e) setData("");
+				if (!e) {
+					setData("");
+				}
 
-				if (!e && wsRef.current) {
+				if (wsRef.current) {
 					if (wsRef.current.readyState === WebSocket.OPEN) {
 						wsRef.current.close();
 					}
-					setData("");
 				}
 			}}
 		>

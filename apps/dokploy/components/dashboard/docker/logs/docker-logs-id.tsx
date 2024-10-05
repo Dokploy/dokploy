@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Terminal } from "@xterm/xterm";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
@@ -18,8 +18,12 @@ export const DockerLogsId: React.FC<Props> = ({
 }) => {
 	const [term, setTerm] = React.useState<Terminal>();
 	const [lines, setLines] = React.useState<number>(40);
+	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
 	const createTerminal = (): Terminal => {
+		if (containerId === "select-a-containe") {
+			return new Terminal();
+		}
 		const container = document.getElementById(id);
 		if (container) {
 			container.innerHTML = "";
@@ -45,7 +49,7 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		const wsUrl = `${protocol}//${window.location.host}/docker-container-logs?containerId=${containerId}&tail=${lines}${serverId ? `&serverId=${serverId}` : ""}`;
 		const ws = new WebSocket(wsUrl);
-
+		wsRef.current = ws;
 		const fitAddon = new FitAddon();
 		termi.loadAddon(fitAddon);
 		// @ts-ignore
@@ -53,6 +57,10 @@ export const DockerLogsId: React.FC<Props> = ({
 		fitAddon.fit();
 		termi.focus();
 		setTerm(termi);
+
+		ws.onerror = (error) => {
+			console.error("WebSocket error: ", error);
+		};
 
 		ws.onmessage = (e) => {
 			termi.write(e.data);
@@ -62,12 +70,21 @@ export const DockerLogsId: React.FC<Props> = ({
 			console.log(e.reason);
 
 			termi.write(`Connection closed!\nReason: ${e.reason}\n`);
+			wsRef.current = null;
 		};
+
 		return termi;
 	};
 
 	useEffect(() => {
 		createTerminal();
+
+		return () => {
+			if (wsRef.current?.readyState === WebSocket.OPEN) {
+				wsRef.current.close();
+				wsRef.current = null;
+			}
+		};
 	}, [lines, containerId]);
 
 	useEffect(() => {
