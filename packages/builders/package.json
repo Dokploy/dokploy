@@ -48,6 +48,7 @@
 		"ssh2": "1.15.0"
 	},
 	"devDependencies": {
+		"tailwindcss": "^3.4.1",
 		"tsx": "^4.7.1",
 		"tsc-alias": "1.8.10",
 		"@types/adm-zip": "^0.5.5",

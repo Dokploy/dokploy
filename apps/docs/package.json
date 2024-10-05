@@ -24,7 +24,7 @@
 		"@types/mdx": "^2.0.13",
 		"@types/react": "^18.3.3",
 		"postcss": "^8.4.38",
-		"tailwindcss": "^3.4.4",
+		"tailwindcss": "^3.4.1",
 		"typescript": "^5.4.5"
 	}
 }
