@@ -9,6 +9,7 @@ import {
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
+import { db } from "@/server/db";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { dump, load } from "js-yaml";
@@ -56,7 +57,13 @@ import {
 	IS_CLOUD,
 } from "@dokploy/builders";
 import packageInfo from "../../../package.json";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../trpc";
+import { sql } from "drizzle-orm";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -589,5 +596,17 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	isCloud: adminProcedure.query(async () => {
 		return IS_CLOUD;
+	}),
+	health: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			try {
+				await db.execute(sql`SELECT 1`);
+				return { status: "ok" };
+			} catch (error) {
+				console.error("Database connection error:", error);
+				throw error;
+			}
+		}
+		return { status: "not_cloud" };
 	}),
 });
