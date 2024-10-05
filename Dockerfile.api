@@ -10,7 +10,7 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=@dokploy/builders --filter=./apps/api install --frozen-lockfile
 
 # Deploy only the dokploy app
 
