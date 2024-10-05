@@ -115,6 +115,7 @@
 		"ssh2": "1.15.0"
 	},
 	"devDependencies": {
+		"autoprefixer": "10.4.12",
 		"@types/adm-zip": "^0.5.5",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-yaml": "4.0.9",

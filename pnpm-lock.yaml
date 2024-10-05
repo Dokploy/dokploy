@@ -411,6 +411,9 @@ importers:
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
+      autoprefixer:
+        specifier: 10.4.12
+        version: 10.4.12(postcss@8.4.40)
       drizzle-kit:
         specifier: ^0.21.1
         version: 0.21.4
@@ -3913,6 +3916,13 @@ packages:
 
   autolinker@3.16.2:
     resolution: {integrity: sha512-JiYl7j2Z19F9NdTmirENSUUIIL/9MytEWtmzhfmsKPCp9E+G35Y0UNCMoM9tFigxT59qSc8Ml2dlZXOCVTYwuA==}
+
+  autoprefixer@10.4.12:
+    resolution: {integrity: sha512-WrCGV9/b97Pa+jtwf5UGaRjgQIg7OK3D06GnoYoZNcG1Xb8Gt3EfuKjlhh9i/VtT16g6PYjZ69jdJ2g8FxSC4Q==}
+    engines: {node: ^10 || ^12 || >=14}
+    hasBin: true
+    peerDependencies:
+      postcss: ^8.1.0
 
   autoprefixer@10.4.19:
     resolution: {integrity: sha512-BaENR2+zBZ8xXhM4pUaKUxlVdxZ0EZhjvbopwnXmxRUfqDmwSpC2lAi/QXvx7NRdPCo1WKEcEF6mV64si1z4Ew==}
@@ -11843,6 +11853,16 @@ snapshots:
   autolinker@3.16.2:
     dependencies:
       tslib: 2.6.3
+
+  autoprefixer@10.4.12(postcss@8.4.40):
+    dependencies:
+      browserslist: 4.23.2
+      caniuse-lite: 1.0.30001643
+      fraction.js: 4.3.7
+      normalize-range: 0.1.2
+      picocolors: 1.0.1
+      postcss: 8.4.40
+      postcss-value-parser: 4.2.0
 
   autoprefixer@10.4.19(postcss@8.4.40):
     dependencies:
