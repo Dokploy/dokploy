@@ -1,4 +1,4 @@
-import { findAdmin } from "@dokploy/builders";
+import { findAdmin, IS_CLOUD } from "@dokploy/builders";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
@@ -7,6 +7,7 @@ import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
+import { deploy } from "@/server/utils/deploy";
 
 export default async function handler(
 	req: NextApiRequest,
@@ -88,6 +89,12 @@ export default async function handler(
 				applicationType: "application",
 				server: !!app.serverId,
 			};
+
+			if (IS_CLOUD && app.serverId) {
+				jobData.serverId = app.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -115,6 +122,12 @@ export default async function handler(
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
 			};
+
+			if (IS_CLOUD && composeApp.serverId) {
+				jobData.serverId = composeApp.serverId;
+				await deploy(jobData);
+				return true;
+			}
 
 			await myQueue.add(
 				"deployments",

@@ -2,6 +2,8 @@ import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { IS_CLOUD } from "@dokploy/builders";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -89,6 +91,12 @@ export default async function handler(
 				applicationType: "application",
 				server: !!application.serverId,
 			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

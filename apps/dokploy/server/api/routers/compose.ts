@@ -64,6 +64,13 @@ export const composeRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newService = await createCompose(input);
 
 				if (ctx.user.rol === "user") {
@@ -278,7 +285,6 @@ export const composeRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
-
 				await deploy(jobData);
 				return true;
 			}

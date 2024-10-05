@@ -26,6 +26,7 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
+	findProjectById,
 } from "@dokploy/builders";
 
 export const mysqlRouter = createTRPCRouter({
@@ -35,6 +36,13 @@ export const mysqlRouter = createTRPCRouter({
 			try {
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				}
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
 				}
 
 				const newMysql = await createMysql(input);

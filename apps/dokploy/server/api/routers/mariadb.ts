@@ -24,6 +24,7 @@ import {
 	addNewService,
 	checkServiceAccess,
 	createMount,
+	findProjectById,
 } from "@dokploy/builders";
 
 export const mariadbRouter = createTRPCRouter({
@@ -35,6 +36,13 @@ export const mariadbRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newMariadb = await createMariadb(input);
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newMariadb.mariadbId);

@@ -24,6 +24,7 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
+	findProjectById,
 } from "@dokploy/builders";
 
 export const mongoRouter = createTRPCRouter({
@@ -35,6 +36,13 @@ export const mongoRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newMongo = await createMongo(input);
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newMongo.mongoId);

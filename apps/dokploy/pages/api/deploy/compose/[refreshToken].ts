@@ -9,6 +9,8 @@ import {
 	extractCommitMessage,
 	extractHash,
 } from "../[refreshToken]";
+import { IS_CLOUD } from "@dokploy/builders";
+import { deploy } from "@/server/utils/deploy";
 
 export default async function handler(
 	req: NextApiRequest,
@@ -65,6 +67,12 @@ export default async function handler(
 				descriptionLog: `Hash: ${deploymentHash}`,
 				server: !!composeResult.serverId,
 			};
+
+			if (IS_CLOUD && composeResult.serverId) {
+				jobData.serverId = composeResult.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

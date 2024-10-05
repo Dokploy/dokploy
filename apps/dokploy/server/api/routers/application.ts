@@ -48,6 +48,7 @@ import {
 	addNewService,
 	checkServiceAccess,
 	IS_CLOUD,
+	findProjectById,
 	// uploadFileSchema
 } from "@dokploy/builders";
 import { uploadFileSchema } from "@/utils/schema";
@@ -64,6 +65,14 @@ export const applicationRouter = createTRPCRouter({
 			try {
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				}
+
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
 				}
 				const newApplication = await createApplication(input);
 
@@ -545,7 +554,6 @@ export const applicationRouter = createTRPCRouter({
 			});
 
 			await unzipDrop(zipFile, app);
-
 			const jobData: DeploymentJob = {
 				applicationId: app.applicationId,
 				titleLog: "Manual deployment",
@@ -554,6 +562,12 @@ export const applicationRouter = createTRPCRouter({
 				applicationType: "application",
 				server: !!app.serverId,
 			};
+			if (IS_CLOUD && app.serverId) {
+				jobData.serverId = app.serverId;
+				await deploy(jobData);
+				return true;
+			}
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

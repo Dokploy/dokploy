@@ -27,6 +27,7 @@ import {
 	removeRedisById,
 	updateRedisById,
 	IS_CLOUD,
+	findProjectById,
 } from "@dokploy/builders";
 
 export const redisRouter = createTRPCRouter({
@@ -38,6 +39,13 @@ export const redisRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newRedis = await createRedis(input);
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newRedis.redisId);
