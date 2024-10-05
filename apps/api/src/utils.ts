@@ -59,20 +59,6 @@ export const deploy = async (job: DeployJob) => {
 						descriptionLog: job.descriptionLog,
 					});
 				}
-			} else {
-				if (job.type === "redeploy") {
-					await rebuildApplication({
-						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				} else if (job.type === "deploy") {
-					await deployApplication({
-						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				}
 			}
 		} else if (job.applicationType === "compose") {
 			await updateCompose(job.composeId, {
@@ -88,20 +74,6 @@ export const deploy = async (job: DeployJob) => {
 					});
 				} else if (job.type === "deploy") {
 					await deployRemoteCompose({
-						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				}
-			} else {
-				if (job.type === "deploy") {
-					await deployCompose({
-						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				} else if (job.type === "redeploy") {
-					await rebuildCompose({
 						composeId: job.composeId,
 						titleLog: job.titleLog,
 						descriptionLog: job.descriptionLog,
