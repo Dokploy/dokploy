@@ -104,7 +104,7 @@ export default function Home() {
 					className="flex flex-row items-center gap-2"
 				>
 					<Logo />
-					<span className="font-medium text-sm">Dokploy.</span>
+					<span className="font-medium text-sm">Dokploy</span>
 				</Link>
 				<CardTitle className="text-2xl font-bold">Sign in</CardTitle>
 				<CardDescription>

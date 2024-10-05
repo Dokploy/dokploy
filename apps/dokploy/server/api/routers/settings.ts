@@ -600,8 +600,9 @@ export const settingsRouter = createTRPCRouter({
 	health: publicProcedure.query(async () => {
 		if (IS_CLOUD) {
 			try {
-				await db.execute(sql`SELECT 1`);
-				return { status: "ok" };
+				// await db.execute(sql`SELECT 1`);
+				// return { status: "ok" };
+				throw new Error("Not implemented");
 			} catch (error) {
 				console.error("Database connection error:", error);
 				throw error;
@@ -610,3 +611,9 @@ export const settingsRouter = createTRPCRouter({
 		return { status: "not_cloud" };
 	}),
 });
+// {
+// 	"Parallelism": 1,
+// 	"Delay": 10000000000,
+// 	"FailureAction": "rollback",
+// 	"Order": "start-first"
+//   }
