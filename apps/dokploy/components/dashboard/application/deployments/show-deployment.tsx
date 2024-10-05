@@ -41,8 +41,10 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 		};
 
 		return () => {
-			ws.close();
-			wsRef.current = null;
+			if (wsRef.current?.readyState === WebSocket.OPEN) {
+				ws.close();
+				wsRef.current = null;
+			}
 		};
 	}, [logPath, open]);
 
@@ -62,7 +64,9 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 				if (!e) setData("");
 
 				if (!e && wsRef.current) {
-					wsRef.current.close(); // Close WebSocket when modal closes
+					if (wsRef.current.readyState === WebSocket.OPEN) {
+						wsRef.current.close();
+					}
 					setData("");
 				}
 			}}
