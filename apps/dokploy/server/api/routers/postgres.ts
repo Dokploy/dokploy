@@ -25,6 +25,7 @@ import {
 	removePostgresById,
 	updatePostgresById,
 	findProjectById,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 export const postgresRouter = createTRPCRouter({
@@ -34,6 +35,13 @@ export const postgresRouter = createTRPCRouter({
 			try {
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				}
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a postgres",
+					});
 				}
 
 				const project = await findProjectById(input.projectId);

@@ -67,6 +67,13 @@ export const applicationRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create an application",
+					});
+				}
+
 				const project = await findProjectById(input.projectId);
 				if (project.adminId !== ctx.user.adminId) {
 					throw new TRPCError({

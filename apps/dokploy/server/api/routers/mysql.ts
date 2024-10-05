@@ -27,6 +27,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	findProjectById,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 export const mysqlRouter = createTRPCRouter({
@@ -37,6 +38,14 @@ export const mysqlRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a mysql",
+					});
+				}
+				1;
 				const project = await findProjectById(input.projectId);
 				if (project.adminId !== ctx.user.adminId) {
 					throw new TRPCError({

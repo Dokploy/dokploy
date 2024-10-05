@@ -25,6 +25,7 @@ import {
 	checkServiceAccess,
 	createMount,
 	findProjectById,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 export const mariadbRouter = createTRPCRouter({
@@ -34,6 +35,13 @@ export const mariadbRouter = createTRPCRouter({
 			try {
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				}
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a mariadb",
+					});
 				}
 
 				const project = await findProjectById(input.projectId);
@@ -61,11 +69,7 @@ export const mariadbRouter = createTRPCRouter({
 				if (error instanceof TRPCError) {
 					throw error;
 				}
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error input: Inserting mariadb database",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	one: protectedProcedure

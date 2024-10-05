@@ -64,6 +64,13 @@ export const composeRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a compose",
+					});
+				}
 				const project = await findProjectById(input.projectId);
 				if (project.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
@@ -77,11 +84,7 @@ export const composeRouter = createTRPCRouter({
 					await addNewService(ctx.user.authId, newService.composeId);
 				}
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to create the compose",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 
@@ -345,6 +348,13 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+			}
+
+			if (IS_CLOUD && !input.serverId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You need to use a server to create a compose",
+				});
 			}
 
 			const composeFile = await readTemplateComposeFile(input.id);

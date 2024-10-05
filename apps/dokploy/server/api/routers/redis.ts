@@ -39,6 +39,13 @@ export const redisRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a redis",
+					});
+				}
+
 				const project = await findProjectById(input.projectId);
 				if (project.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
@@ -61,11 +68,7 @@ export const redisRouter = createTRPCRouter({
 
 				return true;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error input: Inserting redis database",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	one: protectedProcedure
