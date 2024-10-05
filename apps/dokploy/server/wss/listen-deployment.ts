@@ -48,39 +48,46 @@ export const setupDeploymentLogsWebSocketServer = (
 
 				if (!server.sshKeyId) return;
 				const client = new Client();
-				new Promise<void>((resolve, reject) => {
-					client
-						.on("ready", () => {
-							const command = `
+				client
+					.on("ready", () => {
+						const command = `
 						tail -n +1 -f ${logPath};
 					`;
-							client.exec(command, (err, stream) => {
-								if (err) {
-									console.error("Execution error:", err);
-									reject(err);
-									return;
-								}
-								stream
-									.on("close", () => {
-										console.log("Connection closed ✅");
-										client.end();
-										resolve();
-									})
-									.on("data", (data: string) => {
-										ws.send(data.toString());
-									})
-									.stderr.on("data", (data) => {
-										ws.send(data.toString());
-									});
-							});
-						})
-						.connect({
-							host: server.ipAddress,
-							port: server.port,
-							username: server.username,
-							privateKey: server.sshKey?.privateKey,
-							timeout: 99999,
+						client.exec(command, (err, stream) => {
+							if (err) {
+								console.error("Execution error:", err);
+								ws.close();
+								return;
+							}
+							stream
+								.on("close", () => {
+									console.log("Connection closed ✅");
+									client.end();
+									ws.close();
+								})
+								.on("data", (data: string) => {
+									ws.send(data.toString());
+								})
+								.stderr.on("data", (data) => {
+									ws.send(data.toString());
+								});
 						});
+					})
+					.on("error", (err) => {
+						console.error("SSH connection error:", err);
+						ws.send(`SSH error: ${err.message}`);
+						ws.close(); // Cierra el WebSocket si hay un error con SSH
+					})
+					.connect({
+						host: server.ipAddress,
+						port: server.port,
+						username: server.username,
+						privateKey: server.sshKey?.privateKey,
+					});
+
+				ws.on("close", () => {
+					console.log("Connection closed ✅, From WS");
+					client.end();
 				});
 			} else {
 				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
@@ -91,6 +98,9 @@ export const setupDeploymentLogsWebSocketServer = (
 
 				tail.stderr.on("data", (data) => {
 					ws.send(new Error(`tail error: ${data.toString()}`).message);
+				});
+				tail.on("close", () => {
+					ws.close();
 				});
 			}
 		} catch (error) {
