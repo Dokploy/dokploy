@@ -40,7 +40,6 @@ export const apiCreateGithub = createSchema.extend({
 	githubWebhookSecret: z.string().nullable(),
 	gitProviderId: z.string().optional(),
 	name: z.string().min(1),
-	authId: z.string().min(1),
 });
 
 export const apiFindGithubBranches = z.object({

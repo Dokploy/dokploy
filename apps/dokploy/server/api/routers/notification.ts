@@ -37,6 +37,7 @@ import {
 	sendEmailNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 // TODO: Uncomment the validations when is cloud ready
@@ -59,12 +60,13 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				// if (notification.adminId !== ctx.user.adminId) {
-				// 	throw new TRPCError({
-				// 		code: "UNAUTHORIZED",
-				// 		message: "You are not authorized to update this notification",
-				// 	});
-				// }
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					// TODO: Remove isCloud in the next versions of dokploy
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
 				return await updateSlackNotification({
 					...input,
 					adminId: ctx.user.adminId,
@@ -109,12 +111,13 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				// if (notification.adminId !== ctx.user.adminId) {
-				// 	throw new TRPCError({
-				// 		code: "UNAUTHORIZED",
-				// 		message: "You are not authorized to update this notification",
-				// 	});
-				// }
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					// TODO: Remove isCloud in the next versions of dokploy
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
 				return await updateTelegramNotification({
 					...input,
 					adminId: ctx.user.adminId,
@@ -166,12 +169,13 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				// if (notification.adminId !== ctx.user.adminId) {
-				// 	throw new TRPCError({
-				// 		code: "UNAUTHORIZED",
-				// 		message: "You are not authorized to update this notification",
-				// 	});
-				// }
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					// TODO: Remove isCloud in the next versions of dokploy
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
 				return await updateDiscordNotification({
 					...input,
 					adminId: ctx.user.adminId,
@@ -220,12 +224,13 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				// if (notification.adminId !== ctx.user.adminId) {
-				// 	throw new TRPCError({
-				// 		code: "UNAUTHORIZED",
-				// 		message: "You are not authorized to update this notification",
-				// 	});
-				// }
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					// TODO: Remove isCloud in the next versions of dokploy
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
 				return await updateEmailNotification({
 					...input,
 					adminId: ctx.user.adminId,
@@ -261,12 +266,13 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				// if (notification.adminId !== ctx.user.adminId) {
-				// 	throw new TRPCError({
-				// 		code: "UNAUTHORIZED",
-				// 		message: "You are not authorized to delete this notification",
-				// 	});
-				// }
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					// TODO: Remove isCloud in the next versions of dokploy
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to delete this notification",
+					});
+				}
 				return await removeNotificationById(input.notificationId);
 			} catch (error) {
 				throw new TRPCError({
@@ -279,12 +285,13 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiFindOneNotification)
 		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
-			// if (notification.adminId !== ctx.user.adminId) {
-			// 	throw new TRPCError({
-			// 		code: "UNAUTHORIZED",
-			// 		message: "You are not authorized to access this notification",
-			// 	});
-			// }
+			if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				// TODO: Remove isCloud in the next versions of dokploy
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this notification",
+				});
+			}
 			return notification;
 		}),
 	all: adminProcedure.query(async ({ ctx }) => {
@@ -296,7 +303,8 @@ export const notificationRouter = createTRPCRouter({
 				email: true,
 			},
 			orderBy: desc(notifications.createdAt),
-			// where: eq(notifications.adminId, ctx.user.adminId),
+			...(IS_CLOUD && { where: eq(notifications.adminId, ctx.user.adminId) }),
+			// TODO: Remove this line when the cloud version is ready
 		});
 	}),
 });

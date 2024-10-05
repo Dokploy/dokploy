@@ -484,7 +484,10 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiReadStatsLogs)
 		.query(({ input }) => {
 			if (IS_CLOUD) {
-				return true;
+				return {
+					data: [],
+					totalCount: 0,
+				};
 			}
 			const rawConfig = readMonitoringConfig();
 			const parsedConfig = parseRawConfig(
@@ -499,7 +502,7 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	readStats: adminProcedure.query(() => {
 		if (IS_CLOUD) {
-			return true;
+			return [];
 		}
 		const rawConfig = readMonitoringConfig();
 		const processedLogs = processLogs(rawConfig as string);

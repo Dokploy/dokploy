@@ -12,6 +12,7 @@ import {
 	findGithubById,
 	haveGithubRequirements,
 	updateGitProvider,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 export const githubRouter = createTRPCRouter({
@@ -19,30 +20,54 @@ export const githubRouter = createTRPCRouter({
 		.input(apiFindOneGithub)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
-			// if (githubProvider.gitProvider.adminId !== ctx.user.adminId) { //TODO: Remove this line when the cloud version is ready
-			// 	throw new TRPCError({
-			// 		code: "UNAUTHORIZED",
-			// 		message: "You are not allowed to access this github provider",
-			// 	});
-			// }
+			if (IS_CLOUD && githubProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this github provider",
+				});
+			}
 			return githubProvider;
 		}),
 	getGithubRepositories: protectedProcedure
 		.input(apiFindOneGithub)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const githubProvider = await findGithubById(input.githubId);
+			if (IS_CLOUD && githubProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this github provider",
+				});
+			}
 			return await getGithubRepositories(input.githubId);
 		}),
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const githubProvider = await findGithubById(input.githubId || "");
+			if (IS_CLOUD && githubProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this github provider",
+				});
+			}
 			return await getGithubBranches(input);
 		}),
-	githubProviders: protectedProcedure.query(async () => {
-		const result = await db.query.github.findMany({
+	githubProviders: protectedProcedure.query(async ({ ctx }) => {
+		let result = await db.query.github.findMany({
 			with: {
 				gitProvider: true,
 			},
 		});
+
+		if (IS_CLOUD) {
+			// TODO: mAyBe a rEfaCtoR 🤫
+			result = result.filter(
+				(provider) => provider.gitProvider.adminId === ctx.user.adminId,
+			);
+		}
 
 		const filtered = result
 			.filter((provider) => haveGithubRequirements(provider))
@@ -60,8 +85,19 @@ export const githubRouter = createTRPCRouter({
 
 	testConnection: protectedProcedure
 		.input(apiFindOneGithub)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const githubProvider = await findGithubById(input.githubId);
+				if (
+					IS_CLOUD &&
+					githubProvider.gitProvider.adminId !== ctx.user.adminId
+				) {
+					//TODO: Remove this line when the cloud version is ready
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to access this github provider",
+					});
+				}
 				const result = await getGithubRepositories(input.githubId);
 				return `Found ${result.length} repositories`;
 			} catch (err) {
@@ -75,12 +111,13 @@ export const githubRouter = createTRPCRouter({
 		.input(apiUpdateGithub)
 		.mutation(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
-			// if (githubProvider.gitProvider.adminId !== ctx.user.adminId) { //TODO: Remove this line when the cloud version is ready
-			// 	throw new TRPCError({
-			// 		code: "UNAUTHORIZED",
-			// 		message: "You are not allowed to access this github provider",
-			// 	});
-			// }
+			if (IS_CLOUD && githubProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this github provider",
+				});
+			}
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				adminId: ctx.user.adminId,

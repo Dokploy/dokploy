@@ -220,7 +220,7 @@ export const authRouter = createTRPCRouter({
 				lucia.createSessionCookie(session.id).serialize(),
 			);
 
-			return auth;
+			return true;
 		}),
 	disable2FA: protectedProcedure.mutation(async ({ ctx }) => {
 		const auth = await findAuthById(ctx.user.authId);

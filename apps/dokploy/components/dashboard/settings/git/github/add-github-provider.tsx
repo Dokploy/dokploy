@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 

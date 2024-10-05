@@ -48,12 +48,16 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Database,
 										href: "/dashboard/settings/destinations",
 									},
-									{
-										title: "Certificates",
-										label: "",
-										icon: ShieldCheck,
-										href: "/dashboard/settings/certificates",
-									},
+									...(!isCloud
+										? [
+												{
+													title: "Certificates",
+													label: "",
+													icon: ShieldCheck,
+													href: "/dashboard/settings/certificates",
+												},
+											]
+										: []),
 									{
 										title: "SSH Keys",
 										label: "",
