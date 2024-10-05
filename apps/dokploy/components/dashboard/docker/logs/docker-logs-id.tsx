@@ -20,9 +20,9 @@ export const DockerLogsId: React.FC<Props> = ({
 	const [lines, setLines] = React.useState<number>(40);
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
-	const createTerminal = (): Terminal => {
+	useEffect(() => {
 		if (containerId === "select-a-containe") {
-			return new Terminal();
+			return;
 		}
 		const container = document.getElementById(id);
 		if (container) {
@@ -72,16 +72,9 @@ export const DockerLogsId: React.FC<Props> = ({
 			termi.write(`Connection closed!\nReason: ${e.reason}\n`);
 			wsRef.current = null;
 		};
-
-		return termi;
-	};
-
-	useEffect(() => {
-		createTerminal();
-
 		return () => {
 			if (wsRef.current?.readyState === WebSocket.OPEN) {
-				wsRef.current.close();
+				ws.close();
 				wsRef.current = null;
 			}
 		};

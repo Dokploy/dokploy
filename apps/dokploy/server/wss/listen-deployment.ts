@@ -105,8 +105,8 @@ export const setupDeploymentLogsWebSocketServer = (
 			}
 		} catch (error) {
 			// @ts-ignore
-			//   const errorMessage = error?.message as unknown as string;
-			ws.send(errorMessage);
+			// const errorMessage = error?.message as unknown as string;
+			// ws.send(errorMessage);
 		}
 	});
 };
