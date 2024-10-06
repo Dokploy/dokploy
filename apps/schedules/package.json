@@ -1,5 +1,6 @@
 {
 	"name": "@dokploy/schedules",
+	"type": "module",
 	"scripts": {
 		"dev": "PORT=4001 tsx watch src/index.ts",
 		"build": "tsc --project tsconfig.json",
