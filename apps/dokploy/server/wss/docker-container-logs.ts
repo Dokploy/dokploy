@@ -58,6 +58,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 							if (err) {
 								console.error("Execution error:", err);
 								ws.close();
+								client.end();
 								return;
 							}
 							stream
@@ -78,6 +79,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						console.error("SSH connection error:", err);
 						ws.send(`SSH error: ${err.message}`);
 						ws.close(); // Cierra el WebSocket si hay un error con SSH
+						client.end();
 					})
 					.connect({
 						host: server.ipAddress,
