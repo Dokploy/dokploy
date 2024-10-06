@@ -21,12 +21,20 @@ export const DockerLogsId: React.FC<Props> = ({
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
 	useEffect(() => {
-		if (containerId === "select-a-containe") {
-			return;
-		}
+		// if (containerId === "select-a-container") {
+		// 	return;
+		// }
 		const container = document.getElementById(id);
 		if (container) {
 			container.innerHTML = "";
+		}
+
+		if (wsRef.current) {
+			console.log(wsRef.current);
+			if (wsRef.current.readyState === WebSocket.OPEN) {
+				wsRef.current.close();
+			}
+			wsRef.current = null;
 		}
 		const termi = new Terminal({
 			cursorBlink: true,
