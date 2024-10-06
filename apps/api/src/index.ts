@@ -14,6 +14,9 @@ const redisClient = createClient({
 });
 
 app.use(async (c, next) => {
+	if (c.req.path === "/health") {
+		return next();
+	}
 	const authHeader = c.req.header("X-API-Key");
 
 	if (process.env.API_KEY !== authHeader) {
