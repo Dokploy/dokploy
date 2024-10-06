@@ -1,7 +1,6 @@
 import { type Job, Worker } from "bullmq";
 import type { QueueJob } from "./schema";
 import { runJobs } from "./utils";
-import Redis from "ioredis";
 import { connection } from "./queue";
 
 export const firstWorker = new Worker(
