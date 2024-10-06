@@ -7,6 +7,7 @@
 		"start": "node --experimental-specifier-resolution=node dist/index.js"
 	},
 	"dependencies": {
+		"ioredis": "5.4.1",
 		"bullmq": "5.4.2",
 		"@hono/zod-validator": "0.3.0",
 		"zod": "^3.23.4",
@@ -17,8 +18,7 @@
 		"hono": "^4.5.8",
 		"dotenv": "^16.3.1",
 		"pino": "9.4.0",
-		"pino-pretty": "11.2.2",
-		"redis": "4.7.0"
+		"pino-pretty": "11.2.2"
 	},
 	"devDependencies": {
 		"typescript": "^5.4.2",

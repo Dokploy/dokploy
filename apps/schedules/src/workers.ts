@@ -1,6 +1,8 @@
 import { type Job, Worker } from "bullmq";
 import type { QueueJob } from "./schema";
 import { runJobs } from "./utils";
+import Redis from "ioredis";
+import { connection } from "./queue";
 
 export const firstWorker = new Worker(
 	"backupQueue",
@@ -10,9 +12,7 @@ export const firstWorker = new Worker(
 	},
 	{
 		concurrency: 50,
-		connection: {
-			host: process.env.REDIS_URL,
-		},
+		connection,
 	},
 );
 export const secondWorker = new Worker(
@@ -23,8 +23,6 @@ export const secondWorker = new Worker(
 	},
 	{
 		concurrency: 50,
-		connection: {
-			host: process.env.REDIS_URL,
-		},
+		connection,
 	},
 );

@@ -465,6 +465,9 @@ importers:
       hono:
         specifier: ^4.5.8
         version: 4.5.8
+      ioredis:
+        specifier: 5.4.1
+        version: 5.4.1
       pino:
         specifier: 9.4.0
         version: 9.4.0
@@ -477,9 +480,6 @@ importers:
       react-dom:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
-      redis:
-        specifier: 4.7.0
-        version: 4.7.0
       zod:
         specifier: ^3.23.4
         version: 3.23.8

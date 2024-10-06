@@ -1,11 +1,15 @@
 import { Queue, type RepeatableJob } from "bullmq";
 import { logger } from "./logger";
 import type { QueueJob } from "./schema";
+import IORedis from "ioredis";
+
+export const connection = new IORedis({
+	maxRetriesPerRequest: null,
+	path: process.env.REDIS_URL,
+});
 
 export const jobQueue = new Queue("backupQueue", {
-	connection: {
-		host: process.env.REDIS_URL,
-	},
+	connection,
 	defaultJobOptions: {
 		removeOnComplete: true,
 		removeOnFail: true,
