@@ -1,15 +1,12 @@
 {
-	"name": "@dokploy/api",
-	"version": "0.0.1",
-	"type": "module",
+	"name": "@dokploy/schedules",
 	"scripts": {
-		"dev": "PORT=4000 tsx watch src/index.ts",
+		"dev": "PORT=4001 tsx watch src/index.ts",
 		"build": "tsc --project tsconfig.json",
 		"start": "node --experimental-specifier-resolution=node dist/index.js"
 	},
 	"dependencies": {
-		"pino": "9.4.0",
-		"pino-pretty": "11.2.2",
+		"bullmq": "5.4.2",
 		"@hono/zod-validator": "0.3.0",
 		"zod": "^3.23.4",
 		"react": "18.2.0",
@@ -18,8 +15,9 @@
 		"@hono/node-server": "^1.12.1",
 		"hono": "^4.5.8",
 		"dotenv": "^16.3.1",
-		"redis": "4.7.0",
-		"@nerimity/mimiqueue": "1.2.3"
+		"pino": "9.4.0",
+		"pino-pretty": "11.2.2",
+		"redis": "4.7.0"
 	},
 	"devDependencies": {
 		"typescript": "^5.4.2",

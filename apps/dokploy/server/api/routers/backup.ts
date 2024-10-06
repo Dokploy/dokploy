@@ -5,6 +5,7 @@ import {
 	apiRemoveBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
+import { removeJob, schedule } from "@/server/utils/backup";
 import {
 	createBackup,
 	findBackupById,
@@ -20,6 +21,7 @@ import {
 	findMongoByBackupId,
 	findMySqlByBackupId,
 	findPostgresByBackupId,
+	IS_CLOUD,
 } from "@dokploy/builders";
 
 import { TRPCError } from "@trpc/server";
@@ -33,8 +35,16 @@ export const backupRouter = createTRPCRouter({
 
 				const backup = await findBackupById(newBackup.backupId);
 
-				if (backup.enabled) {
-					scheduleBackup(backup);
+				if (IS_CLOUD && backup.enabled) {
+					await schedule({
+						cronSchedule: backup.schedule,
+						backupId: backup.backupId,
+						type: "backup",
+					});
+				} else {
+					if (backup.enabled) {
+						scheduleBackup(backup);
+					}
 				}
 			} catch (error) {
 				throw new TRPCError({
@@ -55,11 +65,19 @@ export const backupRouter = createTRPCRouter({
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 
-				if (backup.enabled) {
-					removeScheduleBackup(input.backupId);
-					scheduleBackup(backup);
+				if (IS_CLOUD && backup.enabled) {
+					await schedule({
+						cronSchedule: backup.schedule,
+						backupId: backup.backupId,
+						type: "backup",
+					});
 				} else {
-					removeScheduleBackup(input.backupId);
+					if (backup.enabled) {
+						removeScheduleBackup(input.backupId);
+						scheduleBackup(backup);
+					} else {
+						removeScheduleBackup(input.backupId);
+					}
 				}
 			} catch (error) {
 				throw new TRPCError({
@@ -73,7 +91,15 @@ export const backupRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				const value = await removeBackupById(input.backupId);
-				removeScheduleBackup(input.backupId);
+				if (IS_CLOUD && value) {
+					removeJob({
+						backupId: input.backupId,
+						cronSchedule: value.schedule,
+						type: "backup",
+					});
+				} else {
+					removeScheduleBackup(input.backupId);
+				}
 				return value;
 			} catch (error) {
 				throw new TRPCError({

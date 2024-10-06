@@ -33,8 +33,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const tail = url.searchParams.get("tail");
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateWebSocketRequest(req);
-		console.log(wssTerm.clients);
-		console.log(wssTerm.clients.size);
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");

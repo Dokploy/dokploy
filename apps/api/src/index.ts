@@ -6,6 +6,7 @@ import { Queue } from "@nerimity/mimiqueue";
 import { zValidator } from "@hono/zod-validator";
 import { type DeployJob, deployJobSchema } from "./schema";
 import { deploy } from "./utils";
+import { logger } from "./logger";
 
 const app = new Hono();
 const redisClient = createClient({
@@ -14,12 +15,10 @@ const redisClient = createClient({
 
 app.post("/deploy", zValidator("json", deployJobSchema), (c) => {
 	const data = c.req.valid("json");
-	queue.add(data, { groupName: data.serverId }).then((res) => {
-		console.log(res);
-	});
+	const res = queue.add(data, { groupName: data.serverId });
 	return c.json(
 		{
-			message: "Deployment started",
+			message: "Deployment Added",
 		},
 		200,
 	);
@@ -32,17 +31,18 @@ app.get("/health", async (c) => {
 const queue = new Queue({
 	name: "deployments",
 	process: async (job: DeployJob) => {
-		console.log(job);
+		logger.info("Deploying job", job);
 		return await deploy(job);
 	},
 	redisClient,
 });
-const port = Number.parseInt(process.env.PORT || "3000");
 
 (async () => {
 	await redisClient.connect();
 	await redisClient.flushAll();
+	logger.info("Cleaning Redis");
 })();
 
-console.log("Starting Server ✅", port);
+const port = Number.parseInt(process.env.PORT || "3000");
+logger.info("Starting Deployments Server ✅", port);
 serve({ fetch: app.fetch, port });
