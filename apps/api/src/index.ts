@@ -40,7 +40,7 @@ const queue = new Queue({
 (async () => {
 	await redisClient.connect();
 	await redisClient.flushAll();
-	logger.info("Cleaning Redis");
+	logger.info("Redis Cleaned");
 })();
 
 const port = Number.parseInt(process.env.PORT || "3000");
