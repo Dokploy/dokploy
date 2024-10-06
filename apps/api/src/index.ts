@@ -7,7 +7,6 @@ import { createClient } from "redis";
 import { logger } from "./logger";
 import { type DeployJob, deployJobSchema } from "./schema";
 import { deploy } from "./utils";
-import { validateBearerTokenAPI } from "@dokploy/server";
 
 const app = new Hono();
 const redisClient = createClient({
@@ -15,17 +14,12 @@ const redisClient = createClient({
 });
 
 app.use(async (c, next) => {
-	const authHeader = c.req.header("authorization");
+	const authHeader = c.req.header("X-API-Key");
 
-	if (!authHeader || !authHeader.startsWith("Bearer ")) {
-		return c.json({ message: "Authorization header missing" }, 401);
+	if (process.env.API_KEY !== authHeader) {
+		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
-	const result = await validateBearerTokenAPI(authHeader);
-
-	if (!result.user || !result.session) {
-		return c.json({ message: "Invalid session" }, 403);
-	}
 	return next();
 });
 

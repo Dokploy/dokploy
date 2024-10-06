@@ -9,13 +9,13 @@ type QueueJob =
 			cronSchedule: string;
 			serverId: string;
 	  };
-export const schedule = async (job: QueueJob, authSession: string) => {
+export const schedule = async (job: QueueJob) => {
 	try {
 		const result = await fetch(`${process.env.JOBS_URL}/create-backup`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${authSession}`,
+				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
 			body: JSON.stringify(job),
 		});
@@ -28,13 +28,13 @@ export const schedule = async (job: QueueJob, authSession: string) => {
 	}
 };
 
-export const removeJob = async (job: QueueJob, authSession: string) => {
+export const removeJob = async (job: QueueJob) => {
 	try {
 		const result = await fetch(`${process.env.JOBS_URL}/remove-job`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${authSession}`,
+				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
 			body: JSON.stringify(job),
 		});
@@ -47,13 +47,13 @@ export const removeJob = async (job: QueueJob, authSession: string) => {
 	}
 };
 
-export const updateJob = async (job: QueueJob, authSession: string) => {
+export const updateJob = async (job: QueueJob) => {
 	try {
 		const result = await fetch(`${process.env.JOBS_URL}/update-backup`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${authSession}`,
+				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
 			},
 			body: JSON.stringify(job),
 		});

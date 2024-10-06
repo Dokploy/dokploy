@@ -254,7 +254,7 @@ export const applicationRouter = createTRPCRouter({
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData, ctx.session.id);
+				await deploy(jobData);
 				return true;
 			}
 			await myQueue.add(
@@ -482,7 +482,7 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData, ctx.session.id);
+				await deploy(jobData);
 
 				return true;
 			}
@@ -571,7 +571,7 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && app.serverId) {
 				jobData.serverId = app.serverId;
-				await deploy(jobData, ctx.session.id);
+				await deploy(jobData);
 				return true;
 			}
 

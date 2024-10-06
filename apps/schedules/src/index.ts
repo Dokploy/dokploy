@@ -6,24 +6,18 @@ import { logger } from "./logger";
 import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
 import { jobQueueSchema } from "./schema";
 import { firstWorker, secondWorker } from "./workers";
-import { validateBearerTokenAPI } from "@dokploy/server";
 
 const app = new Hono();
 
 cleanQueue();
 
 app.use(async (c, next) => {
-	const authHeader = c.req.header("authorization");
+	const authHeader = c.req.header("X-API-Key");
 
-	if (!authHeader || !authHeader.startsWith("Bearer ")) {
-		return c.json({ message: "Authorization header missing" }, 401);
+	if (process.env.API_KEY !== authHeader) {
+		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
-	const result = await validateBearerTokenAPI(authHeader);
-
-	if (!result.user || !result.session) {
-		return c.json({ message: "Invalid session" }, 403);
-	}
 	return next();
 });
 
@@ -55,6 +49,7 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 		logger.info("Job removed", result);
 	}
 	scheduleJob(data);
+	logger.info("Backup updated successfully");
 
 	return c.json({ message: "Backup updated successfully" });
 });

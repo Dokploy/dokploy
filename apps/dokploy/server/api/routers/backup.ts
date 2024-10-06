@@ -11,9 +11,13 @@ import {
 	createBackup,
 	findBackupById,
 	findMariadbByBackupId,
+	findMariadbById,
 	findMongoByBackupId,
+	findMongoById,
 	findMySqlByBackupId,
+	findMySqlById,
 	findPostgresByBackupId,
+	findPostgresById,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -36,14 +40,11 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(newBackup.backupId);
 
 				if (IS_CLOUD && backup.enabled) {
-					await schedule(
-						{
-							cronSchedule: backup.schedule,
-							backupId: backup.backupId,
-							type: "backup",
-						},
-						ctx.session.id,
-					);
+					await schedule({
+						cronSchedule: backup.schedule,
+						backupId: backup.backupId,
+						type: "backup",
+					});
 				} else {
 					if (backup.enabled) {
 						scheduleBackup(backup);
@@ -57,10 +58,13 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneBackup).query(async ({ input }) => {
-		const backup = await findBackupById(input.backupId);
-		return backup;
-	}),
+	one: protectedProcedure
+		.input(apiFindOneBackup)
+		.query(async ({ input, ctx }) => {
+			const backup = await findBackupById(input.backupId);
+
+			return backup;
+		}),
 	update: protectedProcedure
 		.input(apiUpdateBackup)
 		.mutation(async ({ input, ctx }) => {
@@ -70,23 +74,17 @@ export const backupRouter = createTRPCRouter({
 
 				if (IS_CLOUD) {
 					if (backup.enabled) {
-						await updateJob(
-							{
-								cronSchedule: backup.schedule,
-								backupId: backup.backupId,
-								type: "backup",
-							},
-							ctx.session.id,
-						);
+						await updateJob({
+							cronSchedule: backup.schedule,
+							backupId: backup.backupId,
+							type: "backup",
+						});
 					} else {
-						await removeJob(
-							{
-								cronSchedule: backup.schedule,
-								backupId: backup.backupId,
-								type: "backup",
-							},
-							ctx.session.id,
-						);
+						await removeJob({
+							cronSchedule: backup.schedule,
+							backupId: backup.backupId,
+							type: "backup",
+						});
 					}
 				} else {
 					if (backup.enabled) {
@@ -109,14 +107,11 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
-					removeJob(
-						{
-							backupId: input.backupId,
-							cronSchedule: value.schedule,
-							type: "backup",
-						},
-						ctx.session.id,
-					);
+					removeJob({
+						backupId: input.backupId,
+						cronSchedule: value.schedule,
+						type: "backup",
+					});
 				} else if (!IS_CLOUD) {
 					removeScheduleBackup(input.backupId);
 				}
@@ -196,3 +191,26 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 });
+
+// export const getAdminId = async (backupId: string) => {
+// 	const backup = await findBackupById(backupId);
+
+// 	if (backup.databaseType === "postgres" && backup.postgresId) {
+// 		const postgres = await findPostgresById(backup.postgresId);
+// 		return postgres.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mariadb" && backup.mariadbId) {
+// 		const mariadb = await findMariadbById(backup.mariadbId);
+// 		return mariadb.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mysql" && backup.mysqlId) {
+// 		const mysql = await findMySqlById(backup.mysqlId);
+// 		return mysql.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mongo" && backup.mongoId) {
+// 		const mongo = await findMongoById(backup.mongoId);
+// 		return mongo.project.adminId;
+// 	}
+
+// 	return null;
+// };

@@ -256,7 +256,7 @@ export const composeRouter = createTRPCRouter({
 
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
-				await deploy(jobData, ctx.session.id);
+				await deploy(jobData);
 				return true;
 			}
 			await myQueue.add(
@@ -288,7 +288,7 @@ export const composeRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
-				await deploy(jobData, ctx.session.id);
+				await deploy(jobData);
 				return true;
 			}
 			await myQueue.add(
