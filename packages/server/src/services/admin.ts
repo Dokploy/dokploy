@@ -9,6 +9,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
+import { IS_CLOUD } from "../constants";
 
 export type Admin = typeof admins.$inferSelect;
 export const createInvitation = async (
@@ -141,6 +142,9 @@ export const removeUserByAuthId = async (authId: string) => {
 };
 
 export const getDokployUrl = async () => {
+	if (IS_CLOUD) {
+		return "https://app.dokploy.com";
+	}
 	const admin = await findAdmin();
 
 	if (admin.host) {

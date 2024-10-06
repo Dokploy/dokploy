@@ -3,7 +3,7 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD, findAdmin } from "@dokploy/server";
+import { IS_CLOUD } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -13,13 +13,6 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const admin = await findAdmin();
-
-	if (!admin) {
-		res.status(200).json({ message: "Could not find admin" });
-		return;
-	}
-
 	const signature = req.headers["x-hub-signature-256"];
 	const githubBody = req.body;
 
