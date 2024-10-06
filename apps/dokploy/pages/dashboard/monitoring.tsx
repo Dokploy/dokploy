@@ -1,6 +1,6 @@
 import { ShowMonitoring } from "@/components/dashboard/monitoring/web-server/show";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 

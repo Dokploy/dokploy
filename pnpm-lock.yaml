@@ -42,9 +42,9 @@ importers:
 
   apps/api:
     dependencies:
-      '@dokploy/builders':
+      '@dokploy/server':
         specifier: workspace:*
-        version: link:../../packages/builders
+        version: link:../../packages/server
       '@hono/node-server':
         specifier: ^1.12.1
         version: 1.12.1
@@ -158,9 +158,9 @@ importers:
       '@codemirror/view':
         specifier: 6.29.0
         version: 6.29.0
-      '@dokploy/builders':
+      '@dokploy/server':
         specifier: workspace:*
-        version: link:../../packages/builders
+        version: link:../../packages/server
       '@dokploy/trpc-openapi':
         specifier: 0.0.4
         version: 0.0.4(@trpc/server@10.45.2)(zod@3.23.8)
@@ -447,9 +447,9 @@ importers:
 
   apps/schedules:
     dependencies:
-      '@dokploy/builders':
+      '@dokploy/server':
         specifier: workspace:*
-        version: link:../../packages/builders
+        version: link:../../packages/server
       '@hono/node-server':
         specifier: ^1.12.1
         version: 1.12.1
@@ -582,7 +582,7 @@ importers:
         specifier: ^0.5.2
         version: 0.5.14(prettier@3.3.3)
 
-  packages/builders:
+  packages/server:
     dependencies:
       '@faker-js/faker':
         specifier: ^8.4.1

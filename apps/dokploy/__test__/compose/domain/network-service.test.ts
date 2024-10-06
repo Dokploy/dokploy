@@ -1,4 +1,4 @@
-import { addDokployNetworkToService } from "@dokploy/builders";
+import { addDokployNetworkToService } from "@dokploy/server";
 import { describe, expect, it } from "vitest";
 
 describe("addDokployNetworkToService", () => {

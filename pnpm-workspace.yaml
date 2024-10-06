@@ -5,4 +5,4 @@ packages:
   - "apps/api"
   - "apps/schedules"
   - "apps/models"
-  - "packages/builders"
+  - "packages/server"

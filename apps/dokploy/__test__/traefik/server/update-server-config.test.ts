@@ -5,12 +5,12 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { Admin, FileConfig } from "@dokploy/builders";
+import type { Admin, FileConfig } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
 	updateServerTraefik,
-} from "@dokploy/builders";
+} from "@dokploy/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
 const baseAdmin: Admin = {

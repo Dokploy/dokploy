@@ -1,5 +1,5 @@
-import type { Domain } from "@dokploy/builders";
-import { createDomainLabels } from "@dokploy/builders";
+import type { Domain } from "@dokploy/server";
+import { createDomainLabels } from "@dokploy/server";
 import { describe, expect, it } from "vitest";
 
 describe("createDomainLabels", () => {

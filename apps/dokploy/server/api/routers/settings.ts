@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import {
 	apiAssignDomain,
 	apiEnableDashboard,
@@ -9,61 +10,60 @@ import {
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
-import { db } from "@/server/db";
-import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
-import { TRPCError } from "@trpc/server";
-import { dump, load } from "js-yaml";
-import { scheduleJob, scheduledJobs } from "node-schedule";
-import { z } from "zod";
-import { appRouter } from "../root";
 import {
-	paths,
-	logRotationManager,
-	parseRawConfig,
-	processLogs,
-	initializeTraefik,
+	IS_CLOUD,
+	canAccessToTraefikFiles,
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 	cleanUpUnusedVolumes,
+	execAsync,
+	execAsyncRemote,
+	findAdmin,
+	findServerById,
+	getDokployImage,
+	initializeTraefik,
+	logRotationManager,
+	parseRawConfig,
+	paths,
 	prepareEnvironmentVariables,
+	processLogs,
+	pullLatestRelease,
+	readConfig,
+	readConfigInPath,
+	readDirectory,
+	readMainConfig,
+	readMonitoringConfig,
+	recreateDirectory,
+	sendDockerCleanupNotifications,
+	spawnAsync,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-	recreateDirectory,
-	sendDockerCleanupNotifications,
-	execAsync,
-	execAsyncRemote,
-	spawnAsync,
-	readConfig,
-	readConfigInPath,
-	readMonitoringConfig,
-	writeConfig,
-	writeTraefikConfigInPath,
-	readMainConfig,
-	updateLetsEncryptEmail,
-	updateServerTraefik,
-	writeMainConfig,
-	findAdmin,
 	updateAdmin,
-	findServerById,
+	updateLetsEncryptEmail,
 	updateServerById,
-	canAccessToTraefikFiles,
-	getDokployImage,
-	pullLatestRelease,
-	readDirectory,
-	IS_CLOUD,
-} from "@dokploy/builders";
+	updateServerTraefik,
+	writeConfig,
+	writeMainConfig,
+	writeTraefikConfigInPath,
+} from "@dokploy/server";
+import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
+import { TRPCError } from "@trpc/server";
+import { sql } from "drizzle-orm";
+import { dump, load } from "js-yaml";
+import { scheduleJob, scheduledJobs } from "node-schedule";
+import { z } from "zod";
 import packageInfo from "../../../package.json";
+import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { sql } from "drizzle-orm";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {

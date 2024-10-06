@@ -6,19 +6,19 @@ import {
 	apiTestRegistry,
 	apiUpdateRegistry,
 } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
 import {
-	execAsyncRemote,
-	initializeRegistry,
-	execAsync,
-	manageRegistry,
+	IS_CLOUD,
 	createRegistry,
+	execAsync,
+	execAsyncRemote,
 	findAllRegistryByAdminId,
 	findRegistryById,
+	initializeRegistry,
+	manageRegistry,
 	removeRegistry,
 	updateRegistry,
-	IS_CLOUD,
-} from "@dokploy/builders";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const registryRouter = createTRPCRouter({

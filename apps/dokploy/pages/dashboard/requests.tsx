@@ -1,6 +1,6 @@
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import * as React from "react";

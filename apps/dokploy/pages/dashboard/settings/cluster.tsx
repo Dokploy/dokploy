@@ -2,7 +2,7 @@ import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-no
 import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 

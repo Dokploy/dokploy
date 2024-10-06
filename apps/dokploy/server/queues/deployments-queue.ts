@@ -1,16 +1,16 @@
-import { type Job, Worker } from "bullmq";
 import {
 	deployApplication,
-	deployRemoteApplication,
-	rebuildApplication,
-	rebuildRemoteApplication,
-	updateApplicationStatus,
 	deployCompose,
+	deployRemoteApplication,
 	deployRemoteCompose,
+	rebuildApplication,
 	rebuildCompose,
+	rebuildRemoteApplication,
 	rebuildRemoteCompose,
+	updateApplicationStatus,
 	updateCompose,
-} from "@dokploy/builders";
+} from "@dokploy/server";
+import { type Job, Worker } from "bullmq";
 import { myQueue, redisConfig } from "./queueSetup";
 
 type DeployJob =

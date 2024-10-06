@@ -1,6 +1,6 @@
-import { findAdmin } from "@dokploy/builders";
-import { updateAuthById } from "@dokploy/builders";
-import { generateRandomPassword } from "@dokploy/builders";
+import { findAdmin } from "@dokploy/server";
+import { updateAuthById } from "@dokploy/server";
+import { generateRandomPassword } from "@dokploy/server";
 
 (async () => {
 	try {

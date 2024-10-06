@@ -1,13 +1,13 @@
-import { findAdmin, IS_CLOUD } from "@dokploy/builders";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { IS_CLOUD, findAdmin } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
-import { deploy } from "@/server/utils/deploy";
 
 export default async function handler(
 	req: NextApiRequest,

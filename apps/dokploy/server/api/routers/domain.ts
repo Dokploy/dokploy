@@ -6,21 +6,21 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 import {
-	manageDomain,
-	removeDomain,
-	findApplicationById,
 	createDomain,
+	findApplicationById,
+	findComposeById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	generateTraefikMeDomain,
+	manageDomain,
+	removeDomain,
 	removeDomainById,
 	updateDomainById,
-	findComposeById,
-} from "@dokploy/builders";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure

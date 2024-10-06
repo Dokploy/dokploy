@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { paths } from "@/server/constants";
 const { APPLICATIONS_PATH } = paths();
-import type { ApplicationNested } from "@dokploy/builders";
-import { unzipDrop } from "@dokploy/builders";
+import type { ApplicationNested } from "@dokploy/server";
+import { unzipDrop } from "@dokploy/server";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -82,7 +82,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 };
 
-vi.mock("@dokploy/builders", async (importOriginal) => {
+vi.mock("@dokploy/server", async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
 		...actual,

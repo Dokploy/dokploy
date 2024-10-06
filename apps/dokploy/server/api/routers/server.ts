@@ -14,18 +14,18 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
-// import { serverSetup } from "@/server/setup/server-setup";
-import { TRPCError } from "@trpc/server";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 import {
-	serverSetup,
-	removeDeploymentsByServerId,
 	createServer,
 	deleteServer,
 	findServerById,
 	haveActiveServices,
+	removeDeploymentsByServerId,
+	serverSetup,
 	updateServerById,
-} from "@dokploy/builders";
+} from "@dokploy/server";
+// import { serverSetup } from "@/server/setup/server-setup";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure

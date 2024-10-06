@@ -1,21 +1,21 @@
 import http from "node:http";
 import { migration } from "@/server/db/migration";
-import { config } from "dotenv";
-import next from "next";
-import { deploymentWorker } from "./queues/deployments-queue";
 import {
-	setupDirectories,
-	initializePostgres,
-	initializeRedis,
-	initializeNetwork,
+	IS_CLOUD,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
-	initializeTraefik,
 	initCronJobs,
+	initializeNetwork,
+	initializePostgres,
+	initializeRedis,
+	initializeTraefik,
 	sendDokployRestartNotifications,
-	IS_CLOUD,
-} from "@dokploy/builders";
+	setupDirectories,
+} from "@dokploy/server";
+import { config } from "dotenv";
+import next from "next";
+import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";

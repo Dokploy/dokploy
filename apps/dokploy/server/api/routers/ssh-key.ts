@@ -8,15 +8,15 @@ import {
 	apiUpdateSshKey,
 	sshKeys,
 } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
 import {
-	generateSSHKey,
+	IS_CLOUD,
 	createSshKey,
 	findSSHKeyById,
+	generateSSHKey,
 	removeSSHKeyById,
 	updateSSHKeyById,
-	IS_CLOUD,
-} from "@dokploy/builders";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({

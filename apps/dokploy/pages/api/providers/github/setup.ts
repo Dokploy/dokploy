@@ -1,11 +1,11 @@
+import { db } from "@/server/db";
+import { github } from "@/server/db/schema";
 import {
 	createGithub,
 	findAdminByAuthId,
 	findAuthById,
 	findUserByAuthId,
-} from "@dokploy/builders";
-import { db } from "@/server/db";
-import { github } from "@/server/db/schema";
+} from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";

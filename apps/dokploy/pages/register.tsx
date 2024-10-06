@@ -15,17 +15,17 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/builders";
 import { api } from "@/utils/api";
+import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { GetServerSidePropsContext } from "next";
 
 const registerSchema = z
 	.object({

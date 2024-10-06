@@ -1,5 +1,5 @@
-import { addSuffixToAllProperties } from "@dokploy/builders";
-import type { ComposeSpecification } from "@dokploy/builders";
+import { addSuffixToAllProperties } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

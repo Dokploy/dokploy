@@ -6,7 +6,7 @@ import {
 	findCertificateById,
 	findCertificates,
 	removeCertificateById,
-} from "@dokploy/builders";
+} from "@dokploy/server";
 
 export const certificateRouter = createTRPCRouter({
 	create: adminProcedure

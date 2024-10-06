@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@dokploy/builders";
-import { addSuffixToSecretsInServices } from "@dokploy/builders";
-import type { ComposeSpecification } from "@dokploy/builders";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToSecretsInServices } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

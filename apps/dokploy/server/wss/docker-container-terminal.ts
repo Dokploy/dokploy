@@ -1,8 +1,8 @@
 import type http from "node:http";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById, validateWebSocketRequest } from "@dokploy/builders";
 import { getShell } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (

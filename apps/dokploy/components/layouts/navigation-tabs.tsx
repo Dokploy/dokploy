@@ -1,10 +1,10 @@
 import { AddProject } from "@/components/dashboard/projects/add";
-import type { Auth, User, IS_CLOUD } from "@dokploy/builders";
 import { api } from "@/utils/api";
+import type { Auth, IS_CLOUD, User } from "@dokploy/server";
+import { is } from "drizzle-orm";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { is } from "drizzle-orm";
 
 interface TabInfo {
 	label: string;

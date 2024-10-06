@@ -24,39 +24,39 @@ import {
 	cleanQueuesByApplication,
 } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { uploadFileSchema } from "@/utils/schema";
 import {
-	unzipDrop,
+	IS_CLOUD,
+	addNewService,
+	checkServiceAccess,
+	createApplication,
+	deleteAllMiddlewares,
+	findApplicationById,
+	findProjectById,
+	getApplicationStats,
+	readConfig,
+	readRemoteConfig,
+	removeDeployments,
+	removeDirectoryCode,
+	removeMonitoringDirectory,
 	removeService,
+	removeTraefikConfig,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-	removeDirectoryCode,
-	removeMonitoringDirectory,
-	readConfig,
-	readRemoteConfig,
-	removeTraefikConfig,
-	writeConfig,
-	writeConfigRemote,
-	deleteAllMiddlewares,
-	createApplication,
-	findApplicationById,
-	getApplicationStats,
+	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
-	removeDeployments,
-	addNewService,
-	checkServiceAccess,
-	IS_CLOUD,
-	findProjectById,
+	writeConfig,
+	writeConfigRemote,
 	// uploadFileSchema
-} from "@dokploy/builders";
-import { uploadFileSchema } from "@/utils/schema";
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { deploy } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure

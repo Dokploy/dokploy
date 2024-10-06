@@ -9,9 +9,9 @@ import {
 	rebuildRemoteCompose,
 	updateApplicationStatus,
 	updateCompose,
-} from "@dokploy/builders";
-import type { LemonSqueezyLicenseResponse } from "./types";
+} from "@dokploy/server";
 import type { DeployJob } from "./schema";
+import type { LemonSqueezyLicenseResponse } from "./types";
 
 // const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
 // const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;

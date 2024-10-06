@@ -1,8 +1,8 @@
 import type http from "node:http";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
-import { WebSocketServer } from "ws";
-import { findServerById, validateWebSocketRequest } from "@dokploy/builders";
 import { Client } from "ssh2";
+import { WebSocketServer } from "ws";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore

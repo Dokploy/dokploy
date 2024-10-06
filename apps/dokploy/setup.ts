@@ -1,14 +1,14 @@
 import {
-	setupDirectories,
-	initializePostgres,
-	initializeRedis,
-	initializeNetwork,
-	initializeSwarm,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	initializeNetwork,
+	initializePostgres,
+	initializeRedis,
+	initializeSwarm,
 	initializeTraefik,
-} from "@dokploy/builders";
+	setupDirectories,
+} from "@dokploy/server";
 
 (async () => {
 	try {

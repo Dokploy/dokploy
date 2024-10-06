@@ -2,6 +2,8 @@ import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { IS_CLOUD } from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
@@ -9,8 +11,6 @@ import {
 	extractCommitMessage,
 	extractHash,
 } from "../[refreshToken]";
-import { IS_CLOUD } from "@dokploy/builders";
-import { deploy } from "@/server/utils/deploy";
 
 export default async function handler(
 	req: NextApiRequest,

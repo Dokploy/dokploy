@@ -9,9 +9,9 @@ import {
 	findApplicationById,
 	findSecurityById,
 	updateSecurityById,
-} from "@dokploy/builders";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const securityRouter = createTRPCRouter({
 	create: protectedProcedure

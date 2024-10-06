@@ -1,10 +1,10 @@
-import { generateRandomHash } from "@dokploy/builders";
+import { generateRandomHash } from "@dokploy/server";
 import {
 	addSuffixToAllNetworks,
 	addSuffixToServiceNetworks,
-} from "@dokploy/builders";
-import { addSuffixToNetworksRoot } from "@dokploy/builders";
-import type { ComposeSpecification } from "@dokploy/builders";
+} from "@dokploy/server";
+import { addSuffixToNetworksRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

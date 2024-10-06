@@ -1,7 +1,7 @@
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
-import { IS_CLOUD, validateRequest } from "@dokploy/builders";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";

@@ -1,7 +1,7 @@
 import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { findUserByAuthId, findUserById, findUsers } from "@dokploy/builders";
+import { findUserByAuthId, findUserById, findUsers } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const userRouter = createTRPCRouter({
 	all: adminProcedure.query(async ({ ctx }) => {

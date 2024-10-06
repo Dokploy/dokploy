@@ -1,13 +1,13 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
+import {
+	IS_CLOUD,
+	findGitProviderById,
+	removeGitProvider,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import {
-	findGitProviderById,
-	IS_CLOUD,
-	removeGitProvider,
-} from "@dokploy/builders";
 
 export const gitProviderRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(async ({ ctx }) => {
