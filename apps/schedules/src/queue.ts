@@ -1,4 +1,4 @@
-import { Queue } from "bullmq";
+import { Queue, type RepeatableJob } from "bullmq";
 import { logger } from "./logger";
 import type { QueueJob } from "./schema";
 
@@ -52,4 +52,24 @@ export const removeJob = async (data: QueueJob) => {
 		});
 		return result;
 	}
+
+	return false;
+};
+
+export const getJobRepeatable = async (
+	data: QueueJob,
+): Promise<RepeatableJob | null> => {
+	const repeatableJobs = await jobQueue.getRepeatableJobs();
+	if (data.type === "backup") {
+		const { backupId } = data;
+		const job = repeatableJobs.find((j) => j.name === backupId);
+		return job ? job : null;
+	}
+	if (data.type === "server") {
+		const { serverId } = data;
+		const job = repeatableJobs.find((j) => j.name === `${serverId}-cleanup`);
+		return job ? job : null;
+	}
+
+	return null;
 };

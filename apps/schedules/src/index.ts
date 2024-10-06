@@ -3,20 +3,60 @@ import { Hono } from "hono";
 import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
 import { logger } from "./logger";
-import { cleanQueue, removeJob, scheduleJob } from "./queue";
+import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
 import { jobQueueSchema } from "./schema";
 import { firstWorker, secondWorker } from "./workers";
+import { validateBearerTokenAPI } from "@dokploy/server";
 
 const app = new Hono();
 
 cleanQueue();
 
-app.post("/create-backup", zValidator("json", jobQueueSchema), (c) => {
+app.use(async (c, next) => {
+	const authHeader = c.req.header("authorization");
+
+	if (!authHeader || !authHeader.startsWith("Bearer ")) {
+		return c.json({ message: "Authorization header missing" }, 401);
+	}
+
+	const result = await validateBearerTokenAPI(authHeader);
+
+	if (!result.user || !result.session) {
+		return c.json({ message: "Invalid session" }, 403);
+	}
+	return next();
+});
+
+app.post("/create-backup", zValidator("json", jobQueueSchema), async (c) => {
 	const data = c.req.valid("json");
 	scheduleJob(data);
-
 	logger.info("Backup created successfully", data);
 	return c.json({ message: "Backup created successfully" });
+});
+
+app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
+	const data = c.req.valid("json");
+	const job = await getJobRepeatable(data);
+	if (job) {
+		let result = false;
+		if (data.type === "backup") {
+			result = await removeJob({
+				backupId: data.backupId,
+				type: "backup",
+				cronSchedule: job.pattern,
+			});
+		} else if (data.type === "server") {
+			result = await removeJob({
+				serverId: data.serverId,
+				type: "server",
+				cronSchedule: job.pattern,
+			});
+		}
+		logger.info("Job removed", result);
+	}
+	scheduleJob(data);
+
+	return c.json({ message: "Backup updated successfully" });
 });
 
 app.post("/remove-job", zValidator("json", jobQueueSchema), async (c) => {

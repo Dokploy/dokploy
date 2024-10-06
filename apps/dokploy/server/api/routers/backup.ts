@@ -5,7 +5,7 @@ import {
 	apiRemoveBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
-import { removeJob, schedule } from "@/server/utils/backup";
+import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	createBackup,
@@ -29,18 +29,21 @@ import { TRPCError } from "@trpc/server";
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const newBackup = await createBackup(input);
 
 				const backup = await findBackupById(newBackup.backupId);
 
 				if (IS_CLOUD && backup.enabled) {
-					await schedule({
-						cronSchedule: backup.schedule,
-						backupId: backup.backupId,
-						type: "backup",
-					});
+					await schedule(
+						{
+							cronSchedule: backup.schedule,
+							backupId: backup.backupId,
+							type: "backup",
+						},
+						ctx.session.id,
+					);
 				} else {
 					if (backup.enabled) {
 						scheduleBackup(backup);
@@ -60,17 +63,31 @@ export const backupRouter = createTRPCRouter({
 	}),
 	update: protectedProcedure
 		.input(apiUpdateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 
-				if (IS_CLOUD && backup.enabled) {
-					await schedule({
-						cronSchedule: backup.schedule,
-						backupId: backup.backupId,
-						type: "backup",
-					});
+				if (IS_CLOUD) {
+					if (backup.enabled) {
+						await updateJob(
+							{
+								cronSchedule: backup.schedule,
+								backupId: backup.backupId,
+								type: "backup",
+							},
+							ctx.session.id,
+						);
+					} else {
+						await removeJob(
+							{
+								cronSchedule: backup.schedule,
+								backupId: backup.backupId,
+								type: "backup",
+							},
+							ctx.session.id,
+						);
+					}
 				} else {
 					if (backup.enabled) {
 						removeScheduleBackup(input.backupId);
@@ -88,16 +105,19 @@ export const backupRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
-					removeJob({
-						backupId: input.backupId,
-						cronSchedule: value.schedule,
-						type: "backup",
-					});
-				} else {
+					removeJob(
+						{
+							backupId: input.backupId,
+							cronSchedule: value.schedule,
+							type: "backup",
+						},
+						ctx.session.id,
+					);
+				} else if (!IS_CLOUD) {
 					removeScheduleBackup(input.backupId);
 				}
 				return value;

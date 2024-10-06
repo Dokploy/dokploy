@@ -1,11 +1,12 @@
 import type { DeploymentJob } from "../queues/deployments-queue";
 
-export const deploy = async (jobData: DeploymentJob) => {
+export const deploy = async (jobData: DeploymentJob, sessionId: string) => {
 	try {
 		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
+				Authorization: `Bearer ${sessionId}`,
 			},
 			body: JSON.stringify(jobData),
 		});

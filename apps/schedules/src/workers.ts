@@ -5,6 +5,7 @@ import { runJobs } from "./utils";
 export const firstWorker = new Worker(
 	"backupQueue",
 	async (job: Job<QueueJob>) => {
+		console.log("Job received", job.data);
 		await runJobs(job.data);
 	},
 	{
@@ -17,6 +18,7 @@ export const firstWorker = new Worker(
 export const secondWorker = new Worker(
 	"backupQueue",
 	async (job: Job<QueueJob>) => {
+		console.log(job.data);
 		await runJobs(job.data);
 	},
 	{
