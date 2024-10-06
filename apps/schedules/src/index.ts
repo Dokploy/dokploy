@@ -6,10 +6,12 @@ import { logger } from "./logger";
 import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
 import { jobQueueSchema } from "./schema";
 import { firstWorker, secondWorker } from "./workers";
+import { initializeJobs } from "./utils";
 
 const app = new Hono();
 
 cleanQueue();
+initializeJobs();
 
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
@@ -27,7 +29,7 @@ app.use(async (c, next) => {
 app.post("/create-backup", zValidator("json", jobQueueSchema), async (c) => {
 	const data = c.req.valid("json");
 	scheduleJob(data);
-	logger.info("Backup created successfully", data);
+	logger.info({ data }, "Backup created successfully");
 	return c.json({ message: "Backup created successfully" });
 });
 
@@ -49,7 +51,7 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 				cronSchedule: job.pattern,
 			});
 		}
-		logger.info("Job removed", result);
+		logger.info({ result }, "Job removed");
 	}
 	scheduleJob(data);
 	logger.info("Backup updated successfully");

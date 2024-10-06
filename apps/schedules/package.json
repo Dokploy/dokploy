@@ -7,6 +7,7 @@
 		"start": "node --experimental-specifier-resolution=node dist/index.js"
 	},
 	"dependencies": {
+		"drizzle-orm": "^0.30.8",
 		"ioredis": "5.4.1",
 		"bullmq": "5.4.2",
 		"@hono/zod-validator": "0.3.0",

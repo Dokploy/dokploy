@@ -8,8 +8,12 @@ import {
 	runMySqlBackup,
 	runPostgresBackup,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/dist/db";
+import { eq } from "drizzle-orm";
 import { logger } from "./logger";
 import type { QueueJob } from "./schema";
+import { scheduleJob } from "./queue";
+import { backups, server } from "@dokploy/server/dist/db/schema";
 
 export const runJobs = async (job: QueueJob) => {
 	try {
@@ -39,4 +43,42 @@ export const runJobs = async (job: QueueJob) => {
 	}
 
 	return true;
+};
+
+export const initializeJobs = async () => {
+	logger.info("Setting up Jobs....");
+
+	const servers = await db.query.server.findMany({
+		where: eq(server.enableDockerCleanup, true),
+	});
+
+	for (const server of servers) {
+		const { serverId } = server;
+		scheduleJob({
+			serverId,
+			type: "server",
+			cronSchedule: "0 0 * * *",
+		});
+	}
+
+	logger.info({ Quantity: servers.length }, "Servers Initialized");
+
+	const backupsResult = await db.query.backups.findMany({
+		where: eq(backups.enabled, true),
+		with: {
+			mariadb: true,
+			mysql: true,
+			postgres: true,
+			mongo: true,
+		},
+	});
+
+	for (const backup of backupsResult) {
+		scheduleJob({
+			backupId: backup.backupId,
+			type: "backup",
+			cronSchedule: backup.schedule,
+		});
+	}
+	logger.info({ Quantity: backupsResult.length }, "Backups Initialized");
 };
