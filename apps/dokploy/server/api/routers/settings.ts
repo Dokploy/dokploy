@@ -21,6 +21,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findAdmin,
+	findAdminById,
 	findServerById,
 	getDokployImage,
 	initializeTraefik,
@@ -64,6 +65,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { removeJob, schedule } from "@/server/utils/backup";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
@@ -205,22 +207,56 @@ export const settingsRouter = createTRPCRouter({
 				});
 
 				const server = await findServerById(input.serverId);
-				if (server.enableDockerCleanup) {
-					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
-						console.log(
-							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
-						);
-						await cleanUpUnusedImages(server.serverId);
-						await cleanUpDockerBuilder(server.serverId);
-						await cleanUpSystemPrune(server.serverId);
-						await sendDockerCleanupNotifications();
+
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
 					});
 				}
+
+				if (server.enableDockerCleanup) {
+					if (IS_CLOUD) {
+						await schedule({
+							cronSchedule: "0 0 * * *",
+							serverId: input.serverId,
+							type: "server",
+						});
+					} else {
+						scheduleJob(server.serverId, "0 0 * * *", async () => {
+							console.log(
+								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
+							);
+							await cleanUpUnusedImages(server.serverId);
+							await cleanUpDockerBuilder(server.serverId);
+							await cleanUpSystemPrune(server.serverId);
+							await sendDockerCleanupNotifications();
+						});
+					}
+				} else {
+					if (IS_CLOUD) {
+						await removeJob({
+							cronSchedule: "0 0 * * *",
+							serverId: input.serverId,
+							type: "server",
+						});
+					} else {
+						const currentJob = scheduledJobs[server.serverId];
+						currentJob?.cancel();
+					}
+				}
 			} else if (!IS_CLOUD) {
+				const admin = await findAdminById(ctx.user.adminId);
+
+				if (admin.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this admin",
+					});
+				}
 				await updateAdmin(ctx.user.authId, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
-				const admin = await findAdmin();
 
 				if (admin.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
