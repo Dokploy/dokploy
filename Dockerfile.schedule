@@ -1,0 +1,36 @@
+FROM node:18-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+FROM base AS build
+COPY . /usr/src/app
+WORKDIR /usr/src/app
+
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=@dokploy/server --filter=./apps/schedules install --frozen-lockfile
+
+# Deploy only the dokploy app
+
+ENV NODE_ENV=production
+RUN pnpm --filter=@dokploy/server build
+RUN pnpm --filter=./apps/schedules run build
+
+RUN pnpm --filter=./apps/schedules --prod deploy /prod/schedules
+
+RUN cp -R /usr/src/app/apps/schedules/dist /prod/schedules/dist
+
+FROM base AS dokploy
+WORKDIR /app
+
+# Set production
+ENV NODE_ENV=production
+
+# Copy only the necessary files
+COPY --from=build /prod/schedules/dist ./dist
+COPY --from=build /prod/schedules/package.json ./package.json
+COPY --from=build /prod/schedules/node_modules ./node_modules
+
+CMD HOSTNAME=0.0.0.0 && pnpm start
