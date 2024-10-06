@@ -1,5 +1,5 @@
-import type { QueueJob } from "./schema";
 import { type Job, Worker } from "bullmq";
+import type { QueueJob } from "./schema";
 import { runJobs } from "./utils";
 
 export const firstWorker = new Worker(

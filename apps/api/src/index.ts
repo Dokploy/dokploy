@@ -1,12 +1,12 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
-import { createClient } from "redis";
-import { Queue } from "@nerimity/mimiqueue";
 import { zValidator } from "@hono/zod-validator";
+import { Queue } from "@nerimity/mimiqueue";
+import { createClient } from "redis";
+import { logger } from "./logger";
 import { type DeployJob, deployJobSchema } from "./schema";
 import { deploy } from "./utils";
-import { logger } from "./logger";
 
 const app = new Hono();
 const redisClient = createClient({

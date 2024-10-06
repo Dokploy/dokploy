@@ -2,10 +2,10 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
-import { jobQueueSchema } from "./schema";
-import { firstWorker, secondWorker } from "./workers";
 import { logger } from "./logger";
 import { cleanQueue, removeJob, scheduleJob } from "./queue";
+import { jobQueueSchema } from "./schema";
+import { firstWorker, secondWorker } from "./workers";
 
 const app = new Hono();
 
