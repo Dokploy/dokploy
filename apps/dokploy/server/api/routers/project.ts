@@ -125,6 +125,7 @@ export const projectRouter = createTRPCRouter({
 							applications.applicationId,
 							accesedServices,
 						),
+						with: { domains: true },
 					},
 					mariadb: {
 						where: buildServiceFilter(mariadb.mariadbId, accesedServices),
@@ -143,6 +144,7 @@ export const projectRouter = createTRPCRouter({
 					},
 					compose: {
 						where: buildServiceFilter(compose.composeId, accesedServices),
+						with: { domains: true },
 					},
 				},
 				orderBy: desc(projects.createdAt),
@@ -153,13 +155,21 @@ export const projectRouter = createTRPCRouter({
 
 		return await db.query.projects.findMany({
 			with: {
-				applications: true,
+				applications: {
+					with: {
+						domains: true,
+					},
+				},
 				mariadb: true,
 				mongo: true,
 				mysql: true,
 				postgres: true,
 				redis: true,
-				compose: true,
+				compose: {
+					with: {
+						domains: true,
+					},
+				},
 			},
 			where: eq(projects.adminId, ctx.user.adminId),
 			orderBy: desc(projects.createdAt),
