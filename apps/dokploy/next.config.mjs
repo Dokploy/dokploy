@@ -18,6 +18,7 @@ const nextConfig = {
 	typescript: {
 		ignoreBuildErrors: true,
 	},
+	transpilePackages: ["@dokploy/server"],
 	webpack: (config) => {
 		config.plugins.push(
 			new CopyWebpackPlugin({

@@ -1,13 +1,14 @@
-import { setupDirectories } from "./server/setup/config-paths";
-import { initializePostgres } from "./server/setup/postgres-setup";
-import { initializeRedis } from "./server/setup/redis-setup";
-import { initializeNetwork, initializeSwarm } from "./server/setup/setup";
 import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	initializeNetwork,
+	initializePostgres,
+	initializeRedis,
+	initializeSwarm,
 	initializeTraefik,
-} from "./server/setup/traefik-setup";
+	setupDirectories,
+} from "@dokploy/server";
 
 (async () => {
 	try {

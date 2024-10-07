@@ -11,6 +11,7 @@ jobs:
           command: |
             cp apps/dokploy/.env.production.example .env.production
             cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
       - run:
           name: Build and push AMD64 image
           command: |
@@ -61,7 +62,7 @@ jobs:
               VERSION=$(node -p "require('./apps/dokploy/package.json').version")
               echo $VERSION
               TAG="latest"
-              
+
               docker manifest create dokploy/dokploy:${TAG} \
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64

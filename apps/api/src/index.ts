@@ -1,66 +1,61 @@
 import { serve } from "@hono/node-server";
-import { config } from "dotenv";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { validateLemonSqueezyLicense } from "./utils";
-
-config();
+import "dotenv/config";
+import { zValidator } from "@hono/zod-validator";
+import { Queue } from "@nerimity/mimiqueue";
+import { createClient } from "redis";
+import { logger } from "./logger";
+import { type DeployJob, deployJobSchema } from "./schema";
+import { deploy } from "./utils";
 
 const app = new Hono();
-
-app.use(
-	"/*",
-	cors({
-		origin: ["http://localhost:3000", "http://localhost:3001"], // Ajusta esto a los orígenes de tu aplicación Next.js
-		allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-		allowHeaders: ["Content-Type", "Authorization"],
-		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
-		maxAge: 600,
-		credentials: true,
-	}),
-);
-
-export const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
-export const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
-
-app.get("/v1/health", (c) => {
-	return c.text("Hello Hono!");
+const redisClient = createClient({
+	url: process.env.REDIS_URL,
 });
 
-app.post("/v1/validate-license", async (c) => {
-	const { licenseKey } = await c.req.json();
+app.use(async (c, next) => {
+	if (c.req.path === "/health") {
+		return next();
+	}
+	const authHeader = c.req.header("X-API-Key");
 
-	if (!licenseKey) {
-		return c.json({ error: "License key is required" }, 400);
+	if (process.env.API_KEY !== authHeader) {
+		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
-	try {
-		const licenseValidation = await validateLemonSqueezyLicense(licenseKey);
-
-		if (licenseValidation.valid) {
-			return c.json({
-				valid: true,
-				message: "License is valid",
-				metadata: licenseValidation.meta,
-			});
-		}
-		return c.json(
-			{
-				valid: false,
-				message: licenseValidation.error || "Invalid license",
-			},
-			400,
-		);
-	} catch (error) {
-		console.error("Error during license validation:", error);
-		return c.json({ error: "Internal server error" }, 500);
-	}
+	return next();
 });
 
-const port = 4000;
-console.log(`Server is running on port ${port}`);
-
-serve({
-	fetch: app.fetch,
-	port,
+app.post("/deploy", zValidator("json", deployJobSchema), (c) => {
+	const data = c.req.valid("json");
+	const res = queue.add(data, { groupName: data.serverId });
+	return c.json(
+		{
+			message: "Deployment Added",
+		},
+		200,
+	);
 });
+
+app.get("/health", async (c) => {
+	return c.json({ status: "ok" });
+});
+
+const queue = new Queue({
+	name: "deployments",
+	process: async (job: DeployJob) => {
+		logger.info("Deploying job", job);
+		return await deploy(job);
+	},
+	redisClient,
+});
+
+(async () => {
+	await redisClient.connect();
+	await redisClient.flushAll();
+	logger.info("Redis Cleaned");
+})();
+
+const port = Number.parseInt(process.env.PORT || "3000");
+logger.info("Starting Deployments Server ✅", port);
+serve({ fetch: app.fetch, port });

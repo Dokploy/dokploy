@@ -1,22 +1,21 @@
 import http from "node:http";
 import { migration } from "@/server/db/migration";
-import { config } from "dotenv";
-import next from "next";
-// import { IS_CLOUD } from "./constants";
-import { deploymentWorker } from "./queues/deployments-queue";
-// import { deploymentWorker } from "./queues/deployments-queue";
-import { setupDirectories } from "./setup/config-paths";
-import { initializePostgres } from "./setup/postgres-setup";
-import { initializeRedis } from "./setup/redis-setup";
-import { initializeNetwork } from "./setup/setup";
 import {
+	IS_CLOUD,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	initCronJobs,
+	initializeNetwork,
+	initializePostgres,
+	initializeRedis,
 	initializeTraefik,
-} from "./setup/traefik-setup";
-import { initCronJobs } from "./utils/backups";
-import { sendDokployRestartNotifications } from "./utils/notifications/dokploy-restart";
+	sendDokployRestartNotifications,
+	setupDirectories,
+} from "@dokploy/server";
+import { config } from "dotenv";
+import next from "next";
+import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -44,9 +43,7 @@ void app.prepare().then(async () => {
 		setupTerminalWebSocketServer(server);
 		setupDockerStatsMonitoringSocketServer(server);
 
-		if (process.env.NODE_ENV === "production") {
-			setupDirectories();
-			createDefaultMiddlewares();
+		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();
 			createDefaultMiddlewares();
 			await initializeNetwork();
@@ -65,9 +62,16 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 
+		if (IS_CLOUD && process.env.NODE_ENV === "production") {
+			await migration();
+		}
+
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		deploymentWorker.run();
+
+		if (!IS_CLOUD) {
+			deploymentWorker.run();
+		}
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

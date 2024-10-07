@@ -14,17 +14,18 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
-import { serverSetup } from "@/server/setup/server-setup";
-import { TRPCError } from "@trpc/server";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
-import { removeDeploymentsByServerId } from "../services/deployment";
 import {
 	createServer,
 	deleteServer,
 	findServerById,
 	haveActiveServices,
+	removeDeploymentsByServerId,
+	serverSetup,
 	updateServerById,
-} from "../services/server";
+} from "@dokploy/server";
+// import { serverSetup } from "@/server/setup/server-setup";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -34,7 +35,6 @@ export const serverRouter = createTRPCRouter({
 				const project = await createServer(input, ctx.user.adminId);
 				return project;
 			} catch (error) {
-				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to create the server",
@@ -46,7 +46,15 @@ export const serverRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
-			return await findServerById(input.serverId);
+			const server = await findServerById(input.serverId);
+			if (server.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+
+			return server;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db
@@ -68,7 +76,7 @@ export const serverRouter = createTRPCRouter({
 
 		return result;
 	}),
-	withSSHKey: protectedProcedure.query(async ({ input, ctx }) => {
+	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
 			where: and(
@@ -81,20 +89,30 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup this server",
+					});
+				}
 				const currentServer = await serverSetup(input.serverId);
 				return currentServer;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to setup this server",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to delete this server",
+					});
+				}
 				const activeServers = await haveActiveServices(input.serverId);
 
 				if (activeServers) {
@@ -109,28 +127,27 @@ export const serverRouter = createTRPCRouter({
 
 				return currentServer;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to delete this server",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	update: protectedProcedure
 		.input(apiUpdateServer)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this server",
+					});
+				}
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
 
 				return currentServer;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to update this server",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 });

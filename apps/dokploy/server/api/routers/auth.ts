@@ -1,6 +1,3 @@
-import { lucia, validateRequest } from "@/server/auth/auth";
-import { luciaToken } from "@/server/auth/token";
-// import { IS_CLOUD } from "@/server/constants";
 import {
 	apiCreateAdmin,
 	apiCreateUser,
@@ -11,19 +8,23 @@ import {
 	apiVerify2FA,
 	apiVerifyLogin2FA,
 } from "@/server/db/schema";
-import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
-import { db } from "../../db";
-import { getUserByToken } from "../services/admin";
 import {
+	IS_CLOUD,
 	createAdmin,
 	createUser,
 	findAuthByEmail,
 	findAuthById,
 	generate2FASecret,
+	getUserByToken,
+	lucia,
+	luciaToken,
 	updateAuthById,
+	validateRequest,
 	verify2FA,
-} from "../services/auth";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
+import { db } from "../../db";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -36,16 +37,15 @@ export const authRouter = createTRPCRouter({
 		.input(apiCreateAdmin)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// if (!IS_CLOUD) {
-				const admin = await db.query.admins.findFirst({});
-				if (admin) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Admin already exists",
-					});
+				if (!IS_CLOUD) {
+					const admin = await db.query.admins.findFirst({});
+					if (admin) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Admin already exists",
+						});
+					}
 				}
-				// }
-
 				const newAdmin = await createAdmin(input);
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
@@ -54,12 +54,7 @@ export const authRouter = createTRPCRouter({
 				);
 				return true;
 			} catch (error) {
-				console.log(error);
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to create the main admin",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	createUser: publicProcedure
@@ -225,7 +220,7 @@ export const authRouter = createTRPCRouter({
 				lucia.createSessionCookie(session.id).serialize(),
 			);
 
-			return auth;
+			return true;
 		}),
 	disable2FA: protectedProcedure.mutation(async ({ ctx }) => {
 		const auth = await findAuthById(ctx.user.authId);

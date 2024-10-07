@@ -1,7 +1,7 @@
 import { ShowTraefikSystem } from "@/components/dashboard/file-system/show-traefik-system";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
@@ -19,6 +19,14 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
 	const { user, session } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {

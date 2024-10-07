@@ -48,3 +48,74 @@ jobs:
           push: true
           tags: dokploy/website:latest
           platforms: linux/amd64
+
+
+  build-and-push-cloud-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.cloud
+          push: true
+          tags: |
+            siumauricio/cloud:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+          platforms: linux/amd64     
+
+  build-and-push-schedule-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.schedule
+          push: true
+          tags: |
+            siumauricio/schedule:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+          platforms: linux/amd64     
+
+
+  build-and-push-server-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.server
+          push: true
+          tags: |
+            siumauricio/server:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+          platforms: linux/amd64  

@@ -3,14 +3,14 @@ import {
 	apiCreatePort,
 	apiFindOnePort,
 	apiUpdatePort,
-} from "@/server/db/schema/port";
-import { TRPCError } from "@trpc/server";
+} from "@/server/db/schema";
 import {
 	createPort,
 	finPortById,
 	removePortById,
 	updatePortById,
-} from "../services/port";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 
 export const portRouter = createTRPCRouter({
 	create: protectedProcedure

@@ -4,6 +4,7 @@ interface Props {
 
 export const SettingsLayout = ({ children }: Props) => {
 	const { data } = api.auth.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
@@ -17,7 +18,7 @@ export const SettingsLayout = ({ children }: Props) => {
 			<div className="md:max-w-[18rem] w-full">
 				<Nav
 					links={[
-						...(data?.rol === "admin"
+						...(data?.rol === "admin" && !isCloud
 							? [
 									{
 										title: "Server",
@@ -47,12 +48,16 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Database,
 										href: "/dashboard/settings/destinations",
 									},
-									{
-										title: "Certificates",
-										label: "",
-										icon: ShieldCheck,
-										href: "/dashboard/settings/certificates",
-									},
+									...(!isCloud
+										? [
+												{
+													title: "Certificates",
+													label: "",
+													icon: ShieldCheck,
+													href: "/dashboard/settings/certificates",
+												},
+											]
+										: []),
 									{
 										title: "SSH Keys",
 										label: "",
@@ -60,7 +65,7 @@ export const SettingsLayout = ({ children }: Props) => {
 										href: "/dashboard/settings/ssh-keys",
 									},
 									{
-										title: "Git ",
+										title: "Git",
 										label: "",
 										icon: GitBranch,
 										href: "/dashboard/settings/git-providers",
@@ -71,12 +76,23 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Users,
 										href: "/dashboard/settings/users",
 									},
+
 									{
-										title: "Cluster",
+										title: "Registry",
 										label: "",
-										icon: BoxesIcon,
-										href: "/dashboard/settings/cluster",
+										icon: ListMusic,
+										href: "/dashboard/settings/registry",
 									},
+									...(!isCloud
+										? [
+												{
+													title: "Cluster",
+													label: "",
+													icon: BoxesIcon,
+													href: "/dashboard/settings/cluster",
+												},
+											]
+										: []),
 									{
 										title: "Notifications",
 										label: "",
@@ -128,6 +144,7 @@ import {
 	GitBranch,
 	KeyIcon,
 	KeyRound,
+	ListMusic,
 	type LucideIcon,
 	Route,
 	Server,

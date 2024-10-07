@@ -1,10 +1,8 @@
 import type http from "node:http";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
-import { validateWebSocketRequest } from "../auth/auth";
-import { readSSHKey } from "../utils/filesystem/ssh";
 import { getShell } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -50,41 +48,48 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
-				const keys = await readSSHKey(server.sshKeyId);
 				const client = new Client();
-				new Promise<void>((resolve, reject) => {
-					client
-						.once("ready", () => {
-							const command = `
+				client
+					.once("ready", () => {
+						const command = `
 						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
 					`;
-							client.exec(command, (err, stream) => {
-								if (err) {
-									console.error("Execution error:", err);
-									reject(err);
-									return;
-								}
-								stream
-									.on("close", () => {
-										console.log("Connection closed ✅");
-										client.end();
-										resolve();
-									})
-									.on("data", (data: string) => {
-										ws.send(data.toString());
-									})
-									.stderr.on("data", (data) => {
-										ws.send(data.toString());
-									});
-							});
-						})
-						.connect({
-							host: server.ipAddress,
-							port: server.port,
-							username: server.username,
-							privateKey: keys.privateKey,
-							timeout: 99999,
+						client.exec(command, (err, stream) => {
+							if (err) {
+								console.error("Execution error:", err);
+								ws.close();
+								client.end();
+								return;
+							}
+							stream
+								.on("close", () => {
+									console.log("Connection closed ✅ Container Logs");
+									client.end();
+									ws.close();
+								})
+								.on("data", (data: string) => {
+									ws.send(data.toString());
+								})
+								.stderr.on("data", (data) => {
+									ws.send(data.toString());
+								});
 						});
+					})
+					.on("error", (err) => {
+						console.error("SSH connection error:", err);
+						ws.send(`SSH error: ${err.message}`);
+						ws.close(); // Cierra el WebSocket si hay un error con SSH
+						client.end();
+					})
+					.connect({
+						host: server.ipAddress,
+						port: server.port,
+						username: server.username,
+						privateKey: server.sshKey?.privateKey,
+					});
+				ws.on("close", () => {
+					console.log("Connection closed ✅, From Container Logs WS");
+					client.end();
 				});
 			} else {
 				const shell = getShell();

@@ -5,37 +5,46 @@ import {
 	apiRemoveBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
-import { runMariadbBackup } from "@/server/utils/backups/mariadb";
-import { runMongoBackup } from "@/server/utils/backups/mongo";
-import { runMySqlBackup } from "@/server/utils/backups/mysql";
-import { runPostgresBackup } from "@/server/utils/backups/postgres";
+import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import {
-	removeScheduleBackup,
-	scheduleBackup,
-} from "@/server/utils/backups/utils";
-import { TRPCError } from "@trpc/server";
-import {
+	IS_CLOUD,
 	createBackup,
 	findBackupById,
+	findMariadbByBackupId,
+	findMongoByBackupId,
+	findMySqlByBackupId,
+	findPostgresByBackupId,
 	removeBackupById,
+	removeScheduleBackup,
+	runMariadbBackup,
+	runMongoBackup,
+	runMySqlBackup,
+	runPostgresBackup,
+	scheduleBackup,
 	updateBackupById,
-} from "../services/backup";
-import { findMariadbByBackupId } from "../services/mariadb";
-import { findMongoByBackupId } from "../services/mongo";
-import { findMySqlByBackupId } from "../services/mysql";
-import { findPostgresByBackupId } from "../services/postgres";
+} from "@dokploy/server";
+
+import { TRPCError } from "@trpc/server";
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const newBackup = await createBackup(input);
 
 				const backup = await findBackupById(newBackup.backupId);
 
-				if (backup.enabled) {
-					scheduleBackup(backup);
+				if (IS_CLOUD && backup.enabled) {
+					await schedule({
+						cronSchedule: backup.schedule,
+						backupId: backup.backupId,
+						type: "backup",
+					});
+				} else {
+					if (backup.enabled) {
+						scheduleBackup(backup);
+					}
 				}
 			} catch (error) {
 				throw new TRPCError({
@@ -45,22 +54,41 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneBackup).query(async ({ input }) => {
-		const backup = await findBackupById(input.backupId);
-		return backup;
-	}),
+	one: protectedProcedure
+		.input(apiFindOneBackup)
+		.query(async ({ input, ctx }) => {
+			const backup = await findBackupById(input.backupId);
+
+			return backup;
+		}),
 	update: protectedProcedure
 		.input(apiUpdateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 
-				if (backup.enabled) {
-					removeScheduleBackup(input.backupId);
-					scheduleBackup(backup);
+				if (IS_CLOUD) {
+					if (backup.enabled) {
+						await updateJob({
+							cronSchedule: backup.schedule,
+							backupId: backup.backupId,
+							type: "backup",
+						});
+					} else {
+						await removeJob({
+							cronSchedule: backup.schedule,
+							backupId: backup.backupId,
+							type: "backup",
+						});
+					}
 				} else {
-					removeScheduleBackup(input.backupId);
+					if (backup.enabled) {
+						removeScheduleBackup(input.backupId);
+						scheduleBackup(backup);
+					} else {
+						removeScheduleBackup(input.backupId);
+					}
 				}
 			} catch (error) {
 				throw new TRPCError({
@@ -71,10 +99,18 @@ export const backupRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const value = await removeBackupById(input.backupId);
-				removeScheduleBackup(input.backupId);
+				if (IS_CLOUD && value) {
+					removeJob({
+						backupId: input.backupId,
+						cronSchedule: value.schedule,
+						type: "backup",
+					});
+				} else if (!IS_CLOUD) {
+					removeScheduleBackup(input.backupId);
+				}
 				return value;
 			} catch (error) {
 				throw new TRPCError({
@@ -151,3 +187,26 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 });
+
+// export const getAdminId = async (backupId: string) => {
+// 	const backup = await findBackupById(backupId);
+
+// 	if (backup.databaseType === "postgres" && backup.postgresId) {
+// 		const postgres = await findPostgresById(backup.postgresId);
+// 		return postgres.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mariadb" && backup.mariadbId) {
+// 		const mariadb = await findMariadbById(backup.mariadbId);
+// 		return mariadb.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mysql" && backup.mysqlId) {
+// 		const mysql = await findMySqlById(backup.mysqlId);
+// 		return mysql.project.adminId;
+// 	}
+// 	if (backup.databaseType === "mongo" && backup.mongoId) {
+// 		const mongo = await findMongoById(backup.mongoId);
+// 		return mongo.project.adminId;
+// 	}
+
+// 	return null;
+// };

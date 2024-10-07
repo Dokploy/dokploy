@@ -1,18 +1,16 @@
-import { type Job, Worker } from "bullmq";
 import {
 	deployApplication,
-	deployRemoteApplication,
-	rebuildApplication,
-	rebuildRemoteApplication,
-	updateApplicationStatus,
-} from "../api/services/application";
-import {
 	deployCompose,
+	deployRemoteApplication,
 	deployRemoteCompose,
+	rebuildApplication,
 	rebuildCompose,
+	rebuildRemoteApplication,
 	rebuildRemoteCompose,
+	updateApplicationStatus,
 	updateCompose,
-} from "../api/services/compose";
+} from "@dokploy/server";
+import { type Job, Worker } from "bullmq";
 import { myQueue, redisConfig } from "./queueSetup";
 
 type DeployJob =
@@ -23,6 +21,7 @@ type DeployJob =
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "application";
+			serverId?: string;
 	  }
 	| {
 			composeId: string;
@@ -31,6 +30,7 @@ type DeployJob =
 			server?: boolean;
 			type: "deploy" | "redeploy";
 			applicationType: "compose";
+			serverId?: string;
 	  };
 
 export type DeploymentJob = DeployJob;

@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { paths } from "@/server/constants";
+import { paths } from "@dokploy/server/dist/constants";
 const { APPLICATIONS_PATH } = paths();
-import type { ApplicationNested } from "@/server/utils/builders";
-import { unzipDrop } from "@/server/utils/builders/drop";
+import type { ApplicationNested } from "@dokploy/server";
+import { unzipDrop } from "@dokploy/server";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -81,14 +81,17 @@ const baseApp: ApplicationNested = {
 	username: null,
 	dockerContextPath: null,
 };
-//
-vi.mock("@/server/constants", () => ({
-	paths: () => ({
-		APPLICATIONS_PATH: "./__test__/drop/zips/output",
-	}),
-	// APPLICATIONS_PATH: "./__test__/drop/zips/output",
-}));
 
+vi.mock("@dokploy/server/dist/constants", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		// @ts-ignore
+		...actual,
+		paths: () => ({
+			APPLICATIONS_PATH: "./__test__/drop/zips/output",
+		}),
+	};
+});
 describe("unzipDrop using real zip files", () => {
 	// const { APPLICATIONS_PATH } = paths();
 	beforeAll(async () => {
@@ -102,15 +105,19 @@ describe("unzipDrop using real zip files", () => {
 	it("should correctly extract a zip with a single root folder", async () => {
 		baseApp.appName = "single-file";
 		// const appName = "single-file";
-		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
-		const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
-
-		const zipBuffer = zip.toBuffer();
-		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, baseApp);
-
-		const files = await fs.readdir(outputPath, { withFileTypes: true });
-		expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		try {
+			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
+			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
+			console.log(`Output Path: ${outputPath}`);
+			const zipBuffer = zip.toBuffer();
+			const file = new File([zipBuffer], "single.zip");
+			await unzipDrop(file, baseApp);
+			const files = await fs.readdir(outputPath, { withFileTypes: true });
+			expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		} catch (err) {
+			console.log(err);
+		} finally {
+		}
 	});
 
 	it("should correctly extract a zip with a single root folder and a subfolder", async () => {

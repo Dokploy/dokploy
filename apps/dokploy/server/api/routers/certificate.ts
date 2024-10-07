@@ -1,11 +1,12 @@
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { apiCreateCertificate, apiFindCertificate } from "@/server/db/schema";
+
 import {
 	createCertificate,
 	findCertificateById,
 	findCertificates,
 	removeCertificateById,
-} from "../services/certificate";
+} from "@dokploy/server";
 
 export const certificateRouter = createTRPCRouter({
 	create: adminProcedure

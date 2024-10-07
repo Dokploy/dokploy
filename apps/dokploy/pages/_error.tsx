@@ -10,7 +10,6 @@ interface Props {
 
 export default function Custom404({ statusCode, error }: Props) {
 	const displayStatusCode = statusCode || 400;
-	console.log(error, statusCode);
 	return (
 		<div className="h-screen">
 			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
@@ -92,7 +91,6 @@ export default function Custom404({ statusCode, error }: Props) {
 
 // @ts-ignore
 Error.getInitialProps = ({ res, err, ...rest }: NextPageContext) => {
-	console.log(err, rest);
 	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
 	return { statusCode, error: err };
 };

@@ -1,8 +1,9 @@
-import { findAdmin } from "@/server/api/services/admin";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/deployments-queue";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { IS_CLOUD } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -12,17 +13,10 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const admin = await findAdmin();
-
-	if (!admin) {
-		res.status(200).json({ message: "Could not find admin" });
-		return;
-	}
-
 	const signature = req.headers["x-hub-signature-256"];
 	const githubBody = req.body;
 
-	if (!githubBody?.installation.id) {
+	if (!githubBody?.installation?.id) {
 		res.status(400).json({ message: "Github Installation not found" });
 		return;
 	}
@@ -88,6 +82,12 @@ export default async function handler(
 				applicationType: "application",
 				server: !!app.serverId,
 			};
+
+			if (IS_CLOUD && app.serverId) {
+				jobData.serverId = app.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -115,6 +115,12 @@ export default async function handler(
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
 			};
+
+			if (IS_CLOUD && composeApp.serverId) {
+				jobData.serverId = composeApp.serverId;
+				await deploy(jobData);
+				return true;
+			}
 
 			await myQueue.add(
 				"deployments",
