@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { paths } from "@dokploy/server";
+import { paths } from "@dokploy/server/dist/constants";
 const { APPLICATIONS_PATH } = paths();
 import type { ApplicationNested } from "@dokploy/server";
 import { unzipDrop } from "@dokploy/server";
@@ -82,11 +82,11 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 };
 
-vi.mock("@dokploy/server", async (importOriginal) => {
+vi.mock("@dokploy/server/dist/constants", async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
+		// @ts-ignore
 		...actual,
-		unzipDrop: actual.unzipDrop, // Asegura que unzipDrop esté presente en el mock
 		paths: () => ({
 			APPLICATIONS_PATH: "./__test__/drop/zips/output",
 		}),
