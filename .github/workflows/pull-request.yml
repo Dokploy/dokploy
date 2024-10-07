@@ -44,4 +44,5 @@ jobs:
           node-version: 18.18.0
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run server:build  
       - run: pnpm test
