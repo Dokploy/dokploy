@@ -21,6 +21,7 @@
 		"react-ga4": "^2.1.0"
 	},
 	"devDependencies": {
+		"autoprefixer": "10.4.12",
 		"@types/mdx": "^2.0.13",
 		"@types/react": "^18.3.3",
 		"postcss": "^8.4.38",
