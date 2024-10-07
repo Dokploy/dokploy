@@ -10,6 +10,7 @@ import {
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
 } from "@/server/db/schema";
+import { removeJob, schedule } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	canAccessToTraefikFiles,
@@ -65,7 +66,6 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { removeJob, schedule } from "@/server/utils/backup";
 
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {

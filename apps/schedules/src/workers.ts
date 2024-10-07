@@ -1,8 +1,8 @@
 import { type Job, Worker } from "bullmq";
+import { logger } from "./logger";
+import { connection } from "./queue";
 import type { QueueJob } from "./schema";
 import { runJobs } from "./utils";
-import { connection } from "./queue";
-import { logger } from "./logger";
 
 export const firstWorker = new Worker(
 	"backupQueue",

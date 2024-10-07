@@ -9,11 +9,11 @@ import {
 	runPostgresBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
+import { backups, server } from "@dokploy/server/dist/db/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
-import type { QueueJob } from "./schema";
 import { scheduleJob } from "./queue";
-import { backups, server } from "@dokploy/server/dist/db/schema";
+import type { QueueJob } from "./schema";
 
 export const runJobs = async (job: QueueJob) => {
 	try {

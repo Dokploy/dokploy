@@ -5,8 +5,8 @@ import { zValidator } from "@hono/zod-validator";
 import { logger } from "./logger";
 import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
 import { jobQueueSchema } from "./schema";
-import { firstWorker, secondWorker } from "./workers";
 import { initializeJobs } from "./utils";
+import { firstWorker, secondWorker } from "./workers";
 
 const app = new Hono();
 
