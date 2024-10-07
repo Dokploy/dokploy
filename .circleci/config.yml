@@ -19,7 +19,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
-              TAG="feature"
+              TAG="canary"
             fi
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
             docker push dokploy/dokploy:${TAG}-amd64
@@ -42,7 +42,7 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               TAG="latest"
             else
-              TAG="feature"
+              TAG="canary"
             fi
             docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
             docker push dokploy/dokploy:${TAG}-arm64
@@ -73,7 +73,7 @@ jobs:
                 dokploy/dokploy:${TAG}-arm64
               docker manifest push dokploy/dokploy:${VERSION}
             else
-              TAG="feature"
+              TAG="canary"
               docker manifest create dokploy/dokploy:${TAG} \
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64
@@ -87,7 +87,6 @@ workflows:
           filters:
             branches:
               only:
-                - feat/cloud
                 - main
                 - canary
       - build-arm64:
@@ -96,7 +95,6 @@ workflows:
               only:
                 - main
                 - canary
-                - feat/cloud
       - combine-manifests:
           requires:
             - build-amd64
@@ -106,4 +104,3 @@ workflows:
               only:
                 - main
                 - canary
-                - feat/cloud
