@@ -8,7 +8,8 @@
 		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts",
 		"dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
-		"esbuild": "tsx ./esbuild.config.ts"
+		"esbuild": "tsx ./esbuild.config.ts",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"rotating-file-stream": "3.2.3",

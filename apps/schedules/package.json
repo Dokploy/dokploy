@@ -4,7 +4,8 @@
 	"scripts": {
 		"dev": "PORT=4001 tsx watch src/index.ts",
 		"build": "tsc --project tsconfig.json",
-		"start": "node --experimental-specifier-resolution=node dist/index.js"
+		"start": "node --experimental-specifier-resolution=node dist/index.js",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"drizzle-orm": "^0.30.8",

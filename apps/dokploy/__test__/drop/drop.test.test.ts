@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { paths } from "@/server/constants";
+import { paths } from "@dokploy/server";
 const { APPLICATIONS_PATH } = paths();
 import type { ApplicationNested } from "@dokploy/server";
 import { unzipDrop } from "@dokploy/server";

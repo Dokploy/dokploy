@@ -5,7 +5,8 @@
 	"scripts": {
 		"dev": "PORT=4000 tsx watch src/index.ts",
 		"build": "tsc --project tsconfig.json",
-		"start": "node --experimental-specifier-resolution=node dist/index.js"
+		"start": "node --experimental-specifier-resolution=node dist/index.js",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"pino": "9.4.0",

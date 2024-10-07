@@ -1,9 +1,0 @@
-version: "3.8"
-services:
-  pocketbase:
-    image: spectado/pocketbase:0.22.12
-    restart: unless-stopped
-    volumes:
-      - /etc/dokploy/templates/${HASH}/data:/pb_data
-      - /etc/dokploy/templates/${HASH}/public:/pb_public
-      - /etc/dokploy/templates/${HASH}/migrations:/pb_migrations
