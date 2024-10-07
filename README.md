@@ -32,6 +32,7 @@ Dokploy include multiples features to make your life easier.
 - **Docker Management**: Easily deploy and manage Docker containers.
 - **CLI/API**: Manage your applications and databases using the command line or trought the API.
 - **Notifications**: Get notified when your deployments are successful or failed (Slack, Discord, Telegram, Email, etc.)
+- **Multi Server**: Deploy and manager your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.
 
 ## 🚀 Getting Started

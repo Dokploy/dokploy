@@ -86,6 +86,7 @@ export const applicationRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newApplication.applicationId);
 				}
+				return newApplication;
 			} catch (error: unknown) {
 				if (error instanceof TRPCError) {
 					throw error;
