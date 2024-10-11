@@ -67,8 +67,8 @@ jobs:
         run: |
           echo "NODE_ENV=production" >> .env
           echo "IS_CLOUD=true" >> .env
-          echo .env
-          echo Dockerfile.cloud
+          cat .env
+          cat Dockerfile.cloud
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
