@@ -15,7 +15,6 @@ import {
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
-import { deploymentWorker } from "./queues/deployments-queue";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -62,17 +61,16 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 
-		console.log(process.env);
 		if (IS_CLOUD && process.env.NODE_ENV === "production") {
 			await migration();
 		}
 
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-		console.log(IS_CLOUD, process.env.IS_CLOUD);
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
-			deploymentWorker.run();
+			const { deploymentWorker } = await import("./queues/deployments-queue");
+			await deploymentWorker.run();
 		}
 	} catch (e) {
 		console.error("Main Server Error", e);
