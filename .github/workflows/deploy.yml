@@ -68,6 +68,8 @@ jobs:
           echo "NODE_ENV=production" >> .env.production
           echo "IS_CLOUD=true" >> .env.production
           cp .env.production apps/dokploy/.env.production
+          cat .env.production
+          cat apps/dokploy/.env.production
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
