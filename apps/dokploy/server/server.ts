@@ -69,8 +69,9 @@ void app.prepare().then(async () => {
 
 		server.listen(PORT);
 		console.log("Server Started:", PORT);
-
+		console.log(IS_CLOUD, process.env.IS_CLOUD);
 		if (!IS_CLOUD) {
+			console.log("Starting Deployment Worker");
 			deploymentWorker.run();
 		}
 	} catch (e) {
