@@ -1,4 +1,4 @@
-name: Build Docs & Website Docker images
+name: Build Docker images
 
 on:
   push:

@@ -25,7 +25,7 @@ import {
 	setupTerminalWebSocketServer,
 } from "./wss/terminal";
 
-config({ path: ".env" });
+config({ path: ".env", override: true });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
