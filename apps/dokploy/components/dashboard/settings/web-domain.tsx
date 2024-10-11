@@ -80,7 +80,7 @@ export const WebDomain = () => {
 				<CardHeader>
 					<CardTitle className="text-xl">Server Domain</CardTitle>
 					<CardDescription>
-						Add your server domain to your application
+						Add a domain to your server application.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex w-full flex-col gap-4">

@@ -79,7 +79,7 @@ export const ShowMysqlResources = ({ mysqlId }: Props) => {
 			<CardHeader>
 				<CardTitle className="text-xl">Resources</CardTitle>
 				<CardDescription>
-					If you want to decrease or increase the resources to a specific
+					If you want to decrease or increase the resources to a specific.
 					application or database
 				</CardDescription>
 			</CardHeader>

@@ -44,7 +44,7 @@ export const ShowBackupMariadb = ({ mariadbId }: Props) => {
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl">Backups</CardTitle>
 					<CardDescription>
-						Add backup to your database to save the data to a different
+						Add backups to your database to save the data to a different
 						providers.
 					</CardDescription>
 				</div>
@@ -62,7 +62,7 @@ export const ShowBackupMariadb = ({ mariadbId }: Props) => {
 					<div className="flex flex-col items-center gap-3">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							To create a backup is required to set at least 1 provider. Please,
+							To create a backup it is required to set at least 1 provider. Please,
 							go to{" "}
 							<Link
 								href="/dashboard/settings/server"

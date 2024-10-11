@@ -95,7 +95,7 @@ export const ProfileForm = () => {
 				<div>
 					<CardTitle className="text-xl">Account</CardTitle>
 					<CardDescription>
-						Change your details of your profile here.
+						Change the details of your profile here.
 					</CardDescription>
 				</div>
 				{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
