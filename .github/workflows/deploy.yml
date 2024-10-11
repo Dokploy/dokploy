@@ -63,14 +63,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Add Enviroment Variables
-        run: |
-          echo "NODE_ENV=production" >> .env.production
-          echo "IS_CLOUD=true" >> .env.production
-          cp .env.production apps/dokploy/.env.production
-          cat .env.production
-          cat apps/dokploy/.env.production
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
