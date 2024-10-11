@@ -67,6 +67,8 @@ jobs:
         run: |
           echo "NODE_ENV=production" >> .env
           echo "IS_CLOUD=true" >> .env
+          echo .env
+          echo Dockerfile.cloud
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -76,7 +78,7 @@ jobs:
           push: true
           tags: |
             siumauricio/cloud:${{ github.ref_name == 'main' && 'main' || 'canary' }}
-          platforms: linux/amd64     
+          platforms: linux/amd64
 
   build-and-push-schedule-image:
     runs-on: ubuntu-latest
