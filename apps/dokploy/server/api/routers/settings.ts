@@ -174,7 +174,9 @@ export const settingsRouter = createTRPCRouter({
 			}
 			const admin = await updateAdmin(ctx.user.authId, {
 				host: input.host,
-				letsEncryptEmail: input.letsEncryptEmail,
+				...(input.letsEncryptEmail && {
+					letsEncryptEmail: input.letsEncryptEmail,
+				}),
 				certificateType: input.certificateType,
 			});
 
@@ -186,7 +188,10 @@ export const settingsRouter = createTRPCRouter({
 			}
 
 			updateServerTraefik(admin, input.host);
-			updateLetsEncryptEmail(admin.letsEncryptEmail);
+			if (input.letsEncryptEmail) {
+				updateLetsEncryptEmail(input.letsEncryptEmail);
+			}
+
 			return admin;
 		}),
 	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {
