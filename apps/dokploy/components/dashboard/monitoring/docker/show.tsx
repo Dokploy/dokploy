@@ -191,7 +191,7 @@ export const DockerMonitoring = ({
 				<CardHeader>
 					<CardTitle className="text-xl">Monitoring</CardTitle>
 					<CardDescription>
-						Watch the usage of your server in the current app
+						Watch the usage of your server in the current app.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">

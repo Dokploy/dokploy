@@ -29,7 +29,7 @@ export const ShowDestinations = () => {
 						<div className="flex flex-col items-center gap-3">
 							<FolderUp className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To create a backup is required to set at least 1 provider.
+								To create a backup it is required to set at least 1 provider.
 							</span>
 							<AddDestination />
 						</div>

@@ -30,7 +30,7 @@ export const ShowVolumes = ({ mongoId }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Volumes</CardTitle>
 					<CardDescription>
-						If you want to persist data in this mongo use the following config
+						If you want to persist data in this mongo use the following config.
 						to setup the volumes
 					</CardDescription>
 				</div>
