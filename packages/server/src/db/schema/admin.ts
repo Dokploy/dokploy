@@ -45,6 +45,7 @@ const createSchema = createInsertSchema(admins, {
 	sshPrivateKey: z.string().optional(),
 	certificateType: z.enum(["letsencrypt", "none"]).default("none"),
 	serverIp: z.string().optional(),
+	letsEncryptEmail: z.string().optional(),
 });
 
 export const apiSaveSSHKey = createSchema
@@ -55,11 +56,14 @@ export const apiSaveSSHKey = createSchema
 
 export const apiAssignDomain = createSchema
 	.pick({
-		letsEncryptEmail: true,
 		host: true,
 		certificateType: true,
+		letsEncryptEmail: true,
 	})
-	.required();
+	.required()
+	.partial({
+		letsEncryptEmail: true,
+	});
 
 export const apiUpdateDockerCleanup = createSchema
 	.pick({

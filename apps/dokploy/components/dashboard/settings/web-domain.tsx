@@ -29,11 +29,22 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const addServerDomain = z.object({
-	domain: z.string().min(1, { message: "URL is required" }),
-	letsEncryptEmail: z.string().min(1, "Email is required").email(),
-	certificateType: z.enum(["letsencrypt", "none"]),
-});
+const addServerDomain = z
+	.object({
+		domain: z.string().min(1, { message: "URL is required" }),
+		letsEncryptEmail: z.string(),
+		certificateType: z.enum(["letsencrypt", "none"]),
+	})
+	.superRefine((data, ctx) => {
+		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message:
+					"LetsEncrypt email is required when certificate type is letsencrypt",
+				path: ["letsEncryptEmail"],
+			});
+		}
+	});
 
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
