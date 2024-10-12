@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 import { Puzzle, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -33,6 +33,16 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 	);
 
 	const { mutateAsync, isLoading } = api.compose.fetchSourceType.useMutation();
+
+	useEffect(() => {
+		if (isOpen) {
+			mutateAsync({ composeId })
+				.then(() => {
+					refetch();
+				})
+				.catch((err) => {});
+		}
+	}, [isOpen]);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
