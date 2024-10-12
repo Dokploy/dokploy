@@ -199,22 +199,22 @@ export const ShowSponsors = () => {
 				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
 					Hero Sponsors 🎖
 				</h2>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					<a href="https://www.hostinger.com/vps-hosting?ref=dokploy">
+				<div className="flex flex-wrap items-center gap-4">
+					<a
+						href="https://www.hostinger.com/vps-hosting?ref=dokploy"
+						className="flex-shrink-0"
+					>
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
 							alt="hostinger.com"
-							className="rounded-xl"
-							width="200"
+							className="rounded-xl w-[190px] h-auto"
 						/>
 					</a>
-
-					<a href="https://www.lxaer.com?ref=dokploy">
+					<a href="https://www.lxaer.com?ref=dokploy" className="flex-shrink-0">
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
 							alt="lxaer.com"
-							className="rounded-xl"
-							width="200"
+							className="rounded-xl w-[70px] h-auto"
 						/>
 					</a>
 				</div>
