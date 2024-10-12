@@ -204,6 +204,7 @@ export const ShowSponsors = () => {
 						href="https://www.hostinger.com/vps-hosting?ref=dokploy"
 						target="_blank"
 						className="flex-shrink-0"
+						rel="noreferrer"
 					>
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
@@ -211,7 +212,12 @@ export const ShowSponsors = () => {
 							className="rounded-xl w-[190px] h-auto"
 						/>
 					</a>
-					<a href="https://www.lxaer.com?ref=dokploy" target="_blank" className="flex-shrink-0">
+					<a
+						href="https://www.lxaer.com?ref=dokploy"
+						target="_blank"
+						className="flex-shrink-0"
+						rel="noreferrer"
+					>
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
 							alt="lxaer.com"
@@ -225,7 +231,11 @@ export const ShowSponsors = () => {
 					Premium Supporters 🥇
 				</h2>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					<a href="https://supafort.com/?ref=dokploy" target="_blank">
+					<a
+						href="https://supafort.com/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://supafort.com/build/q-4Ht4rBZR.webp"
 							alt="Supafort.com"
@@ -240,7 +250,11 @@ export const ShowSponsors = () => {
 					Supporting Members 🥉
 				</h2>
 				<div className="flex flex-row gap-10">
-					<a href="https://lightspeed.run/?ref=dokploy" target="_blank">
+					<a
+						href="https://lightspeed.run/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://github.com/lightspeedrun.png"
 							className="rounded-xl"
@@ -248,7 +262,11 @@ export const ShowSponsors = () => {
 							alt="Lightspeed.run"
 						/>
 					</a>
-					<a href="https://cloudblast.io/?ref=dokploy" target="_blank">
+					<a
+						href="https://cloudblast.io/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://cloudblast.io/img/logo-icon.193cf13e.svg"
 							className="rounded-xl"
@@ -263,7 +281,11 @@ export const ShowSponsors = () => {
 					Community Backers 🤝
 				</h2>
 				<div className="flex flex-row gap-10">
-					<a href="https://steamsets.com/?ref=dokploy" target="_blank">
+					<a
+						href="https://steamsets.com/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4"
 							className="rounded-xl"
@@ -271,7 +293,11 @@ export const ShowSponsors = () => {
 							alt="Steamsets.com"
 						/>
 					</a>
-					<a href="https://rivo.gg/?ref=dokploy" target="_blank">
+					<a
+						href="https://rivo.gg/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://avatars.githubusercontent.com/u/126797452?s=200&v=4"
 							className="rounded-xl"
@@ -286,7 +312,11 @@ export const ShowSponsors = () => {
 					Organizations:
 				</h2>
 				<div className="flex flex-row gap-10">
-					<a href="https://opencollective.com/dokploy" target="_blank">
+					<a
+						href="https://opencollective.com/dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://opencollective.com/dokploy/organizations.svg?width=890"
 							alt="Organization Sponsors"
@@ -299,7 +329,11 @@ export const ShowSponsors = () => {
 					Individuals:
 				</h2>
 				<div className="flex flex-row gap-10">
-					<a href="https://opencollective.com/dokploy" target="_blank">
+					<a
+						href="https://opencollective.com/dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
 						<img
 							src="https://opencollective.com/dokploy/individuals.svg?width=890"
 							alt="Individual Sponsors"
