@@ -259,7 +259,7 @@ export const ShowSponsors = () => {
 			</div>
 			<div className="flex flex-col gap-4 md:gap-8 justify-start">
 				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-				Community Backers 🤝
+					Community Backers 🤝
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a href="https://steamsets.com/?ref=dokploy">
