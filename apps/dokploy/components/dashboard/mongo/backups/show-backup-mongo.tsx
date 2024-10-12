@@ -62,8 +62,8 @@ export const ShowBackupMongo = ({ mongoId }: Props) => {
 					<div className="flex flex-col items-center gap-3">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							To create a backup it is required to set at least 1 provider. Please,
-							go to{" "}
+							To create a backup it is required to set at least 1 provider.
+							Please, go to{" "}
 							<Link
 								href="/dashboard/settings/server"
 								className="text-foreground"
