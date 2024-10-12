@@ -259,7 +259,7 @@ export const ShowSponsors = () => {
 			</div>
 			<div className="flex flex-col gap-4 md:gap-8 justify-start">
 				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Supporting Members 🥉
+					Community Backers 🤝
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a href="https://steamsets.com/?ref=dokploy">
@@ -268,6 +268,27 @@ export const ShowSponsors = () => {
 							className="rounded-xl"
 							width="60px"
 							alt="Steamsets.com"
+						/>
+					</a>
+					<a href="https://rivo.gg/?ref=dokploy">
+						<img
+							src="https://avatars.githubusercontent.com/u/126797452?s=200&v=4"
+							className="rounded-xl"
+							width="60px"
+							alt="Rivo.gg"
+						/>
+					</a>
+				</div>
+			</div>
+			<div className="flex flex-col gap-4 md:gap-8 justify-start">
+				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
+					Organizations:
+				</h2>
+				<div className="flex flex-row gap-10">
+					<a href="https://opencollective.com/dokploy">
+						<img
+							src="https://opencollective.com/dokploy/organizations.svg?width=890"
+							alt="Organization Sponsors"
 						/>
 					</a>
 				</div>
@@ -280,7 +301,7 @@ export const ShowSponsors = () => {
 					<a href="https://opencollective.com/dokploy">
 						<img
 							src="https://opencollective.com/dokploy/individuals.svg?width=890"
-							alt="Steamsets.com"
+							alt="Individual Sponsors"
 						/>
 					</a>
 				</div>

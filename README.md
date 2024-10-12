@@ -59,7 +59,14 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Hero Sponsors 🎖
 
-<a href="https://www.hostinger.com/vps-hosting?ref=dokploy" target="_blank" ><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/></a>
+<div style="display: flex; align-items: center; gap: 20px;">
+  <a href="https://www.hostinger.com/vps-hosting?ref=dokploy" target="_blank" style="display: inline-block;">
+    <img src=".github/sponsors/hostinger.jpg" alt="Hostinger" height="50"/>
+  </a>
+  <a href="https://www.lxaer.com/?ref=dokploy" target="_blank" style="display: inline-block;">
+    <img src=".github/sponsors/lxaer.png" alt="LX Aer" height="50"/>
+  </a>
+</div>
 
 ### Premium Supporters 🥇
 
