@@ -2,7 +2,7 @@ import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
-import { validateRequest } from "@/server/auth/auth";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 
@@ -27,6 +27,14 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
 	const { user } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {

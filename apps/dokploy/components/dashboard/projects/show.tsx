@@ -15,20 +15,25 @@ import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import {
 	AlertTriangle,
 	BookIcon,
+	CircuitBoard,
+	ExternalLink,
 	ExternalLinkIcon,
 	FolderInput,
 	MoreHorizontalIcon,
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { Fragment } from "react";
 import { toast } from "sonner";
 import { UpdateProject } from "./update";
 
@@ -45,6 +50,7 @@ export const ShowProjects = () => {
 		},
 	);
 	const { mutateAsync } = api.project.remove.useMutation();
+
 	return (
 		<>
 			{data?.length === 0 && (
@@ -74,17 +80,87 @@ export const ShowProjects = () => {
 						project?.redis.length +
 						project?.applications.length +
 						project?.compose.length;
+
+					const flattedDomains = [
+						...project.applications.flatMap((a) => a.domains),
+						...project.compose.flatMap((a) => a.domains),
+					];
+
+					const renderDomainsDropdown = (
+						item: typeof project.compose | typeof project.applications,
+					) =>
+						item[0] ? (
+							<DropdownMenuGroup>
+								<DropdownMenuLabel>
+									{"applicationId" in item[0] ? "Applications" : "Compose"}
+								</DropdownMenuLabel>
+								{item.map((a) => (
+									<Fragment
+										key={"applicationId" in a ? a.applicationId : a.composeId}
+									>
+										<DropdownMenuSeparator />
+										<DropdownMenuGroup>
+											<DropdownMenuLabel className="font-normal capitalize text-xs ">
+												{a.name}
+											</DropdownMenuLabel>
+											<DropdownMenuSeparator />
+											{a.domains.map((domain) => (
+												<DropdownMenuItem key={domain.domainId} asChild>
+													<Link
+														className="space-x-4 text-xs cursor-pointer justify-between"
+														target="_blank"
+														href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+													>
+														<span>{domain.host}</span>
+														<ExternalLink className="size-4 shrink-0" />
+													</Link>
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuGroup>
+									</Fragment>
+								))}
+							</DropdownMenuGroup>
+						) : null;
+
 					return (
 						<div key={project.projectId} className="w-full lg:max-w-md">
 							<Link href={`/dashboard/project/${project.projectId}`}>
 								<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
-									<Button
-										className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-										size="sm"
-										variant="default"
-									>
-										<ExternalLinkIcon className="size-3.5" />
-									</Button>
+									{flattedDomains.length > 1 ? (
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button
+													className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+													size="sm"
+													variant="default"
+												>
+													<ExternalLinkIcon className="size-3.5" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent
+												className="w-[200px] space-y-2"
+												onClick={(e) => e.stopPropagation()}
+											>
+												{renderDomainsDropdown(project.applications)}
+												{renderDomainsDropdown(project.compose)}
+											</DropdownMenuContent>
+										</DropdownMenu>
+									) : flattedDomains[0] ? (
+										<Button
+											className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+											size="sm"
+											variant="default"
+											onClick={(e) => e.stopPropagation()}
+										>
+											<Link
+												href={`${flattedDomains[0].https ? "https" : "http"}://${flattedDomains[0].host}${flattedDomains[0].path}`}
+												target="_blank"
+											>
+												<ExternalLinkIcon className="size-3.5" />
+											</Link>
+										</Button>
+									) : null}
+
 									<CardHeader>
 										<CardTitle className="flex items-center justify-between gap-2">
 											<span className="flex flex-col gap-1.5">

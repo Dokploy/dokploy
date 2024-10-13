@@ -25,8 +25,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { GlobeIcon } from "lucide-react";
 import type {

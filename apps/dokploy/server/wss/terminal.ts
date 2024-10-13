@@ -1,11 +1,8 @@
 import type http from "node:http";
-import path from "node:path";
-import { spawn } from "node-pty";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
+import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
-import { validateWebSocketRequest } from "../auth/auth";
-import { paths } from "../constants";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -64,46 +61,80 @@ export const setupTerminalWebSocketServer = (
 			ws.close();
 			return;
 		}
-		const { SSH_PATH } = paths();
-		const privateKey = path.join(SSH_PATH, `${server.sshKeyId}_rsa`);
-		const sshCommand = [
-			"ssh",
-			"-o",
-			"StrictHostKeyChecking=no",
-			"-i",
-			privateKey,
-			"-p",
-			`${server.port}`,
-			`${server.username}@${server.ipAddress}`,
-		];
-		const ptyProcess = spawn("ssh", sshCommand.slice(1), {
-			name: "xterm-256color",
-			cwd: process.env.HOME,
-			env: process.env,
-			encoding: "utf8",
-			cols: 80,
-			rows: 30,
-		});
 
-		ptyProcess.onData((data) => {
-			ws.send(data);
-		});
-		ws.on("message", (message) => {
-			try {
-				let command: string | Buffer[] | Buffer | ArrayBuffer;
-				if (Buffer.isBuffer(message)) {
-					command = message.toString("utf8");
+		if (!server.sshKeyId)
+			throw new Error("No SSH key available for this server");
+
+		const conn = new Client();
+		let stdout = "";
+		let stderr = "";
+		conn
+			.once("ready", () => {
+				conn.shell(
+					{
+						term: "terminal",
+						cols: 80,
+						rows: 30,
+						height: 30,
+						width: 80,
+					},
+					(err, stream) => {
+						if (err) throw err;
+
+						stream
+							.on("close", (code: number, signal: string) => {
+								ws.send(`\nContainer closed with code: ${code}\n`);
+								conn.end();
+							})
+							.on("data", (data: string) => {
+								stdout += data.toString();
+								ws.send(data.toString());
+							})
+							.stderr.on("data", (data) => {
+								stderr += data.toString();
+								ws.send(data.toString());
+								console.error("Error: ", data.toString());
+							});
+
+						ws.on("message", (message) => {
+							try {
+								let command: string | Buffer[] | Buffer | ArrayBuffer;
+								if (Buffer.isBuffer(message)) {
+									command = message.toString("utf8");
+								} else {
+									command = message;
+								}
+								stream.write(command.toString());
+							} catch (error) {
+								// @ts-ignore
+								const errorMessage = error?.message as unknown as string;
+								ws.send(errorMessage);
+							}
+						});
+
+						ws.on("close", () => {
+							console.log("Connection closed ✅");
+							stream.end();
+						});
+					},
+				);
+			})
+			.on("error", (err) => {
+				if (err.level === "client-authentication") {
+					ws.send(
+						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+					);
 				} else {
-					command = message;
+					ws.send(`SSH connection error: ${err.message}`);
 				}
-				ptyProcess.write(command.toString());
-			} catch (error) {
-				console.log(error);
-			}
-		});
-
-		ws.on("close", () => {
-			ptyProcess.kill();
-		});
+				conn.end();
+			})
+			.connect({
+				host: server.ipAddress,
+				port: server.port,
+				username: server.username,
+				privateKey: server.sshKey?.privateKey,
+				timeout: 99999,
+			});
 	});
 };

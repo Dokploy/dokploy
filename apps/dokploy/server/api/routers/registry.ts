@@ -6,34 +6,50 @@ import {
 	apiTestRegistry,
 	apiUpdateRegistry,
 } from "@/server/db/schema";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
-import { manageRegistry } from "@/server/utils/traefik/registry";
-import { TRPCError } from "@trpc/server";
 import {
+	IS_CLOUD,
 	createRegistry,
-	findAllRegistry,
+	execAsync,
+	execAsyncRemote,
+	findAllRegistryByAdminId,
 	findRegistryById,
+	initializeRegistry,
+	manageRegistry,
 	removeRegistry,
 	updateRegistry,
-} from "../services/registry";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input);
+			return await createRegistry(input, ctx.user.adminId);
 		}),
 	remove: adminProcedure
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
+			const registry = await findRegistryById(input.registryId);
+			if (registry.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to delete this registry",
+				});
+			}
 			return await removeRegistry(input.registryId);
 		}),
 	update: protectedProcedure
 		.input(apiUpdateRegistry)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
+			const registry = await findRegistryById(registryId);
+			if (registry.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this registry",
+				});
+			}
 			const application = await updateRegistry(registryId, {
 				...rest,
 			});
@@ -47,12 +63,21 @@ export const registryRouter = createTRPCRouter({
 
 			return true;
 		}),
-	all: protectedProcedure.query(async () => {
-		return await findAllRegistry();
+	all: protectedProcedure.query(async ({ ctx }) => {
+		return await findAllRegistryByAdminId(ctx.user.adminId);
 	}),
-	one: adminProcedure.input(apiFindOneRegistry).query(async ({ input }) => {
-		return await findRegistryById(input.registryId);
-	}),
+	one: adminProcedure
+		.input(apiFindOneRegistry)
+		.query(async ({ input, ctx }) => {
+			const registry = await findRegistryById(input.registryId);
+			if (registry.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this registry",
+				});
+			}
+			return registry;
+		}),
 	testRegistry: protectedProcedure
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
@@ -74,18 +99,27 @@ export const registryRouter = createTRPCRouter({
 
 	enableSelfHostedRegistry: adminProcedure
 		.input(apiEnableSelfHostedRegistry)
-		.mutation(async ({ input }) => {
-			const selfHostedRegistry = await createRegistry({
-				...input,
-				registryName: "Self Hosted Registry",
-				registryType: "selfHosted",
-				registryUrl:
-					process.env.NODE_ENV === "production"
-						? input.registryUrl
-						: "dokploy-registry.docker.localhost",
-				imagePrefix: null,
-				serverId: undefined,
-			});
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Self Hosted Registry is not available in the cloud version",
+				});
+			}
+			const selfHostedRegistry = await createRegistry(
+				{
+					...input,
+					registryName: "Self Hosted Registry",
+					registryType: "selfHosted",
+					registryUrl:
+						process.env.NODE_ENV === "production"
+							? input.registryUrl
+							: "dokploy-registry.docker.localhost",
+					imagePrefix: null,
+					serverId: undefined,
+				},
+				ctx.user.adminId,
+			);
 
 			await manageRegistry(selfHostedRegistry);
 			await initializeRegistry(input.username, input.password);
@@ -93,17 +127,3 @@ export const registryRouter = createTRPCRouter({
 			return selfHostedRegistry;
 		}),
 });
-
-const shellEscape = (str: string) => {
-	const ret = [];
-	let s = str;
-	if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
-		s = `'${s.replace(/'/g, "'\\''")}'`;
-		s = s
-			.replace(/^(?:'')+/g, "") // unduplicate single-quote at the beginning
-			.replace(/\\'''/g, "\\'"); // remove non-escaped single-quote if there are enclosed between 2 escaped
-	}
-	ret.push(s);
-
-	return ret.join(" ");
-};

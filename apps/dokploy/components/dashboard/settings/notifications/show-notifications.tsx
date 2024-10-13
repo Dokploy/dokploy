@@ -34,7 +34,7 @@ export const ShowNotifications = () => {
 						<div className="flex flex-col items-center gap-3">
 							<BellRing className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To send notifications is required to set at least 1 provider.
+								To send notifications it is required to set at least 1 provider.
 							</span>
 							<AddNotification />
 						</div>

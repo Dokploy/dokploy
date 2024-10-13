@@ -1,0 +1,25 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "ESNext",
+		"outDir": "dist/",
+		"target": "ESNext",
+		"isolatedModules": false,
+		"noEmit": false,
+		"declaration": true,
+		"moduleResolution": "Node",
+		"rootDir": "./src",
+		"baseUrl": ".",
+		"incremental": false,
+		"jsx": "react-jsx",
+		"paths": {
+			"@/server/*": ["src/*"]
+		}
+	},
+	"include": ["next-env.d.ts", "./src/**/*"],
+	"exclude": ["**/dist", "tsup.ts"],
+	"tsc-alias": {
+		"resolveFullPaths": true,
+		"verbose": false
+	}
+}

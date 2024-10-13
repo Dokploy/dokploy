@@ -9,6 +9,7 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db";
+import { validateBearerToken, validateRequest } from "@dokploy/server";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -20,10 +21,6 @@ import {
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { validateRequest } from "../auth/auth";
-import { validateBearerToken } from "../auth/token";
-import { findAdminByAuthId } from "./services/admin";
-import { findUserByAuthId } from "./services/user";
 
 /**
  * 1. CONTEXT

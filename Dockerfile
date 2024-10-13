@@ -15,7 +15,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
+RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
+
 RUN pnpm --filter=./apps/dokploy --prod deploy /prod/dokploy
 
 RUN cp -R /usr/src/app/apps/dokploy/.next /prod/dokploy/.next

@@ -32,6 +32,7 @@ Dokploy include multiples features to make your life easier.
 - **Docker Management**: Easily deploy and manage Docker containers.
 - **CLI/API**: Manage your applications and databases using the command line or trought the API.
 - **Notifications**: Get notified when your deployments are successful or failed (Slack, Discord, Telegram, Email, etc.)
+- **Multi Server**: Deploy and manager your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.
 
 ## 🚀 Getting Started
@@ -58,7 +59,14 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Hero Sponsors 🎖
 
-<a href="https://www.hostinger.com/vps-hosting?ref=dokploy" target="_blank" ><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="200"/></a>
+<div style="display: flex; align-items: center; gap: 20px;">
+  <a href="https://www.hostinger.com/vps-hosting?ref=dokploy" target="_blank" style="display: inline-block;">
+    <img src=".github/sponsors/hostinger.jpg" alt="Hostinger" height="50"/>
+  </a>
+  <a href="https://www.lxaer.com/?ref=dokploy" target="_blank" style="display: inline-block;">
+    <img src=".github/sponsors/lxaer.png" alt="LX Aer" height="50"/>
+  </a>
+</div>
 
 ### Premium Supporters 🥇
 
@@ -81,6 +89,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
 <a href="https://steamsets.com/?ref=dokploy"><img src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4" width="60px" alt="Steamsets.com"/></a>
+<a href="https://rivo.gg/?ref=dokploy"><img src="https://avatars.githubusercontent.com/u/126797452?s=200&v=4" width="60px" alt="Rivo.gg"/></a>
 </div>
 
 #### Organizations:

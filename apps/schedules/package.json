@@ -1,0 +1,33 @@
+{
+	"name": "@dokploy/schedules",
+	"type": "module",
+	"scripts": {
+		"dev": "PORT=4001 tsx watch src/index.ts",
+		"build": "tsc --project tsconfig.json",
+		"start": "node --experimental-specifier-resolution=node dist/index.js",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.30.8",
+		"ioredis": "5.4.1",
+		"bullmq": "5.4.2",
+		"@hono/zod-validator": "0.3.0",
+		"zod": "^3.23.4",
+		"react": "18.2.0",
+		"react-dom": "18.2.0",
+		"@dokploy/server": "workspace:*",
+		"@hono/node-server": "^1.12.1",
+		"hono": "^4.5.8",
+		"dotenv": "^16.3.1",
+		"pino": "9.4.0",
+		"pino-pretty": "11.2.2"
+	},
+	"devDependencies": {
+		"typescript": "^5.4.2",
+		"@types/react": "^18.2.37",
+		"@types/react-dom": "^18.2.15",
+		"@types/node": "^20.11.17",
+		"tsx": "^4.7.1"
+	},
+	"packageManager": "pnpm@9.5.0"
+}

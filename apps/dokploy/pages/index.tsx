@@ -17,9 +17,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { isAdminPresent } from "@/server/api/services/admin";
-import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
+import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -51,16 +50,12 @@ const loginSchema = z.object({
 
 type Login = z.infer<typeof loginSchema>;
 
-interface Props {
-	hasAdmin: boolean;
-}
-
 type AuthResponse = {
 	is2FAEnabled: boolean;
 	authId: string;
 };
 
-export default function Home({ hasAdmin }: Props) {
+export default function Home() {
 	const [temp, setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
@@ -170,23 +165,13 @@ export default function Home({ hasAdmin }: Props) {
 							<Login2FA authId={temp.authId} />
 						)}
 
-						{!hasAdmin && (
-							<div className="mt-4 text-center text-sm">
-								Dont have an account?
-								<Link className="underline" href="/register">
-									Sign up
-								</Link>
-							</div>
-						)}
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								Need help?
 								<Link
-									className="underline"
-									href="https://dokploy.com"
-									target="_blank"
+									className="hover:underline text-muted-foreground"
+									href="/register"
 								>
-									Contact us
+									Create an account
 								</Link>
 							</div>
 
@@ -212,6 +197,24 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	if (IS_CLOUD) {
+		try {
+			const { user } = await validateRequest(context.req, context.res);
+
+			if (user) {
+				return {
+					redirect: {
+						permanent: true,
+						destination: "/dashboard/projects",
+					},
+				};
+			}
+		} catch (error) {}
+
+		return {
+			props: {},
+		};
+	}
 	const hasAdmin = await isAdminPresent();
 
 	if (!hasAdmin) {
@@ -233,6 +236,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			},
 		};
 	}
+
 	return {
 		props: {
 			hasAdmin,

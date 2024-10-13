@@ -1,6 +1,11 @@
-import { createGithub } from "@/server/api/services/github";
 import { db } from "@/server/db";
 import { github } from "@/server/db/schema";
+import {
+	createGithub,
+	findAdminByAuthId,
+	findAuthById,
+	findUserByAuthId,
+} from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
@@ -34,16 +39,29 @@ export default async function handler(
 			},
 		);
 
-		await createGithub({
-			name: data.name,
-			githubAppName: data.html_url,
-			githubAppId: data.id,
-			githubClientId: data.client_id,
-			githubClientSecret: data.client_secret,
-			githubWebhookSecret: data.webhook_secret,
-			githubPrivateKey: data.pem,
-			authId: value as string,
-		});
+		const auth = await findAuthById(value as string);
+
+		let adminId = "";
+		if (auth.rol === "admin") {
+			const admin = await findAdminByAuthId(auth.id);
+			adminId = admin.adminId;
+		} else {
+			const user = await findUserByAuthId(auth.id);
+			adminId = user.adminId;
+		}
+
+		await createGithub(
+			{
+				name: data.name,
+				githubAppName: data.html_url,
+				githubAppId: data.id,
+				githubClientId: data.client_id,
+				githubClientSecret: data.client_secret,
+				githubWebhookSecret: data.webhook_secret,
+				githubPrivateKey: data.pem,
+			},
+			adminId,
+		);
 	} else if (action === "gh_setup") {
 		await db
 			.update(github)

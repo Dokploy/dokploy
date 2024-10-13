@@ -43,7 +43,7 @@ export const ShowRegistry = () => {
 						<div className="flex flex-col items-center gap-3">
 							<Server className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground text-center">
-								To create a cluster is required to set a registry.
+								To create a cluster it is required to set a registry.
 							</span>
 
 							<div className="flex flex-row md:flex-row gap-2 flex-wrap w-full justify-center">

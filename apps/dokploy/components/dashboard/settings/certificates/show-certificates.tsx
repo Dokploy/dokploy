@@ -27,7 +27,8 @@ export const ShowCertificates = () => {
 						<div className="flex flex-col items-center gap-3">
 							<ShieldCheck className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To create a certificate is required to upload your certificate
+								To create a certificate it is required to upload an existing
+								certificate
 							</span>
 							<AddCertificate />
 						</div>
