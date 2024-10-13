@@ -35,10 +35,10 @@ import {
 import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { encodeBase64 } from "../utils/docker/utils";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
