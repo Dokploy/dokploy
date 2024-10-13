@@ -1,11 +1,11 @@
+import { relations } from "drizzle-orm";
 import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { generateAppName } from "./utils";
 import { admins } from "./admin";
 import { server } from "./server";
-import { relations } from "drizzle-orm";
+import { generateAppName } from "./utils";
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")

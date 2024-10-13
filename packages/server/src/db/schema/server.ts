@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { admins } from "./admin";
 import { applications } from "./application";
+import { certificates } from "./certificate";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { mariadb } from "./mariadb";
@@ -15,7 +16,6 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { certificates } from "./certificate";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")

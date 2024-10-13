@@ -4,11 +4,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { auth } from "./auth";
+import { certificates } from "./certificate";
 import { registry } from "./registry";
 import { certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { users } from "./user";
-import { certificates } from "./certificate";
 
 export const admins = pgTable("admin", {
 	adminId: text("adminId")
