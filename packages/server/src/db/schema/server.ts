@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { admins } from "./admin";
 import { applications } from "./application";
+import { certificates } from "./certificate";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { mariadb } from "./mariadb";
@@ -58,6 +59,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
+	certificates: many(certificates),
 }));
 
 const createSchema = createInsertSchema(server, {

@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { auth } from "./auth";
+import { certificates } from "./certificate";
 import { registry } from "./registry";
 import { certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
@@ -37,6 +38,7 @@ export const adminsRelations = relations(admins, ({ one, many }) => ({
 	users: many(users),
 	registry: many(registry),
 	sshKeys: many(sshKeys),
+	certificates: many(certificates),
 }));
 
 const createSchema = createInsertSchema(admins, {
