@@ -1,10 +1,10 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
+import { generateRandomHash } from "@dokploy/server";
 import {
 	addSuffixToAllNetworks,
 	addSuffixToServiceNetworks,
-} from "@/server/utils/docker/compose/network";
-import { addSuffixToNetworksRoot } from "@/server/utils/docker/compose/network";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+} from "@dokploy/server";
+import { addSuffixToNetworksRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

@@ -31,8 +31,7 @@ The following templates are available:
 - **Wordpress**: Open Source Content Management System
 - **Open WebUI**: Free and Open Source ChatGPT Alternative
 - **Teable**: Open Source Airtable Alternative, Developer Friendly, No-code Database Built on Postgres
-
-
+- **Roundcube**: Free and open source webmail software for the masses, written in PHP, uses SMTP[^1].
 
 ## Create your own template
 
@@ -41,3 +40,5 @@ We accept contributions to upload new templates to the dokploy repository.
 Make sure to follow the guidelines for creating a template:
 
 [Steps to create your own template](https://github.com/Dokploy/dokploy/blob/canary/CONTRIBUTING.md#templates)
+
+[^1]: Please note that if you're self-hosting a mail server you need port 25 to be open for SMTP (Mail Transmission Protocol that allows you to send and receive) to work properly. Some VPS providers like [Hetzner](https://docs.hetzner.com/cloud/servers/faq/#why-can-i-not-send-any-mails-from-my-server) block this port by default for new clients.

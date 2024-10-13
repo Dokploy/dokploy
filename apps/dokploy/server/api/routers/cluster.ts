@@ -1,13 +1,14 @@
-import { docker } from "@/server/constants";
-import { execAsync } from "@/server/utils/process/execAsync";
 import { getPublicIpWithFallback } from "@/server/wss/terminal";
+import { type DockerNode, IS_CLOUD, docker, execAsync } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { DockerNode } from "../services/cluster";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const clusterRouter = createTRPCRouter({
 	getNodes: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return [];
+		}
 		const workers: DockerNode[] = await docker.listNodes();
 
 		return workers;
@@ -19,6 +20,12 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
 			try {
 				await execAsync(
 					`docker node update --availability drain ${input.nodeId}`,
@@ -34,6 +41,12 @@ export const clusterRouter = createTRPCRouter({
 			}
 		}),
 	addWorker: protectedProcedure.query(async ({ input }) => {
+		if (IS_CLOUD) {
+			return {
+				command: "",
+				version: "",
+			};
+		}
 		const result = await docker.swarmInspect();
 		const docker_version = await docker.version();
 
@@ -45,6 +58,12 @@ export const clusterRouter = createTRPCRouter({
 		};
 	}),
 	addManager: protectedProcedure.query(async ({ input }) => {
+		if (IS_CLOUD) {
+			return {
+				command: "",
+				version: "",
+			};
+		}
 		const result = await docker.swarmInspect();
 		const docker_version = await docker.version();
 		return {

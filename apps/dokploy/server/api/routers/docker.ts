@@ -1,11 +1,11 @@
-import { z } from "zod";
 import {
 	containerRestart,
 	getConfig,
 	getContainers,
 	getContainersByAppLabel,
 	getContainersByAppNameMatch,
-} from "../services/docker";
+} from "@dokploy/server";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const dockerRouter = createTRPCRouter({

@@ -1,9 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import {
-	addSuffixToAllVolumes,
-	addSuffixToVolumesRoot,
-} from "@/server/utils/docker/compose/volume";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToAllVolumes, addSuffixToVolumesRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

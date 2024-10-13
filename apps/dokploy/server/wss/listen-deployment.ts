@@ -1,10 +1,8 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { findServerById } from "../api/services/server";
-import { validateWebSocketRequest } from "../auth/auth";
-import { readSSHKey } from "../utils/filesystem/ssh";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -49,41 +47,47 @@ export const setupDeploymentLogsWebSocketServer = (
 				const server = await findServerById(serverId);
 
 				if (!server.sshKeyId) return;
-				const keys = await readSSHKey(server.sshKeyId);
 				const client = new Client();
-				new Promise<void>((resolve, reject) => {
-					client
-						.on("ready", () => {
-							const command = `
+				client
+					.on("ready", () => {
+						const command = `
 						tail -n +1 -f ${logPath};
 					`;
-							client.exec(command, (err, stream) => {
-								if (err) {
-									console.error("Execution error:", err);
-									reject(err);
-									return;
-								}
-								stream
-									.on("close", () => {
-										console.log("Connection closed ✅");
-										client.end();
-										resolve();
-									})
-									.on("data", (data: string) => {
-										ws.send(data.toString());
-									})
-									.stderr.on("data", (data) => {
-										ws.send(data.toString());
-									});
-							});
-						})
-						.connect({
-							host: server.ipAddress,
-							port: server.port,
-							username: server.username,
-							privateKey: keys.privateKey,
-							timeout: 99999,
+						client.exec(command, (err, stream) => {
+							if (err) {
+								console.error("Execution error:", err);
+								ws.close();
+								return;
+							}
+							stream
+								.on("close", () => {
+									console.log("Connection closed ✅");
+									client.end();
+									ws.close();
+								})
+								.on("data", (data: string) => {
+									ws.send(data.toString());
+								})
+								.stderr.on("data", (data) => {
+									ws.send(data.toString());
+								});
 						});
+					})
+					.on("error", (err) => {
+						console.error("SSH connection error:", err);
+						ws.send(`SSH error: ${err.message}`);
+						ws.close(); // Cierra el WebSocket si hay un error con SSH
+					})
+					.connect({
+						host: server.ipAddress,
+						port: server.port,
+						username: server.username,
+						privateKey: server.sshKey?.privateKey,
+					});
+
+				ws.on("close", () => {
+					console.log("Connection closed ✅, From WS");
+					client.end();
 				});
 			} else {
 				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
@@ -95,11 +99,14 @@ export const setupDeploymentLogsWebSocketServer = (
 				tail.stderr.on("data", (data) => {
 					ws.send(new Error(`tail error: ${data.toString()}`).message);
 				});
+				tail.on("close", () => {
+					ws.close();
+				});
 			}
 		} catch (error) {
 			// @ts-ignore
-			//   const errorMessage = error?.message as unknown as string;
-			ws.send(errorMessage);
+			// const errorMessage = error?.message as unknown as string;
+			// ws.send(errorMessage);
 		}
 	});
 };

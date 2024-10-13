@@ -2,7 +2,7 @@ import { ShowGitProviders } from "@/components/dashboard/settings/git/show-git-p
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";

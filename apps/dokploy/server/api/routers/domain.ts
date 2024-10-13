@@ -6,25 +6,44 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
-import { manageDomain, removeDomain } from "@/server/utils/traefik/domain";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { findApplicationById } from "../services/application";
 import {
 	createDomain,
+	findApplicationById,
+	findComposeById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	generateTraefikMeDomain,
+	manageDomain,
+	removeDomain,
 	removeDomainById,
 	updateDomainById,
-} from "../services/domain";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				if (input.domainType === "compose" && input.composeId) {
+					const compose = await findComposeById(input.composeId);
+					if (compose.project.adminId !== ctx.user.adminId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this compose",
+						});
+					}
+				} else if (input.domainType === "application" && input.applicationId) {
+					const application = await findApplicationById(input.applicationId);
+					if (application.project.adminId !== ctx.user.adminId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this application",
+						});
+					}
+				}
 				return await createDomain(input);
 			} catch (error) {
 				throw new TRPCError({
@@ -36,12 +55,26 @@ export const domainRouter = createTRPCRouter({
 		}),
 	byApplicationId: protectedProcedure
 		.input(apiFindOneApplication)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
 			return await findDomainsByApplicationId(input.applicationId);
 		}),
 	byComposeId: protectedProcedure
 		.input(apiFindCompose)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
@@ -56,7 +89,26 @@ export const domainRouter = createTRPCRouter({
 
 	update: protectedProcedure
 		.input(apiUpdateDomain)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const currentDomain = await findDomainById(input.domainId);
+
+			if (currentDomain.applicationId) {
+				const newApp = await findApplicationById(currentDomain.applicationId);
+				if (newApp.project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this application",
+					});
+				}
+			} else if (currentDomain.composeId) {
+				const newCompose = await findComposeById(currentDomain.composeId);
+				if (newCompose.project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this compose",
+					});
+				}
+			}
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			if (domain.applicationId) {
@@ -65,13 +117,48 @@ export const domainRouter = createTRPCRouter({
 			}
 			return result;
 		}),
-	one: protectedProcedure.input(apiFindDomain).query(async ({ input }) => {
+	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
+		const domain = await findDomainById(input.domainId);
+		if (domain.applicationId) {
+			const application = await findApplicationById(domain.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+		} else if (domain.composeId) {
+			const compose = await findComposeById(domain.composeId);
+			if (compose.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this compose",
+				});
+			}
+		}
 		return await findDomainById(input.domainId);
 	}),
 	delete: protectedProcedure
 		.input(apiFindDomain)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const domain = await findDomainById(input.domainId);
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				if (application.project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this application",
+					});
+				}
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+				if (compose.project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this compose",
+					});
+				}
+			}
 			const result = await removeDomainById(input.domainId);
 
 			if (domain.applicationId) {

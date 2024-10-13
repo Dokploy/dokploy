@@ -9,7 +9,7 @@ import {
 	deleteMount,
 	findMountById,
 	updateMount,
-} from "../services/mount";
+} from "@dokploy/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const mountRouter = createTRPCRouter({

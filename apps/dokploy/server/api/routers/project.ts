@@ -1,35 +1,33 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
+	apiCreateProject,
+	apiFindOneProject,
+	apiRemoveProject,
+	apiUpdateProject,
 	applications,
 	compose,
 	mariadb,
 	mongo,
 	mysql,
 	postgres,
+	projects,
 	redis,
 } from "@/server/db/schema";
-import {
-	apiCreateProject,
-	apiFindOneProject,
-	apiRemoveProject,
-	apiUpdateProject,
-	projects,
-} from "@/server/db/schema/project";
+
 import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import {
-	createProject,
-	deleteProject,
-	findProjectById,
-	updateProjectById,
-} from "../services/project";
+
 import {
 	addNewProject,
 	checkProjectAccess,
+	createProject,
+	deleteProject,
+	findProjectById,
 	findUserByAuthId,
-} from "../services/user";
+	updateProjectById,
+} from "@dokploy/server";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -47,7 +45,6 @@ export const projectRouter = createTRPCRouter({
 
 				return project;
 			} catch (error) {
-				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error to create the project",
@@ -64,8 +61,11 @@ export const projectRouter = createTRPCRouter({
 
 				await checkProjectAccess(ctx.user.authId, "access", input.projectId);
 
-				const service = await db.query.projects.findFirst({
-					where: eq(projects.projectId, input.projectId),
+				const project = await db.query.projects.findFirst({
+					where: and(
+						eq(projects.projectId, input.projectId),
+						eq(projects.adminId, ctx.user.adminId),
+					),
 					with: {
 						compose: {
 							where: buildServiceFilter(compose.composeId, accesedServices),
@@ -94,15 +94,22 @@ export const projectRouter = createTRPCRouter({
 					},
 				});
 
-				if (!service) {
+				if (!project) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Project not found",
 					});
 				}
-				return service;
+				return project;
 			}
 			const project = await findProjectById(input.projectId);
+
+			if (project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this project",
+				});
+			}
 			return project;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
@@ -125,6 +132,7 @@ export const projectRouter = createTRPCRouter({
 							applications.applicationId,
 							accesedServices,
 						),
+						with: { domains: true },
 					},
 					mariadb: {
 						where: buildServiceFilter(mariadb.mariadbId, accesedServices),
@@ -143,6 +151,7 @@ export const projectRouter = createTRPCRouter({
 					},
 					compose: {
 						where: buildServiceFilter(compose.composeId, accesedServices),
+						with: { domains: true },
 					},
 				},
 				orderBy: desc(projects.createdAt),
@@ -153,13 +162,21 @@ export const projectRouter = createTRPCRouter({
 
 		return await db.query.projects.findMany({
 			with: {
-				applications: true,
+				applications: {
+					with: {
+						domains: true,
+					},
+				},
 				mariadb: true,
 				mongo: true,
 				mysql: true,
 				postgres: true,
 				redis: true,
-				compose: true,
+				compose: {
+					with: {
+						domains: true,
+					},
+				},
 			},
 			where: eq(projects.adminId, ctx.user.adminId),
 			orderBy: desc(projects.createdAt),
@@ -172,32 +189,38 @@ export const projectRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkProjectAccess(ctx.user.authId, "delete");
 				}
-				const project = await deleteProject(input.projectId);
+				const currentProject = await findProjectById(input.projectId);
+				if (currentProject.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to delete this project",
+					});
+				}
+				const deletedProject = await deleteProject(input.projectId);
 
-				return project;
+				return deletedProject;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to delete this project",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 	update: protectedProcedure
 		.input(apiUpdateProject)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				const project = updateProjectById(input.projectId, {
+				const currentProject = await findProjectById(input.projectId);
+				if (currentProject.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this project",
+					});
+				}
+				const project = await updateProjectById(input.projectId, {
 					...input,
 				});
 
 				return project;
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to update this project",
-					cause: error,
-				});
+				throw error;
 			}
 		}),
 });
