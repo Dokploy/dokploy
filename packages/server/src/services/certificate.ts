@@ -8,6 +8,8 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
 import type { z } from "zod";
+import { encodeBase64 } from "../utils/docker/utils";
+import { execAsyncRemote } from "../utils/process/execAsync";
 
 export type Certificate = typeof certificates.$inferSelect;
 
@@ -28,11 +30,13 @@ export const findCertificateById = async (certificateId: string) => {
 
 export const createCertificate = async (
 	certificateData: z.infer<typeof apiCreateCertificate>,
+	adminId: string,
 ) => {
 	const certificate = await db
 		.insert(certificates)
 		.values({
 			...certificateData,
+			adminId: adminId,
 		})
 		.returning();
 
@@ -46,15 +50,21 @@ export const createCertificate = async (
 	const cer = certificate[0];
 
 	createCertificateFiles(cer);
+
 	return cer;
 };
 
 export const removeCertificateById = async (certificateId: string) => {
-	const { CERTIFICATES_PATH } = paths();
 	const certificate = await findCertificateById(certificateId);
+	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 
-	await removeDirectoryIfExistsContent(certDir);
+	if (certificate.serverId) {
+		await execAsyncRemote(certificate.serverId, `rm -rf ${certDir}`);
+	} else {
+		await removeDirectoryIfExistsContent(certDir);
+	}
+
 	const result = await db
 		.delete(certificates)
 		.where(eq(certificates.certificateId, certificateId))
@@ -70,27 +80,14 @@ export const removeCertificateById = async (certificateId: string) => {
 	return result;
 };
 
-export const findCertificates = async () => {
-	return await db.query.certificates.findMany();
-};
-
-const createCertificateFiles = (certificate: Certificate) => {
-	const { CERTIFICATES_PATH } = paths();
-	const dockerPath = "/etc/traefik";
+const createCertificateFiles = async (certificate: Certificate) => {
+	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");
 	const keyPath = path.join(certDir, "privkey.key");
 
-	const chainPath = path.join(dockerPath, certDir, "chain.crt");
-	const keyPathDocker = path.join(dockerPath, certDir, "privkey.key");
-
-	if (!fs.existsSync(certDir)) {
-		fs.mkdirSync(certDir, { recursive: true });
-	}
-
-	fs.writeFileSync(crtPath, certificate.certificateData);
-	fs.writeFileSync(keyPath, certificate.privateKey);
-
+	const chainPath = path.join(certDir, "chain.crt");
+	const keyPathDocker = path.join(certDir, "privkey.key");
 	const traefikConfig = {
 		tls: {
 			certificates: [
@@ -101,8 +98,28 @@ const createCertificateFiles = (certificate: Certificate) => {
 			],
 		},
 	};
-
 	const yamlConfig = dump(traefikConfig);
 	const configFile = path.join(certDir, "certificate.yml");
-	fs.writeFileSync(configFile, yamlConfig);
+
+	if (certificate.serverId) {
+		const certificateData = encodeBase64(certificate.certificateData);
+		const privateKey = encodeBase64(certificate.privateKey);
+		const command = `
+			mkdir -p ${certDir};
+			echo "${certificateData}" | base64 -d > "${crtPath}";
+			echo "${privateKey}" | base64 -d > "${keyPath}";
+			echo "${yamlConfig}" > "${configFile}";
+		`;
+
+		await execAsyncRemote(certificate.serverId, command);
+	} else {
+		if (!fs.existsSync(certDir)) {
+			fs.mkdirSync(certDir, { recursive: true });
+		}
+
+		fs.writeFileSync(crtPath, certificate.certificateData);
+		fs.writeFileSync(keyPath, certificate.privateKey);
+
+		fs.writeFileSync(configFile, yamlConfig);
+	}
 };

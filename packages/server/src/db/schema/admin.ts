@@ -8,6 +8,7 @@ import { registry } from "./registry";
 import { certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { users } from "./user";
+import { certificates } from "./certificate";
 
 export const admins = pgTable("admin", {
 	adminId: text("adminId")
@@ -37,6 +38,7 @@ export const adminsRelations = relations(admins, ({ one, many }) => ({
 	users: many(users),
 	registry: many(registry),
 	sshKeys: many(sshKeys),
+	certificates: many(certificates),
 }));
 
 const createSchema = createInsertSchema(admins, {

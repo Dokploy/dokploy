@@ -17,11 +17,26 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, HelpCircle } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +50,7 @@ const addCertificate = z.object({
 	certificateData: z.string().min(1, "Certificate data is required"),
 	privateKey: z.string().min(1, "Private key is required"),
 	autoRenew: z.boolean().optional(),
+	serverId: z.string().optional(),
 });
 
 type AddCertificate = z.infer<typeof addCertificate>;
@@ -44,6 +60,7 @@ export const AddCertificate = () => {
 
 	const { mutateAsync, isError, error, isLoading } =
 		api.certificates.create.useMutation();
+	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const form = useForm<AddCertificate>({
 		defaultValues: {
@@ -64,6 +81,7 @@ export const AddCertificate = () => {
 			certificateData: data.certificateData,
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
+			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Certificate Created");
@@ -140,6 +158,47 @@ export const AddCertificate = () => {
 											{...field}
 										/>
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverId"
+							render={({ field }) => (
+								<FormItem>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+													Select a Server (Optional)
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormLabel>
+											</TooltipTrigger>
+										</Tooltip>
+									</TooltipProvider>
+
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<SelectTrigger>
+											<SelectValue placeholder="Select a Server" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectGroup>
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name}
+													</SelectItem>
+												))}
+												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+											</SelectGroup>
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}

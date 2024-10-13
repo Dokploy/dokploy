@@ -15,6 +15,7 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+import { certificates } from "./certificate";
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -58,6 +59,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
+	certificates: many(certificates),
 }));
 
 const createSchema = createInsertSchema(server, {
