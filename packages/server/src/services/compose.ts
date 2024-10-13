@@ -41,6 +41,7 @@ import {
 } from "@/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
@@ -351,7 +352,16 @@ export const deployRemoteCompose = async ({
 			buildLink,
 		});
 	} catch (error) {
-		console.log(error);
+		// @ts-ignore
+		const encodedContent = encodeBase64(error?.message);
+
+		await execAsyncRemote(
+			compose.serverId,
+			`
+			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
+			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
+			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
+		);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
@@ -394,6 +404,16 @@ export const rebuildRemoteCompose = async ({
 			composeStatus: "done",
 		});
 	} catch (error) {
+		// @ts-ignore
+		const encodedContent = encodeBase64(error?.message);
+
+		await execAsyncRemote(
+			compose.serverId,
+			`
+			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
+			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
+			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
+		);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",

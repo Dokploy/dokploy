@@ -55,7 +55,7 @@ export const getPaketoCommand = (
 	];
 
 	for (const env of envVariables) {
-		args.push("--env", env);
+		args.push("--env", `'${env}'`);
 	}
 
 	const command = `pack ${args.join(" ")}`;

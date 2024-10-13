@@ -35,6 +35,7 @@ import {
 import { createTraefikConfig } from "@/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import { createDeployment, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
@@ -312,6 +313,17 @@ export const deployRemoteApplication = async ({
 			buildLink,
 		});
 	} catch (error) {
+		// @ts-ignore
+		const encodedContent = encodeBase64(error?.message);
+
+		await execAsyncRemote(
+			application.serverId,
+			`
+			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
+			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
+			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
+		);
+
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		await sendBuildErrorNotifications({
@@ -365,6 +377,17 @@ export const rebuildRemoteApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 	} catch (error) {
+		// @ts-ignore
+		const encodedContent = encodeBase64(error?.message);
+
+		await execAsyncRemote(
+			application.serverId,
+			`
+			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
+			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
+			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
+		);
+
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;

@@ -94,7 +94,7 @@ export const getNixpacksCommand = (
 	const args = ["build", buildAppDirectory, "--name", appName];
 
 	for (const env of envVariables) {
-		args.push("--env", env);
+		args.push("--env", `'${env}'`);
 	}
 
 	if (publishDirectory) {

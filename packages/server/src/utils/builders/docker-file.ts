@@ -95,7 +95,7 @@ export const getDockerCommand = (
 			command += createEnvFileCommand(dockerFilePath, env);
 		}
 
-		command = `
+		command += `
 echo "Building ${appName}" >> ${logPath};
 cd ${dockerContextPath} >> ${logPath} 2>> ${logPath} || { 
   echo "❌ The path ${dockerContextPath} does not exist" >> ${logPath};
