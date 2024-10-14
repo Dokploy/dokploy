@@ -7,6 +7,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 
 import type { Metadata } from "next";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
 	title: {
@@ -89,7 +91,9 @@ export default async function RootLayout({
 			<GoogleAnalytics />
 			<body className="flex h-full flex-col">
 				<NextIntlClientProvider messages={messages}>
+					<Header />
 					{children}
+					<Footer />
 				</NextIntlClientProvider>
 			</body>
 		</html>
