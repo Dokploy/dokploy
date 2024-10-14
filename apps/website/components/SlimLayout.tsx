@@ -7,9 +7,6 @@ export function SlimLayout() {
 	const t = useTranslations("404");
 	return (
 		<>
-			<div>
-				<Header />
-			</div>
 			<main className="flex flex-auto items-center justify-center text-center">
 				<div>
 					<h1 className="mb-4 text-6xl font-semibold text-primary">404</h1>
@@ -22,9 +19,6 @@ export function SlimLayout() {
 					</p>
 				</div>
 			</main>
-			<div>
-				<Footer />
-			</div>
 		</>
 	);
 }
