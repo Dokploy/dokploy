@@ -1,7 +1,8 @@
 import { IS_CLOUD, paths } from "@/server/constants";
-import { findAdmin, updateAdmin } from "@/server/services/admin";
+import { updateAdmin } from "@/server/services/admin";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
 import { execAsync } from "../process/execAsync";
+import { db } from "../../db";
 
 class LogRotationManager {
 	private static instance: LogRotationManager;
@@ -29,13 +30,17 @@ class LogRotationManager {
 	}
 
 	private async getStateFromDB(): Promise<boolean> {
-		const setting = await findAdmin();
+		const setting = await db.query.admins.findFirst({});
 		return setting?.enableLogRotation ?? false;
 	}
 
 	private async setStateInDB(active: boolean): Promise<void> {
-		const admin = await findAdmin();
-		await updateAdmin(admin.authId, {
+		const admin = await db.query.admins.findFirst({});
+
+		if (!admin) {
+			return;
+		}
+		await updateAdmin(admin?.authId, {
 			enableLogRotation: active,
 		});
 	}
