@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  blender:
+    image: lscr.io/linuxserver/blender:latest
+    privileged: true
+    container_name: blender
+    security_opt:
+      - seccomp:unconfined #optional
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - compute
+                - video
+                - graphics
+                - utility
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - SUBFOLDER=/ #optional
+    volumes:
+      - blender:/config
+    ports:
+      - 3000:3000
+      - 3001:3001
+    restart: unless-stopped
+    shm_size: 1gb
+
+volumes:
+  blender: null
