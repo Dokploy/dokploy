@@ -1,47 +1,66 @@
-version: "3.8"
 services:
   database:
     image: postgis/postgis:13-master
     volumes:
-      - directus:/var/lib/postgresql/data
+      - directus_database:/var/lib/postgresql/data
     networks:
       - dokploy-network
     environment:
       POSTGRES_USER: "directus"
-      POSTGRES_PASSWORD: "directus"
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: "directus"
+    healthcheck:
+      test: ["CMD", "pg_isready", "--host=localhost", "--username=directus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_interval: 5s
+      start_period: 30s
 
   cache:
     image: redis:6
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(redis-cli ping) = 'PONG' ]"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_interval: 5s
+      start_period: 30s
     networks:
       - dokploy-network
 
   directus:
-    image: directus/directus:10.12.1
+    image: directus/directus:11.0.2
     ports:
       - 8055
     volumes:
-      - ../files/uploads:/directus/uploads
-      - ../files/extensions:/directus/extensions
+      - directus_uploads:/directus/uploads
+      - directus_extensions:/directus/extensions
     depends_on:
-      - cache
-      - database
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
     environment:
-      SECRET: "replace-with-secure-random-value"
+      SECRET: ${DIRECTUS_SECRET}
 
       DB_CLIENT: "pg"
       DB_HOST: "database"
       DB_PORT: "5432"
       DB_DATABASE: "directus"
       DB_USER: "directus"
-      DB_PASSWORD: "directus"
+      DB_PASSWORD: ${DATABASE_PASSWORD}
 
       CACHE_ENABLED: "true"
       CACHE_AUTO_PURGE: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://cache:6379"
 
+      # After first successful login, remove the admin email/password env. variables below
+      # as these will now be stored in the database.
       ADMIN_EMAIL: "admin@example.com"
       ADMIN_PASSWORD: "d1r3ctu5"
 volumes:
-  directus:
+  directus_uploads:
+  directus_extensions:
+  directus_database:
