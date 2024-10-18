@@ -14,7 +14,8 @@ export function SlimLayout() {
 						<Link href="/" className="text-primary">
 							{t("action")}
 						</Link>
-	p				</p>
+						p{" "}
+					</p>
 				</div>
 			</main>
 		</>

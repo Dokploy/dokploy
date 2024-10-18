@@ -6,9 +6,9 @@ import GoogleAnalytics from "@/components/analitycs/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 
-import type { Metadata } from "next";
-import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
 	title: {

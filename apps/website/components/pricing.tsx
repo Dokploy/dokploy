@@ -1,13 +1,13 @@
 "use client";
 import clsx from "clsx";
 
-import { Container } from "./Container";
-import { Button } from "./ui/button";
-import { trackGAEvent } from "./analitycs";
-import { Switch } from "./ui/switch";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Container } from "./Container";
+import { trackGAEvent } from "./analitycs";
+import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
 
 function SwirlyDoodle(props: React.ComponentPropsWithoutRef<"svg">) {
 	return (
