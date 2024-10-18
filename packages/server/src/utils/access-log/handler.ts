@@ -1,8 +1,8 @@
 import { IS_CLOUD, paths } from "@/server/constants";
 import { updateAdmin } from "@/server/services/admin";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
-import { execAsync } from "../process/execAsync";
 import { db } from "../../db";
+import { execAsync } from "../process/execAsync";
 
 class LogRotationManager {
 	private static instance: LogRotationManager;
