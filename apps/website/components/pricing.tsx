@@ -177,14 +177,14 @@ export function Pricing() {
 						<Plan
 							featured
 							name="General"
-							price={!monthly ? "$6.99" : "$5.49"}
+							price={!monthly ? "$5.99" : "$4.49"}
 							description="Ideal for indie hackers, freelancers, agencies, and businesses looking for a managed solution."
 							href="/register"
 							features={[
-								"1 free server included (user-provided)",
+								"2 free server included (user-provided)",
 								"All self-hosted features without hosting the UI",
 								"Dokploy infrastructure managed by us",
-								"$3.99 per additional server (user-provided)",
+								"$3.50 per additional server (user-provided)",
 							]}
 						/>
 						{/* <Plan
