@@ -353,6 +353,9 @@ importers:
       ssh2:
         specifier: 1.15.0
         version: 1.15.0
+      stripe:
+        specifier: 17.2.0
+        version: 17.2.0
       superjson:
         specifier: ^2.2.1
         version: 2.2.1
@@ -7640,6 +7643,10 @@ packages:
 
   strip-literal@2.1.0:
     resolution: {integrity: sha512-Op+UycaUt/8FbN/Z2TWPBLge3jWrP3xj10f3fnYxf052bKuS3EKs1ZQcVGjnEMdsNVAM+plXRdmjrZ/KgG3Skw==}
+
+  stripe@17.2.0:
+    resolution: {integrity: sha512-KuDplY9WrNKi07+uEFeguis/Mh+HC+hfEMy8P5snhQzCXUv01o+4KcIJ9auFxpv4Odp2R2krs9rZ9PhQl8+Sdw==}
+    engines: {node: '>=12.*'}
 
   style-mod@4.1.2:
     resolution: {integrity: sha512-wnD1HyVqpJUI2+eKZ+eo1UwghftP6yuFheBqqe+bWCotBjC2K1YnteJILRMs3SM4V/0dLEW1SC27MWP5y+mwmw==}
@@ -16296,6 +16303,11 @@ snapshots:
   strip-literal@2.1.0:
     dependencies:
       js-tokens: 9.0.0
+
+  stripe@17.2.0:
+    dependencies:
+      '@types/node': 20.14.10
+      qs: 6.12.3
 
   style-mod@4.1.2: {}
 
