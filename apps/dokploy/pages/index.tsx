@@ -178,7 +178,7 @@ export default function Home() {
 							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
 								<Link
 									className="hover:underline text-muted-foreground"
-									href="https://docs.dokploy.com/en/docs/core/get-started/reset-password"
+									href="https://docs.dokploy.com/docs/core/get-started/reset-password"
 									target="_blank"
 								>
 									Lost your password?
