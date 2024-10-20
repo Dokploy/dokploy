@@ -288,6 +288,13 @@
       "when": 1728780577084,
       "tag": "0040_graceful_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1729314952330,
+      "tag": "0041_small_aaron_stack",
+      "breakpoints": true
     }
   ]
 }
