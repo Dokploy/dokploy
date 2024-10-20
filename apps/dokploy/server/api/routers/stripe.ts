@@ -1,7 +1,10 @@
 import { admins } from "@/server/db/schema";
 import {
+	ADDITIONAL_PRICE_YEARLY_ID,
 	BASE_PRICE_MONTHLY_ID,
+	BASE_PRICE_YEARLY_ID,
 	GROWTH_PRICE_MONTHLY_ID,
+	GROWTH_PRICE_YEARLY_ID,
 	SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
 	getStripeItems,
 	getStripePrices,
@@ -66,12 +69,14 @@ export const stripeRouter = createTRPCRouter({
 			const session = await stripe.checkout.sessions.create({
 				// payment_method_types: ["card"],
 				mode: "subscription",
-				line_items: [...items],
+				line_items: items,
 				// subscription_data: {
 				// 	trial_period_days: 0,
 				// },
-				metadata: {
-					serverQuantity: input.serverQuantity,
+				subscription_data: {
+					metadata: {
+						serverQuantity: input.serverQuantity,
+					},
 				},
 				success_url:
 					"http://localhost:3000/api/stripe.success?sessionId={CHECKOUT_SESSION_ID}",
@@ -81,12 +86,11 @@ export const stripeRouter = createTRPCRouter({
 			return { sessionId: session.id };
 		}),
 
-	upgradeSubscription: adminProcedure
+	upgradeSubscriptionMonthly: adminProcedure
 		.input(
 			z.object({
-				subscriptionId: z.string(), // ID de la suscripción actual
+				subscriptionId: z.string(),
 				serverQuantity: z.number().min(1),
-				isAnnual: z.boolean(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -94,31 +98,52 @@ export const stripeRouter = createTRPCRouter({
 				apiVersion: "2024-09-30.acacia",
 			});
 
-			const { subscriptionId, serverQuantity, isAnnual } = input;
+			const { subscriptionId, serverQuantity } = input;
+			const admin = await findAdminById(ctx.user.adminId);
+			const suscription = await stripe.subscriptions.retrieve(subscriptionId);
+			const currentItems = suscription.items.data;
+			// If have a monthly plan, we need to create a new subscription
+			const haveMonthlyPlan = currentItems.find(
+				(item) =>
+					item.price.id === BASE_PRICE_YEARLY_ID ||
+					item.price.id === GROWTH_PRICE_YEARLY_ID ||
+					item.price.id === ADDITIONAL_PRICE_YEARLY_ID,
+			);
 
-			// Price IDs
-			// const price1ServerId = "price_1QBk3bF3cxQuHeOzCmSlyFB3"; // $4.00
-			// const priceUpToThreeId = "price_1QBkPiF3cxQuHeOzceNiM2OJ"; // $7.99
-			// const priceAdditionalId = "price_1QBkr9F3cxQuHeOzTBo46Bmy"; // $3.50
+			if (haveMonthlyPlan) {
+				const items = getStripeItems(serverQuantity, false);
+				const session = await stripe.checkout.sessions.create({
+					line_items: items,
+					mode: "subscription",
+					...(admin.stripeCustomerId && {
+						customer: admin.stripeCustomerId,
+					}),
+					subscription_data: {
+						metadata: {
+							serverQuantity: input.serverQuantity,
+						},
+					},
+					success_url:
+						"http://localhost:3000/api/stripe.success?sessionId={CHECKOUT_SESSION_ID}",
+					cancel_url: "http://localhost:3000/dashboard/settings/billing",
+				});
+
+				return {
+					type: "new",
+					success: true,
+					sessionId: session.id,
+				};
+			}
+
+			const basePriceId = BASE_PRICE_MONTHLY_ID;
+			const growthPriceId = GROWTH_PRICE_MONTHLY_ID;
+			const additionalPriceId = SERVER_ADDITIONAL_PRICE_MONTHLY_ID;
 
 			// Obtener suscripción actual
 			const { baseItem, additionalItem } = await getStripeSubscriptionItems(
 				subscriptionId,
-				isAnnual,
+				false,
 			);
-
-			// const updateBasePlan = async (newPriceId: string) => {
-			// 	await stripe.subscriptions.update(subscriptionId, {
-			// 		items: [
-			// 			{
-			// 				id: baseItem?.id,
-			// 				price: newPriceId,
-			// 				quantity: 1,
-			// 			},
-			// 		],
-			// 		proration_behavior: "always_invoice",
-			// 	});
-			// };
 
 			const deleteAdditionalItem = async () => {
 				if (additionalItem) {
@@ -137,7 +162,7 @@ export const stripeRouter = createTRPCRouter({
 					await stripe.subscriptions.update(subscriptionId, {
 						items: [
 							{
-								price: SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
+								price: additionalPriceId,
 								quantity: additionalServers,
 							},
 						],
@@ -148,38 +173,137 @@ export const stripeRouter = createTRPCRouter({
 
 			if (serverQuantity === 1) {
 				await deleteAdditionalItem();
-				if (
-					baseItem?.price.id !== BASE_PRICE_MONTHLY_ID &&
-					baseItem?.price.id
-				) {
-					await updateBasePlan(
-						subscriptionId,
-						baseItem?.id,
-						BASE_PRICE_MONTHLY_ID,
-					);
+				if (baseItem?.price.id !== basePriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, basePriceId);
 				}
 			} else if (serverQuantity >= 2 && serverQuantity <= 3) {
 				await deleteAdditionalItem();
-				if (
-					baseItem?.price.id !== GROWTH_PRICE_MONTHLY_ID &&
-					baseItem?.price.id
-				) {
-					await updateBasePlan(
-						subscriptionId,
-						baseItem?.id,
-						GROWTH_PRICE_MONTHLY_ID,
-					);
+				if (baseItem?.price.id !== growthPriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, growthPriceId);
 				}
 			} else if (serverQuantity > 3) {
-				if (
-					baseItem?.price.id !== GROWTH_PRICE_MONTHLY_ID &&
-					baseItem?.price.id
-				) {
-					await updateBasePlan(
-						subscriptionId,
-						baseItem?.id,
-						GROWTH_PRICE_MONTHLY_ID,
-					);
+				if (baseItem?.price.id !== growthPriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, growthPriceId);
+				}
+				const additionalServers = serverQuantity - 3;
+				await updateOrCreateAdditionalItem(additionalServers);
+			}
+
+			await stripe.subscriptions.update(subscriptionId, {
+				metadata: {
+					serverQuantity: serverQuantity.toString(),
+				},
+			});
+
+			return { success: true };
+		}),
+	upgradeSubscriptionAnnual: adminProcedure
+		.input(
+			z.object({
+				subscriptionId: z.string(),
+				serverQuantity: z.number().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+				apiVersion: "2024-09-30.acacia",
+			});
+
+			const { subscriptionId, serverQuantity } = input;
+
+			const currentSubscription =
+				await stripe.subscriptions.retrieve(subscriptionId);
+
+			if (!currentSubscription) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Subscription not found",
+				});
+			}
+			const admin = await findAdminById(ctx.user.adminId);
+			const currentItems = currentSubscription.items.data;
+			// If have a monthly plan, we need to create a new subscription
+			const haveMonthlyPlan = currentItems.find(
+				(item) =>
+					item.price.id === BASE_PRICE_MONTHLY_ID ||
+					item.price.id === GROWTH_PRICE_MONTHLY_ID ||
+					item.price.id === SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
+			);
+
+			if (haveMonthlyPlan) {
+				const items = getStripeItems(serverQuantity, true);
+				const session = await stripe.checkout.sessions.create({
+					line_items: items,
+					mode: "subscription",
+					...(admin.stripeCustomerId && {
+						customer: admin.stripeCustomerId,
+					}),
+					subscription_data: {
+						metadata: {
+							serverQuantity: input.serverQuantity,
+						},
+					},
+					success_url:
+						"http://localhost:3000/api/stripe.success?sessionId={CHECKOUT_SESSION_ID}",
+					cancel_url: "http://localhost:3000/dashboard/settings/billing",
+				});
+
+				return {
+					type: "new",
+					success: true,
+					sessionId: session.id,
+				};
+			}
+
+			const basePriceId = BASE_PRICE_YEARLY_ID;
+			const growthPriceId = GROWTH_PRICE_YEARLY_ID;
+			const additionalPriceId = ADDITIONAL_PRICE_YEARLY_ID;
+
+			// Obtener suscripción actual
+			const { baseItem, additionalItem } = await getStripeSubscriptionItems(
+				subscriptionId,
+				true,
+			);
+
+			const deleteAdditionalItem = async () => {
+				if (additionalItem) {
+					await stripe.subscriptionItems.del(additionalItem.id);
+				}
+			};
+
+			const updateOrCreateAdditionalItem = async (
+				additionalServers: number,
+			) => {
+				if (additionalItem) {
+					await stripe.subscriptionItems.update(additionalItem.id, {
+						quantity: additionalServers,
+					});
+				} else {
+					await stripe.subscriptions.update(subscriptionId, {
+						items: [
+							{
+								price: additionalPriceId,
+								quantity: additionalServers,
+							},
+						],
+						proration_behavior: "always_invoice",
+					});
+				}
+			};
+
+			if (serverQuantity === 1) {
+				await deleteAdditionalItem();
+				if (baseItem?.price.id !== basePriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, basePriceId);
+				}
+			} else if (serverQuantity >= 2 && serverQuantity <= 3) {
+				await deleteAdditionalItem();
+				if (baseItem?.price.id !== growthPriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, growthPriceId);
+				}
+			} else if (serverQuantity > 3) {
+				if (baseItem?.price.id !== growthPriceId && baseItem?.price.id) {
+					await updateBasePlan(subscriptionId, baseItem?.id, growthPriceId);
 				}
 				const additionalServers = serverQuantity - 3;
 				await updateOrCreateAdditionalItem(additionalServers);
@@ -231,6 +355,18 @@ export const stripeRouter = createTRPCRouter({
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
 
 		if (session.payment_status === "paid") {
+			const admin = await findAdminById(ctx.user.adminId);
+
+			if (admin.stripeSubscriptionId) {
+				const subscription = await stripe.subscriptions.retrieve(
+					admin.stripeSubscriptionId,
+				);
+				if (subscription.status === "active") {
+					await stripe.subscriptions.update(admin.stripeSubscriptionId, {
+						cancel_at_period_end: true,
+					});
+				}
+			}
 			console.log("Payment successful!");
 
 			const stripeCustomerId = session.customer as string;
@@ -267,8 +403,9 @@ export const stripeRouter = createTRPCRouter({
 		const subscription =
 			await stripe.subscriptions.retrieve(stripeSubscriptionId);
 
+		let billingInterval: Stripe.Price.Recurring.Interval | undefined;
+
 		const totalServers = subscription.metadata.serverQuantity;
-		console.log(subscription.metadata);
 		let totalAmount = 0;
 
 		for (const item of subscription.items.data) {
@@ -276,12 +413,14 @@ export const stripeRouter = createTRPCRouter({
 			const amountPerUnit = item.price.unit_amount / 100;
 
 			totalAmount += quantity * amountPerUnit;
+			billingInterval = item.price.recurring?.interval;
 		}
 
 		return {
 			nextPaymentDate: new Date(subscription.current_period_end * 1000),
-			monthlyAmount: `${totalAmount.toFixed(2)} USD`,
+			monthlyAmount: totalAmount.toFixed(2),
 			totalServers,
+			billingInterval,
 		};
 	}),
 
@@ -306,20 +445,19 @@ export const stripeRouter = createTRPCRouter({
 			}
 
 			const subscriptionId = admin.stripeSubscriptionId;
-
-			const items = await getStripeSubscriptionItemsCalculate(
-				subscriptionId,
-				input.serverQuantity,
-				input.isAnnual,
-			);
-			console.log(items);
-
 			if (!subscriptionId) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Subscription not found",
 				});
 			}
+
+			const items = await getStripeSubscriptionItemsCalculate(
+				subscriptionId,
+				input.serverQuantity,
+				input.isAnnual,
+			);
+
 			const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
 				subscription: subscriptionId,
 				subscription_items: items,

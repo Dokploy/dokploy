@@ -295,6 +295,13 @@
       "when": 1729314952330,
       "tag": "0041_small_aaron_stack",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1729455812207,
+      "tag": "0042_smooth_swordsman",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,6 +7,7 @@ import { api } from "@/utils/api";
 import { loadStripe } from "@stripe/stripe-js";
 import clsx from "clsx";
 import { CheckIcon, MinusIcon, PlusIcon } from "lucide-react";
+import { useRouter } from "next/router";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { ReviewPayment } from "./review-payment";
@@ -25,35 +27,88 @@ export const calculatePrice = (count: number, isAnnual = false) => {
 	return 7.99 + (count - 3) * 3.5;
 };
 
+export const calculateYearlyCost = (serverQuantity: number) => {
+	const count = serverQuantity;
+	if (count === 1) return 4.0 * 12;
+	if (count <= 3) return 7.99 * 12;
+	return (7.99 + (count - 3) * 3.5) * 12;
+};
+
 export const ShowBilling = () => {
+	const router = useRouter();
+	const { data: billingSubscription } =
+		api.stripe.getBillingSubscription.useQuery(undefined);
+	const { data: servers } = api.server.all.useQuery(undefined);
 	const { data: admin } = api.admin.one.useQuery();
 	const { data, refetch } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
 
+	const { mutateAsync: createCustomerPortalSession } =
+		api.stripe.createCustomerPortalSession.useMutation();
+
 	const [serverQuantity, setServerQuantity] = useState(3);
 
-	const { mutateAsync: upgradeSubscription } =
-		api.stripe.upgradeSubscription.useMutation();
+	const { mutateAsync: upgradeSubscriptionMonthly } =
+		api.stripe.upgradeSubscriptionMonthly.useMutation();
+
+	const { mutateAsync: upgradeSubscriptionAnnual } =
+		api.stripe.upgradeSubscriptionAnnual.useMutation();
 	const [isAnnual, setIsAnnual] = useState(false);
+
+	// useEffect(() => {
+	// 	if (billingSubscription) {
+	// 		setIsAnnual(
+	// 			(prevIsAnnual) =>
+	// 				billingSubscription.billingInterval === "year" &&
+	// 				prevIsAnnual !== true,
+	// 		);
+	// 	}
+	// }, [billingSubscription]);
 
 	const handleCheckout = async (productId: string) => {
 		const stripe = await stripePromise;
 
 		if (data && admin?.stripeSubscriptionId && data.subscriptions.length > 0) {
-			upgradeSubscription({
-				subscriptionId: admin?.stripeSubscriptionId,
-				serverQuantity,
-				isAnnual,
-			})
-				.then(async (subscription) => {
-					toast.success("Subscription upgraded successfully");
-					await refetch();
+			if (isAnnual) {
+				upgradeSubscriptionAnnual({
+					subscriptionId: admin?.stripeSubscriptionId,
+					serverQuantity,
 				})
-				.catch((error) => {
-					toast.error("Error to upgrade the subscription");
-					console.error(error);
-				});
+					.then(async (subscription) => {
+						if (subscription.type === "new") {
+							await stripe?.redirectToCheckout({
+								sessionId: subscription.sessionId,
+							});
+							return;
+						}
+						toast.success("Subscription upgraded successfully");
+						await refetch();
+					})
+					.catch((error) => {
+						toast.error("Error to upgrade the subscription");
+						console.error(error);
+					});
+			} else {
+				upgradeSubscriptionMonthly({
+					subscriptionId: admin?.stripeSubscriptionId,
+					serverQuantity,
+				})
+					.then(async (subscription) => {
+						if (subscription.type === "new") {
+							await stripe?.redirectToCheckout({
+								sessionId: subscription.sessionId,
+							});
+							return;
+						}
+						toast.success("Subscription upgraded successfully");
+						await refetch();
+					})
+					.catch((error) => {
+						toast.error("Error to upgrade the subscription");
+						console.error(error);
+					});
+			}
 		} else {
 			createCheckoutSession({
 				productId,
@@ -66,25 +121,31 @@ export const ShowBilling = () => {
 			});
 		}
 	};
+	const products = data?.products.filter((product) => {
+		const interval = product?.default_price?.recurring?.interval;
+		return isAnnual ? interval === "year" : interval === "month";
+	});
 
 	return (
 		<div className="flex flex-col gap-4 w-full justify-center">
+			<Badge>{admin?.stripeSubscriptionStatus}</Badge>
 			<Tabs
 				defaultValue="monthly"
+				value={isAnnual ? "annual" : "monthly"}
 				className="w-full"
-				onValueChange={(e) => {
-					console.log(e);
-					setIsAnnual(e === "annual");
-				}}
+				onValueChange={(e) => setIsAnnual(e === "annual")}
 			>
 				<TabsList>
 					<TabsTrigger value="monthly">Monthly</TabsTrigger>
 					<TabsTrigger value="annual">Annual</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			{data?.products?.map((product) => {
-				const featured = true;
+			{products?.map((product) => {
+				// const suscripcion = data?.subscriptions.find((subscription) =>
+				// 	subscription.items.data.find((item) => item.pr === product.id),
+				// );
 
+				const featured = true;
 				return (
 					<div key={product.id}>
 						<section
@@ -95,6 +156,23 @@ export const ShowBilling = () => {
 									: "lg:py-8",
 							)}
 						>
+							{isAnnual ? (
+								<div className="flex flex-row gap-2 items-center">
+									<p className=" text-2xl font-semibold tracking-tight text-primary ">
+										$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)} USD
+									</p>
+									|
+									<p className=" text-base font-semibold tracking-tight text-muted-foreground">
+										${" "}
+										{(calculatePrice(serverQuantity, isAnnual) / 12).toFixed(2)}{" "}
+										/ Month USD
+									</p>
+								</div>
+							) : (
+								<p className=" text-2xl font-semibold tracking-tight text-primary ">
+									$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)} USD
+								</p>
+							)}
 							<h3 className="mt-5 font-medium text-lg text-white">
 								{product.name}
 							</h3>
@@ -105,9 +183,6 @@ export const ShowBilling = () => {
 								)}
 							>
 								{product.description}
-							</p>
-							<p className="order-first text-3xl font-semibold tracking-tight text-primary">
-								$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)} USD
 							</p>
 
 							<ul
@@ -123,7 +198,8 @@ export const ShowBilling = () => {
 									"Self-hosted on your own infrastructure",
 									"Full access to all deployment features",
 									"Dokploy integration",
-									"Free",
+									"Backups",
+									"All Incoming features",
 								].map((feature) => (
 									<li key={feature} className="flex text-muted-foreground">
 										<CheckIcon />
@@ -181,21 +257,34 @@ export const ShowBilling = () => {
 								</div>
 								<div
 									className={cn(
-										data.subscriptions.length > 0
+										data?.subscriptions && data?.subscriptions?.length > 0
 											? "justify-between"
 											: "justify-end",
 										"flex flex-row  items-center gap-2 mt-4",
 									)}
 								>
-									{data.subscriptions.length > 0 && (
-										<ReviewPayment
-											isAnnual={isAnnual}
-											serverQuantity={serverQuantity}
-										/>
-									)}
+									{data &&
+										data?.subscriptions?.length > 0 &&
+										billingSubscription?.billingInterval === "year" &&
+										isAnnual && (
+											<ReviewPayment
+												isAnnual={true}
+												serverQuantity={serverQuantity}
+											/>
+										)}
+									{data &&
+										data?.subscriptions?.length > 0 &&
+										billingSubscription?.billingInterval === "month" &&
+										!isAnnual && (
+											<ReviewPayment
+												isAnnual={false}
+												serverQuantity={serverQuantity}
+											/>
+										)}
 
-									<div className="justify-end">
+									<div className="justify-end w-full">
 										<Button
+											className="w-full"
 											onClick={async () => {
 												handleCheckout(product.id);
 											}}
@@ -211,18 +300,21 @@ export const ShowBilling = () => {
 				);
 			})}
 
-			{/* <Button
-            variant="destructive"
-            onClick={async () => {
-                // Crear una sesión del portal del cliente
-                const session = await createCustomerPortalSession();
+			<Button
+				variant="secondary"
+				onClick={async () => {
+					// Crear una sesión del portal del cliente
+					const session = await createCustomerPortalSession();
 
-                // Redirigir al portal del cliente en Stripe
-                window.location.href = session.url;
-            }}
-        >
-            Manage Subscription
-        </Button> */}
+					// router.push(session.url,"",{});
+					window.open(session.url);
+
+					// Redirigir al portal del cliente en Stripe
+					// window.location.href = session.url;
+				}}
+			>
+				Manage Subscription
+			</Button>
 		</div>
 	);
 };

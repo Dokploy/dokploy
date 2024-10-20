@@ -78,99 +78,57 @@ export const getStripeSubscriptionItemsCalculate = async (
 	const currentItems = subscription.items.data;
 	const items = [];
 
-	if (isAnnual) {
-		const baseItem = currentItems.find(
-			(item) =>
-				item.price.id === BASE_PRICE_YEARLY_ID ||
-				item.price.id === GROWTH_PRICE_YEARLY_ID,
-		);
-		const additionalItem = currentItems.find(
-			(item) => item.price.id === ADDITIONAL_PRICE_YEARLY_ID,
-		);
-		if (serverQuantity === 1) {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: BASE_PRICE_YEARLY_ID,
-					quantity: 1,
-				});
-			}
-		} else if (serverQuantity <= 3) {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: GROWTH_PRICE_YEARLY_ID,
-					quantity: 1,
-				});
-			}
-		} else {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: GROWTH_PRICE_YEARLY_ID,
-					quantity: 1,
-				});
-			}
+	const basePriceId = isAnnual ? BASE_PRICE_YEARLY_ID : BASE_PRICE_MONTHLY_ID;
+	const growthPriceId = isAnnual
+		? GROWTH_PRICE_YEARLY_ID
+		: GROWTH_PRICE_MONTHLY_ID;
+	const additionalPriceId = isAnnual
+		? ADDITIONAL_PRICE_YEARLY_ID
+		: SERVER_ADDITIONAL_PRICE_MONTHLY_ID;
 
-			if (additionalItem) {
-				items.push({
-					id: additionalItem.id,
-					price: ADDITIONAL_PRICE_YEARLY_ID,
-					quantity: serverQuantity - 3,
-				});
-			} else {
-				items.push({
-					price: ADDITIONAL_PRICE_YEARLY_ID,
-					quantity: serverQuantity - 3,
-				});
-			}
+	const baseItem = currentItems.find(
+		(item) => item.price.id === basePriceId || item.price.id === growthPriceId,
+	);
+	const additionalItem = currentItems.find(
+		(item) => item.price.id === additionalPriceId,
+	);
+
+	if (serverQuantity === 1) {
+		if (baseItem) {
+			items.push({
+				id: baseItem.id,
+				price: basePriceId,
+				quantity: 1,
+			});
+		}
+	} else if (serverQuantity <= 3) {
+		if (baseItem) {
+			items.push({
+				id: baseItem.id,
+				price: growthPriceId,
+				quantity: 1,
+			});
 		}
 	} else {
-		const baseItem = currentItems.find(
-			(item) =>
-				item.price.id === BASE_PRICE_MONTHLY_ID ||
-				item.price.id === GROWTH_PRICE_MONTHLY_ID,
-		);
-		const additionalItem = currentItems.find(
-			(item) => item.price.id === SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
-		);
-		if (serverQuantity === 1) {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: BASE_PRICE_MONTHLY_ID,
-					quantity: 1,
-				});
-			}
-		} else if (serverQuantity <= 3) {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: GROWTH_PRICE_MONTHLY_ID,
-					quantity: 1,
-				});
-			}
-		} else {
-			if (baseItem) {
-				items.push({
-					id: baseItem.id,
-					price: GROWTH_PRICE_MONTHLY_ID,
-					quantity: 1,
-				});
-			}
+		if (baseItem) {
+			items.push({
+				id: baseItem.id,
+				price: growthPriceId,
+				quantity: 1,
+			});
+		}
 
-			if (additionalItem) {
-				items.push({
-					id: additionalItem.id,
-					price: SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
-					quantity: serverQuantity - 3,
-				});
-			} else {
-				items.push({
-					price: SERVER_ADDITIONAL_PRICE_MONTHLY_ID,
-					quantity: serverQuantity - 3,
-				});
-			}
+		if (additionalItem) {
+			items.push({
+				id: additionalItem.id,
+				price: additionalPriceId,
+				quantity: serverQuantity - 3,
+			});
+		} else {
+			items.push({
+				price: additionalPriceId,
+				quantity: serverQuantity - 3,
+			});
 		}
 	}
 

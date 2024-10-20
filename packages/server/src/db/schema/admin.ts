@@ -30,6 +30,7 @@ export const admins = pgTable("admin", {
 		.$defaultFn(() => new Date().toISOString()),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
+	stripeSubscriptionStatus: text("stripeSubscriptionStatus"),
 	totalServers: integer("totalServers").notNull().default(0),
 });
 

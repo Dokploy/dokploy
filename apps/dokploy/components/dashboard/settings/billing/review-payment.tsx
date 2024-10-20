@@ -37,16 +37,23 @@ export const ReviewPayment = ({ isAnnual, serverQuantity }: Props) => {
 			},
 		);
 
-	// const { data: calculateNewMonthlyCost } =
-	// 	api.stripe.calculateNewMonthlyCost.useQuery(
-	// 		{
-	// 			serverQuantity,
-	// 			isAnnual,
-	// 		},
-	// 		{
-	// 			enabled: !!serverQuantity && isOpen,
-	// 		},
-	// 	);
+	const { data: calculateNewMonthlyCost } =
+		api.stripe.calculateNewMonthlyCost.useQuery(
+			{
+				serverQuantity,
+				isAnnual,
+			},
+			{
+				enabled: !!serverQuantity && isOpen,
+			},
+		);
+
+	const isSameServersQty =
+		Number(billingSubscription?.totalServers) === serverQuantity;
+
+	const isSameCost =
+		Number(calculateNewMonthlyCost) ===
+		Number(billingSubscription?.monthlyAmount);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -86,7 +93,6 @@ export const ReviewPayment = ({ isAnnual, serverQuantity }: Props) => {
 								{billingSubscription?.nextPaymentDate
 									? format(billingSubscription?.nextPaymentDate, "MMM d, yyyy")
 									: "-"}
-								{/* {format(billingSubscription?.nextPaymentDate, "MMM d, yyyy")} */}
 							</span>
 						</div>
 					</div>
@@ -112,19 +118,15 @@ export const ReviewPayment = ({ isAnnual, serverQuantity }: Props) => {
 						<div className="grid flex-1 gap-2">
 							<Label>Difference</Label>
 							<span className="text-sm text-muted-foreground">
-								{Number(billingSubscription?.totalServers) === serverQuantity
-									? "-"
-									: `$${calculateUpgradeCost} USD`}{" "}
+								{isSameServersQty ? "-" : `$${calculateUpgradeCost} USD`}{" "}
 							</span>
 						</div>
-						{/* <div className="grid flex-1 gap-2">
+						<div className="grid flex-1 gap-2">
 							<Label>New {isAnnual ? "annual" : "monthly"} cost</Label>
 							<span className="text-sm text-muted-foreground">
-								{Number(billingSubscription?.totalServers) === serverQuantity
-									? "-"
-									: `${calculateNewMonthlyCost} USD`}{" "}
+								{isSameCost ? "-" : `$${calculateNewMonthlyCost} USD`}{" "}
 							</span>
-						</div> */}
+						</div>
 					</div>
 				</div>
 
