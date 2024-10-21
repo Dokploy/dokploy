@@ -221,6 +221,13 @@ export const settingsRouter = createTRPCRouter({
 				}
 
 				if (server.enableDockerCleanup) {
+					const server = await findServerById(input.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
 					if (IS_CLOUD) {
 						await schedule({
 							cronSchedule: "0 0 * * *",

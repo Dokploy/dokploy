@@ -17,12 +17,20 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { HelpCircle } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -82,8 +90,38 @@ const Postgresql = (
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-						<div>
-							<Badge>{data?.server?.name || "Dokploy Server"}</Badge>
+						<div className="flex flex-row h-fit w-fit gap-2">
+							<Badge
+								variant={
+									data?.server?.serverStatus === "active"
+										? "default"
+										: "destructive"
+								}
+							>
+								{data?.server?.name || "Dokploy Server"}
+							</Badge>
+							{data?.server?.serverStatus === "inactive" && (
+								<TooltipProvider delayDuration={0}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Label className="break-all w-fit flex flex-row gap-1 items-center">
+												<HelpCircle className="size-4 text-muted-foreground" />
+											</Label>
+										</TooltipTrigger>
+										<TooltipContent
+											className="z-[999] w-[300px]"
+											align="start"
+											side="top"
+										>
+											<span>
+												You cannot, deploy this application because the server
+												is inactive, please upgrade your plan to add more
+												servers.
+											</span>
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							)}
 						</div>
 						{data?.description && (
 							<p className="text-sm text-muted-foreground  max-w-6xl">

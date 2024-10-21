@@ -1,4 +1,3 @@
-import { admins } from "@/server/db/schema";
 import { getStripeItems } from "@/server/utils/stripe";
 import {
 	IS_CLOUD,
@@ -7,7 +6,6 @@ import {
 	updateAdmin,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "../trpc";
@@ -56,7 +54,7 @@ export const stripeRouter = createTRPCRouter({
 			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 				apiVersion: "2024-09-30.acacia",
 			});
-			// await updateAdmin(ctx.user.a, {
+			// await updateAdmin(ctx.user.authId, {
 			// 	stripeCustomerId: null,
 			// 	stripeSubscriptionId: null,
 			// 	serversQuantity: 0,
@@ -110,55 +108,7 @@ export const stripeRouter = createTRPCRouter({
 			}
 		},
 	),
-	success: adminProcedure.query(async ({ ctx }) => {
-		const sessionId = ctx.req.query.sessionId as string;
 
-		if (!sessionId) {
-			throw new Error("No session_id provided");
-		}
-
-		// const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-		// if (session.payment_status === "paid") {
-		// 	const admin = await findAdminById(ctx.user.adminId);
-
-		// 	// if (admin.stripeSubscriptionId) {
-		// 	// 	const subscription = await stripe.subscriptions.retrieve(
-		// 	// 		admin.stripeSubscriptionId,
-		// 	// 	);
-		// 	// 	if (subscription.status === "active") {
-		// 	// 		await stripe.subscriptions.update(admin.stripeSubscriptionId, {
-		// 	// 			cancel_at_period_end: true,
-		// 	// 		});
-		// 	// 	}
-		// 	// }
-		// 	console.log("Payment successful!");
-
-		// 	const stripeCustomerId = session.customer as string;
-		// 	console.log("Stripe Customer ID:", stripeCustomerId);
-
-		// 	const stripeSubscriptionId = session.subscription as string;
-		// 	const suscription =
-		// 		await stripe.subscriptions.retrieve(stripeSubscriptionId);
-		// 	console.log("Stripe Subscription ID:", stripeSubscriptionId);
-
-		// 	await db
-		// 		?.update(admins)
-		// 		.set({
-		// 			stripeCustomerId,
-		// 			stripeSubscriptionId,
-		// 			serversQuantity: suscription?.items?.data?.[0]?.quantity ?? 0,
-		// 		})
-		// 		.where(eq(admins.adminId, ctx.user.adminId))
-		// 		.returning();
-		// } else {
-		// 	console.log("Payment not completed or failed.");
-		// }
-
-		ctx.res.redirect("/dashboard/settings/billing");
-
-		return true;
-	}),
 	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
 		const admin = await findAdminById(ctx.user.adminId);
 		const servers = await findServersByAdminId(admin.adminId);

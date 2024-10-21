@@ -96,7 +96,6 @@ export const ShowBilling = () => {
 					)}
 				</div>
 			)}
-
 			{products?.map((product) => {
 				const featured = true;
 				return (

@@ -118,6 +118,7 @@ export const ShowServers = () => {
 							<TableBody>
 								{data?.map((server) => {
 									const canDelete = server.totalSum === 0;
+									const isActive = server.serverStatus === "active";
 									return (
 										<TableRow key={server.serverId}>
 											<TableCell className="w-[100px]">{server.name}</TableCell>
@@ -164,18 +165,25 @@ export const ShowServers = () => {
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
 														<DropdownMenuLabel>Actions</DropdownMenuLabel>
-														{server.sshKeyId && (
-															<TerminalModal serverId={server.serverId}>
-																<span>Enter the terminal</span>
-															</TerminalModal>
+
+														{isActive && (
+															<>
+																{server.sshKeyId && (
+																	<TerminalModal serverId={server.serverId}>
+																		<span>Enter the terminal</span>
+																	</TerminalModal>
+																)}
+																<SetupServer serverId={server.serverId} />
+
+																<UpdateServer serverId={server.serverId} />
+																{server.sshKeyId && (
+																	<ShowServerActions
+																		serverId={server.serverId}
+																	/>
+																)}
+															</>
 														)}
 
-														<SetupServer serverId={server.serverId} />
-
-														<UpdateServer serverId={server.serverId} />
-														{server.sshKeyId && (
-															<ShowServerActions serverId={server.serverId} />
-														)}
 														<DialogAction
 															disabled={!canDelete}
 															title={
@@ -220,17 +228,21 @@ export const ShowServers = () => {
 															</DropdownMenuItem>
 														</DialogAction>
 
-														{server.sshKeyId && (
+														{isActive && (
 															<>
-																<DropdownMenuSeparator />
-																<DropdownMenuLabel>Extra</DropdownMenuLabel>
+																{server.sshKeyId && (
+																	<>
+																		<DropdownMenuSeparator />
+																		<DropdownMenuLabel>Extra</DropdownMenuLabel>
 
-																<ShowTraefikFileSystemModal
-																	serverId={server.serverId}
-																/>
-																<ShowDockerContainersModal
-																	serverId={server.serverId}
-																/>
+																		<ShowTraefikFileSystemModal
+																			serverId={server.serverId}
+																		/>
+																		<ShowDockerContainersModal
+																			serverId={server.serverId}
+																		/>
+																	</>
+																)}
 															</>
 														)}
 													</DropdownMenuContent>
