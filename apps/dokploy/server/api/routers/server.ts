@@ -139,12 +139,16 @@ export const serverRouter = createTRPCRouter({
 				const currentServer = await findServerById(input.serverId);
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
-				const admin = await findAdminById(ctx.user.adminId);
 
-				await updateServersBasedOnQuantity(
-					admin.adminId,
-					admin.serversQuantity,
-				);
+				if (IS_CLOUD) {
+					const admin = await findAdminById(ctx.user.adminId);
+
+					await updateServersBasedOnQuantity(
+						admin.adminId,
+						admin.serversQuantity,
+					);
+				}
+
 				return currentServer;
 			} catch (error) {
 				throw error;
