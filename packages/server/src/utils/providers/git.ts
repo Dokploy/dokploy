@@ -2,7 +2,7 @@ import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
 import { paths } from "@/server/constants";
 import type { Compose } from "@/server/services/compose";
-import { updateSSHKeyById } from "@/server/services/ssh-key";
+import { findSSHKeyById, updateSSHKeyById } from "@/server/services/ssh-key";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -29,13 +29,29 @@ export const cloneGitRepository = async (
 	}
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
+	const temporalKeyPath = path.join("/tmp", "id_rsa");
+
+	if (customGitSSHKeyId) {
+		const sshKey = await findSSHKeyById(customGitSSHKeyId);
+
+		await execAsync(`
+			echo "${sshKey.privateKey}" > ${temporalKeyPath}
+			chmod 600 ${temporalKeyPath}
+			`);
+	}
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
 	try {
 		if (!isHttpOrHttps(customGitUrl)) {
+			if (!customGitSSHKeyId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key",
+				});
+			}
 			await addHostToKnownHosts(customGitUrl);
 		}
 		await recreateDirectory(outputPath);
@@ -74,7 +90,7 @@ export const cloneGitRepository = async (
 				env: {
 					...process.env,
 					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}`,
+						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath} -o UserKnownHostsFile=${knownHostsPath}`,
 					}),
 				},
 			},
@@ -122,7 +138,6 @@ export const getCustomGitCloneCommand = async (
 		});
 	}
 
-	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
@@ -136,6 +151,13 @@ export const getCustomGitCloneCommand = async (
 	try {
 		const command = [];
 		if (!isHttpOrHttps(customGitUrl)) {
+			if (!customGitSSHKeyId) {
+				command.push(
+					`echo "Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key ❌" >> ${logPath};
+					 exit 1;
+					`,
+				);
+			}
 			command.push(addHostToKnownHostsCommand(customGitUrl));
 		}
 		command.push(`rm -rf ${outputPath};`);
@@ -144,8 +166,14 @@ export const getCustomGitCloneCommand = async (
 			`echo "Cloning Custom Git ${customGitUrl}" to ${outputPath}: ✅ >> ${logPath};`,
 		);
 		if (customGitSSHKeyId) {
+			const sshKey = await findSSHKeyById(customGitSSHKeyId);
+			const gitSshCommand = `ssh -i /tmp/id_rsa -o UserKnownHostsFile=${knownHostsPath}`;
 			command.push(
-				`GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}"`,
+				`
+				echo "${sshKey.privateKey}" > /tmp/id_rsa
+				chmod 600 /tmp/id_rsa
+				export GIT_SSH_COMMAND="${gitSshCommand}"
+				`,
 			);
 		}
 
@@ -184,7 +212,7 @@ const addHostToKnownHosts = async (repositoryURL: string) => {
 };
 
 const addHostToKnownHostsCommand = (repositoryURL: string) => {
-	const { SSH_PATH } = paths();
+	const { SSH_PATH } = paths(true);
 	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
@@ -242,13 +270,31 @@ export const cloneGitRawRepository = async (entity: {
 	}
 
 	const { SSH_PATH, COMPOSE_PATH } = paths();
-	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
+	const temporalKeyPath = path.join("/tmp", "id_rsa");
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
+	if (customGitSSHKeyId) {
+		const sshKey = await findSSHKeyById(customGitSSHKeyId);
+
+		await execAsync(`
+			echo "${sshKey.privateKey}" > ${temporalKeyPath}
+			chmod 600 ${temporalKeyPath}
+			`);
+	}
+
 	try {
-		await addHostToKnownHosts(customGitUrl);
+		if (!isHttpOrHttps(customGitUrl)) {
+			if (!customGitSSHKeyId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key",
+				});
+			}
+			await addHostToKnownHosts(customGitUrl);
+		}
 		await recreateDirectory(outputPath);
 
 		if (customGitSSHKeyId) {
@@ -275,7 +321,7 @@ export const cloneGitRawRepository = async (entity: {
 				env: {
 					...process.env,
 					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}`,
+						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath} -o UserKnownHostsFile=${knownHostsPath}`,
 					}),
 				},
 			},
@@ -308,7 +354,6 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 	}
 
 	const { SSH_PATH, COMPOSE_PATH } = paths(true);
-	const keyPath = path.join(SSH_PATH, `${customGitSSHKeyId}_rsa`);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
@@ -322,13 +367,26 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = [];
 		if (!isHttpOrHttps(customGitUrl)) {
+			if (!customGitSSHKeyId) {
+				command.push(
+					`echo "Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key ❌" ;
+					 exit 1;
+					`,
+				);
+			}
 			command.push(addHostToKnownHostsCommand(customGitUrl));
 		}
 		command.push(`rm -rf ${outputPath};`);
 		command.push(`mkdir -p ${outputPath};`);
 		if (customGitSSHKeyId) {
+			const sshKey = await findSSHKeyById(customGitSSHKeyId);
+			const gitSshCommand = `ssh -i /tmp/id_rsa -o UserKnownHostsFile=${knownHostsPath}`;
 			command.push(
-				`GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}"`,
+				`
+				echo "${sshKey.privateKey}" > /tmp/id_rsa
+				chmod 600 /tmp/id_rsa
+				export GIT_SSH_COMMAND="${gitSshCommand}"
+				`,
 			);
 		}
 

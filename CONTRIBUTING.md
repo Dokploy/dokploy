@@ -71,6 +71,12 @@ Run the command that will spin up all the required services and files.
 pnpm run dokploy:setup
 ```
 
+Build the server package (If you make any changes after in the packages/server folder, you need to rebuild and run this command)
+
+```bash
+pnpm run server:build
+```
+
 Now run the development server.
 
 ```bash
