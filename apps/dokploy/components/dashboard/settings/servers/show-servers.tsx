@@ -128,7 +128,7 @@ export const ShowServers = () => {
 														variant={
 															server.serverStatus === "active"
 																? "default"
-																: "secondary"
+																: "destructive"
 														}
 													>
 														{server.serverStatus}

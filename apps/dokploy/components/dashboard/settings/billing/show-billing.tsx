@@ -59,7 +59,7 @@ export const ShowBilling = () => {
 	const safePercentage = Math.min(percentage, 100);
 
 	return (
-		<div className="flex flex-col gap-4 w-full justify-center">
+		<div className="flex flex-col gap-4 w-full">
 			<Tabs
 				defaultValue="monthly"
 				value={isAnnual ? "annual" : "monthly"}
