@@ -9,19 +9,23 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 	apiVersion: "2024-09-30.acacia",
 });
 
+const BASE_PRICE_MONTHLY_ID = process.env.BASE_PRICE_MONTHLY_ID || ""; // $4.00
+
+const BASE_ANNUAL_MONTHLY_ID = process.env.BASE_ANNUAL_MONTHLY_ID || ""; // $7.99
+
 export const getStripeItems = (serverQuantity: number, isAnnual: boolean) => {
 	const items = [];
 
 	if (isAnnual) {
 		items.push({
-			price: "price_1QC7XwF3cxQuHeOz68CpnIUZ",
+			price: BASE_ANNUAL_MONTHLY_ID,
 			quantity: serverQuantity,
 		});
 
 		return items;
 	}
 	items.push({
-		price: "price_1QC7X5F3cxQuHeOz1859ljDP",
+		price: BASE_PRICE_MONTHLY_ID,
 		quantity: serverQuantity,
 	});
 
