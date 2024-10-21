@@ -36,6 +36,9 @@ export const ShowServers = () => {
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: canCreateMoreServers } =
+		api.stripe.canCreateMoreServers.useQuery();
 
 	return (
 		<div className="p-6 space-y-6">
@@ -74,8 +77,22 @@ export const ShowServers = () => {
 						<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 							<ServerIcon className="size-8" />
 							<span className="text-base text-muted-foreground">
-								No Servers found. Add a server to deploy your applications
-								remotely.
+								{!canCreateMoreServers ? (
+									<div>
+										You cannot create more servers,{" "}
+										<Link
+											href="/dashboard/settings/billing"
+											className="text-primary"
+										>
+											Please upgrade your plan
+										</Link>
+									</div>
+								) : (
+									<span>
+										No Servers found. Add a server to deploy your applications
+										remotely.
+									</span>
+								)}
 							</span>
 						</div>
 					)
@@ -87,6 +104,9 @@ export const ShowServers = () => {
 							<TableHeader>
 								<TableRow>
 									<TableHead className="w-[100px]">Name</TableHead>
+									{isCloud && (
+										<TableHead className="text-center">Status</TableHead>
+									)}
 									<TableHead className="text-center">IP Address</TableHead>
 									<TableHead className="text-center">Port</TableHead>
 									<TableHead className="text-center">Username</TableHead>
@@ -101,6 +121,19 @@ export const ShowServers = () => {
 									return (
 										<TableRow key={server.serverId}>
 											<TableCell className="w-[100px]">{server.name}</TableCell>
+											{isCloud && (
+												<TableHead className="text-center">
+													<Badge
+														variant={
+															server.serverStatus === "active"
+																? "default"
+																: "secondary"
+														}
+													>
+														{server.serverStatus}
+													</Badge>
+												</TableHead>
+											)}
 											<TableCell className="text-center">
 												<Badge>{server.ipAddress}</Badge>
 											</TableCell>
