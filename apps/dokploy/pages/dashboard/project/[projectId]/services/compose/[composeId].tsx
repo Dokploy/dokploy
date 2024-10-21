@@ -29,7 +29,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { CircuitBoard } from "lucide-react";
+import { CircuitBoard, ServerOff } from "lucide-react";
 import { HelpCircle } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -151,98 +151,118 @@ const Service = (
 					</div>
 				</header>
 			</div>
-			<Tabs
-				value={tab}
-				defaultValue="general"
-				className="w-full"
-				onValueChange={(e) => {
-					setSab(e as TabState);
-					const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
-					router.push(newPath, undefined, { shallow: true });
-				}}
-			>
-				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList
-						className={cn(
-							"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-							data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
-							data?.composeType === "docker-compose" ? "" : "md:grid-cols-6",
-							data?.serverId && data?.composeType === "stack"
-								? "md:grid-cols-5"
-								: "",
-						)}
-					>
-						<TabsTrigger value="general">General</TabsTrigger>
-						{data?.composeType === "docker-compose" && (
-							<TabsTrigger value="environment">Environment</TabsTrigger>
-						)}
-						{!data?.serverId && (
-							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-						)}
-						<TabsTrigger value="logs">Logs</TabsTrigger>
-						<TabsTrigger value="deployments">Deployments</TabsTrigger>
-						<TabsTrigger value="domains">Domains</TabsTrigger>
-						<TabsTrigger value="advanced">Advanced</TabsTrigger>
-					</TabsList>
-					<div className="flex flex-row gap-2">
-						<UpdateCompose composeId={composeId} />
-
-						{(auth?.rol === "admin" || user?.canDeleteServices) && (
-							<DeleteCompose composeId={composeId} />
-						)}
+			{data?.server?.serverStatus === "inactive" ? (
+				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+						<ServerOff className="size-10 text-muted-foreground self-center" />
+						<span className="text-center text-base text-muted-foreground">
+							This service is hosted on the server {data.server.name}, but this
+							server has been disabled because your current plan doesn't include
+							enough servers. Please purchase more servers to regain access to
+							this application.
+						</span>
+						<span className="text-center text-base text-muted-foreground">
+							Go to{" "}
+							<Link href="/dashboard/settings/billing" className="text-primary">
+								Billing
+							</Link>
+						</span>
 					</div>
 				</div>
+			) : (
+				<Tabs
+					value={tab}
+					defaultValue="general"
+					className="w-full"
+					onValueChange={(e) => {
+						setSab(e as TabState);
+						const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
+						router.push(newPath, undefined, { shallow: true });
+					}}
+				>
+					<div className="flex flex-row items-center justify-between  w-full gap-4">
+						<TabsList
+							className={cn(
+								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+								data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+								data?.composeType === "docker-compose" ? "" : "md:grid-cols-6",
+								data?.serverId && data?.composeType === "stack"
+									? "md:grid-cols-5"
+									: "",
+							)}
+						>
+							<TabsTrigger value="general">General</TabsTrigger>
+							{data?.composeType === "docker-compose" && (
+								<TabsTrigger value="environment">Environment</TabsTrigger>
+							)}
+							{!data?.serverId && (
+								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+							)}
+							<TabsTrigger value="logs">Logs</TabsTrigger>
+							<TabsTrigger value="deployments">Deployments</TabsTrigger>
+							<TabsTrigger value="domains">Domains</TabsTrigger>
+							<TabsTrigger value="advanced">Advanced</TabsTrigger>
+						</TabsList>
+						<div className="flex flex-row gap-2">
+							<UpdateCompose composeId={composeId} />
 
-				<TabsContent value="general">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowGeneralCompose composeId={composeId} />
+							{(auth?.rol === "admin" || user?.canDeleteServices) && (
+								<DeleteCompose composeId={composeId} />
+							)}
+						</div>
 					</div>
-				</TabsContent>
-				<TabsContent value="environment">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowEnvironmentCompose composeId={composeId} />
-					</div>
-				</TabsContent>
-				{!data?.serverId && (
-					<TabsContent value="monitoring">
+
+					<TabsContent value="general">
 						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowMonitoringCompose
+							<ShowGeneralCompose composeId={composeId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="environment">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowEnvironmentCompose composeId={composeId} />
+						</div>
+					</TabsContent>
+					{!data?.serverId && (
+						<TabsContent value="monitoring">
+							<div className="flex flex-col gap-4 pt-2.5">
+								<ShowMonitoringCompose
+									serverId={data?.serverId || ""}
+									appName={data?.appName || ""}
+									appType={data?.composeType || "docker-compose"}
+								/>
+							</div>
+						</TabsContent>
+					)}
+
+					<TabsContent value="logs">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowDockerLogsCompose
 								serverId={data?.serverId || ""}
 								appName={data?.appName || ""}
 								appType={data?.composeType || "docker-compose"}
 							/>
 						</div>
 					</TabsContent>
-				)}
 
-				<TabsContent value="logs">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowDockerLogsCompose
-							serverId={data?.serverId || ""}
-							appName={data?.appName || ""}
-							appType={data?.composeType || "docker-compose"}
-						/>
-					</div>
-				</TabsContent>
+					<TabsContent value="deployments">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowDeploymentsCompose composeId={composeId} />
+						</div>
+					</TabsContent>
 
-				<TabsContent value="deployments">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowDeploymentsCompose composeId={composeId} />
-					</div>
-				</TabsContent>
-
-				<TabsContent value="domains">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowDomainsCompose composeId={composeId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="advanced">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<AddCommandCompose composeId={composeId} />
-						<ShowVolumesCompose composeId={composeId} />
-					</div>
-				</TabsContent>
-			</Tabs>
+					<TabsContent value="domains">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowDomainsCompose composeId={composeId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="advanced">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<AddCommandCompose composeId={composeId} />
+							<ShowVolumesCompose composeId={composeId} />
+						</div>
+					</TabsContent>
+				</Tabs>
+			)}
 		</div>
 	);
 };

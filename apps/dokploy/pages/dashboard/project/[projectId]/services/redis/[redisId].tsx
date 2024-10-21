@@ -29,7 +29,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -137,74 +137,94 @@ const Redis = (
 					</div>
 				</header>
 			</div>
-			<Tabs
-				value={tab}
-				defaultValue="general"
-				className="w-full"
-				onValueChange={(e) => {
-					setSab(e as TabState);
-					const newPath = `/dashboard/project/${projectId}/services/redis/${redisId}?tab=${e}`;
-
-					router.push(newPath, undefined, { shallow: true });
-				}}
-			>
-				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList
-						className={cn(
-							"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-							data?.serverId ? "md:grid-cols-4" : "md:grid-cols-5",
-						)}
-					>
-						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="environment">Environment</TabsTrigger>
-						{!data?.serverId && (
-							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-						)}
-						<TabsTrigger value="logs">Logs</TabsTrigger>
-						<TabsTrigger value="advanced">Advanced</TabsTrigger>
-					</TabsList>
-
-					<div className="flex flex-row gap-2">
-						<UpdateRedis redisId={redisId} />
-						{(auth?.rol === "admin" || user?.canDeleteServices) && (
-							<DeleteRedis redisId={redisId} />
-						)}
+			{data?.server?.serverStatus === "inactive" ? (
+				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+						<ServerOff className="size-10 text-muted-foreground self-center" />
+						<span className="text-center text-base text-muted-foreground">
+							This service is hosted on the server {data.server.name}, but this
+							server has been disabled because your current plan doesn't include
+							enough servers. Please purchase more servers to regain access to
+							this application.
+						</span>
+						<span className="text-center text-base text-muted-foreground">
+							Go to{" "}
+							<Link href="/dashboard/settings/billing" className="text-primary">
+								Billing
+							</Link>
+						</span>
 					</div>
 				</div>
+			) : (
+				<Tabs
+					value={tab}
+					defaultValue="general"
+					className="w-full"
+					onValueChange={(e) => {
+						setSab(e as TabState);
+						const newPath = `/dashboard/project/${projectId}/services/redis/${redisId}?tab=${e}`;
 
-				<TabsContent value="general">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowGeneralRedis redisId={redisId} />
-						<ShowInternalRedisCredentials redisId={redisId} />
-						<ShowExternalRedisCredentials redisId={redisId} />
+						router.push(newPath, undefined, { shallow: true });
+					}}
+				>
+					<div className="flex flex-row items-center justify-between  w-full gap-4">
+						<TabsList
+							className={cn(
+								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+								data?.serverId ? "md:grid-cols-4" : "md:grid-cols-5",
+							)}
+						>
+							<TabsTrigger value="general">General</TabsTrigger>
+							<TabsTrigger value="environment">Environment</TabsTrigger>
+							{!data?.serverId && (
+								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+							)}
+							<TabsTrigger value="logs">Logs</TabsTrigger>
+							<TabsTrigger value="advanced">Advanced</TabsTrigger>
+						</TabsList>
+
+						<div className="flex flex-row gap-2">
+							<UpdateRedis redisId={redisId} />
+							{(auth?.rol === "admin" || user?.canDeleteServices) && (
+								<DeleteRedis redisId={redisId} />
+							)}
+						</div>
 					</div>
-				</TabsContent>
-				<TabsContent value="environment">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowRedisEnvironment redisId={redisId} />
-					</div>
-				</TabsContent>
-				{!data?.serverId && (
-					<TabsContent value="monitoring">
+
+					<TabsContent value="general">
 						<div className="flex flex-col gap-4 pt-2.5">
-							<DockerMonitoring appName={data?.appName || ""} />
+							<ShowGeneralRedis redisId={redisId} />
+							<ShowInternalRedisCredentials redisId={redisId} />
+							<ShowExternalRedisCredentials redisId={redisId} />
 						</div>
 					</TabsContent>
-				)}
-				<TabsContent value="logs">
-					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs
-							serverId={data?.serverId || ""}
-							appName={data?.appName || ""}
-						/>
-					</div>
-				</TabsContent>
-				<TabsContent value="advanced">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowAdvancedRedis redisId={redisId} />
-					</div>
-				</TabsContent>
-			</Tabs>
+					<TabsContent value="environment">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowRedisEnvironment redisId={redisId} />
+						</div>
+					</TabsContent>
+					{!data?.serverId && (
+						<TabsContent value="monitoring">
+							<div className="flex flex-col gap-4 pt-2.5">
+								<DockerMonitoring appName={data?.appName || ""} />
+							</div>
+						</TabsContent>
+					)}
+					<TabsContent value="logs">
+						<div className="flex flex-col gap-4  pt-2.5">
+							<ShowDockerLogs
+								serverId={data?.serverId || ""}
+								appName={data?.appName || ""}
+							/>
+						</div>
+					</TabsContent>
+					<TabsContent value="advanced">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowAdvancedRedis redisId={redisId} />
+						</div>
+					</TabsContent>
+				</Tabs>
+			)}
 		</div>
 	);
 };

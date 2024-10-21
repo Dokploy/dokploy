@@ -30,7 +30,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -137,80 +137,100 @@ const MySql = (
 					</div>
 				</header>
 			</div>
-			<Tabs
-				value={tab}
-				defaultValue="general"
-				className="w-full"
-				onValueChange={(e) => {
-					setSab(e as TabState);
-					const newPath = `/dashboard/project/${projectId}/services/mysql/${mysqlId}?tab=${e}`;
-
-					router.push(newPath, undefined, { shallow: true });
-				}}
-			>
-				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList
-						className={cn(
-							"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-							data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
-						)}
-					>
-						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="environment">Environment</TabsTrigger>
-						{!data?.serverId && (
-							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-						)}
-						<TabsTrigger value="backups">Backups</TabsTrigger>
-						<TabsTrigger value="logs">Logs</TabsTrigger>
-						<TabsTrigger value="advanced">Advanced</TabsTrigger>
-					</TabsList>
-
-					<div className="flex flex-row gap-2">
-						<UpdateMysql mysqlId={mysqlId} />
-						{(auth?.rol === "admin" || user?.canDeleteServices) && (
-							<DeleteMysql mysqlId={mysqlId} />
-						)}
+			{data?.server?.serverStatus === "inactive" ? (
+				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+						<ServerOff className="size-10 text-muted-foreground self-center" />
+						<span className="text-center text-base text-muted-foreground">
+							This service is hosted on the server {data.server.name}, but this
+							server has been disabled because your current plan doesn't include
+							enough servers. Please purchase more servers to regain access to
+							this application.
+						</span>
+						<span className="text-center text-base text-muted-foreground">
+							Go to{" "}
+							<Link href="/dashboard/settings/billing" className="text-primary">
+								Billing
+							</Link>
+						</span>
 					</div>
 				</div>
+			) : (
+				<Tabs
+					value={tab}
+					defaultValue="general"
+					className="w-full"
+					onValueChange={(e) => {
+						setSab(e as TabState);
+						const newPath = `/dashboard/project/${projectId}/services/mysql/${mysqlId}?tab=${e}`;
 
-				<TabsContent value="general">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowGeneralMysql mysqlId={mysqlId} />
-						<ShowInternalMysqlCredentials mysqlId={mysqlId} />
-						<ShowExternalMysqlCredentials mysqlId={mysqlId} />
+						router.push(newPath, undefined, { shallow: true });
+					}}
+				>
+					<div className="flex flex-row items-center justify-between  w-full gap-4">
+						<TabsList
+							className={cn(
+								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+								data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
+							)}
+						>
+							<TabsTrigger value="general">General</TabsTrigger>
+							<TabsTrigger value="environment">Environment</TabsTrigger>
+							{!data?.serverId && (
+								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+							)}
+							<TabsTrigger value="backups">Backups</TabsTrigger>
+							<TabsTrigger value="logs">Logs</TabsTrigger>
+							<TabsTrigger value="advanced">Advanced</TabsTrigger>
+						</TabsList>
+
+						<div className="flex flex-row gap-2">
+							<UpdateMysql mysqlId={mysqlId} />
+							{(auth?.rol === "admin" || user?.canDeleteServices) && (
+								<DeleteMysql mysqlId={mysqlId} />
+							)}
+						</div>
 					</div>
-				</TabsContent>
-				<TabsContent value="environment" className="w-full">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowMysqlEnvironment mysqlId={mysqlId} />
-					</div>
-				</TabsContent>
-				{!data?.serverId && (
-					<TabsContent value="monitoring">
+
+					<TabsContent value="general">
 						<div className="flex flex-col gap-4 pt-2.5">
-							<DockerMonitoring appName={data?.appName || ""} />
+							<ShowGeneralMysql mysqlId={mysqlId} />
+							<ShowInternalMysqlCredentials mysqlId={mysqlId} />
+							<ShowExternalMysqlCredentials mysqlId={mysqlId} />
 						</div>
 					</TabsContent>
-				)}
-				<TabsContent value="logs">
-					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs
-							serverId={data?.serverId || ""}
-							appName={data?.appName || ""}
-						/>
-					</div>
-				</TabsContent>
-				<TabsContent value="backups">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowBackupMySql mysqlId={mysqlId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="advanced">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowAdvancedMysql mysqlId={mysqlId} />
-					</div>
-				</TabsContent>
-			</Tabs>
+					<TabsContent value="environment" className="w-full">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowMysqlEnvironment mysqlId={mysqlId} />
+						</div>
+					</TabsContent>
+					{!data?.serverId && (
+						<TabsContent value="monitoring">
+							<div className="flex flex-col gap-4 pt-2.5">
+								<DockerMonitoring appName={data?.appName || ""} />
+							</div>
+						</TabsContent>
+					)}
+					<TabsContent value="logs">
+						<div className="flex flex-col gap-4  pt-2.5">
+							<ShowDockerLogs
+								serverId={data?.serverId || ""}
+								appName={data?.appName || ""}
+							/>
+						</div>
+					</TabsContent>
+					<TabsContent value="backups">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowBackupMySql mysqlId={mysqlId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="advanced">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowAdvancedMysql mysqlId={mysqlId} />
+						</div>
+					</TabsContent>
+				</Tabs>
+			)}
 		</div>
 	);
 };

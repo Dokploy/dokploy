@@ -252,7 +252,6 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: "",
 				server: !!compose.serverId,
 			};
-			console.log(jobData);
 
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
