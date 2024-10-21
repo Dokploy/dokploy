@@ -1,5 +1,10 @@
 import { WEBSITE_URL, getStripeItems } from "@/server/utils/stripe";
-import { IS_CLOUD, findAdminById, findServersByAdminId } from "@dokploy/server";
+import {
+	IS_CLOUD,
+	findAdminById,
+	findServersByAdminId,
+	updateAdmin,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -49,14 +54,22 @@ export const stripeRouter = createTRPCRouter({
 			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 				apiVersion: "2024-09-30.acacia",
 			});
-			// await updateAdmin(ctx.user.authId, {
-			// 	stripeCustomerId: null,
-			// 	stripeSubscriptionId: null,
-			// 	serversQuantity: 0,
-			// });
+
 			const items = getStripeItems(input.serverQuantity, input.isAnnual);
 			const admin = await findAdminById(ctx.user.adminId);
-			const stripeCustomerId = admin.stripeCustomerId;
+
+			let stripeCustomerId = admin.stripeCustomerId;
+
+			if (stripeCustomerId) {
+				const customer = await stripe.customers.retrieve(stripeCustomerId);
+
+				if (customer.deleted) {
+					await updateAdmin(admin.authId, {
+						stripeCustomerId: null,
+					});
+					stripeCustomerId = null;
+				}
+			}
 
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
