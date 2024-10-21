@@ -525,8 +525,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "open-source", "analytics"],
 		load: () => import("./erpnext/index").then((m) => m.generate),
-  },
-  {
+	},
+	{
 		id: "roundcube",
 		name: "Roundcube",
 		version: "1.6.9",
