@@ -1,10 +1,5 @@
-import { getStripeItems } from "@/server/utils/stripe";
-import {
-	IS_CLOUD,
-	findAdminById,
-	findServersByAdminId,
-	updateAdmin,
-} from "@dokploy/server";
+import { WEBSITE_URL, getStripeItems } from "@/server/utils/stripe";
+import { IS_CLOUD, findAdminById, findServersByAdminId } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -72,8 +67,8 @@ export const stripeRouter = createTRPCRouter({
 				metadata: {
 					adminId: admin.adminId,
 				},
-				success_url: "http://localhost:3000/dashboard/settings/billing",
-				cancel_url: "http://localhost:3000/dashboard/settings/billing",
+				success_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
 			return { sessionId: session.id };
@@ -97,7 +92,7 @@ export const stripeRouter = createTRPCRouter({
 			try {
 				const session = await stripe.billingPortal.sessions.create({
 					customer: stripeCustomerId,
-					return_url: "http://localhost:3000/dashboard/settings/billing",
+					return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 				});
 
 				return { url: session.url };
