@@ -1,9 +1,12 @@
 import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
+import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
+import superjson from "superjson";
 
 const Page = () => {
 	return <ShowBilling />;
@@ -29,7 +32,8 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	const { req, res } = ctx;
+	const { user, session } = await validateRequest(req, res);
 	if (!user || user.rol === "user") {
 		return {
 			redirect: {
@@ -39,7 +43,23 @@ export async function getServerSideProps(
 		};
 	}
 
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: req as any,
+			res: res as any,
+			db: null as any,
+			session: session,
+			user: user,
+		},
+		transformer: superjson,
+	});
+
+	await helpers.settings.isCloud.prefetch();
+
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

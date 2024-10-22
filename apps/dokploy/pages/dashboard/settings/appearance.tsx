@@ -1,9 +1,12 @@
 import { AppearanceForm } from "@/components/dashboard/settings/appearance-form";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
+import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
+import superjson from "superjson";
 
 const Page = () => {
 	return (
@@ -25,7 +28,23 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	const { user } = await validateRequest(ctx.req, ctx.res);
+	const { req, res } = ctx;
+	const { user, session } = await validateRequest(req, res);
+
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: req as any,
+			res: res as any,
+			db: null as any,
+			session: session,
+			user: user,
+		},
+		transformer: superjson,
+	});
+
+	await helpers.settings.isCloud.prefetch();
+
 	if (!user) {
 		return {
 			redirect: {
@@ -34,8 +53,9 @@ export async function getServerSideProps(
 			},
 		};
 	}
-
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }
