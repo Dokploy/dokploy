@@ -2,9 +2,9 @@ import {
 	type DomainSchema,
 	type Schema,
 	type Template,
-	generateRandomDomain,
 	generateBase64,
 	generatePassword,
+	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
