@@ -61,6 +61,7 @@ export const cloneBitbucketRepository = async (
 				bitbucketBranch!,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				cloneUrl,
 				outputPath,
 				"--progress",
@@ -111,6 +112,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 			bitbucketBranch!,
 			"--depth",
 			"1",
+			"--recurse-submodules",
 			cloneUrl,
 			outputPath,
 			"--progress",
@@ -153,7 +155,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 ${cloneUrl} ${outputPath}
+			git clone --branch ${bitbucketBranch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
@@ -206,7 +208,7 @@ export const getBitbucketCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${bitbucketBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${bitbucketBranch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi

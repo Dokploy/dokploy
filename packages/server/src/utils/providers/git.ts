@@ -178,7 +178,7 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
 			fi
@@ -312,6 +312,7 @@ export const cloneGitRawRepository = async (entity: {
 				customGitBranch,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				customGitUrl,
 				outputPath,
 				"--progress",
@@ -391,7 +392,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} ; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi
