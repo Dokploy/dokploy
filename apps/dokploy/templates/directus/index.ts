@@ -3,9 +3,14 @@ import {
 	type Schema,
 	type Template,
 	generateRandomDomain,
+	generateBase64,
+	generatePassword,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
+	const directusSecret = generateBase64(64);
+	const databasePassword = generatePassword();
+
 	const domains: DomainSchema[] = [
 		{
 			host: generateRandomDomain(schema),
@@ -14,7 +19,13 @@ export function generate(schema: Schema): Template {
 		},
 	];
 
+	const envs = [
+		`DATABASE_PASSWORD=${databasePassword}`,
+		`DIRECTUS_SECRET=${directusSecret}`,
+	];
+
 	return {
 		domains,
+		envs,
 	};
 }
