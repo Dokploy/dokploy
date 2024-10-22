@@ -59,6 +59,11 @@ install_dokploy() {
     advertise_addr=$(get_ip)
 
     docker swarm init --advertise-addr $advertise_addr
+    
+     if [ $? -ne 0 ]; then
+        echo "Error: Failed to initialize Docker Swarm" >&2
+        exit 1
+    fi
 
     echo "Swarm initialized"
 
