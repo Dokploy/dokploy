@@ -137,6 +137,7 @@ export const cloneGitlabRepository = async (
 				gitlabBranch!,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				cloneUrl,
 				outputPath,
 				"--progress",
@@ -225,7 +226,7 @@ export const getGitlabCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${gitlabBranch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${gitlabBranch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
@@ -361,6 +362,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 			gitlabBranch!,
 			"--depth",
 			"1",
+			"--recurse-submodules",
 			cloneUrl,
 			outputPath,
 			"--progress",
@@ -395,7 +397,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}
+			git clone --branch ${branch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
