@@ -181,7 +181,7 @@ export const ShowBilling = () => {
 									<NumberInput
 										value={serverQuantity}
 										onChange={(e) => {
-											setServerQuantity(e.target.value);
+											setServerQuantity(e.target.value as unknown as number);
 										}}
 									/>
 

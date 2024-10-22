@@ -1,13 +1,17 @@
 "use client";
 import clsx from "clsx";
 
+import { cn } from "@/lib/utils";
+import { MinusIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Container } from "./Container";
 import { trackGAEvent } from "./analitycs";
-import { Button } from "./ui/button";
-import { Switch } from "./ui/switch";
+import { Badge } from "./ui/badge";
+import { Button, buttonVariants } from "./ui/button";
+import { NumberInput } from "./ui/input";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 function SwirlyDoodle(props: React.ComponentPropsWithoutRef<"svg">) {
 	return (
@@ -55,7 +59,14 @@ function CheckIcon({
 		</svg>
 	);
 }
-
+export const calculatePrice = (count: number, isAnnual = false) => {
+	if (isAnnual) {
+		if (count <= 1) return 45.9;
+		return 35.7 * count;
+	}
+	if (count <= 1) return 4.5;
+	return count * 3.5;
+};
 function Plan({
 	name,
 	price,
@@ -63,6 +74,7 @@ function Plan({
 	href,
 	features,
 	featured = false,
+	buttonText = "Get Started",
 }: {
 	name: string;
 	price: string;
@@ -70,6 +82,7 @@ function Plan({
 	href: string;
 	features: Array<string>;
 	featured?: boolean;
+	buttonText?: string;
 }) {
 	const router = useRouter();
 	return (
@@ -116,23 +129,17 @@ function Plan({
 				}}
 				className="rounded-full mt-8"
 			>
-				Get started
+				{buttonText}
 			</Button>
-			{/* <Button
-				href={href}
-				variant={featured ? "solid" : "outline"}
-				color="white"
-				className="mt-8"
-				aria-label={`Get started with the ${name} plan for ${price}`}
-			>
-				Get started
-			</Button> */}
 		</section>
 	);
 }
 
 export function Pricing() {
-	const [monthly, setMonthly] = useState(false);
+	const router = useRouter();
+	const [isAnnual, setIsAnnual] = useState(true);
+	const [serverQuantity, setServerQuantity] = useState(3);
+	const featured = true;
 	return (
 		<section
 			id="pricing"
@@ -152,54 +159,200 @@ export function Pricing() {
 						Deploy Smarter, Scale Faster – Without Breaking the Bank
 					</p>
 				</div>
-				<div className="mt-10 flex flex-row gap-x-4 justify-center">
-					<Switch checked={monthly} onCheckedChange={(e) => setMonthly(e)} />
-					{!monthly ? "Monthly" : "Yearly"}
-				</div>
 
 				<div className=" mt-10 mx-auto">
-					<div className="mt-16 grid  md:grid-cols-2  gap-y-10 mx-auto w-full lg:-mx-8 xl:mx-0 xl:gap-x-8">
-						<Plan
-							name="Free"
-							price="$0"
-							description="Perfect for developers who prefer to manage their own servers."
-							href="https://docs.dokploy.com/en/docs/core/get-started/installation#docker"
-							features={[
-								"Unlimited deployments",
-								"Self-hosted on your own infrastructure",
-								"Full access to all deployment features",
-								"Docker Swarm and Docker Compose support",
-								"Community support",
-								"Custom domains and SSL integration",
-								"No feature limitations on the core platform",
-							]}
-						/>
-						<Plan
-							featured
-							name="General"
-							price={!monthly ? "$5.99" : "$4.49"}
-							description="Ideal for indie hackers, freelancers, agencies, and businesses looking for a managed solution."
-							href="/register"
-							features={[
-								"2 free server included (user-provided)",
-								"All self-hosted features without hosting the UI",
-								"Dokploy infrastructure managed by us",
-								"$3.50 per additional server (user-provided)",
-							]}
-						/>
-						{/* <Plan
-							name="Enterprise"
-							price="$39"
-							description="For even the biggest enterprise companies."
-							href="/register"
-							features={[
-								"Send unlimited quotes and invoices",
-								"Connect up to 15 bank accounts",
-								"Track up to 200 expenses per month",
-								"Automated payroll support",
-								"Export up to 25 reports, including TPS",
-							]}
-						/> */}
+					<div className="mt-16 flex flex-col gap-10 mx-auto w-full lg:-mx-8 xl:mx-0 xl:gap-x-8 justify-center items-center">
+						<Tabs
+							defaultValue="monthly"
+							value={isAnnual ? "annual" : "monthly"}
+							// className="w-full"
+							onValueChange={(e) => setIsAnnual(e === "annual")}
+						>
+							<TabsList>
+								<TabsTrigger value="monthly">Monthly</TabsTrigger>
+								<TabsTrigger value="annual">Annual</TabsTrigger>
+							</TabsList>
+						</Tabs>
+						<div className="flex flex-row max-w-4xl gap-4 mx-auto">
+							<section
+								className={clsx(
+									"flex flex-col rounded-3xl  border-dashed border-muted border-2 px-4 max-w-sm",
+									featured
+										? "order-first bg-black border py-8 lg:order-none"
+										: "lg:py-8",
+								)}
+							>
+								<div className="flex flex-row gap-2 items-center">
+									<p className=" text-2xl font-semibold tracking-tight text-primary ">
+										Free
+									</p>
+									|
+									<p className=" text-base font-semibold tracking-tight text-muted-foreground">
+										Open Source
+									</p>
+								</div>
+
+								<h3 className="mt-5 font-medium text-lg text-white">
+									Dokploy Open Source
+								</h3>
+								<p
+									className={clsx(
+										"text-sm",
+										featured ? "text-white" : "text-slate-400",
+									)}
+								>
+									Manager your own infrastructure installing dokploy ui in your
+									own server.
+								</p>
+
+								<ul
+									role="list"
+									className={clsx(
+										" mt-4 flex flex-col gap-y-2 text-sm",
+										featured ? "text-white" : "text-slate-200",
+									)}
+								>
+									{[
+										"Complete Flexibility: Install Dokploy UI on your own infrastructure",
+										"Unlimited Deployments",
+										"Self-hosted Infrastructure",
+										"Community Support",
+										"Access to Core Features",
+										"Dokploy Integration",
+										"Basic Backups",
+										"Access to All Updates",
+									].map((feature) => (
+										<li key={feature} className="flex text-muted-foreground">
+											<CheckIcon />
+											<span className="ml-2">{feature}</span>
+										</li>
+									))}
+								</ul>
+								<div className="flex flex-col gap-2 mt-4">
+									<div className="flex items-center gap-2 justify-center">
+										<span className="text-sm text-muted-foreground">
+											Unlimited Servers
+										</span>
+									</div>
+								</div>
+							</section>
+							<section
+								className={clsx(
+									"flex flex-col rounded-3xl  border-dashed  border-2 px-4 max-w-sm",
+									featured
+										? "order-first bg-black border py-8 lg:order-none"
+										: "lg:py-8",
+								)}
+							>
+								<div className="flex flex-row gap-2 items-center mb-4">
+									<Badge>Recommended 🚀</Badge>
+								</div>
+								{isAnnual ? (
+									<div className="flex flex-row gap-2 items-center">
+										<p className=" text-2xl font-semibold tracking-tight text-primary ">
+											$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)}{" "}
+											USD
+										</p>
+										|
+										<p className=" text-base font-semibold tracking-tight text-muted-foreground">
+											${" "}
+											{(calculatePrice(serverQuantity, isAnnual) / 12).toFixed(
+												2,
+											)}{" "}
+											/ Month USD
+										</p>
+									</div>
+								) : (
+									<p className=" text-2xl font-semibold tracking-tight text-primary ">
+										$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)} USD
+									</p>
+								)}
+								<h3 className="mt-5 font-medium text-lg text-white">
+									Dokploy Plan
+								</h3>
+								<p
+									className={clsx(
+										"text-sm",
+										featured ? "text-white" : "text-slate-400",
+									)}
+								>
+									No need to manage Dokploy UI infrastructure, we take care of
+									it for you.
+								</p>
+
+								<ul
+									role="list"
+									className={clsx(
+										" mt-4 flex flex-col gap-y-2 text-sm",
+										featured ? "text-white" : "text-slate-200",
+									)}
+								>
+									{[
+										"Managed Hosting: No need to manage your own servers",
+										"Priority Support",
+										"Future-Proof Features",
+									].map((feature) => (
+										<li key={feature} className="flex text-muted-foreground">
+											<CheckIcon />
+											<span className="ml-2">{feature}</span>
+										</li>
+									))}
+								</ul>
+								<div className="flex flex-col gap-2 mt-4">
+									<div className="flex items-center gap-2 justify-center">
+										<span className="text-sm text-muted-foreground">
+											{serverQuantity} Servers (You bring the servers)
+										</span>
+									</div>
+
+									<div className="flex items-center space-x-2">
+										<Button
+											disabled={serverQuantity <= 1}
+											variant="outline"
+											onClick={() => {
+												if (serverQuantity <= 1) return;
+
+												setServerQuantity(serverQuantity - 1);
+											}}
+										>
+											<MinusIcon className="h-4 w-4" />
+										</Button>
+										<NumberInput
+											value={serverQuantity}
+											onChange={(e) => {
+												setServerQuantity(e.target.value as unknown as number);
+											}}
+										/>
+
+										<Button
+											variant="outline"
+											onClick={() => {
+												setServerQuantity(serverQuantity + 1);
+											}}
+										>
+											<PlusIcon className="h-4 w-4" />
+										</Button>
+									</div>
+									<div
+										className={cn(
+											"justify-between",
+											// : "justify-end",
+											"flex flex-row  items-center gap-2 mt-4",
+										)}
+									>
+										<div className="justify-end w-full">
+											<Link
+												href="https://app.dokploy.com/register"
+												target="_blank"
+												className={buttonVariants({ className: "w-full" })}
+											>
+												Subscribe
+											</Link>
+										</div>
+									</div>
+								</div>
+							</section>
+						</div>
 					</div>
 				</div>
 			</Container>
@@ -212,48 +365,43 @@ export function Pricing() {
 const faqs = [
 	[
 		{
-			question: "How does Dokploy's free plan work?",
+			question: "How does Dokploy's Open Source plan work?",
 			answer:
-				"The free plan allows you to self-host Dokploy on your own infrastructure with unlimited deployments and full access to all features.",
+				"You can host Dokploy UI on your own infrastructure and you will be responsible for the maintenance and updates.",
 		},
 		{
 			question: "Do I need to provide my own server for the managed plan?",
 			answer:
-				"Yes, in the managed plan, you provide your own server, and we manage the Dokploy UI infrastructure for you.",
+				"Yes, in the managed plan, you provide your own server eg(Hetzner, Hostinger, AWS, ETC.) VPS, and we manage the Dokploy UI infrastructure for you.",
 		},
 		{
 			question: "What happens if I need more than one server?",
 			answer:
-				"Each additional server costs $3.99/month and can be easily added to your account.",
+				"The first server costs $4.50/month, if you buy more than one it will be $3.50/month per server.",
 		},
 	],
 	[
-		{
-			question: "Can I use my custom domain with Dokploy?",
-			answer:
-				"Yes, custom domain support is available on all plans, including the free version.",
-		},
 		{
 			question: "Is there a limit on the number of deployments?",
 			answer:
 				"No, there is no limit on the number of deployments in any of the plans.",
 		},
 		{
-			question: "Do I have to manually configure Traefik?",
+			question: "What happens if I exceed my purchased server limit?",
 			answer:
-				"Dokploy offers dynamic Traefik configuration out-of-the-box, so no manual setup is needed.",
+				"The most recently added servers will be deactivated. You won't be able to create services on inactive servers until they are reactivated.",
+		},
+		{
+			question: "Do you offer a refunds?",
+			answer:
+				"We do not offer refunds. However, you can cancel your subscription at any time. Feel free to try our open-source version for free before making a purchase.",
 		},
 	],
 	[
 		{
-			question: "How do automated backups work?",
-			answer:
-				"Automated backups are included in the managed plan and are limited to database backups only.",
-		},
-		{
 			question: "What kind of support do you offer?",
 			answer:
-				"We offer community support for the free plan and priority support for paid plans.",
+				"We offer community support for the open source version and priority support for paid plans.",
 		},
 		{
 			question: "Is Dokploy open-source?",
@@ -279,7 +427,7 @@ export function Faqs() {
 						{"Frequently asked questions"}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight text-muted-foreground">
-						If you can’t find what you’re looking for, please submit an issue
+						If you can’t find what you’re looking for, please send us an email
 						to:{" "}
 						<Link href={"mailto:support@dokploy.com"} className="text-primary">
 							support@dokploy.com
