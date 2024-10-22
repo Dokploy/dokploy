@@ -309,6 +309,13 @@
       "when": 1729472842572,
       "tag": "0043_legal_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1729580119063,
+      "tag": "0044_wandering_butterfly",
+      "breakpoints": true
     }
   ]
 }
