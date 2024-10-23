@@ -510,7 +510,7 @@ export const settingsRouter = createTRPCRouter({
 			if (input?.serverId) {
 				const result = await execAsyncRemote(input.serverId, command);
 				stdout = result.stdout;
-			} else {
+			} else if (!IS_CLOUD) {
 				const result = await execAsync(
 					"docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik",
 				);
