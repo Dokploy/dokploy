@@ -184,7 +184,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 	const { token } = context.query;
-	console.log(token);
 
 	if (typeof token !== "string") {
 		return {
