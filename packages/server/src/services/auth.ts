@@ -45,7 +45,6 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 				...(!IS_CLOUD && {
 					serverIp: await getPublicIpWithFallback(),
 				}),
-				serverIp: await getPublicIpWithFallback(),
 			})
 			.returning();
 
