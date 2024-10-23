@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.10.0",
+	"version": "v0.10.2",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -10,7 +10,7 @@
 		"build-server": "tsx esbuild.config.ts",
 		"build-next": "next build",
 		"setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
-		"reset-password": "node dist/reset-password.mjs",
+		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
