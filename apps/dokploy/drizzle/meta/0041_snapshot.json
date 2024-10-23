@@ -1,5 +1,5 @@
 {
-  "id": "eb2c64cb-bf3e-44c1-b4f2-a9f41dd8b80b",
+  "id": "9933f3e8-77a2-40e6-b579-922fe6bb2cb6",
   "prevId": "22cf0495-c3f3-4601-8653-9fb9a66bb72d",
   "version": "6",
   "dialect": "postgresql",
@@ -888,8 +888,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "totalServers": {
-          "name": "totalServers",
+        "serversQuantity": {
+          "name": "serversQuantity",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -974,6 +974,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "resetPasswordToken": {
+          "name": "resetPasswordToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resetPasswordExpiresAt": {
+          "name": "resetPasswordExpiresAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3725,6 +3737,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "serverStatus": {
+          "name": "serverStatus",
+          "type": "serverStatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
         "sshKeyId": {
           "name": "sshKeyId",
           "type": "text",
@@ -3916,6 +3936,14 @@
         "github",
         "gitlab",
         "bitbucket"
+      ]
+    },
+    "public.serverStatus": {
+      "name": "serverStatus",
+      "schema": "public",
+      "values": [
+        "active",
+        "inactive"
       ]
     }
   },

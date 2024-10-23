@@ -292,29 +292,8 @@
     {
       "idx": 41,
       "version": "6",
-      "when": 1729314952330,
-      "tag": "0041_small_aaron_stack",
-      "breakpoints": true
-    },
-    {
-      "idx": 42,
-      "version": "6",
-      "when": 1729455812207,
-      "tag": "0042_smooth_swordsman",
-      "breakpoints": true
-    },
-    {
-      "idx": 43,
-      "version": "6",
-      "when": 1729472842572,
-      "tag": "0043_legal_power_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 44,
-      "version": "6",
-      "when": 1729580119063,
-      "tag": "0044_wandering_butterfly",
+      "when": 1729667438853,
+      "tag": "0041_huge_bruce_banner",
       "breakpoints": true
     }
   ]
