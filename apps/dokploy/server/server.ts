@@ -40,7 +40,9 @@ void app.prepare().then(async () => {
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
-		setupDockerStatsMonitoringSocketServer(server);
+		if (!IS_CLOUD) {
+			setupDockerStatsMonitoringSocketServer(server);
+		}
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();
