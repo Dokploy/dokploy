@@ -1,13 +1,7 @@
-import Stripe from "stripe";
-
 export const WEBSITE_URL =
 	process.env.NODE_ENV === "development"
 		? "http://localhost:3000"
 		: "https://app.dokploy.com";
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-	apiVersion: "2024-09-30.acacia",
-});
 
 const BASE_PRICE_MONTHLY_ID = process.env.BASE_PRICE_MONTHLY_ID || ""; // $4.00
 
