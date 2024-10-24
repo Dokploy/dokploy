@@ -80,26 +80,16 @@ export default async function handler(
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
+
 			await db
 				.update(admins)
 				.set({
 					stripeSubscriptionId: newSubscription.id,
-					serversQuantity: newSubscription?.items?.data?.[0]?.quantity ?? 0,
+					serversQuantity: 0,
 					stripeCustomerId: newSubscription.customer as string,
 				})
 				.where(eq(admins.stripeCustomerId, newSubscription.customer as string))
 				.returning();
-
-			const admin = await findAdminByStripeCustomerId(
-				newSubscription.customer as string,
-			);
-
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-
-			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.adminId, newServersQuantity);
 
 			break;
 		}
