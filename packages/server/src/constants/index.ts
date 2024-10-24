@@ -37,3 +37,6 @@ export const paths = (isServer = false) => {
 		REGISTRY_PATH: `${BASE_PATH}/registry`,
 	};
 };
+
+export const GPU_ENABLED = process.env.GPU_ENABLED === 'true';
+export const GPU_RESOURCE_NAME = 'DOCKER_RESOURCE_GPU';
