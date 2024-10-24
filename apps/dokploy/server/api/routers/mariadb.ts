@@ -18,6 +18,7 @@ import {
 	deployMariadb,
 	findMariadbById,
 	findProjectById,
+	findServerById,
 	removeMariadbById,
 	removeService,
 	startService,
@@ -151,6 +152,7 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this mariadb",
 				});
 			}
+
 			return deployMariadb(input.mariadbId);
 		}),
 	changeStatus: protectedProcedure

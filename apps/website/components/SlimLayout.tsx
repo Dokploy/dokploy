@@ -1,7 +1,5 @@
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { Footer } from "./Footer";
-import { Header } from "./Header";
 
 export function SlimLayout() {
 	const t = useTranslations("404");
@@ -16,6 +14,7 @@ export function SlimLayout() {
 						<Link href="/" className="text-primary">
 							{t("action")}
 						</Link>
+						p{" "}
 					</p>
 				</div>
 			</main>

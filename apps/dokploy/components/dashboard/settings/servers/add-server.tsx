@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -57,6 +58,9 @@ type Schema = z.infer<typeof Schema>;
 export const AddServer = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const { data: canCreateMoreServers, refetch } =
+		api.stripe.canCreateMoreServers.useQuery();
+
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { mutateAsync, error, isError } = api.server.create.useMutation();
 	const form = useForm<Schema>({
@@ -81,6 +85,10 @@ export const AddServer = () => {
 			sshKeyId: "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+
+	useEffect(() => {
+		refetch();
+	}, [isOpen]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
@@ -116,6 +124,14 @@ export const AddServer = () => {
 						Add a server to deploy your applications remotely.
 					</DialogDescription>
 				</DialogHeader>
+				{!canCreateMoreServers && (
+					<AlertBlock type="warning">
+						You cannot create more servers,{" "}
+						<Link href="/dashboard/settings/billing" className="text-primary">
+							Please upgrade your plan
+						</Link>
+					</AlertBlock>
+				)}
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
@@ -254,6 +270,7 @@ export const AddServer = () => {
 					<DialogFooter>
 						<Button
 							isLoading={form.formState.isSubmitting}
+							disabled={!canCreateMoreServers}
 							form="hook-form-add-server"
 							type="submit"
 						>

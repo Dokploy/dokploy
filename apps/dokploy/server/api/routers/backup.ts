@@ -14,6 +14,7 @@ import {
 	findMongoByBackupId,
 	findMySqlByBackupId,
 	findPostgresByBackupId,
+	findServerById,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -36,6 +37,25 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(newBackup.backupId);
 
 				if (IS_CLOUD && backup.enabled) {
+					const databaseType = backup.databaseType;
+					let serverId = "";
+					if (databaseType === "postgres" && backup.postgres?.serverId) {
+						serverId = backup.postgres.serverId;
+					} else if (databaseType === "mysql" && backup.mysql?.serverId) {
+						serverId = backup.mysql.serverId;
+					} else if (databaseType === "mongo" && backup.mongo?.serverId) {
+						serverId = backup.mongo.serverId;
+					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
+						serverId = backup.mariadb.serverId;
+					}
+					const server = await findServerById(serverId);
+
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
 					await schedule({
 						cronSchedule: backup.schedule,
 						backupId: backup.backupId,

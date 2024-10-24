@@ -29,6 +29,7 @@ import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
+import { stripeRouter } from "./routers/stripe";
 import { userRouter } from "./routers/user";
 
 /**
@@ -69,6 +70,7 @@ export const appRouter = createTRPCRouter({
 	gitlab: gitlabRouter,
 	github: githubRouter,
 	server: serverRouter,
+	stripe: stripeRouter,
 });
 
 // export type definition of API

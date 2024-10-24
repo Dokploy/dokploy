@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -16,6 +16,8 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+
+export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -37,6 +39,8 @@ export const server = pgTable("server", {
 	adminId: text("adminId")
 		.notNull()
 		.references(() => admins.adminId, { onDelete: "cascade" }),
+	serverStatus: serverStatus("serverStatus").notNull().default("active"),
+
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),

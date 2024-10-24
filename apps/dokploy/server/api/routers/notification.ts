@@ -148,12 +148,6 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// go to your discord server
-				// go to settings
-				// go to integrations
-				// add a new integration
-				// select webhook
-				// copy the webhook url
 				return await createDiscordNotification(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({

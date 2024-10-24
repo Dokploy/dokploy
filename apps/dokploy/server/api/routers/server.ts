@@ -1,3 +1,4 @@
+import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -15,15 +16,17 @@ import {
 	server,
 } from "@/server/db/schema";
 import {
+	IS_CLOUD,
 	createServer,
 	deleteServer,
+	findAdminById,
 	findServerById,
+	findServersByAdminId,
 	haveActiveServices,
 	removeDeploymentsByServerId,
 	serverSetup,
 	updateServerById,
 } from "@dokploy/server";
-// import { serverSetup } from "@/server/setup/server-setup";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 
@@ -32,6 +35,14 @@ export const serverRouter = createTRPCRouter({
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				const admin = await findAdminById(ctx.user.adminId);
+				const servers = await findServersByAdminId(admin.adminId);
+				if (IS_CLOUD && servers.length >= admin.serversQuantity) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "You cannot create more servers",
+					});
+				}
 				const project = await createServer(input, ctx.user.adminId);
 				return project;
 			} catch (error) {
@@ -77,13 +88,17 @@ export const serverRouter = createTRPCRouter({
 		return result;
 	}),
 	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
-		return await db.query.server.findMany({
+		const result = await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
-			where: and(
-				isNotNull(server.sshKeyId),
-				eq(server.adminId, ctx.user.adminId),
-			),
+			where: IS_CLOUD
+				? and(
+						isNotNull(server.sshKeyId),
+						eq(server.adminId, ctx.user.adminId),
+						eq(server.serverStatus, "active"),
+					)
+				: and(isNotNull(server.sshKeyId), eq(server.adminId, ctx.user.adminId)),
 		});
+		return result;
 	}),
 	setup: protectedProcedure
 		.input(apiFindOneServer)
@@ -125,6 +140,15 @@ export const serverRouter = createTRPCRouter({
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
 
+				if (IS_CLOUD) {
+					const admin = await findAdminById(ctx.user.adminId);
+
+					await updateServersBasedOnQuantity(
+						admin.adminId,
+						admin.serversQuantity,
+					);
+				}
+
 				return currentServer;
 			} catch (error) {
 				throw error;
@@ -139,6 +163,13 @@ export const serverRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this server",
+					});
+				}
+
+				if (server.serverStatus === "inactive") {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Server is inactive",
 					});
 				}
 				const currentServer = await updateServerById(input.serverId, {

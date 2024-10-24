@@ -63,7 +63,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 	const telegramMutation = api.notification.updateTelegram.useMutation();
 	const discordMutation = api.notification.updateDiscord.useMutation();
 	const emailMutation = api.notification.updateEmail.useMutation();
-
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
 			type: "slack",
@@ -618,27 +618,29 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormField
-									control={form.control}
-									defaultValue={form.control._defaultValues.dokployRestart}
-									name="dokployRestart"
-									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Dokploy Restart</FormLabel>
-												<FormDescription>
-													Trigger the action when a dokploy is restarted.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
+								{!isCloud && (
+									<FormField
+										control={form.control}
+										defaultValue={form.control._defaultValues.dokployRestart}
+										name="dokployRestart"
+										render={({ field }) => (
+											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="space-y-0.5">
+													<FormLabel>Dokploy Restart</FormLabel>
+													<FormDescription>
+														Trigger the action when a dokploy is restarted.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

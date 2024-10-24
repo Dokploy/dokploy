@@ -7,6 +7,7 @@ import {
 	apiUpdateAuthByAdmin,
 	apiVerify2FA,
 	apiVerifyLogin2FA,
+	auth,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -18,12 +19,17 @@ import {
 	getUserByToken,
 	lucia,
 	luciaToken,
+	sendEmailNotification,
 	updateAuthById,
 	validateRequest,
 	verify2FA,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
+import { isBefore } from "date-fns";
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { db } from "../../db";
 import {
 	adminProcedure,
@@ -233,4 +239,101 @@ export const authRouter = createTRPCRouter({
 	verifyToken: protectedProcedure.mutation(async () => {
 		return true;
 	}),
+	sendResetPasswordEmail: publicProcedure
+		.input(
+			z.object({
+				email: z.string().min(1).email(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "This feature is only available in the cloud version",
+				});
+			}
+			const authR = await db.query.auth.findFirst({
+				where: eq(auth.email, input.email),
+			});
+			if (!authR) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found",
+				});
+			}
+			const token = nanoid();
+			await updateAuthById(authR.id, {
+				resetPasswordToken: token,
+				// Make resetPassword in 24 hours
+				resetPasswordExpiresAt: new Date(
+					new Date().getTime() + 24 * 60 * 60 * 1000,
+				).toISOString(),
+			});
+
+			const email = await sendEmailNotification(
+				{
+					fromAddress: process.env.SMTP_FROM_ADDRESS || "",
+					toAddresses: [authR.email],
+					smtpServer: process.env.SMTP_SERVER || "",
+					smtpPort: Number(process.env.SMTP_PORT),
+					username: process.env.SMTP_USERNAME || "",
+					password: process.env.SMTP_PASSWORD || "",
+				},
+				"Reset Password",
+				`
+				Reset your password by clicking the link below:
+				The link will expire in 24 hours.
+				<a href="http://localhost:3000/reset-password?token=${token}">
+					Reset Password
+				</a>
+			
+			`,
+			);
+		}),
+
+	resetPassword: publicProcedure
+		.input(
+			z.object({
+				resetPasswordToken: z.string().min(1),
+				password: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "This feature is only available in the cloud version",
+				});
+			}
+			const authR = await db.query.auth.findFirst({
+				where: eq(auth.resetPasswordToken, input.resetPasswordToken),
+			});
+
+			if (!authR || authR.resetPasswordExpiresAt === null) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Token not found",
+				});
+			}
+
+			const isExpired = isBefore(
+				new Date(authR.resetPasswordExpiresAt),
+				new Date(),
+			);
+
+			if (isExpired) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Token expired",
+				});
+			}
+
+			await updateAuthById(authR.id, {
+				resetPasswordExpiresAt: null,
+				resetPasswordToken: null,
+				password: bcrypt.hashSync(input.password, 10),
+			});
+
+			return true;
+		}),
 });
