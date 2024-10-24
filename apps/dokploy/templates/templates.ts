@@ -498,6 +498,35 @@ export const templates: TemplateData[] = [
 		load: () => import("./gitea/index").then((m) => m.generate),
 	},
 	{
+		id: "mailserver",
+		name: "Mailserver",
+		version: "14.0",
+		description:
+			"A fullstack but simple mail server with SMTP, IMAP, LDAP, Antispam, Antivirus, etc.",
+		logo: "mailserver.svg",
+		links: {
+			github: "https://github.com/docker-mailserver/docker-mailserver",
+			website: "https://docker-mailserver.github.io/docker-mailserver/v14.0/",
+			docs: "https://docker-mailserver.github.io/docker-mailserver/v14.0/config/environment/",
+		},
+		tags: ["self-hosted", "email"],
+		load: () => import("./mailserver/index").then((m) => m.generate),
+	},
+	{
+		id: "erpnext",
+		name: "ERPNext",
+		version: "15.35.1",
+		description: "Free and Open Source Enterprise Resource Planning (ERP) ",
+		logo: "erpnext.png",
+		links: {
+			github: "https://github.com/frappe/erpnext",
+			website: "https://erpnext.com/",
+			docs: "https://sashagoncharov19.github.io/dokploy-template-docs/erpnext",
+		},
+		tags: ["self-hosted", "open-source", "analytics"],
+		load: () => import("./erpnext/index").then((m) => m.generate),
+	},
+	{
 		id: "roundcube",
 		name: "Roundcube",
 		version: "1.6.9",
