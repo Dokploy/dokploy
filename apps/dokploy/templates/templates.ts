@@ -155,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "wordpress",
 		name: "Wordpress",
-		version: "5.8.3",
+		version: "6.6.1",
 		description:
 			"Wordpress is a free and open source content management system (CMS) for publishing and managing websites.",
 		logo: "wordpress.png",
