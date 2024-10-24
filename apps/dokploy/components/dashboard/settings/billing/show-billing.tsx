@@ -50,6 +50,7 @@ export const ShowBilling = () => {
 		}
 	};
 	const products = data?.products.filter((product) => {
+		// @ts-ignore
 		const interval = product?.default_price?.recurring?.interval;
 		return isAnnual ? interval === "year" : interval === "month";
 	});
