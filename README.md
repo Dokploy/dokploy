@@ -30,7 +30,7 @@ Dokploy include multiples features to make your life easier.
 - **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
 - **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage, for every resource.
 - **Docker Management**: Easily deploy and manage Docker containers.
-- **CLI/API**: Manage your applications and databases using the command line or trought the API.
+- **CLI/API**: Manage your applications and databases using the command line or through the API.
 - **Notifications**: Get notified when your deployments are successful or failed (Slack, Discord, Telegram, Email, etc.)
 - **Multi Server**: Deploy and manager your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.

@@ -29,7 +29,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 				mongo.serverId,
 				appName,
 			);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase=admin --gzip"`;
+			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase=admin --gzip"`;
 
 			await execAsyncRemote(
 				mongo.serverId,
@@ -37,7 +37,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			);
 		} else {
 			const { Id: containerId } = await getServiceContainer(appName);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase=admin --gzip"`;
+			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}'  --archive --authenticationDatabase=admin --gzip"`;
 			await execAsync(`${mongoDumpCommand} | ${rcloneCommand}`);
 		}
 
