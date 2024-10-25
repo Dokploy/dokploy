@@ -58,27 +58,27 @@ jobs:
           command: |
             docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
-            # if [ "${CIRCLE_BRANCH}" == "main" ]; then
-            #   VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-            #   echo $VERSION
-            #   TAG="latest"
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+              echo $VERSION
+              TAG="latest"
 
-            #   docker manifest create dokploy/dokploy:${TAG} \
-            #     dokploy/dokploy:${TAG}-amd64 \
-            #     dokploy/dokploy:${TAG}-arm64
-            #   docker manifest push dokploy/dokploy:${TAG}
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
 
-            #   docker manifest create dokploy/dokploy:${VERSION} \
-            #     dokploy/dokploy:${TAG}-amd64 \
-            #     dokploy/dokploy:${TAG}-arm64
-            #   docker manifest push dokploy/dokploy:${VERSION}
-            # else
+              docker manifest create dokploy/dokploy:${VERSION} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${VERSION}
+            else
               TAG="canary"
               docker manifest create dokploy/dokploy:${TAG} \
                 dokploy/dokploy:${TAG}-amd64 \
                 dokploy/dokploy:${TAG}-arm64
               docker manifest push dokploy/dokploy:${TAG}
-            # fi
+            fi
 
 workflows:
   build-all:
@@ -89,14 +89,12 @@ workflows:
               only:
                 - main
                 - canary
-                - feat/remove-build-on-server
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - feat/remove-build-on-server
       - combine-manifests:
           requires:
             - build-amd64

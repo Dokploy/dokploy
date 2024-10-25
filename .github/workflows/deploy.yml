@@ -2,52 +2,52 @@ name: Build Docker images
 
 on:
   push:
-    branches: ["canary", "main" ,"feat/remove-build-on-server"]
+    branches: ["canary", "main"]
 
 jobs:
-  # build-and-push-image-docs:
-  #   runs-on: ubuntu-latest
+  build-and-push-image-docs:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v4
-  #       with:
-  #         context: .
-  #         file: ./Dockerfile.docs
-  #         push: true
-  #         tags: dokploy/docs:latest
-  #         platforms: linux/amd64
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.docs
+          push: true
+          tags: dokploy/docs:latest
+          platforms: linux/amd64
 
-  # build-and-push-image-website:
-  #   runs-on: ubuntu-latest
+  build-and-push-image-website:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v4
-  #       with:
-  #         context: .
-  #         file: ./Dockerfile.website
-  #         push: true
-  #         tags: dokploy/website:latest
-  #         platforms: linux/amd64
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.website
+          push: true
+          tags: dokploy/website:latest
+          platforms: linux/amd64
 
 
   build-and-push-cloud-image:
@@ -68,54 +68,54 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.cloud
-          # push: true
+          push: true
           tags: |
             siumauricio/cloud:${{ github.ref_name == 'main' && 'main' || 'canary' }}
           platforms: linux/amd64
 
-  # build-and-push-schedule-image:
-  #   runs-on: ubuntu-latest
+  build-and-push-schedule-image:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v4
-  #       with:
-  #         context: .
-  #         file: ./Dockerfile.schedule
-  #         push: true
-  #         tags: |
-  #           siumauricio/schedule:${{ github.ref_name == 'main' && 'main' || 'canary' }}
-  #         platforms: linux/amd64     
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.schedule
+          push: true
+          tags: |
+            siumauricio/schedule:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+          platforms: linux/amd64     
 
 
-  # build-and-push-server-image:
-  #   runs-on: ubuntu-latest
+  build-and-push-server-image:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v4
-  #       with:
-  #         context: .
-  #         file: ./Dockerfile.server
-  #         push: true
-  #         tags: |
-  #           siumauricio/server:${{ github.ref_name == 'main' && 'main' || 'canary' }}
-  #         platforms: linux/amd64  
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.server
+          push: true
+          tags: |
+            siumauricio/server:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+          platforms: linux/amd64  
