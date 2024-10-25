@@ -1,7 +1,7 @@
 import path from "node:path";
-import type { BackupSchedule } from "@/server/services/backup";
-import type { Mariadb } from "@/server/services/mariadb";
-import { findProjectById } from "@/server/services/project";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import type { Mariadb } from "@dokploy/server/services/mariadb";
+import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,

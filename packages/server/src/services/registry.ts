@@ -1,14 +1,12 @@
-import { db } from "@/server/db";
-import { type apiCreateRegistry, registry } from "@/server/db/schema";
-import { initializeRegistry } from "@/server/setup/registry-setup";
-import { removeService } from "@/server/utils/docker/utils";
-import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
+import { db } from "@dokploy/server/db";
+import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
 import {
-	manageRegistry,
-	removeSelfHostedRegistry,
-} from "@/server/utils/traefik/registry";
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
@@ -30,6 +28,13 @@ export const createRegistry = async (
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Error input:  Inserting registry",
+			});
+		}
+
+		if (IS_CLOUD && !input.serverId && input.serverId !== "none") {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Select a server to add the registry",
 			});
 		}
 		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
@@ -58,12 +63,9 @@ export const removeRegistry = async (registryId: string) => {
 			});
 		}
 
-		if (response.registryType === "selfHosted") {
-			await removeSelfHostedRegistry();
-			await removeService("dokploy-registry");
+		if (!IS_CLOUD) {
+			await execAsync(`docker logout ${response.registryUrl}`);
 		}
-
-		await execAsync(`docker logout ${response.registryUrl}`);
 
 		return response;
 	} catch (error) {
@@ -89,11 +91,18 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		if (response?.registryType === "selfHosted") {
-			await manageRegistry(response);
-			await initializeRegistry(response.username, response.password);
-		}
 		const loginCommand = `echo ${response?.password} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
+
+		if (
+			IS_CLOUD &&
+			!registryData?.serverId &&
+			registryData?.serverId !== "none"
+		) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Select a server to add the registry",
+			});
+		}
 
 		if (registryData?.serverId && registryData?.serverId !== "none") {
 			await execAsyncRemote(registryData.serverId, loginCommand);

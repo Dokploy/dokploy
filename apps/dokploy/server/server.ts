@@ -27,7 +27,7 @@ import {
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const dev = process.env.NODE_ENV !== "production";
-const app = next({ dev });
+const app = next({ dev, turbopack: dev });
 const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
@@ -40,7 +40,9 @@ void app.prepare().then(async () => {
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);
 		setupTerminalWebSocketServer(server);
-		setupDockerStatsMonitoringSocketServer(server);
+		if (!IS_CLOUD) {
+			setupDockerStatsMonitoringSocketServer(server);
+		}
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();

@@ -1,6 +1,6 @@
-import { db } from "@/server/db";
-import { notifications } from "@/server/db/schema";
-import DockerCleanupEmail from "@/server/emails/emails/docker-cleanup";
+import { db } from "@dokploy/server/db";
+import { notifications } from "@dokploy/server/db/schema";
+import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { renderAsync } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import {

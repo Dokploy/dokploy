@@ -1,38 +1,41 @@
-import { docker } from "@/server/constants";
-import { db } from "@/server/db";
-import { type apiCreateApplication, applications } from "@/server/db/schema";
-import { generateAppName } from "@/server/db/schema";
-import { getAdvancedStats } from "@/server/monitoring/utilts";
-import { generatePassword } from "@/server/templates/utils";
+import { docker } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
+import {
+	type apiCreateApplication,
+	applications,
+} from "@dokploy/server/db/schema";
+import { generateAppName } from "@dokploy/server/db/schema";
+import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
+import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildApplication,
 	getBuildCommand,
 	mechanizeDockerContainer,
-} from "@/server/utils/builders";
-import { sendBuildErrorNotifications } from "@/server/utils/notifications/build-error";
-import { sendBuildSuccessNotifications } from "@/server/utils/notifications/build-success";
-import { execAsyncRemote } from "@/server/utils/process/execAsync";
+} from "@dokploy/server/utils/builders";
+import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import {
 	cloneBitbucketRepository,
 	getBitbucketCloneCommand,
-} from "@/server/utils/providers/bitbucket";
+} from "@dokploy/server/utils/providers/bitbucket";
 import {
 	buildDocker,
 	buildRemoteDocker,
-} from "@/server/utils/providers/docker";
+} from "@dokploy/server/utils/providers/docker";
 import {
 	cloneGitRepository,
 	getCustomGitCloneCommand,
-} from "@/server/utils/providers/git";
+} from "@dokploy/server/utils/providers/git";
 import {
 	cloneGithubRepository,
 	getGithubCloneCommand,
-} from "@/server/utils/providers/github";
+} from "@dokploy/server/utils/providers/github";
 import {
 	cloneGitlabRepository,
 	getGitlabCloneCommand,
-} from "@/server/utils/providers/gitlab";
-import { createTraefikConfig } from "@/server/utils/traefik/application";
+} from "@dokploy/server/utils/providers/gitlab";
+import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";

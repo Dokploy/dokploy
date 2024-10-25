@@ -52,6 +52,7 @@ export async function getServerSideProps(
 
 	try {
 		await helpers.project.all.prefetch();
+		await helpers.settings.isCloud.prefetch();
 		const auth = await helpers.auth.get.fetch();
 
 		if (auth.rol === "user") {

@@ -12,9 +12,10 @@ import {
 	destinations,
 } from "@/server/db/schema";
 import {
+	IS_CLOUD,
 	createDestintation,
 	execAsync,
-	findAdmin,
+	execAsyncRemote,
 	findDestinationById,
 	removeDestinationById,
 	updateDestinationById,
@@ -53,11 +54,26 @@ export const destinationRouter = createTRPCRouter({
 				];
 				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-				await execAsync(rcloneCommand);
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Server not found",
+					});
+				}
+
+				if (IS_CLOUD) {
+					await execAsyncRemote(input.serverId || "", rcloneCommand);
+				} else {
+					await execAsync(rcloneCommand);
+				}
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to connect to bucket",
+					message:
+						error instanceof Error
+							? error?.message
+							: "Error to connect to bucket",
 					cause: error,
 				});
 			}
