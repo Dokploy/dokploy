@@ -1,6 +1,9 @@
-import { db } from "@/server/db";
-import { type apiCreateRegistry, registry } from "@/server/db/schema";
-import { execAsync, execAsyncRemote } from "@/server/utils/process/execAsync";
+import { db } from "@dokploy/server/db";
+import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";

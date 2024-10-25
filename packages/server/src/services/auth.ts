@@ -1,13 +1,13 @@
 import { randomBytes } from "node:crypto";
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	admins,
 	type apiCreateAdmin,
 	type apiCreateUser,
 	auth,
 	users,
-} from "@/server/db/schema";
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
+} from "@dokploy/server/db/schema";
+import { getPublicIpWithFallback } from "@dokploy/server/wss/terminal";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";

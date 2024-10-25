@@ -25,7 +25,7 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/server/*": ["./src/*"]
+			"@dokploy/server/*": ["./src/*"]
 		}
 	},
 

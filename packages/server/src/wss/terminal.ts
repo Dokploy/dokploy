@@ -1,6 +1,6 @@
 import type http from "node:http";
 import path from "node:path";
-import { findServerById } from "@/server/services/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { spawn } from "node-pty";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { WebSocketServer } from "ws";

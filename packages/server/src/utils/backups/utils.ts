@@ -1,5 +1,5 @@
-import type { BackupSchedule } from "@/server/services/backup";
-import type { Destination } from "@/server/services/destination";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import type { Destination } from "@dokploy/server/services/destination";
 import { scheduleJob, scheduledJobs } from "node-schedule";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";

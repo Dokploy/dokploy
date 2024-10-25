@@ -1,9 +1,15 @@
 {
 	"name": "@dokploy/server",
 	"version": "1.0.0",
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"main": "./src/index.ts",
 	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./db": {
+			"import": "./src/db/index.ts",
+			"require": "./dist/db/index.cjs.js"
+		}
+	},
 	"scripts": {
 		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts",

@@ -3,15 +3,12 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initializeTraefik,
-} from "@dokploy/server/dist/setup/traefik-setup";
+} from "@dokploy/server";
 
-import { setupDirectories } from "@dokploy/server/dist/setup/config-paths";
-import { initializePostgres } from "@dokploy/server/dist/setup/postgres-setup";
-import { initializeRedis } from "@dokploy/server/dist/setup/redis-setup";
-import {
-	initializeNetwork,
-	initializeSwarm,
-} from "@dokploy/server/dist/setup/setup";
+import { setupDirectories } from "@dokploy/server";
+import { initializePostgres } from "@dokploy/server";
+import { initializeRedis } from "@dokploy/server";
+import { initializeNetwork, initializeSwarm } from "@dokploy/server";
 (async () => {
 	try {
 		setupDirectories();

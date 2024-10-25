@@ -1,5 +1,5 @@
-import { IS_CLOUD, paths } from "@/server/constants";
-import { updateAdmin } from "@/server/services/admin";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { updateAdmin } from "@dokploy/server/services/admin";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
 import { db } from "../../db";
 import { execAsync } from "../process/execAsync";

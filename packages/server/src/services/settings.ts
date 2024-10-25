@@ -1,8 +1,8 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { docker } from "@/server/constants";
-import { getServiceContainer } from "@/server/utils/docker/utils";
-import { execAsyncRemote } from "@/server/utils/process/execAsync";
+import { docker } from "@dokploy/server/constants";
+import { getServiceContainer } from "@dokploy/server/utils/docker/utils";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 // import packageInfo from "../../../package.json";
 
 const updateIsAvailable = async () => {

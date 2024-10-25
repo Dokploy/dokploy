@@ -1,14 +1,14 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { paths } from "@/server/constants";
-import { db } from "@/server/db";
+import { paths } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
 	type apiCreateDeploymentServer,
 	deployments,
-} from "@/server/db/schema";
-import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
+} from "@dokploy/server/db/schema";
+import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -20,7 +20,7 @@ import {
 import { type Compose, findComposeById, updateCompose } from "./compose";
 import { type Server, findServerById } from "./server";
 
-import { execAsyncRemote } from "@/server/utils/process/execAsync";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 
 export type Deployment = typeof deployments.$inferSelect;
 
