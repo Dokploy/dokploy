@@ -22,6 +22,7 @@ jobs:
               TAG="canary"
             fi
             docker build --platform linux/amd64 -t dokploy/dokploy:${TAG}-amd64 .
+            docker push dokploy/dokploy:${TAG}-amd64
 
   build-arm64:
     machine:
@@ -44,6 +45,7 @@ jobs:
               TAG="canary"
             fi
             docker build --platform linux/arm64 -t dokploy/dokploy:${TAG}-arm64 .
+            docker push dokploy/dokploy:${TAG}-arm64
 
   combine-manifests:
     docker:
@@ -71,11 +73,11 @@ jobs:
             #     dokploy/dokploy:${TAG}-arm64
             #   docker manifest push dokploy/dokploy:${VERSION}
             # else
-            #   TAG="canary"
-            #   docker manifest create dokploy/dokploy:${TAG} \
-            #     dokploy/dokploy:${TAG}-amd64 \
-            #     dokploy/dokploy:${TAG}-arm64
-            #   docker manifest push dokploy/dokploy:${TAG}
+              TAG="canary"
+              docker manifest create dokploy/dokploy:${TAG} \
+                dokploy/dokploy:${TAG}-amd64 \
+                dokploy/dokploy:${TAG}-arm64
+              docker manifest push dokploy/dokploy:${TAG}
             # fi
 
 workflows:

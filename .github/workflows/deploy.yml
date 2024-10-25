@@ -2,7 +2,7 @@ name: Build Docker images
 
 on:
   push:
-    branches: ["canary", "main" ,"feature/remove-build-on-server"]
+    branches: ["canary", "main" ,"feat/remove-build-on-server"]
 
 jobs:
   # build-and-push-image-docs:
