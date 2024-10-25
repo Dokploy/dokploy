@@ -1,5 +1,5 @@
 import { findServerById } from "@dokploy/server";
-import type { DeploymentJob } from "../queues/deployments-queue";
+import type { DeploymentJob } from "../queues/queue-types";
 
 export const deploy = async (jobData: DeploymentJob) => {
 	try {

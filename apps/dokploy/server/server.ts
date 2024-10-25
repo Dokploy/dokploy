@@ -19,10 +19,7 @@ import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
-import {
-	getPublicIpWithFallback,
-	setupTerminalWebSocketServer,
-} from "./wss/terminal";
+import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -55,7 +52,6 @@ void app.prepare().then(async () => {
 			await initializeRedis();
 
 			initCronJobs();
-			welcomeServer();
 
 			// Timeout to wait for the database to be ready
 			await new Promise((resolve) => setTimeout(resolve, 7000));
@@ -78,18 +74,3 @@ void app.prepare().then(async () => {
 		console.error("Main Server Error", e);
 	}
 });
-
-async function welcomeServer() {
-	const ip = await getPublicIpWithFallback();
-	console.log(
-		[
-			"",
-			"",
-			"Dokploy server is up and running!",
-			"Please wait for 15 seconds before opening the browser.",
-			`    http://${ip}:${PORT}`,
-			"",
-			"",
-		].join("\n"),
-	);
-}

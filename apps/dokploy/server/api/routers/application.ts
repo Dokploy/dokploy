@@ -19,11 +19,8 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
-import {
-	type DeploymentJob,
-	cleanQueuesByApplication,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 import {

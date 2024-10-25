@@ -11,29 +11,8 @@ import {
 	updateCompose,
 } from "@dokploy/server";
 import { type Job, Worker } from "bullmq";
-import { myQueue, redisConfig } from "./queueSetup";
-
-type DeployJob =
-	| {
-			applicationId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
-			applicationType: "application";
-			serverId?: string;
-	  }
-	| {
-			composeId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
-			applicationType: "compose";
-			serverId?: string;
-	  };
-
-export type DeploymentJob = DeployJob;
+import type { DeploymentJob } from "./queue-types";
+import { redisConfig } from "./redis-connection";
 
 export const deploymentWorker = new Worker(
 	"deployments",
@@ -114,25 +93,3 @@ export const deploymentWorker = new Worker(
 		connection: redisConfig,
 	},
 );
-
-export const cleanQueuesByApplication = async (applicationId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.applicationId === applicationId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for application ${applicationId}`);
-		}
-	}
-};
-
-export const cleanQueuesByCompose = async (composeId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.composeId === composeId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for compose ${composeId}`);
-		}
-	}
-};
