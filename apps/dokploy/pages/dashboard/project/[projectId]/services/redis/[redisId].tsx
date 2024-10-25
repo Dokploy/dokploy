@@ -92,9 +92,11 @@ const Redis = (
 						<div className="flex flex-row h-fit w-fit gap-2">
 							<Badge
 								variant={
-									data?.server?.serverStatus === "active"
+									!data?.serverId
 										? "default"
-										: "destructive"
+										: data?.server?.serverStatus === "active"
+											? "default"
+											: "destructive"
 								}
 							>
 								{data?.server?.name || "Dokploy Server"}
