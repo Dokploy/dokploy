@@ -21,7 +21,6 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs.js"
 		},
-
 		"./dist/db": {
 			"import": "./dist/db/index.js",
 			"require": "./dist/db/*.cjs"

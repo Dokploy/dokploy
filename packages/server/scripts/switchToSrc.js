@@ -17,6 +17,27 @@ pkg.exports = {
 		import: "./src/db/index.ts",
 		require: "./dist/db/index.cjs.js",
 	},
+	"./setup/*": {
+		import: "./src/setup/*.ts",
+		require: "./dist/setup/index.cjs.js",
+	},
+	"./constants": {
+		import: "./src/constants/index.ts",
+		require: "./dist/constants.cjs.js",
+	},
+	"./dist": {
+		import: "./dist/index.js",
+		require: "./dist/index.cjs.js",
+	},
+
+	"./dist/db": {
+		import: "./dist/db/index.js",
+		require: "./dist/db/*.cjs",
+	},
+	"./dist/db/schema": {
+		import: "./dist/db/schema/index.js",
+		require: "./dist/db/schema/*.cjs",
+	},
 };
 
 // Guardar los cambios en package.json
