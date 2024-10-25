@@ -9,6 +9,10 @@
 			"import": "./src/db/index.ts",
 			"require": "./dist/db/index.cjs.js"
 		},
+		"./setup/*": {
+			"import": "./src/setup/*.ts",
+			"require": "./dist/setup/index.cjs.js"
+		},
 		"./dist": {
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs.js"
