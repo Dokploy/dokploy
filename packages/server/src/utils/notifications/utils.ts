@@ -1,4 +1,9 @@
-import type { discord, email, slack, telegram } from "@/server/db/schema";
+import type {
+	discord,
+	email,
+	slack,
+	telegram,
+} from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
 
 export const sendEmailNotification = async (

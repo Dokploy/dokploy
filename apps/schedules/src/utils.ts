@@ -8,7 +8,7 @@ import {
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
-} from "@dokploy/server";
+} from "@dokploy/server/dist";
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
 import { eq } from "drizzle-orm";

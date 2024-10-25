@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById } from "@/server/services/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";

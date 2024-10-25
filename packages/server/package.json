@@ -1,14 +1,35 @@
 {
 	"name": "@dokploy/server",
 	"version": "1.0.0",
-	"main": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"main": "./src/index.ts",
 	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./db": {
+			"import": "./src/db/index.ts",
+			"require": "./dist/db/index.cjs.js"
+		},
+		"./dist": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs.js"
+		},
+
+		"./dist/db": {
+			"import": "./dist/db/index.js",
+			"require": "./dist/db/*.cjs"
+		},
+		"./dist/db/schema": {
+			"import": "./dist/db/schema/index.js",
+			"require": "./dist/db/schema/*.cjs"
+		}
+	},
 	"scripts": {
 		"build": "rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
 		"build:types": "tsc --emitDeclarationOnly --experimenta-dts",
+		"switch:dev": "node scripts/switchToSrc.js",
+		"switch:prod": "node scripts/switchToDist.js",
 		"dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
-		"esbuild": "tsx ./esbuild.config.ts",
+		"esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -49,6 +70,7 @@
 		"ssh2": "1.15.0"
 	},
 	"devDependencies": {
+		"esbuild-plugin-alias": "0.2.1",
 		"tailwindcss": "^3.4.1",
 		"tsx": "^4.7.1",
 		"tsc-alias": "1.8.10",

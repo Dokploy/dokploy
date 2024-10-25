@@ -1,7 +1,7 @@
 import { webcrypto } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { findAdminByAuthId } from "@/server/services/admin";
-import { findUserByAuthId } from "@/server/services/user";
+import { findAdminByAuthId } from "@dokploy/server/services/admin";
+import { findUserByAuthId } from "@dokploy/server/services/user";
 import { DrizzlePostgreSQLAdapter } from "@lucia-auth/adapter-drizzle";
 import { TimeSpan } from "lucia";
 import { Lucia } from "lucia/dist/core.js";

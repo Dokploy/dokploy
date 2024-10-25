@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Domain } from "@/server/services/domain";
+import type { Domain } from "@dokploy/server/services/domain";
 
 export interface Schema {
 	serverIp: string;
