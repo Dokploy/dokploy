@@ -15,6 +15,7 @@ import {
 import { createRequestHandler } from "@remix-run/express";
 import { installGlobals } from "@remix-run/node";
 import express from "express";
+import { migration } from "./db/migration";
 
 installGlobals();
 
@@ -70,7 +71,6 @@ app.listen(port, async () => {
 		await initializeRedis();
 
 		initCronJobs();
-		welcomeServer();
 
 		// Timeout to wait for the database to be ready
 		await new Promise((resolve) => setTimeout(resolve, 7000));
@@ -79,28 +79,13 @@ app.listen(port, async () => {
 	}
 
 	if (IS_CLOUD && process.env.NODE_ENV === "production") {
-		// await migration();
+		await migration();
 	}
 
-	// server.listen(PORT);
-	// console.log("Server Started:", PORT);
+	console.log("Server Started:", port);
 	if (!IS_CLOUD) {
 		console.log("Starting Deployment Worker");
-		// const { deploymentWorker } = await import("./queues/deployments-queue");
-		// await deploymentWorker.run();
+		const { deploymentWorker } = await import("./queues/deployments-queue");
+		await deploymentWorker.run();
 	}
 });
-async function welcomeServer() {
-	const ip = await getPublicIpWithFallback();
-	console.log(
-		[
-			"",
-			"",
-			"Dokploy server is up and running!",
-			"Please wait for 15 seconds before opening the browser.",
-			`    http://${ip}:${3000}`,
-			"",
-			"",
-		].join("\n"),
-	);
-}

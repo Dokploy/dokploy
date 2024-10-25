@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "remix vite:build",
-		"dev2": "tsx -r dotenv/config server.ts",
+		"dev2": "tsx --watch -r dotenv/config server/server.ts",
 		"start3": "cross-env NODE_ENV=production node -r dotenv/config ./build/server/index.js",
 		"start2": "cross-env NODE_ENV=production node ./server.js",
 		"dev": "remix vite:dev",
@@ -21,7 +21,7 @@
 		"isbot": "^4.1.0",
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
-
+		"bullmq": "5.4.2",
 		"rotating-file-stream": "3.2.3",
 		"@faker-js/faker": "^8.4.1",
 		"@lucia-auth/adapter-drizzle": "1.0.7",
@@ -85,6 +85,6 @@
 		"@types/ssh2": "1.15.1"
 	},
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=18.18.0"
 	}
 }
