@@ -1,15 +1,45 @@
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarHeader,
+	SidebarProvider,
+	SidebarTrigger,
+} from "../ui/sidebar";
 import { Navbar } from "./navbar";
 import { NavigationTabs, type TabState } from "./navigation-tabs";
-
+import Page from "./side";
 interface Props {
 	children: React.ReactNode;
 	tab: TabState;
 }
 
+export function AppSidebar() {
+	return (
+		<Sidebar>
+			<SidebarHeader />
+			<SidebarContent>
+				<SidebarGroup />
+				<SidebarGroup />
+			</SidebarContent>
+			<SidebarFooter />
+		</Sidebar>
+	);
+}
+
 export const DashboardLayout = ({ children, tab }: Props) => {
 	return (
 		<div>
-			<div
+			<Page>{children}</Page>
+			{/* <SidebarProvider>
+				<AppSidebar />
+				<main>
+					<SidebarTrigger />
+					{children}
+				</main>
+			</SidebarProvider> */}
+			{/* <div
 				className="bg-radial relative flex flex-col bg-background min-h-screen w-full"
 				id="app-container"
 			>
@@ -19,7 +49,7 @@ export const DashboardLayout = ({ children, tab }: Props) => {
 						<NavigationTabs tab={tab}>{children}</NavigationTabs>
 					</div>
 				</main>
-			</div>
+			</div> */}
 		</div>
 	);
 };

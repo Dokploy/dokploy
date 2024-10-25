@@ -82,9 +82,7 @@ const Service = (
 			<div className="flex flex-col gap-4">
 				<Breadcrumb>
 					<BreadcrumbItem>
-						<BreadcrumbLink as={Link} href="/dashboard/projects">
-							Projects
-						</BreadcrumbLink>
+						<BreadcrumbLink href="/dashboard/projects">Projects</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbItem>
 						<BreadcrumbLink
@@ -95,7 +93,7 @@ const Service = (
 						</BreadcrumbLink>
 					</BreadcrumbItem>
 
-					<BreadcrumbItem isCurrentPage>
+					<BreadcrumbItem>
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
