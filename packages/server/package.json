@@ -13,6 +13,10 @@
 			"import": "./src/setup/*.ts",
 			"require": "./dist/setup/index.cjs.js"
 		},
+		"./constants": {
+			"import": "./src/constants/index.ts",
+			"require": "./dist/constants.cjs.js"
+		},
 		"./dist": {
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs.js"

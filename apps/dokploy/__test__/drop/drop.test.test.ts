@@ -7,6 +7,17 @@ import { unzipDrop } from "@dokploy/server";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+vi.mock("@dokploy/server/constants", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		// @ts-ignore
+		...actual,
+		paths: () => ({
+			APPLICATIONS_PATH: "./__test__/drop/zips/output",
+		}),
+	};
+});
+
 if (typeof window === "undefined") {
 	const undici = require("undici");
 	globalThis.File = undici.File as any;
@@ -82,16 +93,6 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 };
 
-vi.mock("@dokploy/server/dist/constants", async (importOriginal) => {
-	const actual = await importOriginal();
-	return {
-		// @ts-ignore
-		...actual,
-		paths: () => ({
-			APPLICATIONS_PATH: "./__test__/drop/zips/output",
-		}),
-	};
-});
 describe("unzipDrop using real zip files", () => {
 	// const { APPLICATIONS_PATH } = paths();
 	beforeAll(async () => {
