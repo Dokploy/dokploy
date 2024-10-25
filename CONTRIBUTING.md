@@ -71,6 +71,11 @@ Run the command that will spin up all the required services and files.
 pnpm run dokploy:setup
 ```
 
+Run this script 
+```bash
+pnpm run server:script 
+```
+
 Now run the development server.
 
 ```bash
