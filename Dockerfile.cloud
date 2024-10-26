@@ -17,7 +17,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=@dokploy/server 
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 ENV NODE_ENV=production
-RUN pnpm --filter=@dokploy/server switch:prod
 RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
 
