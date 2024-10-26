@@ -70,7 +70,7 @@ jobs:
           file: ./Dockerfile.cloud
           push: true
           tags: |
-            siumauricio/cloud:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
           build-args: |
             NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ github.ref_name == 'main' && 'pk_live_51QAm7bF3cxQuHeOzMpfNfJIch6oLif8rS32pRE392CdTbBf0MYBdbapAxarQGspqJBWT2nVOxu8e6ZHrHB4NhVHG008DE2A90d' || 'pk_test_51QAm7bF3cxQuHeOz0xg04o9teeyTbbNHQPJ5Tr98MlTEan9MzewT3gwh0jSWBNvrRWZ5vASoBgxUSF4gPWsJwATk00Ir2JZ0S1' }}
@@ -95,7 +95,7 @@ jobs:
           file: ./Dockerfile.schedule
           push: true
           tags: |
-            siumauricio/schedule:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64     
 
 
@@ -119,5 +119,5 @@ jobs:
           file: ./Dockerfile.server
           push: true
           tags: |
-            siumauricio/server:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64  
