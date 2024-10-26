@@ -15,7 +15,7 @@ interface NotionMagicLinkEmailProps {
 	loginCode?: string;
 }
 
-const baseUrl = process.env.VERCEL_URL!
+const baseUrl = process.env.VERCEL_URL!;
 
 export const NotionMagicLinkEmail = ({
 	loginCode,

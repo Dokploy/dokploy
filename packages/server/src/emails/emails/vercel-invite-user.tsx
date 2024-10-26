@@ -29,7 +29,7 @@ interface VercelInviteUserEmailProps {
 	inviteFromLocation?: string;
 }
 
-const baseUrl = process.env.VERCEL_URL!
+const baseUrl = process.env.VERCEL_URL!;
 
 export const VercelInviteUserEmail = ({
 	username,
