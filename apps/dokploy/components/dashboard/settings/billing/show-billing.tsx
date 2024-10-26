@@ -10,7 +10,7 @@ import { AlertTriangle, CheckIcon, MinusIcon, PlusIcon } from "lucide-react";
 import React, { useState } from "react";
 
 const stripePromise = loadStripe(
-	"pk_test_51QAm7bF3cxQuHeOz0xg04o9teeyTbbNHQPJ5Tr98MlTEan9MzewT3gwh0jSWBNvrRWZ5vASoBgxUSF4gPWsJwATk00Ir2JZ0S1",
+	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
 );
 
 export const calculatePrice = (count: number, isAnnual = false) => {
@@ -21,7 +21,6 @@ export const calculatePrice = (count: number, isAnnual = false) => {
 	if (count <= 1) return 4.5;
 	return count * 3.5;
 };
-// 178.156.147.118
 export const ShowBilling = () => {
 	const { data: servers } = api.server.all.useQuery(undefined);
 	const { data: admin } = api.admin.one.useQuery();
