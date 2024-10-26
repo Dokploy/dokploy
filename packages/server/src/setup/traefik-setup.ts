@@ -9,8 +9,8 @@ import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
 
 const TRAEFIK_SSL_PORT =
-	Number.parseInt(process.env.TRAEFIK_SSL_PORT ?? "", 10) || 443;
-const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT ?? "", 10) || 80;
+	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
+const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 
 interface TraefikOptions {
 	enableDashboard?: boolean;

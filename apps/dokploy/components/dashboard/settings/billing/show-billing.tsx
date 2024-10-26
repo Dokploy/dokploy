@@ -10,7 +10,7 @@ import { AlertTriangle, CheckIcon, MinusIcon, PlusIcon } from "lucide-react";
 import React, { useState } from "react";
 
 const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
+	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
 );
 
 export const calculatePrice = (count: number, isAnnual = false) => {

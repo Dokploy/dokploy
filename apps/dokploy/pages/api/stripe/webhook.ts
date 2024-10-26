@@ -6,7 +6,7 @@ import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export const config = {
 	api: {
@@ -21,7 +21,7 @@ export default async function handler(
 	if (!endpointSecret) {
 		return res.status(400).send("Webhook Error: Missing Stripe Secret Key");
 	}
-	const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+	const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 		apiVersion: "2024-09-30.acacia",
 		maxNetworkRetries: 3,
 	});
