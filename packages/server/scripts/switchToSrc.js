@@ -10,6 +10,8 @@ const packagePath = path.resolve(__dirname, "../package.json");
 // Leer el archivo package.json
 const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
 
+pkg.main = "./src/index.ts";
+
 // Modificar los exports
 pkg.exports = {
 	".": "./src/index.ts",
@@ -24,19 +26,6 @@ pkg.exports = {
 	"./constants": {
 		import: "./src/constants/index.ts",
 		require: "./dist/constants.cjs.js",
-	},
-	"./dist": {
-		import: "./dist/index.js",
-		require: "./dist/index.cjs.js",
-	},
-
-	"./dist/db": {
-		import: "./dist/db/index.js",
-		require: "./dist/db/*.cjs",
-	},
-	"./dist/db/schema": {
-		import: "./dist/db/schema/index.js",
-		require: "./dist/db/schema/*.cjs",
 	},
 };
 
