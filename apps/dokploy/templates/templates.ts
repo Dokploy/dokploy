@@ -512,4 +512,20 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "email", "webmail"],
 		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
+
+	{
+		id: "filebrowser",
+		name: "File Browser",
+		version: "2.31.2",
+		description:
+			"Filebrowser is a standalone file manager for uploading, deleting, previewing, renaming, and editing files, with support for multiple users, each with their own directory.",
+		logo: "filebrowser.svg",
+		links: {
+			github: "https://github.com/filebrowser/filebrowser",
+			website: "https://filebrowser.org/",
+			docs: "https://filebrowser.org/",
+		},
+		tags: ["file", "manager"],
+		load: () => import("./filebrowser/index").then((m) => m.generate),
+	},
 ];
