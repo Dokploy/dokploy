@@ -24,6 +24,9 @@ const baseAdmin: Admin = {
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
 	enableLogRotation: false,
+	serversQuantity: 0,
+	stripeCustomerId: "",
+	stripeSubscriptionId: "",
 };
 
 beforeEach(() => {

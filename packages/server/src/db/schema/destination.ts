@@ -53,7 +53,10 @@ export const apiCreateDestination = createSchema
 		endpoint: true,
 		secretAccessKey: true,
 	})
-	.required();
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});
 
 export const apiFindOneDestination = createSchema
 	.pick({
@@ -77,4 +80,7 @@ export const apiUpdateDestination = createSchema
 		secretAccessKey: true,
 		destinationId: true,
 	})
-	.required();
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});

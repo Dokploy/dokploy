@@ -305,6 +305,19 @@ export const ShowSponsors = () => {
 							alt="Rivo.gg"
 						/>
 					</a>
+
+					<a
+						href="https://photoquest.wedding/?ref=dokploy"
+						target="_blank"
+						rel="noreferrer"
+					>
+						<img
+							src="https://photoquest.wedding/favicon/android-chrome-512x512.png"
+							className="rounded-xl"
+							width="60px"
+							alt="Rivo.gg"
+						/>
+					</a>
 				</div>
 			</div>
 			<div className="flex flex-col gap-4 md:gap-8 justify-start">

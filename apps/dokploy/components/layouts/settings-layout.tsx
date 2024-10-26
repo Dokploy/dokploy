@@ -80,6 +80,7 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: ListMusic,
 										href: "/dashboard/settings/registry",
 									},
+
 									...(!isCloud
 										? [
 												{
@@ -102,6 +103,16 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Server,
 										href: "/dashboard/settings/servers",
 									},
+									...(isCloud
+										? [
+												{
+													title: "Billing",
+													label: "",
+													icon: CreditCardIcon,
+													href: "/dashboard/settings/billing",
+												},
+											]
+										: []),
 								]
 							: []),
 						...(user?.canAccessToSSHKeys
@@ -137,6 +148,7 @@ import {
 	Activity,
 	Bell,
 	BoxesIcon,
+	CreditCardIcon,
 	Database,
 	GitBranch,
 	KeyIcon,

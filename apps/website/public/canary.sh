@@ -57,7 +57,7 @@ install_dokploy() {
         fi
     }
 
-    advertise_addr=$(get_ip)
+    advertise_addr="${ADVERTISE_ADDR:-$(get_ip)}"
 
     docker swarm init --advertise-addr $advertise_addr
 
@@ -92,6 +92,7 @@ install_dokploy() {
     --update-order stop-first \
     --constraint 'node.role == manager' \
     -e RELEASE_TAG=canary \
+    -e ADVERTISE_ADDR=$advertise_addr \
     dokploy/dokploy:canary
 
     GREEN="\033[0;32m"

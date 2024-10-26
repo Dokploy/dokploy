@@ -9,7 +9,7 @@ import {
 	rebuildRemoteCompose,
 	updateApplicationStatus,
 	updateCompose,
-} from "@dokploy/server";
+} from "@dokploy/server/dist";
 import type { DeployJob } from "./schema";
 import type { LemonSqueezyLicenseResponse } from "./types";
 

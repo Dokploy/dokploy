@@ -1,6 +1,9 @@
 import { type WriteStream, existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { buildStatic, getStaticCommand } from "@/server/utils/builders/static";
+import {
+	buildStatic,
+	getStaticCommand,
+} from "@dokploy/server/utils/builders/static";
 import { nanoid } from "nanoid";
 import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
