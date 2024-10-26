@@ -57,18 +57,39 @@ fi
 
 # Initialize Docker Swarm
 docker swarm leave --force 2>/dev/null
-advertise_addr=$(curl -s ifconfig.me)
-docker swarm init --advertise-addr $advertise_addr
-echo "Swarm initialized"
 
-# Create network
-docker network rm -f dokploy-network 2>/dev/null
-docker network create --driver overlay --attachable dokploy-network
-echo "Network created"
+    get_ip() {
+        # Try to get IPv4
+        local ipv4=$(curl -4s https://ifconfig.io 2>/dev/null)
 
-# Prepare configuration directory
-mkdir -p /etc/dokploy
-chmod -R 777 /etc/dokploy
+        if [ -n "$ipv4" ]; then
+            echo "$ipv4"
+        else
+            # Try to get IPv6
+            local ipv6=$(curl -6s https://ifconfig.io 2>/dev/null)
+            if [ -n "$ipv6" ]; then
+                echo "$ipv6"
+            fi
+        fi
+    }
+
+ advertise_addr="${ADVERTISE_ADDR:-$(get_ip)}"
+
+  docker swarm init --advertise-addr $advertise_addr
+
+  if [ $? -ne 0 ]; then
+      echo "Error: Failed to initialize Docker Swarm" >&2
+      exit 1
+  fi
+
+  docker network rm -f dokploy-network 2>/dev/null
+  docker network create --driver overlay --attachable dokploy-network
+
+  echo "Network created"
+
+  mkdir -p /etc/dokploy
+
+  chmod 777 /etc/dokploy
 
 # Pull and deploy Dokploy
 docker pull dokploy/dokploy:latest
@@ -84,6 +105,7 @@ docker service create \
   -e PORT=<Value For PORT eg(3000)> \
   -e TRAEFIK_SSL_PORT=<Value For SSL PORT eg(444)> \
   -e TRAEFIK_PORT=<VALUE FOR TRAEFIK HTTP PORT eg(81)> \
+  -e ADVERTISE_ADDR=$advertise_addr \
   dokploy/dokploy:latest
 
 # Output success message
