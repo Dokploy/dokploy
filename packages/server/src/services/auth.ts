@@ -43,7 +43,8 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 			.values({
 				authId: newAuth.id,
 				...(!IS_CLOUD && {
-					serverIp: await getPublicIpWithFallback(),
+					serverIp:
+						process.env.ADVERTISE_ADDR || (await getPublicIpWithFallback()),
 				}),
 			})
 			.returning();
