@@ -1,7 +1,7 @@
 import path from "node:path";
-import type { BackupSchedule } from "@/server/services/backup";
-import type { Mongo } from "@/server/services/mongo";
-import { findProjectById } from "@/server/services/project";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import type { Mongo } from "@dokploy/server/services/mongo";
+import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,
@@ -29,7 +29,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 				mongo.serverId,
 				appName,
 			);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase=admin --gzip"`;
+			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase=admin --gzip"`;
 
 			await execAsyncRemote(
 				mongo.serverId,
@@ -37,7 +37,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			);
 		} else {
 			const { Id: containerId } = await getServiceContainer(appName);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase=admin --gzip"`;
+			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}'  --archive --authenticationDatabase=admin --gzip"`;
 			await execAsync(`${mongoDumpCommand} | ${rcloneCommand}`);
 		}
 

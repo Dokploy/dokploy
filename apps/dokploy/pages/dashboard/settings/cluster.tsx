@@ -1,10 +1,12 @@
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
-import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
+import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
+import superjson from "superjson";
 
 const Page = () => {
 	return (
@@ -26,6 +28,7 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const { req, res } = ctx;
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -43,8 +46,22 @@ export async function getServerSideProps(
 			},
 		};
 	}
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: req as any,
+			res: res as any,
+			db: null as any,
+			session: session,
+			user: user,
+		},
+		transformer: superjson,
+	});
+	await helpers.auth.get.prefetch();
 
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

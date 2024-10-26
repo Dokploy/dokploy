@@ -3,11 +3,12 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 	findBackupById,
+	findServerById,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
-} from "@dokploy/server";
+} from "@dokploy/server/dist";
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
 import { eq } from "drizzle-orm";
@@ -21,22 +22,47 @@ export const runJobs = async (job: QueueJob) => {
 			const { backupId } = job;
 			const backup = await findBackupById(backupId);
 			const { databaseType, postgres, mysql, mongo, mariadb } = backup;
+
 			if (databaseType === "postgres" && postgres) {
+				const server = await findServerById(postgres.serverId as string);
+				if (server.serverStatus === "inactive") {
+					logger.info("Server is inactive");
+					return;
+				}
 				await runPostgresBackup(postgres, backup);
 			} else if (databaseType === "mysql" && mysql) {
+				const server = await findServerById(mysql.serverId as string);
+				if (server.serverStatus === "inactive") {
+					logger.info("Server is inactive");
+					return;
+				}
 				await runMySqlBackup(mysql, backup);
 			} else if (databaseType === "mongo" && mongo) {
+				const server = await findServerById(mongo.serverId as string);
+				if (server.serverStatus === "inactive") {
+					logger.info("Server is inactive");
+					return;
+				}
 				await runMongoBackup(mongo, backup);
 			} else if (databaseType === "mariadb" && mariadb) {
+				const server = await findServerById(mariadb.serverId as string);
+				if (server.serverStatus === "inactive") {
+					logger.info("Server is inactive");
+					return;
+				}
 				await runMariadbBackup(mariadb, backup);
 			}
 		}
 		if (job.type === "server") {
 			const { serverId } = job;
+			const server = await findServerById(serverId);
+			if (server.serverStatus === "inactive") {
+				logger.info("Server is inactive");
+				return;
+			}
 			await cleanUpUnusedImages(serverId);
 			await cleanUpDockerBuilder(serverId);
 			await cleanUpSystemPrune(serverId);
-			// await sendDockerCleanupNotifications();
 		}
 	} catch (error) {
 		logger.error(error);

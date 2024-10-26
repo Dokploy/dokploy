@@ -80,7 +80,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "directus",
 		name: "Directus",
-		version: "10.12.1",
+		version: "11.0.2",
 		description:
 			"Directus is an open source headless CMS that provides an API-first solution for building custom backends.",
 		logo: "directus.jpg",

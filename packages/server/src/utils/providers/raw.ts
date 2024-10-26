@@ -1,8 +1,8 @@
 import { createWriteStream } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { paths } from "@/server/constants";
-import type { Compose } from "@/server/services/compose";
+import { paths } from "@dokploy/server/constants";
+import type { Compose } from "@dokploy/server/services/compose";
 import { encodeBase64 } from "../docker/utils";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";

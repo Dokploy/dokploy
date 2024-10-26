@@ -1,7 +1,7 @@
 import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
-import { paths } from "@/server/constants";
-import type { Domain } from "@/server/services/domain";
+import { paths } from "@dokploy/server/constants";
+import type { Domain } from "@dokploy/server/services/domain";
 import { dump, load } from "js-yaml";
 import { encodeBase64 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";

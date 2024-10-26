@@ -20,10 +20,12 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import {
+	IS_CLOUD,
 	addNewProject,
 	checkProjectAccess,
 	createProject,
 	deleteProject,
+	findAdminById,
 	findProjectById,
 	findUserByAuthId,
 	updateProjectById,
@@ -38,6 +40,15 @@ export const projectRouter = createTRPCRouter({
 					await checkProjectAccess(ctx.user.authId, "create");
 				}
 
+				const admin = await findAdminById(ctx.user.adminId);
+
+				if (admin.serversQuantity === 0 && IS_CLOUD) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "No servers available, Please subscribe to a plan",
+					});
+				}
+
 				const project = await createProject(input, ctx.user.adminId);
 				if (ctx.user.rol === "user") {
 					await addNewProject(ctx.user.authId, project.projectId);
@@ -47,7 +58,7 @@ export const projectRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the project",
+					message: `Error to create the project: ${error instanceof Error ? error.message : error}`,
 					cause: error,
 				});
 			}
@@ -128,9 +139,9 @@ export const projectRouter = createTRPCRouter({
 				)})`,
 				with: {
 					applications: {
-						where: buildServiceFilter(
-							applications.applicationId,
-							accesedServices,
+						where: and(
+							buildServiceFilter(applications.applicationId, accesedServices),
+							eq(projects.adminId, ctx.user.adminId),
 						),
 						with: { domains: true },
 					},
@@ -230,5 +241,5 @@ function buildServiceFilter(fieldName: AnyPgColumn, accesedServices: string[]) {
 				accesedServices.map((serviceId) => sql`${serviceId}`),
 				sql`, `,
 			)})`
-		: sql`1 = 0`; // Always false condition
+		: sql`1 = 0`;
 }

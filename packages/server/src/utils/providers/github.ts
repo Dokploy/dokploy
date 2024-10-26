@@ -1,16 +1,16 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import { paths } from "@/server/constants";
-import type { InferResultType } from "@/server/types/with";
+import { paths } from "@dokploy/server/constants";
+import type { InferResultType } from "@dokploy/server/types/with";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { recreateDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 
-import type { apiFindGithubBranches } from "@/server/db/schema";
-import type { Compose } from "@/server/services/compose";
-import { type Github, findGithubById } from "@/server/services/github";
+import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
+import type { Compose } from "@dokploy/server/services/compose";
+import { type Github, findGithubById } from "@dokploy/server/services/github";
 import { execAsyncRemote } from "../process/execAsync";
 
 export const authGithub = (githubProvider: Github): Octokit => {
@@ -125,6 +125,7 @@ export const cloneGithubRepository = async (
 				branch!,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				cloneUrl,
 				outputPath,
 				"--progress",
@@ -204,7 +205,7 @@ export const getGithubCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${branch} --depth 1 --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${branch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fallo al clonar el repositorio ${repoclone}" >> ${logPath};
 	exit 1;
 fi
@@ -239,6 +240,7 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 			branch!,
 			"--depth",
 			"1",
+			"--recurse-submodules",
 			cloneUrl,
 			outputPath,
 			"--progress",

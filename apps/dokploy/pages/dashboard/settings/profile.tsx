@@ -2,10 +2,13 @@ import { GenerateToken } from "@/components/dashboard/settings/profile/generate-
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
+import superjson from "superjson";
 
 const Page = () => {
 	const { data } = api.auth.get.useQuery();
@@ -37,7 +40,29 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	const { user } = await validateRequest(ctx.req, ctx.res);
+	const { req, res } = ctx;
+	const { user, session } = await validateRequest(req, res);
+
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: req as any,
+			res: res as any,
+			db: null as any,
+			session: session,
+			user: user,
+		},
+		transformer: superjson,
+	});
+
+	await helpers.settings.isCloud.prefetch();
+	await helpers.auth.get.prefetch();
+	if (user?.rol === "user") {
+		await helpers.user.byAuthId.prefetch({
+			authId: user.authId,
+		});
+	}
+
 	if (!user) {
 		return {
 			redirect: {
@@ -48,6 +73,8 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

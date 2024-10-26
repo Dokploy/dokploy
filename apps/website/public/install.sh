@@ -56,9 +56,14 @@ install_dokploy() {
         fi
     }
 
-    advertise_addr=$(get_ip)
+    advertise_addr="${ADVERTISE_ADDR:-$(get_ip)}"
 
     docker swarm init --advertise-addr $advertise_addr
+    
+     if [ $? -ne 0 ]; then
+        echo "Error: Failed to initialize Docker Swarm" >&2
+        exit 1
+    fi
 
     echo "Swarm initialized"
 
@@ -85,6 +90,7 @@ install_dokploy() {
       --update-parallelism 1 \
       --update-order stop-first \
       --constraint 'node.role == manager' \
+      -e ADVERTISE_ADDR=$advertise_addr \
       dokploy/dokploy:latest
 
     GREEN="\033[0;32m"

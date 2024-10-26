@@ -1,6 +1,5 @@
 import {
 	apiCreateRegistry,
-	apiEnableSelfHostedRegistry,
 	apiFindOneRegistry,
 	apiRemoveRegistry,
 	apiTestRegistry,
@@ -13,8 +12,6 @@ import {
 	execAsyncRemote,
 	findAllRegistryByAdminId,
 	findRegistryById,
-	initializeRegistry,
-	manageRegistry,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
@@ -84,6 +81,13 @@ export const registryRouter = createTRPCRouter({
 			try {
 				const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
 
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Select a server to test the registry",
+					});
+				}
+
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(input.serverId, loginCommand);
 				} else {
@@ -95,35 +99,5 @@ export const registryRouter = createTRPCRouter({
 				console.log("Error Registry:", error);
 				return false;
 			}
-		}),
-
-	enableSelfHostedRegistry: adminProcedure
-		.input(apiEnableSelfHostedRegistry)
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Self Hosted Registry is not available in the cloud version",
-				});
-			}
-			const selfHostedRegistry = await createRegistry(
-				{
-					...input,
-					registryName: "Self Hosted Registry",
-					registryType: "selfHosted",
-					registryUrl:
-						process.env.NODE_ENV === "production"
-							? input.registryUrl
-							: "dokploy-registry.docker.localhost",
-					imagePrefix: null,
-					serverId: undefined,
-				},
-				ctx.user.adminId,
-			);
-
-			await manageRegistry(selfHostedRegistry);
-			await initializeRegistry(input.username, input.password);
-
-			return selfHostedRegistry;
 		}),
 });

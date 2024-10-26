@@ -49,9 +49,10 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-
+	await helpers.auth.get.prefetch();
 	try {
 		await helpers.project.all.prefetch();
+		await helpers.settings.isCloud.prefetch();
 		const auth = await helpers.auth.get.fetch();
 
 		if (auth.rol === "user") {

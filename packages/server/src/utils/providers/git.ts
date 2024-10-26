@@ -1,8 +1,11 @@
 import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
-import { paths } from "@/server/constants";
-import type { Compose } from "@/server/services/compose";
-import { findSSHKeyById, updateSSHKeyById } from "@/server/services/ssh-key";
+import { paths } from "@dokploy/server/constants";
+import type { Compose } from "@dokploy/server/services/compose";
+import {
+	findSSHKeyById,
+	updateSSHKeyById,
+} from "@dokploy/server/services/ssh-key";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -55,8 +58,6 @@ export const cloneGitRepository = async (
 			await addHostToKnownHosts(customGitUrl);
 		}
 		await recreateDirectory(outputPath);
-		// const command = `GIT_SSH_COMMAND="ssh -i ${keyPath} -o UserKnownHostsFile=${knownHostsPath}" git clone --branch ${customGitBranch} --depth 1 ${customGitUrl} ${gitCopyPath} --progress`;
-		// const { stdout, stderr } = await execAsync(command);
 		writeStream.write(
 			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
 		);
@@ -178,7 +179,7 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
 			fi
@@ -312,6 +313,7 @@ export const cloneGitRawRepository = async (entity: {
 				customGitBranch,
 				"--depth",
 				"1",
+				"--recurse-submodules",
 				customGitUrl,
 				outputPath,
 				"--progress",
@@ -391,7 +393,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --progress ${customGitUrl} ${outputPath} ; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi
