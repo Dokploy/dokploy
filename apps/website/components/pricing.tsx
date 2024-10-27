@@ -3,9 +3,10 @@ import clsx from "clsx";
 
 import { cn } from "@/lib/utils";
 import { ArrowRight, MinusIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { use, useState } from "react";
 import { Container } from "./Container";
 import { trackGAEvent } from "./analitycs";
 import { Badge } from "./ui/badge";
@@ -89,7 +90,7 @@ function Plan({
 		<section
 			className={clsx(
 				"flex flex-col rounded-3xl px-6 sm:px-8",
-				featured ? "order-first bg-black border py-8 lg:order-none" : "lg:py-8",
+				featured ? "order-first border bg-black py-8 lg:order-none" : "lg:py-8",
 			)}
 		>
 			<div className="absolute inset-0">
@@ -147,7 +148,7 @@ function Plan({
 							label: `${name} - ${price}`,
 						});
 					}}
-					className="rounded-full mt-8"
+					className="mt-8 rounded-full"
 				>
 					{buttonText}
 				</Button>
@@ -158,6 +159,7 @@ function Plan({
 
 export function Pricing() {
 	const router = useRouter();
+	const t = useTranslations("Pricing");
 	const [isAnnual, setIsAnnual] = useState(true);
 	const [serverQuantity, setServerQuantity] = useState(3);
 	const featured = true;
@@ -165,7 +167,7 @@ export function Pricing() {
 		<section
 			id="pricing"
 			aria-label="Pricing"
-			className="bg-black border-t border-border/30 py-20 sm:py-32"
+			className="border-t border-border/30 bg-black py-20 sm:py-32"
 		>
 			<div className="absolute inset-0">
 				<svg viewBox="0 0 2000 1000" xmlns="http://www.w3.org/2000/svg">
@@ -189,48 +191,52 @@ export function Pricing() {
 					<h2 className="font-display text-3xl tracking-tight text-white sm:text-4xl">
 						<span className="relative whitespace-nowrap">
 							<SwirlyDoodle className="absolute left-0 top-1/2 h-[1em] w-full fill-muted-foreground" />
-							<span className="relative"> Simple & Affordable,</span>
+							<span className="relative">{t("swirlyDoodleTitle")}</span>
 						</span>{" "}
-						Pricing.
+						{t("restTitle")}
 					</h2>
 					<p className="mt-4 text-lg text-muted-foreground">
-						Deploy Smarter, Scale Faster – Without Breaking the Bank
+						{t("description")}
 					</p>
 				</div>
 
-				<div className=" mt-10 mx-auto">
-					<div className="mt-16 flex flex-col gap-10 mx-auto w-full lg:-mx-8 xl:mx-0 xl:gap-x-8 justify-center items-center">
+				<div className=" mx-auto mt-10">
+					<div className="mx-auto mt-16 flex w-full flex-col items-center justify-center gap-10 lg:-mx-8 xl:mx-0 xl:gap-x-8">
 						<Tabs
 							defaultValue="monthly"
 							value={isAnnual ? "annual" : "monthly"}
 							onValueChange={(e) => setIsAnnual(e === "annual")}
 						>
 							<TabsList>
-								<TabsTrigger value="monthly">Monthly</TabsTrigger>
-								<TabsTrigger value="annual">Annual</TabsTrigger>
+								<TabsTrigger value="monthly">
+									{t("billingCycle.monthly")}
+								</TabsTrigger>
+								<TabsTrigger value="annual">
+									{t("billingCycle.annual")}
+								</TabsTrigger>
 							</TabsList>
 						</Tabs>
-						<div className="flex max-w-4xl gap-4 mx-auto max-sm:flex-wrap-reverse max-sm:justify-center sm:flex-row-reverse">
+						<div className="mx-auto flex max-w-4xl gap-4 max-sm:flex-wrap-reverse max-sm:justify-center sm:flex-row-reverse">
 							<section
 								className={clsx(
-									"flex flex-col rounded-3xl  border-dashed border-muted border-2 px-4 max-w-sm",
+									"flex max-w-sm flex-col  rounded-3xl border-2 border-dashed border-muted px-4",
 									featured
-										? "order-first bg-black border py-8 lg:order-none"
+										? "order-first border bg-black py-8 lg:order-none"
 										: "lg:py-8",
 								)}
 							>
-								<div className="flex flex-row gap-2 items-center">
+								<div className="flex flex-row items-center gap-2">
 									<p className=" text-2xl font-semibold tracking-tight text-primary ">
-										Free
+										{t("plan.free.title")}
 									</p>
 									|
 									<p className=" text-base font-semibold tracking-tight text-muted-foreground">
-										Open Source
+										{t("plan.free.subTitle")}
 									</p>
 								</div>
 
-								<h3 className="mt-5 font-medium text-lg text-white">
-									Dokploy Open Source
+								<h3 className="mt-5 text-lg font-medium text-white">
+									{t("plan.free.section.title")}
 								</h3>
 								<p
 									className={clsx(
@@ -238,8 +244,7 @@ export function Pricing() {
 										featured ? "text-white" : "text-slate-400",
 									)}
 								>
-									Manager your own infrastructure installing dokploy ui in your
-									own server.
+									{t("plan.free.section.description")}
 								</p>
 
 								<ul
@@ -250,14 +255,14 @@ export function Pricing() {
 									)}
 								>
 									{[
-										"Complete Flexibility: Install Dokploy UI on your own infrastructure",
-										"Unlimited Deployments",
-										"Self-hosted Infrastructure",
-										"Community Support",
-										"Access to Core Features",
-										"Dokploy Integration",
-										"Basic Backups",
-										"Access to All Updates",
+										t("plan.free.features.f1"),
+										t("plan.free.features.f2"),
+										t("plan.free.features.f3"),
+										t("plan.free.features.f4"),
+										t("plan.free.features.f5"),
+										t("plan.free.features.f6"),
+										t("plan.free.features.f7"),
+										t("plan.free.features.f8"),
 									].map((feature) => (
 										<li key={feature} className="flex text-muted-foreground">
 											<CheckIcon />
@@ -265,17 +270,17 @@ export function Pricing() {
 										</li>
 									))}
 								</ul>
-								<div className="flex flex-col gap-2 mt-4">
-									<div className="flex flex-col items-center gap-2 justify-center">
+								<div className="mt-4 flex flex-col gap-2">
+									<div className="flex flex-col items-center justify-center gap-2">
 										<span className="text-sm text-muted-foreground">
-											Unlimited Servers
+											{t("plan.free.features.f9")}
 										</span>
 										<Link
 											href="https://docs.dokploy.com/en/docs/core/get-started/installation#docker"
 											target="_blank"
-											className="text-sm text-primary flex items-start"
+											className="flex items-start text-sm text-primary"
 										>
-											Installation{" "}
+											{t("plan.free.go")}{" "}
 											<ArrowRight className="ml-2 size-4 self-center" />
 										</Link>
 									</div>
@@ -283,20 +288,20 @@ export function Pricing() {
 							</section>
 							<section
 								className={clsx(
-									"flex flex-col rounded-3xl  border-dashed  border-2 px-4 max-w-sm",
+									"flex max-w-sm flex-col  rounded-3xl  border-2 border-dashed px-4",
 									featured
-										? "order-first bg-black border py-8 lg:order-none"
+										? "order-first border bg-black py-8 lg:order-none"
 										: "lg:py-8",
 								)}
 							>
 								{isAnnual && (
-									<div className="flex flex-row gap-2 items-center mb-4">
-										<Badge>Recommended 🚀</Badge>
+									<div className="mb-4 flex flex-row items-center gap-2">
+										<Badge>{t("plan.cloud.title")} 🚀</Badge>
 									</div>
 								)}
 
 								{isAnnual ? (
-									<div className="flex flex-row gap-2 items-center">
+									<div className="flex flex-row items-center gap-2">
 										<p className=" text-2xl font-semibold tracking-tight text-primary ">
 											$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)}{" "}
 											USD
@@ -311,12 +316,12 @@ export function Pricing() {
 										</p>
 									</div>
 								) : (
-									<p className=" text-2xl font-semibold tracking-tight text-primary ">
+									<p className=" text-2xl font-semibold tracking-tight text-primary">
 										$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)} USD
 									</p>
 								)}
-								<h3 className="mt-5 font-medium text-lg text-white">
-									Dokploy Plan
+								<h3 className="mt-5 text-lg font-medium text-white">
+									{t("plan.cloud.section.title")}
 								</h3>
 								<p
 									className={clsx(
@@ -324,8 +329,7 @@ export function Pricing() {
 										featured ? "text-white" : "text-slate-400",
 									)}
 								>
-									No need to manage Dokploy UI infrastructure, we take care of
-									it for you.
+									{t("plan.cloud.section.description")}
 								</p>
 
 								<ul
@@ -336,9 +340,9 @@ export function Pricing() {
 									)}
 								>
 									{[
-										"Managed Hosting: No need to manage your own servers",
-										"Priority Support",
-										"Future-Proof Features",
+										t("plan.cloud.features.f1"),
+										t("plan.cloud.features.f2"),
+										t("plan.cloud.features.f3"),
 									].map((feature) => (
 										<li key={feature} className="flex text-muted-foreground">
 											<CheckIcon />
@@ -346,10 +350,12 @@ export function Pricing() {
 										</li>
 									))}
 								</ul>
-								<div className="flex flex-col gap-2 mt-4">
-									<div className="flex items-center gap-2 justify-center">
+								<div className="mt-4 flex flex-col gap-2">
+									<div className="flex items-center justify-center gap-2">
 										<span className="text-sm text-muted-foreground">
-											{serverQuantity} Servers (You bring the servers)
+											{t("plan.cloud.servers", {
+												serverQuantity,
+											})}
 										</span>
 									</div>
 
@@ -384,16 +390,18 @@ export function Pricing() {
 									<div
 										className={cn(
 											"justify-between",
-											"flex flex-row  items-center gap-2 mt-4",
+											"mt-4 flex  flex-row items-center gap-2",
 										)}
 									>
-										<div className="justify-end w-full">
+										<div className="w-full justify-end">
 											<Link
 												href="https://app.dokploy.com/register"
 												target="_blank"
-												className={buttonVariants({ className: "w-full" })}
+												className={buttonVariants({
+													className: "w-full",
+												})}
 											>
-												Subscribe
+												{t("plan.cloud.go")}
 											</Link>
 										</div>
 									</div>
@@ -412,53 +420,46 @@ export function Pricing() {
 const faqs = [
 	[
 		{
-			question: "How does Dokploy's Open Source plan work?",
-			answer:
-				"You can host Dokploy UI on your own infrastructure and you will be responsible for the maintenance and updates.",
+			question: "faq.q1",
+			answer: "faq.a1",
 		},
 		{
-			question: "Do I need to provide my own server for the managed plan?",
-			answer:
-				"Yes, in the managed plan, you provide your own server eg(Hetzner, Hostinger, AWS, ETC.) VPS, and we manage the Dokploy UI infrastructure for you.",
+			question: "faq.q2",
+			answer: "faq.a2",
 		},
 		{
-			question: "What happens if I need more than one server?",
-			answer:
-				"The first server costs $4.50/month, if you buy more than one it will be $3.50/month per server.",
+			question: "faq.q3",
+			answer: "faq.a3",
 		},
 	],
 	[
 		{
-			question: "Is there a limit on the number of deployments?",
-			answer:
-				"No, there is no limit on the number of deployments in any of the plans.",
+			question: "faq.q4",
+			answer: "faq.a4",
 		},
 		{
-			question: "What happens if I exceed my purchased server limit?",
-			answer:
-				"The most recently added servers will be deactivated. You won't be able to create services on inactive servers until they are reactivated.",
+			question: "faq.q5",
+			answer: "faq.a5",
 		},
 		{
-			question: "Do you offer a refunds?",
-			answer:
-				"We do not offer refunds. However, you can cancel your subscription at any time. Feel free to try our open-source version for free before making a purchase.",
+			question: "faq.q6",
+			answer: "faq.a6",
 		},
 	],
 	[
 		{
-			question: "What kind of support do you offer?",
-			answer:
-				"We offer community support for the open source version and priority support for paid plans.",
+			question: "faq.q7",
+			answer: "faq.a7",
 		},
 		{
-			question: "Is Dokploy open-source?",
-			answer:
-				"Yes, Dokploy is fully open-source. You can contribute or modify it as needed for your projects.",
+			question: "faq.q8",
+			answer: "faq.a8",
 		},
 	],
 ];
 
 export function Faqs() {
+	const t = useTranslations("Pricing");
 	return (
 		<section
 			id="faqs"
@@ -471,11 +472,10 @@ export function Faqs() {
 						id="faq-title"
 						className="font-display text-3xl tracking-tight text-primary sm:text-4xl"
 					>
-						{"Frequently asked questions"}
+						{t("faq.title")}
 					</h2>
 					<p className="mt-4 text-lg tracking-tight text-muted-foreground">
-						If you can’t find what you’re looking for, please send us an email
-						to:{" "}
+						{t("faq.description")}:{" "}
 						<Link href={"mailto:support@dokploy.com"} className="text-primary">
 							support@dokploy.com
 						</Link>
@@ -488,10 +488,10 @@ export function Faqs() {
 								{column.map((faq, faqIndex) => (
 									<li key={faqIndex}>
 										<h3 className="font-display text-lg leading-7 text-primary">
-											{faq.question}
+											{t(faq.question)}
 										</h3>
 										<p className="mt-4 text-sm text-muted-foreground">
-											{faq.answer}
+											{t(faq.answer)}
 										</p>
 									</li>
 								))}

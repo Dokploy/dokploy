@@ -72,22 +72,22 @@ export function Hero() {
 			</div>
 
 			<div className="relative">
-				<Link href="/pricing" className="relative z-10">
+				<Link href="/pricing" className="relative z-10 mb-4 inline-block">
 					<div className="flex items-center justify-center">
 						<div
 							className={cn(
 								"group rounded-full border border-black/5 bg-neutral-100 text-sm font-medium text-white transition-all ease-in hover:cursor-pointer hover:bg-neutral-200 dark:border-white/5 dark:bg-neutral-900 dark:hover:bg-neutral-800",
 							)}
 						>
-							<AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1 transition ease-out text-neutral-800 hover:text-neutral-900 hover:duration-300 hover:dark:text-neutral-400">
-								<span>🚀 Introducing Dokploy Cloud </span>
+							<AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1 text-neutral-800 transition ease-out hover:text-neutral-900 hover:duration-300 hover:dark:text-neutral-400">
+								<span>🚀 {t("hero.cloud")} </span>
 								<ArrowRightIcon className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
 							</AnimatedShinyText>
 						</div>
 					</div>
 				</Link>
 
-				<h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight  text-muted-foreground  sm:text-7xl">
+				<h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-muted-foreground sm:text-7xl">
 					{t("hero.deploy")}{" "}
 					<span className="relative whitespace-nowrap  text-primary">
 						<svg
@@ -144,8 +144,8 @@ export function Hero() {
 							</Link>
 						</Button> */}
 					</div>
-					<div className="flex flex-wrap items-center justify-center gap-3 md:flex-nowrap max-w-sm mx-auto w-full">
-						<Button className="rounded-xl  w-full" asChild>
+					<div className="mx-auto flex w-full max-w-sm flex-wrap items-center justify-center gap-3 md:flex-nowrap">
+						<Button className="w-full  rounded-xl" asChild>
 							<Link
 								href="https://github.com/dokploy/dokploy"
 								aria-label="Dokploy on GitHub"
@@ -159,7 +159,7 @@ export function Hero() {
 							</Link>
 						</Button>
 						<Button
-							className="rounded-xl bg-[#5965F2] hover:bg-[#4A55E0]  w-full"
+							className="w-full rounded-xl bg-[#5965F2]  hover:bg-[#4A55E0]"
 							asChild
 						>
 							<Link
@@ -223,22 +223,20 @@ export function Hero() {
 }
 
 export const ShowSponsors = () => {
+	const t = useTranslations("HomePage");
 	return (
 		<div className="mt-20 flex flex-col justify-center gap-y-10">
-			<div className="flex flex-col gap-4 justify-start">
+			<div className="flex flex-col justify-start gap-4">
 				<h1 className="mx-auto max-w-2xl font-display text-3xl font-medium tracking-tight  text-primary  sm:text-5xl">
-					Sponsors
+					{t("hero.sponsors.title")}
 				</h1>
 				<p className="mx-auto max-w-2xl text-lg tracking-tight text-muted-foreground">
-					Dokploy is an open source project that is maintained by a community of
-					volunteers. We would like to thank our sponsors for their support and
-					contributions to the project, which help us to continue to develop and
-					improve Dokploy.
+					{t("hero.sponsors.description")}
 				</p>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-6 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Hero Sponsors 🎖
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-6">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.hero")} 🎖
 				</h2>
 				<div className="flex flex-wrap items-center gap-4">
 					<a
@@ -250,7 +248,7 @@ export const ShowSponsors = () => {
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
 							alt="hostinger.com"
-							className="rounded-xl w-[190px] h-auto"
+							className="h-auto w-[190px] rounded-xl"
 						/>
 					</a>
 					<a
@@ -262,16 +260,16 @@ export const ShowSponsors = () => {
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
 							alt="lxaer.com"
-							className="rounded-xl w-[70px] h-auto"
+							className="h-auto w-[70px] rounded-xl"
 						/>
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Premium Supporters 🥇
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.premium")} 🥇
 				</h2>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				<div className="flex flex-col items-center justify-start gap-4 md:gap-6">
 					<a
 						href="https://supafort.com/?ref=dokploy"
 						target="_blank"
@@ -286,9 +284,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Supporting Members 🥉
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.supporting")} 🥉
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -317,9 +315,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Community Backers 🤝
+			<div className="justify-star flex flex-col items-center gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.community")} 🤝
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -361,9 +359,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Organizations:
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.organizations")}
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -378,9 +376,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Individuals:
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.individuals")}
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a

@@ -144,7 +144,7 @@ export function Header() {
 							<Logo className="h-10 w-auto" />
 						</Link>
 						<div className="hidden md:flex md:gap-x-6">
-							<NavLink href="/pricing">Pricing</NavLink>
+							<NavLink href="/pricing">{t("navigation.pricing")}</NavLink>
 							<NavLink href="/#faqs">{t("navigation.faqs")}</NavLink>
 							<NavLink href={linkT("docs.intro")} target="_blank">
 								{t("navigation.docs")}
@@ -172,7 +172,7 @@ export function Header() {
 								target="_blank"
 								// className="flex flex-row items-center gap-2 text-white"
 							>
-								Dashboard
+								{t("navigation.dashboard")}
 							</Link>
 						</Button>
 						<div className="-mr-1 md:hidden">
