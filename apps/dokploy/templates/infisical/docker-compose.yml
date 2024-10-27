@@ -1,0 +1,87 @@
+services:
+  db-migration:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: infisical/infisical:v0.90.1-postgres
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTION_KEY
+      - AUTH_SECRET
+      - SITE_URL
+      - DB_CONNECTION_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_FROM_NAME
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
+      - SMTP_SECURE=true
+    command: npm run migration:latest
+    pull_policy: always
+    networks:
+      - dokploy-network
+
+  backend:
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      db-migration:
+        condition: service_completed_successfully
+    image: infisical/infisical:v0.90.1-postgres
+    pull_policy: always
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTION_KEY
+      - AUTH_SECRET
+      - SITE_URL
+      - DB_CONNECTION_URI=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - SMTP_HOST
+      - SMTP_PORT
+      - SMTP_FROM_NAME
+      - SMTP_USERNAME
+      - SMTP_PASSWORD
+      - SMTP_SECURE=true
+    networks:
+      - dokploy-network
+
+  redis:
+    image: redis:7.4.1
+    env_file: .env
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - dokploy-network
+    volumes:
+      - redis_infisical_data:/data
+
+  db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD
+      - POSTGRES_USER
+      - POSTGRES_DB
+    volumes:
+      - pg_infisical_data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: "pg_isready --username=${POSTGRES_USER} && psql --username=${POSTGRES_USER} --list"
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  pg_infisical_data:
+  redis_infisical_data:
+
+networks:
+  dokploy-network:
+    external: true
+

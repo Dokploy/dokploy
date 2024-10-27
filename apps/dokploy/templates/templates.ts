@@ -572,4 +572,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "open-source", "storage", "database"],
 		load: () => import("./influxdb/index").then((m) => m.generate),
 	},
+	{
+		id: "infisical",
+		name: "Infisical",
+		version: "0.90.1",
+		description:
+			"All-in-one platform to securely manage application configuration and secrets across your team and infrastructure.",
+		logo: "infisical.jpg",
+		links: {
+			github: "https://github.com/Infisical/infisical",
+			website: "https://infisical.com/",
+			docs: "https://infisical.com/docs/documentation/getting-started/introduction",
+		},
+		tags: ["self-hosted", "open-source"],
+		load: () => import("./infisical/index").then((m) => m.generate),
+	},
 ];
