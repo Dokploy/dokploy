@@ -36,15 +36,15 @@ const MyApp = ({
       `}</style>
 			<Head>
 				<title>Dokploy</title>
-				{process.env.NEXT_PUBLIC_UMAMI_HOST &&
-					process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
-						<Script
-							defer
-							src={process.env.NEXT_PUBLIC_UMAMI_HOST}
-							data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-						/>
-					)}
 			</Head>
+			{process.env.NEXT_PUBLIC_UMAMI_HOST &&
+				process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+					<Script
+						src={process.env.NEXT_PUBLIC_UMAMI_HOST}
+						data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+					/>
+				)}
+
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="system"
