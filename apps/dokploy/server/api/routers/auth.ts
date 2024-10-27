@@ -10,6 +10,7 @@ import {
 } from "@/server/db/schema";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
+	type Auth,
 	IS_CLOUD,
 	createAdmin,
 	createUser,
@@ -19,6 +20,7 @@ import {
 	getUserByToken,
 	lucia,
 	luciaToken,
+	sendDiscordNotification,
 	sendEmailNotification,
 	updateAuthById,
 	validateRequest,
@@ -55,6 +57,7 @@ export const authRouter = createTRPCRouter({
 				const newAdmin = await createAdmin(input);
 
 				if (IS_CLOUD) {
+					await sendDiscordNotificationWelcome(newAdmin);
 					await sendVerificationEmail(newAdmin.id);
 					return true;
 				}
@@ -429,4 +432,27 @@ export const sendVerificationEmail = async (authId: string) => {
 	);
 
 	return true;
+};
+
+export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
+	await sendDiscordNotification(
+		{
+			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
+		},
+		{
+			title: "✅ New User Registered",
+			color: 0x00ff00,
+			fields: [
+				{
+					name: "Email",
+					value: newAdmin.email,
+					inline: true,
+				},
+			],
+			timestamp: newAdmin.createdAt,
+			footer: {
+				text: "Dokploy User Registration Notification",
+			},
+		},
+	);
 };
