@@ -4,7 +4,9 @@
 			"features": "Features",
 			"faqs": "FAQ",
 			"docs": "Docs",
+			"pricing": "Pricing",
 			"support": "Support",
+			"dashboard": "Dashboard",
 			"discord": "Discord",
 			"i18nButtonPlaceholder": "Language",
 			"i18nEn": "English",
@@ -104,6 +106,71 @@
 		"docs": {
 			"intro": "https://docs.dokploy.com/get-started/introduction",
 			"install": "https://docs.dokploy.com/en/docs/core/get-started/introduction"
+		}
+	},
+	"Pricing": {
+		"swirlyDoodleTitle": "Simple & Affordable,",
+		"restTitle": "Pricing.",
+		"description": "Deploy Smarter, Scale Faster – Without Breaking the Bank",
+		"billingCycle": {
+			"monthly": "Monthly",
+			"annual": "Annual"
+		},
+		"plan": {
+			"free": {
+				"title": "Free",
+				"subTitle": "Open Source",
+				"section": {
+					"title": "Dokploy Open Source",
+					"description": "Manager your own infrastructure installing dokploy ui in your own server."
+				},
+				"features": {
+					"f1": "Complete Flexibility: Install Dokploy UI on your own infrastructure",
+					"f2": "Unlimited Deployments",
+					"f3": "Self-hosted Infrastructure",
+					"f4": "Community Support",
+					"f5": "Access to Core Features",
+					"f6": "Dokploy Integration",
+					"f7": "Basic Backups",
+					"f8": "Access to All Updates",
+					"f9": "Unlimited Servers"
+				},
+				"go": "Installation"
+			},
+			"cloud": {
+				"title": "Recommended",
+				"section": {
+					"title": "Dokploy Plan",
+					"description": " to manage Dokploy UI infrastructure, we take care of it for you."
+				},
+				"servers": "{serverQuantity}Servers (You bring the servers)",
+				"features": {
+					"f1": "Managed Hosting: No need to manage your own servers",
+					"f2": "Priority Support",
+					"f3": "Future-Proof Features"
+				},
+				"go": "Subscribe"
+			}
+		},
+		"faq": {
+			"title": "Frequently asked questions",
+			"description": "If you can’t find what you’re looking for, please send us an email to",
+			"q1": "How does Dokploy's Open Source plan work?",
+			"a1": "You can host Dokploy UI on your own infrastructure and you will be responsible for the maintenance and updates.",
+			"q2": "Do I need to provide my own server for the managed plan?",
+			"a2": "Yes, in the managed plan, you provide your own server eg(Hetzner, Hostinger, AWS, ETC.) VPS, and we manage the Dokploy UI infrastructure for you.",
+			"q3": "What happens if I need more than one server?",
+			"a3": "The first server costs $4.50/month, if you buy more than one it will be $3.50/month per server.",
+			"q4": "Is there a limit on the number of deployments?",
+			"a4": "No, there is no limit on the number of deployments in any of the plans.",
+			"q5": "What happens if I exceed my purchased server limit?",
+			"a5": "The most recently added servers will be deactivated. You won't be able to create services on inactive servers until they are reactivated.",
+			"q6": "Do you offer a refunds?",
+			"a6": "We do not offer refunds. However, you can cancel your subscription at any time. Feel free to try our open-source version for free before making a purchase.",
+			"q7": "What kind of support do you offer?",
+			"a7": "We offer community support for the open source version and priority support for paid plans.",
+			"q8": "Is Dokploy open-source?",
+			"a8": "Yes, Dokploy is fully open-source. You can contribute or modify it as needed for your projects."
 		}
 	}
 }
