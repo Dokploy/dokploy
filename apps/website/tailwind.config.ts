@@ -26,7 +26,7 @@ const config = {
 			"9xl": ["8rem", { lineHeight: "1" }],
 		},
 		container: {
-			center: "true",
+			center: true,
 			padding: "2rem",
 			screens: {
 				"2xl": "1400px",
