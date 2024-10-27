@@ -11,11 +11,24 @@
 			"i18nZh-Hans": "简体中文"
 		},
 		"hero": {
+			"cloud": "隆重介绍 Dokploy 云",
 			"deploy": "部署在",
 			"anywhere": "任何设施之上",
 			"with": "",
 			"des": "以前所未有的简洁和高效提供一站式项目、数据的管理以及系统监控。",
-			"featuredIn": "发布于"
+			"featuredIn": "发布于",
+			"sponsors": {
+				"title": "赞助名单",
+				"description": "Dokploy 是由社区成员共同支持的完全免费的开源项目，您的慷慨解囊将帮助我们继续开发和改进 Dokploy。",
+				"level": {
+					"hero": "特别赞助",
+					"premium": "金牌赞助",
+					"supporting": "银牌赞助",
+					"community": "铜牌赞助",
+					"organizations": "组织赞助",
+					"individuals": "个人赞助"
+				}
+			}
 		},
 		"primaryFeatures": {
 			"title": "全面掌控您的基础设施",
