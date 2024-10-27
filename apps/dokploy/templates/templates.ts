@@ -631,4 +631,18 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "open-source", "manager"],
 		load: () => import("./hi-events/index").then((m) => m.generate),
 	},
+	{
+		id: "windows",
+		name: "Windows (dockerized)",
+		version: "4.00",
+		description: "Windows inside a Docker container.",
+		logo: "windows.png",
+		links: {
+			github: "https://github.com/dockur/windows",
+			website: "",
+			docs: "https://github.com/dockur/windows?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./windows/index").then((m) => m.generate),
+	},
 ];
