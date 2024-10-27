@@ -1,10 +1,13 @@
 "use client";
-import { Check, Copy } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ArrowRight, ArrowRightIcon, Check, Copy } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Container } from "./Container";
+import AnimatedShinyText from "./ui/animated-shiny-text";
 import { Button } from "./ui/button";
+import { HoverBorderGradient } from "./ui/hover-border-gradient";
 
 const ProductHunt = () => {
 	return (
@@ -69,7 +72,22 @@ export function Hero() {
 			</div>
 
 			<div className="relative">
-				<h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight  text-muted-foreground  sm:text-7xl">
+				<Link href="/pricing" className="relative z-10 mb-4 inline-block">
+					<div className="flex items-center justify-center">
+						<div
+							className={cn(
+								"group rounded-full border border-black/5 bg-neutral-100 text-sm font-medium text-white transition-all ease-in hover:cursor-pointer hover:bg-neutral-200 dark:border-white/5 dark:bg-neutral-900 dark:hover:bg-neutral-800",
+							)}
+						>
+							<AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1 text-neutral-800 transition ease-out hover:text-neutral-900 hover:duration-300 hover:dark:text-neutral-400">
+								<span>🚀 {t("hero.cloud")} </span>
+								<ArrowRightIcon className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+							</AnimatedShinyText>
+						</div>
+					</div>
+				</Link>
+
+				<h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-muted-foreground sm:text-7xl">
 					{t("hero.deploy")}{" "}
 					<span className="relative whitespace-nowrap  text-primary">
 						<svg
@@ -125,7 +143,9 @@ export function Hero() {
 								Discord
 							</Link>
 						</Button> */}
-						<Button className="rounded-xl" asChild>
+					</div>
+					<div className="mx-auto flex w-full max-w-sm flex-wrap items-center justify-center gap-3 md:flex-nowrap">
+						<Button className="w-full  rounded-xl" asChild>
 							<Link
 								href="https://github.com/dokploy/dokploy"
 								aria-label="Dokploy on GitHub"
@@ -136,6 +156,27 @@ export function Hero() {
 									<path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
 								</svg>
 								Github
+							</Link>
+						</Button>
+						<Button
+							className="w-full rounded-xl bg-[#5965F2]  hover:bg-[#4A55E0]"
+							asChild
+						>
+							<Link
+								href="https://discord.gg/2tBnJ3jDJc"
+								aria-label="Dokploy on GitHub"
+								target="_blank"
+								className="flex flex-row items-center gap-2 text-white"
+							>
+								<svg
+									role="img"
+									className="h-6 w-6 fill-white"
+									viewBox="0 0 24 24"
+									xmlns="http://www.w3.org/2000/svg"
+								>
+									<path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
+								</svg>
+								{t("navigation.discord")}
 							</Link>
 						</Button>
 					</div>
@@ -182,22 +223,20 @@ export function Hero() {
 }
 
 export const ShowSponsors = () => {
+	const t = useTranslations("HomePage");
 	return (
 		<div className="mt-20 flex flex-col justify-center gap-y-10">
-			<div className="flex flex-col gap-4 justify-start">
+			<div className="flex flex-col justify-start gap-4">
 				<h1 className="mx-auto max-w-2xl font-display text-3xl font-medium tracking-tight  text-primary  sm:text-5xl">
-					Sponsors
+					{t("hero.sponsors.title")}
 				</h1>
 				<p className="mx-auto max-w-2xl text-lg tracking-tight text-muted-foreground">
-					Dokploy is an open source project that is maintained by a community of
-					volunteers. We would like to thank our sponsors for their support and
-					contributions to the project, which help us to continue to develop and
-					improve Dokploy.
+					{t("hero.sponsors.description")}
 				</p>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-6 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Hero Sponsors 🎖
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-6">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.hero")} 🎖
 				</h2>
 				<div className="flex flex-wrap items-center gap-4">
 					<a
@@ -209,7 +248,7 @@ export const ShowSponsors = () => {
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/hostinger.jpg"
 							alt="hostinger.com"
-							className="rounded-xl w-[190px] h-auto"
+							className="h-auto w-[190px] rounded-xl"
 						/>
 					</a>
 					<a
@@ -221,16 +260,16 @@ export const ShowSponsors = () => {
 						<img
 							src="https://raw.githubusercontent.com/Dokploy/dokploy/canary/.github/sponsors/lxaer.png"
 							alt="lxaer.com"
-							className="rounded-xl w-[70px] h-auto"
+							className="h-auto w-[70px] rounded-xl"
 						/>
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Premium Supporters 🥇
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.premium")} 🥇
 				</h2>
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				<div className="flex flex-col items-center justify-start gap-4 md:gap-6">
 					<a
 						href="https://supafort.com/?ref=dokploy"
 						target="_blank"
@@ -245,9 +284,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Supporting Members 🥉
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.supporting")} 🥉
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -276,9 +315,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Community Backers 🤝
+			<div className="justify-star flex flex-col items-center gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.community")} 🤝
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -320,9 +359,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Organizations:
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.organizations")}
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a
@@ -337,9 +376,9 @@ export const ShowSponsors = () => {
 					</a>
 				</div>
 			</div>
-			<div className="flex flex-col gap-4 md:gap-8 justify-start">
-				<h2 className="font-display text-2xl font-medium tracking-tight  text-primary  sm:text-2xl text-left">
-					Individuals:
+			<div className="flex flex-col items-center justify-start gap-4 md:gap-8">
+				<h2 className="text-left font-display text-2xl font-medium  tracking-tight  text-primary sm:text-2xl">
+					{t("hero.sponsors.level.individuals")}
 				</h2>
 				<div className="flex flex-row gap-10">
 					<a

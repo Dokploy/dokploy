@@ -24,7 +24,7 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 		const newAuth = await tx
 			.insert(auth)
 			.values({
-				email: input.email,
+				email: input.email.toLowerCase(),
 				password: hashedPassword,
 				rol: "admin",
 			})
@@ -93,7 +93,7 @@ export const findAuthByEmail = async (email: string) => {
 	if (!result) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "Auth not found",
+			message: "User not found",
 		});
 	}
 	return result;
