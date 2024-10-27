@@ -557,4 +557,19 @@ export const templates: TemplateData[] = [
 		tags: ["cloud", "monitoring"],
 		load: () => import("./portainer/index").then((m) => m.generate),
 	},
+	{
+		id: "influxdb",
+		name: "InfluxDB",
+		version: "2.7.10",
+		description:
+			"InfluxDB 2.7 is the platform purpose-built to collect, store, process and visualize time series data.",
+		logo: "influxdb.png",
+		links: {
+			github: "https://github.com/influxdata/influxdb",
+			website: "https://www.influxdata.com/",
+			docs: "https://docs.influxdata.com/influxdb/v2/",
+		},
+		tags: ["self-hosted", "open-source", "storage", "database"],
+		load: () => import("./influxdb/index").then((m) => m.generate),
+	},
 ];
