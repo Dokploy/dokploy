@@ -218,7 +218,6 @@ export const templates: TemplateData[] = [
 		version: "v1.5.6",
 		description:
 			"Documenso is the open source alternative to DocuSign for signing documents digitally",
-
 		links: {
 			github: "https://github.com/documenso/documenso",
 			website: "https://documenso.com/",
@@ -593,7 +592,7 @@ export const templates: TemplateData[] = [
 		version: "0.4.1",
 		description:
 			"Docmost, an open-source collaborative wiki and documentation software.",
-		logo: "",
+		logo: "docmost.png",
 		links: {
 			github: "https://github.com/docmost/docmost",
 			website: "https://docmost.com/",
@@ -601,5 +600,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "open-source", "manager"],
 		load: () => import("./docmost/index").then((m) => m.generate),
+	},
+	{
+		id: "vaultwarden",
+		name: "Vaultwarden",
+		version: "1.32.3",
+		description:
+			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
+		logo: "vaultwarden.png",
+		links: {
+			github: "https://github.com/dani-garcia/vaultwarden",
+			website: "",
+			docs: "https://github.com/dani-garcia/vaultwarden/wiki",
+		},
+		tags: ["open-source"],
+		load: () => import("./vaultwarden/index").then((m) => m.generate),
 	},
 ];
