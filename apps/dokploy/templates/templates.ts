@@ -616,4 +616,19 @@ export const templates: TemplateData[] = [
 		tags: ["open-source"],
 		load: () => import("./vaultwarden/index").then((m) => m.generate),
 	},
+	{
+		id: "hi-events",
+		name: "Hi.events",
+		version: "0.8.0-beta.1",
+		description:
+			"Hi.Events is a self-hosted event management and ticket selling platform that allows you to create, manage and promote events easily.",
+		logo: "hi-events.svg",
+		links: {
+			github: "https://github.com/HiEventsDev/hi.events",
+			website: "https://hi.events/",
+			docs: "https://hi.events/docs",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./hi-events/index").then((m) => m.generate),
+	},
 ];
