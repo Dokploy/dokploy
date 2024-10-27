@@ -7,7 +7,7 @@ services:
       - ./data:/data
       - ./config.yaml:/config.yaml
     ports:
-      - '8080:8080'
+      - '8080'
     environment:
       TOLGEE_FRONT_END_URL: ${TOLGEE_HOST}
       TOLGEE_AUTHENTICATION_ENABLED: ${TOLGEE_AUTHENTICATION_ENABLED}
