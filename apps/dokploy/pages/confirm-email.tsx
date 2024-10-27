@@ -1,6 +1,7 @@
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { Logo } from "@/components/shared/logo";
 import { CardDescription, CardTitle } from "@/components/ui/card";
+import { db } from "@/server/db";
 import { auth } from "@/server/db/schema";
 import { IS_CLOUD, updateAuthById } from "@dokploy/server";
 import { isBefore } from "date-fns";
@@ -54,7 +55,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
-	const authR = await db?.query.auth.findFirst({
+	const authR = await db.query.auth.findFirst({
 		where: eq(auth.confirmationToken, token),
 	});
 

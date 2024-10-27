@@ -336,7 +336,6 @@ export function Pricing() {
 									<div
 										className={cn(
 											"justify-between",
-											// : "justify-end",
 											"flex flex-row  items-center gap-2 mt-4",
 										)}
 									>
