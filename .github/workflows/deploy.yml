@@ -73,9 +73,10 @@ jobs:
             siumauricio/cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
           build-args: |
-            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_51QAm7bF3cxQuHeOzMpfNfJIch6oLif8rS32pRE392CdTbBf0MYBdbapAxarQGspqJBWT2nVOxu8e6ZHrHB4NhVHG008DE2A90d"
-            NEXT_PUBLIC_UMAMI_HOST="https://umami.dokploy.com/script.js"
-            NEXT_PUBLIC_UMAMI_WEBSITE_ID="ef083745-e111-4bac-9fe6-c549807adefe"
+            NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+
   build-and-push-schedule-image:
     runs-on: ubuntu-latest
 
