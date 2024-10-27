@@ -144,7 +144,7 @@ export const ShowBilling = () => {
 									className={clsx(
 										"flex flex-col rounded-3xl  border-dashed border-2 px-4 max-w-sm",
 										featured
-											? "order-first bg-black border py-8 lg:order-none"
+											? "order-first  border py-8 lg:order-none"
 											: "lg:py-8",
 									)}
 								>
@@ -169,7 +169,7 @@ export const ShowBilling = () => {
 											USD
 										</p>
 									)}
-									<h3 className="mt-5 font-medium text-lg text-white">
+									<h3 className="mt-5 font-medium text-lg text-primary">
 										{product.name}
 									</h3>
 									<p
