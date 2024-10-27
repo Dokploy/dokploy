@@ -587,4 +587,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "open-source"],
 		load: () => import("./infisical/index").then((m) => m.generate),
 	},
+	{
+		id: "docmost",
+		name: "Docmost",
+		version: "0.4.1",
+		description:
+			"Docmost, an open-source collaborative wiki and documentation software.",
+		logo: "",
+		links: {
+			github: "https://github.com/docmost/docmost",
+			website: "https://docmost.com/",
+			docs: "https://docmost.com/docs/",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./docmost/index").then((m) => m.generate),
+	},
 ];
