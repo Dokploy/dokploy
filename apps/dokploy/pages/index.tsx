@@ -1,5 +1,6 @@
 import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +64,8 @@ export default function Home({ IS_CLOUD }: Props) {
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading } = api.auth.login.useMutation();
+	const { mutateAsync, isLoading, error, isError } =
+		api.auth.login.useMutation();
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
@@ -115,6 +117,12 @@ export default function Home({ IS_CLOUD }: Props) {
 				</CardDescription>
 				<Card className="mx-auto w-full max-w-lg bg-transparent ">
 					<div className="p-3.5" />
+					{isError && (
+						<AlertBlock type="error" className="mx-4 my-2">
+							<span>{error?.message}</span>
+						</AlertBlock>
+					)}
+
 					<CardContent>
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>

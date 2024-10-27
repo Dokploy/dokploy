@@ -4,11 +4,11 @@ import {
 	apiFindOneAuth,
 	apiLogin,
 	apiUpdateAuth,
-	apiUpdateAuthByAdmin,
 	apiVerify2FA,
 	apiVerifyLogin2FA,
 	auth,
 } from "@/server/db/schema";
+import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
 	IS_CLOUD,
 	createAdmin,
@@ -53,6 +53,11 @@ export const authRouter = createTRPCRouter({
 					}
 				}
 				const newAdmin = await createAdmin(input);
+
+				if (IS_CLOUD) {
+					await sendVerificationEmail(newAdmin.id);
+					return true;
+				}
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
 					"Set-Cookie",
@@ -60,7 +65,12 @@ export const authRouter = createTRPCRouter({
 				);
 				return true;
 			} catch (error) {
-				throw error;
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					// @ts-ignore
+					message: `Error: ${error?.code === "23505" ? "Email already exists" : "Error to create admin"}`,
+					cause: error,
+				});
 			}
 		}),
 	createUser: publicProcedure
@@ -74,7 +84,13 @@ export const authRouter = createTRPCRouter({
 						message: "Invalid token",
 					});
 				}
+
 				const newUser = await createUser(input);
+
+				if (IS_CLOUD) {
+					await sendVerificationEmail(token.authId);
+					return true;
+				}
 				const session = await lucia.createSession(newUser?.authId || "", {});
 				ctx.res.appendHeader(
 					"Set-Cookie",
@@ -106,6 +122,15 @@ export const authRouter = createTRPCRouter({
 				});
 			}
 
+			if (auth?.confirmationToken) {
+				await sendVerificationEmail(auth.id);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Email not confirmed, we have sent you a confirmation email please check your inbox.",
+				});
+			}
+
 			if (auth?.is2FAEnabled) {
 				return {
 					is2FAEnabled: true,
@@ -126,7 +151,7 @@ export const authRouter = createTRPCRouter({
 		} catch (error) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Credentials do not match",
+				message: `Error: ${error instanceof Error ? error.message : "Error to login"}`,
 				cause: error,
 			});
 		}
@@ -151,7 +176,7 @@ export const authRouter = createTRPCRouter({
 		.input(apiUpdateAuth)
 		.mutation(async ({ ctx, input }) => {
 			const auth = await updateAuthById(ctx.user.authId, {
-				...(input.email && { email: input.email }),
+				...(input.email && { email: input.email.toLowerCase() }),
 				...(input.password && {
 					password: bcrypt.hashSync(input.password, 10),
 				}),
@@ -183,19 +208,6 @@ export const authRouter = createTRPCRouter({
 		return auth;
 	}),
 
-	updateByAdmin: protectedProcedure
-		.input(apiUpdateAuthByAdmin)
-		.mutation(async ({ input }) => {
-			const auth = await updateAuthById(input.id, {
-				...(input.email && { email: input.email }),
-				...(input.password && {
-					password: bcrypt.hashSync(input.password, 10),
-				}),
-				...(input.image && { image: input.image }),
-			});
-
-			return auth;
-		}),
 	generate2FASecret: protectedProcedure.query(async ({ ctx }) => {
 		return await generate2FASecret(ctx.user.authId);
 	}),
@@ -236,9 +248,6 @@ export const authRouter = createTRPCRouter({
 		});
 		return auth;
 	}),
-	verifyToken: protectedProcedure.mutation(async () => {
-		return true;
-	}),
 	sendResetPasswordEmail: publicProcedure
 		.input(
 			z.object({
@@ -270,7 +279,7 @@ export const authRouter = createTRPCRouter({
 				).toISOString(),
 			});
 
-			const email = await sendEmailNotification(
+			await sendEmailNotification(
 				{
 					fromAddress: process.env.SMTP_FROM_ADDRESS || "",
 					toAddresses: [authR.email],
@@ -283,7 +292,7 @@ export const authRouter = createTRPCRouter({
 				`
 				Reset your password by clicking the link below:
 				The link will expire in 24 hours.
-				<a href="http://localhost:3000/reset-password?token=${token}">
+				<a href="${WEBSITE_URL}/reset-password?token=${token}">
 					Reset Password
 				</a>
 			
@@ -336,4 +345,82 @@ export const authRouter = createTRPCRouter({
 
 			return true;
 		}),
+	confirmEmail: adminProcedure
+		.input(
+			z.object({
+				confirmationToken: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const authR = await db.query.auth.findFirst({
+				where: eq(auth.confirmationToken, input.confirmationToken),
+			});
+			if (!authR || authR.confirmationExpiresAt === null) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Token not found",
+				});
+			}
+			if (authR.confirmationToken !== input.confirmationToken) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Confirmation Token not found",
+				});
+			}
+
+			const isExpired = isBefore(
+				new Date(authR.confirmationExpiresAt),
+				new Date(),
+			);
+
+			if (isExpired) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Confirmation Token expired",
+				});
+			}
+			1;
+			await updateAuthById(authR.id, {
+				confirmationToken: null,
+				confirmationExpiresAt: null,
+			});
+			return true;
+		}),
 });
+
+export const sendVerificationEmail = async (authId: string) => {
+	const token = nanoid();
+	const result = await updateAuthById(authId, {
+		confirmationToken: token,
+		confirmationExpiresAt: new Date(
+			new Date().getTime() + 24 * 60 * 60 * 1000,
+		).toISOString(),
+	});
+
+	if (!result) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "User not found",
+		});
+	}
+	await sendEmailNotification(
+		{
+			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
+			toAddresses: [result?.email],
+			smtpServer: process.env.SMTP_SERVER || "",
+			smtpPort: Number(process.env.SMTP_PORT),
+			username: process.env.SMTP_USERNAME || "",
+			password: process.env.SMTP_PASSWORD || "",
+		},
+		"Confirm your email | Dokploy",
+		`
+		Welcome to Dokploy!
+		Please confirm your email by clicking the link below:
+		<a href="${WEBSITE_URL}/confirm-email?token=${result?.confirmationToken}">
+			Confirm Email
+		</a>
+	`,
+	);
+
+	return true;
+};
