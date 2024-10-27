@@ -18,24 +18,28 @@ export const DockerLogsId: React.FC<Props> = ({
 }) => {
 	const [term, setTerm] = React.useState<Terminal>();
 	const [lines, setLines] = React.useState<number>(40);
-	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
+	const wsRef = useRef<WebSocket | null>(null);
 
 	useEffect(() => {
-		// if (containerId === "select-a-container") {
-		// 	return;
-		// }
+		if (containerId === "select-a-container") {
+			return;
+		}
+
+		if (
+			wsRef.current &&
+			(wsRef.current.readyState === WebSocket.OPEN ||
+				wsRef.current.readyState === WebSocket.CONNECTING)
+		) {
+			wsRef.current.close();
+			wsRef.current = null;
+		}
+
 		const container = document.getElementById(id);
 		if (container) {
 			container.innerHTML = "";
 		}
 
-		if (wsRef.current) {
-			console.log(wsRef.current);
-			if (wsRef.current.readyState === WebSocket.OPEN) {
-				wsRef.current.close();
-			}
-			wsRef.current = null;
-		}
+		// Crear nueva instancia de Terminal
 		const termi = new Terminal({
 			cursorBlink: true,
 			cols: 80,
@@ -45,7 +49,6 @@ export const DockerLogsId: React.FC<Props> = ({
 			fontSize: 14,
 			fontFamily:
 				'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-
 			convertEol: true,
 			theme: {
 				cursor: "transparent",
@@ -54,10 +57,10 @@ export const DockerLogsId: React.FC<Props> = ({
 		});
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
 		const wsUrl = `${protocol}//${window.location.host}/docker-container-logs?containerId=${containerId}&tail=${lines}${serverId ? `&serverId=${serverId}` : ""}`;
 		const ws = new WebSocket(wsUrl);
 		wsRef.current = ws;
+
 		const fitAddon = new FitAddon();
 		termi.loadAddon(fitAddon);
 		// @ts-ignore
@@ -76,17 +79,17 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		ws.onclose = (e) => {
 			console.log(e.reason);
-
 			termi.write(`Connection closed!\nReason: ${e.reason}\n`);
 			wsRef.current = null;
 		};
+
 		return () => {
 			if (wsRef.current?.readyState === WebSocket.OPEN) {
-				ws.close();
-				wsRef.current = null;
+				wsRef.current.close();
 			}
+			wsRef.current = null;
 		};
-	}, [lines, containerId]);
+	}, [containerId, lines]);
 
 	useEffect(() => {
 		term?.clear();

@@ -43,6 +43,15 @@ export const setupDockerContainerLogsWebSocketServer = (
 			ws.close();
 			return;
 		}
+
+		const pingInterval = setInterval(() => {
+			if (ws.readyState === ws.OPEN) {
+				ws.ping();
+			}
+		}, 30000);
+
+		ws.on("close", () => clearInterval(pingInterval));
+
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
