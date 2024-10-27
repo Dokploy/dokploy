@@ -512,7 +512,7 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "email", "webmail"],
 		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
-    {
+	{
 		id: "tolgee",
 		name: "Tolgee",
 		version: "v3.80.4",
@@ -526,7 +526,7 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "i18n", "localization", "translations"],
 		load: () => import("./tolgee/index").then((m) => m.generate),
-    },
+	},
 	{
 		id: "portainer",
 		name: "Portainer",
