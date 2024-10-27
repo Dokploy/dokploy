@@ -528,6 +528,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./filebrowser/index").then((m) => m.generate),
 	},
 	{
+		id: "tolgee",
+		name: "Tolgee",
+		version: "v3.80.4",
+		description:
+			"Developer & translator friendly web-based localization platform",
+		logo: "tolgee.svg",
+		links: {
+			github: "https://github.com/tolgee/tolgee-platform",
+			website: "https://tolgee.io",
+			docs: "https://tolgee.io/platform",
+		},
+		tags: ["self-hosted", "i18n", "localization", "translations"],
+		load: () => import("./tolgee/index").then((m) => m.generate),
+	},
+	{
 		id: "portainer",
 		name: "Portainer",
 		version: "2.21.4",
