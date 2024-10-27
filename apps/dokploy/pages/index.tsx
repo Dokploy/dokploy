@@ -178,12 +178,14 @@ export default function Home({ IS_CLOUD }: Props) {
 
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								<Link
-									className="hover:underline text-muted-foreground"
-									href="/register"
-								>
-									Create an account
-								</Link>
+								{IS_CLOUD && (
+									<Link
+										className="hover:underline text-muted-foreground"
+										href="/register"
+									>
+										Create an account
+									</Link>
+								)}
 							</div>
 
 							<div className="mt-4 text-sm flex flex-row justify-center gap-2">

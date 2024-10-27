@@ -15,7 +15,6 @@ const Home: NextPage = () => {
 	const [spec, setSpec] = useState({});
 
 	useEffect(() => {
-		// Esto solo se ejecutará en el cliente
 		if (data) {
 			const protocolAndHost = `${window.location.protocol}//${window.location.host}/api`;
 			const newSpec = {
