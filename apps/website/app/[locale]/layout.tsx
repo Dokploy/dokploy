@@ -1,8 +1,6 @@
 import clsx from "clsx";
 import { Inter, Lexend } from "next/font/google";
 import "@/styles/tailwind.css";
-import GoogleAnalytics from "@/components/analitycs/google";
-
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 
@@ -88,7 +86,14 @@ export default async function RootLayout({
 			lang={locale}
 			className={clsx("h-full scroll-smooth", inter.variable, lexend.variable)}
 		>
-			<GoogleAnalytics />
+			<head>
+				<script
+					defer
+					src="https://umami.dokploy.com/script.js"
+					data-website-id="7d1422e4-3776-4870-8145-7d7b2075d470"
+				/>
+			</head>
+			{/* <GoogleAnalytics /> */}
 			<body className="flex h-full flex-col">
 				<NextIntlClientProvider messages={messages}>
 					<Header />

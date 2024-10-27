@@ -63,6 +63,13 @@ export default function Layout({
 			className={inter.className}
 			suppressHydrationWarning
 		>
+			<head>
+				<script
+					defer
+					src="https://umami.dokploy.com/script.js"
+					data-website-id="6ad2aa56-6d38-4f39-97a8-1a8fcdda8d51"
+				/>
+			</head>
 			<GoogleAnalytics />
 			<body>
 				<I18nProvider
