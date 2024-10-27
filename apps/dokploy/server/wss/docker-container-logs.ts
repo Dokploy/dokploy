@@ -5,11 +5,6 @@ import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getShell } from "./utils";
 
-function heartbeat() {
-	// @ts-ignore
-	this.isAlive = true;
-}
-
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
 ) => {
@@ -48,11 +43,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 			ws.close();
 			return;
 		}
-
-		// @ts-ignore
-		ws.isAlive = true;
-		ws.on("error", console.error);
-		ws.on("pong", heartbeat);
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
@@ -147,19 +137,5 @@ export const setupDockerContainerLogsWebSocketServer = (
 
 			ws.send(errorMessage);
 		}
-	});
-
-	const interval = setInterval(function ping() {
-		for (const ws of wssTerm.clients) {
-			// @ts-ignore
-			if (ws.isAlive === false) return ws.terminate();
-			// @ts-ignore
-			ws.isAlive = false;
-			ws.ping();
-		}
-	}, 30000);
-
-	wssTerm.on("close", function close() {
-		clearInterval(interval);
 	});
 };
