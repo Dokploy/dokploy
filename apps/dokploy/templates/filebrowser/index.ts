@@ -15,9 +15,7 @@ export function generate(schema: Schema): Template {
 			serviceName: "filebrowser",
 		},
 	];
-	const envs = [
-		"FB_BASEURL=/filebrowser",
-	];
+	const envs = ["FB_BASEURL=/filebrowser"];
 
 	return {
 		envs,
