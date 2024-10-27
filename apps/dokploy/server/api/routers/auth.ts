@@ -122,7 +122,7 @@ export const authRouter = createTRPCRouter({
 				});
 			}
 
-			if (auth?.confirmationToken) {
+			if (auth?.confirmationToken && IS_CLOUD) {
 				await sendVerificationEmail(auth.id);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -352,6 +352,12 @@ export const authRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Functionality not available in cloud version",
+				});
+			}
 			const authR = await db.query.auth.findFirst({
 				where: eq(auth.confirmationToken, input.confirmationToken),
 			});
