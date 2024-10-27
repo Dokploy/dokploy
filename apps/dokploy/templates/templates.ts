@@ -526,8 +526,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["file", "manager"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
-  },
-  {
+	},
+	{
 		id: "portainer",
 		name: "Portainer",
 		version: "2.21.4",
