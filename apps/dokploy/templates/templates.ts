@@ -512,7 +512,6 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "email", "webmail"],
 		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
-
 	{
 		id: "filebrowser",
 		name: "File Browser",
@@ -527,5 +526,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["file", "manager"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
+  },
+  {
+		id: "portainer",
+		name: "Portainer",
+		version: "2.21.4",
+		description:
+			"Portainer is a container management tool for deploying, troubleshooting, and securing applications across cloud, data centers, and IoT.",
+		logo: "portainer.svg",
+		links: {
+			github: "https://github.com/portainer/portainer",
+			website: "https://www.portainer.io/",
+			docs: "https://docs.portainer.io/",
+		},
+		tags: ["cloud", "monitoring"],
+		load: () => import("./portainer/index").then((m) => m.generate),
 	},
 ];

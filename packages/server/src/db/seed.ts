@@ -3,7 +3,7 @@
 // import postgres from "postgres";
 // import { users } from "./schema";
 
-// const connectionString = process.env.DATABASE_URL || "";
+// const connectionString = process.env.DATABASE_URL!;
 
 // const pg = postgres(connectionString, { max: 1 });
 // const db = drizzle(pg);

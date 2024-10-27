@@ -4,18 +4,33 @@
 			"features": "特性",
 			"faqs": "FAQ",
 			"docs": "文档",
+			"pricing": "价格",
 			"support": "赞助",
+			"dashboard": "控制台",
 			"discord": "Discord",
 			"i18nButtonPlaceholder": "语言",
 			"i18nEn": "English",
 			"i18nZh-Hans": "简体中文"
 		},
 		"hero": {
+			"cloud": "隆重介绍 Dokploy 云",
 			"deploy": "部署在",
 			"anywhere": "任何设施之上",
 			"with": "",
 			"des": "以前所未有的简洁和高效提供一站式项目、数据的管理以及系统监控。",
-			"featuredIn": "发布于"
+			"featuredIn": "发布于",
+			"sponsors": {
+				"title": "赞助名单",
+				"description": "Dokploy 是由社区成员共同支持的完全免费的开源项目，您的慷慨解囊将帮助我们继续开发和改进 Dokploy。",
+				"level": {
+					"hero": "特别赞助",
+					"premium": "金牌赞助",
+					"supporting": "银牌赞助",
+					"community": "铜牌赞助",
+					"organizations": "组织赞助",
+					"individuals": "个人赞助"
+				}
+			}
 		},
 		"primaryFeatures": {
 			"title": "全面掌控您的基础设施",
@@ -91,6 +106,71 @@
 		"docs": {
 			"intro": "https://docs.dokploy.com/cn/docs/core/get-started/introduction",
 			"install": "https://docs.dokploy.com/cn/docs/core/get-started/introduction"
+		}
+	},
+	"Pricing": {
+		"swirlyDoodleTitle": "简洁明了的,",
+		"restTitle": "定价",
+		"description": "更聪明的部署方式，更快的扩容速度，以及不会让你破产的账单。",
+		"billingCycle": {
+			"monthly": "按月",
+			"annual": "按年"
+		},
+		"plan": {
+			"free": {
+				"title": "免费",
+				"subTitle": "开源版本",
+				"section": {
+					"title": "部署Dokploy的开源版本",
+					"description": "自行管理您的基础设施，不收取任何费用"
+				},
+				"features": {
+					"f1": "灵活的架构，您可以单独部署 Dokploy 管理端",
+					"f2": "无限数量的部署",
+					"f3": "自维护的基础设施",
+					"f4": "来自社区的有限支持",
+					"f5": "所有功能可用",
+					"f6": "Dokploy 集成",
+					"f7": "基础备份服务",
+					"f8": "跟随开源版本更新",
+					"f9": "无限服务器数量"
+				},
+				"go": "立即开始"
+			},
+			"cloud": {
+				"title": "推荐（年付更优惠）",
+				"section": {
+					"title": "Dokploy 云",
+					"description": "使用我们的云服务，一站式管理您所有的部署。"
+				},
+				"servers": "{serverQuantity}台受控服务器",
+				"features": {
+					"f1": "由 Dokploy 云提供支持的独立控制面板",
+					"f2": "优先技术支持",
+					"f3": "优先体验先行功能"
+				},
+				"go": "订阅"
+			}
+		},
+		"faq": {
+			"title": "常见问题",
+			"description": "如果您的问题不在以下列表，请随时向我们致信",
+			"q1": "Dokploy 的开源版本是什么？",
+			"a1": "您可以免费安装 Dokploy 开源版本，并自行负责 Dokploy 的日后维护工作",
+			"q2": "付费计划还需要自己的服务器吗？",
+			"a2": "是的，在付费计划中，您依然需要提供您用于实际运行服务的服务器（如阿里云、腾讯云、AWS 等），我们会为您管理 Dokploy 控制面板。",
+			"q3": "如果我需要管理更多的服务器怎么办？",
+			"a3": "第一台服务器的费用为 $4.5/月，之后每台的费用是 $3.5/月。",
+			"q4": "部署服务的数量有限制吗？",
+			"a4": "不管您如何使用 Dokploy，我们都不会限制您部署服务的数量。",
+			"q5": "如果我意外超过了最大服务器数量怎么办？",
+			"a5": "最新添加的服务器将被停用，您将不能向其创建服务，直到它们被重新激活。",
+			"q6": "关于退款服务的政策？",
+			"a6": "您可以随时取消您的订阅，但请原谅我们无法提供退款服务，您可以无限试用开源版本，然后再购买。",
+			"q7": "关于技术支持?",
+			"a7": "付费计划可以得到优先的技术支持，开源版本则是由社区提供技术支持。",
+			"q8": "Dokploy 开源吗?",
+			"a8": "是的，Dokploy 完全开源，您可以参与贡献或者是 Fork 后自行修改以用于您的私人需求。"
 		}
 	}
 }

@@ -50,6 +50,8 @@ export const auth = pgTable("auth", {
 		.$defaultFn(() => new Date().toISOString()),
 	resetPasswordToken: text("resetPasswordToken"),
 	resetPasswordExpiresAt: text("resetPasswordExpiresAt"),
+	confirmationToken: text("confirmationToken"),
+	confirmationExpiresAt: text("confirmationExpiresAt"),
 });
 
 export const authRelations = relations(auth, ({ many }) => ({

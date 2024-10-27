@@ -52,8 +52,6 @@ export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
 
-	const { mutateAsync: generateToken, isLoading: isLoadingToken } =
-		api.auth.generateToken.useMutation();
 	const form = useForm<Profile>({
 		defaultValues: {
 			email: data?.email || "",
@@ -76,7 +74,7 @@ export const ProfileForm = () => {
 
 	const onSubmit = async (values: Profile) => {
 		await mutateAsync({
-			email: values.email,
+			email: values.email.toLowerCase(),
 			password: values.password,
 			image: values.image,
 		})
