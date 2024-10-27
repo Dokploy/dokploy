@@ -34,7 +34,7 @@ export const ShowRequests = () => {
 			<Card className="bg-transparent mt-10">
 				<CardHeader>
 					<CardTitle>Request Distribution</CardTitle>
-					<div className="flex justify-between gap-2">
+					<div className="flex  max-sm:flex-wrap justify-between gap-2">
 						<CardDescription>
 							<span>Showing web and API requests over time</span>
 						</CardDescription>
