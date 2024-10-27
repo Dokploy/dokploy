@@ -54,7 +54,7 @@ export const AddUser = () => {
 
 	const onSubmit = async (data: AddUser) => {
 		await mutateAsync({
-			email: data.email,
+			email: data.email.toLowerCase(),
 		})
 			.then(async () => {
 				toast.success("Invitation created");

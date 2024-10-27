@@ -541,4 +541,49 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "email", "webmail"],
 		load: () => import("./roundcube/index").then((m) => m.generate),
 	},
+	{
+		id: "filebrowser",
+		name: "File Browser",
+		version: "2.31.2",
+		description:
+			"Filebrowser is a standalone file manager for uploading, deleting, previewing, renaming, and editing files, with support for multiple users, each with their own directory.",
+		logo: "filebrowser.svg",
+		links: {
+			github: "https://github.com/filebrowser/filebrowser",
+			website: "https://filebrowser.org/",
+			docs: "https://filebrowser.org/",
+		},
+		tags: ["file", "manager"],
+		load: () => import("./filebrowser/index").then((m) => m.generate),
+	},
+	{
+		id: "tolgee",
+		name: "Tolgee",
+		version: "v3.80.4",
+		description:
+			"Developer & translator friendly web-based localization platform",
+		logo: "tolgee.svg",
+		links: {
+			github: "https://github.com/tolgee/tolgee-platform",
+			website: "https://tolgee.io",
+			docs: "https://tolgee.io/platform",
+		},
+		tags: ["self-hosted", "i18n", "localization", "translations"],
+		load: () => import("./tolgee/index").then((m) => m.generate),
+	},
+	{
+		id: "portainer",
+		name: "Portainer",
+		version: "2.21.4",
+		description:
+			"Portainer is a container management tool for deploying, troubleshooting, and securing applications across cloud, data centers, and IoT.",
+		logo: "portainer.svg",
+		links: {
+			github: "https://github.com/portainer/portainer",
+			website: "https://www.portainer.io/",
+			docs: "https://docs.portainer.io/",
+		},
+		tags: ["cloud", "monitoring"],
+		load: () => import("./portainer/index").then((m) => m.generate),
+	},
 ];

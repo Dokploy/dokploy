@@ -14,6 +14,7 @@ import {
 	PlugZapIcon,
 	TerminalIcon,
 } from "lucide-react";
+import Script from "next/script";
 const inter = Inter({
 	subsets: ["latin"],
 });
@@ -63,6 +64,10 @@ export default function Layout({
 			className={inter.className}
 			suppressHydrationWarning
 		>
+			<Script
+				src="https://umami.dokploy.com/script.js"
+				data-website-id="6ad2aa56-6d38-4f39-97a8-1a8fcdda8d51"
+			/>
 			<GoogleAnalytics />
 			<body>
 				<I18nProvider

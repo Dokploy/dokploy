@@ -17,6 +17,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { db } from "@/server/db";
 import { auth } from "@/server/db/schema";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server";
@@ -194,7 +195,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
-	const authR = await db?.query.auth.findFirst({
+	const authR = await db.query.auth.findFirst({
 		where: eq(auth.resetPasswordToken, token),
 	});
 

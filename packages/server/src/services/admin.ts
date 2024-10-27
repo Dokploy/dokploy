@@ -20,7 +20,7 @@ export const createInvitation = async (
 		const result = await tx
 			.insert(auth)
 			.values({
-				email: input.email,
+				email: input.email.toLowerCase(),
 				rol: "user",
 				password: bcrypt.hashSync("01231203012312", 10),
 			})
