@@ -284,12 +284,12 @@ export const authRouter = createTRPCRouter({
 
 			await sendEmailNotification(
 				{
-					fromAddress: process.env.SMTP_FROM_ADDRESS || "",
+					fromAddress: process.env.SMTP_FROM_ADDRESS!,
 					toAddresses: [authR.email],
-					smtpServer: process.env.SMTP_SERVER || "",
+					smtpServer: process.env.SMTP_SERVER!,
 					smtpPort: Number(process.env.SMTP_PORT),
-					username: process.env.SMTP_USERNAME || "",
-					password: process.env.SMTP_PASSWORD || "",
+					username: process.env.SMTP_USERNAME!,
+					password: process.env.SMTP_PASSWORD!,
 				},
 				"Reset Password",
 				`
