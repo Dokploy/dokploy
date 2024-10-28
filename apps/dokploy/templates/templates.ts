@@ -569,6 +569,20 @@ export const templates: TemplateData[] = [
 			docs: "https://docs.stirlingpdf.com/",
 		},
 		tags: ["pdf", "tools"],
-		load: () => import("./portainer/index").then((m) => m.generate),
+		load: () => import("./stirling/index").then((m) => m.generate),
+	},
+	{
+		id: "lobe-chat",
+		name: "Lobe Chat",
+		version: "v1.26.1",
+		description: "Lobe Chat - an open-source, modern-design AI chat framework.",
+		logo: "lobe-chat.png",
+		links: {
+			github: "https://github.com/lobehub/lobe-chat",
+			website: "https://chat-preview.lobehub.com/",
+			docs: "https://lobehub.com/docs/self-hosting/platform/docker-compose",
+		},
+		tags: ["IA", "chat"],
+		load: () => import("./lobe-chat/index").then((m) => m.generate),
 	},
 ];

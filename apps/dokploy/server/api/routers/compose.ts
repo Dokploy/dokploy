@@ -357,9 +357,9 @@ export const composeRouter = createTRPCRouter({
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
 			const admin = await findAdminById(ctx.user.adminId);
-			let serverIp = admin.serverIp;
+			let serverIp = admin.serverIp || "127.0.0.1";
 
-			if (!admin.serverIp) {
+			if (!serverIp) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message:
