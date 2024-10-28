@@ -3,8 +3,6 @@ services:
     image: ghcr.io/coder/coder:v2.15.3
     networks:
       - dokploy-network
-    ports:
-      - "7080:7080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
