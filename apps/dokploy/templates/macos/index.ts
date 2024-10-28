@@ -10,13 +10,13 @@ export function generate(schema: Schema): Template {
 		{
 			host: generateRandomDomain(schema),
 			port: 8006,
-			serviceName: "windows",
+			serviceName: "macos",
 		},
 	];
 
 	const envs = [
-		"# https://github.com/dockur/windows?tab=readme-ov-file#how-do-i-select-the-windows-version",
-		"VERSION=win11",
+		"# https://github.com/dockur/macos?tab=readme-ov-file#how-do-i-select-the-macos-version",
+		"VERSION=15",
 		"",
 		"# Uncomment this if your PC/VM or etc does not support virtualization technology",
 		"# KVM=N",
@@ -24,12 +24,6 @@ export function generate(schema: Schema): Template {
 		"DISK_SIZE=64G",
 		"RAM_SIZE=4G",
 		"CPU_CORES=2",
-		"",
-		"USERNAME=Dokploy",
-		"PASSWORD=",
-		"",
-		"# https://github.com/dockur/windows?tab=readme-ov-file#how-do-i-select-the-windows-language",
-		"LANGUAGE=English",
 	];
 
 	return {

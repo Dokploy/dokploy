@@ -635,7 +635,7 @@ export const templates: TemplateData[] = [
 		id: "windows",
 		name: "Windows (dockerized)",
 		version: "4.00",
-		description: "Windows inside a Docker container.",
+		description: "MacOS inside a Docker container.",
 		logo: "windows.png",
 		links: {
 			github: "https://github.com/dockur/windows",
@@ -644,5 +644,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "open-source", "os"],
 		load: () => import("./windows/index").then((m) => m.generate),
+	},
+	{
+		id: "macos",
+		name: "MacOS (dockerized)",
+		version: "1.14",
+		description: "MacOS inside a Docker container.",
+		logo: "macos.png",
+		links: {
+			github: "https://github.com/dockur/macos",
+			website: "",
+			docs: "https://github.com/dockur/macos?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./macos/index").then((m) => m.generate),
 	},
 ];
