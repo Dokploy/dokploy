@@ -125,7 +125,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "uptime-kuma",
 		name: "Uptime Kuma",
-		version: "1.21.4",
+		version: "1.23.15",
 		description:
 			"Uptime Kuma is a free and open source monitoring tool that allows you to monitor your websites and applications.",
 		logo: "uptime-kuma.png",
