@@ -440,7 +440,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "soketi",
 		name: "Soketi",
-		version: "v1.4-16",
+		version: "v1.6.1-16",
 		description:
 			"Soketi is your simple, fast, and resilient open-source WebSockets server.",
 		logo: "soketi.png",
