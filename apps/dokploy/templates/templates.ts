@@ -557,4 +557,18 @@ export const templates: TemplateData[] = [
 		tags: ["cloud", "monitoring"],
 		load: () => import("./portainer/index").then((m) => m.generate),
 	},
+	{
+		id: "stirling",
+		name: "Stirling PDF",
+		version: "0.30.1",
+		description: "A locally hosted one-stop shop for all your PDF needs",
+		logo: "stirling.svg",
+		links: {
+			github: "https://github.com/Stirling-Tools/Stirling-PDF",
+			website: "https://www.stirlingpdf.com/",
+			docs: "https://docs.stirlingpdf.com/",
+		},
+		tags: ["pdf", "tools"],
+		load: () => import("./portainer/index").then((m) => m.generate),
+	},
 ];
