@@ -659,4 +659,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "open-source", "os"],
 		load: () => import("./macos/index").then((m) => m.generate),
 	},
+	{
+		id: "coder",
+		name: "Coder",
+		version: "2.15.3",
+		description:
+			"Coder is an open-source cloud development environment (CDE) that you host in your cloud or on-premises.",
+		logo: "coder.svg",
+		links: {
+			github: "https://github.com/coder/coder",
+			website: "https://coder.com/",
+			docs: "https://coder.com/docs",
+		},
+		tags: ["self-hosted", "open-source", "builder"],
+		load: () => import("./coder/index").then((m) => m.generate),
+	},
 ];
