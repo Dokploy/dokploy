@@ -18,6 +18,11 @@ export const deploy = async (jobData: DeploymentJob) => {
 			},
 			body: JSON.stringify(jobData),
 		});
+
+		console.log("Status:", result.status);
+		console.log("Content-Type:", result.headers.get("content-type"));
+		console.log("Body:", await result.text());
+		console.log(result);
 		const data = await result.json();
 		console.log(data);
 		return data;
