@@ -359,14 +359,6 @@ export const composeRouter = createTRPCRouter({
 			const admin = await findAdminById(ctx.user.adminId);
 			let serverIp = admin.serverIp;
 
-			if (!admin.serverIp) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message:
-						"You need to have a server IP to deploy this template in order to generate domains",
-				});
-			}
-
 			const project = await findProjectById(input.projectId);
 
 			if (input.serverId) {
