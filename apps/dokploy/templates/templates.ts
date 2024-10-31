@@ -557,4 +557,32 @@ export const templates: TemplateData[] = [
 		tags: ["cloud", "monitoring"],
 		load: () => import("./portainer/index").then((m) => m.generate),
 	},
+	{
+		id: "stirling",
+		name: "Stirling PDF",
+		version: "0.30.1",
+		description: "A locally hosted one-stop shop for all your PDF needs",
+		logo: "stirling.svg",
+		links: {
+			github: "https://github.com/Stirling-Tools/Stirling-PDF",
+			website: "https://www.stirlingpdf.com/",
+			docs: "https://docs.stirlingpdf.com/",
+		},
+		tags: ["pdf", "tools"],
+		load: () => import("./stirling/index").then((m) => m.generate),
+	},
+	{
+		id: "lobe-chat",
+		name: "Lobe Chat",
+		version: "v1.26.1",
+		description: "Lobe Chat - an open-source, modern-design AI chat framework.",
+		logo: "lobe-chat.png",
+		links: {
+			github: "https://github.com/lobehub/lobe-chat",
+			website: "https://chat-preview.lobehub.com/",
+			docs: "https://lobehub.com/docs/self-hosting/platform/docker-compose",
+		},
+		tags: ["IA", "chat"],
+		load: () => import("./lobe-chat/index").then((m) => m.generate),
+	},
 ];
