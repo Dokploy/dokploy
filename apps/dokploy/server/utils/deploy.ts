@@ -7,6 +7,7 @@ export const deploy = async (jobData: DeploymentJob) => {
 		if (server.serverStatus === "inactive") {
 			throw new Error("Server is inactive");
 		}
+
 		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
 			method: "POST",
 			headers: {
@@ -15,11 +16,10 @@ export const deploy = async (jobData: DeploymentJob) => {
 			},
 			body: JSON.stringify(jobData),
 		});
+
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };

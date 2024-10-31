@@ -43,7 +43,6 @@ export const ShowDeploymentCompose = ({
 		};
 
 		ws.onclose = () => {
-			console.log("WebSocket connection closed");
 			wsRef.current = null;
 		};
 
