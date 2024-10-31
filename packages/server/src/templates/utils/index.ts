@@ -43,7 +43,7 @@ export const generatePassword = (quantity = 16): string => {
 			Math.floor(Math.random() * characters.length),
 		);
 	}
-	return password;
+	return password.toLowerCase();
 };
 
 export const generateBase64 = (bytes = 32): string => {
