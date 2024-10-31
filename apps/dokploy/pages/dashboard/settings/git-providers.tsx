@@ -49,7 +49,7 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-
+	await helpers.auth.get.prefetch();
 	try {
 		await helpers.project.all.prefetch();
 		await helpers.settings.isCloud.prefetch();

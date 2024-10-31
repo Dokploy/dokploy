@@ -45,6 +45,13 @@ export async function getServerSideProps(
 
 	await helpers.settings.isCloud.prefetch();
 
+	await helpers.auth.get.prefetch();
+	if (user?.rol === "user") {
+		await helpers.user.byAuthId.prefetch({
+			authId: user.authId,
+		});
+	}
+
 	if (!user) {
 		return {
 			redirect: {

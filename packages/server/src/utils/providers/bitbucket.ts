@@ -227,42 +227,42 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	const username =
 		bitbucketProvider.bitbucketWorkspaceName ||
 		bitbucketProvider.bitbucketUsername;
-	const url = `https://api.bitbucket.org/2.0/repositories/${username}?pagelen=100`;
+	let url = `https://api.bitbucket.org/2.0/repositories/${username}?pagelen=100`;
+	let repositories: {
+		name: string;
+		url: string;
+		owner: { username: string };
+	}[] = [];
 
 	try {
-		const response = await fetch(url, {
-			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
-		});
-
-		if (!response.ok) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Failed to fetch repositories: ${response.statusText}`,
+		while (url) {
+			const response = await fetch(url, {
+				method: "GET",
+				headers: {
+					Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+				},
 			});
-		}
 
-		const data = await response.json();
+			if (!response.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Failed to fetch repositories: ${response.statusText}`,
+				});
+			}
 
-		const mappedData = data.values.map((repo: any) => {
-			return {
+			const data = await response.json();
+
+			const mappedData = data.values.map((repo: any) => ({
 				name: repo.name,
 				url: repo.links.html.href,
 				owner: {
 					username: repo.workspace.slug,
 				},
-			};
-		});
-
-		return mappedData as {
-			name: string;
-			url: string;
-			owner: {
-				username: string;
-			};
-		}[];
+			}));
+			repositories = repositories.concat(mappedData);
+			url = data.next || null;
+		}
+		return repositories;
 	} catch (error) {
 		throw error;
 	}

@@ -15,7 +15,7 @@ export const stripeRouter = createTRPCRouter({
 		const admin = await findAdminById(ctx.user.adminId);
 		const stripeCustomerId = admin.stripeCustomerId;
 
-		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 			apiVersion: "2024-09-30.acacia",
 		});
 
@@ -51,7 +51,7 @@ export const stripeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 				apiVersion: "2024-09-30.acacia",
 			});
 
@@ -80,6 +80,7 @@ export const stripeRouter = createTRPCRouter({
 				metadata: {
 					adminId: admin.adminId,
 				},
+				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
@@ -98,7 +99,7 @@ export const stripeRouter = createTRPCRouter({
 			}
 			const stripeCustomerId = admin.stripeCustomerId;
 
-			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 				apiVersion: "2024-09-30.acacia",
 			});
 
