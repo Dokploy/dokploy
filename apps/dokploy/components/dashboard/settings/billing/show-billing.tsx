@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -148,6 +149,11 @@ export const ShowBilling = () => {
 											: "lg:py-8",
 									)}
 								>
+									{isAnnual && (
+										<div className="mb-4 flex flex-row items-center gap-2">
+											<Badge>Recommended 🚀</Badge>
+										</div>
+									)}
 									{isAnnual ? (
 										<div className="flex flex-row gap-2 items-center">
 											<p className=" text-2xl font-semibold tracking-tight text-primary ">

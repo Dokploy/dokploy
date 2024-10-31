@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  lobe-chat:
+    image: lobehub/lobe-chat:v1.26.1
+    restart: always
+    ports:
+      - 3210
+    environment:
+      OPENAI_API_KEY: sk-xxxx
+      OPENAI_PROXY_URL: https://api-proxy.com/v1
+      ACCESS_CODE: lobe66

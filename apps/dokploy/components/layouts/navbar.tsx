@@ -19,6 +19,7 @@ import { buttonVariants } from "../ui/button";
 export const Navbar = () => {
 	const router = useRouter();
 	const { data } = api.auth.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
@@ -130,6 +131,16 @@ export const Navbar = () => {
 									Settings
 								</DropdownMenuItem>
 							</DropdownMenuGroup>
+							{isCloud && data?.rol === "admin" && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/settings/billing");
+									}}
+								>
+									Billing
+								</DropdownMenuItem>
+							)}
 							<DropdownMenuSeparator />
 							<DropdownMenuItem
 								className="cursor-pointer"
