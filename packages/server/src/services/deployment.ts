@@ -196,7 +196,7 @@ const removeLastTenDeployments = async (
 		orderBy: desc(deployments.createdAt),
 	});
 
-	if (deploymentList.length >= 10) {
+	if (deploymentList.length > 10) {
 		const deploymentsToDelete = deploymentList.slice(10);
 		if (serverId) {
 			let command = "";
