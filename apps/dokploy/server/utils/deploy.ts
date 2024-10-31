@@ -18,10 +18,8 @@ export const deploy = async (jobData: DeploymentJob) => {
 		});
 
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };

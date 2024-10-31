@@ -62,9 +62,6 @@ export const setupDockerContainerTerminalWebSocketServer = (
 
 								stream
 									.on("close", (code: number, signal: string) => {
-										console.log(
-											`Stream :: close :: code: ${code}, signal: ${signal}`,
-										);
 										ws.send(`\nContainer closed with code: ${code}\n`);
 										conn.end();
 									})

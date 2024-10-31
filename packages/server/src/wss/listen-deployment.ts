@@ -33,7 +33,6 @@ export const setupDeploymentLogsWebSocketServer = (
 		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!logPath) {
-			console.log("logPath no provided");
 			ws.close(4000, "logPath no provided");
 			return;
 		}
@@ -63,7 +62,6 @@ export const setupDeploymentLogsWebSocketServer = (
 								}
 								stream
 									.on("close", () => {
-										console.log("Connection closed ✅");
 										client.end();
 										resolve();
 									})
