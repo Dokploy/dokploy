@@ -15,7 +15,7 @@ import {
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
 import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
-import { execAsyncRemote } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -30,7 +30,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
-		processComposeFile(compose);
+		await processComposeFile(compose);
 
 		const logContent = `
 App Name: ${appName}
@@ -194,44 +194,34 @@ const createEnvFile = (compose: ComposeNested) => {
 	writeFileSync(envFilePath, envFileContent);
 };
 
-export const processComposeFile = (compose: ComposeNested) => {
+export const processComposeFile = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
-	const { env, appName, sourceType, composeType } = compose;
+	let command = getProcessComposeFileCommand(compose);
 
-	const inputPath =
-		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-	const composeInputFilePath =
-		join(COMPOSE_PATH, appName, "code", inputPath) ||
-		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
-
-	const outputPath = "docker-compose.processed.yml";
-	const composeOutputFilePath =
-		join(COMPOSE_PATH, appName, "code", outputPath) ||
-		join(COMPOSE_PATH, appName, "code", "docker-compose.processed.yml");
-
-	let templateContent = readFileSync(composeInputFilePath, "utf8");
-
-	if (composeType === "stack") {
-		const envContent = prepareEnvironmentVariables(env || "").join("\n");
-		const envVariables = dotenv.parse(envContent);
-
-		templateContent = templateContent.replace(
-			/\$\{([^}]+)\}/g,
-			(_, varName) => {
-				return envVariables[varName] || "";
-			},
-		);
+	if (compose.serverId) {
+		command = `cd ${join(COMPOSE_PATH, compose.appName, "code")} && ${command}`;
+		await execAsyncRemote(compose.serverId, command);
+	} else {
+		await execAsync(command, {
+			cwd: join(COMPOSE_PATH, compose.appName, "code"),
+		});
 	}
-
-	writeFileSync(composeOutputFilePath, templateContent);
 };
 
 export const getProcessComposeFileCommand = (compose: ComposeNested) => {
 	const { composeType } = compose;
+
+	let command = "";
+
 	if (composeType === "stack") {
-		return "set -a; source .env; set +a; envsubst < docker-compose.yml > docker-compose.processed.yml";
+		command = `export $(grep -v '^#' .env | xargs) && docker stack config -c docker-compose.yml > docker-compose.processed.yml`;
 	}
-	return "cp docker-compose.yml docker-compose.processed.yml";
+
+	if (composeType === "docker-compose") {
+		command = "cp docker-compose.yml docker-compose.processed.yml";
+	}
+
+	return command;
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
