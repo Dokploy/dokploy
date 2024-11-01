@@ -71,7 +71,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 				Autodeploy {data?.autoDeploy && <CheckCircle2 className="size-4" />}
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
-			{data?.composeType === "docker-compose" && (
+			{["running", "done"].includes(data?.composeStatus || "") && (
 				<StopCompose composeId={composeId} />
 			)}
 
