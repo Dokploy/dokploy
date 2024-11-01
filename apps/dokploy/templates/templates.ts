@@ -635,7 +635,7 @@ export const templates: TemplateData[] = [
 		id: "windows",
 		name: "Windows (dockerized)",
 		version: "4.00",
-		description: "MacOS inside a Docker container.",
+		description: "Windows inside a Docker container.",
 		logo: "windows.png",
 		links: {
 			github: "https://github.com/dockur/windows",
