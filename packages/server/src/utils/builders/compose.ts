@@ -198,22 +198,22 @@ export const processComposeFile = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
 	const { env, appName, sourceType, composeType } = compose;
 
+	const inputPath =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const composeInputFilePath =
+		join(COMPOSE_PATH, appName, "code", inputPath) ||
+		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+
+	const outputPath = "docker-compose.processed.yml";
+	const composeOutputFilePath =
+		join(COMPOSE_PATH, appName, "code", outputPath) ||
+		join(COMPOSE_PATH, appName, "code", "docker-compose.processed.yml");
+
+	let templateContent = readFileSync(composeInputFilePath, "utf8");
+
 	if (composeType === "stack") {
-		const inputPath =
-			sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const composeInputFilePath =
-			join(COMPOSE_PATH, appName, "code", inputPath) ||
-			join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
-
-		const outputPath = "docker-compose.processed.yml";
-		const composeOutputFilePath =
-			join(COMPOSE_PATH, appName, "code", outputPath) ||
-			join(COMPOSE_PATH, appName, "code", "docker-compose.processed.yml");
-
 		const envContent = prepareEnvironmentVariables(env || "").join("\n");
 		const envVariables = dotenv.parse(envContent);
-
-		let templateContent = readFileSync(composeInputFilePath, "utf8");
 
 		templateContent = templateContent.replace(
 			/\$\{([^}]+)\}/g,
@@ -221,9 +221,9 @@ export const processComposeFile = (compose: ComposeNested) => {
 				return envVariables[varName] || "";
 			},
 		);
-
-		writeFileSync(composeOutputFilePath, templateContent);
 	}
+
+	writeFileSync(composeOutputFilePath, templateContent);
 };
 
 export const getProcessComposeFileCommand = (compose: ComposeNested) => {
