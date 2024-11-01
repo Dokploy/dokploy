@@ -51,7 +51,6 @@ export const createRedirect = async (
 
 		return true;
 	} catch (error) {
-		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create this redirect",

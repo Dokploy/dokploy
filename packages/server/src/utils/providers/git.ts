@@ -188,7 +188,6 @@ export const getCustomGitCloneCommand = async (
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };

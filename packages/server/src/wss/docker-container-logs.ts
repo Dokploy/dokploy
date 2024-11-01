@@ -64,7 +64,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 								}
 								stream
 									.on("close", () => {
-										console.log("Connection closed ✅");
 										client.end();
 										resolve();
 									})

@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import {
+	BookText,
 	CheckIcon,
 	ChevronsUpDown,
 	Code,
@@ -249,7 +250,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
 																	}
 																>
-																	<Globe className="size-4 text-muted-foreground" />
+																	<BookText className="size-4 text-muted-foreground" />
 																</Link>
 															)}
 															<Link
@@ -369,7 +370,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 													</AlertDialog>
 												</div>
 
-												<p className="text-sm text-muted-foreground">
+												<p className="text-sm text-muted-foreground line-clamp-3">
 													{template.description}
 												</p>
 											</div>
