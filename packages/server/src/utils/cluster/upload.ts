@@ -41,8 +41,6 @@ export const uploadImage = async (
 			}
 		});
 
-		console.log("docker push ", registryTag);
-
 		await spawnAsync("docker", ["push", registryTag], (data) => {
 			if (writeStream.writable) {
 				writeStream.write(data);
