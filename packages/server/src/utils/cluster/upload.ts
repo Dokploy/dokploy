@@ -19,7 +19,7 @@ export const uploadImage = async (
 
 	const finalURL = registryUrl;
 
-	const registryTag = join(finalURL, imagePrefix || "", imageName);
+	const registryTag = join(imagePrefix || "", imageName);
 
 	try {
 		writeStream.write(
@@ -68,7 +68,7 @@ export const uploadImageRemoteCommand = (
 
 	const finalURL = registryUrl;
 
-	const registryTag = join(finalURL, imagePrefix || "", imageName);
+	const registryTag = join(imagePrefix || "", imageName);
 
 	try {
 		const command = `
