@@ -101,7 +101,6 @@ const installRequirements = async (serverId: string, logPath: string) => {
 					}
 					stream
 						.on("close", () => {
-							writeStream.write("Connection closed ✅");
 							client.end();
 							resolve();
 						})
