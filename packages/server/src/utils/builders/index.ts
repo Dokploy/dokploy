@@ -199,7 +199,7 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		return join(registry.registryUrl, registry.imagePrefix || "", appName);
+		return join(registry.imagePrefix || "", appName);
 	}
 
 	return `${appName}:latest`;
