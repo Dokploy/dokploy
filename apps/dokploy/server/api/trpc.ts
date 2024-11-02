@@ -21,8 +21,6 @@ import {
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
-import { setupGPUSupport } from '@dokploy/server/src/utils/gpu-setup';
-
 /**
  * 1. CONTEXT
  *
@@ -209,10 +207,3 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
 		},
 	});
 });
-
-const appRouter = t.router({
-	setupGPU: t.procedure.mutation(async () => {
-	  await setupGPUSupport();
-	  return { success: true };
-	}),
-  });

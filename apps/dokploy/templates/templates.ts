@@ -516,7 +516,8 @@ export const templates: TemplateData[] = [
 		id: "blender",
 		name: "Blender",
 		version: "latest",
-		description: "Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
+		description:
+			"Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
 		logo: "blender.svg",
 		links: {
 			github: "https://github.com/linuxserver/docker-blender",
