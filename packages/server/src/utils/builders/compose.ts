@@ -2,14 +2,12 @@ import {
 	createWriteStream,
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
-import dotenv from "dotenv";
 import {
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
@@ -196,10 +194,9 @@ const createEnvFile = (compose: ComposeNested) => {
 
 export const processComposeFile = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
-	let command = getProcessComposeFileCommand(compose);
+	const command = getProcessComposeFileCommand(compose);
 
 	if (compose.serverId) {
-		command = `cd ${join(COMPOSE_PATH, compose.appName, "code")} && ${command}`;
 		await execAsyncRemote(compose.serverId, command);
 	} else {
 		await execAsync(command, {
