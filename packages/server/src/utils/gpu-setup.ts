@@ -1,7 +1,5 @@
-import { docker } from "../constants";
 import { execAsync } from "../utils/process/execAsync";
 import { execAsyncRemote } from "../utils/process/execAsync";
-import { getRemoteDocker } from "./servers/remote-docker";
 
 interface GPUInfo {
 	driverInstalled: boolean;
@@ -15,16 +13,6 @@ interface GPUInfo {
 	availableGPUs: number;
 	swarmEnabled: boolean;
 	gpuResources: number;
-}
-
-interface DiscreteResourceSpec {
-	Kind: string;
-	Value: number;
-}
-
-interface NamedGenericResource {
-	NamedResourceSpec?: { Kind: string; Value: string };
-	DiscreteResourceSpec?: DiscreteResourceSpec;
 }
 
 export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
