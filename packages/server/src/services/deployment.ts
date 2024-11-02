@@ -1,14 +1,14 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { paths } from "@/server/constants";
-import { db } from "@/server/db";
+import { paths } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
 	type apiCreateDeploymentServer,
 	deployments,
-} from "@/server/db/schema";
-import { removeDirectoryIfExistsContent } from "@/server/utils/filesystem/directory";
+} from "@dokploy/server/db/schema";
+import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -20,7 +20,7 @@ import {
 import { type Compose, findComposeById, updateCompose } from "./compose";
 import { type Server, findServerById } from "./server";
 
-import { execAsyncRemote } from "@/server/utils/process/execAsync";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -49,7 +49,10 @@ export const createDeployment = async (
 	const application = await findApplicationById(deployment.applicationId);
 
 	try {
-		// await removeLastTenDeployments(deployment.applicationId);
+		await removeLastTenDeployments(
+			deployment.applicationId,
+			application.serverId,
+		);
 		const { LOGS_PATH } = paths(!!application.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
@@ -106,7 +109,10 @@ export const createDeploymentCompose = async (
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	try {
-		// await removeLastTenComposeDeployments(deployment.composeId);
+		await removeLastTenComposeDeployments(
+			deployment.composeId,
+			compose.serverId,
+		);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
@@ -181,36 +187,72 @@ export const removeDeploymentsByApplicationId = async (
 		.returning();
 };
 
-const removeLastTenDeployments = async (applicationId: string) => {
+const removeLastTenDeployments = async (
+	applicationId: string,
+	serverId: string | null,
+) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments.applicationId, applicationId),
 		orderBy: desc(deployments.createdAt),
 	});
+
 	if (deploymentList.length > 10) {
 		const deploymentsToDelete = deploymentList.slice(10);
-		for (const oldDeployment of deploymentsToDelete) {
-			const logPath = path.join(oldDeployment.logPath);
-			if (existsSync(logPath)) {
-				await fsPromises.unlink(logPath);
+		if (serverId) {
+			let command = "";
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
 			}
-			await removeDeployment(oldDeployment.deploymentId);
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
 		}
 	}
 };
 
-const removeLastTenComposeDeployments = async (composeId: string) => {
+const removeLastTenComposeDeployments = async (
+	composeId: string,
+	serverId: string | null,
+) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments.composeId, composeId),
 		orderBy: desc(deployments.createdAt),
 	});
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
-		for (const oldDeployment of deploymentsToDelete) {
-			const logPath = path.join(oldDeployment.logPath);
-			if (existsSync(logPath)) {
-				await fsPromises.unlink(logPath);
+		if (serverId) {
+			let command = "";
+			const deploymentsToDelete = deploymentList.slice(10);
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
 			}
-			await removeDeployment(oldDeployment.deploymentId);
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			const deploymentsToDelete = deploymentList.slice(10);
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
 		}
 	}
 };
@@ -327,7 +369,6 @@ export const createServerDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create the deployment",

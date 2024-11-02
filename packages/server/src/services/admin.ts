@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { db } from "@/server/db";
+import { db } from "@dokploy/server/db";
 import {
 	admins,
 	type apiCreateUserInvitation,
 	auth,
 	users,
-} from "@/server/db/schema";
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
@@ -20,7 +20,7 @@ export const createInvitation = async (
 		const result = await tx
 			.insert(auth)
 			.values({
-				email: input.email,
+				email: input.email.toLowerCase(),
 				rol: "user",
 				password: bcrypt.hashSync("01231203012312", 10),
 			})

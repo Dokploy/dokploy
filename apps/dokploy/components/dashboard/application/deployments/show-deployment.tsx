@@ -37,7 +37,6 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 		};
 
 		ws.onclose = () => {
-			console.log("WebSocket connection closed");
 			wsRef.current = null; // Clear reference on close
 		};
 

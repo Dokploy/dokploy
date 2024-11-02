@@ -12,7 +12,6 @@
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"checkJs": true,
-
 		/* Bundled projects */
 		"lib": ["dom", "dom.iterable", "ES2022"],
 		"noEmit": true,
@@ -20,16 +19,15 @@
 		"moduleResolution": "Bundler",
 		"jsx": "preserve",
 		"plugins": [{ "name": "next" }],
-		"incremental": true,
 		"outDir": "./dist",
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/server/*": ["./src/*"]
+			"@dokploy/server/*": ["./src/*"]
 		}
 	},
-
 	"include": ["next-env.d.ts", "./src/**/*.ts"],
+
 	"exclude": [
 		"tsup.ts",
 		"node_modules",

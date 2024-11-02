@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById } from "@/server/services/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { validateWebSocketRequest } from "../auth/auth";
@@ -33,7 +33,6 @@ export const setupDeploymentLogsWebSocketServer = (
 		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!logPath) {
-			console.log("logPath no provided");
 			ws.close(4000, "logPath no provided");
 			return;
 		}
@@ -63,7 +62,6 @@ export const setupDeploymentLogsWebSocketServer = (
 								}
 								stream
 									.on("close", () => {
-										console.log("Connection closed ✅");
 										client.end();
 										resolve();
 									})

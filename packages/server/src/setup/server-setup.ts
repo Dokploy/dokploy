@@ -1,15 +1,15 @@
 import { createWriteStream } from "node:fs";
 import path from "node:path";
-import { paths } from "@/server/constants";
+import { paths } from "@dokploy/server/constants";
 import {
 	createServerDeployment,
 	updateDeploymentStatus,
-} from "@/server/services/deployment";
-import { findServerById } from "@/server/services/server";
+} from "@dokploy/server/services/deployment";
+import { findServerById } from "@dokploy/server/services/server";
 import {
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
-} from "@/server/setup/traefik-setup";
+} from "@dokploy/server/setup/traefik-setup";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
 
@@ -101,7 +101,6 @@ const installRequirements = async (serverId: string, logPath: string) => {
 					}
 					stream
 						.on("close", () => {
-							writeStream.write("Connection closed ✅");
 							client.end();
 							resolve();
 						})

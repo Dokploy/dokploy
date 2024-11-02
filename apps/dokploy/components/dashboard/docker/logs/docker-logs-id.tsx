@@ -30,7 +30,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		}
 
 		if (wsRef.current) {
-			console.log(wsRef.current);
 			if (wsRef.current.readyState === WebSocket.OPEN) {
 				wsRef.current.close();
 			}

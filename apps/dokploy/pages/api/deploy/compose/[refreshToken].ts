@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/deployments-queue";
+import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { IS_CLOUD } from "@dokploy/server";

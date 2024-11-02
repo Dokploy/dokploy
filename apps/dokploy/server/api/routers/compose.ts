@@ -9,11 +9,7 @@ import {
 	apiUpdateCompose,
 	compose,
 } from "@/server/db/schema";
-import {
-	type DeploymentJob,
-	cleanQueuesByCompose,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import {
@@ -28,6 +24,7 @@ import _ from "lodash";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
 import {
 	IS_CLOUD,
@@ -41,7 +38,6 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
-	findAdmin,
 	findAdminById,
 	findComposeById,
 	findDomainsByComposeId,
@@ -252,7 +248,6 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: "",
 				server: !!compose.serverId,
 			};
-			console.log(jobData);
 
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
@@ -362,15 +357,7 @@ export const composeRouter = createTRPCRouter({
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
 			const admin = await findAdminById(ctx.user.adminId);
-			let serverIp = admin.serverIp;
-
-			if (!admin.serverIp) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message:
-						"You need to have a server IP to deploy this template in order to generate domains",
-				});
-			}
+			let serverIp = admin.serverIp || "127.0.0.1";
 
 			const project = await findProjectById(input.projectId);
 

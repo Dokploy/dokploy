@@ -119,7 +119,7 @@ export const UpdateVolume = ({
 			} else if (typeForm === "file") {
 				form.reset({
 					content: data.content || "",
-					mountPath: data.mountPath,
+					mountPath: "/",
 					filePath: data.filePath || "",
 					type: "file",
 				});
@@ -296,15 +296,13 @@ export const UpdateVolume = ({
 							)}
 						</div>
 						<DialogFooter>
-							<DialogClose>
-								<Button
-									isLoading={isLoading}
-									form="hook-form-update-volume"
-									type="submit"
-								>
-									Update
-								</Button>
-							</DialogClose>
+							<Button
+								isLoading={isLoading}
+								// form="hook-form-update-volume"
+								type="submit"
+							>
+								Update
+							</Button>
 						</DialogFooter>
 					</form>
 				</Form>

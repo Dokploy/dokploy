@@ -1,14 +1,14 @@
 import { createWriteStream } from "node:fs";
 import { join } from "node:path";
-import { paths } from "@/server/constants";
-import type { apiGitlabTestConnection } from "@/server/db/schema";
-import type { Compose } from "@/server/services/compose";
+import { paths } from "@dokploy/server/constants";
+import type { apiGitlabTestConnection } from "@dokploy/server/db/schema";
+import type { Compose } from "@dokploy/server/services/compose";
 import {
 	type Gitlab,
 	findGitlabById,
 	updateGitlab,
-} from "@/server/services/gitlab";
-import type { InferResultType } from "@/server/types/with";
+} from "@dokploy/server/services/gitlab";
+import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
@@ -46,8 +46,6 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const data = await response.json();
 
 	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
-
-	console.log("Refreshed token");
 
 	await updateGitlab(gitlabProviderId, {
 		accessToken: data.access_token,

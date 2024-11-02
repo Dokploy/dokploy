@@ -1,5 +1,5 @@
 import type http from "node:http";
-import { findServerById } from "@/server/services/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -64,7 +64,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 								}
 								stream
 									.on("close", () => {
-										console.log("Connection closed ✅");
 										client.end();
 										resolve();
 									})

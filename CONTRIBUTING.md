@@ -71,10 +71,9 @@ Run the command that will spin up all the required services and files.
 pnpm run dokploy:setup
 ```
 
-Build the server package (If you make any changes after in the packages/server folder, you need to rebuild and run this command)
-
+Run this script 
 ```bash
-pnpm run server:build
+pnpm run server:script 
 ```
 
 Now run the development server.
@@ -243,30 +242,7 @@ export function generate(schema: Schema): Template {
 - If you want to show a domain in the UI, please add the prefix \_HOST at the end of the variable name.
 - Test first on a vps or a server to make sure the template works.
 
-## Docs
+## Docs & Website
 
-To run the docs locally, run the following command:
+To contribute to the Dokploy docs or website, please go to this [repository](https://github.com/Dokploy/website).
 
-```bash
-pnpm run docs:dev
-```
-
-To build the docs, run the following command:
-
-```bash
-pnpm run docs:build
-```
-
-## Website
-
-To run the website locally, run the following command:
-
-```bash
-pnpm run website:dev
-```
-
-To build the website, run the following command:
-
-```bash
-pnpm run website:build
-```

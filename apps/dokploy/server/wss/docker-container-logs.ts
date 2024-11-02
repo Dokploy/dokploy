@@ -63,7 +63,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 							}
 							stream
 								.on("close", () => {
-									console.log("Connection closed ✅ Container Logs");
 									client.end();
 									ws.close();
 								})
@@ -88,7 +87,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 						privateKey: server.sshKey?.privateKey,
 					});
 				ws.on("close", () => {
-					console.log("Connection closed ✅, From Container Logs WS");
 					client.end();
 				});
 			} else {

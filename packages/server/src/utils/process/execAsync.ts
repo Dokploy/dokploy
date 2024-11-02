@@ -1,6 +1,6 @@
 import { exec } from "node:child_process";
 import util from "node:util";
-import { findServerById } from "@/server/services/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 export const execAsync = util.promisify(exec);
 

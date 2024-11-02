@@ -1,7 +1,7 @@
 import path from "node:path";
-import type { BackupSchedule } from "@/server/services/backup";
-import type { Mongo } from "@/server/services/mongo";
-import { findProjectById } from "@/server/services/project";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import type { Mongo } from "@dokploy/server/services/mongo";
+import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,

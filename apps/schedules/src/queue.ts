@@ -3,7 +3,7 @@ import IORedis from "ioredis";
 import { logger } from "./logger";
 import type { QueueJob } from "./schema";
 
-export const connection = new IORedis(process.env.REDIS_URL || "", {
+export const connection = new IORedis(process.env.REDIS_URL!, {
 	maxRetriesPerRequest: null,
 });
 export const jobQueue = new Queue("backupQueue", {

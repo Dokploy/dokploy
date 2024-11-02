@@ -10,10 +10,9 @@
 		"moduleResolution": "Node",
 		"rootDir": "./src",
 		"baseUrl": ".",
-		"incremental": false,
 		"jsx": "react-jsx",
 		"paths": {
-			"@/server/*": ["src/*"]
+			"@dokploy/server/*": ["./src/*"]
 		}
 	},
 	"include": ["next-env.d.ts", "./src/**/*"],

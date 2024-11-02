@@ -1,7 +1,13 @@
-import type { DeploymentJob } from "../queues/deployments-queue";
+import { findServerById } from "@dokploy/server";
+import type { DeploymentJob } from "../queues/queue-types";
 
 export const deploy = async (jobData: DeploymentJob) => {
 	try {
+		const server = await findServerById(jobData.serverId as string);
+		if (server.serverStatus === "inactive") {
+			throw new Error("Server is inactive");
+		}
+
 		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
 			method: "POST",
 			headers: {
@@ -10,11 +16,10 @@ export const deploy = async (jobData: DeploymentJob) => {
 			},
 			body: JSON.stringify(jobData),
 		});
+
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };

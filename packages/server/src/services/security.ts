@@ -1,9 +1,9 @@
-import { db } from "@/server/db";
-import { type apiCreateSecurity, security } from "@/server/db/schema";
+import { db } from "@dokploy/server/db";
+import { type apiCreateSecurity, security } from "@dokploy/server/db/schema";
 import {
 	createSecurityMiddleware,
 	removeSecurityMiddleware,
-} from "@/server/utils/traefik/security";
+} from "@dokploy/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -48,7 +48,6 @@ export const createSecurity = async (
 			return true;
 		});
 	} catch (error) {
-		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create this security",

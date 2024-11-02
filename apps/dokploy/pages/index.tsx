@@ -1,5 +1,6 @@
 import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,12 +56,16 @@ type AuthResponse = {
 	authId: string;
 };
 
-export default function Home() {
+interface Props {
+	IS_CLOUD: boolean;
+}
+export default function Home({ IS_CLOUD }: Props) {
 	const [temp, setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading } = api.auth.login.useMutation();
+	const { mutateAsync, isLoading, error, isError } =
+		api.auth.login.useMutation();
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
@@ -112,6 +117,12 @@ export default function Home() {
 				</CardDescription>
 				<Card className="mx-auto w-full max-w-lg bg-transparent ">
 					<div className="p-3.5" />
+					{isError && (
+						<AlertBlock type="error" className="mx-4 my-2">
+							<span>{error?.message}</span>
+						</AlertBlock>
+					)}
+
 					<CardContent>
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>
@@ -167,22 +178,33 @@ export default function Home() {
 
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								<Link
-									className="hover:underline text-muted-foreground"
-									href="/register"
-								>
-									Create an account
-								</Link>
+								{IS_CLOUD && (
+									<Link
+										className="hover:underline text-muted-foreground"
+										href="/register"
+									>
+										Create an account
+									</Link>
+								)}
 							</div>
 
 							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
-								<Link
-									className="hover:underline text-muted-foreground"
-									href="https://docs.dokploy.com/docs/core/get-started/reset-password"
-									target="_blank"
-								>
-									Lost your password?
-								</Link>
+								{IS_CLOUD ? (
+									<Link
+										className="hover:underline text-muted-foreground"
+										href="/send-reset-password"
+									>
+										Lost your password?
+									</Link>
+								) : (
+									<Link
+										className="hover:underline text-muted-foreground"
+										href="https://docs.dokploy.com/docs/core/get-started/reset-password"
+										target="_blank"
+									>
+										Lost your password?
+									</Link>
+								)}
 							</div>
 						</div>
 						<div className="p-2" />
@@ -212,7 +234,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		} catch (error) {}
 
 		return {
-			props: {},
+			props: {
+				IS_CLOUD: IS_CLOUD,
+			},
 		};
 	}
 	const hasAdmin = await isAdminPresent();

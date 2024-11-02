@@ -1,10 +1,10 @@
-import { db } from "@/server/db";
-import { type apiCreateRedirect, redirects } from "@/server/db/schema";
+import { db } from "@dokploy/server/db";
+import { type apiCreateRedirect, redirects } from "@dokploy/server/db/schema";
 import {
 	createRedirectMiddleware,
 	removeRedirectMiddleware,
 	updateRedirectMiddleware,
-} from "@/server/utils/traefik/redirect";
+} from "@dokploy/server/utils/traefik/redirect";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -51,7 +51,6 @@ export const createRedirect = async (
 
 		return true;
 	} catch (error) {
-		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create this redirect",

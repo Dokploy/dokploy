@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Domain } from "@/server/services/domain";
+import type { Domain } from "@dokploy/server/services/domain";
 
 export interface Schema {
 	serverIp: string;
@@ -35,9 +35,15 @@ export const generateHash = (projectName: string, quantity = 3): string => {
 };
 
 export const generatePassword = (quantity = 16): string => {
-	return randomBytes(Math.ceil(quantity / 2))
-		.toString("hex")
-		.slice(0, quantity);
+	const characters =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	let password = "";
+	for (let i = 0; i < quantity; i++) {
+		password += characters.charAt(
+			Math.floor(Math.random() * characters.length),
+		);
+	}
+	return password.toLowerCase();
 };
 
 export const generateBase64 = (bytes = 32): string => {
