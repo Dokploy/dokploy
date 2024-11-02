@@ -113,7 +113,6 @@ export const setupTerminalWebSocketServer = (
 						});
 
 						ws.on("close", () => {
-							console.log("Connection closed ✅");
 							stream.end();
 						});
 					},

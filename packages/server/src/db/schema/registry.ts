@@ -1,11 +1,10 @@
-import { relations, sql } from "drizzle-orm";
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { admins } from "./admin";
 import { applications } from "./application";
-import { auth } from "./auth";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -48,7 +47,7 @@ const createSchema = createInsertSchema(registry, {
 	registryUrl: z.string(),
 	adminId: z.string().min(1),
 	registryId: z.string().min(1),
-	registryType: z.enum(["selfHosted", "cloud"]),
+	registryType: z.enum(["cloud"]),
 	imagePrefix: z.string().nullable().optional(),
 });
 
@@ -59,7 +58,7 @@ export const apiCreateRegistry = createSchema
 		username: z.string().min(1),
 		password: z.string().min(1),
 		registryUrl: z.string(),
-		registryType: z.enum(["selfHosted", "cloud"]),
+		registryType: z.enum(["cloud"]),
 		imagePrefix: z.string().nullable().optional(),
 	})
 	.required()
@@ -72,7 +71,7 @@ export const apiTestRegistry = createSchema.pick({}).extend({
 	username: z.string().min(1),
 	password: z.string().min(1),
 	registryUrl: z.string(),
-	registryType: z.enum(["selfHosted", "cloud"]),
+	registryType: z.enum(["cloud"]),
 	imagePrefix: z.string().nullable().optional(),
 	serverId: z.string().optional(),
 });
