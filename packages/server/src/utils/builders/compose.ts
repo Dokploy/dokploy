@@ -148,8 +148,17 @@ const sanitizeCommand = (command: string) => {
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 
-	const path =
-		sourceType === "raw" ? "docker-compose.processed.yml" : compose.composePath;
+	let path = "";
+
+	if (sourceType !== "raw") {
+		path = compose.composePath;
+	} else {
+		path =
+			composeType === "stack"
+				? "docker-compose.processed.yml"
+				: "docker-compose.yml";
+	}
+
 	let command = "";
 
 	if (composeType === "docker-compose") {
@@ -196,13 +205,9 @@ export const processComposeFile = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
 	const command = getProcessComposeFileCommand(compose);
 
-	if (compose.serverId) {
-		await execAsyncRemote(compose.serverId, command);
-	} else {
-		await execAsync(command, {
-			cwd: join(COMPOSE_PATH, compose.appName, "code"),
-		});
-	}
+	await execAsync(command, {
+		cwd: join(COMPOSE_PATH, compose.appName, "code"),
+	});
 };
 
 export const getProcessComposeFileCommand = (compose: ComposeNested) => {
@@ -212,10 +217,6 @@ export const getProcessComposeFileCommand = (compose: ComposeNested) => {
 
 	if (composeType === "stack") {
 		command = `export $(grep -v '^#' .env | xargs) && docker stack config -c docker-compose.yml > docker-compose.processed.yml`;
-	}
-
-	if (composeType === "docker-compose") {
-		command = "cp docker-compose.yml docker-compose.processed.yml";
 	}
 
 	return command;
