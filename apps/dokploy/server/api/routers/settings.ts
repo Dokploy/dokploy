@@ -55,7 +55,7 @@ import {
 import {
 	checkGPUStatus,
 	setupGPUSupport,
-} from "@dokploy/server/src/utils/gpu-setup";
+} from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
