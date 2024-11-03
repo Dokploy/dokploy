@@ -591,7 +591,7 @@ export const templates: TemplateData[] = [
 		name: "Docmost",
 		version: "0.4.1",
 		description:
-			"Docmost, an open-source collaborative wiki and documentation software.",
+			"Docmost, is an open-source collaborative wiki and documentation software.",
 		logo: "docmost.png",
 		links: {
 			github: "https://github.com/docmost/docmost",
@@ -607,7 +607,7 @@ export const templates: TemplateData[] = [
 		version: "1.32.3",
 		description:
 			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
-		logo: "vaultwarden.png",
+		logo: "vaultwarden.svg",
 		links: {
 			github: "https://github.com/dani-garcia/vaultwarden",
 			website: "",
