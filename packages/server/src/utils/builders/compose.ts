@@ -150,14 +150,16 @@ export const createCommand = (compose: ComposeNested) => {
 
 	let path = "";
 
-	if (sourceType !== "raw") {
-		path = compose.composePath;
-	} else {
+	if (sourceType === "raw") {
 		path =
 			composeType === "stack"
 				? "docker-compose.processed.yml"
 				: "docker-compose.yml";
+	} else {
+		path = compose.composePath;
 	}
+
+	console.log(path);
 
 	let command = "";
 
@@ -203,11 +205,12 @@ const createEnvFile = (compose: ComposeNested) => {
 
 export const processComposeFile = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
-	const command = getProcessComposeFileCommand(compose);
-
-	await execAsync(command, {
-		cwd: join(COMPOSE_PATH, compose.appName, "code"),
-	});
+	if (compose.composeType === "stack") {
+		const command = getProcessComposeFileCommand(compose);
+		await execAsync(command, {
+			cwd: join(COMPOSE_PATH, compose.appName, "code"),
+		});
+	}
 };
 
 export const getProcessComposeFileCommand = (compose: ComposeNested) => {
