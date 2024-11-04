@@ -159,8 +159,6 @@ export const createCommand = (compose: ComposeNested) => {
 		path = compose.composePath;
 	}
 
-	console.log(path);
-
 	let command = "";
 
 	if (composeType === "docker-compose") {
