@@ -235,6 +235,7 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -248,6 +249,7 @@ export const deployCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 		throw error;
 	}
@@ -353,6 +355,7 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -376,6 +379,7 @@ export const deployRemoteCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 		throw error;
 	}
