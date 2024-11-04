@@ -101,6 +101,9 @@ export const findApplicationById = async (applicationId: string) => {
 			bitbucket: true,
 			server: true,
 		},
+		columns: {
+			password: false,
+		},
 	});
 	if (!application) {
 		throw new TRPCError({

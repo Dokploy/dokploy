@@ -139,6 +139,9 @@ export const projectRouter = createTRPCRouter({
 				)})`,
 				with: {
 					applications: {
+						columns: {
+							password: false,
+						},
 						where: and(
 							buildServiceFilter(applications.applicationId, accesedServices),
 							eq(projects.adminId, ctx.user.adminId),
@@ -174,6 +177,9 @@ export const projectRouter = createTRPCRouter({
 		return await db.query.projects.findMany({
 			with: {
 				applications: {
+					columns: {
+						password: false,
+					},
 					with: {
 						domains: true,
 					},
