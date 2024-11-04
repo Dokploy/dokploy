@@ -135,19 +135,23 @@ export const projectRouter = createTRPCRouter({
 			if (accesedProjects.length === 0) {
 				return [];
 			}
+
 			const query = await db.query.projects.findMany({
-				where: sql`${projects.projectId} IN (${sql.join(
-					accesedProjects.map((projectId) => sql`${projectId}`),
-					sql`, `,
-				)})`,
+				where: and(
+					sql`${projects.projectId} IN (${sql.join(
+						accesedProjects.map((projectId) => sql`${projectId}`),
+						sql`, `,
+					)})`,
+					eq(projects.adminId, ctx.user.adminId),
+				),
 				with: {
 					applications: {
 						columns: {
 							password: false,
 						},
-						where: and(
-							buildServiceFilter(applications.applicationId, accesedServices),
-							eq(projects.adminId, ctx.user.adminId),
+						where: buildServiceFilter(
+							applications.applicationId,
+							accesedServices,
 						),
 						with: { domains: true },
 					},
