@@ -86,6 +86,9 @@ export const projectRouter = createTRPCRouter({
 								applications.applicationId,
 								accesedServices,
 							),
+							columns: {
+								password: false,
+							},
 						},
 						mariadb: {
 							where: buildServiceFilter(mariadb.mariadbId, accesedServices),
