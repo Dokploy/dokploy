@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -15,6 +15,7 @@ interface Props {
 	applicationName: string;
 	applicationType: string;
 	buildLink: string;
+	adminId: string;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -22,10 +23,14 @@ export const sendBuildSuccessNotifications = async ({
 	applicationName,
 	applicationType,
 	buildLink,
+	adminId,
 }: Props) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.appDeploy, true),
+		where: and(
+			eq(notifications.appDeploy, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,

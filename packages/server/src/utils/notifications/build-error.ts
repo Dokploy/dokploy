@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -16,6 +16,7 @@ interface Props {
 	applicationType: string;
 	errorMessage: string;
 	buildLink: string;
+	adminId: string;
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -24,10 +25,14 @@ export const sendBuildErrorNotifications = async ({
 	applicationType,
 	errorMessage,
 	buildLink,
+	adminId,
 }: Props) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.appBuildError, true),
+		where: and(
+			eq(notifications.appBuildError, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,

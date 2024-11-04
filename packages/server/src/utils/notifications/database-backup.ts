@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -16,16 +16,21 @@ export const sendDatabaseBackupNotifications = async ({
 	databaseType,
 	type,
 	errorMessage,
+	adminId,
 }: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
 	type: "error" | "success";
+	adminId: string;
 	errorMessage?: string;
 }) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.databaseBackup, true),
+		where: and(
+			eq(notifications.databaseBackup, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,
