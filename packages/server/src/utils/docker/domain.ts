@@ -268,7 +268,7 @@ export const createDomainLabels = async (
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
 
-	if (domain.path) {
+	if (domain.path && domain.path.length > 0 && domain.path !== "/") {
 		labels.push(
 			`traefik.http.routers.${routerName}.rule=PathPrefix(\`${domain.path}\`)`,
 		);
