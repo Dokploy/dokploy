@@ -52,10 +52,7 @@ import {
 	writeMainConfig,
 	writeTraefikConfigInPath,
 } from "@dokploy/server";
-import {
-	checkGPUStatus,
-	setupGPUSupport,
-} from "@dokploy/server";
+import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";

@@ -19,12 +19,12 @@ export function generate(schema: Schema): Template {
 	];
 
 	const envs = [
-		`PUID=1000`,
-		`PGID=1000`,
-		`TZ=Etc/UTC`,
-		`SUBFOLDER=/`,
-		`NVIDIA_VISIBLE_DEVICES=all`,
-		`NVIDIA_DRIVER_CAPABILITIES=all`,
+		"PUID=1000",
+		"PGID=1000",
+		"TZ=Etc/UTC",
+		"SUBFOLDER=/",
+		"NVIDIA_VISIBLE_DEVICES=all",
+		"NVIDIA_DRIVER_CAPABILITIES=all",
 	];
 
 	return {
