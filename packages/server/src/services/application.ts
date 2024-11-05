@@ -101,9 +101,6 @@ export const findApplicationById = async (applicationId: string) => {
 			bitbucket: true,
 			server: true,
 		},
-		columns: {
-			password: false,
-		},
 	});
 	if (!application) {
 		throw new TRPCError({
@@ -111,7 +108,12 @@ export const findApplicationById = async (applicationId: string) => {
 			message: "Application not found",
 		});
 	}
-	return application;
+	const applicationWithoutPassword: Application & { passwordLength?: number } =
+		application;
+	applicationWithoutPassword.passwordLength = application.password?.length || 0; // Calculate length
+	applicationWithoutPassword.password = ""; // Remove password
+
+	return applicationWithoutPassword;
 };
 
 export const findApplicationByName = async (appName: string) => {
