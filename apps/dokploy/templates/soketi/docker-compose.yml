@@ -2,8 +2,7 @@ version: "3"
 
 services:
   soketi:
-    image: quay.io/soketi/soketi:1.4-16-debian
-    container_name: soketi
+    image: quay.io/soketi/soketi:1.6.1-16-debian
     environment:
       SOKETI_DEBUG: "1"
       SOKETI_HOST: "0.0.0.0"

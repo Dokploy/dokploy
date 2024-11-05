@@ -246,7 +246,7 @@ export const settingsRouter = createTRPCRouter({
 							await cleanUpUnusedImages(server.serverId);
 							await cleanUpDockerBuilder(server.serverId);
 							await cleanUpSystemPrune(server.serverId);
-							await sendDockerCleanupNotifications();
+							await sendDockerCleanupNotifications(server.adminId);
 						});
 					}
 				} else {
@@ -282,7 +282,7 @@ export const settingsRouter = createTRPCRouter({
 						await cleanUpUnusedImages();
 						await cleanUpDockerBuilder();
 						await cleanUpSystemPrune();
-						await sendDockerCleanupNotifications();
+						await sendDockerCleanupNotifications(admin.adminId);
 					});
 				} else {
 					const currentJob = scheduledJobs["docker-cleanup"];

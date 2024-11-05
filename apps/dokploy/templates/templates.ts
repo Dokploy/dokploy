@@ -125,7 +125,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "uptime-kuma",
 		name: "Uptime Kuma",
-		version: "1.21.4",
+		version: "1.23.15",
 		description:
 			"Uptime Kuma is a free and open source monitoring tool that allows you to monitor your websites and applications.",
 		logo: "uptime-kuma.png",
@@ -218,7 +218,6 @@ export const templates: TemplateData[] = [
 		version: "v1.5.6",
 		description:
 			"Documenso is the open source alternative to DocuSign for signing documents digitally",
-
 		links: {
 			github: "https://github.com/documenso/documenso",
 			website: "https://documenso.com/",
@@ -231,7 +230,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "nocodb",
 		name: "NocoDB",
-		version: "0.251.1",
+		version: "0.257.2",
 		description:
 			"NocoDB is an opensource Airtable alternative that turns any MySQL, PostgreSQL, SQL Server, SQLite & MariaDB into a smart spreadsheet.",
 
@@ -441,7 +440,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "soketi",
 		name: "Soketi",
-		version: "v1.4-16",
+		version: "v1.6.1-16",
 		description:
 			"Soketi is your simple, fast, and resilient open-source WebSockets server.",
 		logo: "soketi.png",
@@ -485,7 +484,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "gitea",
 		name: "Gitea",
-		version: "1.22.2",
+		version: "1.22.3",
 		description:
 			"Git with a cup of tea! Painless self-hosted all-in-one software development service, including Git hosting, code review, team collaboration, package registry and CI/CD.",
 		logo: "gitea.png",
@@ -556,6 +555,124 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["cloud", "monitoring"],
 		load: () => import("./portainer/index").then((m) => m.generate),
+	},
+	{
+		id: "influxdb",
+		name: "InfluxDB",
+		version: "2.7.10",
+		description:
+			"InfluxDB 2.7 is the platform purpose-built to collect, store, process and visualize time series data.",
+		logo: "influxdb.png",
+		links: {
+			github: "https://github.com/influxdata/influxdb",
+			website: "https://www.influxdata.com/",
+			docs: "https://docs.influxdata.com/influxdb/v2/",
+		},
+		tags: ["self-hosted", "open-source", "storage", "database"],
+		load: () => import("./influxdb/index").then((m) => m.generate),
+	},
+	{
+		id: "infisical",
+		name: "Infisical",
+		version: "0.90.1",
+		description:
+			"All-in-one platform to securely manage application configuration and secrets across your team and infrastructure.",
+		logo: "infisical.jpg",
+		links: {
+			github: "https://github.com/Infisical/infisical",
+			website: "https://infisical.com/",
+			docs: "https://infisical.com/docs/documentation/getting-started/introduction",
+		},
+		tags: ["self-hosted", "open-source"],
+		load: () => import("./infisical/index").then((m) => m.generate),
+	},
+	{
+		id: "docmost",
+		name: "Docmost",
+		version: "0.4.1",
+		description:
+			"Docmost, is an open-source collaborative wiki and documentation software.",
+		logo: "docmost.png",
+		links: {
+			github: "https://github.com/docmost/docmost",
+			website: "https://docmost.com/",
+			docs: "https://docmost.com/docs/",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./docmost/index").then((m) => m.generate),
+	},
+	{
+		id: "vaultwarden",
+		name: "Vaultwarden",
+		version: "1.32.3",
+		description:
+			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
+		logo: "vaultwarden.svg",
+		links: {
+			github: "https://github.com/dani-garcia/vaultwarden",
+			website: "",
+			docs: "https://github.com/dani-garcia/vaultwarden/wiki",
+		},
+		tags: ["open-source"],
+		load: () => import("./vaultwarden/index").then((m) => m.generate),
+	},
+	{
+		id: "hi-events",
+		name: "Hi.events",
+		version: "0.8.0-beta.1",
+		description:
+			"Hi.Events is a self-hosted event management and ticket selling platform that allows you to create, manage and promote events easily.",
+		logo: "hi-events.svg",
+		links: {
+			github: "https://github.com/HiEventsDev/hi.events",
+			website: "https://hi.events/",
+			docs: "https://hi.events/docs",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./hi-events/index").then((m) => m.generate),
+	},
+	{
+		id: "windows",
+		name: "Windows (dockerized)",
+		version: "4.00",
+		description: "Windows inside a Docker container.",
+		logo: "windows.png",
+		links: {
+			github: "https://github.com/dockur/windows",
+			website: "",
+			docs: "https://github.com/dockur/windows?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./windows/index").then((m) => m.generate),
+	},
+	{
+		id: "macos",
+		name: "MacOS (dockerized)",
+		version: "1.14",
+		description: "MacOS inside a Docker container.",
+		logo: "macos.png",
+		links: {
+			github: "https://github.com/dockur/macos",
+			website: "",
+			docs: "https://github.com/dockur/macos?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./macos/index").then((m) => m.generate),
+	},
+	{
+		id: "coder",
+		name: "Coder",
+		version: "2.15.3",
+		description:
+			"Coder is an open-source cloud development environment (CDE) that you host in your cloud or on-premises.",
+		logo: "coder.svg",
+		links: {
+			github: "https://github.com/coder/coder",
+			website: "https://coder.com/",
+			docs: "https://coder.com/docs",
+		},
+		tags: ["self-hosted", "open-source", "builder"],
+		load: () => import("./coder/index").then((m) => m.generate),
 	},
 	{
 		id: "stirling",
