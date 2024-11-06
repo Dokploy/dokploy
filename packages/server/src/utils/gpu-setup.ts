@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import { execAsync } from "../utils/process/execAsync";
 import { execAsyncRemote } from "../utils/process/execAsync";
 
@@ -191,18 +192,36 @@ export async function setupGPUSupport(serverId?: string): Promise<void> {
 			"node-generic-resources": [`GPU=${initialStatus.availableGPUs}`],
 		};
 
-		const setupCommands = [
-			"sudo -n true",
-			`echo '${JSON.stringify(daemonConfig, null, 2)}' | sudo tee /etc/docker/daemon.json`,
-			"sudo mkdir -p /etc/nvidia-container-runtime",
-			'echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" | sudo tee -a /etc/nvidia-container-runtime/config.toml',
-			"sudo systemctl daemon-reload",
-			"sudo systemctl restart docker",
-		].join(" && ");
-
+		// Different commands for local and remote setup
 		if (serverId) {
+			// Remote server setup (using sudo)
+			const setupCommands = [
+				"sudo -n true",
+				`echo '${JSON.stringify(daemonConfig, null, 2)}' | sudo tee /etc/docker/daemon.json`,
+				"sudo mkdir -p /etc/nvidia-container-runtime",
+				'echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" | sudo tee -a /etc/nvidia-container-runtime/config.toml',
+				"sudo systemctl daemon-reload",
+				"sudo systemctl restart docker",
+			].join(" && ");
+
 			await execAsyncRemote(serverId, setupCommands);
 		} else {
+			// Local server setup (using pkexec for GUI password prompt)
+			const configFile = `/tmp/docker-daemon-${Date.now()}.json`;
+			await fs.writeFile(configFile, JSON.stringify(daemonConfig, null, 2));
+
+			const setupCommands = [
+				// Use pkexec for GUI password prompt
+				`pkexec sh -c '
+					cp ${configFile} /etc/docker/daemon.json && 
+					mkdir -p /etc/nvidia-container-runtime && 
+					echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" >> /etc/nvidia-container-runtime/config.toml && 
+					systemctl daemon-reload && 
+					systemctl restart docker
+				'`,
+				`rm ${configFile}`, // Clean up temp file
+			].join(" && ");
+
 			await execAsync(setupCommands);
 		}
 
@@ -244,6 +263,14 @@ export async function setupGPUSupport(serverId?: string): Promise<void> {
 		});
 	} catch (error) {
 		console.error("GPU Setup Error:", error);
+		if (
+			error instanceof Error &&
+			error.message.includes("password is required")
+		) {
+			throw new Error(
+				"Sudo access required. Please run with appropriate permissions.",
+			);
+		}
 		throw error;
 	}
 }

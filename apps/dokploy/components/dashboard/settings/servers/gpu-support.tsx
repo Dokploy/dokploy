@@ -26,7 +26,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 		api.settings.checkGPUStatus.useQuery(
 			{ serverId },
 			{
-				enabled: !!serverId,
+				enabled: serverId !== undefined,
 				refetchInterval: 5000,
 			},
 		);
@@ -38,17 +38,20 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 		onSuccess: async () => {
 			toast.success("GPU support enabled successfully");
 			setIsLoading(false);
-
-			await Promise.all([
-				utils.settings.checkGPUStatus.invalidate({ serverId }),
-				utils.server.invalidate(),
-			]);
+			await utils.settings.checkGPUStatus.invalidate({ serverId });
 		},
 		onError: (error) => {
 			if (error instanceof TRPCClientError) {
 				const errorMessage = error.message;
-				if (errorMessage.includes("permission denied")) {
-					toast.error("Permission denied. Please ensure proper sudo access.");
+				if (
+					errorMessage.includes(
+						"Permission denied. Please ensure proper sudo access.",
+					) ||
+					errorMessage.includes("sudo access required")
+				) {
+					toast.error(
+						"Administrator privileges required. Please enter your password when prompted.",
+					);
 				} else if (errorMessage.includes("Failed to configure GPU")) {
 					toast.error(
 						"GPU configuration failed. Please check system requirements.",
@@ -59,13 +62,12 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			} else {
 				toast.error("Failed to enable GPU support. Please check server logs.");
 			}
-
 			setIsLoading(false);
 		},
 	});
 
 	const handleEnableGPU = async () => {
-		if (!serverId) {
+		if (serverId === undefined) {
 			toast.error("No server selected");
 			return;
 		}
@@ -99,7 +101,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 							>
 								<Button
 									isLoading={isLoading}
-									disabled={isLoading || !serverId || isChecking}
+									disabled={isLoading || serverId === undefined || isChecking}
 								>
 									{isLoading
 										? "Enabling GPU..."
@@ -227,7 +229,7 @@ interface StatusRowProps {
 	showIcon?: boolean;
 }
 
-function StatusRow({
+export function StatusRow({
 	label,
 	isEnabled,
 	description,

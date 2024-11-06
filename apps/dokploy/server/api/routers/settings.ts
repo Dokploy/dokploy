@@ -661,33 +661,20 @@ export const settingsRouter = createTRPCRouter({
 	setupGPU: adminProcedure
 		.input(
 			z.object({
-				serverId: z.string(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				throw new Error("GPU setup is not available in cloud mode");
+			}
+
 			try {
-				if (IS_CLOUD) {
-					return { success: true };
-				}
-
-				if (!input.serverId) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Server ID is required",
-					});
-				}
-
 				await setupGPUSupport(input.serverId);
 				return { success: true };
 			} catch (error) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error
-							? error.message
-							: "Failed to enable GPU support",
-					cause: error,
-				});
+				console.error("GPU Setup Error:", error);
+				throw error;
 			}
 		}),
 	checkGPUStatus: adminProcedure
@@ -712,7 +699,15 @@ export const settingsRouter = createTRPCRouter({
 					gpuResources: 0,
 				};
 			}
-			return await checkGPUStatus(input.serverId);
+
+			try {
+				const status = await checkGPUStatus(input.serverId || "");
+				console.log("GPU Status Check Result:", status);
+				return status;
+			} catch (error) {
+				console.error("GPU Status Check Error:", error);
+				throw new Error("Failed to check GPU status");
+			}
 		}),
 });
 // {
