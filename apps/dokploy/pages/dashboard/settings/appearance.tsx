@@ -2,9 +2,11 @@ import { AppearanceForm } from "@/components/dashboard/settings/appearance-form"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
@@ -30,6 +32,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req, res);
+	const locale = getLocale(req.cookies);
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -63,6 +66,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

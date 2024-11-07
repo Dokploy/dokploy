@@ -1,0 +1,11 @@
+{
+	"settings": {
+		"profile": {
+			"title": "账户偏好"
+		},
+		"appearance": {
+			"title": "外观",
+			"description": "自定义仪表板主题。"
+		}
+	}
+}

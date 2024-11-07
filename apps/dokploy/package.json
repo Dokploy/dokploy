@@ -86,6 +86,7 @@
 		"drizzle-zod": "0.5.1",
 		"i18next": "^23.16.4",
 		"input-otp": "^1.2.4",
+		"js-cookie": "^3.0.5",
 		"js-yaml": "4.1.0",
 		"lodash": "4.17.21",
 		"lucia": "^3.0.1",
@@ -122,6 +123,7 @@
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.5",
 		"@types/bcrypt": "5.0.2",
+		"@types/js-cookie": "^3.0.6",
 		"@types/js-yaml": "4.0.9",
 		"@types/lodash": "4.17.4",
 		"@types/node": "^18.17.0",

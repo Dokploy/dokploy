@@ -52,7 +52,7 @@ const randomImages = [
 export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
-	const { t } = useTranslation("common");
+	const { t } = useTranslation("settings");
 
 	const form = useForm<Profile>({
 		defaultValues: {
@@ -94,7 +94,7 @@ export const ProfileForm = () => {
 			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 				<div>
 					<CardTitle className="text-xl">
-						{t("dashboard.settings.profile.title")}
+						{t("settings.profile.title")}
 					</CardTitle>
 					<CardDescription>
 						Change the details of your profile here.

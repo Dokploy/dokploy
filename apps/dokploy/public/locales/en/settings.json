@@ -1,0 +1,11 @@
+{
+	"settings": {
+		"profile": {
+			"title": "Account"
+		},
+		"appearance": {
+			"title": "Appearance",
+			"description": "Customize the theme of your dashboard."
+		}
+	}
+}
