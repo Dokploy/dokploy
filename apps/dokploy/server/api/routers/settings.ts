@@ -665,8 +665,8 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			if (IS_CLOUD) {
-				throw new Error("GPU setup is not available in cloud mode");
+			if (IS_CLOUD && !input.serverId) {
+				throw new Error("Select a server to enable the GPU Setup");
 			}
 
 			try {
@@ -684,7 +684,7 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (IS_CLOUD) {
+			if (IS_CLOUD && !input.serverId) {
 				return {
 					driverInstalled: false,
 					driverVersion: undefined,

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { TRPCClientError } from "@trpc/client";
-import { CheckCircle2, Cpu, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,16 +20,19 @@ interface GPUSupportProps {
 
 export function GPUSupport({ serverId }: GPUSupportProps) {
 	const [isLoading, setIsLoading] = useState(false);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 	const utils = api.useContext();
 
-	const { data: gpuStatus, isLoading: isChecking } =
-		api.settings.checkGPUStatus.useQuery(
-			{ serverId },
-			{
-				enabled: serverId !== undefined,
-				refetchInterval: 5000,
-			},
-		);
+	const {
+		data: gpuStatus,
+		isLoading: isChecking,
+		refetch,
+	} = api.settings.checkGPUStatus.useQuery(
+		{ serverId },
+		{
+			enabled: serverId !== undefined,
+		},
+	);
 
 	const setupGPU = api.settings.setupGPU.useMutation({
 		onMutate: () => {
@@ -41,30 +44,19 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 		},
 		onError: (error) => {
-			if (error instanceof TRPCClientError) {
-				const errorMessage = error.message;
-				if (
-					errorMessage.includes(
-						"Permission denied. Please ensure proper sudo access.",
-					) ||
-					errorMessage.includes("sudo access required")
-				) {
-					toast.error(
-						"Administrator privileges required. Please enter your password when prompted.",
-					);
-				} else if (errorMessage.includes("Failed to configure GPU")) {
-					toast.error(
-						"GPU configuration failed. Please check system requirements.",
-					);
-				} else {
-					toast.error(errorMessage);
-				}
-			} else {
-				toast.error("Failed to enable GPU support. Please check server logs.");
-			}
+			toast.error(
+				error.message ||
+					"Failed to enable GPU support. Please check server logs.",
+			);
 			setIsLoading(false);
 		},
 	});
+
+	const handleRefresh = async () => {
+		setIsRefreshing(true);
+		await refetch();
+		setIsRefreshing(false);
+	};
 
 	const handleEnableGPU = async () => {
 		if (serverId === undefined) {
@@ -94,22 +86,33 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 									Configure and monitor GPU support
 								</CardDescription>
 							</div>
-							<DialogAction
-								title="Enable GPU Support?"
-								description="This will enable GPU support for Docker Swarm on this server. Make sure you have the required hardware and drivers installed."
-								onClick={handleEnableGPU}
-							>
-								<Button
-									isLoading={isLoading}
-									disabled={isLoading || serverId === undefined || isChecking}
+							<div className="flex items-center gap-2">
+								<DialogAction
+									title="Enable GPU Support?"
+									description="This will enable GPU support for Docker Swarm on this server. Make sure you have the required hardware and drivers installed."
+									onClick={handleEnableGPU}
 								>
-									{isLoading
-										? "Enabling GPU..."
-										: gpuStatus?.swarmEnabled
-											? "Reconfigure GPU"
-											: "Enable GPU"}
+									<Button
+										isLoading={isLoading}
+										disabled={isLoading || serverId === undefined || isChecking}
+									>
+										{isLoading
+											? "Enabling GPU..."
+											: gpuStatus?.swarmEnabled
+												? "Reconfigure GPU"
+												: "Enable GPU"}
+									</Button>
+								</DialogAction>
+								<Button
+									size="icon"
+									onClick={handleRefresh}
+									disabled={isChecking || isRefreshing}
+								>
+									<RefreshCw
+										className={`h-5 w-5 ${isChecking || isRefreshing ? "animate-spin" : ""}`}
+									/>
 								</Button>
-							</DialogAction>
+							</div>
 						</div>
 					</CardHeader>
 
@@ -117,9 +120,17 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 						<AlertBlock type="info">
 							<div className="font-medium mb-2">System Requirements:</div>
 							<ul className="list-disc list-inside text-sm space-y-1">
-								<li>NVIDIA drivers must be installed on the host system</li>
-								<li>NVIDIA Container Runtime is required for GPU support</li>
-								<li>Compatible GPU hardware must be present</li>
+								<li>NVIDIA GPU hardware must be physically installed</li>
+								<li>
+									NVIDIA drivers must be installed and running (check with
+									nvidia-smi)
+								</li>
+								<li>
+									NVIDIA Container Runtime must be installed
+									(nvidia-container-runtime)
+								</li>
+								<li>User must have sudo/administrative privileges</li>
+								<li>System must support CUDA for GPU acceleration</li>
 							</ul>
 						</AlertBlock>
 

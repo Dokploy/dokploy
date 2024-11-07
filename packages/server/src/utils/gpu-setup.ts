@@ -18,117 +18,21 @@ interface GPUInfo {
 
 export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
 	try {
-		// Check NVIDIA Driver
-		let driverInstalled = false;
-		let driverVersion: string | undefined;
-		let availableGPUs = 0;
-
-		try {
-			const driverCommand =
-				"nvidia-smi --query-gpu=driver_version --format=csv,noheader";
-			const { stdout: nvidiaSmi } = serverId
-				? await execAsyncRemote(serverId, driverCommand)
-				: await execAsync(driverCommand);
-
-			driverVersion = nvidiaSmi.trim();
-			if (driverVersion) {
-				driverInstalled = true;
-				const countCommand =
-					"nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l";
-				const { stdout: gpuCount } = serverId
-					? await execAsyncRemote(serverId, countCommand)
-					: await execAsync(countCommand);
-
-				availableGPUs = Number.parseInt(gpuCount.trim(), 10);
-			}
-		} catch (error) {
-			console.debug("GPU driver check:", error);
-		}
-
-		// Check Runtime Configuration
-		let runtimeInstalled = false;
-		let runtimeConfigured = false;
-		try {
-			const runtimeCommand = 'docker info --format "{{json .Runtimes}}"';
-			const { stdout: runtimeInfo } = serverId
-				? await execAsyncRemote(serverId, runtimeCommand)
-				: await execAsync(runtimeCommand);
-
-			const runtimes = JSON.parse(runtimeInfo);
-			runtimeInstalled = "nvidia" in runtimes;
-
-			// Check if it's the default runtime
-			const defaultCommand = 'docker info --format "{{.DefaultRuntime}}"';
-			const { stdout: defaultRuntime } = serverId
-				? await execAsyncRemote(serverId, defaultCommand)
-				: await execAsync(defaultCommand);
-
-			runtimeConfigured = defaultRuntime.trim() === "nvidia";
-		} catch (error) {
-			console.debug("Runtime check:", error);
-		}
-
-		// Check Swarm GPU Resources
-		let swarmEnabled = false;
-		let gpuResources = 0;
-
-		try {
-			// Check node resources directly from inspect
-			const nodeCommand =
-				"docker node inspect self --format '{{json .Description.Resources.GenericResources}}'";
-			const { stdout: resources } = serverId
-				? await execAsyncRemote(serverId, nodeCommand)
-				: await execAsync(nodeCommand);
-
-			if (resources && resources !== "null") {
-				const genericResources = JSON.parse(resources);
-				for (const resource of genericResources) {
-					if (
-						resource.DiscreteResourceSpec &&
-						(resource.DiscreteResourceSpec.Kind === "GPU" ||
-							resource.DiscreteResourceSpec.Kind === "gpu")
-					) {
-						gpuResources = resource.DiscreteResourceSpec.Value;
-						swarmEnabled = true;
-						break;
-					}
-				}
-			}
-		} catch (error) {
-			console.debug("Swarm resource check:", error);
-		}
-
-		// Get GPU Model and Memory Info
-		const gpuInfoCommand =
-			"nvidia-smi --query-gpu=gpu_name,memory.total --format=csv,noheader";
-		const { stdout: gpuInfo } = serverId
-			? await execAsyncRemote(serverId, gpuInfoCommand)
-			: await execAsync(gpuInfoCommand);
-
-		const [gpuModel, memoryTotal] = gpuInfo.split(",").map((s) => s.trim());
-
-		// Check CUDA Support
-		const cudaCommand = 'nvidia-smi -q | grep "CUDA Version"';
-		const { stdout: cudaInfo } = serverId
-			? await execAsyncRemote(serverId, cudaCommand)
-			: await execAsync(cudaCommand);
-
-		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d\.]+)/);
-		const cudaVersion = cudaMatch ? cudaMatch[1] : undefined;
-		const cudaSupport = !!cudaVersion;
+		const [driverInfo, runtimeInfo, swarmInfo, gpuInfo, cudaInfo] =
+			await Promise.all([
+				checkGpuDriver(serverId),
+				checkRuntime(serverId),
+				checkSwarmResources(serverId),
+				checkGpuInfo(serverId),
+				checkCudaSupport(serverId),
+			]);
 
 		return {
-			driverInstalled,
-			driverVersion,
-			runtimeInstalled,
-			runtimeConfigured,
-			availableGPUs,
-			swarmEnabled,
-			gpuResources,
-			gpuModel,
-			memoryInfo: memoryTotal,
-			cudaSupport,
-			cudaVersion,
+			...driverInfo,
+			...runtimeInfo,
+			...swarmInfo,
+			...gpuInfo,
+			...cudaInfo,
 		};
 	} catch (error) {
 		console.error("Error in checkGPUStatus:", error);
@@ -148,118 +52,167 @@ export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
 	}
 }
 
+const checkGpuDriver = async (serverId?: string) => {
+	let driverVersion: string | undefined;
+	let driverInstalled = false;
+	let availableGPUs = 0;
+
+	try {
+		const driverCommand =
+			"nvidia-smi --query-gpu=driver_version --format=csv,noheader";
+		const { stdout: nvidiaSmi } = serverId
+			? await execAsyncRemote(serverId, driverCommand)
+			: await execAsync(driverCommand);
+
+		driverVersion = nvidiaSmi.trim();
+		if (driverVersion) {
+			driverInstalled = true;
+			const countCommand =
+				"nvidia-smi --query-gpu=gpu_name --format=csv,noheader | wc -l";
+			const { stdout: gpuCount } = serverId
+				? await execAsyncRemote(serverId, countCommand)
+				: await execAsync(countCommand);
+
+			availableGPUs = Number.parseInt(gpuCount.trim(), 10);
+		}
+	} catch (error) {
+		console.debug("GPU driver check:", error);
+	}
+
+	return { driverVersion, driverInstalled, availableGPUs };
+};
+
+const checkRuntime = async (serverId?: string) => {
+	let runtimeInstalled = false;
+	let runtimeConfigured = false;
+
+	try {
+		const runtimeCommand = 'docker info --format "{{json .Runtimes}}"';
+		const { stdout: runtimeInfo } = serverId
+			? await execAsyncRemote(serverId, runtimeCommand)
+			: await execAsync(runtimeCommand);
+
+		const runtimes = JSON.parse(runtimeInfo);
+		runtimeInstalled = "nvidia" in runtimes;
+
+		const defaultCommand = 'docker info --format "{{.DefaultRuntime}}"';
+		const { stdout: defaultRuntime } = serverId
+			? await execAsyncRemote(serverId, defaultCommand)
+			: await execAsync(defaultCommand);
+
+		runtimeConfigured = defaultRuntime.trim() === "nvidia";
+	} catch (error) {
+		console.debug("Runtime check:", error);
+	}
+
+	return { runtimeInstalled, runtimeConfigured };
+};
+
+const checkSwarmResources = async (serverId?: string) => {
+	let swarmEnabled = false;
+	let gpuResources = 0;
+
+	try {
+		const nodeCommand =
+			"docker node inspect self --format '{{json .Description.Resources.GenericResources}}'";
+		const { stdout: resources } = serverId
+			? await execAsyncRemote(serverId, nodeCommand)
+			: await execAsync(nodeCommand);
+
+		if (resources && resources !== "null") {
+			const genericResources = JSON.parse(resources);
+			for (const resource of genericResources) {
+				if (
+					resource.DiscreteResourceSpec &&
+					(resource.DiscreteResourceSpec.Kind === "GPU" ||
+						resource.DiscreteResourceSpec.Kind === "gpu")
+				) {
+					gpuResources = resource.DiscreteResourceSpec.Value;
+					swarmEnabled = true;
+					break;
+				}
+			}
+		}
+	} catch (error) {
+		console.debug("Swarm resource check:", error);
+	}
+
+	return { swarmEnabled, gpuResources };
+};
+
+const checkGpuInfo = async (serverId?: string) => {
+	let gpuModel: string | undefined;
+	let memoryInfo: string | undefined;
+
+	try {
+		const gpuInfoCommand =
+			"nvidia-smi --query-gpu=gpu_name,memory.total --format=csv,noheader";
+		const { stdout: gpuInfo } = serverId
+			? await execAsyncRemote(serverId, gpuInfoCommand)
+			: await execAsync(gpuInfoCommand);
+
+		[gpuModel, memoryInfo] = gpuInfo.split(",").map((s) => s.trim());
+	} catch (error) {
+		console.debug("GPU info check:", error);
+	}
+
+	return { gpuModel, memoryInfo };
+};
+
+const checkCudaSupport = async (serverId?: string) => {
+	let cudaVersion: string | undefined;
+	let cudaSupport = false;
+
+	try {
+		const cudaCommand = 'nvidia-smi -q | grep "CUDA Version"';
+		const { stdout: cudaInfo } = serverId
+			? await execAsyncRemote(serverId, cudaCommand)
+			: await execAsync(cudaCommand);
+
+		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d\.]+)/);
+		cudaVersion = cudaMatch ? cudaMatch[1] : undefined;
+		cudaSupport = !!cudaVersion;
+	} catch (error) {
+		console.debug("CUDA support check:", error);
+	}
+
+	return { cudaVersion, cudaSupport };
+};
+
 export async function setupGPUSupport(serverId?: string): Promise<void> {
 	try {
-		// 1. Check current GPU status first
+		// 1. Initial status check and validation
 		const initialStatus = await checkGPUStatus(serverId);
+		const shouldContinue = await validatePrerequisites(initialStatus);
+		if (!shouldContinue) return;
 
-		// If GPU is already configured, just verify and return quickly
-		if (
-			initialStatus.swarmEnabled &&
-			initialStatus.runtimeConfigured &&
-			initialStatus.driverInstalled
-		) {
-			console.log("GPU already configured, skipping setup");
-			return;
-		}
+		// 2. Get node ID
+		const nodeId = await getNodeId(serverId);
 
-		// 2. Verify GPU prerequisites
-		if (!initialStatus.driverInstalled || !initialStatus.runtimeInstalled) {
-			throw new Error(
-				"NVIDIA drivers or runtime not installed. Please install them first.",
-			);
-		}
+		// 3. Create daemon configuration
+		const daemonConfig = createDaemonConfig(initialStatus.availableGPUs);
 
-		// Get the node ID
-		const nodeIdCommand = 'docker info --format "{{.Swarm.NodeID}}"';
-		const { stdout: nodeId } = serverId
-			? await execAsyncRemote(serverId, nodeIdCommand)
-			: await execAsync(nodeIdCommand);
-
-		if (!nodeId.trim()) {
-			throw new Error("Setup Server before enabling GPU support");
-		}
-
-		// 3. Configure NVIDIA runtime in daemon.json
-		const daemonConfig = {
-			runtimes: {
-				nvidia: {
-					path: "nvidia-container-runtime",
-					runtimeArgs: [],
-				},
-			},
-			"default-runtime": "nvidia",
-			"node-generic-resources": [`GPU=${initialStatus.availableGPUs}`],
-		};
-
-		// Different commands for local and remote setup
+		// 4. Setup server based on environment
 		if (serverId) {
-			// Remote server setup (using sudo)
-			const setupCommands = [
-				"sudo -n true",
-				`echo '${JSON.stringify(daemonConfig, null, 2)}' | sudo tee /etc/docker/daemon.json`,
-				"sudo mkdir -p /etc/nvidia-container-runtime",
-				'echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" | sudo tee -a /etc/nvidia-container-runtime/config.toml',
-				"sudo systemctl daemon-reload",
-				"sudo systemctl restart docker",
-			].join(" && ");
-
-			await execAsyncRemote(serverId, setupCommands);
+			await setupRemoteServer(serverId, daemonConfig);
 		} else {
-			// Local server setup (using pkexec for GUI password prompt)
-			const configFile = `/tmp/docker-daemon-${Date.now()}.json`;
-			await fs.writeFile(configFile, JSON.stringify(daemonConfig, null, 2));
-
-			const setupCommands = [
-				// Use pkexec for GUI password prompt
-				`pkexec sh -c '
-					cp ${configFile} /etc/docker/daemon.json && 
-					mkdir -p /etc/nvidia-container-runtime && 
-					echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" >> /etc/nvidia-container-runtime/config.toml && 
-					systemctl daemon-reload && 
-					systemctl restart docker
-				'`,
-				`rm ${configFile}`, // Clean up temp file
-			].join(" && ");
-
-			await execAsync(setupCommands);
+			await setupLocalServer(daemonConfig);
 		}
 
-		// 4. Reduced wait time for Docker restart
-		await new Promise((resolve) => setTimeout(resolve, 10000));
+		// 5. Wait for Docker restart
+		await sleep(10000);
 
-		// 5. Add GPU label to the node
-		const labelCommand = `docker node update --label-add gpu=true ${nodeId.trim()}`;
-		if (serverId) {
-			await execAsyncRemote(serverId, labelCommand);
-		} else {
-			await execAsync(labelCommand);
-		}
+		// 6. Add GPU label
+		await addGpuLabel(nodeId, serverId);
 
-		// 6. Quick final verification
-		await new Promise((resolve) => setTimeout(resolve, 5000));
-		const finalStatus = await checkGPUStatus(serverId);
-
-		if (!finalStatus.swarmEnabled) {
-			const diagnosticCommands = [
-				`docker node inspect ${nodeId.trim()}`,
-				'nvidia-smi -a | grep "GPU UUID"',
-				"cat /etc/docker/daemon.json",
-				"cat /etc/nvidia-container-runtime/config.toml",
-			].join(" && ");
-
-			const { stdout: diagnostics } = serverId
-				? await execAsyncRemote(serverId, diagnosticCommands)
-				: await execAsync(diagnosticCommands);
-
-			console.error("Diagnostic Information:", diagnostics);
-			throw new Error("GPU support not detected in swarm after setup");
-		}
+		// 7. Final verification
+		await sleep(5000);
+		const finalStatus = await verifySetup(nodeId, serverId);
 
 		console.log("GPU setup completed successfully:", {
 			availableGPUs: initialStatus.availableGPUs,
 			driverVersion: initialStatus.driverVersion,
-			nodeId: nodeId.trim(),
+			nodeId,
 		});
 	} catch (error) {
 		console.error("GPU Setup Error:", error);
@@ -274,3 +227,113 @@ export async function setupGPUSupport(serverId?: string): Promise<void> {
 		throw error;
 	}
 }
+
+const validatePrerequisites = async (initialStatus: GPUInfo) => {
+	if (!initialStatus.driverInstalled) {
+		throw new Error(
+			"NVIDIA drivers not installed. Please install appropriate NVIDIA drivers first.",
+		);
+	}
+
+	if (!initialStatus.runtimeInstalled) {
+		throw new Error(
+			"NVIDIA Container Runtime not installed. Please install nvidia-container-runtime first.",
+		);
+	}
+
+	if (initialStatus.swarmEnabled && initialStatus.runtimeConfigured) {
+		console.log("GPU already configured, skipping setup");
+		return false;
+	}
+
+	return true;
+};
+
+const getNodeId = async (serverId?: string) => {
+	const nodeIdCommand = 'docker info --format "{{.Swarm.NodeID}}"';
+	const { stdout: nodeId } = serverId
+		? await execAsyncRemote(serverId, nodeIdCommand)
+		: await execAsync(nodeIdCommand);
+
+	const trimmedNodeId = nodeId.trim();
+	if (!trimmedNodeId) {
+		throw new Error("Setup Server before enabling GPU support");
+	}
+
+	return trimmedNodeId;
+};
+
+const createDaemonConfig = (availableGPUs: number) => ({
+	runtimes: {
+		nvidia: {
+			path: "nvidia-container-runtime",
+			runtimeArgs: [],
+		},
+	},
+	"default-runtime": "nvidia",
+	"node-generic-resources": [`GPU=${availableGPUs}`],
+});
+
+const setupRemoteServer = async (serverId: string, daemonConfig: any) => {
+	const setupCommands = [
+		"sudo -n true",
+		`echo '${JSON.stringify(daemonConfig, null, 2)}' | sudo tee /etc/docker/daemon.json`,
+		"sudo mkdir -p /etc/nvidia-container-runtime",
+		'echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" | sudo tee -a /etc/nvidia-container-runtime/config.toml',
+		"sudo systemctl daemon-reload",
+		"sudo systemctl restart docker",
+	].join(" && ");
+
+	await execAsyncRemote(serverId, setupCommands);
+};
+
+const setupLocalServer = async (daemonConfig: any) => {
+	const configFile = `/tmp/docker-daemon-${Date.now()}.json`;
+	await fs.writeFile(configFile, JSON.stringify(daemonConfig, null, 2));
+
+	const setupCommands = [
+		`pkexec sh -c '
+			cp ${configFile} /etc/docker/daemon.json && 
+			mkdir -p /etc/nvidia-container-runtime && 
+			echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" >> /etc/nvidia-container-runtime/config.toml && 
+			systemctl daemon-reload && 
+			systemctl restart docker
+		'`,
+		`rm ${configFile}`,
+	].join(" && ");
+
+	await execAsync(setupCommands);
+};
+
+const addGpuLabel = async (nodeId: string, serverId?: string) => {
+	const labelCommand = `docker node update --label-add gpu=true ${nodeId}`;
+	if (serverId) {
+		await execAsyncRemote(serverId, labelCommand);
+	} else {
+		await execAsync(labelCommand);
+	}
+};
+
+const verifySetup = async (nodeId: string, serverId?: string) => {
+	const finalStatus = await checkGPUStatus(serverId);
+
+	if (!finalStatus.swarmEnabled) {
+		const diagnosticCommands = [
+			`docker node inspect ${nodeId}`,
+			'nvidia-smi -a | grep "GPU UUID"',
+			"cat /etc/docker/daemon.json",
+			"cat /etc/nvidia-container-runtime/config.toml",
+		].join(" && ");
+
+		const { stdout: diagnostics } = serverId
+			? await execAsyncRemote(serverId, diagnosticCommands)
+			: await execAsync(diagnosticCommands);
+
+		console.error("Diagnostic Information:", diagnostics);
+		throw new Error("GPU support not detected in swarm after setup");
+	}
+
+	return finalStatus;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
