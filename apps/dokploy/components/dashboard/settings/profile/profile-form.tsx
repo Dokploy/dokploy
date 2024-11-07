@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ const randomImages = [
 export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
+	const { t } = useTranslation("common");
 
 	const form = useForm<Profile>({
 		defaultValues: {
@@ -91,7 +93,9 @@ export const ProfileForm = () => {
 		<Card className="bg-transparent">
 			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 				<div>
-					<CardTitle className="text-xl">Account</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.settings.profile.title")}
+					</CardTitle>
 					<CardDescription>
 						Change the details of your profile here.
 					</CardDescription>

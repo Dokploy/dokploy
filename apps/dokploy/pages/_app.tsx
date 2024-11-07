@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
+import { appWithTranslation } from "next-i18next";
 import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
@@ -27,6 +28,7 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+
 	return (
 		<>
 			<style jsx global>{`
@@ -59,4 +61,4 @@ const MyApp = ({
 	);
 };
 
-export default api.withTRPC(MyApp);
+export default api.withTRPC(appWithTranslation(MyApp));
