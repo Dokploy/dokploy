@@ -24,6 +24,7 @@ import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 import {
+	type Application,
 	IS_CLOUD,
 	addNewService,
 	checkServiceAccess,
@@ -112,7 +113,14 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			return application;
+			const applicationWithoutPassword: Application & {
+				passwordLength?: number;
+			} = application;
+			applicationWithoutPassword.passwordLength =
+				application.password?.length || 0; // Calculate length
+			applicationWithoutPassword.password = ""; // Remove password
+
+			return applicationWithoutPassword;
 		}),
 
 	reload: protectedProcedure

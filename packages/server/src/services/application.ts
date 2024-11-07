@@ -108,12 +108,8 @@ export const findApplicationById = async (applicationId: string) => {
 			message: "Application not found",
 		});
 	}
-	const applicationWithoutPassword: Application & { passwordLength?: number } =
-		application;
-	applicationWithoutPassword.passwordLength = application.password?.length || 0; // Calculate length
-	applicationWithoutPassword.password = ""; // Remove password
 
-	return applicationWithoutPassword;
+	return application;
 };
 
 export const findApplicationByName = async (appName: string) => {

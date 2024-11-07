@@ -41,11 +41,7 @@ export const findProjectById = async (projectId: string) => {
 	const project = await db.query.projects.findFirst({
 		where: eq(projects.projectId, projectId),
 		with: {
-			applications: {
-				columns: {
-					password: false,
-				},
-			},
+			applications: true,
 			mariadb: true,
 			mongo: true,
 			mysql: true,
