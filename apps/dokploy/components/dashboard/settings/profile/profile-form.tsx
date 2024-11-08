@@ -96,9 +96,7 @@ export const ProfileForm = () => {
 					<CardTitle className="text-xl">
 						{t("settings.profile.title")}
 					</CardTitle>
-					<CardDescription>
-						Change the details of your profile here.
-					</CardDescription>
+					<CardDescription>{t("settings.profile.description")}</CardDescription>
 				</div>
 				{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
 			</CardHeader>
@@ -111,9 +109,12 @@ export const ProfileForm = () => {
 								name="email"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>{t("settings.profile.email")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Email" {...field} />
+											<Input
+												placeholder={t("settings.profile.email")}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -124,11 +125,11 @@ export const ProfileForm = () => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("settings.profile.password")}</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
-												placeholder="Password"
+												placeholder={t("settings.profile.password")}
 												{...field}
 												value={field.value || ""}
 											/>
@@ -143,7 +144,7 @@ export const ProfileForm = () => {
 								name="image"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Avatar</FormLabel>
+										<FormLabel>{t("settings.profile.avatar")}</FormLabel>
 										<FormControl>
 											<RadioGroup
 												onValueChange={(e) => {
@@ -181,7 +182,7 @@ export const ProfileForm = () => {
 						</div>
 						<div>
 							<Button type="submit" isLoading={isLoading}>
-								Save
+								{t("settings.common.save")}
 							</Button>
 						</div>
 					</form>

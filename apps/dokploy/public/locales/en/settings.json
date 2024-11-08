@@ -1,11 +1,27 @@
 {
 	"settings": {
+		"common": {
+			"save": "Save"
+		},
 		"profile": {
-			"title": "Account"
+			"title": "Account",
+			"description": "Change the details of your profile here.",
+			"email": "Email",
+			"password": "Password",
+			"avatar": "Avatar"
 		},
 		"appearance": {
 			"title": "Appearance",
-			"description": "Customize the theme of your dashboard."
+			"description": "Customize the theme of your dashboard.",
+			"theme": "Theme",
+			"themeDescription": "Select a theme for your dashboard",
+			"themes": {
+				"light": "Light",
+				"dark": "Dark",
+				"system": "System"
+			},
+			"language": "Language",
+			"languageDescription": "Select a language for your dashboard"
 		}
 	}
 }

@@ -1,11 +1,27 @@
 {
 	"settings": {
+		"common": {
+			"save": "保存"
+		},
 		"profile": {
-			"title": "账户偏好"
+			"title": "账户偏好",
+			"description": "更改您的个人资料详情。",
+			"email": "电子邮件",
+			"password": "密码",
+			"avatar": "头像"
 		},
 		"appearance": {
 			"title": "外观",
-			"description": "自定义仪表板主题。"
+			"description": "自定义仪表板主题。",
+			"theme": "主题",
+			"themeDescription": "选择仪表板主题",
+			"themes": {
+				"light": "亮",
+				"dark": "暗",
+				"system": "系统"
+			},
+			"language": "语言",
+			"languageDescription": "选择仪表板语言"
 		}
 	}
 }

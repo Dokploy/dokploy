@@ -63,7 +63,7 @@ export function AppearanceForm() {
 	useEffect(() => {
 		form.reset({
 			theme: (theme ?? "system") as AppearanceFormValues["theme"],
-			language: locale ?? "en",
+			language: locale,
 		});
 	}, [form, theme, locale]);
 	function onSubmit(data: AppearanceFormValues) {
@@ -92,9 +92,9 @@ export function AppearanceForm() {
 							render={({ field }) => {
 								return (
 									<FormItem className="space-y-1 ">
-										<FormLabel>Theme</FormLabel>
+										<FormLabel>{t("settings.appearance.theme")}</FormLabel>
 										<FormDescription>
-											Select a theme for your dashboard
+											{t("settings.appearance.themeDescription")}
 										</FormDescription>
 										<FormMessage />
 										<RadioGroup
@@ -112,7 +112,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-light.svg" alt="light" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														Light
+														{t("settings.appearance.themes.light")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -125,7 +125,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-dark.svg" alt="dark" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														Dark
+														{t("settings.appearance.themes.dark")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -141,7 +141,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-system.svg" alt="system" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														System
+														{t("settings.appearance.themes.system")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -158,9 +158,9 @@ export function AppearanceForm() {
 							render={({ field }) => {
 								return (
 									<FormItem className="space-y-1">
-										<FormLabel>Language</FormLabel>
+										<FormLabel>{t("settings.appearance.language")}</FormLabel>
 										<FormDescription>
-											Select a language for your dashboard
+											{t("settings.appearance.languageDescription")}
 										</FormDescription>
 										<FormMessage />
 										<Select
@@ -187,7 +187,7 @@ export function AppearanceForm() {
 							}}
 						/>
 
-						<Button type="submit">Save</Button>
+						<Button type="submit">{t("settings.common.save")}</Button>
 					</form>
 				</Form>
 			</CardContent>
