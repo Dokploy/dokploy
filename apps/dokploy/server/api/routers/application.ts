@@ -113,12 +113,14 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			const applicationWithoutPassword: Application & {
+			const {
+				password,
+				...applicationWithoutPassword
+			}: Application & {
 				passwordLength?: number;
 			} = application;
 			applicationWithoutPassword.passwordLength =
-				application.password?.length || 0; // Calculate length
-			applicationWithoutPassword.password = ""; // Remove password
+				application.password?.length || 0;
 
 			return applicationWithoutPassword;
 		}),
