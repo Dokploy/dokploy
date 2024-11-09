@@ -148,32 +148,22 @@ const sanitizeCommand = (command: string) => {
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 
-	let path = "";
-
-	if (sourceType === "raw") {
-		path =
-			composeType === "stack"
+	const path =
+		sourceType === "raw"
+			? composeType === "stack"
 				? "docker-compose.processed.yml"
-				: "docker-compose.yml";
-	} else {
-		path = compose.composePath;
-	}
+				: "docker-compose.yml"
+			: composeType === "stack"
+				? "docker-compose.processed.yml"
+				: compose.composePath;
 
-	let command = "";
-
-	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
-	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune`;
-	}
+	const baseCommand =
+		composeType === "docker-compose"
+			? `compose -p ${appName} -f ${path} up -d --build --remove-orphans`
+			: `stack deploy -c ${path} ${appName} --prune`;
 
 	const customCommand = sanitizeCommand(compose.command);
-
-	if (customCommand) {
-		command = `${command} ${customCommand}`;
-	}
-
-	return command;
+	return customCommand ? `${baseCommand} ${customCommand}` : baseCommand;
 };
 
 const createEnvFile = (compose: ComposeNested) => {
@@ -212,12 +202,16 @@ export const processComposeFile = async (compose: ComposeNested) => {
 };
 
 export const getProcessComposeFileCommand = (compose: ComposeNested) => {
-	const { composeType } = compose;
+	const { composeType, sourceType } = compose;
 
+	const composePath =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 	let command = "";
-
 	if (composeType === "stack") {
-		command = `export $(grep -v '^#' .env | xargs) && docker stack config -c docker-compose.yml > docker-compose.processed.yml`;
+		command = [
+			"export $(grep -v '^#' .env | xargs)",
+			`docker stack config -c ${composePath} > docker-compose.processed.yml`,
+		].join(" && ");
 	}
 
 	return command;
