@@ -235,7 +235,7 @@ export function generate(schema: Schema): Template {
 
 5. Add the logo or image of the template to `public/templates/plausible.svg`
 
-### Recomendations
+### Recommendations
 
 - Use the same name of the folder as the id of the template.
 - The logo should be in the public folder.

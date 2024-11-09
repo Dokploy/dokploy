@@ -11,10 +11,12 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
 export const ShowDokployActions = () => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync: reloadServer, isLoading } =
 		api.settings.reloadServer.useMutation();
 
@@ -22,11 +24,13 @@ export const ShowDokployActions = () => {
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild disabled={isLoading}>
 				<Button isLoading={isLoading} variant="outline">
-					Server
+					{t("settings.server.webServer.server.label")}
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start">
-				<DropdownMenuLabel>Actions</DropdownMenuLabel>
+				<DropdownMenuLabel>
+					{t("settings.server.webServer.actions")}
+				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -40,10 +44,10 @@ export const ShowDokployActions = () => {
 								});
 						}}
 					>
-						<span>Reload</span>
+						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
 					<ShowModalLogs appName="dokploy">
-						<span>Watch logs</span>
+						<span>{t("settings.server.webServer.watchLogs")}</span>
 					</ShowModalLogs>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

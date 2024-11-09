@@ -3,9 +3,11 @@ import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
@@ -31,6 +33,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
+	const locale = await getLocale(req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -73,6 +76,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

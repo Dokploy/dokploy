@@ -3,6 +3,47 @@
 		"common": {
 			"save": "保存"
 		},
+		"server": {
+			"domain": {
+				"title": "服务器域名",
+				"description": "添加一个域名到您的服务器。",
+				"form": {
+					"domain": "域名",
+					"letsEncryptEmail": "Let's Encrypt 邮箱",
+					"certificate": {
+						"label": "证书",
+						"placeholder": "选择一个证书"
+					},
+					"certificateOptions": {
+						"none": "无",
+						"letsencrypt": "Let's Encrypt (默认)"
+					}
+				}
+			},
+			"webServer": {
+				"title": "Web 服务器",
+				"description": "管理 Web 服务器。",
+				"actions": "操作",
+				"reload": "重新加载",
+				"watchLogs": "查看日志",
+				"server": {
+					"label": "服务器"
+				},
+				"traefik": {
+					"label": "Traefik",
+					"modifyEnv": "修改环境变量"
+				},
+				"storage": {
+					"label": "磁盘空间",
+					"cleanUnusedImages": "清理未使用的镜像",
+					"cleanUnusedVolumes": "清理未使用的卷",
+					"cleanStoppedContainers": "清理停止的容器",
+					"cleanDockerBuilder": "清理 Docker Builder 和系统缓存",
+					"cleanMonitoring": "Clean Monitoring",
+					"cleanAll": "清理所有"
+				}
+			}
+		},
 		"profile": {
 			"title": "账户偏好",
 			"description": "更改您的个人资料详情。",

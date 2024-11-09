@@ -3,6 +3,47 @@
 		"common": {
 			"save": "Save"
 		},
+		"server": {
+			"domain": {
+				"title": "Server Domain",
+				"description": "Add a domain to your server application.",
+				"form": {
+					"domain": "Domain",
+					"letsEncryptEmail": "Let's Encrypt Email",
+					"certificate": {
+						"label": "Certificate",
+						"placeholder": "Select a certificate"
+					},
+					"certificateOptions": {
+						"none": "None",
+						"letsencrypt": "Let's Encrypt (Default)"
+					}
+				}
+			},
+			"webServer": {
+				"title": "Web Server",
+				"description": "Reload or clean the web server.",
+				"actions": "Actions",
+				"reload": "Reload",
+				"watchLogs": "Watch logs",
+				"server": {
+					"label": "Server"
+				},
+				"traefik": {
+					"label": "Traefik",
+					"modifyEnv": "Modify Env"
+				},
+				"storage": {
+					"label": "Space",
+					"cleanUnusedImages": "Clean unused images",
+					"cleanUnusedVolumes": "Clean unused volumes",
+					"cleanStoppedContainers": "Clean stopped containers",
+					"cleanDockerBuilder": "Clean Docker Builder & System",
+					"cleanMonitoring": "Clean Monitoring",
+					"cleanAll": "Clean all"
+				}
+			}
+		},
 		"profile": {
 			"title": "Account",
 			"description": "Change the details of your profile here.",
