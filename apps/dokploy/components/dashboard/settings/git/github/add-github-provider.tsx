@@ -55,7 +55,7 @@ export const AddGithubProvider = () => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="flex items-center space-x-1">
-					<GithubIcon />
+					<GithubIcon className="text-current fill-current"/>
 					<span>Github</span>
 				</Button>
 			</DialogTrigger>
