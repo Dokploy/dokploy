@@ -23,29 +23,27 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 	const enabled = data?.enableDockerCleanup || server?.enableDockerCleanup;
 
 	const { mutateAsync } = api.settings.updateDockerCleanup.useMutation();
+
+	const handleToggle = async (checked: boolean) => {
+		try {
+			await mutateAsync({
+				enableDockerCleanup: checked,
+				serverId: serverId,
+			});
+			if (serverId) {
+				await refetchServer();
+			} else {
+				await refetch();
+			}
+			toast.success("Docker Cleanup updated");
+		} catch (error) {
+			toast.error("Docker Cleanup Error");
+		}
+	};
+
 	return (
 		<div className="flex items-center gap-4">
-			<Switch
-				checked={enabled}
-				onCheckedChange={async (e) => {
-					await mutateAsync({
-						enableDockerCleanup: e,
-						serverId: serverId,
-					})
-						.then(async () => {
-							toast.success("Docker Cleanup Enabled");
-						})
-						.catch(() => {
-							toast.error("Docker Cleanup Error");
-						});
-
-					if (serverId) {
-						refetchServer();
-					} else {
-						refetch();
-					}
-				}}
-			/>
+			<Switch checked={!!enabled} onCheckedChange={handleToggle} />
 			<Label className="text-primary">Daily Docker Cleanup</Label>
 		</div>
 	);

@@ -26,11 +26,30 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-web.entrypoints=web",
 			"traefik.http.services.test-app-1-web.loadbalancer.server.port=8080",
 			"traefik.http.routers.test-app-1-web.service=test-app-1-web",
+			"traefik.http.routers.test-app-1-web.rule=PathPrefix(`/`)",
 		]);
 	});
 
 	it("should create labels for websecure entrypoint", async () => {
 		const labels = await createDomainLabels(appName, baseDomain, "websecure");
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`)",
+			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
+			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
+			"traefik.http.routers.test-app-1-websecure.rule=PathPrefix(`/`)",
+		]);
+	});
+
+	it("shouldn't add the path prefix if is empty", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				path: "",
+			},
+			"websecure",
+		);
 		expect(labels).toEqual([
 			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`)",
 			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",

@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   gitea:
-    image: gitea/gitea:1.22.2
+    image: gitea/gitea:1.22.3
     environment:
       - USER_UID=${USER_UID}
       - USER_GID=${USER_GID}
@@ -21,7 +21,7 @@ services:
       - db
 
   db:
-    image: postgres:16
+    image: postgres:17
     restart: always
     environment:
       - POSTGRES_USER=gitea
