@@ -154,7 +154,7 @@ export const createCommand = (compose: ComposeNested) => {
 				? "docker-compose.processed.yml"
 				: "docker-compose.yml"
 			: composeType === "stack"
-				? "docker-compose.processed.yml"
+				? join(dirname(compose.composePath), "docker-compose.processed.yml")
 				: compose.composePath;
 
 	const baseCommand =
@@ -206,11 +206,17 @@ export const getProcessComposeFileCommand = (compose: ComposeNested) => {
 
 	const composePath =
 		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+
+	const destinationPath =
+		sourceType === "raw"
+			? "docker-compose.processed.yml"
+			: join(dirname(compose.composePath), "docker-compose.processed.yml");
+
 	let command = "";
 	if (composeType === "stack") {
 		command = [
 			"export $(grep -v '^#' .env | xargs)",
-			`docker stack config -c ${composePath} > docker-compose.processed.yml`,
+			`docker stack config -c ${composePath} > ${destinationPath}`,
 		].join(" && ");
 	}
 
