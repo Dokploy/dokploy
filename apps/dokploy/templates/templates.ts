@@ -702,4 +702,19 @@ export const templates: TemplateData[] = [
 		tags: ["IA", "chat"],
 		load: () => import("./lobe-chat/index").then((m) => m.generate),
 	},
+	{
+		id: "appwrite",
+		name: "Appwrite",
+		version: "1.6.0",
+		description:
+			"Appwrite is an open-source platform for building applications at any scale, using your preferred programming languages and tools.. ",
+		links: {
+			github: "https://github.com/appwrite/appwrite",
+			website: "https://https://appwrite.io/",
+			docs: "https://appwrite.io/docs",
+		},
+		logo: "appwrite.svg",
+		load: () => import("./appwrite/index").then((m) => m.generate),
+		tags: ["database", "firebase", "nosql","BaaS"],
+	},	
 ];
