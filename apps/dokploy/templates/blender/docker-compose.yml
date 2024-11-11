@@ -3,7 +3,6 @@ version: "3.8"
 services:
   blender:
     image: lscr.io/linuxserver/blender:latest
-    container_name: blender
     runtime: nvidia
     deploy:
       resources:

@@ -11,7 +11,7 @@ import {
 import { api } from "@/utils/api";
 import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface GPUSupportProps {
@@ -54,9 +54,18 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 	const handleRefresh = async () => {
 		setIsRefreshing(true);
-		await refetch();
-		setIsRefreshing(false);
+		try {
+			await utils.settings.checkGPUStatus.invalidate({ serverId });
+			await refetch();
+		} catch (error) {
+			toast.error("Failed to refresh GPU status");
+		} finally {
+			setIsRefreshing(false);
+		}
 	};
+	useEffect(() => {
+		handleRefresh();
+	}, []);
 
 	const handleEnableGPU = async () => {
 		if (serverId === undefined) {

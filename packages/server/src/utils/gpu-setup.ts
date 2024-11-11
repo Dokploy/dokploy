@@ -87,20 +87,38 @@ const checkRuntime = async (serverId?: string) => {
 	let runtimeConfigured = false;
 
 	try {
-		const runtimeCommand = 'docker info --format "{{json .Runtimes}}"';
-		const { stdout: runtimeInfo } = serverId
-			? await execAsyncRemote(serverId, runtimeCommand)
-			: await execAsync(runtimeCommand);
+		// First check: Is nvidia-container-runtime installed?
+		const checkBinaryCommand = "command -v nvidia-container-runtime";
+		try {
+			const { stdout } = serverId
+				? await execAsyncRemote(serverId, checkBinaryCommand)
+				: await execAsync(checkBinaryCommand);
+			runtimeInstalled = !!stdout.trim();
+		} catch (error) {
+			console.debug("Runtime binary check:", error);
+		}
 
-		const runtimes = JSON.parse(runtimeInfo);
-		runtimeInstalled = "nvidia" in runtimes;
+		// Second check: Is it configured in Docker?
+		try {
+			const runtimeCommand = 'docker info --format "{{json .Runtimes}}"';
+			const { stdout: runtimeInfo } = serverId
+				? await execAsyncRemote(serverId, runtimeCommand)
+				: await execAsync(runtimeCommand);
 
-		const defaultCommand = 'docker info --format "{{.DefaultRuntime}}"';
-		const { stdout: defaultRuntime } = serverId
-			? await execAsyncRemote(serverId, defaultCommand)
-			: await execAsync(defaultCommand);
+			const defaultCommand = 'docker info --format "{{.DefaultRuntime}}"';
+			const { stdout: defaultRuntime } = serverId
+				? await execAsyncRemote(serverId, defaultCommand)
+				: await execAsync(defaultCommand);
 
-		runtimeConfigured = defaultRuntime.trim() === "nvidia";
+			const runtimes = JSON.parse(runtimeInfo);
+			const hasNvidiaRuntime = "nvidia" in runtimes;
+			const isDefaultRuntime = defaultRuntime.trim() === "nvidia";
+
+			// Only set runtimeConfigured if both conditions are met
+			runtimeConfigured = hasNvidiaRuntime && isDefaultRuntime;
+		} catch (error) {
+			console.debug("Runtime configuration check:", error);
+		}
 	} catch (error) {
 		console.debug("Runtime check:", error);
 	}
@@ -279,6 +297,7 @@ const setupRemoteServer = async (serverId: string, daemonConfig: any) => {
 		"sudo -n true",
 		`echo '${JSON.stringify(daemonConfig, null, 2)}' | sudo tee /etc/docker/daemon.json`,
 		"sudo mkdir -p /etc/nvidia-container-runtime",
+		'sudo sed -i "/swarm-resource/d" /etc/nvidia-container-runtime/config.toml',
 		'echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" | sudo tee -a /etc/nvidia-container-runtime/config.toml',
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart docker",
@@ -295,6 +314,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 		`pkexec sh -c '
 			cp ${configFile} /etc/docker/daemon.json && 
 			mkdir -p /etc/nvidia-container-runtime && 
+			sed -i "/swarm-resource/d" /etc/nvidia-container-runtime/config.toml &&
 			echo "swarm-resource = \\"DOCKER_RESOURCE_GPU\\"" >> /etc/nvidia-container-runtime/config.toml && 
 			systemctl daemon-reload && 
 			systemctl restart docker
