@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 238.86 216.13"><script xmlns="" id="__gaOptOutExtension"/>
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-2 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-3 {
+        mix-blend-mode: hard-light;
+      }
+
+      .cls-4 {
+        isolation: isolate;
+      }
+
+      .cls-5 {
+        opacity: .86;
+      }
+
+      .cls-6 {
+        fill: #fff;
+        opacity: .68;
+      }
+
+      .cls-7 {
+        fill: url(#linear-gradient-5);
+      }
+
+      .cls-8 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient-4);
+      }
+
+.cls-5, .cls-2, .cls-3 {
+  opacity: 0;
+}
+
+.cls-3 {
+  animation: slideInDown 1s ease forwards;
+  animation-delay: 0s;
+}
+
+.cls-2 {
+  animation: slideInDown 1s ease forwards;
+  animation-delay: 0.5s;
+}
+
+.cls-5 {
+  animation: slideInDown 1s ease forwards;
+  animation-delay: 1s;
+}
+
+@keyframes slideInDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+
+    </style>
+    <linearGradient id="linear-gradient" x1="175.51" y1="30.59" x2="64.11" y2="184.49" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#340b4e"/>
+      <stop offset="1" stop-color="#06051c"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="0" y1="108.06" x2="238.86" y2="108.06" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ee17fe"/>
+      <stop offset="1" stop-color="#19d0e0"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="55.86" y1="107.93" x2="183" y2="107.93" xlink:href="#linear-gradient-2"/>
+    <linearGradient id="linear-gradient-4" x1="55.86" y1="133.28" x2="183" y2="133.28" xlink:href="#linear-gradient-2"/>
+    <linearGradient id="linear-gradient-5" x1="119.43" y1="54.36" x2="119.43" y2="107.06" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#ee17fe"/>
+    </linearGradient>
+  </defs>
+  <g class="cls-4">
+    <g id="Ebene_1" data-name="Ebene 1">
+      <g>
+        <path class="cls-8" d="m151.05,197.42h-63.24c-12.36,0-23.78-6.59-29.96-17.3l-31.62-54.76c-6.18-10.7-6.18-23.89,0-34.59l31.62-54.76c6.18-10.7,17.6-17.3,29.96-17.3h63.24c12.36,0,23.78,6.59,29.96,17.3l31.62,54.76c6.18,10.7,6.18,23.89,0,34.59l-31.62,54.76c-6.18,10.7-17.6,17.3-29.96,17.3Z"/>
+        <path class="cls-1" d="m161.85,0h-84.84c-12.36,0-23.78,6.59-29.96,17.3L4.63,90.76c-6.18,10.7-6.18,23.89,0,34.59l42.42,73.47c6.18,10.7,17.6,17.3,29.96,17.3h84.84c12.36,0,23.78-6.59,29.96-17.3l42.42-73.47c6.18-10.7,6.18-23.89,0-34.59l-42.42-73.47c-6.18-10.7-17.6-17.3-29.96-17.3Zm-10.8,197.42h-63.24c-12.36,0-23.78-6.59-29.96-17.3l-31.62-54.76c-6.18-10.7-6.18-23.89,0-34.59l31.62-54.76c6.18-10.7,17.6-17.3,29.96-17.3h63.24c12.36,0,23.78,6.59,29.96,17.3l31.62,54.76c6.18,10.7,6.18,23.89,0,34.59l-31.62,54.76c-6.18,10.7-17.6,17.3-29.96,17.3Z"/>
+        <g>
+          <path class="cls-2" d="m182.13,106.91l-61.4-27.2c-.77-.34-1.84-.34-2.61,0l-61.4,27.2c-.55.24-.87.62-.87,1.03s.32.78.87,1.03l61.4,27.2c.77.34,1.84.34,2.61,0l61.4-27.2c.55-.24.87-.62.87-1.03s-.32-.78-.87-1.03Z"/>
+          <path class="cls-3" d="m182.13,132.25l-61.4-27.2c-.77-.34-1.84-.34-2.61,0l-61.4,27.2c-.55.24-.87.62-.87,1.03s.32.78.87,1.03l61.4,27.2c.77.34,1.84.34,2.61,0l61.4-27.2c.55-.24.87-.62.87-1.03s-.32-.78-.87-1.03Z"/>
+          <g class="cls-5">
+            <path class="cls-7" d="m182.13,81.57l-61.4-27.2c-.77-.34-1.84-.34-2.61,0l-61.4,27.2c-.55.24-.87.62-.87,1.03s.32.78.87,1.03l61.4,27.2c.77.34,1.84.34,2.61,0l61.4-27.2c.55-.24.87-.62.87-1.03s-.32-.78-.87-1.03Z"/>
+            <path class="cls-6" d="m182.13,81.57l-61.4-27.2c-.77-.34-1.84-.34-2.61,0l-61.4,27.2c-.55.24-.87.62-.87,1.03s.32.78.87,1.03l61.4,27.2c.77.34,1.84.34,2.61,0l61.4-27.2c.55-.24.87-.62.87-1.03s-.32-.78-.87-1.03Z"/>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
