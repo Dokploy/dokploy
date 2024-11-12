@@ -716,4 +716,18 @@ export const templates: TemplateData[] = [
 		tags: ["api", "development", "documentation"],
 		load: () => import("./peppermint/index").then((m) => m.generate),
 	},
+	{
+		id: "windmill",
+		name: "Windmill",
+		version: "latest",
+		description: "A developer platform to build production-grade workflows and internal apps. Open-source alternative to Airplane, Retool, and GitHub Actions.",
+		logo: "windmill.svg",
+		links: {
+			github: "https://github.com/windmill-labs/windmill",
+			website: "https://www.windmill.dev/",
+			docs: "https://docs.windmill.dev/",
+		},
+		tags: ["workflow", "automation", "development"],
+		load: () => import("./windmill/index").then((m) => m.generate),
+	},
 ];
