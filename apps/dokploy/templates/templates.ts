@@ -814,4 +814,18 @@ export const templates: TemplateData[] = [
 		tags: ["customer-support", "live-chat", "helpdesk"],
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
+	{
+		id: "discord-tickets",
+		name: "Discord Tickets",
+		version: "4.0.21",
+		description: "An open-source Discord bot for creating and managing support ticket channels.",
+		logo: "discord-tickets.svg",
+		links: {
+			github: "https://github.com/discord-tickets/bot",
+			website: "https://discordtickets.app",
+			docs: "https://discordtickets.app/self-hosting/installation/docker/",
+		},
+		tags: ["discord", "tickets", "support"],
+		load: () => import("./discord-tickets/index").then((m) => m.generate),
+	},
 ];
