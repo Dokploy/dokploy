@@ -18,6 +18,7 @@ Before you create a Pull Request, please make sure your commit message follows t
 
 ### Commit Message Format
 
+
 ```
 <type>[optional scope]: <description>
 
