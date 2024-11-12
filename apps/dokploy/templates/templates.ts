@@ -744,4 +744,18 @@ export const templates: TemplateData[] = [
 		tags: ["automation", "workflow", "no-code"],
 		load: () => import("./activepieces/index").then((m) => m.generate),
 	},
+	{
+		id: "invoiceshelf",
+		name: "InvoiceShelf",
+		version: "latest",
+		description: "InvoiceShelf is a self-hosted open source invoicing system for freelancers and small businesses.",
+			logo: "invoiceshelf.png",
+			links: {
+				github: "https://github.com/InvoiceShelf/invoiceshelf",
+				website: "https://invoiceshelf.com",
+				docs: "https://github.com/InvoiceShelf/invoiceshelf#readme",
+			},
+			tags: ["invoice", "business", "finance"],
+			load: () => import("./invoiceshelf/index").then((m) => m.generate),
+	},
 ];
