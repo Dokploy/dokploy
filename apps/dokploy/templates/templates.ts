@@ -758,4 +758,18 @@ export const templates: TemplateData[] = [
 			tags: ["invoice", "business", "finance"],
 			load: () => import("./invoiceshelf/index").then((m) => m.generate),
 	},
+	{
+		id: "postiz",
+		name: "Postiz",
+		version: "latest",
+		description: "Postiz is a modern, open-source platform for managing and publishing content across multiple channels.",
+		logo: "postiz.png",
+		links: {
+			github: "https://github.com/gitroomhq/postiz",
+			website: "https://postiz.io",
+			docs: "https://docs.postiz.io",
+		},
+		tags: ["cms", "content-management", "publishing"],
+		load: () => import("./postiz/index").then((m) => m.generate),
+	},
 ];
