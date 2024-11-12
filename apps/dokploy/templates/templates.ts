@@ -702,4 +702,18 @@ export const templates: TemplateData[] = [
 		tags: ["IA", "chat"],
 		load: () => import("./lobe-chat/index").then((m) => m.generate),
 	},
+	{
+		id: "peppermint",
+		name: "Peppermint",
+		version: "latest",
+		description: "Peppermint is a modern, open-source API development platform that helps you build, test and document your APIs.",
+		logo: "peppermint.svg",
+		links: {
+			github: "https://github.com/Peppermint-Lab/peppermint",
+			website: "https://peppermint.sh/",
+			docs: "https://docs.peppermint.sh/"
+		},
+		tags: ["api", "development", "documentation"],
+		load: () => import("./peppermint/index").then((m) => m.generate),
+	},
 ];
