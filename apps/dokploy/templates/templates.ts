@@ -772,4 +772,18 @@ export const templates: TemplateData[] = [
 		tags: ["cms", "content-management", "publishing"],
 		load: () => import("./postiz/index").then((m) => m.generate),
 	},
+	{
+		id: "slash",
+		name: "Slash",
+		version: "latest",
+		description: "Slash is a modern, self-hosted bookmarking service and link shortener that helps you organize and share your favorite links.",
+		logo: "slash.png",
+		links: {
+			github: "https://github.com/yourselfhosted/slash",
+			website: "https://github.com/yourselfhosted/slash#readme",
+			docs: "https://github.com/yourselfhosted/slash/wiki",
+		},
+		tags: ["bookmarks", "link-shortener", "self-hosted"],
+		load: () => import("./slash/index").then((m) => m.generate),
+	},
 ];
