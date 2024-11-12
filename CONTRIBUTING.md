@@ -14,6 +14,7 @@ We have a few guidelines to follow when contributing to this project:
 
 ## Commit Convention
 
+
 Before you create a Pull Request, please make sure your commit message follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
 ### Commit Message Format
