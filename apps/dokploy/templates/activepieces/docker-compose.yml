@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  activepieces:
+    image: ghcr.io/activepieces/activepieces:0.35.0
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - AP_POSTGRES_DATABASE=${AP_POSTGRES_DATABASE}
+      - AP_POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+      - AP_POSTGRES_USERNAME=${AP_POSTGRES_USERNAME}
+      - AP_POSTGRES_HOST=postgres
+      - AP_REDIS_HOST=redis
+
+  postgres:
+    image: postgres:14.4
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - POSTGRES_DB=${AP_POSTGRES_DATABASE}
+      - POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+      - POSTGRES_USER=${AP_POSTGRES_USERNAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AP_POSTGRES_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.0.7
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data: 

@@ -730,4 +730,18 @@ export const templates: TemplateData[] = [
 		tags: ["workflow", "automation", "development"],
 		load: () => import("./windmill/index").then((m) => m.generate),
 	},
+	{
+		id: "activepieces",
+		name: "Activepieces",
+		version: "0.35.0",
+		description: "Open-source no-code business automation tool. An alternative to Zapier, Make.com, and Tray.",
+		logo: "activepieces.svg",
+		links: {
+			github: "https://github.com/activepieces/activepieces",
+			website: "https://www.activepieces.com/",
+			docs: "https://www.activepieces.com/docs",
+		},
+		tags: ["automation", "workflow", "no-code"],
+		load: () => import("./activepieces/index").then((m) => m.generate),
+	},
 ];
