@@ -14,7 +14,7 @@ export type Mongo = typeof mongo.$inferSelect;
 
 export const createMongo = async (input: typeof apiCreateMongo._type) => {
 	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
+		`${input.appName}-${generatePassword(6)}` || generateAppName("mongo");
 	if (input.appName) {
 		const valid = await validUniqueServerAppName(input.appName);
 
@@ -72,12 +72,12 @@ export const findMongoById = async (mongoId: string) => {
 
 export const updateMongoById = async (
 	mongoId: string,
-	postgresData: Partial<Mongo>,
+	mongoData: Partial<Mongo>,
 ) => {
 	const result = await db
 		.update(mongo)
 		.set({
-			...postgresData,
+			...mongoData,
 		})
 		.where(eq(mongo.mongoId, mongoId))
 		.returning();
