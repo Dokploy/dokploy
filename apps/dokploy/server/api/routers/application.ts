@@ -115,14 +115,12 @@ export const applicationRouter = createTRPCRouter({
 			}
 			const {
 				password,
-				...applicationWithoutPassword
-			}: Application & {
+				...rest
+			}: Awaited<ReturnType<typeof findApplicationById>> & {
 				passwordLength?: number;
 			} = application;
-			applicationWithoutPassword.passwordLength =
-				application.password?.length || 0;
-
-			return applicationWithoutPassword;
+			rest.passwordLength = application.password?.length || 0;
+			return rest;
 		}),
 
 	reload: protectedProcedure
