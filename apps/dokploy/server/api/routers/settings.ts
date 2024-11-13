@@ -701,11 +701,8 @@ export const settingsRouter = createTRPCRouter({
 			}
 
 			try {
-				const status = await checkGPUStatus(input.serverId || "");
-				console.log("GPU Status Check Result:", status);
-				return status;
+				return await checkGPUStatus(input.serverId || "");
 			} catch (error) {
-				console.error("GPU Status Check Error:", error);
 				throw new Error("Failed to check GPU status");
 			}
 		}),

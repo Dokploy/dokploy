@@ -225,15 +225,8 @@ export async function setupGPUSupport(serverId?: string): Promise<void> {
 
 		// 7. Final verification
 		await sleep(5000);
-		const finalStatus = await verifySetup(nodeId, serverId);
-
-		console.log("GPU setup completed successfully:", {
-			availableGPUs: initialStatus.availableGPUs,
-			driverVersion: initialStatus.driverVersion,
-			nodeId,
-		});
+		await verifySetup(nodeId, serverId);
 	} catch (error) {
-		console.error("GPU Setup Error:", error);
 		if (
 			error instanceof Error &&
 			error.message.includes("password is required")
@@ -260,7 +253,6 @@ const validatePrerequisites = async (initialStatus: GPUInfo) => {
 	}
 
 	if (initialStatus.swarmEnabled && initialStatus.runtimeConfigured) {
-		console.log("GPU already configured, skipping setup");
 		return false;
 	}
 
