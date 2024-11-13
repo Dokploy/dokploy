@@ -1,6 +1,13 @@
 version: "3.8"
 
 services:
+  base: &base
+    image: chatwoot/chatwoot:v3.14.1
+    networks:
+      - dokploy-network
+    volumes:
+      - storage_data:/app/storage
+
   postgres:
     image: postgres:12
     networks:
@@ -33,9 +40,7 @@ services:
     restart: always
 
   setup:
-    image: chatwoot/chatwoot:v3.14.1
-    networks:
-      - dokploy-network
+    <<: *base
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production

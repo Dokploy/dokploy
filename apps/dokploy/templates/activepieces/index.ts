@@ -9,14 +9,18 @@ import {
 export function generate(schema: Schema): Template {
     const mainDomain = generateRandomDomain(schema);
     
-    const apiKey = generateBase64(48);        
-    const postgresPassword = generateBase64(24); 
-    const jwtSecret = generateBase64(24);
-    const encryptionKey = generateBase64(12);
-    const redisPassword = generateBase64(24);
+    const apiKey = Array.from({length: 64}, () => 
+        Math.floor(Math.random() * 16).toString(16)).join('');
+    const postgresPassword = Array.from({length: 32}, () => 
+        Math.floor(Math.random() * 16).toString(16)).join('');
+    const jwtSecret = Array.from({length: 32}, () => 
+        Math.floor(Math.random() * 16).toString(16)).join('');
+    const encryptionKey = Array.from({length: 16}, () => 
+        Math.floor(Math.random() * 16).toString(16)).join('');
     
     const postgresUser = "activepieces";
     const postgresDb = "activepieces";
+    const redisPassword = generateBase64(24);
 
     const domains: DomainSchema[] = [
         {
