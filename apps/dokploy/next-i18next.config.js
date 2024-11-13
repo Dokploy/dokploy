@@ -6,4 +6,5 @@ module.exports = {
 		localeDetection: false,
 	},
 	fallbackLng: "en",
+	keySeparator: false,
 };
