@@ -2,9 +2,9 @@ import {
     type DomainSchema,
     type Schema,
     type Template,
-    generatePassword,
-    generateRandomDomain,
     generateBase64,
+    generateRandomDomain,
+    generatePassword,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
@@ -22,17 +22,10 @@ export function generate(schema: Schema): Template {
     ];
 
     const envs = [
-        `POSTGRES_USERNAME=postgres`,
-        `POSTGRES_USER=postgres`,
-        `POSTGRES_PASSWORD=${postgresPassword}`,
-        `POSTGRES_DB=chatwoot_production`,
-        `REDIS_PASSWORD=${redisPassword}`,
         `CHATWOOT_HOST=${mainDomain}`,
+        `POSTGRES_PASSWORD=${postgresPassword}`,
+        `REDIS_PASSWORD=${redisPassword}`,
         `SECRET_KEY_BASE=${secretKeyBase}`,
-        `SMTP_ADDRESS=`,
-        `SMTP_PORT=587`,
-        `SMTP_USERNAME=`,
-        `SMTP_PASSWORD=`,
     ];
 
     return {

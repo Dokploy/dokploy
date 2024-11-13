@@ -19,7 +19,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost -d chatwoot_production"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,9 +58,9 @@ services:
       - RAILS_LOG_TO_STDOUT=true
     command: >
       sh -c "
-        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U postgres -d chatwoot_production -c '\q'; do
-          echo 'Waiting for postgres...'
-          sleep 5
+        echo 'Waiting for postgres...'
+        while ! PGPASSWORD='${POSTGRES_PASSWORD}' psql -h postgres -U postgres -d chatwoot_production -c 'SELECT 1' > /dev/null 2>&1; do
+          sleep 1
         done
         echo 'PostgreSQL is ready!'
         bundle exec rails db:chatwoot_prepare
