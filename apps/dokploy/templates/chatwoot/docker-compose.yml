@@ -1,6 +1,37 @@
 version: "3.8"
 
 services:
+  postgres:
+    image: postgres:12
+    networks:
+      - dokploy-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=chatwoot_production
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  redis:
+    image: redis:alpine
+    networks:
+      - dokploy-network
+    command: ["sh", "-c", "redis-server --requirepass \"${REDIS_PASSWORD}\""]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
   setup:
     image: chatwoot/chatwoot:v3.14.1
     networks:
@@ -23,23 +54,26 @@ services:
       - LOG_LEVEL=info
       - LOG_SIZE=500
       - RAILS_MAX_THREADS=5
-    command: bundle exec rails db:chatwoot_prepare
+    command: >
+      sh -c "
+        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USERNAME} -d chatwoot_production -c '\q'; do
+          echo 'Waiting for postgres...'
+          sleep 5
+        done
+        echo 'PostgreSQL is ready!'
+        bundle exec rails db:chatwoot_prepare
+      "
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
 
-  base: &base
-    image: chatwoot/chatwoot:v3.14.1
-    volumes:
-      - storage_data:/app/storage
-    networks:
-      - dokploy-network
-
   rails:
     <<: *base
     depends_on:
+      setup:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -107,37 +141,6 @@ services:
       - SMTP_ENABLE_STARTTLS_AUTO=true
       - MAILER_SENDER_EMAIL=Chatwoot <no-reply@${CHATWOOT_HOST}>
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
-    restart: always
-
-  postgres:
-    image: postgres:12
-    networks:
-      - dokploy-network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=chatwoot_production
-      - POSTGRES_USER=${POSTGRES_USERNAME}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: always
-
-  redis:
-    image: redis:alpine
-    networks:
-      - dokploy-network
-    command: ["sh", "-c", "redis-server --requirepass \"${REDIS_PASSWORD}\""]
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: always
 
 volumes:
