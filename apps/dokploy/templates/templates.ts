@@ -787,20 +787,6 @@ export const templates: TemplateData[] = [
 		load: () => import("./slash/index").then((m) => m.generate),
 	},
 	{
-		id: "linkstack",
-		name: "LinkStack",
-		version: "latest",
-		description: "LinkStack is a highly customizable link sharing platform with an intuitive, easy to use user interface.",
-		logo: "linkstack.svg",
-		links: {
-			github: "https://github.com/LinkStackOrg/LinkStack",
-			website: "https://linkstack.org/",
-			docs: "https://docs.linkstack.org/",
-		},
-		tags: ["links", "sharing", "social"],
-			load: () => import("./linkstack/index").then((m) => m.generate),
-	},
-	{
 		id: "chatwoot",
 		name: "Chatwoot",
 		version: "v3.14.1",
