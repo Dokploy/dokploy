@@ -9,11 +9,11 @@ import {
 export function generate(schema: Schema): Template {
     const mainDomain = generateRandomDomain(schema);
     
-
     const apiKey = generateBase64(48);        
     const postgresPassword = generateBase64(24); 
     const jwtSecret = generateBase64(24);
     const encryptionKey = generateBase64(12);
+    const redisPassword = generateBase64(24);
     
     const postgresUser = "activepieces";
     const postgresDb = "activepieces";
@@ -34,6 +34,7 @@ export function generate(schema: Schema): Template {
         `AP_API_KEY=${apiKey}`,
         `AP_ENCRYPTION_KEY=${encryptionKey}`,
         `AP_JWT_SECRET=${jwtSecret}`,
+        `REDIS_PASSWORD=${redisPassword}`,
     ];
 
     return {

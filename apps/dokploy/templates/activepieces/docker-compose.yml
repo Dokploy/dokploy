@@ -19,7 +19,9 @@ services:
       - AP_POSTGRES_PORT=5432
       - AP_REDIS_HOST=redis
       - AP_REDIS_PORT=6379
+      - AP_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - AP_ENVIRONMENT=prod
+      - AP_FRONTEND_URL=https://${AP_HOST}
       - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
       - AP_JWT_SECRET=${AP_JWT_SECRET}
       - AP_ENGINE_EXECUTABLE_PATH=dist/packages/engine/main.js
@@ -49,13 +51,13 @@ services:
 
   redis:
     image: redis:7.0.7
-    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - dokploy-network
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
