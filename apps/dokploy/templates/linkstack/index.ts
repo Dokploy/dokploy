@@ -23,6 +23,7 @@ export function generate(schema: Schema): Template {
 
     const envs = [
         `LINKSTACK_HOST=${mainDomain}`,
+        `LINKSTACK_SERVER_ADMIN=admin@example.com`,
         `MYSQL_ROOT_PASSWORD=${mysqlRootPassword}`,
         `MYSQL_DATABASE=${mysqlDatabase}`,
         `MYSQL_USER=${mysqlUser}`,

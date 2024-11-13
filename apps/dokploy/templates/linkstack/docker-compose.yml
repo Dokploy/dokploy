@@ -9,9 +9,7 @@ services:
       - linkstack_data:/htdocs
     environment:
       - TZ=UTC
-      - SERVER_ADMIN=admin@${LINKSTACK_HOST}
-      - HTTP_SERVER_NAME=${LINKSTACK_HOST}
-      - HTTPS_SERVER_NAME=${LINKSTACK_HOST}
+      - SERVER_ADMIN=${LINKSTACK_SERVER_ADMIN}
       - LOG_LEVEL=info
       - PHP_MEMORY_LIMIT=256M
       - UPLOAD_MAX_FILESIZE=8M
