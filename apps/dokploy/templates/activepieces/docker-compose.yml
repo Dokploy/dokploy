@@ -16,7 +16,9 @@ services:
       - AP_POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
       - AP_POSTGRES_USERNAME=${AP_POSTGRES_USERNAME}
       - AP_POSTGRES_HOST=postgres
+      - AP_POSTGRES_PORT=5432
       - AP_REDIS_HOST=redis
+      - AP_REDIS_PORT=6379
 
   postgres:
     image: postgres:14.4
