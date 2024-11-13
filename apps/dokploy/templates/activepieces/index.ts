@@ -2,13 +2,19 @@ import {
     type DomainSchema,
     type Schema,
     type Template,
-    generatePassword,
+    generateBase64,
     generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
     const mainDomain = generateRandomDomain(schema);
-    const postgresPassword = generatePassword();
+    
+
+    const apiKey = generateBase64(48);        
+    const postgresPassword = generateBase64(24); 
+    const jwtSecret = generateBase64(24);
+    const encryptionKey = generateBase64(12);
+    
     const postgresUser = "activepieces";
     const postgresDb = "activepieces";
 
@@ -24,8 +30,10 @@ export function generate(schema: Schema): Template {
         `AP_POSTGRES_DATABASE=${postgresDb}`,
         `AP_POSTGRES_PASSWORD=${postgresPassword}`,
         `AP_POSTGRES_USERNAME=${postgresUser}`,
-        `AP_POSTGRES_PORT=5432`,
-        `AP_REDIS_PORT=6379`,
+        `AP_HOST=${mainDomain}`,
+        `AP_API_KEY=${apiKey}`,
+        `AP_ENCRYPTION_KEY=${encryptionKey}`,
+        `AP_JWT_SECRET=${jwtSecret}`,
     ];
 
     return {
