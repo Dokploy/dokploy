@@ -19,7 +19,7 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-      - FRONTEND_URL=https://${CHATWOOT_HOST}
+      - FRONTEND_URL=http://${CHATWOOT_HOST}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
       - POSTGRES_USERNAME=${POSTGRES_USERNAME}
@@ -29,7 +29,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - ENABLE_ACCOUNT_SIGNUP=false
       - MAILER_SENDER_EMAIL=Chatwoot <no-reply@${CHATWOOT_HOST}>
-      - FORCE_SSL=true
+      - FORCE_SSL=false
       - RAILS_LOG_TO_STDOUT=true
       - LOG_LEVEL=info
       - LOG_SIZE=500
@@ -56,7 +56,7 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - INSTALLATION_ENV=docker
-      - FRONTEND_URL=https://${CHATWOOT_HOST}
+      - FRONTEND_URL=http://${CHATWOOT_HOST}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
       - POSTGRES_USERNAME=${POSTGRES_USERNAME}
@@ -64,7 +64,7 @@ services:
       - POSTGRES_DATABASE=chatwoot_production
       - REDIS_URL=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - FORCE_SSL=true
+      - FORCE_SSL=false
       - RAILS_LOG_TO_STDOUT=true
       - LOG_LEVEL=info
       - LOG_SIZE=500
