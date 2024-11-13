@@ -48,7 +48,7 @@ services:
       - FRONTEND_URL=http://${CHATWOOT_HOST}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
-      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot_production
       - REDIS_URL=redis://redis:6379
@@ -56,12 +56,9 @@ services:
       - ENABLE_ACCOUNT_SIGNUP=false
       - FORCE_SSL=false
       - RAILS_LOG_TO_STDOUT=true
-      - LOG_LEVEL=info
-      - LOG_SIZE=500
-      - RAILS_MAX_THREADS=5
     command: >
       sh -c "
-        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USERNAME} -d chatwoot_production -c '\q'; do
+        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U postgres -d chatwoot_production -c '\q'; do
           echo 'Waiting for postgres...'
           sleep 5
         done
@@ -90,25 +87,14 @@ services:
       - FRONTEND_URL=http://${CHATWOOT_HOST}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
-      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot_production
       - REDIS_URL=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - ENABLE_ACCOUNT_SIGNUP=false
-      - MAILER_SENDER_EMAIL=Chatwoot <no-reply@${CHATWOOT_HOST}>
       - FORCE_SSL=false
       - RAILS_LOG_TO_STDOUT=true
-      - LOG_LEVEL=info
-      - LOG_SIZE=500
-      - RAILS_MAX_THREADS=5
-      - SMTP_DOMAIN=${CHATWOOT_HOST}
-      - SMTP_ADDRESS=${SMTP_ADDRESS}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USERNAME=${SMTP_USERNAME}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_AUTHENTICATION=plain
-      - SMTP_ENABLE_STARTTLS_AUTO=true
     entrypoint: docker/entrypoints/rails.sh
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
     restart: always
@@ -127,24 +113,13 @@ services:
       - FRONTEND_URL=http://${CHATWOOT_HOST}
       - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
-      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot_production
       - REDIS_URL=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - FORCE_SSL=false
       - RAILS_LOG_TO_STDOUT=true
-      - LOG_LEVEL=info
-      - LOG_SIZE=500
-      - RAILS_MAX_THREADS=5
-      - SMTP_DOMAIN=${CHATWOOT_HOST}
-      - SMTP_ADDRESS=${SMTP_ADDRESS}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USERNAME=${SMTP_USERNAME}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - SMTP_AUTHENTICATION=plain
-      - SMTP_ENABLE_STARTTLS_AUTO=true
-      - MAILER_SENDER_EMAIL=Chatwoot <no-reply@${CHATWOOT_HOST}>
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
     restart: always
 

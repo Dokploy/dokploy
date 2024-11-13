@@ -27,11 +27,11 @@ export function generate(schema: Schema): Template {
     const mounts: Template["mounts"] = [
         {
             filePath: "Caddyfile",
-            content: `{$BASE_URL} {
-    bind {$ADDRESS}
+            content: `:80 {
+    bind 0.0.0.0
     reverse_proxy /ws/* http://lsp:3001
     reverse_proxy /* http://windmill_server:8000
-}`
+}`,
         },
     ];
 

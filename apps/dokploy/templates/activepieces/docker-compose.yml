@@ -18,21 +18,31 @@ services:
       - AP_POSTGRES_USERNAME=${AP_POSTGRES_USERNAME}
       - AP_POSTGRES_HOST=postgres
       - AP_POSTGRES_PORT=5432
+      - AP_POSTGRES_USE_SSL=false
       - AP_QUEUE_MODE=REDIS
       - AP_REDIS_HOST=redis
       - AP_REDIS_PORT=6379
-      - AP_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - AP_REDIS_PASSWORD=${AP_REDIS_PASSWORD}
+      - AP_REDIS_DB=0
+      - AP_REDIS_USE_SSL=false
       - AP_ENVIRONMENT=prod
       - AP_FRONTEND_URL=https://${AP_HOST}
       - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
       - AP_JWT_SECRET=${AP_JWT_SECRET}
       - AP_ENGINE_EXECUTABLE_PATH=dist/packages/engine/main.js
       - AP_EXECUTION_MODE=UNSANDBOXED
+      - AP_FLOW_WORKER_CONCURRENCY=10
+      - AP_SCHEDULED_WORKER_CONCURRENCY=10
+      - AP_TELEMETRY_ENABLED=false
+      - AP_PIECES_SOURCE=DB
+      - AP_PIECES_SYNC_MODE=OFFICIAL_AUTO
       - AP_WEBHOOK_TIMEOUT_SECONDS=30
       - AP_TRIGGER_DEFAULT_POLL_INTERVAL=5
       - AP_FLOW_TIMEOUT_SECONDS=600
-      - AP_TELEMETRY_ENABLED=true
-      - AP_TEMPLATES_SOURCE_URL=https://cloud.activepieces.com/api/v1/flow-templates
+      - AP_EXECUTION_DATA_RETENTION_DAYS=30
+      - AP_PROJECT_RATE_LIMITER_ENABLED=true
+      - AP_MAX_CONCURRENT_JOBS_PER_PROJECT=100
+      - AP_FILE_STORAGE_LOCATION=DB
 
   postgres:
     image: postgres:14.4
@@ -53,13 +63,13 @@ services:
 
   redis:
     image: redis:7.0.7
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${AP_REDIS_PASSWORD}
     networks:
       - dokploy-network
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${AP_REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
