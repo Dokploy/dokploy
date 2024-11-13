@@ -16,10 +16,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: chatwoot_production
-      POSTGRES_USER: postgres
+      POSTGRES_USER: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -h localhost -d chatwoot_production"]
+      test: ["CMD-SHELL", "pg_isready -U admin -h localhost -d chatwoot_production"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -48,9 +48,9 @@ services:
       FRONTEND_URL: http://${CHATWOOT_HOST}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       POSTGRES_HOST: postgres
-      POSTGRES_USER: postgres
+      POSTGRES_USERNAME: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: chatwoot_production
+      POSTGRES_DATABASE: chatwoot_production
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       ENABLE_ACCOUNT_SIGNUP: "false"
@@ -59,7 +59,7 @@ services:
     command: >
       sh -c "
         echo 'Waiting for postgres...'
-        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U postgres -d chatwoot_production -c '\q' > /dev/null 2>&1; do
+        until PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U admin -d chatwoot_production -c '\q' > /dev/null 2>&1; do
           sleep 5
           echo 'Waiting for postgres...'
         done
@@ -88,9 +88,9 @@ services:
       FRONTEND_URL: http://${CHATWOOT_HOST}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       POSTGRES_HOST: postgres
-      POSTGRES_USER: postgres
+      POSTGRES_USERNAME: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: chatwoot_production
+      POSTGRES_DATABASE: chatwoot_production
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       ENABLE_ACCOUNT_SIGNUP: "false"
@@ -114,9 +114,9 @@ services:
       FRONTEND_URL: http://${CHATWOOT_HOST}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       POSTGRES_HOST: postgres
-      POSTGRES_USER: postgres
+      POSTGRES_USERNAME: admin
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: chatwoot_production
+      POSTGRES_DATABASE: chatwoot_production
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       FORCE_SSL: "false"
