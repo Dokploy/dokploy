@@ -59,7 +59,17 @@ export type Services = {
 	status?: "idle" | "running" | "done" | "error";
 };
 
-type Project = Awaited<ReturnType<typeof findProjectById>>;
+type ChangeFields<T, R> = Omit<T, keyof R> & R;
+
+type Project = ChangeFields<
+	Awaited<ReturnType<typeof findProjectById>>,
+	{
+		applications: Omit<
+			Awaited<ReturnType<typeof findProjectById>>["applications"][number],
+			"password"
+		>[];
+	}
+>;
 
 export const extractServices = (data: Project | undefined) => {
 	const applications: Services[] =
