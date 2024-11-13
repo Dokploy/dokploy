@@ -2,7 +2,6 @@ import {
     type DomainSchema,
     type Schema,
     type Template,
-    generateBase64,
     generateRandomDomain,
 } from "../utils";
 
@@ -15,7 +14,8 @@ export function generate(schema: Schema): Template {
         Math.floor(Math.random() * 16).toString(16)).join('');
     const postgresPassword = Array.from({length: 32}, () => 
         Math.floor(Math.random() * 16).toString(16)).join('');
-    const redisPassword = generateBase64(32);
+    const redisPassword = Array.from({length: 32}, () => 
+        Math.floor(Math.random() * 16).toString(16)).join('');
 
     const postgresUser = "activepieces";
     const postgresDb = "activepieces";
