@@ -20,7 +20,6 @@ services:
       - AP_REDIS_HOST=redis
       - AP_REDIS_PORT=6379
       - AP_ENVIRONMENT=prod
-      - AP_FRONTEND_URL=https://${AP_HOST}
       - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
       - AP_JWT_SECRET=${AP_JWT_SECRET}
       - AP_ENGINE_EXECUTABLE_PATH=dist/packages/engine/main.js

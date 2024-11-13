@@ -8,12 +8,21 @@ services:
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+      - FRONTEND_URL=http://${CHATWOOT_HOST}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - POSTGRES_HOST=postgres
       - POSTGRES_USERNAME=${POSTGRES_USERNAME}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DATABASE=chatwoot_production
       - REDIS_URL=redis://redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - ENABLE_ACCOUNT_SIGNUP=false
+      - FORCE_SSL=false
+      - RAILS_LOG_TO_STDOUT=true
+      - LOG_LEVEL=info
+      - LOG_SIZE=500
+      - RAILS_MAX_THREADS=5
     command: bundle exec rails db:chatwoot_prepare
     depends_on:
       postgres:
