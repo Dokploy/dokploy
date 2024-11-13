@@ -1,6 +1,26 @@
 version: "3.8"
 
 services:
+  setup:
+    image: chatwoot/chatwoot:v3.14.1
+    networks:
+      - dokploy-network
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=chatwoot_production
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: bundle exec rails db:chatwoot_prepare
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   base: &base
     image: chatwoot/chatwoot:v3.14.1
     volumes:
