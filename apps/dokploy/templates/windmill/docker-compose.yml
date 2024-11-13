@@ -93,7 +93,7 @@ services:
     networks:
       - dokploy-network
     volumes:
-      - ../files/stacks:/etc/caddy
+      - ../files/Caddyfile:/etc/caddy/Caddyfile
     environment:
       - BASE_URL=":80"
     depends_on:

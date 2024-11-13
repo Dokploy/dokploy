@@ -12,14 +12,16 @@ services:
       redis:
         condition: service_healthy
     environment:
+      - AP_DB_TYPE=POSTGRES
       - AP_POSTGRES_DATABASE=${AP_POSTGRES_DATABASE}
       - AP_POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
       - AP_POSTGRES_USERNAME=${AP_POSTGRES_USERNAME}
       - AP_POSTGRES_HOST=postgres
       - AP_POSTGRES_PORT=5432
+      - AP_QUEUE_MODE=REDIS
       - AP_REDIS_HOST=redis
       - AP_REDIS_PORT=6379
-      - AP_REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - AP_REDIS_PASSWORD=${REDIS_PASSWORD}
       - AP_ENVIRONMENT=prod
       - AP_FRONTEND_URL=https://${AP_HOST}
       - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
@@ -30,7 +32,7 @@ services:
       - AP_TRIGGER_DEFAULT_POLL_INTERVAL=5
       - AP_FLOW_TIMEOUT_SECONDS=600
       - AP_TELEMETRY_ENABLED=true
-      - AP_TEMPLATES_SOURCE_URL="https://cloud.activepieces.com/api/v1/flow-templates"
+      - AP_TEMPLATES_SOURCE_URL=https://cloud.activepieces.com/api/v1/flow-templates
 
   postgres:
     image: postgres:14.4

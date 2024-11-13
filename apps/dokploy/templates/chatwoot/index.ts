@@ -9,7 +9,6 @@ import {
 
 export function generate(schema: Schema): Template {
     const mainDomain = generateRandomDomain(schema);
-    const postgresUsername = "postgres";
     const postgresPassword = generatePassword();
     const redisPassword = generatePassword();
     const secretKeyBase = generateBase64(64);
@@ -23,9 +22,10 @@ export function generate(schema: Schema): Template {
     ];
 
     const envs = [
-        `POSTGRES_DB=chatwoot`,
-        `POSTGRES_USER=${postgresUsername}`,
+        `POSTGRES_USERNAME=postgres`,
+        `POSTGRES_USER=postgres`,
         `POSTGRES_PASSWORD=${postgresPassword}`,
+        `POSTGRES_DB=chatwoot_production`,
         `REDIS_PASSWORD=${redisPassword}`,
         `CHATWOOT_HOST=${mainDomain}`,
         `SECRET_KEY_BASE=${secretKeyBase}`,
