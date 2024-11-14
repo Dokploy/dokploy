@@ -1,5 +1,5 @@
 import * as fs from "node:fs/promises";
-import { execAsync } from "../utils/process/execAsync";
+import { execAsync, sleep } from "../utils/process/execAsync";
 import { execAsyncRemote } from "../utils/process/execAsync";
 
 interface GPUInfo {
@@ -347,5 +347,3 @@ const verifySetup = async (nodeId: string, serverId?: string) => {
 
 	return finalStatus;
 };
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
