@@ -702,4 +702,19 @@ export const templates: TemplateData[] = [
 		tags: ["IA", "chat"],
 		load: () => import("./lobe-chat/index").then((m) => m.generate),
 	},
+	{
+		id: "nextcloud-aio",
+		name: "Nextcloud All in One",
+		version: "30.0.2",
+		description:
+			"Nextcloud (AIO) is a self-hosted file storage and sync platform with powerful collaboration capabilities. It integrates Files, Talk, Groupware, Office, Assistant and more into a single platform for remote work and data protection.",
+		logo: "nextcloud-aio.svg",
+		links: {
+			github: "https://github.com/nextcloud/docker",
+			website: "https://nextcloud.com/",
+			docs: "https://docs.nextcloud.com/",
+		},
+		tags: ["file", "sync"],
+		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
+	},
 ];
