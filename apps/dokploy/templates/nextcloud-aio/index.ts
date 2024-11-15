@@ -2,15 +2,18 @@ import {
 	type DomainSchema,
 	type Schema,
 	type Template,
+	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
 	const randomDomain = generateRandomDomain(schema);
+	const databasePassword = generatePassword();
+	const databaseRootPassword = generatePassword();
 	const envs = [
-		"NEXTCLOUD_DOMAIN=mynextclouddomain.tld",
-		"MYSQL_SECRET_PASSWORD=MYSQLPASSWORDCHANGEME",
-		"MYSQL_SECRET_PASSWORD_ROOT=MYSQLPASSWORDROOT_CHANGEME",
+		`NEXTCLOUD_DOMAIN=${randomDomain}`,
+		`MYSQL_SECRET_PASSWORD=${databasePassword}`,
+		`MYSQL_SECRET_PASSWORD_ROOT=${databaseRootPassword}`,
 	];
 
 	const domains: DomainSchema[] = [
