@@ -1,10 +1,2 @@
-/** @type {import('next-i18next').UserConfig} */
-module.exports = {
-	i18n: {
-		defaultLocale: "en",
-		locales: ["en", "zh-Hans"],
-		localeDetection: false,
-	},
-	fallbackLng: "en",
-	keySeparator: false,
-};
+import config from "./next-i18next.config.cjs";
+export default config;
