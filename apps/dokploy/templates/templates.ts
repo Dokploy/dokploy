@@ -702,4 +702,19 @@ export const templates: TemplateData[] = [
 		tags: ["IA", "chat"],
 		load: () => import("./lobe-chat/index").then((m) => m.generate),
 	},
+	{
+		id: "blender",
+		name: "Blender",
+		version: "latest",
+		description:
+			"Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
+		logo: "blender.svg",
+		links: {
+			github: "https://github.com/linuxserver/docker-blender",
+			website: "https://www.blender.org/",
+			docs: "https://docs.blender.org/",
+		},
+		tags: ["3d", "rendering", "animation"],
+		load: () => import("./blender/index").then((m) => m.generate),
+	},
 ];

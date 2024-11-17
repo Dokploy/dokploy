@@ -52,6 +52,7 @@ import {
 	writeMainConfig,
 	writeTraefikConfigInPath,
 } from "@dokploy/server";
+import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
@@ -657,6 +658,54 @@ export const settingsRouter = createTRPCRouter({
 		}
 		return { status: "not_cloud" };
 	}),
+	setupGPU: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD && !input.serverId) {
+				throw new Error("Select a server to enable the GPU Setup");
+			}
+
+			try {
+				await setupGPUSupport(input.serverId);
+				return { success: true };
+			} catch (error) {
+				console.error("GPU Setup Error:", error);
+				throw error;
+			}
+		}),
+	checkGPUStatus: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (IS_CLOUD && !input.serverId) {
+				return {
+					driverInstalled: false,
+					driverVersion: undefined,
+					gpuModel: undefined,
+					runtimeInstalled: false,
+					runtimeConfigured: false,
+					cudaSupport: undefined,
+					cudaVersion: undefined,
+					memoryInfo: undefined,
+					availableGPUs: 0,
+					swarmEnabled: false,
+					gpuResources: 0,
+				};
+			}
+
+			try {
+				return await checkGPUStatus(input.serverId || "");
+			} catch (error) {
+				throw new Error("Failed to check GPU status");
+			}
+		}),
 });
 // {
 // 	"Parallelism": 1,

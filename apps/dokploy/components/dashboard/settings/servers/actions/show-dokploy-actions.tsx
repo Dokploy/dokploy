@@ -13,6 +13,7 @@ import {
 import { api } from "@/utils/api";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
+import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
 	const { mutateAsync: reloadServer, isLoading } =
@@ -45,6 +46,7 @@ export const ShowDokployActions = () => {
 					<ShowModalLogs appName="dokploy">
 						<span>Watch logs</span>
 					</ShowModalLogs>
+					<GPUSupportModal />
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
