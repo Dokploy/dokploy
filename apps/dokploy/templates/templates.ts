@@ -791,7 +791,7 @@ export const templates: TemplateData[] = [
 		name: "Discord Tickets",
 		version: "4.0.21",
 		description: "An open-source Discord bot for creating and managing support ticket channels.",
-		logo: "discord-tickets.svg",
+		logo: "discord-tickets.png",
 		links: {
 			github: "https://github.com/discord-tickets/bot",
 			website: "https://discordtickets.app",
