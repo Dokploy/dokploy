@@ -63,7 +63,7 @@ export const ShowDokployActions = () => {
 							className="cursor-pointer"
 							onSelect={(e) => e.preventDefault()}
 						>
-							Update Server IP
+							{t("settings.server.webServer.updateServerIp")}
 						</DropdownMenuItem>
 					</UpdateServerIp>
 				</DropdownMenuGroup>
