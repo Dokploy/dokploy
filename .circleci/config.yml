@@ -99,14 +99,14 @@ workflows:
               only:
                 - main
                 - canary
-                - pull/665
+                - fix/build-i18n
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - pull/665
+                - fix/build-i18n
       - combine-manifests:
           requires:
             - build-amd64
@@ -116,4 +116,4 @@ workflows:
               only:
                 - main
                 - canary
-                - pull/665
+                - fix/build-i18n
