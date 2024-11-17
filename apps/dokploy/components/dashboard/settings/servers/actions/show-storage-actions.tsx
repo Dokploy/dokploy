@@ -85,7 +85,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean unused images</span>
+						<span>Clean Unused Images</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="w-full cursor-pointer"
@@ -101,7 +101,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean unused volumes</span>
+						<span>Clean Unused Volumes</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -118,7 +118,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean stopped containers</span>
+						<span>Clean Stopped Containers</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -168,7 +168,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean all</span>
+						<span>Clean All</span>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

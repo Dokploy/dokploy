@@ -70,16 +70,22 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 									toast.error("Error to reload the traefik");
 								});
 						}}
+						className="cursor-pointer"
 					>
 						<span>Reload</span>
 					</DropdownMenuItem>
 					<ShowModalLogs appName="dokploy-traefik" serverId={serverId}>
-						<span>Watch logs</span>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							Watch Logs
+						</DropdownMenuItem>
 					</ShowModalLogs>
 					<EditTraefikEnv serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
-							className="w-full cursor-pointer space-x-3"
+							className="cursor-pointer"
 						>
 							<span>Modify Env</span>
 						</DropdownMenuItem>
