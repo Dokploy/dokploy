@@ -23,6 +23,7 @@ import { api } from "@/utils/api";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
@@ -30,6 +31,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 
@@ -51,11 +53,13 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
 					variant="outline"
 				>
-					Traefik
+					{t("settings.server.webServer.traefik.label")}
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start">
-				<DropdownMenuLabel>Actions</DropdownMenuLabel>
+				<DropdownMenuLabel>
+					{t("settings.server.webServer.actions")}
+				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -72,14 +76,14 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 						}}
 						className="cursor-pointer"
 					>
-						<span>Reload</span>
+						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
 					<ShowModalLogs appName="dokploy-traefik" serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
 						>
-							Watch Logs
+							{t("settings.server.webServer.watchLogs")}
 						</DropdownMenuItem>
 					</ShowModalLogs>
 					<EditTraefikEnv serverId={serverId}>
@@ -87,7 +91,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
 						>
-							<span>Modify Env</span>
+							<span>{t("settings.server.webServer.traefik.modifyEnv")}</span>
 						</DropdownMenuItem>
 					</EditTraefikEnv>
 

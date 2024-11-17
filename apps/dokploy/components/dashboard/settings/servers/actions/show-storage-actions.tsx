@@ -11,12 +11,14 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 
@@ -64,11 +66,13 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 					}
 					variant="outline"
 				>
-					Space
+					{t("settings.server.webServer.storage.label")}
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-64" align="start">
-				<DropdownMenuLabel>Actions</DropdownMenuLabel>
+				<DropdownMenuLabel>
+					{t("settings.server.webServer.actions")}
+				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -85,7 +89,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean Unused Images</span>
+						<span>
+							{t("settings.server.webServer.storage.cleanUnusedImages")}
+						</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="w-full cursor-pointer"
@@ -101,7 +107,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean Unused Volumes</span>
+						<span>
+							{t("settings.server.webServer.storage.cleanUnusedVolumes")}
+						</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -118,7 +126,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean Stopped Containers</span>
+						<span>
+							{t("settings.server.webServer.storage.cleanStoppedContainers")}
+						</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -135,7 +145,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean Docker Builder & System</span>
+						<span>
+							{t("settings.server.webServer.storage.cleanDockerBuilder")}
+						</span>
 					</DropdownMenuItem>
 					{!serverId && (
 						<DropdownMenuItem
@@ -150,7 +162,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									});
 							}}
 						>
-							<span>Clean Monitoring </span>
+							<span>
+								{t("settings.server.webServer.storage.cleanMonitoring")}
+							</span>
 						</DropdownMenuItem>
 					)}
 
@@ -168,7 +182,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								});
 						}}
 					>
-						<span>Clean All</span>
+						<span>{t("settings.server.webServer.storage.cleanAll")}</span>
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

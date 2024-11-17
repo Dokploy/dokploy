@@ -32,6 +32,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
+import { GPUSupport } from "./gpu-support";
 
 interface Props {
 	serverId: string;
@@ -89,9 +90,10 @@ export const SetupServer = ({ serverId }: Props) => {
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-1">
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-2 w-[400px]">
+							<TabsList className="grid grid-cols-3 w-[400px]">
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
+								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
 								value="ssh-keys"
@@ -290,6 +292,14 @@ export const SetupServer = ({ serverId }: Props) => {
 										</Card>
 									</div>
 								</CardContent>
+							</TabsContent>
+							<TabsContent
+								value="gpu-setup"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+									<GPUSupport serverId={serverId} />
+								</div>
 							</TabsContent>
 						</Tabs>
 					</div>
