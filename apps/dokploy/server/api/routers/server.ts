@@ -22,6 +22,7 @@ import {
 	findAdminById,
 	findServerById,
 	findServersByAdminId,
+	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
 	serverSetup,
@@ -181,4 +182,8 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	publicIp: protectedProcedure.query(async ({ ctx }) => {
+		const ip = await getPublicIpWithFallback();
+		return ip;
+	}),
 });

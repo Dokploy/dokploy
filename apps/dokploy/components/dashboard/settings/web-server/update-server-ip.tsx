@@ -19,8 +19,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -41,6 +48,7 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data } = api.admin.one.useQuery();
+	const { data: ip } = api.server.publicIp.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.admin.update.useMutation();
@@ -61,6 +69,11 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 	}, [form, form.reset, data]);
 
 	const utils = api.useUtils();
+
+	const setCurrentIp = () => {
+		if (!ip) return;
+		form.setValue("serverIp", ip);
+	};
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
@@ -97,8 +110,31 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Server IP</FormLabel>
-									<FormControl>
-										<Input {...field} />
+									<FormControl className="flex gap-2">
+										<div>
+											<Input {...field} />
+
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															variant="secondary"
+															type="button"
+															onClick={setCurrentIp}
+														>
+															<RefreshCw className="size-4 text-muted-foreground" />
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent
+														side="left"
+														sideOffset={5}
+														className="max-w-[11rem]"
+													>
+														<p>Set current public IP</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
 									</FormControl>
 									<pre>
 										<FormMessage />
