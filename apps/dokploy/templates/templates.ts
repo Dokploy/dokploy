@@ -706,12 +706,13 @@ export const templates: TemplateData[] = [
 		id: "peppermint",
 		name: "Peppermint",
 		version: "latest",
-		description: "Peppermint is a modern, open-source API development platform that helps you build, test and document your APIs.",
+		description:
+			"Peppermint is a modern, open-source API development platform that helps you build, test and document your APIs.",
 		logo: "peppermint.svg",
 		links: {
 			github: "https://github.com/Peppermint-Lab/peppermint",
 			website: "https://peppermint.sh/",
-			docs: "https://docs.peppermint.sh/"
+			docs: "https://docs.peppermint.sh/",
 		},
 		tags: ["api", "development", "documentation"],
 		load: () => import("./peppermint/index").then((m) => m.generate),
@@ -720,7 +721,8 @@ export const templates: TemplateData[] = [
 		id: "windmill",
 		name: "Windmill",
 		version: "latest",
-		description: "A developer platform to build production-grade workflows and internal apps. Open-source alternative to Airplane, Retool, and GitHub Actions.",
+		description:
+			"A developer platform to build production-grade workflows and internal apps. Open-source alternative to Airplane, Retool, and GitHub Actions.",
 		logo: "windmill.svg",
 		links: {
 			github: "https://github.com/windmill-labs/windmill",
@@ -734,7 +736,8 @@ export const templates: TemplateData[] = [
 		id: "activepieces",
 		name: "Activepieces",
 		version: "0.35.0",
-		description: "Open-source no-code business automation tool. An alternative to Zapier, Make.com, and Tray.",
+		description:
+			"Open-source no-code business automation tool. An alternative to Zapier, Make.com, and Tray.",
 		logo: "activepieces.svg",
 		links: {
 			github: "https://github.com/activepieces/activepieces",
@@ -748,21 +751,23 @@ export const templates: TemplateData[] = [
 		id: "invoiceshelf",
 		name: "InvoiceShelf",
 		version: "latest",
-		description: "InvoiceShelf is a self-hosted open source invoicing system for freelancers and small businesses.",
-			logo: "invoiceshelf.png",
-			links: {
-				github: "https://github.com/InvoiceShelf/invoiceshelf",
-				website: "https://invoiceshelf.com",
-				docs: "https://github.com/InvoiceShelf/invoiceshelf#readme",
-			},
-			tags: ["invoice", "business", "finance"],
-			load: () => import("./invoiceshelf/index").then((m) => m.generate),
+		description:
+			"InvoiceShelf is a self-hosted open source invoicing system for freelancers and small businesses.",
+		logo: "invoiceshelf.png",
+		links: {
+			github: "https://github.com/InvoiceShelf/invoiceshelf",
+			website: "https://invoiceshelf.com",
+			docs: "https://github.com/InvoiceShelf/invoiceshelf#readme",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./invoiceshelf/index").then((m) => m.generate),
 	},
 	{
 		id: "postiz",
 		name: "Postiz",
 		version: "latest",
-		description: "Postiz is a modern, open-source platform for managing and publishing content across multiple channels.",
+		description:
+			"Postiz is a modern, open-source platform for managing and publishing content across multiple channels.",
 		logo: "postiz.png",
 		links: {
 			github: "https://github.com/gitroomhq/postiz",
@@ -776,7 +781,8 @@ export const templates: TemplateData[] = [
 		id: "slash",
 		name: "Slash",
 		version: "latest",
-		description: "Slash is a modern, self-hosted bookmarking service and link shortener that helps you organize and share your favorite links.",
+		description:
+			"Slash is a modern, self-hosted bookmarking service and link shortener that helps you organize and share your favorite links.",
 		logo: "slash.png",
 		links: {
 			github: "https://github.com/yourselfhosted/slash",
@@ -790,7 +796,8 @@ export const templates: TemplateData[] = [
 		id: "discord-tickets",
 		name: "Discord Tickets",
 		version: "4.0.21",
-		description: "An open-source Discord bot for creating and managing support ticket channels.",
+		description:
+			"An open-source Discord bot for creating and managing support ticket channels.",
 		logo: "discord-tickets.png",
 		links: {
 			github: "https://github.com/discord-tickets/bot",
@@ -799,8 +806,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["discord", "tickets", "support"],
 		load: () => import("./discord-tickets/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "nextcloud-aio",
 		name: "Nextcloud All in One",
 		version: "30.0.2",
@@ -814,8 +821,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["file", "sync"],
 		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "blender",
 		name: "Blender",
 		version: "latest",
