@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import React from "react";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
@@ -18,6 +19,7 @@ interface Props {
 	className?: string;
 }
 export const WebServer = ({ className }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data } = api.admin.one.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
@@ -25,8 +27,12 @@ export const WebServer = ({ className }: Props) => {
 	return (
 		<Card className={cn("rounded-lg w-full bg-transparent p-0", className)}>
 			<CardHeader>
-				<CardTitle className="text-xl">Web server settings</CardTitle>
-				<CardDescription>Reload or clean the web server.</CardDescription>
+				<CardTitle className="text-xl">
+					{t("settings.server.webServer.title")}
+				</CardTitle>
+				<CardDescription>
+					{t("settings.server.webServer.description")}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4 ">
 				<div className="grid md:grid-cols-2 gap-4">
