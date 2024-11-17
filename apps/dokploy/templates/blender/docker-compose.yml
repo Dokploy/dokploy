@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  blender:
+    image: lscr.io/linuxserver/blender:latest
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - SUBFOLDER=/ #optional
+    ports:
+      - 3000
+      - 3001
+    restart: unless-stopped
+    shm_size: 1gb

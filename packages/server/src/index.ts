@@ -116,3 +116,4 @@ export * from "./monitoring/utilts";
 
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
+export * from "./utils/gpu-setup";

@@ -799,5 +799,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["discord", "tickets", "support"],
 		load: () => import("./discord-tickets/index").then((m) => m.generate),
+  },
+    {
+		id: "nextcloud-aio",
+		name: "Nextcloud All in One",
+		version: "30.0.2",
+		description:
+			"Nextcloud (AIO) is a self-hosted file storage and sync platform with powerful collaboration capabilities. It integrates Files, Talk, Groupware, Office, Assistant and more into a single platform for remote work and data protection.",
+		logo: "nextcloud-aio.svg",
+		links: {
+			github: "https://github.com/nextcloud/docker",
+			website: "https://nextcloud.com/",
+			docs: "https://docs.nextcloud.com/",
+		},
+		tags: ["file", "sync"],
+		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
+  },
+    {
+		id: "blender",
+		name: "Blender",
+		version: "latest",
+		description:
+			"Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
+		logo: "blender.svg",
+		links: {
+			github: "https://github.com/linuxserver/docker-blender",
+			website: "https://www.blender.org/",
+			docs: "https://docs.blender.org/",
+		},
+		tags: ["3d", "rendering", "animation"],
+		load: () => import("./blender/index").then((m) => m.generate),
 	},
 ];
