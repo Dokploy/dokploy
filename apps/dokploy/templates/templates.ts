@@ -716,8 +716,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["file", "sync"],
 		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "blender",
 		name: "Blender",
 		version: "latest",
