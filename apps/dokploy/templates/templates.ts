@@ -787,20 +787,6 @@ export const templates: TemplateData[] = [
 		load: () => import("./slash/index").then((m) => m.generate),
 	},
 	{
-		id: "chatwoot",
-		name: "Chatwoot",
-		version: "v3.14.1",
-		description: "Open-source customer engagement suite, an alternative to Intercom, Zendesk, Salesforce Service Cloud etc.",
-		logo: "chatwoot.svg",
-		links: {
-			github: "https://github.com/chatwoot/chatwoot",
-			website: "https://www.chatwoot.com",
-			docs: "https://www.chatwoot.com/docs",
-		},
-		tags: ["customer-support", "live-chat", "helpdesk"],
-		load: () => import("./chatwoot/index").then((m) => m.generate),
-	},
-	{
 		id: "discord-tickets",
 		name: "Discord Tickets",
 		version: "4.0.21",
