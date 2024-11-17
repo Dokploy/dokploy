@@ -24,7 +24,14 @@ import { buildStatic, getStaticCommand } from "./static";
 // DOCKERFILE codeDirectory = where is the exact path of the (Dockerfile)
 export type ApplicationNested = InferResultType<
 	"applications",
-	{ mounts: true; security: true; redirects: true; ports: true; registry: true }
+	{
+		mounts: true;
+		security: true;
+		redirects: true;
+		ports: true;
+		registry: true;
+		project: true;
+	}
 >;
 export const buildApplication = async (
 	application: ApplicationNested,
@@ -133,7 +140,10 @@ export const mechanizeDockerContainer = async (
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);

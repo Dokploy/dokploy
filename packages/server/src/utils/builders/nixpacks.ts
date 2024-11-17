@@ -18,7 +18,10 @@ export const buildNixpacks = async (
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const writeToStream = (data: string) => {
 		if (writeStream.writable) {
@@ -92,7 +95,10 @@ export const getNixpacksCommand = (
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const args = ["build", buildAppDirectory, "--name", appName];
 

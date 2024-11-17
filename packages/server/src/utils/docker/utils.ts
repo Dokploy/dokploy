@@ -258,8 +258,28 @@ export const removeService = async (
 	}
 };
 
-export const prepareEnvironmentVariables = (env: string | null) =>
-	Object.entries(parse(env ?? "")).map(([key, value]) => `${key}=${value}`);
+export const prepareEnvironmentVariables = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+) => {
+	const projectVars = parse(projectEnv ?? "");
+	const serviceVars = parse(serviceEnv ?? "");
+
+	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
+		let resolvedValue = value;
+		if (projectVars) {
+			resolvedValue = value.replace(/\$\{\{shared\.(.*?)\}\}/g, (_, ref) => {
+				if (projectVars[ref] !== undefined) {
+					return projectVars[ref];
+				}
+				throw new Error(`Invalid shared environment variable: shared.${ref}`);
+			});
+		}
+		return `${key}=${resolvedValue}`;
+	});
+
+	return resolvedVars;
+};
 
 export const prepareBuildArgs = (input: string | null) => {
 	const pairs = (input ?? "").split("\n");
