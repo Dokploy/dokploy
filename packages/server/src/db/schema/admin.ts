@@ -53,6 +53,8 @@ const createSchema = createInsertSchema(admins, {
 	letsEncryptEmail: z.string().optional(),
 });
 
+export const apiUpdateAdmin = createSchema.partial();
+
 export const apiSaveSSHKey = createSchema
 	.pick({
 		sshPrivateKey: true,

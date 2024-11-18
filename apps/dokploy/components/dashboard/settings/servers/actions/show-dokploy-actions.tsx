@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
 
+import { UpdateServerIp } from "@/components/dashboard/settings/web-server/update-server-ip";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -44,13 +45,27 @@ export const ShowDokployActions = () => {
 									toast.success("Server Reloaded");
 								});
 						}}
+						className="cursor-pointer"
 					>
 						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
 					<ShowModalLogs appName="dokploy">
-						<span>{t("settings.server.webServer.watchLogs")}</span>
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onSelect={(e) => e.preventDefault()}
+						>
+							{t("settings.server.webServer.watchLogs")}
+						</DropdownMenuItem>
 					</ShowModalLogs>
 					<GPUSupportModal />
+					<UpdateServerIp>
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onSelect={(e) => e.preventDefault()}
+						>
+							{t("settings.server.webServer.updateServerIp")}
+						</DropdownMenuItem>
+					</UpdateServerIp>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
