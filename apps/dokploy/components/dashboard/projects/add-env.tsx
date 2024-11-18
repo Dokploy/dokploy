@@ -106,10 +106,10 @@ export const AddEnv = ({ projectId }: Props) => {
 					want to use it in your service, you need to use like this:
 					<ul>
 						<li>
-							<code>ENVIRONMENT=${"${{shared.ENVIRONMENT}}"}</code>
+							<code>ENVIRONMENT=${"{{project.ENVIRONMENT}}"}</code>
 						</li>
 						<li>
-							<code>DATABASE_URL=${"${{shared.DATABASE_URL}}"}</code>
+							<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 						</li>
 					</ul>{" "}
 					This allows the service to inherit and use the shared variables from
