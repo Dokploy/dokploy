@@ -20,6 +20,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import useLocale from "@/utils/hooks/use-locale";
+import { useTranslation } from "next-i18next";
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -28,6 +37,9 @@ const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
 	}),
+	language: z.enum(["en", "pl", "zh-Hans"], {
+		required_error: "Please select a language.",
+	}),
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
@@ -35,10 +47,14 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
 // This can come from your database or API.
 const defaultValues: Partial<AppearanceFormValues> = {
 	theme: "system",
+	language: "en",
 };
 
 export function AppearanceForm() {
 	const { setTheme, theme } = useTheme();
+	const { locale, setLocale } = useLocale();
+	const { t } = useTranslation("settings");
+
 	const form = useForm<AppearanceFormValues>({
 		resolver: zodResolver(appearanceFormSchema),
 		defaultValues,
@@ -47,19 +63,23 @@ export function AppearanceForm() {
 	useEffect(() => {
 		form.reset({
 			theme: (theme ?? "system") as AppearanceFormValues["theme"],
+			language: locale,
 		});
-	}, [form, theme]);
+	}, [form, theme, locale]);
 	function onSubmit(data: AppearanceFormValues) {
 		setTheme(data.theme);
+		setLocale(data.language);
 		toast.success("Preferences Updated");
 	}
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader>
-				<CardTitle className="text-xl">Appearance</CardTitle>
+				<CardTitle className="text-xl">
+					{t("settings.appearance.title")}
+				</CardTitle>
 				<CardDescription>
-					Customize the theme of your dashboard.
+					{t("settings.appearance.description")}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-2">
@@ -72,9 +92,9 @@ export function AppearanceForm() {
 							render={({ field }) => {
 								return (
 									<FormItem className="space-y-1 ">
-										<FormLabel>Theme</FormLabel>
+										<FormLabel>{t("settings.appearance.theme")}</FormLabel>
 										<FormDescription>
-											Select a theme for your dashboard
+											{t("settings.appearance.themeDescription")}
 										</FormDescription>
 										<FormMessage />
 										<RadioGroup
@@ -92,7 +112,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-light.svg" alt="light" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														Light
+														{t("settings.appearance.themes.light")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -105,7 +125,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-dark.svg" alt="dark" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														Dark
+														{t("settings.appearance.themes.dark")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -121,7 +141,7 @@ export function AppearanceForm() {
 														<img src="/images/theme-system.svg" alt="system" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
-														System
+														{t("settings.appearance.themes.system")}
 													</span>
 												</FormLabel>
 											</FormItem>
@@ -131,7 +151,44 @@ export function AppearanceForm() {
 							}}
 						/>
 
-						<Button type="submit">Save</Button>
+						<FormField
+							control={form.control}
+							name="language"
+							defaultValue={form.control._defaultValues.language}
+							render={({ field }) => {
+								return (
+									<FormItem className="space-y-1">
+										<FormLabel>{t("settings.appearance.language")}</FormLabel>
+										<FormDescription>
+											{t("settings.appearance.languageDescription")}
+										</FormDescription>
+										<FormMessage />
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="No preset selected" />
+											</SelectTrigger>
+											<SelectContent>
+												{[
+													{ label: "English", value: "en" },
+													{ label: "Polski", value: "pl" },
+													{ label: "简体中文", value: "zh-Hans" },
+												].map((preset) => (
+													<SelectItem key={preset.label} value={preset.value}>
+														{preset.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormItem>
+								);
+							}}
+						/>
+
+						<Button type="submit">{t("settings.common.save")}</Button>
 					</form>
 				</Form>
 			</CardContent>

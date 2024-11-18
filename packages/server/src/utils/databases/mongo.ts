@@ -9,7 +9,10 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 
-export type MongoNested = InferResultType<"mongo", { mounts: true }>;
+export type MongoNested = InferResultType<
+	"mongo",
+	{ mounts: true; project: true }
+>;
 
 export const buildMongo = async (mongo: MongoNested) => {
 	const {
@@ -36,7 +39,10 @@ export const buildMongo = async (mongo: MongoNested) => {
 		cpuLimit,
 		cpuReservation,
 	});
-	const envVariables = prepareEnvironmentVariables(defaultMongoEnv);
+	const envVariables = prepareEnvironmentVariables(
+		defaultMongoEnv,
+		mongo.project.env,
+	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, mongo);

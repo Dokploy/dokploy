@@ -194,6 +194,7 @@ export const deployApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
+			adminId: application.project.adminId,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -205,6 +206,7 @@ export const deployApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: application.project.adminId,
 		});
 
 		console.log(
@@ -315,6 +317,7 @@ export const deployRemoteApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
+			adminId: application.project.adminId,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -337,6 +340,7 @@ export const deployRemoteApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: application.project.adminId,
 		});
 
 		console.log(

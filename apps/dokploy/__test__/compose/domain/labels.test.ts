@@ -39,6 +39,24 @@ describe("createDomainLabels", () => {
 		]);
 	});
 
+	it("should add the path prefix if is different than / empty", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				path: "/hello",
+			},
+			"websecure",
+		);
+
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`) && PathPrefix(`/hello`)",
+			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
+			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
+		]);
+	});
+
 	it("should add redirect middleware for https on web entrypoint", async () => {
 		const httpsBaseDomain = { ...baseDomain, https: true };
 		const labels = await createDomainLabels(appName, httpsBaseDomain, "web");

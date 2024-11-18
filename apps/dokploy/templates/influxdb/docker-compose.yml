@@ -1,0 +1,11 @@
+services:
+  influxdb:
+    image: influxdb:2.7.10
+    restart: unless-stopped
+    volumes:
+      - influxdb2-data:/var/lib/influxdb2
+      - influxdb2-config:/etc/influxdb2
+
+volumes:
+  influxdb2-data:
+  influxdb2-config:

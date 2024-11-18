@@ -87,7 +87,7 @@ export const UpdateServer = () => {
 								}}
 								isLoading={isLoading}
 							>
-								Check updates
+								Check Updates
 							</Button>
 						)}
 					</div>

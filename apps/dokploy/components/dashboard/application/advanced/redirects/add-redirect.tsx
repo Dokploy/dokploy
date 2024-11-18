@@ -61,7 +61,7 @@ const redirectPresets = [
 		redirect: {
 			regex: "^https?://(?:www.)?(.+)",
 			permanent: true,
-			replacement: "https://www.$${1}",
+			replacement: "https://www.${1}",
 		},
 	},
 	{
@@ -70,7 +70,7 @@ const redirectPresets = [
 		redirect: {
 			regex: "^https?://www.(.+)",
 			permanent: true,
-			replacement: "https://$${1}",
+			replacement: "https://${1}",
 		},
 	},
 ];

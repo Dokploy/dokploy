@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ const randomImages = [
 export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
+	const { t } = useTranslation("settings");
 
 	const form = useForm<Profile>({
 		defaultValues: {
@@ -91,10 +93,10 @@ export const ProfileForm = () => {
 		<Card className="bg-transparent">
 			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 				<div>
-					<CardTitle className="text-xl">Account</CardTitle>
-					<CardDescription>
-						Change the details of your profile here.
-					</CardDescription>
+					<CardTitle className="text-xl">
+						{t("settings.profile.title")}
+					</CardTitle>
+					<CardDescription>{t("settings.profile.description")}</CardDescription>
 				</div>
 				{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
 			</CardHeader>
@@ -107,9 +109,12 @@ export const ProfileForm = () => {
 								name="email"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>{t("settings.profile.email")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Email" {...field} />
+											<Input
+												placeholder={t("settings.profile.email")}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -120,11 +125,11 @@ export const ProfileForm = () => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("settings.profile.password")}</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
-												placeholder="Password"
+												placeholder={t("settings.profile.password")}
 												{...field}
 												value={field.value || ""}
 											/>
@@ -139,7 +144,7 @@ export const ProfileForm = () => {
 								name="image"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Avatar</FormLabel>
+										<FormLabel>{t("settings.profile.avatar")}</FormLabel>
 										<FormControl>
 											<RadioGroup
 												onValueChange={(e) => {
@@ -177,7 +182,7 @@ export const ProfileForm = () => {
 						</div>
 						<div>
 							<Button type="submit" isLoading={isLoading}>
-								Save
+								{t("settings.common.save")}
 							</Button>
 						</div>
 					</form>

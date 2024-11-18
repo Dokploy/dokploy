@@ -125,7 +125,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "uptime-kuma",
 		name: "Uptime Kuma",
-		version: "1.21.4",
+		version: "1.23.15",
 		description:
 			"Uptime Kuma is a free and open source monitoring tool that allows you to monitor your websites and applications.",
 		logo: "uptime-kuma.png",
@@ -218,7 +218,6 @@ export const templates: TemplateData[] = [
 		version: "v1.5.6",
 		description:
 			"Documenso is the open source alternative to DocuSign for signing documents digitally",
-
 		links: {
 			github: "https://github.com/documenso/documenso",
 			website: "https://documenso.com/",
@@ -231,7 +230,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "nocodb",
 		name: "NocoDB",
-		version: "0.251.1",
+		version: "0.257.2",
 		description:
 			"NocoDB is an opensource Airtable alternative that turns any MySQL, PostgreSQL, SQL Server, SQLite & MariaDB into a smart spreadsheet.",
 
@@ -441,7 +440,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "soketi",
 		name: "Soketi",
-		version: "v1.4-16",
+		version: "v1.6.1-16",
 		description:
 			"Soketi is your simple, fast, and resilient open-source WebSockets server.",
 		logo: "soketi.png",
@@ -485,7 +484,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "gitea",
 		name: "Gitea",
-		version: "1.22.2",
+		version: "1.22.3",
 		description:
 			"Git with a cup of tea! Painless self-hosted all-in-one software development service, including Git hosting, code review, team collaboration, package registry and CI/CD.",
 		logo: "gitea.png",
@@ -558,6 +557,124 @@ export const templates: TemplateData[] = [
 		load: () => import("./portainer/index").then((m) => m.generate),
 	},
 	{
+		id: "influxdb",
+		name: "InfluxDB",
+		version: "2.7.10",
+		description:
+			"InfluxDB 2.7 is the platform purpose-built to collect, store, process and visualize time series data.",
+		logo: "influxdb.png",
+		links: {
+			github: "https://github.com/influxdata/influxdb",
+			website: "https://www.influxdata.com/",
+			docs: "https://docs.influxdata.com/influxdb/v2/",
+		},
+		tags: ["self-hosted", "open-source", "storage", "database"],
+		load: () => import("./influxdb/index").then((m) => m.generate),
+	},
+	{
+		id: "infisical",
+		name: "Infisical",
+		version: "0.90.1",
+		description:
+			"All-in-one platform to securely manage application configuration and secrets across your team and infrastructure.",
+		logo: "infisical.jpg",
+		links: {
+			github: "https://github.com/Infisical/infisical",
+			website: "https://infisical.com/",
+			docs: "https://infisical.com/docs/documentation/getting-started/introduction",
+		},
+		tags: ["self-hosted", "open-source"],
+		load: () => import("./infisical/index").then((m) => m.generate),
+	},
+	{
+		id: "docmost",
+		name: "Docmost",
+		version: "0.4.1",
+		description:
+			"Docmost, is an open-source collaborative wiki and documentation software.",
+		logo: "docmost.png",
+		links: {
+			github: "https://github.com/docmost/docmost",
+			website: "https://docmost.com/",
+			docs: "https://docmost.com/docs/",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./docmost/index").then((m) => m.generate),
+	},
+	{
+		id: "vaultwarden",
+		name: "Vaultwarden",
+		version: "1.32.3",
+		description:
+			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
+		logo: "vaultwarden.svg",
+		links: {
+			github: "https://github.com/dani-garcia/vaultwarden",
+			website: "",
+			docs: "https://github.com/dani-garcia/vaultwarden/wiki",
+		},
+		tags: ["open-source"],
+		load: () => import("./vaultwarden/index").then((m) => m.generate),
+	},
+	{
+		id: "hi-events",
+		name: "Hi.events",
+		version: "0.8.0-beta.1",
+		description:
+			"Hi.Events is a self-hosted event management and ticket selling platform that allows you to create, manage and promote events easily.",
+		logo: "hi-events.svg",
+		links: {
+			github: "https://github.com/HiEventsDev/hi.events",
+			website: "https://hi.events/",
+			docs: "https://hi.events/docs",
+		},
+		tags: ["self-hosted", "open-source", "manager"],
+		load: () => import("./hi-events/index").then((m) => m.generate),
+	},
+	{
+		id: "windows",
+		name: "Windows (dockerized)",
+		version: "4.00",
+		description: "Windows inside a Docker container.",
+		logo: "windows.png",
+		links: {
+			github: "https://github.com/dockur/windows",
+			website: "",
+			docs: "https://github.com/dockur/windows?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./windows/index").then((m) => m.generate),
+	},
+	{
+		id: "macos",
+		name: "MacOS (dockerized)",
+		version: "1.14",
+		description: "MacOS inside a Docker container.",
+		logo: "macos.png",
+		links: {
+			github: "https://github.com/dockur/macos",
+			website: "",
+			docs: "https://github.com/dockur/macos?tab=readme-ov-file#how-do-i-use-it",
+		},
+		tags: ["self-hosted", "open-source", "os"],
+		load: () => import("./macos/index").then((m) => m.generate),
+	},
+	{
+		id: "coder",
+		name: "Coder",
+		version: "2.15.3",
+		description:
+			"Coder is an open-source cloud development environment (CDE) that you host in your cloud or on-premises.",
+		logo: "coder.svg",
+		links: {
+			github: "https://github.com/coder/coder",
+			website: "https://coder.com/",
+			docs: "https://coder.com/docs",
+		},
+		tags: ["self-hosted", "open-source", "builder"],
+		load: () => import("./coder/index").then((m) => m.generate),
+	},
+	{
 		id: "stirling",
 		name: "Stirling PDF",
 		version: "0.30.1",
@@ -584,5 +701,140 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["IA", "chat"],
 		load: () => import("./lobe-chat/index").then((m) => m.generate),
+	},
+	{
+		id: "peppermint",
+		name: "Peppermint",
+		version: "latest",
+		description:
+			"Peppermint is a modern, open-source API development platform that helps you build, test and document your APIs.",
+		logo: "peppermint.svg",
+		links: {
+			github: "https://github.com/Peppermint-Lab/peppermint",
+			website: "https://peppermint.sh/",
+			docs: "https://docs.peppermint.sh/",
+		},
+		tags: ["api", "development", "documentation"],
+		load: () => import("./peppermint/index").then((m) => m.generate),
+	},
+	{
+		id: "windmill",
+		name: "Windmill",
+		version: "latest",
+		description:
+			"A developer platform to build production-grade workflows and internal apps. Open-source alternative to Airplane, Retool, and GitHub Actions.",
+		logo: "windmill.svg",
+		links: {
+			github: "https://github.com/windmill-labs/windmill",
+			website: "https://www.windmill.dev/",
+			docs: "https://docs.windmill.dev/",
+		},
+		tags: ["workflow", "automation", "development"],
+		load: () => import("./windmill/index").then((m) => m.generate),
+	},
+	{
+		id: "activepieces",
+		name: "Activepieces",
+		version: "0.35.0",
+		description:
+			"Open-source no-code business automation tool. An alternative to Zapier, Make.com, and Tray.",
+		logo: "activepieces.svg",
+		links: {
+			github: "https://github.com/activepieces/activepieces",
+			website: "https://www.activepieces.com/",
+			docs: "https://www.activepieces.com/docs",
+		},
+		tags: ["automation", "workflow", "no-code"],
+		load: () => import("./activepieces/index").then((m) => m.generate),
+	},
+	{
+		id: "invoiceshelf",
+		name: "InvoiceShelf",
+		version: "latest",
+		description:
+			"InvoiceShelf is a self-hosted open source invoicing system for freelancers and small businesses.",
+		logo: "invoiceshelf.png",
+		links: {
+			github: "https://github.com/InvoiceShelf/invoiceshelf",
+			website: "https://invoiceshelf.com",
+			docs: "https://github.com/InvoiceShelf/invoiceshelf#readme",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./invoiceshelf/index").then((m) => m.generate),
+	},
+	{
+		id: "postiz",
+		name: "Postiz",
+		version: "latest",
+		description:
+			"Postiz is a modern, open-source platform for managing and publishing content across multiple channels.",
+		logo: "postiz.png",
+		links: {
+			github: "https://github.com/gitroomhq/postiz",
+			website: "https://postiz.io",
+			docs: "https://docs.postiz.io",
+		},
+		tags: ["cms", "content-management", "publishing"],
+		load: () => import("./postiz/index").then((m) => m.generate),
+	},
+	{
+		id: "slash",
+		name: "Slash",
+		version: "latest",
+		description:
+			"Slash is a modern, self-hosted bookmarking service and link shortener that helps you organize and share your favorite links.",
+		logo: "slash.png",
+		links: {
+			github: "https://github.com/yourselfhosted/slash",
+			website: "https://github.com/yourselfhosted/slash#readme",
+			docs: "https://github.com/yourselfhosted/slash/wiki",
+		},
+		tags: ["bookmarks", "link-shortener", "self-hosted"],
+		load: () => import("./slash/index").then((m) => m.generate),
+	},
+	{
+		id: "discord-tickets",
+		name: "Discord Tickets",
+		version: "4.0.21",
+		description:
+			"An open-source Discord bot for creating and managing support ticket channels.",
+		logo: "discord-tickets.png",
+		links: {
+			github: "https://github.com/discord-tickets/bot",
+			website: "https://discordtickets.app",
+			docs: "https://discordtickets.app/self-hosting/installation/docker/",
+		},
+		tags: ["discord", "tickets", "support"],
+		load: () => import("./discord-tickets/index").then((m) => m.generate),
+	},
+	{
+		id: "nextcloud-aio",
+		name: "Nextcloud All in One",
+		version: "30.0.2",
+		description:
+			"Nextcloud (AIO) is a self-hosted file storage and sync platform with powerful collaboration capabilities. It integrates Files, Talk, Groupware, Office, Assistant and more into a single platform for remote work and data protection.",
+		logo: "nextcloud-aio.svg",
+		links: {
+			github: "https://github.com/nextcloud/docker",
+			website: "https://nextcloud.com/",
+			docs: "https://docs.nextcloud.com/",
+		},
+		tags: ["file", "sync"],
+		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
+	},
+	{
+		id: "blender",
+		name: "Blender",
+		version: "latest",
+		description:
+			"Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
+		logo: "blender.svg",
+		links: {
+			github: "https://github.com/linuxserver/docker-blender",
+			website: "https://www.blender.org/",
+			docs: "https://docs.blender.org/",
+		},
+		tags: ["3d", "rendering", "animation"],
+		load: () => import("./blender/index").then((m) => m.generate),
 	},
 ];

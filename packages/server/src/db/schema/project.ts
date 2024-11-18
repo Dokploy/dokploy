@@ -26,6 +26,7 @@ export const projects = pgTable("project", {
 	adminId: text("adminId")
 		.notNull()
 		.references(() => admins.adminId, { onDelete: "cascade" }),
+	env: text("env").notNull().default(""),
 });
 
 export const projectRelations = relations(projects, ({ many, one }) => ({
@@ -65,10 +66,16 @@ export const apiRemoveProject = createSchema
 	})
 	.required();
 
-export const apiUpdateProject = createSchema
-	.pick({
-		name: true,
-		description: true,
-		projectId: true,
-	})
-	.required();
+// export const apiUpdateProject = createSchema
+// 	.pick({
+// 		name: true,
+// 		description: true,
+// 		projectId: true,
+// 		env: true,
+// 	})
+// 	.required();
+
+export const apiUpdateProject = createSchema.partial().extend({
+	projectId: z.string().min(1),
+});
+// .omit({ serverId: true });
