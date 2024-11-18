@@ -771,8 +771,8 @@ export const templates: TemplateData[] = [
 		logo: "postiz.png",
 		links: {
 			github: "https://github.com/gitroomhq/postiz",
-			website: "https://postiz.io",
-			docs: "https://docs.postiz.io",
+			website: "https://postiz.com",
+			docs: "https://docs.postiz.com",
 		},
 		tags: ["cms", "content-management", "publishing"],
 		load: () => import("./postiz/index").then((m) => m.generate),
