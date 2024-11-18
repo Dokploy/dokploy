@@ -8,7 +8,7 @@ export default function useLocale() {
 	const currentLocale = (Cookies.get("DOKPLOY_LOCALE") ?? "en") as Locale;
 
 	const setLocale = (locale: Locale) => {
-		Cookies.set("DOKPLOY_LOCALE", locale);
+		Cookies.set("DOKPLOY_LOCALE", locale, { expires: 365 });
 		window.location.reload();
 	};
 
