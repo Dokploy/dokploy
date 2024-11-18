@@ -837,4 +837,19 @@ export const templates: TemplateData[] = [
 		tags: ["3d", "rendering", "animation"],
 		load: () => import("./blender/index").then((m) => m.generate),
 	},
+	{
+		id: "heyform",
+		name: "HeyForm",
+		version: "latest",
+		description:
+			"Allows anyone to create engaging conversational forms for surveys, questionnaires, quizzes, and polls. No coding skills required.",
+		logo: "heyform.svg",
+		links: {
+			github: "https://github.com/heyform/heyform",
+			website: "https://heyform.net",
+			docs: "https://docs.heyform.net",
+		},
+		tags: ["form", "builder", "questionnaire", "quiz", "survey"],
+		load: () => import("./heyform/index").then((m) => m.generate),
+	},
 ];
