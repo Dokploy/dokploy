@@ -268,11 +268,11 @@ export const prepareEnvironmentVariables = (
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
 		if (projectVars) {
-			resolvedValue = value.replace(/\$\{\{shared\.(.*?)\}\}/g, (_, ref) => {
+			resolvedValue = value.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
 				if (projectVars[ref] !== undefined) {
 					return projectVars[ref];
 				}
-				throw new Error(`Invalid shared environment variable: shared.${ref}`);
+				throw new Error(`Invalid project environment variable: project.${ref}`);
 			});
 		}
 		return `${key}=${resolvedValue}`;

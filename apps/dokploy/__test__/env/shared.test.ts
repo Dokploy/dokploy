@@ -7,13 +7,13 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/project_db
 PORT=3000
 `;
 const serviceEnv = `
-ENVIRONMENT=\${{shared.ENVIRONMENT}}
-DATABASE_URL=\${{shared.DATABASE_URL}}
+ENVIRONMENT=\${{project.ENVIRONMENT}}
+DATABASE_URL=\${{project.DATABASE_URL}}
 SERVICE_PORT=4000
 `;
 
 describe("prepareEnvironmentVariables", () => {
-	it("resolves shared variables correctly", () => {
+	it("resolves project variables correctly", () => {
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 
 		expect(resolved).toEqual([
@@ -23,24 +23,24 @@ describe("prepareEnvironmentVariables", () => {
 		]);
 	});
 
-	it("handles undefined shared variables", () => {
+	it("handles undefined project variables", () => {
 		const incompleteProjectEnv = `
 		NODE_ENV=production
 		`;
 
 		const invalidServiceEnv = `
-		UNDEFINED_VAR=\${{shared.UNDEFINED_VAR}}
+		UNDEFINED_VAR=\${{project.UNDEFINED_VAR}}
 		`;
 
 		expect(
 			() =>
 				prepareEnvironmentVariables(invalidServiceEnv, incompleteProjectEnv), // Cambiado el orden
-		).toThrow("Invalid shared environment variable: shared.UNDEFINED_VAR");
+		).toThrow("Invalid project environment variable: project.UNDEFINED_VAR");
 	});
-	it("allows service-specific variables to override shared variables", () => {
+	it("allows service-specific variables to override project variables", () => {
 		const serviceSpecificEnv = `
 		ENVIRONMENT=production
-		DATABASE_URL=\${{shared.DATABASE_URL}}
+		DATABASE_URL=\${{project.DATABASE_URL}}
 		`;
 
 		const resolved = prepareEnvironmentVariables(
@@ -49,7 +49,7 @@ describe("prepareEnvironmentVariables", () => {
 		);
 
 		expect(resolved).toEqual([
-			"ENVIRONMENT=production", // Overrides shared variable
+			"ENVIRONMENT=production", // Overrides project variable
 			"DATABASE_URL=postgres://postgres:postgres@localhost:5432/project_db",
 		]);
 	});
@@ -61,7 +61,7 @@ API_VERSION=v1
 PORT=8000
 `;
 		const serviceEnv = `
-API_ENDPOINT=\${{shared.BASE_URL}}/\${{shared.API_VERSION}}/endpoint
+API_ENDPOINT=\${{project.BASE_URL}}/\${{project.API_VERSION}}/endpoint
 SERVICE_PORT=9000
 `;
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
@@ -72,27 +72,27 @@ SERVICE_PORT=9000
 		]);
 	});
 
-	it("handles missing shared variables gracefully", () => {
+	it("handles missing project variables gracefully", () => {
 		const projectEnv = `
 PORT=8080
 `;
 		const serviceEnv = `
-MISSING_VAR=\${{shared.MISSING_KEY}}
+MISSING_VAR=\${{project.MISSING_KEY}}
 SERVICE_PORT=3000
 `;
 
 		expect(() => prepareEnvironmentVariables(serviceEnv, projectEnv)).toThrow(
-			"Invalid shared environment variable: shared.MISSING_KEY",
+			"Invalid project environment variable: project.MISSING_KEY",
 		);
 	});
 
-	it("overrides shared variables with service-specific values", () => {
+	it("overrides project variables with service-specific values", () => {
 		const projectEnv = `
 ENVIRONMENT=staging
 DATABASE_URL=postgres://project:project@localhost:5432/project_db
 `;
 		const serviceEnv = `
-ENVIRONMENT=\${{shared.ENVIRONMENT}}
+ENVIRONMENT=\${{project.ENVIRONMENT}}
 DATABASE_URL=postgres://service:service@localhost:5432/service_db
 SERVICE_NAME=my-service
 `;
@@ -105,15 +105,15 @@ SERVICE_NAME=my-service
 		]);
 	});
 
-	it("handles shared variables with normal and unusual characters", () => {
+	it("handles project variables with normal and unusual characters", () => {
 		const projectEnv = `
 ENVIRONMENT=PRODUCTION
 `;
 
 		// Needs to be in quotes
 		const serviceEnv = `
-NODE_ENV=\${{shared.ENVIRONMENT}}
-SPECIAL_VAR="$^@$^@#$^@!#$@#$-\${{shared.ENVIRONMENT}}"
+NODE_ENV=\${{project.ENVIRONMENT}}
+SPECIAL_VAR="$^@$^@#$^@!#$@#$-\${{project.ENVIRONMENT}}"
 `;
 
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
@@ -131,8 +131,8 @@ APP_NAME=MyApp
 `;
 
 		const serviceEnv = `
-NODE_ENV=\${{shared.ENVIRONMENT}}
-COMPLEX_VAR="Prefix-$#^!@-\${{shared.ENVIRONMENT}}--\${{shared.APP_NAME}} Suffix "
+NODE_ENV=\${{project.ENVIRONMENT}}
+COMPLEX_VAR="Prefix-$#^!@-\${{project.ENVIRONMENT}}--\${{project.APP_NAME}} Suffix "
 `;
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 
@@ -149,8 +149,8 @@ COMPLEX_VAR="Prefix-$#^!@-\${{shared.ENVIRONMENT}}--\${{shared.APP_NAME}} Suffix
 	`;
 
 		const serviceEnv = `
-	NODE_ENV='\${{shared.ENVIRONMENT}}'
-	COMPLEX_VAR='Prefix-$#^!@-\${{shared.ENVIRONMENT}}--\${{shared.APP_NAME}} Suffix'
+	NODE_ENV='\${{project.ENVIRONMENT}}'
+	COMPLEX_VAR='Prefix-$#^!@-\${{project.ENVIRONMENT}}--\${{project.APP_NAME}} Suffix'
 	`;
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 
@@ -166,8 +166,8 @@ ENVIRONMENT=PRODUCTION
 APP_NAME=MyApp
 `;
 		const serviceEnv = `
-NODE_ENV="'\${{shared.ENVIRONMENT}}'"
-COMPLEX_VAR="'Prefix \"DoubleQuoted\" and \${{shared.APP_NAME}}'"
+NODE_ENV="'\${{project.ENVIRONMENT}}'"
+COMPLEX_VAR="'Prefix \"DoubleQuoted\" and \${{project.APP_NAME}}'"
 `;
 		const resolved = prepareEnvironmentVariables(serviceEnv, projectEnv);
 
