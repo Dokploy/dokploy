@@ -183,6 +183,9 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	publicIp: protectedProcedure.query(async ({ ctx }) => {
+		if (IS_CLOUD) {
+			return "";
+		}
 		const ip = await getPublicIpWithFallback();
 		return ip;
 	}),
