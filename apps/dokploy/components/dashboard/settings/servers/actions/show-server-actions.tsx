@@ -1,4 +1,3 @@
-import { CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -21,13 +20,13 @@ export const ShowServerActions = ({ serverId }: Props) => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<DropdownMenuItem
-					className="w-full cursor-pointer "
+					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
 					View Actions
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-xl overflow-y-auto max-h-screen">
 				<div className="flex flex-col gap-1">
 					<DialogTitle className="text-xl">Web server settings</DialogTitle>
 					<DialogDescription>Reload or clean the web server.</DialogDescription>

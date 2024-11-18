@@ -14,9 +14,11 @@ We have a few guidelines to follow when contributing to this project:
 
 ## Commit Convention
 
+
 Before you create a Pull Request, please make sure your commit message follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
 ### Commit Message Format
+
 
 ```
 <type>[optional scope]: <description>
@@ -235,7 +237,7 @@ export function generate(schema: Schema): Template {
 
 5. Add the logo or image of the template to `public/templates/plausible.svg`
 
-### Recomendations
+### Recommendations
 
 - Use the same name of the folder as the id of the template.
 - The logo should be in the public folder.

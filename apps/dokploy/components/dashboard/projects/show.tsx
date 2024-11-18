@@ -35,6 +35,7 @@ import {
 import Link from "next/link";
 import { Fragment } from "react";
 import { toast } from "sonner";
+import { AddEnv } from "./add-env";
 import { UpdateProject } from "./update";
 
 export const ShowProjects = () => {
@@ -190,7 +191,9 @@ export const ShowProjects = () => {
 														<DropdownMenuLabel className="font-normal">
 															Actions
 														</DropdownMenuLabel>
-
+														<div onClick={(e) => e.stopPropagation()}>
+															<AddEnv projectId={project.projectId} />
+														</div>
 														<div onClick={(e) => e.stopPropagation()}>
 															<UpdateProject projectId={project.projectId} />
 														</div>
