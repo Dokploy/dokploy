@@ -16,7 +16,7 @@ export function generate(schema: Schema): Template {
         {
             host: mainDomain,
             port: 3000,
-            serviceName: "rails",
+            serviceName: "chatwoot-rails",
         },
     ];
 
@@ -29,12 +29,12 @@ export function generate(schema: Schema): Template {
         `RAILS_LOG_TO_STDOUT=true`,
         `LOG_LEVEL=info`,
         `DEFAULT_LOCALE=en`,
-        `POSTGRES_HOST=postgres`,
+        `POSTGRES_HOST=chatwoot-postgres`,
         `POSTGRES_PORT=5432`,
         `POSTGRES_DATABASE=chatwoot`,
         `POSTGRES_USERNAME=postgres`,
         `POSTGRES_PASSWORD=${postgresPassword}`,
-        `REDIS_URL=redis://redis:6379`,
+        `REDIS_URL=redis://chatwoot-redis:6379`,
         `ENABLE_ACCOUNT_SIGNUP=false`,
         `ACTIVE_STORAGE_SERVICE=local`,
     ];
