@@ -71,7 +71,7 @@ export default api.withTRPC(
 		{
 			i18n: {
 				defaultLocale: "en",
-				locales: ["en", "pl", "zh-Hans", "ru"],
+				locales: ["en", "pl", "ru", "zh-Hans"],
 				localeDetection: false,
 			},
 			fallbackLng: "en",
