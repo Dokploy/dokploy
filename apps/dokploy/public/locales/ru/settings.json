@@ -24,7 +24,7 @@
 	"settings.server.webServer.storage.cleanStoppedContainers": "Очистить остановленные контейнеры",
 	"settings.server.webServer.storage.cleanDockerBuilder": "Очистить Docker Builder и систему",
 	"settings.server.webServer.storage.cleanMonitoring": "Очистить мониторинг",
-	"settings.server.webServer.storage.cleanAll": "Очистить всё",
+	"settings.server.webServer.storage.cleanAll": "Очистить все",
 
 	"settings.profile.title": "Аккаунт",
 	"settings.profile.description": "Измените данные вашего профиля.",
@@ -37,7 +37,7 @@
 	"settings.appearance.theme": "Тема",
 	"settings.appearance.themeDescription": "Выберите тему системной панели",
 	"settings.appearance.themes.light": "Светлая",
-	"settings.appearance.themes.dark": "Тёмная",
+	"settings.appearance.themes.dark": "Темная",
 	"settings.appearance.themes.system": "Системная",
 	"settings.appearance.language": "Язык",
 	"settings.appearance.languageDescription": "Select a language for your dashboard"
