@@ -841,7 +841,8 @@ export const templates: TemplateData[] = [
 		id: "chatwoot",
 		name: "Chatwoot",
 		version: "v3.14.1",
-		description: "Open-source customer engagement platform that provides a shared inbox for teams, live chat, and omnichannel support.",
+		description:
+			"Open-source customer engagement platform that provides a shared inbox for teams, live chat, and omnichannel support.",
 		logo: "chatwoot.svg",
 		links: {
 			github: "https://github.com/chatwoot/chatwoot",
