@@ -837,4 +837,18 @@ export const templates: TemplateData[] = [
 		tags: ["3d", "rendering", "animation"],
 		load: () => import("./blender/index").then((m) => m.generate),
 	},
+	{
+		id: "chatwoot",
+		name: "Chatwoot",
+		version: "v3.14.1",
+		description: "Open-source customer engagement platform that provides a shared inbox for teams, live chat, and omnichannel support.",
+		logo: "chatwoot.svg",
+		links: {
+			github: "https://github.com/chatwoot/chatwoot",
+			website: "https://www.chatwoot.com",
+			docs: "https://www.chatwoot.com/docs",
+		},
+		tags: ["support", "chat", "customer-service"],
+		load: () => import("./chatwoot/index").then((m) => m.generate),
+	},
 ];
