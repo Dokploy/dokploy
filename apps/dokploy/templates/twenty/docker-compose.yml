@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  twenty-change-vol-ownership:
+    image: ubuntu
+    user: root
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-server-local-data:/tmp/server-local-data
+      - twenty-docker-data:/tmp/docker-data
+    command: >
+      bash -c "
+      chown -R 1000:1000 /tmp/server-local-data
+      && chown -R 1000:1000 /tmp/docker-data"
+
+  twenty-server:
+    image: twentycrm/twenty:latest
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-server-local-data:/app/packages/twenty-server/${STORAGE_LOCAL_PATH:-.local-storage}
+      - twenty-docker-data:/app/docker-data
+    environment:
+      PORT: 3000
+      PG_DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@twenty-db:5432/default
+      SERVER_URL: https://${TWENTY_HOST}
+      FRONT_BASE_URL: https://${TWENTY_HOST}
+      REDIS_URL: redis://twenty-redis:6379
+      ENABLE_DB_MIGRATIONS: "true"
+      SIGN_IN_PREFILLED: "true"
+      STORAGE_TYPE: local
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      twenty-change-vol-ownership:
+        condition: service_completed_successfully
+      twenty-db:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:3000/healthz
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  twenty-worker:
+    image: twentycrm/twenty:latest
+    networks:
+      - dokploy-network
+    command: ["yarn", "worker:prod"]
+    environment:
+      PG_DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@twenty-db:5432/default
+      SERVER_URL: https://${TWENTY_HOST}
+      FRONT_BASE_URL: https://${TWENTY_HOST}
+      REDIS_URL: redis://twenty-redis:6379
+      ENABLE_DB_MIGRATIONS: "false"
+      STORAGE_TYPE: local
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty-server:
+        condition: service_healthy
+    restart: always
+
+  twenty-db:
+    image: twentycrm/twenty-postgres-spilo:latest
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-db-data:/home/postgres/pgdata
+    environment:
+      PGUSER_SUPERUSER: ${PGUSER}
+      PGPASSWORD_SUPERUSER: ${PGPASSWORD}
+      ALLOW_NOSSL: "true"
+      SPILO_PROVIDER: "local"
+    healthcheck:
+      test: pg_isready -U ${PGUSER} -h localhost -d postgres
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  twenty-redis:
+    image: redis:latest
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+volumes:
+  twenty-docker-data:
+  twenty-db-data:
+  twenty-server-local-data: 
