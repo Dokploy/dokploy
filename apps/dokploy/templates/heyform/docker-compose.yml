@@ -9,7 +9,7 @@ services:
       - mongo
       - redis
     ports:
-      - '9513:8000'
+      - 8000
     env_file:
       - .env
     environment:
