@@ -880,6 +880,6 @@ export const templates: TemplateData[] = [
 			docs: "https://docs.twenty.com",
 		},
 		tags: ["crm", "sales", "business"],
-		load: () => import("./twenty/index.ts").then((m) => m.generate),
+		load: () => import("./twenty/index").then((m) => m.generate),
 	},
 ];
