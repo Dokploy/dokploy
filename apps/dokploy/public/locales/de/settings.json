@@ -14,7 +14,7 @@
 	"settings.server.webServer.actions": "Aktionen",
 	"settings.server.webServer.reload": "Neu laden",
 	"settings.server.webServer.watchLogs": "Logs anschauen",
-    "settings.server.webServer.updateServerIp": "Server-IP Aktualisieren",
+	"settings.server.webServer.updateServerIp": "Server-IP Aktualisieren",
 	"settings.server.webServer.server.label": "Server",
 	"settings.server.webServer.traefik.label": "Traefik",
 	"settings.server.webServer.traefik.modifyEnv": "Umgebungsvariablen ändern",
