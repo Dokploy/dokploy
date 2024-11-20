@@ -14,7 +14,7 @@ export function generate(schema: Schema): Template {
 	const domains: DomainSchema[] = [
 		{
 			host: mainDomain,
-			port: 9513,
+			port: 8000,
 			serviceName: "heyform",
 		},
 	];
