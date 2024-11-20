@@ -867,4 +867,19 @@ export const templates: TemplateData[] = [
 		tags: ["support", "chat", "customer-service"],
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
+	{
+		id: "ryot",
+		name: "Ryot",
+		version: "v7.10",
+		description:
+			"A self-hosted platform for tracking various media types including movies, TV shows, video games, books, audiobooks, and more.",
+		logo: "ryot.svg",
+		links: {
+			github: "https://github.com/IgnisDa/ryot",
+			website: "https://ryot.dev/",
+			docs: "https://ryot.dev/docs/getting-started",
+		},
+		tags: ["media", "tracking", "self-hosted"],
+		load: () => import("./ryot/index").then((m) => m.generate),
+	},
 ];
