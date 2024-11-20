@@ -867,4 +867,18 @@ export const templates: TemplateData[] = [
 		tags: ["support", "chat", "customer-service"],
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
+	{
+		id: "yourls",
+		name: "YOURLS",
+		version: "latest",
+		description: "YOURLS (Your Own URL Shortener) is a set of PHP scripts that will allow you to run your own URL shortening service (a la TinyURL or Bitly).",
+		logo: "yourls.svg",
+		links: {
+			github: "https://github.com/YOURLS/YOURLS",
+			website: "https://yourls.org/",
+			docs: "https://yourls.org/#documentation",
+		},
+		tags: ["url-shortener", "php"],
+		load: () => import("./yourls/index").then((m) => m.generate),
+	},
 ];
