@@ -873,7 +873,7 @@ export const templates: TemplateData[] = [
 		version: "v7.10",
 		description:
 			"A self-hosted platform for tracking various media types including movies, TV shows, video games, books, audiobooks, and more.",
-		logo: "ryot.svg",
+		logo: "ryot.png",
 		links: {
 			github: "https://github.com/IgnisDa/ryot",
 			website: "https://ryot.dev/",
