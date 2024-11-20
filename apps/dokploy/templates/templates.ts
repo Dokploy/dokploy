@@ -870,7 +870,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "yourls",
 		name: "YOURLS",
-		version: "latest",
+		version: "1.9.2",
 		description:
 			"YOURLS (Your Own URL Shortener) is a set of PHP scripts that will allow you to run your own URL shortening service (a la TinyURL or Bitly).",
 		logo: "yourls.svg",

@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   yourls-app:
-    image: yourls:latest
+    image: yourls:1.9.2
     networks:
       - dokploy-network
     environment:
