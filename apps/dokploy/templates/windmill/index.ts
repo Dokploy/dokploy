@@ -14,14 +14,14 @@ export function generate(schema: Schema): Template {
 		{
 			host: mainDomain,
 			port: 80,
-			serviceName: "caddy",
+			serviceName: "windmill-caddy",
 		},
 	];
 
 	const envs = [
 		`WINDMILL_HOST=${mainDomain}`,
 		`POSTGRES_PASSWORD=${postgresPassword}`,
-		`DATABASE_URL=postgres://postgres:${postgresPassword}@db/windmill?sslmode=disable`,
+		`DATABASE_URL=postgres://postgres:${postgresPassword}@windmill-postgres/windmill?sslmode=disable`,
 	];
 
 	const mounts: Template["mounts"] = [
@@ -29,8 +29,8 @@ export function generate(schema: Schema): Template {
 			filePath: "Caddyfile",
 			content: `:80 {
     bind 0.0.0.0
-    reverse_proxy /ws/* http://lsp:3001
-    reverse_proxy /* http://windmill_server:8000
+    reverse_proxy /ws/* http://windmill-lsp:3001
+    reverse_proxy /* http://windmill-server:8000
 }`,
 		},
 	];
