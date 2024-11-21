@@ -9,8 +9,8 @@ import {
 
 export function generate(schema: Schema): Template {
 	const mainDomain = generateRandomDomain(schema);
-	const pgPassword = generatePassword();
-	const pgUser = "twenty";
+	const dbPassword = generatePassword();
+	const dbUser = "twenty";
 	const appSecret = generateBase64(32);
 
 	const domains: DomainSchema[] = [
@@ -23,8 +23,8 @@ export function generate(schema: Schema): Template {
 
 	const envs = [
 		`TWENTY_HOST=${mainDomain}`,
-		`PGUSER=${pgUser}`,
-		`PGPASSWORD=${pgPassword}`,
+		`DB_USER=${dbUser}`,
+		`DB_PASSWORD=${dbPassword}`,
 		`APP_SECRET=${appSecret}`,
 		"# Optional: Configure storage path",
 		"# STORAGE_LOCAL_PATH=.local-storage",

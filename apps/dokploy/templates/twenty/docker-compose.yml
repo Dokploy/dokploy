@@ -23,7 +23,7 @@ services:
       - twenty-docker-data:/app/docker-data
     environment:
       PORT: 3000
-      PG_DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@twenty-db:5432/default
+      PG_DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@twenty-postgres:5432/twenty
       SERVER_URL: https://${TWENTY_HOST}
       FRONT_BASE_URL: https://${TWENTY_HOST}
       REDIS_URL: redis://twenty-redis:6379
@@ -34,7 +34,7 @@ services:
     depends_on:
       twenty-change-vol-ownership:
         condition: service_completed_successfully
-      twenty-db:
+      twenty-postgres:
         condition: service_healthy
     healthcheck:
       test: curl --fail http://localhost:3000/healthz
@@ -49,7 +49,7 @@ services:
       - dokploy-network
     command: ["yarn", "worker:prod"]
     environment:
-      PG_DATABASE_URL: postgres://${PGUSER}:${PGPASSWORD}@twenty-db:5432/default
+      PG_DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@twenty-postgres:5432/twenty
       SERVER_URL: https://${TWENTY_HOST}
       FRONT_BASE_URL: https://${TWENTY_HOST}
       REDIS_URL: redis://twenty-redis:6379
@@ -57,25 +57,24 @@ services:
       STORAGE_TYPE: local
       APP_SECRET: ${APP_SECRET}
     depends_on:
-      twenty-db:
+      twenty-postgres:
         condition: service_healthy
       twenty-server:
         condition: service_healthy
     restart: always
 
-  twenty-db:
-    image: twentycrm/twenty-postgres-spilo:latest
+  twenty-postgres:
+    image: postgres:16-alpine
     networks:
       - dokploy-network
     volumes:
-      - twenty-db-data:/home/postgres/pgdata
+      - twenty-postgres-data:/var/lib/postgresql/data
     environment:
-      PGUSER_SUPERUSER: ${PGUSER}
-      PGPASSWORD_SUPERUSER: ${PGPASSWORD}
-      ALLOW_NOSSL: "true"
-      SPILO_PROVIDER: "local"
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: twenty
     healthcheck:
-      test: pg_isready -U ${PGUSER} -h localhost -d postgres
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d twenty"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -85,6 +84,8 @@ services:
     image: redis:latest
     networks:
       - dokploy-network
+    volumes:
+      - twenty-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -92,7 +93,12 @@ services:
       retries: 10
     restart: always
 
+networks:
+  dokploy-network:
+    external: true
+
 volumes:
   twenty-docker-data:
-  twenty-db-data:
-  twenty-server-local-data: 
+  twenty-postgres-data:
+  twenty-server-local-data:
+  twenty-redis-data: 
