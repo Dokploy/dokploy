@@ -867,4 +867,19 @@ export const templates: TemplateData[] = [
 		tags: ["support", "chat", "customer-service"],
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
+	{
+		id: "immich",
+		name: "Immich",
+		version: "v1.121.0",
+		description:
+			"High performance self-hosted photo and video backup solution directly from your mobile phone.",
+		logo: "immich.svg",
+		links: {
+			github: "https://github.com/immich-app/immich",
+			website: "https://immich.app/",
+			docs: "https://immich.app/docs/overview/introduction",
+		},
+		tags: ["photos", "videos", "backup", "media"],
+		load: () => import("./immich/index").then((m) => m.generate),
+	},
 ];

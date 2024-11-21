@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:v1.121.0
+    networks:
+      - dokploy-network
+    volumes:
+      - immich-library:/usr/src/app/upload
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      immich-redis:
+        condition: service_healthy
+      immich-database:
+        condition: service_healthy
+    environment:
+      PORT: 2283
+      DB_HOSTNAME: immich-database
+      DB_PORT: 5432
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE_NAME: immich
+      REDIS_HOSTNAME: immich-redis
+      REDIS_PORT: 6379
+      REDIS_DBINDEX: 0
+      SERVER_URL: https://${IMMICH_HOST}
+      FRONT_BASE_URL: https://${IMMICH_HOST}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2283/server-info/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:v1.121.0
+    networks:
+      - dokploy-network
+    volumes:
+      - immich-model-cache:/cache
+    environment:
+      REDIS_HOSTNAME: immich-redis
+      REDIS_PORT: 6379
+      REDIS_DBINDEX: 0
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  immich-redis:
+    image: redis:6.2-alpine
+    networks:
+      - dokploy-network
+    volumes:
+      - immich-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  immich-database:
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0
+    networks:
+      - dokploy-network
+    volumes:
+      - immich-postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: immich
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER} -d immich || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      [
+        'postgres',
+        '-c',
+        'shared_preload_libraries=vectors.so',
+        '-c',
+        'search_path="$$user", public, vectors',
+        '-c',
+        'logging_collector=on',
+        '-c',
+        'max_wal_size=2GB',
+        '-c',
+        'shared_buffers=512MB',
+        '-c',
+        'wal_compression=on',
+      ]
+    restart: always
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  immich-model-cache:
+  immich-postgres:
+  immich-library:
+  immich-redis-data: 
