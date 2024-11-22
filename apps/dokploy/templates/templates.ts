@@ -868,6 +868,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
 	{
+		id: "twenty",
+		name: "Twenty CRM",
+		version: "latest",
+		description:
+			"Twenty is a modern CRM offering a powerful spreadsheet interface and open-source alternative to Salesforce.",
+		logo: "twenty.svg",
+		links: {
+			github: "https://github.com/twentyhq/twenty",
+			website: "https://twenty.com",
+			docs: "https://docs.twenty.com",
+		},
+		tags: ["crm", "sales", "business"],
+		load: () => import("./twenty/index").then((m) => m.generate),
+  },
+    {
 		id: "yourls",
 		name: "YOURLS",
 		version: "1.9.2",
