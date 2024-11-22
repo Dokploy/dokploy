@@ -868,6 +868,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./chatwoot/index").then((m) => m.generate),
 	},
 	{
+		id: "discourse",
+		name: "Discourse",
+		version: "3.3.2",
+		description:
+			"Discourse is a modern forum software for your community. Use it as a mailing list, discussion forum, or long-form chat room.",
+		logo: "discourse.svg",
+		links: {
+			github: "https://github.com/discourse/discourse",
+			website: "https://www.discourse.org/",
+			docs: "https://meta.discourse.org/",
+		},
+		tags: ["forum", "community", "discussion"],
+		load: () => import("./discourse/index").then((m) => m.generate),
+  },
+    {
 		id: "immich",
 		name: "Immich",
 		version: "v1.121.0",
