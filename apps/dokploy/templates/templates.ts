@@ -881,5 +881,50 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["photos", "videos", "backup", "media"],
 		load: () => import("./immich/index").then((m) => m.generate),
+  },
+    {
+		id: "twenty",
+		name: "Twenty CRM",
+		version: "latest",
+		description:
+			"Twenty is a modern CRM offering a powerful spreadsheet interface and open-source alternative to Salesforce.",
+		logo: "twenty.svg",
+		links: {
+			github: "https://github.com/twentyhq/twenty",
+			website: "https://twenty.com",
+			docs: "https://docs.twenty.com",
+		},
+		tags: ["crm", "sales", "business"],
+		load: () => import("./twenty/index").then((m) => m.generate),
+  },
+    {
+		id: "yourls",
+		name: "YOURLS",
+		version: "1.9.2",
+		description:
+			"YOURLS (Your Own URL Shortener) is a set of PHP scripts that will allow you to run your own URL shortening service (a la TinyURL or Bitly).",
+		logo: "yourls.svg",
+		links: {
+			github: "https://github.com/YOURLS/YOURLS",
+			website: "https://yourls.org/",
+			docs: "https://yourls.org/#documentation",
+		},
+		tags: ["url-shortener", "php"],
+		load: () => import("./yourls/index").then((m) => m.generate),
+  },
+    {
+		id: "ryot",
+		name: "Ryot",
+		version: "v7.10",
+		description:
+			"A self-hosted platform for tracking various media types including movies, TV shows, video games, books, audiobooks, and more.",
+		logo: "ryot.png",
+		links: {
+			github: "https://github.com/IgnisDa/ryot",
+			website: "https://ryot.dev/",
+			docs: "https://ryot.dev/docs/getting-started",
+		},
+		tags: ["media", "tracking", "self-hosted"],
+		load: () => import("./ryot/index").then((m) => m.generate),
 	},
 ];

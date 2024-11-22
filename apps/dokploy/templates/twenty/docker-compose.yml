@@ -1,0 +1,104 @@
+version: "3.9"
+
+services:
+  twenty-change-vol-ownership:
+    image: ubuntu
+    user: root
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-server-local-data:/tmp/server-local-data
+      - twenty-docker-data:/tmp/docker-data
+    command: >
+      bash -c "
+      chown -R 1000:1000 /tmp/server-local-data
+      && chown -R 1000:1000 /tmp/docker-data"
+
+  twenty-server:
+    image: twentycrm/twenty:latest
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-server-local-data:/app/packages/twenty-server/${STORAGE_LOCAL_PATH:-.local-storage}
+      - twenty-docker-data:/app/docker-data
+    environment:
+      PORT: 3000
+      PG_DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@twenty-postgres:5432/twenty
+      SERVER_URL: https://${TWENTY_HOST}
+      FRONT_BASE_URL: https://${TWENTY_HOST}
+      REDIS_URL: redis://twenty-redis:6379
+      ENABLE_DB_MIGRATIONS: "true"
+      SIGN_IN_PREFILLED: "true"
+      STORAGE_TYPE: local
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      twenty-change-vol-ownership:
+        condition: service_completed_successfully
+      twenty-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:3000/healthz
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  twenty-worker:
+    image: twentycrm/twenty:latest
+    networks:
+      - dokploy-network
+    command: ["yarn", "worker:prod"]
+    environment:
+      PG_DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@twenty-postgres:5432/twenty
+      SERVER_URL: https://${TWENTY_HOST}
+      FRONT_BASE_URL: https://${TWENTY_HOST}
+      REDIS_URL: redis://twenty-redis:6379
+      ENABLE_DB_MIGRATIONS: "false"
+      STORAGE_TYPE: local
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      twenty-postgres:
+        condition: service_healthy
+      twenty-server:
+        condition: service_healthy
+    restart: always
+
+  twenty-postgres:
+    image: postgres:16-alpine
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: twenty
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d twenty"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  twenty-redis:
+    image: redis:latest
+    networks:
+      - dokploy-network
+    volumes:
+      - twenty-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  twenty-docker-data:
+  twenty-postgres-data:
+  twenty-server-local-data:
+  twenty-redis-data: 

@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  ryot-app:
+    image: ignisda/ryot:v7.10
+    networks:
+      - dokploy-network
+    environment:
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@ryot-db:5432/postgres
+      - SERVER_ADMIN_ACCESS_TOKEN=${ADMIN_ACCESS_TOKEN}
+      - TZ=UTC
+      # Optional: Uncomment and set your pro key if you have one
+      # - SERVER_PRO_KEY=${SERVER_PRO_KEY}
+    depends_on:
+      ryot-db:
+        condition: service_healthy
+    restart: always
+    pull_policy: always
+
+  ryot-db:
+    image: postgres:16-alpine
+    networks:
+      - dokploy-network
+    volumes:
+      - ryot-postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  ryot-postgres-data: 
