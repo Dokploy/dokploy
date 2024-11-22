@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  yourls-app:
+    image: yourls:1.9.2
+    networks:
+      - dokploy-network
+    environment:
+      YOURLS_SITE: https://${YOURLS_HOST}
+      YOURLS_USER: ${YOURLS_ADMIN_USER}
+      YOURLS_PASS: ${YOURLS_ADMIN_PASSWORD}
+      YOURLS_DB_HOST: yourls-mysql
+      YOURLS_DB_USER: yourls
+      YOURLS_DB_PASS: ${MYSQL_PASSWORD}
+      YOURLS_DB_NAME: yourls
+    volumes:
+      - yourls-data:/var/www/html
+    depends_on:
+      yourls-mysql:
+        condition: service_healthy
+    restart: always
+
+  yourls-mysql:
+    image: mysql:5.7
+    networks:
+      - dokploy-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: yourls
+      MYSQL_USER: yourls
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - yourls-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+volumes:
+  yourls-data:
+  yourls-mysql-data: 
