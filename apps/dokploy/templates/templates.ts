@@ -881,8 +881,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forum", "community", "discussion"],
 		load: () => import("./discourse/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "immich",
 		name: "Immich",
 		version: "v1.121.0",
@@ -896,8 +896,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["photos", "videos", "backup", "media"],
 		load: () => import("./immich/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "twenty",
 		name: "Twenty CRM",
 		version: "latest",
@@ -911,8 +911,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["crm", "sales", "business"],
 		load: () => import("./twenty/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "yourls",
 		name: "YOURLS",
 		version: "1.9.2",
@@ -926,8 +926,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["url-shortener", "php"],
 		load: () => import("./yourls/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "ryot",
 		name: "Ryot",
 		version: "v7.10",
