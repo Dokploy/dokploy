@@ -40,11 +40,10 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: adminProcedure
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey } = input;
-
+			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
+				input;
 			try {
 				const rcloneFlags = [
-					// `--s3-provider=Cloudflare`,
 					`--s3-access-key-id=${accessKey}`,
 					`--s3-secret-access-key=${secretAccessKey}`,
 					`--s3-region=${region}`,
@@ -52,6 +51,9 @@ export const destinationRouter = createTRPCRouter({
 					"--s3-no-check-bucket",
 					"--s3-force-path-style",
 				];
+				if (provider) {
+					rcloneFlags.unshift(`--s3-provider=${provider}`);
+				}
 				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 

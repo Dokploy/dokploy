@@ -35,9 +35,11 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { S3_PROVIDERS } from "./constants";
 
 const updateDestination = z.object({
 	name: z.string().min(1, "Name is required"),
+	provider: z.string().optional(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
 	bucket: z.string(),
@@ -70,6 +72,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 		api.destination.testConnection.useMutation();
 	const form = useForm<UpdateDestination>({
 		defaultValues: {
+			provider: "",
 			accessKeyId: "",
 			bucket: "",
 			name: "",
@@ -146,6 +149,40 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 												<FormLabel>Name</FormLabel>
 												<FormControl>
 													<Input placeholder={"S3 Bucket"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="provider"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Provider</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a S3 Provider" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															{S3_PROVIDERS.map((s3Provider) => (
+																<SelectItem
+																	key={s3Provider.key}
+																	value={s3Provider.key}
+																>
+																	{s3Provider.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -285,6 +322,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									variant={"secondary"}
 									onClick={async () => {
 										await testConnection({
+											provider: form.getValues("provider"),
 											accessKey: form.getValues("accessKeyId"),
 											bucket: form.getValues("bucket"),
 											endpoint: form.getValues("endpoint"),
@@ -311,6 +349,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 								variant="secondary"
 								onClick={async () => {
 									await testConnection({
+										provider: form.getValues("provider"),
 										accessKey: form.getValues("accessKeyId"),
 										bucket: form.getValues("bucket"),
 										endpoint: form.getValues("endpoint"),

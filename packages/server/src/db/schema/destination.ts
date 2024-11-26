@@ -12,6 +12,7 @@ export const destinations = pgTable("destination", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
+	provider: text("provider"),
 	accessKey: text("accessKey").notNull(),
 	secretAccessKey: text("secretAccessKey").notNull(),
 	bucket: text("bucket").notNull(),
@@ -37,6 +38,7 @@ export const destinationsRelations = relations(
 const createSchema = createInsertSchema(destinations, {
 	destinationId: z.string(),
 	name: z.string().min(1),
+	provider: z.string(),
 	accessKey: z.string(),
 	bucket: z.string(),
 	endpoint: z.string(),
@@ -47,6 +49,7 @@ const createSchema = createInsertSchema(destinations, {
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
+		provider: true,
 		accessKey: true,
 		bucket: true,
 		region: true,
