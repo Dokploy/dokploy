@@ -881,8 +881,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forum", "community", "discussion"],
 		load: () => import("./discourse/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "immich",
 		name: "Immich",
 		version: "v1.121.0",
@@ -896,8 +896,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["photos", "videos", "backup", "media"],
 		load: () => import("./immich/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "twenty",
 		name: "Twenty CRM",
 		version: "latest",
@@ -911,8 +911,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["crm", "sales", "business"],
 		load: () => import("./twenty/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "yourls",
 		name: "YOURLS",
 		version: "1.9.2",
@@ -926,8 +926,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["url-shortener", "php"],
 		load: () => import("./yourls/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "ryot",
 		name: "Ryot",
 		version: "v7.10",
@@ -941,5 +941,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["media", "tracking", "self-hosted"],
 		load: () => import("./ryot/index").then((m) => m.generate),
+	},
+	{
+		id: "photoprism",
+		name: "Photoprism",
+		version: "latest",
+		description:
+			"PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It makes use of the latest technologies to tag and find pictures automatically without getting in your way.",
+		logo: "photoprism.svg",
+		links: {
+			github: "https://github.com/photoprism/photoprism",
+			website: "https://www.photoprism.app/",
+			docs: "https://docs.photoprism.app/",
+		},
+		tags: ["media", "photos", "self-hosted"],
+		load: () => import("./photoprism/index").then((m) => m.generate),
 	},
 ];
