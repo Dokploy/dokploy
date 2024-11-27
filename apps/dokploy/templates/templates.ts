@@ -943,6 +943,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./ryot/index").then((m) => m.generate),
 	},
 	{
+		id: "photoprism",
+		name: "Photoprism",
+		version: "latest",
+		description:
+			"PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It makes use of the latest technologies to tag and find pictures automatically without getting in your way.",
+		logo: "photoprism.svg",
+		links: {
+			github: "https://github.com/photoprism/photoprism",
+			website: "https://www.photoprism.app/",
+			docs: "https://docs.photoprism.app/",
+		},
+		tags: ["media", "photos", "self-hosted"],
+		load: () => import("./photoprism/index").then((m) => m.generate),
+  },
+    { 
 		id: "ontime",
 		name: "Ontime",
 		version: "v3.8.0",
