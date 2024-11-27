@@ -1,12 +1,12 @@
 version: "3.8"
 
 services:
-  invoiceshelf_db:
+  invoiceshelf-postgres:
     image: postgres:15
     networks:
       - dokploy-network
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - invoiceshelf-postgres-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_USER=${DB_USERNAME}
@@ -17,13 +17,13 @@ services:
       timeout: 5s
       retries: 5
 
-  invoiceshelf:
+  invoiceshelf-app:
     image: invoiceshelf/invoiceshelf:latest
     networks:
       - dokploy-network
     volumes:
-      - app_data:/data
-      - app_conf:/conf
+      - invoiceshelf-app-data:/data
+      - invoiceshelf-app-conf:/conf
     environment:
       - PHP_TZ=UTC
       - TIMEZONE=UTC
@@ -32,7 +32,7 @@ services:
       - APP_DEBUG=false
       - APP_URL=http://${INVOICESHELF_HOST}
       - DB_CONNECTION=pgsql
-      - DB_HOST=invoiceshelf_db
+      - DB_HOST=invoiceshelf-postgres
       - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE}
       - DB_USERNAME=${DB_USERNAME}
@@ -46,10 +46,14 @@ services:
       - SANCTUM_STATEFUL_DOMAINS=${INVOICESHELF_HOST}
       - STARTUP_DELAY=10
     depends_on:
-      invoiceshelf_db:
+      invoiceshelf-postgres:
         condition: service_healthy
 
+networks:
+  dokploy-network:
+    external: true
+
 volumes:
-  postgres_data:
-  app_data:
-  app_conf: 
+  invoiceshelf-postgres-data:
+  invoiceshelf-app-data:
+  invoiceshelf-app-conf: 
