@@ -1,7 +1,7 @@
 services:
   ontime:
     image: getontime/ontime:v3.8.0
-    expose:
+    ports:
       - 4001
       - 8888
       - 9999
