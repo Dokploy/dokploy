@@ -79,6 +79,8 @@ export const composeRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newService.composeId);
 				}
+				
+				return newService;
 			} catch (error) {
 				throw error;
 			}
