@@ -40,3 +40,5 @@ body:
         - "Yes"
         - "No"
         - "Maybe, need help"
+    validations:
+      required: true

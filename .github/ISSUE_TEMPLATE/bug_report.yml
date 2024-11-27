@@ -85,7 +85,10 @@ body:
     attributes:
       label: Will you send a PR to fix it?
       description: Let us know if you are planning to submit a pull request to address this issue.
+
       options:
         - "Yes"
         - "No"
         - "Maybe, need help"
+    validations:
+      required: true
