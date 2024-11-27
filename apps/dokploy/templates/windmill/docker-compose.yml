@@ -1,12 +1,12 @@
 version: "3.8"
 
 services:
-  db:
+  windmill-postgres:
     image: postgres:16
     shm_size: 1g
     restart: unless-stopped
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - windmill-postgres-data:/var/lib/postgresql/data
     networks:
       - dokploy-network
     environment:
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
-  windmill_server:
+  windmill-server:
     image: ghcr.io/windmill-labs/windmill:main
     networks:
       - dokploy-network
@@ -28,12 +28,12 @@ services:
       - MODE=server
       - BASE_URL=http://${WINDMILL_HOST}
     depends_on:
-      db:
+      windmill-postgres:
         condition: service_healthy
     volumes:
-      - worker_logs:/tmp/windmill/logs
+      - windmill-worker-logs:/tmp/windmill/logs
 
-  windmill_worker:
+  windmill-worker:
     image: ghcr.io/windmill-labs/windmill:main
     deploy:
       replicas: 3
@@ -49,14 +49,14 @@ services:
       - MODE=worker
       - WORKER_GROUP=default
     depends_on:
-      db:
+      windmill-postgres:
         condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - worker_dependency_cache:/tmp/windmill/cache
-      - worker_logs:/tmp/windmill/logs
+      - windmill-worker-cache:/tmp/windmill/cache
+      - windmill-worker-logs:/tmp/windmill/logs
 
-  windmill_worker_native:
+  windmill-worker-native:
     image: ghcr.io/windmill-labs/windmill:main
     deploy:
       replicas: 1
@@ -74,20 +74,20 @@ services:
       - NUM_WORKERS=8
       - SLEEP_QUEUE=200
     depends_on:
-      db:
+      windmill-postgres:
         condition: service_healthy
     volumes:
-      - worker_logs:/tmp/windmill/logs
+      - windmill-worker-logs:/tmp/windmill/logs
 
-  lsp:
+  windmill-lsp:
     image: ghcr.io/windmill-labs/windmill-lsp:latest
     restart: unless-stopped
     networks:
       - dokploy-network
     volumes:
-      - lsp_cache:/root/.cache
+      - windmill-lsp-cache:/root/.cache
 
-  caddy:
+  windmill-caddy:
     image: ghcr.io/windmill-labs/caddy-l4:latest
     restart: unless-stopped
     networks:
@@ -97,11 +97,15 @@ services:
     environment:
       - BASE_URL=":80"
     depends_on:
-      - windmill_server
-      - lsp
+      - windmill-server
+      - windmill-lsp
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
-  db_data:
-  worker_dependency_cache:
-  worker_logs:
-  lsp_cache:
+  windmill-postgres-data:
+  windmill-worker-cache:
+  windmill-worker-logs:
+  windmill-lsp-cache:

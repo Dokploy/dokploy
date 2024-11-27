@@ -956,5 +956,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["media", "photos", "self-hosted"],
 		load: () => import("./photoprism/index").then((m) => m.generate),
+  },
+    { 
+		id: "ontime",
+		name: "Ontime",
+		version: "v3.8.0",
+		description:
+			"Ontime is browser-based application that manages event rundowns, scheduliing and cuing",
+		logo: "ontime.png",
+		links: {
+			github: "https://github.com/cpvalente/ontime/",
+			website: "https://getontime.no",
+			docs: "https://docs.getontime.no",
+		},
+		tags: ["event"],
+		load: () => import("./ontime/index").then((m) => m.generate),
 	},
 ];

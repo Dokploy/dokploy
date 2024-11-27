@@ -18,7 +18,7 @@ export function generate(schema: Schema): Template {
 		{
 			host: mainDomain,
 			port: 5000,
-			serviceName: "postiz",
+			serviceName: "postiz-app",
 		},
 	];
 

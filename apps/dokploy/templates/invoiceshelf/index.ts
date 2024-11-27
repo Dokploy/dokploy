@@ -16,7 +16,7 @@ export function generate(schema: Schema): Template {
 		{
 			host: mainDomain,
 			port: 80,
-			serviceName: "invoiceshelf",
+			serviceName: "invoiceshelf-app",
 		},
 	];
 
