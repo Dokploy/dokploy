@@ -956,8 +956,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["media", "photos", "self-hosted"],
 		load: () => import("./photoprism/index").then((m) => m.generate),
-  },
-    { 
+	},
+	{
 		id: "ontime",
 		name: "Ontime",
 		version: "v3.8.0",

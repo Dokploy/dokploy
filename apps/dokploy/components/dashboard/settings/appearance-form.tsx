@@ -178,7 +178,7 @@ export function AppearanceForm() {
 													{ label: "Русский", value: "ru" },
 													{ label: "Deutsch", value: "de" },
 													{ label: "繁體中文", value: "zh-Hant" },
-													{ label: "简体中文", value: "zh-Hans" }
+													{ label: "简体中文", value: "zh-Hans" },
 												].map((preset) => (
 													<SelectItem key={preset.label} value={preset.value}>
 														{preset.label}
