@@ -1,0 +1,94 @@
+version: '3.7'
+
+services:
+  discourse-db:
+    image: docker.io/bitnami/postgresql:17
+    networks:
+      - dokploy-network
+    volumes:
+      - discourse-postgresql-data:/bitnami/postgresql
+    environment:
+      POSTGRESQL_USERNAME: bn_discourse
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: bitnami_discourse
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bn_discourse -d bitnami_discourse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  discourse-redis:
+    image: docker.io/bitnami/redis:7.4
+    networks:
+      - dokploy-network
+    volumes:
+      - discourse-redis-data:/bitnami/redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  discourse-app:
+    image: docker.io/bitnami/discourse:3.3.2
+    networks:
+      - dokploy-network
+    volumes:
+      - discourse-data:/bitnami/discourse
+    depends_on:
+      discourse-db:
+        condition: service_healthy
+      discourse-redis:
+        condition: service_healthy
+    environment:
+      DISCOURSE_HOST: ${DISCOURSE_HOST}
+      DISCOURSE_DATABASE_HOST: discourse-db
+      DISCOURSE_DATABASE_PORT_NUMBER: 5432
+      DISCOURSE_DATABASE_USER: bn_discourse
+      DISCOURSE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DISCOURSE_DATABASE_NAME: bitnami_discourse
+      DISCOURSE_REDIS_HOST: discourse-redis
+      DISCOURSE_REDIS_PORT_NUMBER: 6379
+      DISCOURSE_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Optional: Configure SMTP for email delivery
+      # DISCOURSE_SMTP_HOST: ${SMTP_HOST}
+      # DISCOURSE_SMTP_PORT: ${SMTP_PORT}
+      # DISCOURSE_SMTP_USER: ${SMTP_USER}
+      # DISCOURSE_SMTP_PASSWORD: ${SMTP_PASSWORD}
+    restart: unless-stopped
+
+  discourse-sidekiq:
+    image: docker.io/bitnami/discourse:3.3.2
+    networks:
+      - dokploy-network
+    volumes:
+      - discourse-sidekiq-data:/bitnami/discourse
+    depends_on:
+      - discourse-app
+    command: /opt/bitnami/scripts/discourse-sidekiq/run.sh
+    environment:
+      DISCOURSE_HOST: ${DISCOURSE_HOST}
+      DISCOURSE_DATABASE_HOST: discourse-db
+      DISCOURSE_DATABASE_PORT_NUMBER: 5432
+      DISCOURSE_DATABASE_USER: bn_discourse
+      DISCOURSE_DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DISCOURSE_DATABASE_NAME: bitnami_discourse
+      DISCOURSE_REDIS_HOST: discourse-redis
+      DISCOURSE_REDIS_PORT_NUMBER: 6379
+      DISCOURSE_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Optional: Configure SMTP for email delivery
+      # DISCOURSE_SMTP_HOST: ${SMTP_HOST}
+      # DISCOURSE_SMTP_PORT: ${SMTP_PORT}
+      # DISCOURSE_SMTP_USER: ${SMTP_USER}
+      # DISCOURSE_SMTP_PASSWORD: ${SMTP_PASSWORD}
+    restart: unless-stopped
+
+volumes:
+  discourse-postgresql-data:
+  discourse-redis-data:
+  discourse-data:
+  discourse-sidekiq-data: 

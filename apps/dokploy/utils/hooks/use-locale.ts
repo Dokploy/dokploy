@@ -1,6 +1,13 @@
 import Cookies from "js-cookie";
 
-const SUPPORTED_LOCALES = ["en", "pl", "zh-Hans"] as const;
+const SUPPORTED_LOCALES = [
+	"en",
+	"pl",
+	"ru",
+	"de",
+	"zh-Hant",
+	"zh-Hans",
+] as const;
 
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 

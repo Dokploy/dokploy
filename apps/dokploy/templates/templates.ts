@@ -771,8 +771,8 @@ export const templates: TemplateData[] = [
 		logo: "postiz.png",
 		links: {
 			github: "https://github.com/gitroomhq/postiz",
-			website: "https://postiz.io",
-			docs: "https://docs.postiz.io",
+			website: "https://postiz.com",
+			docs: "https://docs.postiz.com",
 		},
 		tags: ["cms", "content-management", "publishing"],
 		load: () => import("./postiz/index").then((m) => m.generate),
@@ -836,5 +836,140 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["3d", "rendering", "animation"],
 		load: () => import("./blender/index").then((m) => m.generate),
+	},
+	{
+		id: "heyform",
+		name: "HeyForm",
+		version: "latest",
+		description:
+			"Allows anyone to create engaging conversational forms for surveys, questionnaires, quizzes, and polls. No coding skills required.",
+		logo: "heyform.svg",
+		links: {
+			github: "https://github.com/heyform/heyform",
+			website: "https://heyform.net",
+			docs: "https://docs.heyform.net",
+		},
+		tags: ["form", "builder", "questionnaire", "quiz", "survey"],
+		load: () => import("./heyform/index").then((m) => m.generate),
+	},
+	{
+		id: "chatwoot",
+		name: "Chatwoot",
+		version: "v3.14.1",
+		description:
+			"Open-source customer engagement platform that provides a shared inbox for teams, live chat, and omnichannel support.",
+		logo: "chatwoot.svg",
+		links: {
+			github: "https://github.com/chatwoot/chatwoot",
+			website: "https://www.chatwoot.com",
+			docs: "https://www.chatwoot.com/docs",
+		},
+		tags: ["support", "chat", "customer-service"],
+		load: () => import("./chatwoot/index").then((m) => m.generate),
+	},
+	{
+		id: "discourse",
+		name: "Discourse",
+		version: "3.3.2",
+		description:
+			"Discourse is a modern forum software for your community. Use it as a mailing list, discussion forum, or long-form chat room.",
+		logo: "discourse.svg",
+		links: {
+			github: "https://github.com/discourse/discourse",
+			website: "https://www.discourse.org/",
+			docs: "https://meta.discourse.org/",
+		},
+		tags: ["forum", "community", "discussion"],
+		load: () => import("./discourse/index").then((m) => m.generate),
+	},
+	{
+		id: "immich",
+		name: "Immich",
+		version: "v1.121.0",
+		description:
+			"High performance self-hosted photo and video backup solution directly from your mobile phone.",
+		logo: "immich.svg",
+		links: {
+			github: "https://github.com/immich-app/immich",
+			website: "https://immich.app/",
+			docs: "https://immich.app/docs/overview/introduction",
+		},
+		tags: ["photos", "videos", "backup", "media"],
+		load: () => import("./immich/index").then((m) => m.generate),
+	},
+	{
+		id: "twenty",
+		name: "Twenty CRM",
+		version: "latest",
+		description:
+			"Twenty is a modern CRM offering a powerful spreadsheet interface and open-source alternative to Salesforce.",
+		logo: "twenty.svg",
+		links: {
+			github: "https://github.com/twentyhq/twenty",
+			website: "https://twenty.com",
+			docs: "https://docs.twenty.com",
+		},
+		tags: ["crm", "sales", "business"],
+		load: () => import("./twenty/index").then((m) => m.generate),
+	},
+	{
+		id: "yourls",
+		name: "YOURLS",
+		version: "1.9.2",
+		description:
+			"YOURLS (Your Own URL Shortener) is a set of PHP scripts that will allow you to run your own URL shortening service (a la TinyURL or Bitly).",
+		logo: "yourls.svg",
+		links: {
+			github: "https://github.com/YOURLS/YOURLS",
+			website: "https://yourls.org/",
+			docs: "https://yourls.org/#documentation",
+		},
+		tags: ["url-shortener", "php"],
+		load: () => import("./yourls/index").then((m) => m.generate),
+	},
+	{
+		id: "ryot",
+		name: "Ryot",
+		version: "v7.10",
+		description:
+			"A self-hosted platform for tracking various media types including movies, TV shows, video games, books, audiobooks, and more.",
+		logo: "ryot.png",
+		links: {
+			github: "https://github.com/IgnisDa/ryot",
+			website: "https://ryot.dev/",
+			docs: "https://ryot.dev/docs/getting-started",
+		},
+		tags: ["media", "tracking", "self-hosted"],
+		load: () => import("./ryot/index").then((m) => m.generate),
+	},
+	{
+		id: "photoprism",
+		name: "Photoprism",
+		version: "latest",
+		description:
+			"PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It makes use of the latest technologies to tag and find pictures automatically without getting in your way.",
+		logo: "photoprism.svg",
+		links: {
+			github: "https://github.com/photoprism/photoprism",
+			website: "https://www.photoprism.app/",
+			docs: "https://docs.photoprism.app/",
+		},
+		tags: ["media", "photos", "self-hosted"],
+		load: () => import("./photoprism/index").then((m) => m.generate),
+	},
+	{
+		id: "ontime",
+		name: "Ontime",
+		version: "v3.8.0",
+		description:
+			"Ontime is browser-based application that manages event rundowns, scheduliing and cuing",
+		logo: "ontime.png",
+		links: {
+			github: "https://github.com/cpvalente/ontime/",
+			website: "https://getontime.no",
+			docs: "https://docs.getontime.no",
+		},
+		tags: ["event"],
+		load: () => import("./ontime/index").then((m) => m.generate),
 	},
 ];

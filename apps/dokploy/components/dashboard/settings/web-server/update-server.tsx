@@ -48,8 +48,8 @@ export const UpdateServer = () => {
 						<li>Some bug that is blocking to use some features</li>
 					</ul>
 					<AlertBlock type="info">
-						Please we recommend to see the latest version to see if there are
-						any breaking changes before updating. Go to{" "}
+						We recommend checking the latest version for any breaking changes
+						before updating. Go to{" "}
 						<Link
 							href="https://github.com/Dokploy/dokploy/releases"
 							target="_blank"

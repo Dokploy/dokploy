@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "next-i18next";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,6 +54,14 @@ export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } = api.auth.update.useMutation();
 	const { t } = useTranslation("settings");
+	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
+
+	const availableAvatars = useMemo(() => {
+		if (gravatarHash === null) return randomImages;
+		return randomImages.concat([
+			`https://www.gravatar.com/avatar/${gravatarHash}`,
+		]);
+	}, [gravatarHash]);
 
 	const form = useForm<Profile>({
 		defaultValues: {
@@ -70,6 +79,12 @@ export const ProfileForm = () => {
 				password: "",
 				image: data?.image || "",
 			});
+
+			if (data.email) {
+				generateSHA256Hash(data.email).then((hash) => {
+					setGravatarHash(hash);
+				});
+			}
 		}
 		form.reset();
 	}, [form, form.reset, data]);
@@ -154,7 +169,7 @@ export const ProfileForm = () => {
 												value={field.value}
 												className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 											>
-												{randomImages.map((image) => (
+												{availableAvatars.map((image) => (
 													<FormItem key={image}>
 														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
 															<FormControl>

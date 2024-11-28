@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  postiz:
+  postiz-app:
     image: ghcr.io/gitroomhq/postiz-app:latest
     restart: always
     networks:
@@ -37,7 +37,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres-volume:/var/lib/postgresql/data
+      - postiz-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: pg_isready -U ${DB_USER} -d ${DB_NAME}
       interval: 10s
@@ -57,8 +57,12 @@ services:
     volumes:
       - postiz-redis-data:/data
 
+networks:
+  dokploy-network:
+    external: true
+
 volumes:
-  postgres-volume:
+  postiz-postgres-data:
   postiz-redis-data:
   postiz-config:
   postiz-uploads: 
