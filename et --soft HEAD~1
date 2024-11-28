@@ -1,0 +1,2111 @@
+[33mcommit 4de6cdd8f4727cb910fffbad5668c5726c8e7a2d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mstatus-tooltip-colors[m[33m)[m
+Author: 190km <botmiley@gmail.com>
+Date:   Thu Nov 28 21:59:56 2024 +0100
+
+    fix: lightens up destructive color
+
+[33mcommit 37fa139a6526e9781998f885c93ecb5b4e610ff7[m[33m ([m[1;31morigin/canary[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mcanary[m[33m)[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 27 23:20:32 2024 -0600
+
+    refactor: bump to 0.13.0
+
+[33mcommit a1cf597c2b1e27a82c5dc914e6ff0e28d117519f[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 27 23:15:19 2024 -0600
+
+    Update package.json
+
+[33mcommit d01928a87851a29dad88bf3e67ca9c29e53df702[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 27 02:38:54 2024 -0600
+
+    refactor: add required
+
+[33mcommit 30c19c5698ddf70b3d9030e659c6701191a04587[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 27 02:37:02 2024 -0600
+
+    chore: update templates
+
+[33mcommit 01dfa7feaf8bed27f059df94a88ea4305e00c1a3[m
+Merge: d18876d4 58e6462f
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:30:27 2024 -0600
+
+    Merge pull request #768 from DanielGietmann/canary
+    
+    feat: photoprism template
+
+[33mcommit 58e6462ff1a02b376f4eeea742e83741e4b07104[m
+Merge: 19d897f3 d18876d4
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:30:17 2024 -0600
+
+    Merge branch 'canary' into canary
+
+[33mcommit d18876d4fbed2443433b6f9669326a4097419615[m
+Merge: 6a283c8e 492c912c
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:26:04 2024 -0600
+
+    Merge pull request #760 from henriklovhaug/canary
+    
+    feat: add ontime template
+
+[33mcommit 492c912c61a989c9650cdbdfbe5d7c9326d8f553[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:25:58 2024 -0600
+
+    Update apps/dokploy/templates/ontime/docker-compose.yml
+
+[33mcommit 6a283c8ee2a79af662169583d8dd7d6fde09c450[m
+Merge: 59dfdd61 54eb5544
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:22:13 2024 -0600
+
+    Merge pull request #759 from sao-coding/sao-coding/i18n-zh-Hant-TW
+    
+    feat(i18n): add Traditional Chinese language support
+
+[33mcommit 59dfdd619253695000374597638771e3b8c9910a[m
+Merge: 3c072d7a afe9b3c1
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:21:58 2024 -0600
+
+    Merge pull request #761 from DerKorb/patch-1
+    
+    fix compose.create not returning result
+
+[33mcommit 3c072d7aa8932ccef74f568836ce99936bfe90c2[m
+Merge: fabe9465 62ca8eec
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 26 22:21:47 2024 -0600
+
+    Merge pull request #746 from DrMxrcy/refactor/multiple-template-names
+    
+    fix(templates): Multiple Templates Naming Schema
+
+[33mcommit 19d897f3adc452eecaa477e9ac217b19c5e85900[m
+Author: Daniel Gietmann <danielgietmann@icloud.com>
+Date:   Wed Nov 27 03:44:18 2024 +0100
+
+    added template
+
+[33mcommit fabe9465267fed96a61a5000a09265b286eb2ee7[m
+Merge: ac33b6b6 daa0c9d5
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 25 22:52:26 2024 -0600
+
+    Merge pull request #765 from airyland/patch-1
+    
+    fix: improve English grammar in version check notice
+
+[33mcommit daa0c9d5d44a5ee8b0c193d84ae55b35717ed5e6[m
+Author: Airyland <i@mao.li>
+Date:   Tue Nov 26 11:57:38 2024 +0800
+
+    fix: improve English grammar in version check notice
+
+[33mcommit afe9b3c11392992d11d6603fe482b945a358802f[m
+Author: ksollner <hackin@gmx.de>
+Date:   Mon Nov 25 14:42:05 2024 +0100
+
+    fix compose.create not returning result
+    
+    when calling the compose create api, a empty result was returned
+
+[33mcommit cbfd09786a4dc5ceb40ee093362a17abefe1d892[m
+Author: Henrik Tøn Løvhaug <henrik.lovhaug@gmail.com>
+Date:   Mon Nov 25 13:07:20 2024 +0100
+
+    feat: add ontime template
+
+[33mcommit 54eb5544acbbb601d5f9edac0772e36cad48fccc[m
+Author: sao-coding <58339015+sao-coding@users.noreply.github.com>
+Date:   Mon Nov 25 02:35:24 2024 +0000
+
+    feat(i18n): add Traditional Chinese language support
+
+[33mcommit ac33b6b6a1aa0a43346ed86e0f65a9664087e93f[m
+Merge: 7d7eb6a7 653b1972
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:46:14 2024 -0600
+
+    Merge pull request #739 from DrMxrcy/template/discourse
+    
+    feat(add): Discourse
+
+[33mcommit 653b1972ca71f0134a054f4da97e6d23b5439871[m
+Merge: 28f0c9f1 7d7eb6a7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:46:01 2024 -0600
+
+    Merge branch 'canary' into template/discourse
+
+[33mcommit 7d7eb6a7a2e3db7cbc2686e42d58f8c1228d1d1d[m
+Merge: fab7e138 d5686063
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:38:19 2024 -0600
+
+    Merge pull request #743 from jujur10/canary
+    
+    fix: stirling docker compose
+
+[33mcommit fab7e138b7e6cf6e778660caf3394d9281e71f0a[m
+Merge: 2dd352ee 62b635b2
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:36:17 2024 -0600
+
+    Merge pull request #744 from DrMxrcy/template/immich
+    
+    feat(add): Immich
+
+[33mcommit 62b635b2f03a26bcdb7c54c3c3c2a471ae1ea285[m
+Merge: fd59beaf 2dd352ee
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:36:09 2024 -0600
+
+    Merge branch 'canary' into template/immich
+
+[33mcommit 2dd352ee7621dc93821f751d50a55383c21d8ae8[m
+Merge: 4850305f 422b6eea
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:31:34 2024 -0600
+
+    Merge pull request #740 from DrMxrcy/template/twenty
+    
+    feat(add): Twenty CRM
+
+[33mcommit 422b6eea823ba3c6c1f4a7156e6342a41669fde5[m
+Merge: d4b8985d 4850305f
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:31:25 2024 -0600
+
+    Merge branch 'canary' into template/twenty
+
+[33mcommit 4850305fb6af2b27d95e379289d67a0f4df54713[m
+Merge: 4a70d60a 97779f56
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:25:02 2024 -0600
+
+    Merge pull request #736 from DrMxrcy/feat/YOURLS
+    
+    feat(add): YOURLS Template
+
+[33mcommit 97779f5686fc9f5d0d10da7156de14880ded0b0b[m
+Merge: d1436c99 4a70d60a
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 22 00:24:53 2024 -0600
+
+    Merge branch 'canary' into feat/YOURLS
+
+[33mcommit d4b8985d71132597d00b22ad96b0daf2ce9487e3[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 10:18:38 2024 -0500
+
+    fix(template): Twenty DB
+
+[33mcommit d5686063e023376793bf2370106099de58c4fe7b[m
+Author: Julien ROIRON <julien.roiron@epitech.eu>
+Date:   Wed Nov 20 22:41:35 2024 +0100
+
+    fix: stirling docker compose
+
+[33mcommit 62ca8eec53ff99768e3f5c8feda5c8534d35026a[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:57:27 2024 -0500
+
+    fix(templates): DiscordTickets Naming
+
+[33mcommit 204143648d3bd8ce55b62b67a1e9c5c989614879[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:56:22 2024 -0500
+
+    fix(template): Slash Naming Schema
+
+[33mcommit be8bd78bcc35197dbd101dd76d8494ff791ddde7[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:55:40 2024 -0500
+
+    fix(template): Postiz Template
+
+[33mcommit 9003e43702ec01d37eeb8cdac8a2b8d306894053[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:54:15 2024 -0500
+
+    fix(template): InvoiceShelf Naming
+
+[33mcommit 55ac24ee8e54ce817dc7c085e3016a2ebbaf7776[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:53:36 2024 -0500
+
+    fix(template): Windmill Naming
+
+[33mcommit f3be56234bb0343301275c640b19a4346a94bcbe[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:52:39 2024 -0500
+
+    fix(template): Peppermint Naming
+
+[33mcommit fd59beaff1cfb7c74fe661a28910430b85ebb6a2[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Thu Nov 21 01:48:49 2024 -0500
+
+    fix(add): ENV
+
+[33mcommit 4a70d60aed29e01bce361f541476b48bda32daa5[m
+Merge: f7533c88 6dff11af
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Thu Nov 21 00:31:45 2024 -0600
+
+    Merge pull request #735 from mezotv/i18n-german
+    
+    feat(i18n): add german language support
+
+[33mcommit f7533c88f66131f80c88e48d885bd48aa95f9408[m
+Merge: 0708fa05 4967d3bb
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Thu Nov 21 00:01:50 2024 -0600
+
+    Merge pull request #737 from DrMxrcy/template/ryot
+    
+    feat(add): Ryot Template
+
+[33mcommit ea8cae78151357bb4dd944fb0034c614621acf24[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 22:20:58 2024 -0500
+
+    feat(add): Immich
+
+[33mcommit e9956a66daaa1b904f867a2e07daebcb08e78094[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 11:18:33 2024 -0500
+
+    fix(add): template.ts
+
+[33mcommit 2eeb4017acb4c454373e0c4d1845ae3aea12e59f[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 11:12:31 2024 -0500
+
+    feat(add): Twenty CRM
+
+[33mcommit 28f0c9f162b7e1c315a1bf4461943782cf467974[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 10:43:11 2024 -0500
+
+    feat(add): Discourse
+
+[33mcommit 4967d3bb311c98870913bf95e4b52f964c7767b7[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 10:09:05 2024 -0500
+
+    feat(add): Ryot Logo
+
+[33mcommit 238fa5d02d2458ecb9cc8e0b211c4df4ae475383[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 10:08:05 2024 -0500
+
+    feat(add): Ryot
+
+[33mcommit d1436c992ec6cef49cb3fb475d5a34bc7315d7c2[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 09:56:40 2024 -0500
+
+    feat(fix): Define Version
+
+[33mcommit 065480482180d411174574cdd50a7dc7563a31c1[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 09:52:35 2024 -0500
+
+    feat(fix): YOURLS lint
+
+[33mcommit c0876044b0c165c96ce6c7bb71b1b484c5c17639[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 20 09:43:32 2024 -0500
+
+    feat(add): YOURLS Template
+
+[33mcommit 6dff11af227449e47376ecef3535e377aca628f4[m
+Author: Dominik Koch <dominik@wouldyoubot.com>
+Date:   Wed Nov 20 11:35:57 2024 +0000
+
+    fix: formatting again
+
+[33mcommit 6d674a4c6bc0031bb7cfaa5d1fa4051c5bdb5752[m
+Author: Dominik Koch <dominik@wouldyoubot.com>
+Date:   Wed Nov 20 11:34:13 2024 +0000
+
+    fix: code format
+
+[33mcommit 96b2579d694566190ca93bd36a1ea870375bc505[m
+Author: Dominik Koch <dominik@wouldyoubot.com>
+Date:   Wed Nov 20 11:30:59 2024 +0000
+
+    feat(i18n): add german language support
+
+[33mcommit 0708fa05b6ea7b7e047ee62092dc92aa9682743a[m
+Merge: 597842a9 6fc1ce2f
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:29:18 2024 -0600
+
+    Merge pull request #721 from PaiJi/feat/add-gravatar-support
+    
+    feat(Profile): support use Gravatar as avatar
+
+[33mcommit 597842a99f282be897dab7c7ef2a29ed65d6eba7[m
+Merge: b7374549 105cf101
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:26:47 2024 -0600
+
+    Merge pull request #724 from iMuFeng/canary
+    
+    feat: add HeyForm template
+
+[33mcommit 105cf1014f8450c42af8c7efe75cdd0176b18746[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:26:26 2024 -0600
+
+    Update templates.ts
+
+[33mcommit b93f36ae77aba86abfaa9975bba1c5646bff5395[m
+Merge: bebb4b97 b7374549
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:24:40 2024 -0600
+
+    Merge branch 'canary' into canary
+
+[33mcommit bebb4b973cd9c392cca11e879deab9ec75cfeb42[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:23:43 2024 -0600
+
+    Update apps/dokploy/templates/heyform/index.ts
+
+[33mcommit f790530d4dc8f2a1e35f75c89f7be1e54467f37c[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:23:39 2024 -0600
+
+    Update apps/dokploy/templates/heyform/docker-compose.yml
+
+[33mcommit b7374549b84c1ecfd29bcb542a58105c111f7a8d[m
+Merge: 366e881d 32b3a764
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:19:11 2024 -0600
+
+    Merge pull request #731 from DrMxrcy/feat/chatwoot-template
+    
+    Add: Chatwoot Template
+
+[33mcommit 366e881d7295e369ed5c4dd2732d71547db12f25[m
+Merge: 58814239 c2125d82
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 19 20:12:14 2024 -0600
+
+    Merge pull request #723 from WoWnik/canary
+    
+    feat: add russian translation init
+
+[33mcommit c2125d82b130db7ea1df869f2d42ad5d07ab9287[m
+Author: WoWnik <wownik98@gmail.com>
+Date:   Wed Nov 20 00:00:34 2024 +0300
+
+    refactor: remove "ё" letter
+
+[33mcommit 32b3a7645720d16afa383deab98b23023f3bfe0c[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 19 12:30:36 2024 -0500
+
+    fix: Lint Issues
+
+[33mcommit 5cbdc8fad98fe8437d097475d5c987315e84eaa6[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 19 11:56:23 2024 -0500
+
+    Fix: Linting issues
+
+[33mcommit 3698e8a827614758b02d53f808b46264e392d015[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 19 11:19:33 2024 -0500
+
+    Fix Chatwoot Schema
+
+[33mcommit a83b62f62b2605e8e1523f00e829b2680f941087[m
+Author: WoWnik <wownik98@gmail.com>
+Date:   Tue Nov 19 18:53:52 2024 +0300
+
+    refactor: sort alphabetically
+
+[33mcommit ac033cea22a1a9a904b1f09c751b5534022bc14b[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 19 03:06:54 2024 -0500
+
+    Add: Chatwoot
+
+[33mcommit 58814239d9beacb1a8884ec0e1afb844a7e5265a[m
+Merge: da005bc5 28f2c1a3
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 18 08:57:54 2024 -0600
+
+    Merge pull request #722 from henriklovhaug/canary
+    
+    fix: postiz template pointing to wrong TLD
+
+[33mcommit 6fc1ce2fbc7e47fd6ccb01c37e430c215f8c5986[m
+Author: JiPai <github@jipai.moe>
+Date:   Mon Nov 18 22:25:56 2024 +0800
+
+    chore(README): fix broken video thumbnail
+
+[33mcommit adde8126abc883c1652a2c79aa8998f2dee85ec4[m
+Author: mufeng <mufeng.me@gmail.com>
+Date:   Mon Nov 18 15:07:10 2024 +0800
+
+    feat: add HeyForm template
+
+[33mcommit cda66606ec2cca2b8fc028046f58cfb2dde16ab7[m
+Author: WoWnik <wownik98@gmail.com>
+Date:   Mon Nov 18 11:47:41 2024 +0300
+
+    feat: add russian translation init
+
+[33mcommit 28f2c1a3c07ab9511be57fb6c110e973b7cf1779[m
+Author: Henrik Tøn Løvhaug <henrik.lovhaug@gmail.com>
+Date:   Mon Nov 18 09:03:48 2024 +0100
+
+    fix: template pointing to wrong TLD
+
+[33mcommit 1c5fe8a2836d82ab21a9e1c68c63c527d60282da[m
+Author: JiPai <github@jipai.moe>
+Date:   Mon Nov 18 14:09:42 2024 +0800
+
+    feat(Profile): support use Gravatar as avatar
+
+[33mcommit da005bc511cc631ef878ce976319ce54f3b7ba9e[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 22:25:03 2024 -0600
+
+    chore: add startupfa.me sponsor
+
+[33mcommit 5db5336ec8a683339e814109e6dde2f0255da007[m
+Merge: a6e7edd4 6af57427
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 21:41:06 2024 -0600
+
+    Merge pull request #716 from PaiJi/fix/storage-locale-setting-in-localstorage
+    
+    fix(i18n): quick fix for locale cookie expire when browser close
+
+[33mcommit a6e7edd4d9dee750892d6e02877b02fcb41a6929[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 21:39:02 2024 -0600
+
+    refactor: update share to project
+
+[33mcommit ddbb414225f77f0439018cd4930bfc778aaa7cbe[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 18:53:52 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit b73889dd4f228e79b2053897a34dbca2217e9dc8[m
+Merge: 173110a4 ce2dce34
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 18:40:15 2024 -0600
+
+    Merge pull request #719 from Dokploy/443-implement-coolifyio-like-support-of-envs-and-railwayapp-envs-shared-project-service-env
+    
+    feat: add shared enviroment variables
+
+[33mcommit ce2dce340136cd3f238a106695edb3631d79ea64[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 18:33:14 2024 -0600
+
+    refactor: update shared to project
+
+[33mcommit 173110a415046abe85cda512be60a69b47b4192d[m
+Merge: 3c490ba2 2307346a
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 18:28:29 2024 -0600
+
+    Merge pull request #714 from kdurek/feat/server-ip
+    
+    feat: add update server ip
+
+[33mcommit 2307346ae35361e26f4adc51696e68781ece7426[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 18:23:27 2024 -0600
+
+    refactor: add validation to prevent run on cloud
+
+[33mcommit 2f175f0e4416e88d8de72b68bde808d722227aa4[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 16:18:48 2024 -0600
+
+    refactor: add missing types
+
+[33mcommit 7003fe77c991f5691188b0b5e17765ed78ab8b26[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 16:13:07 2024 -0600
+
+    feat: add shared enviroment variables
+
+[33mcommit 04235fb6c9a5a438cb4a6360e4dc631ec36e02ed[m
+Merge: f138b091 3c490ba2
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 22:08:00 2024 +0100
+
+    Merge branch 'canary' of https://github.com/kdurek/dokploy into feat/server-ip
+
+[33mcommit f138b0917fc18a3645bd2065daaa81826a6ec490[m
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 22:05:52 2024 +0100
+
+    feat: add Polish language support to appearance settings and locale configuration
+
+[33mcommit 82367213ea99f027401823721eaaea5decd56f35[m
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 21:58:37 2024 +0100
+
+    feat: add ability for setting current public IP in server IP update form
+
+[33mcommit 3c490ba2d0b33f7da2bb822677a86b1124d693ae[m
+Merge: f7fa8e74 4bf5e5ca
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 13:47:46 2024 -0600
+
+    Merge pull request #717 from Dokploy/712-redirect-feature-not-working
+    
+    fix(dokploy): remove $ on presets redirect
+
+[33mcommit 4bf5e5ca06c61f0bae05bb9a1d7c60b14ec148c0[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 13:38:20 2024 -0600
+
+    fix(dokploy): remove $ on presets redirect
+
+[33mcommit 6af574270204c5c8c64bad91c0c275998a732ad6[m
+Author: JiPai <github@jipai.moe>
+Date:   Mon Nov 18 03:31:30 2024 +0800
+
+    fix(i18n): quick fix for locale cookie expire when browser close
+
+[33mcommit 3015d69adc916e8491f0c6a39d12111158f020b0[m
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 18:52:22 2024 +0100
+
+    feat: add polish translation
+
+[33mcommit f7fa8e74af16a64560025078e775a7031601a726[m
+Merge: 58338380 4e929c12
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 11:50:12 2024 -0600
+
+    Merge pull request #713 from Dokploy/fix/build-i18n
+    
+    refactor(dokploy): add missing next-18next to dockerfile
+
+[33mcommit 2835c997e9424f94c137a7f36db5f6df5b71318b[m
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 18:44:05 2024 +0100
+
+    feat: update to use multi language
+
+[33mcommit bd55e3751fde62de59b0d9cc97cc287b89e60b9a[m
+Merge: 74374bd6 58338380
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 18:37:28 2024 +0100
+
+    Merge branch 'canary' of https://github.com/kdurek/dokploy into feat/server-ip
+
+[33mcommit 74374bd643d43bfef65168c9422b6a5b2fb7a1fd[m
+Author: Krzysztof Durek <21038648+kdurek@users.noreply.github.com>
+Date:   Sun Nov 17 18:18:00 2024 +0100
+
+    feat: add update server ip
+
+[33mcommit 4e929c12f219a3e41125caf7534dc0229ee54a95[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 11:13:55 2024 -0600
+
+    chore: add missing next config to dockerfile
+
+[33mcommit 56ea356723ac4f837dc5730faf23f563dd264683[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 11:04:15 2024 -0600
+
+    refactor(dokploy): update i18next build
+
+[33mcommit b1f7d05743f0bba2f4e6effd59eb3d9305f6d629[m
+Merge: 036313e3 58338380
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:53:42 2024 -0600
+
+    Merge branch 'canary' into fix/build-i18n
+
+[33mcommit 58338380ab9b152f804fe4bbce7a7203af337f92[m
+Merge: 3a07d8de 2487e3e0
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:51:26 2024 -0600
+
+    Merge pull request #691 from DrMxrcy/feat/new-templates
+    
+    feat: New Templates
+
+[33mcommit 2487e3e062ad57a995e338df72406d3aa3556fe2[m
+Merge: 01a88249 3a07d8de
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:51:17 2024 -0600
+
+    Merge branch 'canary' into feat/new-templates
+
+[33mcommit 01a882497fa5156f3ee9c4d04f4cbd603611160c[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Sun Nov 17 11:47:05 2024 -0500
+
+    Add: Discord Tickets Logo
+
+[33mcommit 036313e3c352dbc3b4000b09feb5a3f45e39d201[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:45:05 2024 -0600
+
+    chore: update dockerfile
+
+[33mcommit d3304052b0482c19105d9153d35351a2da11a626[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:40:34 2024 -0600
+
+    chore: update dockerfile
+
+[33mcommit 9efd2e3d5c8ba0d940b35db5cc5a6dfcd08e9901[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:26:22 2024 -0600
+
+    chore: change build i18N
+
+[33mcommit 1e7d9fc3aa3dd425468c1f2910a34103038f6364[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 10:22:47 2024 -0600
+
+    refactor(dokploy): add missing next-18next to dockerfile
+
+[33mcommit 70ca219c0abb50d69fdce56581f37e89839d1697[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Sun Nov 17 11:12:45 2024 -0500
+
+    Remove Chatwoot
+
+[33mcommit 3a07d8de2eaaaa79c7b32b795c0e3c12a4fcb17e[m
+Merge: f4f1fc28 fb0308fd
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 09:54:59 2024 -0600
+
+    Merge pull request #665 from PaiJi/feat/i18n-support
+    
+    feat(i18n): add i18n support
+
+[33mcommit f4f1fc28a0583c3edf5b6b34a8cbf5a07b5a35df[m
+Merge: af84942d 4c71d3a9
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 09:53:44 2024 -0600
+
+    Merge pull request #705 from seppulcro/feat/nextcloud-aio-template
+    
+    feat: add nextcloud-aio template
+
+[33mcommit 4c71d3a95f3e54fcd670d02c1799ec560ae8fb5e[m
+Merge: 1aaff059 af84942d
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 09:53:25 2024 -0600
+
+    Merge branch 'canary' into feat/nextcloud-aio-template
+
+[33mcommit af84942d220bcd864daafc2deb57e19097190042[m
+Merge: 82fc9897 3eef4aa0
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 17 09:48:44 2024 -0600
+
+    Merge pull request #590 from wish-oss/feature/gpu-support-blender-template
+    
+    feat: Implement Remote server and Dokploy Server - GPU Support for Docker Swarm
+
+[33mcommit 1aaff0594dff92623a4b247bc37fd83c4ccb035e[m
+Author: seppulcro <seppulcro@gmail.com>
+Date:   Fri Nov 15 09:06:19 2024 +0000
+
+    feat: add nextcloud-aio template; fix utils usage for envs
+
+[33mcommit 69a4a87079817d068242d1dbf3ac0c25ad2fbd15[m
+Author: seppulcro <seppulcro@gmail.com>
+Date:   Thu Nov 14 15:06:53 2024 +0000
+
+    feat: add nextcloud-aio template
+
+[33mcommit 3eef4aa016379e3385531abb70282e9ddbd8b515[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Thu Nov 14 17:41:32 2024 +0530
+
+    refactor: removed sleep function and updated import
+
+[33mcommit 2492581bde9ee9e286635d6a2970875e18220a5a[m
+Merge: 6961ee1f 82fc9897
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Thu Nov 14 17:38:11 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit 82fc9897d237de8995117200c8cb048cc9084628[m
+Merge: d081d477 b6ab653e
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 13 23:39:49 2024 -0600
+
+    Merge pull request #701 from Dokploy/fix/stripe-payments
+    
+    fix(stripe): attempt to fix the servers assignation when the user pay
+
+[33mcommit b6ab653ef3b85f0ac1c05400b5efeb79acd3782c[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 13 23:30:33 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 17e9a1a49722acb127ad300d4df36b102804c658[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 13 23:29:24 2024 -0600
+
+    fix(stripe): attempt to fix the servers assignation when the user pay
+
+[33mcommit 6961ee1fc0a6e0e808f21eb3bef84435e5082858[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Thu Nov 14 04:00:05 2024 +0530
+
+    refactor: removed console logs and error handling
+
+[33mcommit 8e532d5a6073162c06be8208a519fa9cbe83d658[m
+Merge: c5c3ca39 d081d477
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Wed Nov 13 22:23:37 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit fa791706a09e6c8413e69b79e239b2ffed8875ed[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:49:07 2024 -0500
+
+    fix: chatwoot DB
+
+[33mcommit a5c1f8ef4909713b362d522a31c94f065c68f916[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:45:16 2024 -0500
+
+    fix: AP Env Testing
+
+[33mcommit 6866c3b116922d07898c67a81f5b2760bdba2fdd[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:40:19 2024 -0500
+
+    fix: Envs
+
+[33mcommit 444302e7b9edd6398ba5d3d53ee095fe297f7e20[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:33:37 2024 -0500
+
+    fix: chatwoot ENV
+
+[33mcommit 9b7757326996ce5ffe46e176d78cbd4aa97bc029[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:32:05 2024 -0500
+
+    fix: ENV Testing
+
+[33mcommit 8157dd9eaac9c57ad833b70982f8864099ce610b[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:21:07 2024 -0500
+
+    fix: More Config Fixes
+
+[33mcommit f1fc3f161aa9f2370d1bed7735635b68fbbb6ef6[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:07:15 2024 -0500
+
+    Update index.ts
+
+[33mcommit 06af2042ee372cb29e9c0970608f7935ef900810[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 05:06:42 2024 -0500
+
+    fix: Testing ENV Variables
+
+[33mcommit 8900e30ae716523db7d0f056b0171789d2dc8a38[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:49:23 2024 -0500
+
+    fix: Update Chatwoot Compose
+
+[33mcommit b5fa411093ac35c51af7cc8ca5fd49ea9799f624[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:48:11 2024 -0500
+
+    Add: Redis Password to AP
+
+[33mcommit cab9443d25d70a8c888fae63cc19eee0a7e1d2d9[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:44:13 2024 -0500
+
+    fix: Remove LinkStack
+    
+    Removed due to https://docs.linkstack.org/docker/reverse-proxies/#traefik
+
+[33mcommit de315124c334bcda72280e88406077444ab36fbf[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:38:27 2024 -0500
+
+    fix: Multiple Tests
+
+[33mcommit 7bef3a0c298e3bd45d3949d10840c2544999fbdd[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:26:21 2024 -0500
+
+    fix: ActivePieces ENV
+
+[33mcommit 82afd486da226618bcc55bcd2c945d116d94d113[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:21:16 2024 -0500
+
+    fix: Chatwoot Setup Service
+
+[33mcommit 69c9e86a137992fe6b9724590150dd96e6b5bcd5[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:19:34 2024 -0500
+
+    fix: Windmill Caddyfile
+
+[33mcommit 3d59e289bea63b990e314bd00929dc82ad088c29[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 04:13:58 2024 -0500
+
+    fix: ENV Variables in LinkStack
+
+[33mcommit 8d33ff5fb57c30ec89bd6f017df88596e447256e[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 03:20:20 2024 -0500
+
+    fix: Change Windmill Volume Path
+
+[33mcommit 46219e1b3d1cac3cd410f5adb44d047655d8561f[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 02:52:22 2024 -0500
+
+    fix: Caddyfile for Windmill
+
+[33mcommit 3457de4f36f0a8208a9e4fa6104bfdac3c072419[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 02:48:36 2024 -0500
+
+    fix: Chatwoot SSL Termination
+
+[33mcommit e57efa2e316551ae20a924cdb9eecc9a6f32012a[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Wed Nov 13 02:47:30 2024 -0500
+
+    fix: AP Ports
+
+[33mcommit fb0308fd608960d946e23f5f0da0c59ec8c309cb[m
+Author: JiPai <github@jipai.moe>
+Date:   Wed Nov 13 13:54:36 2024 +0800
+
+    chore(config): add defaultI18nConfig to avoid state issue
+
+[33mcommit b376ead7b524bbfdf69d24c5d8d5050804a893d7[m
+Author: JiPai <github@jipai.moe>
+Date:   Wed Nov 13 13:54:11 2024 +0800
+
+    feat(i18n): use flat translation key
+
+[33mcommit d081d477ef9d8ca1285997901e24230d9da9f189[m
+Merge: b08a2f54 cf73f1f7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 21:34:06 2024 -0600
+
+    Merge pull request #695 from sokhuong-uon/canary
+    
+    fix(signin-page): fix a broken link to password reset docs
+
+[33mcommit cf73f1f764c0b5e63c555511860dc292e877fac3[m
+Author: Sokhuong Uon <sokhuong.usk@gmail.com>
+Date:   Wed Nov 13 09:47:22 2024 +0700
+
+    fix(signin): fix broken link to password reset docs
+
+[33mcommit deeea114281a12795eb60983d0c738db060c3667[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 16:37:51 2024 -0500
+
+    Add: Discord Tickets
+
+[33mcommit 5c17797749d0206de3a9e3b618fdcbd4aa7e4683[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 16:19:14 2024 -0500
+
+    Add: Chatwoot
+
+[33mcommit 7b06fd47b8fbcc6fcbeb0747ae7e6ba3cbbbd118[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:34:37 2024 -0500
+
+    Add: Linkstack
+
+[33mcommit faceed12b0cc35275986f845e8c8ff61795821ee[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:27:08 2024 -0500
+
+    Add: Slash Template
+
+[33mcommit 814580ff2c447c5ebc83cccd460ce9a83fd49873[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:21:17 2024 -0500
+
+    Add: Postiz
+
+[33mcommit 4f092b2fb335d0c4b38aa8f9b79ee575426d42ec[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:12:31 2024 -0500
+
+    Add: InvoiceShelf
+
+[33mcommit 0799f8e04c75c654edab22368497e1c52fbda141[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:05:56 2024 -0500
+
+    Fix: Windmill Path
+
+[33mcommit 59c050b519dcb990e96ce98752d1d9032cf1fec1[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 13:05:21 2024 -0500
+
+    Add: Activepieces
+
+[33mcommit 88f969917fb220e45b41618055f07a1bb633c771[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 12:50:08 2024 -0500
+
+    Add: Windmill.dev
+
+[33mcommit ed470ee827ad62f2fe666a97cf7da30d127b0143[m
+Author: DrMxrcy <drmxrcy@gmail.com>
+Date:   Tue Nov 12 12:33:34 2024 -0500
+
+    Add: Peppermint.sh
+
+[33mcommit 96584e5b32a8eb4bec3a5653a12bb50a4f479262[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 09:39:35 2024 -0600
+
+    Update CONTRIBUTING.md
+
+[33mcommit a7165bef20708570b0becb59622909cfee9c6d47[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 09:38:35 2024 -0600
+
+    chore: set pull 665
+
+[33mcommit b0f5e7dad38419c284a2c715969b6e0846b18b0f[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 09:29:43 2024 -0600
+
+    Update CONTRIBUTING.md
+
+[33mcommit fa083257f188911e547330a5ac2531e6f41ff3fe[m
+Merge: 5cf12e51 b08a2f54
+Author: JiPai <3956400+PaiJi@users.noreply.github.com>
+Date:   Tue Nov 12 23:22:21 2024 +0800
+
+    Merge branch 'Dokploy:canary' into feat/i18n-support
+
+[33mcommit 5cf12e51d11e11645ca23c8236ae591cd8763869[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 09:02:44 2024 -0600
+
+    chore: remove name
+
+[33mcommit b6fd410af26d647067b5b5016e10c7806a560bdd[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 09:01:49 2024 -0600
+
+    chore: add tag feature
+
+[33mcommit c5c3ca39cd83fc89b479d65f9fd013b526d771f1[m
+Merge: 5f6d0412 b08a2f54
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Tue Nov 12 13:20:27 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit b08a2f54f005db2fd53dbde87d1c5c07315f438a[m
+Merge: e0fe4e49 29ffdf2c
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 00:55:06 2024 -0600
+
+    Merge pull request #688 from Dokploy/687-all-custom-domains-are-routed-to-one-application
+    
+    fix(compose): add path prefix inside Host rule
+
+[33mcommit 29ffdf2c717a89f4dbc12ea99cc878c71b580e07[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 00:53:34 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 58b185f6ddb55069fd7eab962b38ae8f940bf905[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 12 00:52:10 2024 -0600
+
+    fix(compose): add path prefix inside Host rule
+
+[33mcommit 5f6d04124826036aecd217d95b95b2aae348a0ab[m
+Merge: b817b4b6 e0fe4e49
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Tue Nov 12 01:01:46 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit b817b4b6ee52be17d3e2a141a64893276acf19a7[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Mon Nov 11 23:18:24 2024 +0530
+
+    refactor: gpu support and docker setup improvements
+    
+    - Add gpu status refresh with useEffect
+    - Update docker-compose.yml configuration
+    - Modify gpu setup scripts
+    - Improve gpu support checks
+
+[33mcommit e0fe4e499531fdf538e26361e561e4c77e072d2b[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 19:06:45 2024 -0600
+
+    chore: bump version
+
+[33mcommit 461d30fc26a33fbefe5de1fc34ca5b490963044c[m
+Merge: 4646b7d0 3fee18d0
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 18:50:07 2024 -0600
+
+    Merge pull request #669 from mezotv/canary
+    
+    fix: colorize and update svgs
+
+[33mcommit 3fee18d06e0a4debffe5e8b4b8653a235954fca4[m
+Merge: 046923ae 4646b7d0
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 18:39:11 2024 -0600
+
+    Merge branch 'canary' into canary
+
+[33mcommit 046923aeb335381835fa3b3028607e5c2d2e50df[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 18:38:43 2024 -0600
+
+    Update data-tools-icons.tsx
+
+[33mcommit 4646b7d0ec58926c1587d406c76dc5449f6f3572[m
+Merge: a02d51e5 ed5b01c7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 15:06:08 2024 -0600
+
+    Merge pull request #674 from AprilNEA/672-fix-github-icon
+    
+    fix: fix github icon path fill color #672
+
+[33mcommit a02d51e504c6fae4b2d799ee692e6933cacc4e7b[m
+Merge: e238dd85 9728c49e
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 15:05:41 2024 -0600
+
+    Merge pull request #675 from mezotv/patch-1
+    
+    fix: mongodb app naming
+
+[33mcommit 9728c49edd0bb0484de4f316cc01835ea0e8d1ae[m
+Author: Dominik Koch <dominik@wouldyoubot.com>
+Date:   Sun Nov 10 10:56:38 2024 +0100
+
+    fix: mongodb naming
+
+[33mcommit ed5b01c78d152c56664310221f6def2f2f78117f[m
+Author: AprilNEA <github@sku.moe>
+Date:   Sun Nov 10 07:51:48 2024 +0000
+
+    styles: fix code format style
+
+[33mcommit 000091cfb9b1cbeb93f76e8bb04d189972451a2b[m
+Author: AprilNEA <github@sku.moe>
+Date:   Sun Nov 10 07:46:45 2024 +0000
+
+    fix: fix github icon in git providers of setting page
+
+[33mcommit 2774701895a8b289dc3aba0bf3317dfc56120ca9[m
+Author: AprilNEA <github@sku.moe>
+Date:   Sun Nov 10 07:38:16 2024 +0000
+
+    fix: fix github icon path fill color #672
+
+[33mcommit e238dd8510488213a978701285238099a9d935e5[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Nov 10 00:28:27 2024 -0600
+
+    chore(readme): add dokploy cloud message
+
+[33mcommit c09ff253605579144aecca5e5cf71e0172fbe24d[m
+Author: JiPai <github@jipai.moe>
+Date:   Sat Nov 9 18:16:06 2024 +0800
+
+    feat(i18n): add translation for server tab
+
+[33mcommit 56b565b512f5a2a5307d8fa48ecd4e3c97992c1e[m
+Author: Dominik Koch <dominik@koch-bautechnik.de>
+Date:   Fri Nov 8 20:39:55 2024 +0000
+
+    fix: add colorized svgs
+
+[33mcommit 046f0a5c203dcce8155832aa08e19e03a98de4c1[m
+Author: JiPai <github@jipai.moe>
+Date:   Fri Nov 8 12:40:31 2024 +0800
+
+    feat(i18n): replace translation in Appearance
+
+[33mcommit 66c4d8f118412124d7729ce2f7303339965b59d9[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Fri Nov 8 03:32:33 2024 +0530
+
+    refactor: gpu setup and status checks, extract functions, and improve error handling
+
+[33mcommit 7f0a92f22425cdc29cf4c686c1e2811e888412dd[m
+Author: JiPai <github@jipai.moe>
+Date:   Fri Nov 8 02:16:15 2024 +0800
+
+    feat(i18n): add language select into appearance tab
+
+[33mcommit 0ca8ee17bed49a94bf215321cd6fba1a605c8ac4[m
+Author: JiPai <github@jipai.moe>
+Date:   Fri Nov 8 01:32:46 2024 +0800
+
+    feat(i18n): add i18n support
+
+[33mcommit c765d7d9ebd552fb50e0ad9f04753a5f10b007fe[m
+Merge: a331020b 23710642
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Thu Nov 7 16:36:50 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit 237106428b02d89cbac825915eee263efd77986a[m
+Merge: 9eb4c3e7 06e1e1ba
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 6 22:52:53 2024 -0600
+
+    Merge pull request #658 from Dokploy/651-daily-docker-cleanup-button-is-not-in-sync
+    
+    fix(dokploy): sync the toggle value when enable docker cleanup #651
+
+[33mcommit 06e1e1ba762170a55eb14c46d5c612fbc9f6babf[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 6 22:47:44 2024 -0600
+
+    fix(dokploy): sync the toggle value when enable docker cleanup #651
+
+[33mcommit 9eb4c3e77da7417decdcc4db9ff72168d78de984[m
+Merge: 1e1409e6 f3d83512
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 6 22:31:21 2024 -0600
+
+    Merge pull request #657 from Dokploy/feat/add-sponsor
+    
+    feat(dokploy): add mandaring sponsor
+
+[33mcommit f3d8351208047eb511a75607494601e4d6dfaef1[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 6 22:20:19 2024 -0600
+
+    feat(dokploy): add mandaring sponsor
+
+[33mcommit a331020bf87e066e9b28e1e4c8942001522cac91[m
+Merge: 2e6d9c34 1e1409e6
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Thu Nov 7 03:09:31 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit 2e6d9c34c0bdc61d9c4d8fb759f2ea9fddcbe654[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Thu Nov 7 02:52:41 2024 +0530
+
+    feat: add dokploy server gpu setup
+
+[33mcommit 1e1409e6510211b6ffd74e08324847255b1d6891[m
+Merge: ceaa32fd 47605766
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Nov 6 10:45:23 2024 -0600
+
+    Merge pull request #649 from ignissak/648-compose-services-ignore-domain-path-setting
+    
+    fix: domain path ignored in compose services
+
+[33mcommit ceaa32fd00ba1bac1a3193fe8294d648d3634c93[m
+Merge: dfa73a3d f466e697
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Nov 5 11:30:20 2024 -0600
+
+    Merge pull request #653 from thomasbrq/fix/update-port-target
+    
+    fix(dokploy): Wrong input for `target port` when updating ports.
+
+[33mcommit f466e697dd700e18d106cc2db86890577cf319f3[m
+Author: Thomas Brq <71637888+thomasbrq@users.noreply.github.com>
+Date:   Tue Nov 5 17:52:48 2024 +0100
+
+    fix(dokploy): Wrong input for `target port` when updating ports.
+
+[33mcommit 476057663bada10f5925e161c897c94b9ca1b7a5[m
+Author: Jakub Bordáš <methalicity@gmail.com>
+Date:   Tue Nov 5 11:39:30 2024 +0100
+
+    fix: add path prefix only if the path is other than "/"
+
+[33mcommit b53da82204eb5a9f180d78d1f7f52356357868e5[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Tue Nov 5 12:07:35 2024 +0530
+
+    refactor: gpu support component and related api routers; update template environment variables
+
+[33mcommit 3b5e8921d0915630e3b532c69d7a65b1addb9f7b[m
+Merge: 7306d8c5 dfa73a3d
+Author: Vishal kadam <107353260+vishalkadam47@users.noreply.github.com>
+Date:   Tue Nov 5 12:01:54 2024 +0530
+
+    Merge branch 'Dokploy:canary' into feature/gpu-support-blender-template
+
+[33mcommit 1b1d0597fe35ec4918bd63f03024f9e6098534fa[m
+Author: Jakub Bordáš <methalicity@gmail.com>
+Date:   Mon Nov 4 23:59:20 2024 +0100
+
+    fix: domain path ignored in compose services
+
+[33mcommit dfa73a3d7cdb83a37cdd1ff5854eee08f300209b[m
+Merge: 34b12a03 2a24e1d7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 4 15:26:12 2024 -0600
+
+    Merge pull request #613 from SashaGoncharov19/more-templates
+    
+    More templates
+
+[33mcommit 2a24e1d7e83fb64fcb0d5d9450de3c240cd1cfcc[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 4 15:13:40 2024 -0600
+
+    Update docker-compose.yml
+
+[33mcommit 34b12a0315cedb468c3edf1c85eb9dfedb39c6dd[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 4 10:20:55 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit e9e6064eb64c97bea2641bbed8dbf86726115f19[m
+Merge: 8af5afbb 6b7712e3
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 4 10:17:17 2024 -0600
+
+    Merge pull request #646 from Dokploy/fix/notifications
+    
+    fix(dokploy): filter notifications by admin
+
+[33mcommit 6b7712e35fc2ac6ccc611dc242b3faf94d3cb29a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Mon Nov 4 10:10:52 2024 -0600
+
+    fix(dokploy): filter notifications by admin
+
+[33mcommit 7306d8c5139f4c41c2b2334c0a3c8d2432c44c88[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Sun Nov 3 21:34:03 2024 +0530
+
+    feat: Add GPU configuration and Update import path for gpu-setup functions
+
+[33mcommit 84aac404102cf32677b25dc6130a8202816149ab[m
+Merge: e40a0fdc e3677995
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Nov 3 14:07:12 2024 +0000
+
+    Merge remote-tracking branch 'origin/more-templates' into more-templates
+
+[33mcommit e40a0fdc50aff4fcb50c4f58b3e6f086d4f65f34[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Nov 3 14:07:00 2024 +0000
+
+    fix: remove erpnext/mailserver templates
+
+[33mcommit e3677995b954801b85247dec934f3067b5e289f3[m
+Merge: 2f8b89c8 0468c25b
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Sun Nov 3 06:02:54 2024 -0800
+
+    Merge pull request #1 from mezotv/more-templates
+    
+    Add missing images
+
+[33mcommit 0468c25bf80472c00bb13426f3dbbbb8cdea65db[m
+Author: Dominik Koch <dominik@koch-bautechnik.de>
+Date:   Sun Nov 3 12:45:22 2024 +0100
+
+    fix: add missing images
+
+[33mcommit bc097c7667115dd5da42070f41a8f341b575363a[m
+Merge: ed7150fa 8af5afbb
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Sun Nov 3 05:16:55 2024 +0530
+
+    fix: resolve merge conflicts with upstream/canary
+
+[33mcommit 8af5afbb6c40cf287af02f27c117aef503bfb7b0[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 17:11:46 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit ed7150fac10e0ea7645cd3f0a72b0c1406f33f6c[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Sun Nov 3 04:16:51 2024 +0530
+
+    fix: Remove unused imports and interfaces from gpu-setup.ts
+
+[33mcommit ef9f16a3c3024f980d449aa06b94173c6e3c2b5f[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 15:37:49 2024 -0600
+
+    refactor(dokploy): remove registry url
+
+[33mcommit d15b6387a3abc1b5a41410036250460b1b7324d9[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 15:28:14 2024 -0600
+
+    refactor(dokploy): remove registryURL from registryTag
+
+[33mcommit 2e9e39dcf5b59c42612d66c2f205f0ac7034e1e7[m
+Merge: fae97b18 d901b02e
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 14:33:44 2024 -0600
+
+    Merge pull request #642 from Dokploy/fix/registry
+    
+    fix(registry): add image tag resolution correctly when using cluster
+
+[33mcommit d901b02e9285b54de099ca2921f4b784ea5a6780[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 14:18:00 2024 -0600
+
+    refactor(dokploy): remove log
+
+[33mcommit 766a25ccad874d92e01f2e07c19e6861b76b8955[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 14:17:21 2024 -0600
+
+    fix(registry): add image tag resolution correctly when using cluster
+
+[33mcommit 1b6d8d803b34482ab56c692034ace63a4fb15d80[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Sat Nov 2 15:15:58 2024 +0530
+
+    feat: Added GPU support feature for Remote Server with setup and status checks, including API endpoints and utility functions
+
+[33mcommit fae97b181756b393c90f431d9305934db25c3cac[m
+Merge: 1b56a6b4 b2cc5e58
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 01:53:50 2024 -0600
+
+    Merge pull request #641 from Dokploy/639-cannot-fetch-projects-on-non-main-users-dashboard
+    
+    refactor(dokploy): add missing project
+
+[33mcommit b2cc5e58a3e9d90e3002e6460196a318fab8b44c[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Nov 2 01:28:13 2024 -0600
+
+    refactor(dokploy): add missing project
+
+[33mcommit 2f8b89c8a61af24a12cb2a7e75b0d8adf8a7e6e2[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Fri Nov 1 22:10:49 2024 +0000
+
+    fix: nocodb bump
+
+[33mcommit 2da650610cf7da0932634d8c6d80516bead2ac68[m
+Merge: bba7d0c8 980024c9
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Fri Nov 1 17:08:43 2024 +0000
+
+    Merge branch 'canary' into more-templates
+    
+    # Conflicts:
+    #       apps/dokploy/templates/templates.ts
+
+[33mcommit 980024c9d219bc4f23a968e42bed9e24798b3a66[m
+Merge: a04b69d0 1b56a6b4
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Fri Nov 1 10:03:05 2024 -0700
+
+    Merge branch 'Dokploy:canary' into canary
+
+[33mcommit 1b56a6b4005b9d110f111323ca8a19c6bcaad800[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 1 10:54:45 2024 -0600
+
+    refactor(dokploy): revert template content
+
+[33mcommit 996d449f0fb52b32b6bc4616b16e90a0d10ed13a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 1 09:53:41 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 3b197f3624ca772822ce90e7458b5fd0c70c4b23[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Nov 1 09:53:21 2024 -0600
+
+    fix(dokploy): add missing mount path in update volume
+
+[33mcommit bba7d0c8280bf1f6661b797d29c50399980ec773[m
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Fri Nov 1 05:14:24 2024 +0200
+
+    Update apps/dokploy/templates/templates.ts
+    
+    Co-authored-by: Bartek <38581479+Rei-x@users.noreply.github.com>
+
+[33mcommit a04b69d0fd619577bdd232da57093703f4f72cea[m
+Merge: 1695c7cc 95e53169
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Thu Oct 31 08:19:11 2024 -0700
+
+    Merge branch 'Dokploy:canary' into canary
+
+[33mcommit 95e53169b18d9689579569ce2771c53a8bd4a46a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 23:07:05 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 52a19a325e309e66d99e9d92d71aed6c62eec934[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 22:52:31 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 9d891e87e0afbaeaab09abf9fb9013223308186d[m
+Merge: c13249e8 41b274fb
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 22:52:08 2024 -0600
+
+    Merge pull request #630 from Dokploy/fix/delete-old-deployments
+    
+    fix(dokploy): remove old deployments
+
+[33mcommit 41b274fbb33927259acc8d86b73f1aaef4d55ab6[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 22:50:12 2024 -0600
+
+    refactor(dokploy): set condition to 10
+
+[33mcommit 6417e133368fed62407af6017ad717bb1a5103d4[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 22:44:01 2024 -0600
+
+    fix(dokploy): remove old deployments
+
+[33mcommit c13249e8875948739881bca21e1b1101818c78a8[m
+Merge: 6c92e6ef e83499f9
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 21:54:54 2024 -0600
+
+    Merge pull request #628 from Dokploy/feat/templates-2
+    
+    Feat/templates 2
+
+[33mcommit e83499f90dd7a44fb2a7da77c9c73e51af8ad320[m
+Merge: cf666ceb 6c92e6ef
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 21:49:48 2024 -0600
+
+    Merge branch 'canary' into feat/templates-2
+
+[33mcommit 6c92e6efc9d95ea36c01f7b6d00a42f8922796d7[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 21:48:19 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 97715a47b305de7c64449cf35f7604ffed7458be[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 10:33:46 2024 -0600
+
+    refactor(dokploy): remove validation
+
+[33mcommit 3a9698c3a31bd55bf50717eb8e4b3d49384b8e7d[m
+Merge: 9295c654 d47ccae1
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 01:32:41 2024 -0600
+
+    Merge pull request #625 from Dokploy/619-bitbucket-repositories-limited-to-100
+    
+    fix(dokploy): extract all the repositories bitbucket #619
+
+[33mcommit d47ccae19002dbf6ab17015200c7025ad3596ce4[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Wed Oct 30 01:07:42 2024 -0600
+
+    fix(dokploy): extract all the repositories bitbucket #619
+
+[33mcommit 9295c6545fa4525737f6ea2c67bb0c83ddd5d396[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Oct 29 02:59:08 2024 -0600
+
+    refactor: update
+
+[33mcommit 2a01566c34ec5227626e3e17a610afb2b2f568b2[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Oct 29 02:39:33 2024 -0600
+
+    refactor(dokploy): update status
+
+[33mcommit b5cf59e743b7e32abd88be6a72f13750cf34d145[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Tue Oct 29 02:11:51 2024 -0600
+
+    refactor(dokploy): add log for jobdata
+
+[33mcommit de02a00ce93e3083df6a372da8ab7c708619efb1[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 14:11:39 2024 +0000
+
+    fix: coder template
+
+[33mcommit 25803f371cf0e5773546ef8ff5bb2ab4045f90d0[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 14:05:26 2024 +0000
+
+    feat: coder template
+
+[33mcommit 92eaa1a4700ac787dcb4189915f6ef08758eacfe[m
+Merge: 985c7515 2cbb7e49
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 22:34:41 2024 -0600
+
+    Merge pull request #616 from Dokploy/431-isolate-each-app-into-separate-git-repositories
+    
+    431 isolate each app into separate git repositories
+
+[33mcommit 2cbb7e496288cb689d17db2c593cbeb7cabad2ca[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 22:27:09 2024 -0600
+
+    chore: remove unused commands
+
+[33mcommit 34d73957f5af09ec55d605b3b12208c0128287ed[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 22:23:16 2024 -0600
+
+    chore: remove docs & website workflow
+
+[33mcommit d571c6d9a21879de566f583ae7358f89ccbc814c[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 22:22:39 2024 -0600
+
+    refactor(dokploy): remove docs & website
+
+[33mcommit 985c7515b184ab0ede85308089c187092840dc79[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 21:00:37 2024 -0600
+
+    refactor(dokploy): add promotion codes
+
+[33mcommit cf666ceb19672c0cda4a963ee1c1ea296b994bde[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 20:48:42 2024 -0600
+
+    feat(dokploy): add lobe chat
+
+[33mcommit a4eb5c07e6655f7be964b35332bf5684857f944a[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 01:09:29 2024 +0000
+
+    fix: soketi bump
+
+[33mcommit bad11f13f522280acc880713e725d7c574b7aa1a[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 01:05:09 2024 +0000
+
+    fix: gitea bump
+
+[33mcommit 02d52d63b94485bc3fc42431331cb472f67297b7[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 01:04:49 2024 +0000
+
+    fix: uptime-kuma bump
+
+[33mcommit 2821e43cdd32f8f71cdfb1273dde62f43cb2f242[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Mon Oct 28 00:23:56 2024 +0000
+
+    feat: macos template
+
+[33mcommit 0e8a3c36f3a6f23d152ff45948a5853a3225ab60[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 18:12:23 2024 -0600
+
+    feat(dokploy): add stirling
+
+[33mcommit c04d2f508bd9a65b7d933b866493a6bc95e8b4e3[m
+Merge: 5c85b822 7d882b3d
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 17:56:18 2024 -0600
+
+    Merge pull request #612 from xmahbub/ui
+    
+    style(ui): update template selection view
+
+[33mcommit 5c85b82257f0a04fd332243484bed9e883ba2827[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 17:35:19 2024 -0600
+
+    refactor(dokploy):  revert
+
+[33mcommit adea44093128615af6cf80e0ba5c8d1f44622dbf[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 21:12:04 2024 +0000
+
+    feat: windows os template
+
+[33mcommit ae5df828879926b56c135d4ac4bab7e7dfa26a16[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 15:09:27 2024 -0600
+
+    refactor(dokploy): terminate connections
+
+[33mcommit bbef99c3c258eb163157f39e96f4e6320404e90b[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 20:49:29 2024 +0000
+
+    feat: hi.events template
+
+[33mcommit 527c01e7dca36018e0555bec2191dd545cb314cf[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 20:22:29 2024 +0000
+
+    feat: vaultwarden template
+
+[33mcommit 9872c4fee31d0044a6e12a7ccac71fcc6914751c[m
+Merge: 3808fd83 3f40ad32
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 14:14:30 2024 -0600
+
+    Merge pull request #614 from Dokploy/611-websocket-pending-for-minutes-after-container-starts
+    
+    fix(dokploy): prevent to have pending connections docker logs
+
+[33mcommit 3f40ad32500cd23a8efe1856954c627c4ff16232[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 14:12:45 2024 -0600
+
+    fix(dokploy): prevent to have pending connections docker logs
+
+[33mcommit 2a5a67e63ca6a8c5b3c9be55b9cc8335fa3b722c[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 20:08:12 2024 +0000
+
+    feat: docmost template
+
+[33mcommit 15051a1bc2f4ecc009f8bd69c26d072fd75f2250[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 19:48:07 2024 +0000
+
+    feat: infisical template
+
+[33mcommit 7d882b3df5b0978da52bbcc3ebf9b42213daf908[m
+Author: MD Mahbub Hasan <droidshakib@gmail.com>
+Date:   Mon Oct 28 01:40:26 2024 +0600
+
+    style(ui): update template selection view
+
+[33mcommit b7d45341bcc230e80175ca81a8df79a575ec8d9a[m
+Author: sashagoncharov19 <0976053529@ukr.net>
+Date:   Sun Oct 27 18:58:38 2024 +0000
+
+    feat: influxdb template
+
+[33mcommit 3808fd83a6f3cbbc741ef9493a57c93caab18539[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 12:50:22 2024 -0600
+
+    feat(dokploy): add welcome modal to dokploy cloud
+
+[33mcommit 1695c7cc81d52a757401ffa8ba5a2a1e7e439fba[m
+Merge: fbec26fc 707d609b
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Sun Oct 27 11:17:56 2024 -0700
+
+    Merge branch 'Dokploy:canary' into canary
+
+[33mcommit 3e467959c9232b332dbbaaafae66d8c0cd76097b[m
+Author: vishalkadam47 <vishal@jeevops.com>
+Date:   Sun Oct 27 22:00:08 2024 +0530
+
+    refactor: Update docker-compose.yml to remove port mapping and remove GPU constants from index.ts
+
+[33mcommit 707d609b46f19d04ce4bebd34e289d7ab2a8ec0c[m
+Merge: 2107d782 800e5cbf
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 10:25:25 2024 -0600
+
+    Merge pull request #604 from xmahbub/filebrowser
+    
+    feat: Add new File Browser template to Dokploy
+
+[33mcommit 800e5cbf43d6d1fa99dd4413c3e6ebbf19f42c5e[m
+Merge: 80015d8d 2107d782
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 10:19:03 2024 -0600
+
+    Merge branch 'canary' into filebrowser
+
+[33mcommit 2107d782f539cbbd8fe1277f98b3a22afcded2c4[m
+Merge: c59975a7 93844928
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 10:18:08 2024 -0600
+
+    Merge pull request #601 from CodeWithKamal/canary
+    
+    feat: add Tolgee template
+
+[33mcommit 80015d8d71b263252e694dfaa35f020279df6b5d[m
+Author: MD Mahbub Hasan <droidshakib@gmail.com>
+Date:   Sun Oct 27 16:29:14 2024 +0600
+
+    format fix for templates list
+
+[33mcommit 2c2d59a87c599e10828827a64b7f017e4703342f[m
+Author: MD Mahbub Hasan <droidshakib@gmail.com>
+Date:   Sun Oct 27 16:24:42 2024 +0600
+
+    Format fix
+
+[33mcommit 93844928a8bd4b780ea17d41e9d7c30dab4e2883[m
+Author: codewithkamal <codewithkamal@gmail.com>
+Date:   Sun Oct 27 14:28:11 2024 +0530
+
+    chore: lint fixes
+
+[33mcommit cb59d121be52b464fbb05cd8ce7517da495852ff[m
+Merge: c0df4d33 c59975a7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:51:47 2024 -0600
+
+    Merge branch 'canary' into canary
+
+[33mcommit 42b3db37ac977f57881b4229f3cb194793c8a1bc[m
+Merge: 9145fd34 c59975a7
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:49:02 2024 -0600
+
+    Merge branch 'canary' into filebrowser
+
+[33mcommit c59975a7ff3495e607e40aae92acca53633813f2[m
+Merge: f34a209c 226c4304
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:45:49 2024 -0600
+
+    Merge pull request #602 from xmahbub/portainer
+    
+    feat: Portainer template added
+
+[33mcommit c0df4d330aa85f802ad5665b51b5b6fd0ca80f5b[m
+Merge: b56532f2 f34a209c
+Author: Kamal Panara <79043122+CodeWithKamal@users.noreply.github.com>
+Date:   Sun Oct 27 14:11:56 2024 +0530
+
+    Merge branch 'Dokploy:canary' into canary
+
+[33mcommit b56532f25e251a0f4f05a90d4523b9a9986ca2fe[m
+Author: Kamal Panara <79043122+CodeWithKamal@users.noreply.github.com>
+Date:   Sun Oct 27 14:11:43 2024 +0530
+
+    Updated port in docker-compose.yml
+
+[33mcommit f34a209c678c204a19b23e6749218151b3d9c6d3[m
+Merge: e24f0a39 5f13fb23
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:16:58 2024 -0600
+
+    Merge pull request #600 from mezotv/switch-env-syntax
+    
+    Switch to use ! syntax instead of || ""
+
+[33mcommit e24f0a395de666f3e098fa481dbefa39704ac3cd[m
+Merge: 1a6bf069 d239ca9b
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:08:51 2024 -0600
+
+    Merge pull request #608 from Dokploy/607-dokploy-dashboard-billing-plan-card-font-color-looks-bad-in-light-mode
+    
+    fix(dokploy): adjust dark and light mode billing
+
+[33mcommit 1a6bf06929717f04db5eaf897d30c77dfae219fe[m
+Merge: 38a72806 ecc98b09
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 02:05:24 2024 -0600
+
+    Merge pull request #606 from PaiJi/chore/i18n-zh-hans
+    
+    feat(i18n): add zh-Hans for Pricing and Sponsor
+
+[33mcommit d239ca9b49cf4f00626ae747d28249546cc97a70[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sun Oct 27 01:58:31 2024 -0600
+
+    fix(dokploy): adjust dark and light mode billing
+
+[33mcommit ecc98b0944bbe69b7d7396b34cf20d8816192598[m
+Author: JiPai <github@jipai.moe>
+Date:   Sun Oct 27 15:36:56 2024 +0800
+
+    feat(i18n): add zh-Hans for Pricing page
+
+[33mcommit 950ee77a494a58e12b560c10c3a9b364aeb73bab[m
+Author: JiPai <github@jipai.moe>
+Date:   Sun Oct 27 14:32:23 2024 +0800
+
+    feat(i18n): add zh-Hans translation for homepage
+
+[33mcommit 38a72806a708e48b3ab6a3086a499aa18d844e02[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 23:06:00 2024 -0600
+
+    refactor(dokploy): add webhook url for new users
+
+[33mcommit fa70696c7107a8601dfefcfd1b56a54683706731[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 22:46:15 2024 -0600
+
+    refactor(website): update const value
+
+[33mcommit b123baafa43bc252f513f60863d33172044896a2[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 22:44:21 2024 -0600
+
+    refactor(dokploy): add analytics and pricing section to website
+
+[33mcommit d6fa416a3f3232c535c2cb018be889288050ab98[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 20:31:17 2024 -0600
+
+    chore(ci/cd): set secrets
+
+[33mcommit d2c0f19353a57309da7d43561976a8f113c511a2[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:56:34 2024 -0600
+
+    refactor(dokploy): add missing import
+
+[33mcommit 3ef6c711e6680b9af4afc3cfd63643a4710c046a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:51:23 2024 -0600
+
+    chore(ci/cd): set live key
+
+[33mcommit 64a4d51f9c22474aff6970734e80f70da7be0084[m
+Merge: 428b9cf0 1a20e4f8
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:39:59 2024 -0600
+
+    Merge pull request #605 from Dokploy/feat/add-email-verification
+    
+    Feat/add email verification
+
+[33mcommit 1a20e4f81394eae9fbbecc908d32a6607a74e64a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:35:49 2024 -0600
+
+    refactor: disable endpoints from cloud in self hosted
+
+[33mcommit 250c14738cbac0816b11be321ced941de6e17ef3[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:32:29 2024 -0600
+
+    refactor: remove register when is self hosted
+
+[33mcommit 28221a4e7ac5b5faf7f95882261bc421d7a784dc[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 19:27:01 2024 -0600
+
+    refactor(dokploy): add umami and update favicon
+
+[33mcommit 680c22a41ed5caa95fec867b5d690adf09c819a7[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 18:09:55 2024 -0600
+
+    feat(dokploy): add verification email to cloud version
+
+[33mcommit 9145fd34083f650ef16ea70f1ed7c7ec47d947b7[m
+Author: MD Mahbub Hasan <droidshakib@gmail.com>
+Date:   Sun Oct 27 05:36:55 2024 +0600
+
+    Add Filebrowser template
+
+[33mcommit 428b9cf0eca4c6fa1f688672e4a1d12b85f9c60b[m
+Merge: 0873618c 78659b2a
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 16:24:12 2024 -0600
+
+    Merge pull request #603 from Dokploy/fix/start-schedules-and-server
+    
+    fix(server): update build paths
+
+[33mcommit 78659b2ad9cb73b5c32a4e1d0686b6a9648756d4[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 16:17:20 2024 -0600
+
+    chore: exclude package.json to format
+
+[33mcommit 4b5408c05049ec71c487c5f8cceb015ae29adf23[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 16:04:43 2024 -0600
+
+    chore: lint
+
+[33mcommit 5417f6376b16fa9d134a7be6d209533eec640ce8[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 15:56:03 2024 -0600
+
+    chore(server): update switch prod in build command
+
+[33mcommit 27c33c76614d2650d60dff695b8b89790660ae35[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 15:48:30 2024 -0600
+
+    fix(server): update build paths
+
+[33mcommit 226c43047e0845e681505c2c12561a0e9572eb1c[m
+Author: MD Mahbub Hasan <droidshakib@gmail.com>
+Date:   Sun Oct 27 03:31:03 2024 +0600
+
+    Portainer template added
+
+[33mcommit 0873618c63bccce4e1c1e4c4e1b30d181f48bddf[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Sat Oct 26 15:08:49 2024 -0600
+
+    chore(dokploy): set latest tag in cloud
+
+[33mcommit 2db8057d6168e7603377c842970a5976dac229fc[m
+Author: Kamal Panara <79043122+CodeWithKamal@users.noreply.github.com>
+Date:   Sun Oct 27 00:17:10 2024 +0530
+
+    Update index.ts
+    
+    updated imports
+
+[33mcommit 71a582026e27784568a06d49b310f5cd63dac342[m
+Author: codewithkamal <codewithkamal@gmail.com>
+Date:   Sat Oct 26 23:55:10 2024 +0530
+
+    feat: add tolgee template
+
+[33mcommit fbec26fc31d838f2185f3baca05878d31f877f0e[m
+Merge: 4431f560 e3b20268
+Author: Oleksandr Honcharov <0976053529@ukr.net>
+Date:   Sat Oct 26 05:42:20 2024 -0700
+
+    Merge branch 'Dokploy:canary' into canary
+
+[33mcommit 5f13fb2316a9220bdb9157c5556fc87f362b732e[m
+Author: Dominik Koch <dominik@koch-bautechnik.de>
+Date:   Sat Oct 26 12:42:23 2024 +0200
+
+    style: lint code
+
+[33mcommit bc91bb313277e436afb8c8bc4a2dee686759913f[m
+Author: Dominik Koch <dominik@koch-bautechnik.de>
+Date:   Sat Oct 26 12:28:40 2024 +0200
+
+    fix: use ! syntax instead of || ""
+
+[33mcommit e3b20268d520502e4d9c28e690401ff340114e31[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 23:56:33 2024 -0600
+
+    refactor(dokploy): add ssr for settings to show instantly the sidebar
+
+[33mcommit 742e5a244db707b4be8335339b5c9a39c322c164[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 23:44:39 2024 -0600
+
+    refactor(dokploy): prevent to create projects when the user doesn't have servers buyed
+
+[33mcommit 1f208f5f5b840a613b11ad629bafb9bac315ce06[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 22:53:58 2024 -0600
+
+    refactor(dokploy): add next public shareable key
+
+[33mcommit a53ade88e7aab9889b639c058fbfffd100c9e25f[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 22:35:35 2024 -0600
+
+    refactor(dokploy): add SITE_URL
+
+[33mcommit 77e96177703ce21298c44382f85564508532641a[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 21:18:04 2024 -0600
+
+    chore(version): bump version
+
+[33mcommit 21e97b0175ea30a75c4d4f76becef5655b5d3ba6[m
+Merge: 59308ab0 a6618a14
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 20:50:58 2024 -0600
+
+    Merge pull request #598 from Dokploy/593-use-advertise_addr-from-environment-variable-in-dokpoy-service
+    
+    feat(dokploy): add env for ADVERTISE_ADDR to installation #593
+
+[33mcommit a6618a14d5b7bc3f0ab4bc719a5843b30f6e03eb[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 20:48:46 2024 -0600
+
+    feat(dokploy): add env for ADVERTISE_ADDR to installation #593
+
+[33mcommit 59308ab013dd77fea763f3079b9381bfce43f6ce[m
+Merge: 421c9379 e19c8d7a
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 20:19:14 2024 -0600
+
+    Merge pull request #596 from Dokploy/595-dokploy-internal-postgres-database-is-publicly-accessible-by-default
+    
+    fix(dokploy): remove expose ports in production
+
+[33mcommit e19c8d7a7a3e9a3c875f0bfd81e74759bcc1a732[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 17:09:06 2024 -0600
+
+    fix(dokploy): remove expose ports in production
+
+[33mcommit 421c93795bf26ce86d366332cc04c1ad288ea4a4[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 16:56:32 2024 -0600
+
+    refactor(dokploy): prevent start worker when is cloud
+
+[33mcommit 182f908c314f78ea25b5832a56f7d7dc7c75e5b1[m
+Author: Mauricio Siu <47042324+Siumauricio@users.noreply.github.com>
+Date:   Fri Oct 25 10:20:56 2024 -0600
+
+    chore: add new sponsor
