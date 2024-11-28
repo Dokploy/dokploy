@@ -5,6 +5,7 @@ const SUPPORTED_LOCALES = [
 	"pl",
 	"ru",
 	"de",
+	"tr",
 	"zh-Hant",
 	"zh-Hans",
 ] as const;
