@@ -91,7 +91,7 @@ export const AddEnv = ({ projectId }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<FileIcon className="size-4" />
-					<span>Add Env</span>
+					<span>{data?.env ? "Modify Env" : "Add Env"}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-6xl">
@@ -135,8 +135,7 @@ export const AddEnv = ({ projectId }: Props) => {
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=production
 PORT=3000
-
-                                                    `}
+`}
 													{...field}
 												/>
 											</FormControl>
