@@ -11,12 +11,13 @@ import type { MysqlNested } from "../databases/mysql";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 
 interface RegistryAuth {
 	username: string;
 	password: string;
-	serveraddress: string;
+	registryUrl: string;
 }
 
 export const pullImage = async (
@@ -29,29 +30,21 @@ export const pullImage = async (
 			throw new Error("Docker image not found");
 		}
 
-		await new Promise((resolve, reject) => {
-			docker.pull(dockerImage, { authconfig: authConfig }, (err, stream) => {
-				if (err) {
-					reject(err);
-					return;
-				}
-
-				docker.modem.followProgress(
-					stream as Readable,
-					(err: Error | null, res) => {
-						if (!err) {
-							resolve(res);
-						}
-						if (err) {
-							reject(err);
-						}
-					},
-					(event) => {
-						onData?.(event);
-					},
-				);
-			});
-		});
+		if (authConfig?.username && authConfig?.password) {
+			await spawnAsync(
+				"docker",
+				[
+					"login",
+					authConfig.registryUrl || "",
+					"-u",
+					authConfig.username,
+					"-p",
+					authConfig.password,
+				],
+				onData,
+			);
+		}
+		await spawnAsync("docker", ["pull", dockerImage], onData);
 	} catch (error) {
 		throw error;
 	}
