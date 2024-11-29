@@ -17,8 +17,7 @@
 		"build": "pnpm -r run build",
 		"format-and-lint": "biome check .",
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-		"format-and-lint:fix": "biome check . --write",
-		"prepare": "node .husky/install.mjs"
+		"format-and-lint:fix": "biome check . --write"
 	},
 	"devDependencies": {
 		"dotenv": "16.4.5",
@@ -26,7 +25,7 @@
 		"tsx": "4.16.2",
 		"lint-staged": "^15.2.7",
 		"@biomejs/biome": "1.8.3",
-		"husky": "^9.1.6",
+		"lefthook": "1.8.4",
 		"@commitlint/cli": "^19.3.0",
 		"@commitlint/config-conventional": "^19.2.2",
 		"@types/node": "^18.17.0"
