@@ -208,14 +208,6 @@ export const deployApplication = async ({
 			adminId: application.project.adminId,
 		});
 
-		console.log(
-			"Error on ",
-			application.buildType,
-			"/",
-			application.sourceType,
-			error,
-		);
-
 		throw error;
 	}
 

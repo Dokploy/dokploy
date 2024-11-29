@@ -147,6 +147,7 @@ export const applications = pgTable("application", {
 	username: text("username"),
 	password: text("password"),
 	dockerImage: text("dockerImage"),
+	registryUrl: text("registryUrl"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -348,6 +349,7 @@ const createSchema = createInsertSchema(applications, {
 	dockerImage: z.string().optional(),
 	username: z.string().optional(),
 	password: z.string().optional(),
+	registryUrl: z.string().optional(),
 	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
 	dockerfile: z.string().optional(),
@@ -451,6 +453,7 @@ export const apiSaveDockerProvider = createSchema
 		applicationId: true,
 		username: true,
 		password: true,
+		registryUrl: true,
 	})
 	.required();
 
