@@ -12,6 +12,7 @@ const baseApp: ApplicationNested = {
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
+	registryUrl: "",
 	buildArgs: null,
 	project: {
 		env: "",
