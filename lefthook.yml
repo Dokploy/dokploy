@@ -42,4 +42,4 @@ commit-msg:
 pre-commit:
   commands:
     lint-staged:
-      run: "pnpm check && npx lint-staged"
+      run: "pnpm lint-staged"
