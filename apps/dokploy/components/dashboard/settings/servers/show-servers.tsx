@@ -228,21 +228,17 @@ export const ShowServers = () => {
 															</DropdownMenuItem>
 														</DialogAction>
 
-														{isActive && (
+														{isActive && server.sshKeyId && (
 															<>
-																{server.sshKeyId && (
-																	<>
-																		<DropdownMenuSeparator />
-																		<DropdownMenuLabel>Extra</DropdownMenuLabel>
+																<DropdownMenuSeparator />
+																<DropdownMenuLabel>Extra</DropdownMenuLabel>
 
-																		<ShowTraefikFileSystemModal
-																			serverId={server.serverId}
-																		/>
-																		<ShowDockerContainersModal
-																			serverId={server.serverId}
-																		/>
-																	</>
-																)}
+																<ShowTraefikFileSystemModal
+																	serverId={server.serverId}
+																/>
+																<ShowDockerContainersModal
+																	serverId={server.serverId}
+																/>
 															</>
 														)}
 													</DropdownMenuContent>
