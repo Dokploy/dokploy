@@ -41,5 +41,5 @@ commit-msg:
 
 pre-commit:
   commands:
-    lint-staged:
-      run: "pnpm lint-staged"
+    check:
+      run: "pnpm check"
