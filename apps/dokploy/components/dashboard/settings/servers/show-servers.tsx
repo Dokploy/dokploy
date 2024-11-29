@@ -98,7 +98,7 @@ export const ShowServers = () => {
 					)
 				)}
 				{data && data?.length > 0 && (
-					<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-6 overflow-auto">
 						<Table>
 							<TableCaption>See all servers</TableCaption>
 							<TableHeader>
