@@ -322,7 +322,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									variant={"secondary"}
 									onClick={async () => {
 										await testConnection({
-											provider: form.getValues("provider"),
+											provider: form.getValues("provider") || "",
 											accessKey: form.getValues("accessKeyId"),
 											bucket: form.getValues("bucket"),
 											endpoint: form.getValues("endpoint"),
@@ -349,7 +349,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 								variant="secondary"
 								onClick={async () => {
 									await testConnection({
-										provider: form.getValues("provider"),
+										provider: form.getValues("provider") || "",
 										accessKey: form.getValues("accessKeyId"),
 										bucket: form.getValues("bucket"),
 										endpoint: form.getValues("endpoint"),

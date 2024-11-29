@@ -76,7 +76,7 @@ export const AddDestination = () => {
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
-			provider: data.provider,
+			provider: data.provider || "",
 			accessKey: data.accessKeyId,
 			bucket: data.bucket,
 			endpoint: data.endpoint,
@@ -293,7 +293,7 @@ export const AddDestination = () => {
 									isLoading={isLoading}
 									onClick={async () => {
 										await testConnection({
-											provider: form.getValues("provider"),
+											provider: form.getValues("provider") || "",
 											accessKey: form.getValues("accessKeyId"),
 											bucket: form.getValues("bucket"),
 											endpoint: form.getValues("endpoint"),
@@ -322,7 +322,7 @@ export const AddDestination = () => {
 								variant="secondary"
 								onClick={async () => {
 									await testConnection({
-										provider: form.getValues("provider"),
+										provider: form.getValues("provider") || "",
 										accessKey: form.getValues("accessKeyId"),
 										bucket: form.getValues("bucket"),
 										endpoint: form.getValues("endpoint"),

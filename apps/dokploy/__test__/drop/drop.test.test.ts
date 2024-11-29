@@ -30,6 +30,7 @@ const baseApp: ApplicationNested = {
 	appName: "",
 	autoDeploy: true,
 	serverId: "",
+	registryUrl: "",
 	branch: null,
 	dockerBuildStage: "",
 	project: {
