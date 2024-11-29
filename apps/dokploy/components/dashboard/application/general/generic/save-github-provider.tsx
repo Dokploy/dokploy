@@ -193,7 +193,6 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 											<FormControl>
 												<Button
 													variant="outline"
-													role="combobox"
 													className={cn(
 														"w-full justify-between !bg-input",
 														!field.value && "text-muted-foreground",
@@ -272,7 +271,6 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 											<FormControl>
 												<Button
 													variant="outline"
-													role="combobox"
 													className={cn(
 														" w-full justify-between !bg-input",
 														!field.value && "text-muted-foreground",

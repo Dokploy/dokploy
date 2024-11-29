@@ -28,11 +28,7 @@ export const ShowRegistry = () => {
 					</div>
 
 					<div className="flex flex-row gap-2">
-						{data && data?.length > 0 && (
-							<>
-								<AddRegistry />
-							</>
-						)}
+						{data && data?.length > 0 && <AddRegistry />}
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-2 pt-4 h-full">

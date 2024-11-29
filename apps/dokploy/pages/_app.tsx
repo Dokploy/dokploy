@@ -32,10 +32,10 @@ const MyApp = ({
 	return (
 		<>
 			<style jsx global>{`
-        :root {
-          --font-inter: ${inter.style.fontFamily};
-        }
-      `}</style>
+                :root {
+                    --font-inter: ${inter.style.fontFamily};
+                }
+            `}</style>
 			<Head>
 				<title>Dokploy</title>
 			</Head>
@@ -71,7 +71,17 @@ export default api.withTRPC(
 		{
 			i18n: {
 				defaultLocale: "en",
-				locales: ["en", "pl", "ru", "de", "zh-Hant", "zh-Hans"],
+				locales: [
+					"en",
+					"pl",
+					"ru",
+					"fr",
+					"de",
+					"tr",
+					"zh-Hant",
+					"zh-Hans",
+					"fa",
+				],
 				localeDetection: false,
 			},
 			fallbackLng: "en",

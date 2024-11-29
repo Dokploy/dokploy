@@ -4,9 +4,12 @@ const SUPPORTED_LOCALES = [
 	"en",
 	"pl",
 	"ru",
+	"fr",
 	"de",
+	"tr",
 	"zh-Hant",
 	"zh-Hans",
+	"fa",
 ] as const;
 
 type Locale = (typeof SUPPORTED_LOCALES)[number];

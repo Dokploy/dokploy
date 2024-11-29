@@ -127,7 +127,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 							<PopoverTrigger asChild>
 								<Button
 									variant="outline"
-									role="combobox"
 									className={cn(
 										"md:max-w-[15rem] w-full justify-between !bg-input",
 									)}
