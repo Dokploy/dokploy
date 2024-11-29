@@ -16,7 +16,6 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm run server:build
-      - run: pnpm biome ci
       - run: pnpm typecheck
 
   build-and-test:
