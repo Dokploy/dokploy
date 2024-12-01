@@ -64,39 +64,40 @@ export const sendDatabaseBackupNotifications = async ({
 			await sendDiscordNotification(discord, {
 				title:
 					type === "success"
-						? "✅ Database Backup Successful"
-						: "❌ Database Backup Failed",
-				color: type === "success" ? 0x00ff00 : 0xff0000,
+						? "> `✅` - Database Backup Successful"
+						: "> `❌` - Database Backup Failed",
+				color: type === "success" ? 0x57f287 : 0xed4245,
 				fields: [
 					{
-						name: "Project",
-						value: projectName,
+						name: "`🛠️`・Project",
+						value: `\`\`\`${projectName}\`\`\``,
+						inline: false,
+					},
+					{
+						name: "`⚙️`・Application",
+						value: `\`\`\`${applicationName}\`\`\``,
 						inline: true,
 					},
 					{
-						name: "Application",
-						value: applicationName,
+						name: "`❔`・Type",
+						value: `\`\`\`${databaseType}\`\`\``,
 						inline: true,
 					},
 					{
-						name: "Type",
-						value: databaseType,
-						inline: true,
+						name: "`📅`・Time",
+						value: `\`\`\`${date.toLocaleString()}\`\`\``,
+						inline: false,
 					},
 					{
-						name: "Time",
-						value: date.toLocaleString(),
-						inline: true,
-					},
-					{
-						name: "Type",
-						value: type,
+						name: "`❔`・Type",
+						value: `\`\`\`${type}\`\`\``,
+						inline: false,
 					},
 					...(type === "error" && errorMessage
 						? [
 								{
-									name: "Error Message",
-									value: errorMessage,
+									name: "`⚠️`・Error Message",
+									value: `\`\`\`${errorMessage}\`\`\``,
 								},
 							]
 						: []),

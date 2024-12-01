@@ -188,8 +188,9 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				await sendDiscordNotification(input, {
-					title: "Test Notification",
-					description: "Hi, From Dokploy 👋",
+					title: "> `🤚` - Test Notification",
+					description: "> Hi, From Dokploy 👋",
+					color: 0xf3f7f4
 				});
 				return true;
 			} catch (error) {

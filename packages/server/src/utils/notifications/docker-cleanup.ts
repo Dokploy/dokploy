@@ -45,12 +45,12 @@ export const sendDockerCleanupNotifications = async (
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Docker Cleanup",
-				color: 0x00ff00,
+				title: "> `✅` - Docker Cleanup",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Message",
-						value: message,
+						name: "`📜`・Message",
+						value: `\`\`\`${message}\`\`\``,
 					},
 				],
 				timestamp: date.toISOString(),

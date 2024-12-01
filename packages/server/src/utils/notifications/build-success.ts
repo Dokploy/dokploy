@@ -57,26 +57,26 @@ export const sendBuildSuccessNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Build Success",
-				color: 0x00ff00,
+				title: "> `✅` - Build Success",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Project",
-						value: projectName,
+						name: "`🛠️`・Project",
+						value: `\`\`\`${projectName}\`\`\``,
 						inline: true,
 					},
 					{
-						name: "Application",
-						value: applicationName,
+						name: "`⚙️`・Application",
+						value: `\`\`\`${applicationName}\`\`\``,
 						inline: true,
 					},
 					{
-						name: "Type",
-						value: applicationType,
+						name: "`❔`・Type",
+						value: `\`\`\`${applicationType}\`\`\``,
 						inline: true,
 					},
 					{
-						name: "Build Link",
+						name: "`🧷`・Build Link",
 						value: buildLink,
 					},
 				],
