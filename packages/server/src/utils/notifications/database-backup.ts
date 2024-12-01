@@ -70,28 +70,33 @@ export const sendDatabaseBackupNotifications = async ({
 				fields: [
 					{
 						name: "`🛠️`・Project",
-						value: `\`\`\`${projectName}\`\`\``,
-						inline: false,
+						value: projectName,
+						inline: true,
 					},
 					{
 						name: "`⚙️`・Application",
-						value: `\`\`\`${applicationName}\`\`\``,
+						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "`❔`・Type",
-						value: `\`\`\`${databaseType}\`\`\``,
+						name: "`❔`・Database",
+						value: databaseType,
 						inline: true,
 					},
 					{
-						name: "`📅`・Time",
-						value: `\`\`\`${date.toLocaleString()}\`\`\``,
-						inline: false,
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
 					},
 					{
-						name: "`❔`・Type",
-						value: `\`\`\`${type}\`\`\``,
-						inline: false,
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: type.replace("error", "Failed").replace("success", "Successful"),
+						inline: true,
 					},
 					...(type === "error" && errorMessage
 						? [

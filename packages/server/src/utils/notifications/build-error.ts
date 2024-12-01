@@ -64,17 +64,32 @@ export const sendBuildErrorNotifications = async ({
 				fields: [
 					{
 						name: "`🛠️`・Project",
-						value: `\`\`\`${projectName}\`\`\``,
+						value: projectName,
 						inline: true,
 					},
 					{
 						name: "`⚙️`・Application",
-						value: `\`\`\`${applicationName}\`\`\``,
+						value: applicationName,
 						inline: true,
 					},
 					{
 						name: "`❔`・Type",
-						value: `\`\`\`${applicationType}\`\`\``,
+						value: applicationType,
+						inline: true,
+					},
+					{
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
+					},
+					{
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Failed",
 						inline: true,
 					},
 					{
@@ -83,7 +98,7 @@ export const sendBuildErrorNotifications = async ({
 					},
 					{
 						name: "`🧷`・Build Link",
-						value: buildLink,
+						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
 				timestamp: date.toISOString(),
