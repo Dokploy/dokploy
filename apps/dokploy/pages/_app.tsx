@@ -81,6 +81,7 @@ export default api.withTRPC(
 					"zh-Hant",
 					"zh-Hans",
 					"fa",
+					"ko",
 				],
 				localeDetection: false,
 			},
