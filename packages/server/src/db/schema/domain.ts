@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	boolean,
 	integer,
 	pgEnum,
@@ -14,8 +15,13 @@ import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { certificateType } from "./shared";
+import { previewDeployments } from "./preview-deployments";
 
-export const domainType = pgEnum("domainType", ["compose", "application"]);
+export const domainType = pgEnum("domainType", [
+	"compose",
+	"application",
+	"preview",
+]);
 
 export const domains = pgTable("domain", {
 	domainId: text("domainId")
@@ -28,6 +34,7 @@ export const domains = pgTable("domain", {
 	path: text("path").default("/"),
 	serviceName: text("serviceName"),
 	domainType: domainType("domainType").default("application"),
+	isPreviewDeployment: boolean("isPreviewDeployment").default(false), // TODO: remove
 	uniqueConfigKey: serial("uniqueConfigKey"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -37,6 +44,10 @@ export const domains = pgTable("domain", {
 	}),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
+		{ onDelete: "cascade" },
+	),
+	previewDeploymentId: text("previewDeploymentId").references(
+		(): AnyPgColumn => previewDeployments.previewDeploymentId,
 		{ onDelete: "cascade" },
 	),
 	certificateType: certificateType("certificateType").notNull().default("none"),
@@ -50,6 +61,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 	compose: one(compose, {
 		fields: [domains.composeId],
 		references: [compose.composeId],
+	}),
+	previewDeployment: one(previewDeployments, {
+		fields: [domains.previewDeploymentId],
+		references: [previewDeployments.previewDeploymentId],
 	}),
 }));
 
@@ -65,6 +80,7 @@ export const apiCreateDomain = createSchema.pick({
 	composeId: true,
 	serviceName: true,
 	domainType: true,
+	previewDeploymentId: true,
 });
 
 export const apiFindDomain = createSchema

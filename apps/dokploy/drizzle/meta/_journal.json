@@ -330,6 +330,27 @@
       "when": 1732851191048,
       "tag": "0046_purple_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1733089956329,
+      "tag": "0047_red_stephen_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1733091544421,
+      "tag": "0048_clumsy_matthew_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1733091820570,
+      "tag": "0049_useful_mole_man",
+      "breakpoints": true
     }
   ]
 }

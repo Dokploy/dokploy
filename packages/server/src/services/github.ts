@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { authGithub } from "../utils/providers/github";
 
 export type Github = typeof github.$inferSelect;
 export const createGithub = async (
@@ -71,4 +72,57 @@ export const updateGithub = async (
 		.where(eq(github.githubId, githubId))
 		.returning()
 		.then((response) => response[0]);
+};
+
+export const getIssueComment = (
+	appName: string,
+	status: "success" | "error" | "running" | "initializing",
+	previewDomain: string,
+) => {
+	let statusMessage = "";
+	if (status === "success") {
+		statusMessage = "✅ Done";
+	} else if (status === "error") {
+		statusMessage = "❌ Failed";
+	} else if (status === "initializing") {
+		statusMessage = "🔄 Building";
+	} else {
+		statusMessage = "🔄 Building";
+	}
+	const finished = `
+| Name       | Status       | Preview                             | Updated (UTC)         |
+|------------|--------------|-------------------------------------|-----------------------|
+| ${appName}  | ${statusMessage} | [Preview URL](${previewDomain}) | ${new Date().toISOString()} |
+`;
+
+	return finished;
+};
+
+interface Comment {
+	owner: string;
+	repository: string;
+	issue_number: string;
+	body: string;
+	comment_id: number;
+	githubId: string;
+}
+
+export const updateIssueComment = async ({
+	owner,
+	repository,
+	issue_number,
+	body,
+	comment_id,
+	githubId,
+}: Comment) => {
+	const github = await findGithubById(githubId);
+	const octokit = authGithub(github);
+
+	await octokit.rest.issues.updateComment({
+		owner: owner || "",
+		repo: repository || "",
+		issue_number: issue_number,
+		body,
+		comment_id: comment_id,
+	});
 };

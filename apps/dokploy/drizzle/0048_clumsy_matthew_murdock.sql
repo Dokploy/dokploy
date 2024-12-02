@@ -1,0 +1,1 @@
+ALTER TABLE "preview_deployments" ADD COLUMN "previewStatus" "applicationStatus" DEFAULT 'idle' NOT NULL;

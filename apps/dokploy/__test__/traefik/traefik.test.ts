@@ -14,6 +14,15 @@ const baseApp: ApplicationNested = {
 	dockerBuildStage: "",
 	registryUrl: "",
 	buildArgs: null,
+	isPreviewDeploymentsActive: false,
+	previewBuildArgs: null,
+	previewCertificateType: "none",
+	previewEnv: null,
+	previewHttps: false,
+	previewPath: "/",
+	previewPort: 3000,
+	previewLimit: 0,
+	previewWildcard: "",
 	project: {
 		env: "",
 		adminId: "",
@@ -95,6 +104,8 @@ const baseDomain: Domain = {
 	composeId: "",
 	domainType: "application",
 	uniqueConfigKey: 1,
+	isPreviewDeployment: false,
+	previewDeploymentId: "",
 };
 
 const baseRedirect: Redirect = {
