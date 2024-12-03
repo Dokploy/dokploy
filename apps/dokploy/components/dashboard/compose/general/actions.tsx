@@ -14,6 +14,7 @@ import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartCompose } from "../start-compose";
 import { DeployCompose } from "./deploy-compose";
 import { RedbuildCompose } from "./rebuild-compose";
 import { StopCompose } from "./stop-compose";
@@ -71,7 +72,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 				Autodeploy {data?.autoDeploy && <CheckCircle2 className="size-4" />}
 			</Toggle>
 			<RedbuildCompose composeId={composeId} />
-			{data?.composeType === "docker-compose" && (
+			{data?.composeType === "docker-compose" &&
+			data?.composeStatus === "idle" ? (
+				<StartCompose composeId={composeId} />
+			) : (
 				<StopCompose composeId={composeId} />
 			)}
 
