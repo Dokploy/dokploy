@@ -463,6 +463,36 @@ export const removeCompose = async (compose: Compose) => {
 	return true;
 };
 
+export const startCompose = async (composeId: string) => {
+	const compose = await findComposeById(composeId);
+	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		if (compose.composeType === "docker-compose") {
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`cd ${join(COMPOSE_PATH, compose.appName, "code")} && docker compose -p ${compose.appName} up -d`,
+				);
+			} else {
+				await execAsync(`docker compose -p ${compose.appName} up -d`, {
+					cwd: join(COMPOSE_PATH, compose.appName, "code"),
+				});
+			}
+		}
+
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+	} catch (error) {
+		await updateCompose(composeId, {
+			composeStatus: "idle",
+		});
+		throw error;
+	}
+
+	return true;
+};
+
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {

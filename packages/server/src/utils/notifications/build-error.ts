@@ -59,31 +59,46 @@ export const sendBuildErrorNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "⚠️ Build Failed",
-				color: 0xff0000,
+				title: "> `⚠️` - Build Failed",
+				color: 0xed4245,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️`・Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️`・Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔`・Type",
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "Error",
-						value: errorMessage,
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
 					},
 					{
-						name: "Build Link",
-						value: buildLink,
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Failed",
+						inline: true,
+					},
+					{
+						name: "`⚠️`・Error Message",
+						value: `\`\`\`${errorMessage}\`\`\``,
+					},
+					{
+						name: "`🧷`・Build Link",
+						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
 				timestamp: date.toISOString(),
