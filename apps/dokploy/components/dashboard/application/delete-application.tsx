@@ -109,6 +109,7 @@ export const DeleteApplication = ({ applicationId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Enter application name to confirm"
+												autocomplete="off"
 												{...field}
 											/>
 										</FormControl>
