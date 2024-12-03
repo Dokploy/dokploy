@@ -63,13 +63,16 @@ export default async function handler(
     const repository = githubBody?.repository?.name;
     const deploymentTitle = extractCommitMessage(req.headers, req.body);
     const deploymentHash = extractHash(req.headers, req.body);
+    const owner = githubBody?.repository?.owner?.name;
+
 
     const apps = await db.query.applications.findMany({
       where: and(
         eq(applications.sourceType, "github"),
         eq(applications.autoDeploy, true),
         eq(applications.branch, branchName),
-        eq(applications.repository, repository)
+        eq(applications.repository, repository),
+        eq(applications.owner, owner)
       ),
     });
 
@@ -103,7 +106,8 @@ export default async function handler(
         eq(compose.sourceType, "github"),
         eq(compose.autoDeploy, true),
         eq(compose.branch, branchName),
-        eq(compose.repository, repository)
+        eq(compose.repository, repository),
+        eq(compose.owner, owner)
       ),
     });
 
