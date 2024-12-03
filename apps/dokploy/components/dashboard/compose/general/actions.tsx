@@ -14,6 +14,7 @@ import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartCompose } from "../start-compose";
 import { DeployCompose } from "./deploy-compose";
 import { RedbuildCompose } from "./rebuild-compose";
 import { StopCompose } from "./stop-compose";
@@ -51,7 +52,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<DeployCompose composeId={composeId} />
 			<RedbuildCompose composeId={composeId} />
-			{data?.composeType === "docker-compose" && (
+			{data?.composeType === "docker-compose" &&
+			data?.composeStatus === "idle" ? (
+				<StartCompose composeId={composeId} />
+			) : (
 				<StopCompose composeId={composeId} />
 			)}
 

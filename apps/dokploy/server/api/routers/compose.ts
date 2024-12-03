@@ -48,6 +48,7 @@ import {
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
+	startCompose,
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
@@ -308,6 +309,20 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await stopCompose(input.composeId);
+
+			return true;
+		}),
+	start: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this compose",
+				});
+			}
+			await startCompose(input.composeId);
 
 			return true;
 		}),
