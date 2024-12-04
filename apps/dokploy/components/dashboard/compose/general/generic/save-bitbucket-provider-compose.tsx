@@ -204,7 +204,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											<FormControl>
 												<Button
 													variant="outline"
-													role="combobox"
 													className={cn(
 														"w-full justify-between !bg-input",
 														!field.value && "text-muted-foreground",
@@ -283,7 +282,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 											<FormControl>
 												<Button
 													variant="outline"
-													role="combobox"
 													className={cn(
 														" w-full justify-between !bg-input",
 														!field.value && "text-muted-foreground",

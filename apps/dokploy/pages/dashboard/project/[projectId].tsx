@@ -2,6 +2,7 @@ import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
+import { ProjectEnviroment } from "@/components/dashboard/projects/project-enviroment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -208,27 +209,35 @@ const Project = (
 					</div>
 
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button>
-									<PlusIcon className="h-4 w-4" />
-									Create Service
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent className="w-[200px] space-y-2" align="end">
-								<DropdownMenuLabel className="text-sm font-normal ">
-									Actions
-								</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<AddApplication
-									projectId={projectId}
-									projectName={data?.name}
-								/>
-								<AddDatabase projectId={projectId} projectName={data?.name} />
-								<AddCompose projectId={projectId} projectName={data?.name} />
-								<AddTemplate projectId={projectId} />
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<div className="flex flex-row gap-4 flex-wrap">
+							<ProjectEnviroment projectId={projectId}>
+								<Button variant="outline">Project Enviroment</Button>
+							</ProjectEnviroment>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button>
+										<PlusIcon className="h-4 w-4" />
+										Create Service
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									className="w-[200px] space-y-2"
+									align="end"
+								>
+									<DropdownMenuLabel className="text-sm font-normal ">
+										Actions
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<AddApplication
+										projectId={projectId}
+										projectName={data?.name}
+									/>
+									<AddDatabase projectId={projectId} projectName={data?.name} />
+									<AddCompose projectId={projectId} projectName={data?.name} />
+									<AddTemplate projectId={projectId} />
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					)}
 				</header>
 			</div>

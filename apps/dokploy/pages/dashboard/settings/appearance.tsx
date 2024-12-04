@@ -8,7 +8,6 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 import superjson from "superjson";
-import nextI18NextConfig from "../../../next-i18next.config.cjs";
 
 const Page = () => {
 	return (

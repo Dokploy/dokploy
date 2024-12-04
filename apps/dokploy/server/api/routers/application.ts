@@ -392,6 +392,7 @@ export const applicationRouter = createTRPCRouter({
 				password: input.password,
 				sourceType: "docker",
 				applicationStatus: "idle",
+				registryUrl: input.registryUrl,
 			});
 
 			return true;

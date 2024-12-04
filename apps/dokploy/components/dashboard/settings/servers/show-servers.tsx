@@ -98,7 +98,7 @@ export const ShowServers = () => {
 					)
 				)}
 				{data && data?.length > 0 && (
-					<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-6 overflow-auto">
 						<Table>
 							<TableCaption>See all servers</TableCaption>
 							<TableHeader>
@@ -228,21 +228,17 @@ export const ShowServers = () => {
 															</DropdownMenuItem>
 														</DialogAction>
 
-														{isActive && (
+														{isActive && server.sshKeyId && (
 															<>
-																{server.sshKeyId && (
-																	<>
-																		<DropdownMenuSeparator />
-																		<DropdownMenuLabel>Extra</DropdownMenuLabel>
+																<DropdownMenuSeparator />
+																<DropdownMenuLabel>Extra</DropdownMenuLabel>
 
-																		<ShowTraefikFileSystemModal
-																			serverId={server.serverId}
-																		/>
-																		<ShowDockerContainersModal
-																			serverId={server.serverId}
-																		/>
-																	</>
-																)}
+																<ShowTraefikFileSystemModal
+																	serverId={server.serverId}
+																/>
+																<ShowDockerContainersModal
+																	serverId={server.serverId}
+																/>
 															</>
 														)}
 													</DropdownMenuContent>

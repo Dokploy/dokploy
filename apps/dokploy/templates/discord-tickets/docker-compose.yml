@@ -1,14 +1,13 @@
 version: "3.8"
 
 services:
-  mysql:
+  tickets-postgres:
     image: mysql:8
     restart: unless-stopped
-    hostname: mysql
     networks:
       - dokploy-network
     volumes:
-      - tickets-mysql:/var/lib/mysql
+      - tickets-mysql-data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
@@ -20,23 +19,22 @@ services:
       timeout: 5s
       retries: 5
 
-  bot:
+  tickets-app:
     image: eartharoid/discord-tickets:4.0.21
     depends_on:
-      mysql:
+      tickets-postgres:
         condition: service_healthy
     restart: unless-stopped
-    hostname: bot
     networks:
       - dokploy-network
     volumes:
-      - tickets-bot:/home/container/user
+      - tickets-app-data:/home/container/user
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     tty: true
     stdin_open: true
     environment:
-      DB_CONNECTION_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql/${MYSQL_DATABASE}
+      DB_CONNECTION_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tickets-postgres/${MYSQL_DATABASE}
       DISCORD_SECRET: ${DISCORD_SECRET}
       DISCORD_TOKEN: ${DISCORD_TOKEN}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
@@ -49,6 +47,10 @@ services:
       PUBLISH_COMMANDS: "true"
       SUPER: ${SUPER_USERS}
 
+networks:
+  dokploy-network:
+    external: true
+
 volumes:
-  tickets-mysql:
-  tickets-bot: 
+  tickets-mysql-data:
+  tickets-app-data: 

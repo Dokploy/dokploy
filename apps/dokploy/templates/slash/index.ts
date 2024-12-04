@@ -16,7 +16,7 @@ export function generate(schema: Schema): Template {
 		{
 			host: mainDomain,
 			port: 5231,
-			serviceName: "slash",
+			serviceName: "slash-app",
 		},
 	];
 

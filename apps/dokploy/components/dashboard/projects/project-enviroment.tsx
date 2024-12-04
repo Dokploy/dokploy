@@ -19,11 +19,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, FileIcon, SquarePen } from "lucide-react";
+import { FileIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -37,9 +35,10 @@ type UpdateProject = z.infer<typeof updateProjectSchema>;
 
 interface Props {
 	projectId: string;
+	children?: React.ReactNode;
 }
 
-export const AddEnv = ({ projectId }: Props) => {
+export const ProjectEnviroment = ({ projectId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
@@ -53,7 +52,6 @@ export const AddEnv = ({ projectId }: Props) => {
 		},
 	);
 
-	console.log(data);
 	const form = useForm<UpdateProject>({
 		defaultValues: {
 			env: data?.env ?? "",
@@ -86,34 +84,29 @@ export const AddEnv = ({ projectId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<DropdownMenuItem
-					className="w-full cursor-pointer space-x-3"
-					onSelect={(e) => e.preventDefault()}
-				>
-					<FileIcon className="size-4" />
-					<span>Add Env</span>
-				</DropdownMenuItem>
+				{children ?? (
+					<DropdownMenuItem
+						className="w-full cursor-pointer space-x-3"
+						onSelect={(e) => e.preventDefault()}
+					>
+						<FileIcon className="size-4" />
+						<span>Project Enviroment</span>
+					</DropdownMenuItem>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Modify Shared Env</DialogTitle>
-					<DialogDescription>Update the env variables</DialogDescription>
+					<DialogTitle>Project Enviroment</DialogTitle>
+					<DialogDescription>
+						Update the env Environment variables that are accessible to all
+						services of this project. Use this syntax to reference project-level
+						variables in your service environments:
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					To use a shared env, in one of your services, you need to use like
-					this: Let's say you have a shared env ENVIROMENT="development" and you
-					want to use it in your service, you need to use like this:
-					<ul>
-						<li>
-							<code>ENVIRONMENT=${"{{project.ENVIRONMENT}}"}</code>
-						</li>
-						<li>
-							<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
-						</li>
-					</ul>{" "}
-					This allows the service to inherit and use the shared variables from
-					the project level, ensuring consistency across services.
+					Use this syntax to reference project-level variables in your service
+					environments: <code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">

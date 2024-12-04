@@ -117,7 +117,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ## Video Tutorial
 
 <a href="https://youtu.be/mznYKPvhcfw">
-  <img src="https://dokploy.com/banner.webp" alt="Watch the video" width="400" style="border-radius:20px;"/>
+  <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400" style="border-radius:20px;"/>
 </a>
 
 <!-- ## Supported OS

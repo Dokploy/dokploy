@@ -4,9 +4,6 @@ on:
   pull_request:
     branches: [main, canary]
 
-env:
-  HUSKY: 0
-
 jobs:
   lint-and-typecheck:
     runs-on: ubuntu-latest
@@ -18,8 +15,7 @@ jobs:
           node-version: 18.18.0
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run server:build  
-      - run: pnpm biome ci
+      - run: pnpm run server:build
       - run: pnpm typecheck
 
   build-and-test:
@@ -46,5 +42,5 @@ jobs:
           node-version: 18.18.0
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run server:build  
+      - run: pnpm run server:build
       - run: pnpm test

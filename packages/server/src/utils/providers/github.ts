@@ -206,7 +206,7 @@ export const getGithubCloneCommand = async (
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
 if ! git clone --branch ${branch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "❌ [ERROR] Fallo al clonar el repositorio ${repoclone}" >> ${logPath};
+	echo "❌ [ERROR] Fail to clone repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};

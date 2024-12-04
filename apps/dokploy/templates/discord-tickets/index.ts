@@ -13,7 +13,6 @@ export function generate(schema: Schema): Template {
 	const mysqlUser = "tickets";
 	const mysqlDatabase = "tickets";
 
-	// Generate encryption key in the format they use
 	const encryptionKey = Array.from({ length: 48 }, () =>
 		Math.floor(Math.random() * 16).toString(16),
 	).join("");
@@ -22,7 +21,7 @@ export function generate(schema: Schema): Template {
 		{
 			host: mainDomain,
 			port: 8169,
-			serviceName: "bot",
+			serviceName: "tickets-app",
 		},
 	];
 
@@ -33,7 +32,6 @@ export function generate(schema: Schema): Template {
 		`MYSQL_ROOT_PASSWORD=${mysqlRootPassword}`,
 		`MYSQL_USER=${mysqlUser}`,
 		`ENCRYPTION_KEY=${encryptionKey}`,
-		// These need to be set by the user through the UI
 		"# Follow the guide at: https://discordtickets.app/self-hosting/installation/docker/#creating-the-discord-application",
 		"DISCORD_SECRET=",
 		"DISCORD_TOKEN=",

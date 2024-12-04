@@ -37,9 +37,12 @@ const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
 	}),
-	language: z.enum(["en", "pl", "zh-Hans"], {
-		required_error: "Please select a language.",
-	}),
+	language: z.enum(
+		["en", "pl", "ru", "fr", "de", "tr", "zh-Hant", "zh-Hans", "fa", "ko"],
+		{
+			required_error: "Please select a language.",
+		},
+	),
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
@@ -175,7 +178,14 @@ export function AppearanceForm() {
 												{[
 													{ label: "English", value: "en" },
 													{ label: "Polski", value: "pl" },
+													{ label: "Русский", value: "ru" },
+													{ label: "Français", value: "fr" },
+													{ label: "Deutsch", value: "de" },
+													{ label: "繁體中文", value: "zh-Hant" },
 													{ label: "简体中文", value: "zh-Hans" },
+													{ label: "Türkçe", value: "tr" },
+													{ label: "Persian", value: "fa" },
+													{ label: "한국어", value: "ko" },
 												].map((preset) => (
 													<SelectItem key={preset.label} value={preset.value}>
 														{preset.label}
