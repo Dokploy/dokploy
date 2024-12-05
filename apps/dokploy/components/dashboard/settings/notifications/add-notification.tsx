@@ -667,7 +667,7 @@ export const AddNotification = () => {
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when a dokploy is restarted.
+														Trigger the action when dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
