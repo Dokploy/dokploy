@@ -38,7 +38,7 @@ const appearanceFormSchema = z.object({
 		required_error: "Please select a theme.",
 	}),
 	language: z.enum(
-		["en", "pl", "ru", "fr", "de", "tr", "zh-Hant", "zh-Hans", "fa", "ko"],
+		["en", "pl", "ru", "fr", "de", "tr", "kz", "zh-Hant", "zh-Hans", "fa", "ko"],
 		{
 			required_error: "Please select a language.",
 		},

@@ -78,6 +78,7 @@ export default api.withTRPC(
 					"fr",
 					"de",
 					"tr",
+					"kz",
 					"zh-Hant",
 					"zh-Hans",
 					"fa",
