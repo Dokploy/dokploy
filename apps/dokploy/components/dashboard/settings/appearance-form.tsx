@@ -184,6 +184,7 @@ export function AppearanceForm() {
 													{ label: "繁體中文", value: "zh-Hant" },
 													{ label: "简体中文", value: "zh-Hans" },
 													{ label: "Türkçe", value: "tr" },
+													{ label: "Қазақ", value: "tr" },
 													{ label: "Persian", value: "fa" },
 													{ label: "한국어", value: "ko" },
 												].map((preset) => (
