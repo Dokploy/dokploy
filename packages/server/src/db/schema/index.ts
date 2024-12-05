@@ -1,6 +1,7 @@
 export * from "./application";
 export * from "./postgres";
 export * from "./user";
+export * from "./team-schema";
 export * from "./admin";
 export * from "./auth";
 export * from "./project";

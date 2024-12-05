@@ -30,6 +30,7 @@ import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
+import { teamRouter } from "./routers/team-router";
 import { userRouter } from "./routers/user";
 
 /**
@@ -71,6 +72,7 @@ export const appRouter = createTRPCRouter({
 	github: githubRouter,
 	server: serverRouter,
 	stripe: stripeRouter,
+	team: teamRouter,
 });
 
 // export type definition of API

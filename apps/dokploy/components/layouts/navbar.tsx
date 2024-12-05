@@ -12,6 +12,7 @@ import { api } from "@/utils/api";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { TeamSwitcher } from "../dashboard/settings/teams/team-switcher";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
@@ -20,7 +21,7 @@ export const Navbar = () => {
 	const router = useRouter();
 	const { data } = api.auth.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
+	const { data: user } = api.team.users.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
 		},
@@ -43,6 +44,7 @@ export const Navbar = () => {
 						</span>
 					</Link>
 				</div>
+				<TeamSwitcher />
 				<Link
 					className={buttonVariants({
 						variant: "outline",

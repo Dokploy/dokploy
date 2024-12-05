@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 
+import { TeamProvider } from "@/components/dashboard/settings/teams/team-context";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
@@ -30,7 +31,7 @@ const MyApp = ({
 	const getLayout = Component.getLayout ?? ((page) => page);
 
 	return (
-		<>
+		<TeamProvider>
 			<style jsx global>{`
                 :root {
                     --font-inter: ${inter.style.fontFamily};
@@ -57,7 +58,7 @@ const MyApp = ({
 				<Toaster richColors />
 				{getLayout(<Component {...pageProps} />)}
 			</ThemeProvider>
-		</>
+		</TeamProvider>
 	);
 };
 

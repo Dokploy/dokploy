@@ -7,6 +7,9 @@ import {
 	apiVerify2FA,
 	apiVerifyLogin2FA,
 	auth,
+	teamInvitations,
+	teamMembers,
+	users,
 } from "@/server/db/schema";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
@@ -26,6 +29,7 @@ import {
 	validateRequest,
 	verify2FA,
 } from "@dokploy/server";
+import { getDefaultPermissionsByRole } from "@dokploy/server/services/team";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { isBefore } from "date-fns";
@@ -394,6 +398,135 @@ export const authRouter = createTRPCRouter({
 				confirmationExpiresAt: null,
 			});
 			return true;
+		}),
+	createTeamUser: publicProcedure
+		.input(
+			z.object({
+				email: z.string().email(),
+				password: z.string(),
+				invitationToken: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				// Check if email already exists
+				const existingAuth = await ctx.db.query.auth.findFirst({
+					where: eq(auth.email, input.email.toLowerCase()),
+				});
+
+				if (existingAuth) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"An account with this email already exists. Please use a different email or sign in.",
+					});
+				}
+
+				const invitation = await ctx.db.query.teamInvitations.findFirst({
+					where: eq(teamInvitations.token, input.invitationToken),
+					with: {
+						team: true,
+					},
+				});
+
+				if (!invitation || invitation.status !== "PENDING") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid or expired invitation",
+					});
+				}
+
+				// Create auth record for the new team user
+				const [teamAuth] = await ctx.db
+					.insert(auth)
+					.values({
+						email: input.email,
+						password: bcrypt.hashSync(input.password, 10),
+						rol: "user",
+						createdAt: new Date().toISOString(),
+					})
+					.returning();
+
+				if (!teamAuth) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create user",
+					});
+				}
+
+				// Get default admin for user creation
+				const admin = await ctx.db.query.admins.findFirst();
+				if (!admin) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "No admin found in the system",
+					});
+				}
+
+				// Create user record for team member with only basic info
+				const [teamUser] = await ctx.db
+					.insert(users)
+					.values({
+						authId: teamAuth.id,
+						userId: nanoid(),
+						isRegistered: true,
+						token: nanoid(),
+						adminId: admin.adminId,
+						expirationDate: new Date().toISOString(),
+						canCreateProjects: false,
+						canAccessToSSHKeys: false,
+						canCreateServices: false,
+						canDeleteProjects: false,
+						canDeleteServices: false,
+						canAccessToTraefikFiles: false,
+						canAccessToDocker: false,
+						canAccessToAPI: false,
+						canAccessToGitProviders: false,
+						accesedProjects: [],
+						accesedServices: [],
+					})
+					.returning();
+
+				if (!teamUser) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create user record",
+					});
+				}
+
+				// Add user to team with role-based permissions
+				const defaultPermissions = getDefaultPermissionsByRole(invitation.role);
+
+				await ctx.db.insert(teamMembers).values({
+					teamId: invitation.teamId,
+					userId: teamUser.userId,
+					role: invitation.role,
+					...defaultPermissions,
+				});
+
+				// Update invitation status
+				await ctx.db
+					.update(teamInvitations)
+					.set({ status: "ACCEPTED" })
+					.where(eq(teamInvitations.id, invitation.id));
+
+				// Create session
+				const session = await lucia.createSession(teamAuth.id, {});
+				ctx.res.appendHeader(
+					"Set-Cookie",
+					lucia.createSessionCookie(session.id).serialize(),
+				);
+
+				return teamAuth;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to create team user",
+				});
+			}
 		}),
 });
 

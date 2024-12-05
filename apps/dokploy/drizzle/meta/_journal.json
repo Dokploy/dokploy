@@ -330,6 +330,13 @@
       "when": 1732851191048,
       "tag": "0046_purple_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1733433151817,
+      "tag": "0047_wise_zombie",
+      "breakpoints": true
     }
   ]
 }
