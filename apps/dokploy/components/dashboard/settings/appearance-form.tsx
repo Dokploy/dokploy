@@ -38,7 +38,7 @@ const appearanceFormSchema = z.object({
 		required_error: "Please select a theme.",
 	}),
 	language: z.enum(
-		["en", "pl", "ru", "fr", "de", "tr", "zh-Hant", "zh-Hans", "fa"],
+		["en", "pl", "ru", "fr", "de", "tr", "zh-Hant", "zh-Hans", "fa", "ko", "pt-br"],
 		{
 			required_error: "Please select a language.",
 		},
@@ -184,10 +184,9 @@ export function AppearanceForm() {
 													{ label: "繁體中文", value: "zh-Hant" },
 													{ label: "简体中文", value: "zh-Hans" },
 													{ label: "Türkçe", value: "tr" },
-													{
-														label: "Persian",
-														value: "fa",
-													},
+													{ label: "Persian", value: "fa" },
+													{ label: "한국어", value: "ko" },
+													{ label: "Português", value: "pt-br" },
 												].map((preset) => (
 													<SelectItem key={preset.label} value={preset.value}>
 														{preset.label}

@@ -34,12 +34,22 @@ export const sendDokployRestartNotifications = async () => {
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Dokploy Server Restarted",
-				color: 0x00ff00,
+				title: "> `✅` - Dokploy Server Restarted",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Time",
-						value: date.toLocaleString(),
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
+					},
+					{
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Successful",
 						inline: true,
 					},
 				],
