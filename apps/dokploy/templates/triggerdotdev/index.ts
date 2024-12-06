@@ -33,17 +33,17 @@ export function generate(schema: Schema): Template {
     `RUNTIME_PLATFORM=docker-compose`,
     `V3_ENABLED=true`,
 
-    // Trigger configuration
+    `# Domain configuration`,
     `TRIGGER_DOMAIN=${triggerDomain}`,
     `TRIGGER_PROTOCOL=http`,
 
-    // Database configuration with secure credentials
+    `# Database configuration with secure credentials`,
     `POSTGRES_USER=${dbUser}`,
     `POSTGRES_PASSWORD=${dbPassword}`,
     `POSTGRES_DB=${dbName}`,
     `DATABASE_URL=postgresql://${dbUser}:${dbPassword}@postgres:5432/${dbName}`,
 
-    // Secrets
+    `# Secrets`,
     `MAGIC_LINK_SECRET=${magicLinkSecret}`,
     `SESSION_SECRET=${sessionSecret}`,
     `ENCRYPTION_KEY=${encryptionKey}`,
@@ -56,6 +56,11 @@ export function generate(schema: Schema): Template {
 
     `DEFAULT_ORG_EXECUTION_CONCURRENCY_LIMIT=300`,
     `DEFAULT_ENV_EXECUTION_CONCURRENCY_LIMIT=100`,
+
+    `DIRECT_URL=\${DATABASE_URL}`,
+    `REDIS_HOST=redis`,
+    `REDIS_PORT=6379`,
+    `REDIS_TLS_DISABLED=true`,
 
     `# If this is set, emails that are not specified won't be able to log in`,
     `# WHITELISTED_EMAILS="authorized@yahoo.com|authorized@gmail.com"`,
