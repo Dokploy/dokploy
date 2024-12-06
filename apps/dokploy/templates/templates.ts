@@ -973,18 +973,18 @@ export const templates: TemplateData[] = [
     load: () => import("./ontime/index").then((m) => m.generate),
   },
   {
-    id: "trigger",
-    name: "Trigger",
+    id: "triggerdotdev",
+    name: "Trigger.dev",
     version: "v3",
     description:
       "Trigger is a platform for building event-driven applications.",
-    logo: "trigger.svg",
+    logo: "triggerdotdev.svg",
     links: {
       github: "https://github.com/triggerdotdev/trigger.dev",
       website: "https://trigger.dev/",
       docs: "https://trigger.dev/docs",
     },
     tags: ["event-driven", "applications"],
-    load: () => import("./trigger/index").then((m) => m.generate),
+    load: () => import("./triggerdotdev/index").then((m) => m.generate),
   },
 ];
