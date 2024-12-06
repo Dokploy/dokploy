@@ -13,6 +13,7 @@ module.exports = {
 			"zh-Hans",
 			"fa",
 			"ko",
+			"pt-br",
 		],
 		localeDetection: false,
 	},
