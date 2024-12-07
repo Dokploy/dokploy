@@ -48,7 +48,6 @@ export const sendDockerCleanupNotifications = async (
 				title: "> `✅` - Docker Cleanup",
 				color: 0x57f287,
 				fields: [
-					
 					{
 						name: "`📅`・Date",
 						value: date.toLocaleDateString(),

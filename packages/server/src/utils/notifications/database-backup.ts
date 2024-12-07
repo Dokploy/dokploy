@@ -95,7 +95,9 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 					{
 						name: "`❓`・Type",
-						value: type.replace("error", "Failed").replace("success", "Successful"),
+						value: type
+							.replace("error", "Failed")
+							.replace("success", "Successful"),
 						inline: true,
 					},
 					...(type === "error" && errorMessage

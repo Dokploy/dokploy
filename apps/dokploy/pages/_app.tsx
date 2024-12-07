@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { appWithTranslation } from "next-i18next";
@@ -71,20 +72,7 @@ export default api.withTRPC(
 		{
 			i18n: {
 				defaultLocale: "en",
-				locales: [
-					"en",
-					"pl",
-					"ru",
-					"fr",
-					"de",
-					"tr",
-					"kz",
-					"zh-Hant",
-					"zh-Hans",
-					"fa",
-					"ko",
-					"pt-br",
-				],
+				locales: Object.values(Languages),
 				localeDetection: false,
 			},
 			fallbackLng: "en",
