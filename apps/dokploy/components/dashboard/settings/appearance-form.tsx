@@ -27,12 +27,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Languages } from "@/lib/languages";
 import useLocale from "@/utils/hooks/use-locale";
 import { useTranslation } from "next-i18next";
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Languages } from "@/lib/languages";
 
 const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {

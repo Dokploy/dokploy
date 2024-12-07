@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import type { NextPage } from "next";
 import { appWithTranslation } from "next-i18next";
@@ -10,7 +11,6 @@ import { Inter } from "next/font/google";
 import Head from "next/head";
 import Script from "next/script";
 import type { ReactElement, ReactNode } from "react";
-import { Languages } from "@/lib/languages";
 
 const inter = Inter({ subsets: ["latin"] });
 

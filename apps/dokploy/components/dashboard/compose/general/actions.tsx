@@ -68,7 +68,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
-      <div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 				<span className="text-sm font-medium">Autodeploy</span>
 				<Switch
 					aria-label="Toggle italic"
