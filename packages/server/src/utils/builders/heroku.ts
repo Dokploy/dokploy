@@ -16,14 +16,13 @@ export const buildHeroku = async (
 		application.project.env,
 	);
 	try {
-		const builderVersion = env.HEROKU_STACK_VERSION || '24';
 		const args = [
 			"build",
 			appName,
 			"--path",
 			buildAppDirectory,
 			"--builder",
-			`heroku/builder:${builderVersion}`,
+			`heroku/builder:${application.herokuVersion || "24"}`,
 		];
 
 		for (const env of envVariables) {
@@ -53,14 +52,13 @@ export const getHerokuCommand = (
 		application.project.env,
 	);
 
-	const builderVersion = env.HEROKU_STACK_VERSION || '24';
 	const args = [
 		"build",
 		appName,
 		"--path",
 		buildAppDirectory,
 		"--builder",
-		`heroku/builder:${builderVersion}`,
+		`heroku/builder:${application.herokuVersion || "24"}`,
 	];
 
 	for (const env of envVariables) {
