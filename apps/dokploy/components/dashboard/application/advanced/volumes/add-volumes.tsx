@@ -1,3 +1,4 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -18,7 +19,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -150,7 +150,7 @@ export const AddVolumes = ({
 			<DialogTrigger className="" asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Volumes / Mounts</DialogTitle>
 				</DialogHeader>
@@ -303,9 +303,12 @@ export const AddVolumes = ({
 													<FormLabel>Content</FormLabel>
 													<FormControl>
 														<FormControl>
-															<Textarea
-																placeholder="Any content"
-																className="h-64"
+															<CodeEditor
+																language="properties"
+																placeholder={`NODE_ENV=production
+PORT=3000
+`}
+																className="h-96 font-mono"
 																{...field}
 															/>
 														</FormControl>

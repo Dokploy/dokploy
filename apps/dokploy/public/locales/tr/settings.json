@@ -118,5 +118,15 @@
 	"settings.s3destinations.update.description": "Update the current destination config",
 	"settings.s3destinations.delete.description": "This action cannot be undone. This will permanently delete the destination",
 	"settings.s3destinations.deleted": "Destination deleted",
-	"settings.s3destinations.errorDelete": "Error to delete the Destination"
+	"settings.s3destinations.errorDelete": "Error to delete the Destination",
+	
+	"settings.certificates.title": "Certificates",
+	"settings.sshKeys.title": "SSH Keys",
+	"settings.git.title": "Git",
+	"settings.users.title": "Users",
+	"settings.registry.title": "Registry",
+	"settings.cluster.title": "Cluster",
+	"settings.notifications.title": "Notifications",
+	"settings.servers.title": "Servers",
+	"settings.billing.title": "Billing"
 }

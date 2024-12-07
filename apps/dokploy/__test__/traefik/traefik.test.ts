@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
 	applicationId: "",
+	herokuVersion: "",
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,

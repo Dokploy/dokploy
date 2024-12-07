@@ -118,5 +118,15 @@
 	"settings.s3destinations.update.description": "Mettre à jour la configuration de la destination actuelle",
 	"settings.s3destinations.delete.description": "Cette action est irréversible. Cela supprimera définitivement la destination",
 	"settings.s3destinations.deleted": "Destination supprimée",
-	"settings.s3destinations.errorDelete": "Erreur lors de la suppression de la destination"
+	"settings.s3destinations.errorDelete": "Erreur lors de la suppression de la destination",
+	
+	"settings.certificates.title": "Certificats",
+	"settings.sshKeys.title": "Clés SSH",
+	"settings.git.title": "Git",
+	"settings.users.title": "Utilisateurs",
+	"settings.registry.title": "Registre",
+	"settings.cluster.title": "Cluster",
+	"settings.notifications.title": "Notifications",
+	"settings.servers.title": "Serveurs",
+	"settings.billing.title": "Facturation"
 }

@@ -53,32 +53,32 @@ export const SettingsLayout = ({ children }: Props) => {
 									},
 
 									{
-										title: "Certificates",
+										title: t("settings.certificates.title"),
 										label: "",
 										icon: ShieldCheck,
 										href: "/dashboard/settings/certificates",
 									},
 									{
-										title: "SSH Keys",
+										title: t("settings.sshKeys.title"),
 										label: "",
 										icon: KeyRound,
 										href: "/dashboard/settings/ssh-keys",
 									},
 									{
-										title: "Git",
+										title: t("settings.git.title"),
 										label: "",
 										icon: GitBranch,
 										href: "/dashboard/settings/git-providers",
 									},
 									{
-										title: "Users",
+										title: t("settings.users.title"),
 										label: "",
 										icon: Users,
 										href: "/dashboard/settings/users",
 									},
 
 									{
-										title: "Registry",
+										title: t("settings.registry.title"),
 										label: "",
 										icon: ListMusic,
 										href: "/dashboard/settings/registry",
@@ -87,7 +87,7 @@ export const SettingsLayout = ({ children }: Props) => {
 									...(!isCloud
 										? [
 												{
-													title: "Cluster",
+													title: t("settings.cluster.title"),
 													label: "",
 													icon: BoxesIcon,
 													href: "/dashboard/settings/cluster",
@@ -95,13 +95,13 @@ export const SettingsLayout = ({ children }: Props) => {
 											]
 										: []),
 									{
-										title: "Notifications",
+										title: t("settings.notifications.title"),
 										label: "",
 										icon: Bell,
 										href: "/dashboard/settings/notifications",
 									},
 									{
-										title: "Servers",
+										title: t("settings.servers.title"),
 										label: "",
 										icon: Server,
 										href: "/dashboard/settings/servers",
@@ -109,7 +109,7 @@ export const SettingsLayout = ({ children }: Props) => {
 									...(isCloud
 										? [
 												{
-													title: "Billing",
+													title: t("settings.billing.title"),
 													label: "",
 													icon: CreditCardIcon,
 													href: "/dashboard/settings/billing",
@@ -121,7 +121,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(user?.canAccessToSSHKeys
 							? [
 									{
-										title: "SSH Keys",
+										title: t("settings.sshKeys.title"),
 										label: "",
 										icon: KeyRound,
 										href: "/dashboard/settings/ssh-keys",
@@ -131,7 +131,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(user?.canAccessToGitProviders
 							? [
 									{
-										title: "Git",
+										title: t("settings.git.title"),
 										label: "",
 										icon: GitBranch,
 										href: "/dashboard/settings/git-providers",

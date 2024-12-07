@@ -88,7 +88,6 @@
 	"settings.appearance.language": "Sprache",
 	"settings.appearance.languageDescription": "Wähl eine Sprache für dein Dashboard aus",
 
-
 	"settings.s3destinations.title": "S3 Destinations",
 	"settings.s3destinations.description": "Add your providers like AWS S3, Cloudflare R2, Wasabi, DigitalOcean Spaces etc.",
 	"settings.s3destinations.required": "To create a backup it is required to set at least 1 provider.",
@@ -119,5 +118,15 @@
 	"settings.s3destinations.update.description": "Update the current destination config",
 	"settings.s3destinations.delete.description": "This action cannot be undone. This will permanently delete the destination",
 	"settings.s3destinations.deleted": "Destination deleted",
-	"settings.s3destinations.errorDelete": "Error to delete the Destination"
+	"settings.s3destinations.errorDelete": "Error to delete the Destination",
+	
+	"settings.certificates.title": "Certificates",
+	"settings.sshKeys.title": "SSH Keys",
+	"settings.git.title": "Git",
+	"settings.users.title": "Users",
+	"settings.registry.title": "Registry",
+	"settings.cluster.title": "Cluster",
+	"settings.notifications.title": "Notifications",
+	"settings.servers.title": "Servers",
+	"settings.billing.title": "Billing"
 }

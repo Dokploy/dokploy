@@ -99,14 +99,14 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - refactor/enhancement-languages
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - refactor/enhancement-languages
       - combine-manifests:
           requires:
             - build-amd64
@@ -116,4 +116,4 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - refactor/enhancement-languages
