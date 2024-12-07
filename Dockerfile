@@ -35,7 +35,6 @@ RUN apt-get update && apt-get install -y curl unzip apache2-utils && rm -rf /var
 COPY --from=build /prod/dokploy/.next ./.next
 COPY --from=build /prod/dokploy/dist ./dist
 COPY --from=build /prod/dokploy/next.config.mjs ./next.config.mjs
-# COPY --from=build /prod/dokploy/next-i18next.config.cjs ./next-i18next.config.cjs
 COPY --from=build /prod/dokploy/public ./public
 COPY --from=build /prod/dokploy/package.json ./package.json
 COPY --from=build /prod/dokploy/drizzle ./drizzle

@@ -1,8 +1,8 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
-	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,
@@ -19,7 +19,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil } from "lucide-react";
@@ -182,7 +181,7 @@ export const UpdateVolume = ({
 					<Pencil className="size-4  text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Update</DialogTitle>
 					<DialogDescription>Update the mount</DialogDescription>
@@ -247,9 +246,12 @@ export const UpdateVolume = ({
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>
-														<Textarea
-															placeholder="Any content"
-															className="h-64"
+														<CodeEditor
+															language="properties"
+															placeholder={`NODE_ENV=production
+PORT=3000
+`}
+															className="h-96 font-mono"
 															{...field}
 														/>
 													</FormControl>
