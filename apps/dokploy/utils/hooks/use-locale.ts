@@ -7,6 +7,7 @@ const SUPPORTED_LOCALES = [
 	"fr",
 	"de",
 	"tr",
+	"kz",
 	"zh-Hant",
 	"zh-Hans",
 	"fa",
