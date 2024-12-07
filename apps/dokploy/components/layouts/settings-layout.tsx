@@ -37,7 +37,7 @@ export const SettingsLayout = ({ children }: Props) => {
 							href: "/dashboard/settings/profile",
 						},
 						{
-							title: "Appearance",
+							title: t("settings.appearance.title"),
 							label: "",
 							icon: Route,
 							href: "/dashboard/settings/appearance",
