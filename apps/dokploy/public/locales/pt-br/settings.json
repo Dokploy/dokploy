@@ -1,5 +1,9 @@
 {
 	"settings.common.save": "Salvar",
+	"settings.common.areYouSure": "Are you absolutely sure?",
+	"settings.common.cancel": "Cancel",
+	"settings.common.confirm": "Confirm",
+	
 	"settings.server.domain.title": "Domínio do Servidor",
 	"settings.server.domain.description": "Configure o domínio do servidor",
 	"settings.server.domain.form.domain": "Domínio",

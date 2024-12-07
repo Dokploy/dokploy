@@ -1,5 +1,9 @@
 {
 	"settings.common.save": "儲存",
+	"settings.common.areYouSure": "Are you absolutely sure?",
+	"settings.common.cancel": "Cancel",
+	"settings.common.confirm": "Confirm",
+	
 	"settings.server.domain.title": "伺服器網域",
 	"settings.server.domain.description": "將一個網域加入到您的伺服器。",
 	"settings.server.domain.form.domain": "網域",

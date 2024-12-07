@@ -1,5 +1,9 @@
 {
 	"settings.common.save": "保存",
+	"settings.common.areYouSure": "Are you absolutely sure?",
+	"settings.common.cancel": "Cancel",
+	"settings.common.confirm": "Confirm",
+	
 	"settings.server.domain.title": "服务器域名",
 	"settings.server.domain.description": "添加一个域名到您的服务器。",
 	"settings.server.domain.form.domain": "域名",

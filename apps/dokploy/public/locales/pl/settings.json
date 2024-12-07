@@ -1,5 +1,9 @@
 {
 	"settings.common.save": "Zapisz",
+	"settings.common.areYouSure": "Are you absolutely sure?",
+	"settings.common.cancel": "Cancel",
+	"settings.common.confirm": "Confirm",
+	
 	"settings.server.domain.title": "Domena",
 	"settings.server.domain.description": "Dodaj domenę do aplikacji",
 	"settings.server.domain.form.domain": "Domena",
