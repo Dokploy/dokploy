@@ -14,11 +14,13 @@ import { api } from "@/utils/api";
 import { TrashIcon } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	destinationId: string;
 }
 export const DeleteDestination = ({ destinationId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync, isLoading } = api.destination.remove.useMutation();
 	const utils = api.useUtils();
 	return (
@@ -30,14 +32,15 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>
+						{t("settings.common.areYouSure")}
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete the
-						destination
+						{t("settings.s3destinations.delete.description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("settings.common.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -45,14 +48,14 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 							})
 								.then(() => {
 									utils.destination.all.invalidate();
-									toast.success("Destination delete succesfully");
+									toast.success(t("settings.s3destinations.deleted"));
 								})
 								.catch(() => {
-									toast.error("Error to delete destination");
+									toast.error(t("settings.s3destinations.errorDelete"));
 								});
 						}}
 					>
-						Confirm
+						{t("settings.common.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

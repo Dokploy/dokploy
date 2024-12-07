@@ -10,18 +10,21 @@ import { FolderUp } from "lucide-react";
 import { AddDestination } from "./add-destination";
 import { DeleteDestination } from "./delete-destination";
 import { UpdateDestination } from "./update-destination";
+import { useTranslation } from "next-i18next";
 
 export const ShowDestinations = () => {
+	const { t } = useTranslation("settings");
 	const { data } = api.destination.all.useQuery();
 
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-transparent">
 				<CardHeader>
-					<CardTitle className="text-xl">S3 Destinations</CardTitle>
+					<CardTitle className="text-xl">
+						{t("settings.s3destinations.title")}
+					</CardTitle>
 					<CardDescription>
-						Add your providers like AWS S3, Cloudflare R2, Wasabi, DigitalOcean
-						Spaces etc.
+						{t("settings.s3destinations.description")}
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-2 pt-4">
@@ -29,7 +32,7 @@ export const ShowDestinations = () => {
 						<div className="flex flex-col items-center gap-3">
 							<FolderUp className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To create a backup it is required to set at least 1 provider.
+								{t("settings.s3destinations.required")}
 							</span>
 							<AddDestination />
 						</div>

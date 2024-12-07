@@ -46,7 +46,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(data?.rol === "admin"
 							? [
 									{
-										title: "S3 Destinations",
+										title: t("settings.s3destinations.title"),
 										label: "",
 										icon: Database,
 										href: "/dashboard/settings/destinations",
