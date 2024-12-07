@@ -119,7 +119,7 @@ export const UpdateVolume = ({
 			} else if (typeForm === "file") {
 				form.reset({
 					content: data.content || "",
-					mountPath: "/",
+					mountPath: serviceType === "compose" ? "/" : data.mountPath,
 					filePath: data.filePath || "",
 					type: "file",
 				});
