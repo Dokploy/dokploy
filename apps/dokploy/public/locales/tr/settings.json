@@ -3,7 +3,7 @@
 	"settings.common.areYouSure": "Are you absolutely sure?",
 	"settings.common.cancel": "Cancel",
 	"settings.common.confirm": "Confirm",
-	
+
 	"settings.server.domain.title": "Sunucu Alanı",
 	"settings.server.domain.description": "Sunucu uygulamanıza bir alan adı ekleyin.",
 	"settings.server.domain.form.domain": "Alan Adı",

@@ -3,7 +3,7 @@
 	"settings.common.areYouSure": "Are you absolutely sure?",
 	"settings.common.cancel": "Cancel",
 	"settings.common.confirm": "Confirm",
-	
+
 	"settings.server.domain.title": "Домен сервера",
 	"settings.server.domain.description": "Установите домен для вашего серверного приложения Dokploy.",
 	"settings.server.domain.form.domain": "Домен",

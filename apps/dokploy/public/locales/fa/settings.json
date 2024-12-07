@@ -3,7 +3,7 @@
 	"settings.common.areYouSure": "Are you absolutely sure?",
 	"settings.common.cancel": "Cancel",
 	"settings.common.confirm": "Confirm",
-	
+
 	"settings.server.domain.title": "دامنه سرور",
 	"settings.server.domain.description": "یک دامنه به برنامه سرور خود اضافه کنید.",
 	"settings.server.domain.form.domain": "دامنه",

@@ -3,7 +3,7 @@
 	"settings.common.areYouSure": "Are you absolutely sure?",
 	"settings.common.cancel": "Cancel",
 	"settings.common.confirm": "Confirm",
-	
+
 	"settings.server.domain.title": "Domínio do Servidor",
 	"settings.server.domain.description": "Configure o domínio do servidor",
 	"settings.server.domain.form.domain": "Domínio",
@@ -35,7 +35,7 @@
 	"settings.profile.email": "Email",
 	"settings.profile.password": "Senha",
 	"settings.profile.avatar": "Avatar",
-	
+
 	"settings.appearance.title": "Aparência",
 	"settings.appearance.description": "Personalize o tema do seu dashboard.",
 	"settings.appearance.theme": "Tema",

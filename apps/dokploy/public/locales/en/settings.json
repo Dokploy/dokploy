@@ -3,7 +3,7 @@
 	"settings.common.areYouSure": "Are you absolutely sure?",
 	"settings.common.cancel": "Cancel",
 	"settings.common.confirm": "Confirm",
-	
+
 	"settings.server.domain.title": "Server Domain",
 	"settings.server.domain.description": "Add a domain to your server application.",
 	"settings.server.domain.form.domain": "Domain",
