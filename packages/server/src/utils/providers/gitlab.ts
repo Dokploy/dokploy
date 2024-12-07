@@ -350,6 +350,8 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
+	const gitlabUrl = gitlabProvider.gitlabUrl;
+	// What happen with oauth in self hosted instances?
 	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 
@@ -417,7 +419,7 @@ export const testGitlabConnection = async (
 	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
-		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,

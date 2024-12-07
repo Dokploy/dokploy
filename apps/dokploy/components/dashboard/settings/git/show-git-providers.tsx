@@ -23,12 +23,16 @@ export const ShowGitProviders = () => {
 
 	const url = useUrl();
 
-	const getGitlabUrl = (clientId: string, gitlabId: string) => {
+	const getGitlabUrl = (
+		clientId: string,
+		gitlabId: string,
+		gitlabUrl: string,
+	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 
 		const scope = "api read_user read_repository";
 
-		const authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
 
 		return authUrl;
 	};
@@ -142,6 +146,7 @@ export const ShowGitProviders = () => {
 												href={getGitlabUrl(
 													gitProvider.gitlab?.applicationId || "",
 													gitProvider.gitlab?.gitlabId || "",
+													gitProvider.gitlab?.gitlabUrl,
 												)}
 												target="_blank"
 												className={buttonVariants({

@@ -142,6 +142,10 @@ export const gitlabRouter = createTRPCRouter({
 					name: input.name,
 					adminId: ctx.user.adminId,
 				});
+
+				await updateGitlab(input.gitlabId, {
+					...input,
+				});
 			} else {
 				await updateGitlab(input.gitlabId, {
 					...input,
