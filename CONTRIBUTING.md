@@ -241,7 +241,7 @@ export function generate(schema: Schema): Template {
 
 - Use the same name of the folder as the id of the template.
 - The logo should be in the public folder.
-- If you want to show a domain in the UI, please add the prefix \_HOST at the end of the variable name.
+- If you want to show a domain in the UI, please add the `_HOST` suffix at the end of the variable name.
 - Test first on a vps or a server to make sure the template works.
 
 ## Docs & Website
