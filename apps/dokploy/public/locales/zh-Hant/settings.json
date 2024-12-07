@@ -12,11 +12,13 @@
 	"settings.server.domain.form.certificate.placeholder": "選擇一個憑證",
 	"settings.server.domain.form.certificateOptions.none": "無",
 	"settings.server.domain.form.certificateOptions.letsencrypt": "Let's Encrypt (預設)",
+
 	"settings.server.webServer.title": "Web 伺服器",
 	"settings.server.webServer.description": "管理 Web 伺服器。",
 	"settings.server.webServer.actions": "操作",
 	"settings.server.webServer.reload": "重新載入",
 	"settings.server.webServer.watchLogs": "查看日誌",
+	"settings.server.webServer.updateServerIp": "Update Server IP",
 	"settings.server.webServer.server.label": "伺服器",
 	"settings.server.webServer.traefik.label": "Traefik",
 	"settings.server.webServer.traefik.modifyEnv": "修改環境變數",
@@ -27,6 +29,7 @@
 	"settings.server.webServer.storage.cleanDockerBuilder": "清理 Docker Builder 和系統快取",
 	"settings.server.webServer.storage.cleanMonitoring": "清理監控",
 	"settings.server.webServer.storage.cleanAll": "清理所有",
+	
 	"settings.profile.title": "帳戶偏好",
 	"settings.profile.description": "更改您的個人資料詳情。",
 	"settings.profile.email": "電子郵件",
