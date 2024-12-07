@@ -10,6 +10,7 @@ import { Inter } from "next/font/google";
 import Head from "next/head";
 import Script from "next/script";
 import type { ReactElement, ReactNode } from "react";
+import { Languages } from "@/lib/languages";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -71,20 +72,7 @@ export default api.withTRPC(
 		{
 			i18n: {
 				defaultLocale: "en",
-				locales: [
-					"en",
-					"pl",
-					"ru",
-					"fr",
-					"de",
-					"tr",
-					"kz",
-					"zh-Hant",
-					"zh-Hans",
-					"fa",
-					"ko",
-					"pt-br",
-				],
+				locales: Object.values(Languages),
 				localeDetection: false,
 			},
 			fallbackLng: "en",
