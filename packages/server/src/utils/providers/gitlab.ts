@@ -417,7 +417,7 @@ export const testGitlabConnection = async (
 	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
-		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
