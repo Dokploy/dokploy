@@ -23,7 +23,7 @@ export function generate(schema: Schema): Template {
   const domains: DomainSchema[] = [
     {
       host: triggerDomain,
-      port: 3040,
+      port: 3000,
       serviceName: "webapp",
     },
   ];
