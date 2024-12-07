@@ -12,39 +12,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
+import { useTranslation } from "next-i18next";
 
 export const Disable2FA = () => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const { mutateAsync, isLoading } = api.auth.disable2FA.useMutation();
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive" isLoading={isLoading}>
-					Disable 2FA
+					{t("settings.profile.2fa.disable")}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>{t("settings.common.areYouSure")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete the 2FA
+						{t("settings.profile.2fa.disable.description")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("settings.common.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync()
 								.then(() => {
 									utils.auth.get.invalidate();
-									toast.success("2FA Disabled");
+									toast.success(t("settings.profile.2fa.disabled"));
 								})
 								.catch(() => {
-									toast.error("Error to disable 2FA");
+									toast.error(t("settings.profile.2fa.disable.error"));
 								});
 						}}
 					>
-						Confirm
+						{t("settings.common.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

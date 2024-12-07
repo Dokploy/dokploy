@@ -8,12 +8,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "next-i18next";
 import { api } from "@/utils/api";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
 export const GenerateToken = () => {
+	const { t } = useTranslation("settings");
 	const { data, refetch } = api.auth.get.useQuery();
 
 	const { mutateAsync: generateToken, isLoading: isLoadingToken } =
@@ -23,21 +25,25 @@ export const GenerateToken = () => {
 		<Card className="bg-transparent">
 			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 				<div>
-					<CardTitle className="text-xl">API/CLI</CardTitle>
+					<CardTitle className="text-xl">
+						{t("settings.profile.api.cli.title")}
+					</CardTitle>
 					<CardDescription>
-						Generate a token to access the API/CLI
+						{t("settings.profile.api.cli.description")}
 					</CardDescription>
 				</div>
 				<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
 					<span className="text-sm font-medium text-muted-foreground">
-						Swagger API:
+						{t("settings.profile.api.swagger.title")}:
 					</span>
 					<Link
 						href="/swagger"
 						target="_blank"
 						className="flex flex-row gap-2 items-center"
 					>
-						<span className="text-sm font-medium">View</span>
+						<span className="text-sm font-medium">
+							{t("settings.profile.api.swagger.view")}
+						</span>
 						<ExternalLinkIcon className="size-4" />
 					</Link>
 				</div>
@@ -46,7 +52,7 @@ export const GenerateToken = () => {
 				<div className="flex flex-row gap-2 max-sm:flex-wrap justify-end items-end">
 					<div className="grid w-full gap-8">
 						<div className="flex flex-col gap-2">
-							<Label>Token</Label>
+							<Label>{t("settings.profile.api.cli.token")}</Label>
 							<ToggleVisibilityInput
 								placeholder="Token"
 								value={data?.token || ""}
@@ -60,11 +66,11 @@ export const GenerateToken = () => {
 						onClick={async () => {
 							await generateToken().then(() => {
 								refetch();
-								toast.success("Token generated");
+								toast.success(t("settings.profile.api.cli.tokenGenerated"));
 							});
 						}}
 					>
-						Generate
+						{t("settings.profile.api.cli.generate")}
 					</Button>
 				</div>
 			</CardContent>
