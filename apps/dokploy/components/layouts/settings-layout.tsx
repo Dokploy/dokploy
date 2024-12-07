@@ -1,8 +1,11 @@
+import { useTranslation } from "next-i18next";
+
 interface Props {
 	children: React.ReactNode;
 }
 
 export const SettingsLayout = ({ children }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data } = api.auth.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
@@ -21,7 +24,7 @@ export const SettingsLayout = ({ children }: Props) => {
 						...(data?.rol === "admin" && !isCloud
 							? [
 									{
-										title: "Server",
+										title: t("settings.server.title"),
 										icon: Activity,
 										href: "/dashboard/settings/server",
 									},

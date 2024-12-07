@@ -2,11 +2,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { toast } from "sonner";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	serverId?: string;
 }
 export const ToggleDockerCleanup = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data, refetch } = api.admin.one.useQuery(undefined, {
 		enabled: !serverId,
 	});
@@ -35,16 +37,18 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 			} else {
 				await refetch();
 			}
-			toast.success("Docker Cleanup updated");
+			toast.success(t("server.webServer.updates.dockerCleanupUpdated"));
 		} catch (error) {
-			toast.error("Docker Cleanup Error");
+			toast.error(t("server.webServer.updates.dockerCleanupError"));
 		}
 	};
 
 	return (
 		<div className="flex items-center gap-4">
 			<Switch checked={!!enabled} onCheckedChange={handleToggle} />
-			<Label className="text-primary">Daily Docker Cleanup</Label>
+			<Label className="text-primary">
+				{t("settings.server.webServer.dailyDockerCleanup")}	
+			</Label>		
 		</div>
 	);
 };
