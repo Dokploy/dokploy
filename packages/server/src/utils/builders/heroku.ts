@@ -22,7 +22,7 @@ export const buildHeroku = async (
 			"--path",
 			buildAppDirectory,
 			"--builder",
-			"heroku/builder:24",
+			`heroku/builder:${application.herokuVersion || "24"}`,
 		];
 
 		for (const env of envVariables) {
@@ -58,7 +58,7 @@ export const getHerokuCommand = (
 		"--path",
 		buildAppDirectory,
 		"--builder",
-		"heroku/builder:24",
+		`heroku/builder:${application.herokuVersion || "24"}`,
 	];
 
 	for (const env of envVariables) {

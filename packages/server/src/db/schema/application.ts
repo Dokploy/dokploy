@@ -178,6 +178,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -368,6 +369,7 @@ const createSchema = createInsertSchema(applications, {
 		"nixpacks",
 		"static",
 	]),
+	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -408,6 +410,7 @@ export const apiSaveBuildType = createSchema
 		dockerfile: true,
 		dockerContextPath: true,
 		dockerBuildStage: true,
+		herokuVersion: true,
 	})
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true }));
