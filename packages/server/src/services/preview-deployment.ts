@@ -205,8 +205,6 @@ export const createPreviewDeployment = async (
 
 	application.appName = appName;
 
-	console.log(application);
-
 	await manageDomain(application, newDomain);
 
 	await db

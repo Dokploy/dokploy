@@ -51,7 +51,12 @@ import {
 	findPreviewDeploymentById,
 	updatePreviewDeployment,
 } from "./preview-deployment";
-import { getIssueComment, updateIssueComment } from "./github";
+import {
+	createPreviewDeploymentComment,
+	getIssueComment,
+	issueCommentExists,
+	updateIssueComment,
+} from "./github";
 import { type Domain, getDomainHost } from "./domain";
 export type Application = typeof applications.$inferSelect;
 
@@ -401,6 +406,27 @@ export const deployPreviewApplication = async ({
 		githubId: application?.githubId || "",
 	};
 	try {
+		const commentExists = await issueCommentExists({
+			...issueParams,
+		});
+		if (!commentExists) {
+			const result = await createPreviewDeploymentComment({
+				...issueParams,
+				previewDomain,
+				appName: previewDeployment.appName,
+				githubId: application?.githubId || "",
+				previewDeploymentId,
+			});
+
+			if (!result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Pull request comment not found",
+				});
+			}
+
+			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+		}
 		const buildingComment = getIssueComment(
 			application.name,
 			"running",
@@ -487,6 +513,27 @@ export const deployRemotePreviewApplication = async ({
 		githubId: application?.githubId || "",
 	};
 	try {
+		const commentExists = await issueCommentExists({
+			...issueParams,
+		});
+		if (!commentExists) {
+			const result = await createPreviewDeploymentComment({
+				...issueParams,
+				previewDomain,
+				appName: previewDeployment.appName,
+				githubId: application?.githubId || "",
+				previewDeploymentId,
+			});
+
+			if (!result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Pull request comment not found",
+				});
+			}
+
+			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+		}
 		const buildingComment = getIssueComment(
 			application.name,
 			"running",
