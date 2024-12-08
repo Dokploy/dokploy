@@ -259,8 +259,3 @@ export default async function handler(
 
 	return res.status(400).json({ message: "No Actions matched" });
 }
-
-// Genera el dominio random
-// Crea el pull request entity
-// Crea el deployment entity
-// Luego lo que sigue...., unicamente github es soportado por ahora3
