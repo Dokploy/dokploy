@@ -74,7 +74,43 @@ const installRequirements = async (serverId: string, logPath: string) => {
 		client
 			.once("ready", () => {
 				const bashCommand = `
+				set -e;
+				# Thanks to coolify <3
+
+				OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
+				CURRENT_USER=$USER
+
+				echo "Installing requirements for: OS: $OS_TYPE"
+				if [ $EUID != 0 ]; then
+					echo "Please run this script as root or with sudo ❌" 
+					exit
+				fi
 				
+				# Check if the OS is manjaro, if so, change it to arch
+				if [ "$OS_TYPE" = "manjaro" ] || [ "$OS_TYPE" = "manjaro-arm" ]; then
+					OS_TYPE="arch"
+				fi
+
+				# Check if the OS is Asahi Linux, if so, change it to fedora
+				if [ "$OS_TYPE" = "fedora-asahi-remix" ]; then
+					OS_TYPE="fedora"
+				fi
+
+				# Check if the OS is popOS, if so, change it to ubuntu
+				if [ "$OS_TYPE" = "pop" ]; then
+					OS_TYPE="ubuntu"
+				fi
+
+				# Check if the OS is linuxmint, if so, change it to ubuntu
+				if [ "$OS_TYPE" = "linuxmint" ]; then
+					OS_TYPE="ubuntu"
+				fi
+
+				#Check if the OS is zorin, if so, change it to ubuntu
+				if [ "$OS_TYPE" = "zorin" ]; then
+					OS_TYPE="ubuntu"
+				fi
+
 				${validatePorts()}
 
 				command_exists() {
@@ -83,16 +119,17 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				${installRClone()}
 				${installDocker()}
 				${setupSwarm()}
-				${setupNetwork()}
-				${setupMainDirectory()}
-				${setupDirectories()}
-				${createTraefikConfig()}
-				${createDefaultMiddlewares()}
-				${createTraefikInstance()}
-				${installNixpacks()}
-				${installBuildpacks()}
+				
 				`;
 
+				// ${setupNetwork()}
+				// ${setupMainDirectory()}
+				// ${setupDirectories()}
+				// ${createTraefikConfig()}
+				// ${createDefaultMiddlewares()}
+				// ${createTraefikInstance()}
+				// ${installNixpacks()}
+				// ${installBuildpacks()}
 				client.exec(bashCommand, (err, stream) => {
 					if (err) {
 						writeStream.write(err);
@@ -204,8 +241,12 @@ const setupNetwork = () => `
 		echo "Network dokploy-network already exists ✅"
 	else
 		# Create the dokploy-network if it doesn't exist
-		docker network create --driver overlay --attachable dokploy-network
-		echo "Network created ✅"
+		if docker network create --driver overlay --attachable dokploy-network; then
+			echo "Network created ✅"
+		else
+			echo "Failed to create dokploy-network ❌" >&2
+			exit 1
+		fi
 	fi
 `;
 
@@ -214,7 +255,12 @@ const installDocker = () => `
 		echo "Docker already installed ✅"
 	else
 		echo "Installing Docker ✅"
-		curl -sSL https://get.docker.com | sh -s -- --version 27.2.0
+		if curl -sSL https://get.docker.com | sh -s -- --version 27.2.0; then
+			echo "Docker installed successfully ✅"
+		else
+			echo "Failed to install Docker ❌" >&2
+			exit 1
+		fi
 	fi
 `;
 
@@ -260,7 +306,12 @@ const createDefaultMiddlewares = () => {
 };
 
 export const installRClone = () => `
-curl https://rclone.org/install.sh | sudo bash
+    if command_exists rclone; then
+		echo "RClone already installed ✅"
+	else
+		curl https://rclone.org/install.sh | sudo bash
+		echo "RClone installed successfully ✅"
+	fi
 `;
 
 export const createTraefikInstance = () => {
