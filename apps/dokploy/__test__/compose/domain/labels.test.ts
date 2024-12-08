@@ -17,6 +17,7 @@ describe("createDomainLabels", () => {
 		domainId: "",
 		path: "/",
 		createdAt: "",
+		previewDeploymentId: "",
 	};
 
 	it("should create basic labels for web entrypoint", async () => {

@@ -1,0 +1,62 @@
+version: '3'
+services:
+  plantuml-server:
+    image: plantuml/plantuml-server
+    ports:
+      - "8080"
+    networks:
+      - dokploy-network
+    volumes:
+      - fonts_volume:/usr/share/fonts/drawio
+  image-export:
+    image: jgraph/export-server
+    ports:
+      - "8000"
+    networks:
+      - dokploy-network
+    volumes:
+      - fonts_volume:/usr/share/fonts/drawio
+    environment:
+      - DRAWIO_BASE_URL=${DRAWIO_BASE_URL}
+  drawio:
+    image: jgraph/drawio:24.7.17
+    ports:
+      - "8080"
+    links:
+      - plantuml-server:plantuml-server
+      - image-export:image-export
+    depends_on:
+      - plantuml-server
+      - image-export
+    networks:
+      - dokploy-network
+    environment:
+      RAWIO_SELF_CONTAINED: 1
+      DRAWIO_USE_HTTP: 1
+      PLANTUML_URL: http://plantuml-server:8080/
+      EXPORT_URL: http://image-export:8000/
+      DRAWIO_BASE_URL: ${DRAWIO_BASE_URL}
+      DRAWIO_SERVER_URL: ${DRAWIO_SERVER_URL}
+      DRAWIO_CSP_HEADER: ${DRAWIO_CSP_HEADER}
+      DRAWIO_VIEWER_URL: ${DRAWIO_VIEWER_URL}
+      DRAWIO_LIGHTBOX_URL: ${DRAWIO_LIGHTBOX_URL}
+      DRAWIO_CONFIG: ${DRAWIO_CONFIG}
+      DRAWIO_GOOGLE_CLIENT_ID: ${DRAWIO_GOOGLE_CLIENT_ID}
+      DRAWIO_GOOGLE_APP_ID: ${DRAWIO_GOOGLE_APP_ID}
+      DRAWIO_GOOGLE_CLIENT_SECRET: ${DRAWIO_GOOGLE_CLIENT_SECRET}
+      DRAWIO_GOOGLE_VIEWER_CLIENT_ID: ${DRAWIO_GOOGLE_VIEWER_CLIENT_ID}
+      DRAWIO_GOOGLE_VIEWER_APP_ID: ${DRAWIO_GOOGLE_VIEWER_APP_ID}
+      DRAWIO_GOOGLE_VIEWER_CLIENT_SECRET: ${DRAWIO_GOOGLE_VIEWER_CLIENT_SECRET}
+      DRAWIO_MSGRAPH_CLIENT_ID: ${DRAWIO_MSGRAPH_CLIENT_ID}
+      DRAWIO_MSGRAPH_CLIENT_SECRET: ${DRAWIO_MSGRAPH_CLIENT_SECRET}
+      DRAWIO_MSGRAPH_TENANT_ID: ${DRAWIO_MSGRAPH_TENANT_ID}
+      DRAWIO_GITLAB_ID: ${DRAWIO_GITLAB_ID}
+      DRAWIO_GITLAB_SECRET: ${DRAWIO_GITLAB_SECRET}
+      DRAWIO_GITLAB_URL: ${DRAWIO_GITLAB_URL}
+      DRAWIO_CLOUD_CONVERT_APIKEY: ${DRAWIO_CLOUD_CONVERT_APIKEY}
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  fonts_volume:
