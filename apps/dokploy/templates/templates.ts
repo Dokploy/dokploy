@@ -987,4 +987,19 @@ export const templates: TemplateData[] = [
 		tags: ["event-driven", "applications"],
 		load: () => import("./triggerdotdev/index").then((m) => m.generate),
 	},
+	{
+		id: "drawio",
+		name: "draw.io",
+		version: "24.7.17",
+		description:
+			"draw.io is a configurable diagramming/whiteboarding visualization application.",
+		logo: "drawio.svg",
+		links: {
+			github: "https://github.com/jgraph/drawio",
+			website: "https://draw.io/",
+			docs: "https://www.drawio.com/doc/",
+		},
+		tags: ["drawing", "diagrams"],
+		load: () => import("./drawio/index").then((m) => m.generate),
+	},
 ];
