@@ -108,6 +108,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./baserow/index").then((m) => m.generate),
 	},
 	{
+		id: "budibase",
+		name: "Budibase",
+		version: "3.2.25",
+		description:
+			"Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.",
+		logo: "budibase.svg",
+		links: {
+			github: "https://github.com/Budibase/budibase",
+			website: "https://budibase.com/",
+			docs: "https://docs.budibase.com/docs/",
+		},
+		tags: ["database", "low-code", "nocode", "applications"],
+		load: () => import("./budibase/index").then((m) => m.generate),
+	},
+	{
 		id: "ghost",
 		name: "Ghost",
 		version: "5.0.0",
