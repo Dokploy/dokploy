@@ -19,6 +19,16 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 		applicationType: z.literal("compose"),
 		serverId: z.string().min(1),
 	}),
+	z.object({
+		applicationId: z.string(),
+		previewDeploymentId: z.string(),
+		titleLog: z.string(),
+		descriptionLog: z.string(),
+		server: z.boolean().optional(),
+		type: z.enum(["deploy"]),
+		applicationType: z.literal("application-preview"),
+		serverId: z.string().min(1),
+	}),
 ]);
 
 export type DeployJob = z.infer<typeof deployJobSchema>;

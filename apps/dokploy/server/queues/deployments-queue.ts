@@ -21,8 +21,6 @@ export const deploymentWorker = new Worker(
 	"deployments",
 	async (job: Job<DeploymentJob>) => {
 		try {
-			console.log(job.data);
-
 			if (job.data.applicationType === "application") {
 				await updateApplicationStatus(job.data.applicationId, "running");
 
