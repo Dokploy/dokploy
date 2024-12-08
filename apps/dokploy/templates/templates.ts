@@ -987,4 +987,19 @@ export const templates: TemplateData[] = [
 		tags: ["event-driven", "applications"],
 		load: () => import("./triggerdotdev/index").then((m) => m.generate),
 	},
+	{
+		id: "kimai",
+		name: "Kimai",
+		version: "2.26.0",
+		description:
+			"Kimai is a web-based multi-user time-tracking application. Works great for everyone: freelancers, companies, organizations - everyone can track their times, generate reports, create invoices and do so much more.",
+		logo: "kimai.svg",
+		links: {
+			github: "https://github.com/kimai/kimai",
+			website: "https://www.kimai.org",
+			docs: "https://www.kimai.org/documentation",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./kimai/index").then((m) => m.generate),
+	},
 ];
