@@ -31,6 +31,7 @@ import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { userRouter } from "./routers/user";
+import { previewDeploymentRouter } from "./routers/preview-deployment";
 
 /**
  * This is the primary router for your server.
@@ -55,6 +56,7 @@ export const appRouter = createTRPCRouter({
 	destination: destinationRouter,
 	backup: backupRouter,
 	deployment: deploymentRouter,
+	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
 	certificates: certificateRouter,
 	settings: settingsRouter,

@@ -29,7 +29,7 @@ export const Secrets = (props: Props) => {
 
 	return (
 		<>
-			<CardHeader className="flex flex-row w-full items-center justify-between">
+			<CardHeader className="flex flex-row w-full items-center justify-between px-0">
 				<div>
 					<CardTitle className="text-xl">{props.title}</CardTitle>
 					<CardDescription>{props.description}</CardDescription>
@@ -47,7 +47,7 @@ export const Secrets = (props: Props) => {
 					)}
 				</Toggle>
 			</CardHeader>
-			<CardContent className="w-full space-y-4">
+			<CardContent className="w-full space-y-4 p-0">
 				<FormField
 					control={form.control}
 					name={props.name}

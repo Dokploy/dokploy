@@ -134,3 +134,7 @@ export const removeDomainById = async (domainId: string) => {
 
 	return result[0];
 };
+
+export const getDomainHost = (domain: Domain) => {
+	return `${domain.https ? "https" : "http"}://${domain.host}`;
+};

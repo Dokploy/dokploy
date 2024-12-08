@@ -214,7 +214,11 @@ export const deployCompose = async ({
 
 	try {
 		if (compose.sourceType === "github") {
-			await cloneGithubRepository(compose, deployment.logPath, true);
+			await cloneGithubRepository({
+				...compose,
+				logPath: deployment.logPath,
+				type: "compose",
+			});
 		} else if (compose.sourceType === "gitlab") {
 			await cloneGitlabRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "bitbucket") {
@@ -314,11 +318,12 @@ export const deployRemoteCompose = async ({
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
-				command += await getGithubCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
+				command += await getGithubCloneCommand({
+					...compose,
+					logPath: deployment.logPath,
+					type: "compose",
+					serverId: compose.serverId,
+				});
 			} else if (compose.sourceType === "gitlab") {
 				command += await getGitlabCloneCommand(
 					compose,

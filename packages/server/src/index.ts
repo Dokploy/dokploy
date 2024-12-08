@@ -20,6 +20,7 @@ export * from "./services/mount";
 export * from "./services/certificate";
 export * from "./services/redirect";
 export * from "./services/security";
+export * from "./services/preview-deployment";
 export * from "./services/port";
 export * from "./services/redis";
 export * from "./services/compose";
