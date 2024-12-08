@@ -28,6 +28,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 			refetchInterval: 1000,
 		},
 	);
+
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
 		setUrl(document.location.origin);

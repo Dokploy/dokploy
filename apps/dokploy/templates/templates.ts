@@ -108,6 +108,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./baserow/index").then((m) => m.generate),
 	},
 	{
+		id: "budibase",
+		name: "Budibase",
+		version: "3.2.25",
+		description:
+			"Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.",
+		logo: "budibase.svg",
+		links: {
+			github: "https://github.com/Budibase/budibase",
+			website: "https://budibase.com/",
+			docs: "https://docs.budibase.com/docs/",
+		},
+		tags: ["database", "low-code", "nocode", "applications"],
+		load: () => import("./budibase/index").then((m) => m.generate),
+	},
+	{
 		id: "ghost",
 		name: "Ghost",
 		version: "5.0.0",
@@ -1001,5 +1016,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["drawing", "diagrams"],
 		load: () => import("./drawio/index").then((m) => m.generate),
+  },
+  {
+		id: "kimai",
+		name: "Kimai",
+		version: "2.26.0",
+		description:
+			"Kimai is a web-based multi-user time-tracking application. Works great for everyone: freelancers, companies, organizations - everyone can track their times, generate reports, create invoices and do so much more.",
+		logo: "kimai.svg",
+		links: {
+			github: "https://github.com/kimai/kimai",
+			website: "https://www.kimai.org",
+			docs: "https://www.kimai.org/documentation",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./kimai/index").then((m) => m.generate),
 	},
 ];
