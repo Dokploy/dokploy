@@ -10,7 +10,7 @@ services:
       - fonts_volume:/usr/share/fonts/drawio
   image-export:
     image: jgraph/export-server
-    expose:
+    ports:
       - "8000"
     networks:
       - dokploy-network
