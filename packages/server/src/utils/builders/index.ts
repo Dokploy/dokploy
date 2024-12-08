@@ -17,6 +17,7 @@ import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildStatic, getStaticCommand } from "./static";
+import { nanoid } from "nanoid";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -33,6 +34,7 @@ export type ApplicationNested = InferResultType<
 		project: true;
 	}
 >;
+
 export const buildApplication = async (
 	application: ApplicationNested,
 	logPath: string,

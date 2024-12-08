@@ -29,3 +29,4 @@ export * from "./github";
 export * from "./gitlab";
 export * from "./server";
 export * from "./utils";
+export * from "./preview-deployments";

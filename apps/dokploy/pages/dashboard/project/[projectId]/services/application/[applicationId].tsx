@@ -12,6 +12,7 @@ import { ShowDomains } from "@/components/dashboard/application/domains/show-dom
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
@@ -51,7 +52,8 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
-	| "monitoring";
+	| "monitoring"
+	| "preview-deployments";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -191,8 +193,8 @@ const Service = (
 					<div className="flex flex-row items-center justify-between  w-full gap-4">
 						<TabsList
 							className={cn(
-								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-								data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+								"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
+								data?.serverId ? "md:grid-cols-7" : "md:grid-cols-8",
 							)}
 						>
 							<TabsTrigger value="general">General</TabsTrigger>
@@ -202,6 +204,9 @@ const Service = (
 							)}
 							<TabsTrigger value="logs">Logs</TabsTrigger>
 							<TabsTrigger value="deployments">Deployments</TabsTrigger>
+							<TabsTrigger value="preview-deployments">
+								Preview Deployments
+							</TabsTrigger>
 							<TabsTrigger value="domains">Domains</TabsTrigger>
 							<TabsTrigger value="advanced">Advanced</TabsTrigger>
 						</TabsList>
@@ -242,6 +247,11 @@ const Service = (
 					<TabsContent value="deployments" className="w-full">
 						<div className="flex flex-col gap-4 pt-2.5">
 							<ShowDeployments applicationId={applicationId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="preview-deployments" className="w-full">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowPreviewDeployments applicationId={applicationId} />
 						</div>
 					</TabsContent>
 					<TabsContent value="domains" className="w-full">
