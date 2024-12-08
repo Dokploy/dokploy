@@ -2,36 +2,21 @@ import {
 	type DomainSchema,
 	type Schema,
 	type Template,
+	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
 	const mainDomain = generateRandomDomain(schema);
 
-	const apiKey = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const encryptionKey = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const jwtSecret = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const couchDbPassword = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const redisPassword = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const minioAccessKey = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const minioSecretKey = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
-	const watchtowerPassword = Array.from({ length: 32 }, () =>
-		Math.floor(Math.random() * 16).toString(16),
-	).join("");
+	const apiKey = generatePassword(32);
+	const encryptionKey = generatePassword(32);
+	const jwtSecret = generatePassword(32);
+	const couchDbPassword = generatePassword(32);
+	const redisPassword = generatePassword(32);
+	const minioAccessKey = generatePassword(32);
+	const minioSecretKey = generatePassword(32);
+	const watchtowerPassword = generatePassword(32);
 
 	const domains: DomainSchema[] = [
 		{
