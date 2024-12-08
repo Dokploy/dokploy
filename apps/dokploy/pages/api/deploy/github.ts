@@ -191,7 +191,6 @@ export default async function handler(
 		const apps = await db.query.applications.findMany({
 			where: and(
 				eq(applications.sourceType, "github"),
-				eq(applications.autoDeploy, true),
 				eq(applications.repository, repository),
 				eq(applications.branch, branch),
 				eq(applications.isPreviewDeploymentsActive, true),
