@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -50,6 +51,7 @@ const addDestination = z.object({
 type AddDestination = z.infer<typeof addDestination>;
 
 export const AddDestination = () => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -85,23 +87,23 @@ export const AddDestination = () => {
 			secretAccessKey: data.secretAccessKey,
 		})
 			.then(async () => {
-				toast.success("Destination Created");
+				toast.success(t("settings.s3destinations.created"));
 				await utils.destination.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to create the Destination");
+				toast.error(t("settings.s3destinations.errorCreate"));
 			});
 	};
 	return (
 		<Dialog>
-			<DialogTrigger className="" asChild>
-				<Button>Add Destination</Button>
+			<DialogTrigger asChild>
+				<Button>{t("settings.s3destinations.addDestination")}</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Destination</DialogTitle>
+					<DialogTitle>{t("settings.s3destinations.title")}</DialogTitle>
 					<DialogDescription>
-						In this section you can add destinations for your backups.
+						{t("settings.s3destinations.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -118,7 +120,9 @@ export const AddDestination = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.name")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"S3 Bucket"} {...field} />
 										</FormControl>
@@ -133,7 +137,9 @@ export const AddDestination = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Provider</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.provider")}
+										</FormLabel>
 										<FormControl>
 											<Select
 												onValueChange={field.onChange}
@@ -141,7 +147,11 @@ export const AddDestination = () => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue
+															placeholder={t(
+																"settings.s3destinations.form.provider.placeholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -168,7 +178,9 @@ export const AddDestination = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.accessKeyId")}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -183,7 +195,9 @@ export const AddDestination = () => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.secretAccessKey")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -198,7 +212,9 @@ export const AddDestination = () => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.bucket")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"dokploy-bucket"} {...field} />
@@ -213,7 +229,9 @@ export const AddDestination = () => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>
+											{t("settings.s3destinations.form.region")}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"us-east-1"} {...field} />
@@ -227,7 +245,9 @@ export const AddDestination = () => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{t("settings.s3destinations.form.endpoint")}
+									</FormLabel>
 									<FormControl>
 										<Input
 											placeholder={"https://us.bucket.aws/s3"}
@@ -249,15 +269,16 @@ export const AddDestination = () => {
 						{isCloud ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
+									{t("settings.s3destinations.form.cloud.selectServer")}
 								</span>
 								<FormField
 									control={form.control}
 									name="serverId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
+											<FormLabel>
+												{t("settings.s3destinations.form.cloud.server")}
+											</FormLabel>
 											<FormControl>
 												<Select
 													onValueChange={field.onChange}
@@ -268,7 +289,11 @@ export const AddDestination = () => {
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
+															<SelectLabel>
+																{t(
+																	"settings.s3destinations.form.cloud.servers",
+																)}
+															</SelectLabel>
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -277,7 +302,9 @@ export const AddDestination = () => {
 																	{server.name}
 																</SelectItem>
 															))}
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value={"none"}>
+																{t("settings.s3destinations.form.cloud.none")}
+															</SelectItem>
 														</SelectGroup>
 													</SelectContent>
 												</Select>
@@ -303,16 +330,16 @@ export const AddDestination = () => {
 											serverId: form.getValues("serverId"),
 										})
 											.then(async () => {
-												toast.success("Connection Success");
+												toast.success(t("settings.s3destinations.connectionSuccess"));
 											})
 											.catch((e) => {
-												toast.error("Error to connect the provider", {
+												toast.error(t("settings.s3destinations.connectionError"), {
 													description: e.message,
 												});
 											});
 									}}
 								>
-									Test Connection
+									{t("settings.s3destinations.form.button.testConnection")}
 								</Button>
 							</div>
 						) : (
@@ -331,14 +358,14 @@ export const AddDestination = () => {
 										secretAccessKey: form.getValues("secretAccessKey"),
 									})
 										.then(async () => {
-											toast.success("Connection Success");
+											toast.success(t("settings.s3destinations.connectionSuccess"));
 										})
 										.catch(() => {
-											toast.error("Error to connect the provider");
+											toast.error(t("settings.s3destinations.connectionError"));
 										});
 								}}
 							>
-								Test connection
+								{t("settings.s3destinations.form.button.testConnection")}
 							</Button>
 						)}
 
@@ -347,7 +374,7 @@ export const AddDestination = () => {
 							form="hook-form-destination-add"
 							type="submit"
 						>
-							Create
+							{t("settings.s3destinations.form.button.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

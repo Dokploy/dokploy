@@ -11,9 +11,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 
 export const UpdateWebServer = () => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync: updateServer, isLoading } =
 		api.settings.updateServer.useMutation();
 	return (
@@ -28,26 +30,27 @@ export const UpdateWebServer = () => {
 						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
 						<span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
 					</span>
-					Update Server
+					{t("settings.server.webServer.updates.updateServer")}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>{t("settings.common.areYouSure")}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will update the web server to the
-						new version.
+						{t("settings.server.webServer.updates.updateServerDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("settings.common.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await updateServer();
-							toast.success("Please reload the browser to see the changes");
+							toast.success(
+								t("settings.server.webServer.updates.pleaseReload"),
+							);
 						}}
 					>
-						Confirm
+						{t("settings.common.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

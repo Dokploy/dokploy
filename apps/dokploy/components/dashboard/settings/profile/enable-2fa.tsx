@@ -29,6 +29,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useTranslation } from "next-i18next";
 
 const Enable2FASchema = z.object({
 	pin: z.string().min(6, {
@@ -39,6 +40,7 @@ const Enable2FASchema = z.object({
 type Enable2FA = z.infer<typeof Enable2FASchema>;
 
 export const Enable2FA = () => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 
 	const { data } = api.auth.generate2FASecret.useQuery(undefined, {
@@ -67,11 +69,11 @@ export const Enable2FA = () => {
 			secret: data?.secret || "",
 		})
 			.then(async () => {
-				toast.success("2FA Verified");
+				toast.success(t("settings.profile.2fa.verified"));
 				utils.auth.get.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to verify the 2FA");
+				toast.error(t("settings.profile.2fa.enable.error"));
 			});
 	};
 	return (
@@ -79,13 +81,15 @@ export const Enable2FA = () => {
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<Fingerprint className="size-4 text-muted-foreground" />
-					Enable 2FA
+					{t("settings.profile.2fa.enable")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen max-sm:overflow-y-auto sm:max-w-xl ">
 				<DialogHeader>
-					<DialogTitle>2FA Setup</DialogTitle>
-					<DialogDescription>Add a 2FA to your account</DialogDescription>
+					<DialogTitle>{t("settings.profile.2fa.title")}</DialogTitle>
+					<DialogDescription>
+						{t("settings.profile.2fa.description")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && (
 					<div className="flex flex-row gap-4 rounded-lg items-center bg-red-50 p-2 dark:bg-red-950">
@@ -103,7 +107,9 @@ export const Enable2FA = () => {
 					>
 						<div className="flex flex-col gap-4 justify-center items-center">
 							<span className="text-sm text-muted-foreground">
-								{data?.qrCodeUrl ? "Scan the QR code to add 2FA" : ""}
+								{data?.qrCodeUrl
+									? t("settings.profile.2fa.scanQrCode")
+									: ""}
 							</span>
 							<img
 								src={data?.qrCodeUrl}
@@ -112,7 +118,7 @@ export const Enable2FA = () => {
 							/>
 							<div className="flex flex-col gap-2">
 								<span className="text-sm text-muted-foreground text-center">
-									{data?.secret ? `Secret: ${data?.secret}` : ""}
+									{data?.secret ? `${t("settings.profile.2fa.secret")}: ${data?.secret}` : ""}
 								</span>
 							</div>
 						</div>
@@ -122,7 +128,7 @@ export const Enable2FA = () => {
 							name="pin"
 							render={({ field }) => (
 								<FormItem className="flex flex-col justify-center max-sm:items-center">
-									<FormLabel>Pin</FormLabel>
+									<FormLabel>{t("settings.profile.2fa.enterPin")}</FormLabel>
 									<FormControl>
 										<InputOTP maxLength={6} {...field}>
 											<InputOTPGroup>
@@ -136,8 +142,7 @@ export const Enable2FA = () => {
 										</InputOTP>
 									</FormControl>
 									<FormDescription className="max-md:text-center">
-										Please enter the 6 digits code provided by your
-										authenticator app.
+										{t("settings.profile.2fa.enterCode")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -151,7 +156,7 @@ export const Enable2FA = () => {
 							form="hook-form-add-2FA"
 							type="submit"
 						>
-							Submit 2FA
+							{t("settings.profile.2fa.submit")}
 						</Button>
 					</DialogFooter>
 				</Form>

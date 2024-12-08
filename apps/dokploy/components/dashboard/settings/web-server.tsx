@@ -45,10 +45,10 @@ export const WebServer = ({ className }: Props) => {
 
 				<div className="flex items-center flex-wrap justify-between gap-4">
 					<span className="text-sm text-muted-foreground">
-						Server IP: {data?.serverIp}
+						{t("settings.server.webServer.serverIp")}: {data?.serverIp}
 					</span>
 					<span className="text-sm text-muted-foreground">
-						Version: {dokployVersion}
+						{t("settings.server.webServer.dokployVersion")}: {dokployVersion}
 					</span>
 
 					<ToggleDockerCleanup />

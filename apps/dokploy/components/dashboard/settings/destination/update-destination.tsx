@@ -36,6 +36,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { S3_PROVIDERS } from "./constants";
+import { useTranslation } from "next-i18next";
 
 const updateDestination = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export const UpdateDestination = ({ destinationId }: Props) => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -107,13 +109,13 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 			destinationId,
 		})
 			.then(async () => {
-				toast.success("Destination Updated");
+				toast.success(t("settings.s3destinations.updated"));
 				await refetch();
 				await utils.destination.all.invalidate();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the Destination");
+				toast.error(t("settings.s3destinations.errorUpdate"));
 			});
 	};
 	return (
@@ -125,9 +127,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Update Destination</DialogTitle>
+					<DialogTitle>{t("settings.s3destinations.update.title")}</DialogTitle>
 					<DialogDescription>
-						Update the current destination config
+						{t("settings.s3destinations.update.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -146,7 +148,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Name</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.name")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder={"S3 Bucket"} {...field} />
 												</FormControl>
@@ -161,7 +165,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Provider</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.provider")}
+												</FormLabel>
 												<FormControl>
 													<Select
 														onValueChange={field.onChange}
@@ -169,7 +175,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a S3 Provider" />
+																<SelectValue placeholder={t("settings.s3destinations.form.provider.placeholder")} />
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
@@ -196,7 +202,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Access Key Id</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.accessKeyId")}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder={"xcas41dasde"} {...field} />
 												</FormControl>
@@ -211,7 +219,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="space-y-0.5">
-												<FormLabel>Secret Access Key</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.secretAccessKey")}
+												</FormLabel>
 											</div>
 											<FormControl>
 												<Input placeholder={"asd123asdasw"} {...field} />
@@ -226,7 +236,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="space-y-0.5">
-												<FormLabel>Bucket</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.bucket")}
+												</FormLabel>
 											</div>
 											<FormControl>
 												<Input placeholder={"dokploy-bucket"} {...field} />
@@ -241,7 +253,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="space-y-0.5">
-												<FormLabel>Region</FormLabel>
+												<FormLabel>
+													{t("settings.s3destinations.form.region")}
+												</FormLabel>
 											</div>
 											<FormControl>
 												<Input placeholder={"us-east-1"} {...field} />
@@ -255,7 +269,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 									name="endpoint"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Endpoint</FormLabel>
+											<FormLabel>
+												{t("settings.s3destinations.form.endpoint")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder={"https://us.bucket.aws/s3"}
@@ -279,26 +295,29 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 						{isCloud ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
+									{t("settings.s3destinations.form.cloud.selectServer")}
 								</span>
 								<FormField
 									control={form.control}
 									name="serverId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
+											<FormLabel>
+												{t("settings.s3destinations.form.cloud.server")}
+											</FormLabel>
 											<FormControl>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value}
 												>
 													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select a server" />
+														<SelectValue placeholder={t("settings.s3destinations.form.cloud.selectServer")} />
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
+															<SelectLabel>
+																{t("settings.s3destinations.form.cloud.servers")}
+															</SelectLabel>
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -307,7 +326,9 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 																	{server.name}
 																</SelectItem>
 															))}
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value={"none"}>
+																{t("settings.s3destinations.form.cloud.none")}
+															</SelectItem>
 														</SelectGroup>
 													</SelectContent>
 												</Select>
@@ -339,7 +360,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 											});
 									}}
 								>
-									Test Connection
+									{t("settings.s3destinations.form.button.testConnection")}
 								</Button>
 							</div>
 						) : (
@@ -358,14 +379,14 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 										secretAccessKey: form.getValues("secretAccessKey"),
 									})
 										.then(async () => {
-											toast.success("Connection Success");
+											toast.success(t("settings.s3destinations.connectionSuccess"));
 										})
 										.catch(() => {
-											toast.error("Error to connect the provider");
+											toast.error(t("settings.s3destinations.connectionError"));
 										});
 								}}
 							>
-								Test connection
+								{t("settings.s3destinations.form.button.testConnection")}
 							</Button>
 						)}
 
@@ -374,7 +395,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 							type="submit"
 							isLoading={form.formState.isSubmitting}
 						>
-							Update
+							{t("settings.s3destinations.form.button.update")}
 						</Button>
 					</DialogFooter>
 				</Form>
