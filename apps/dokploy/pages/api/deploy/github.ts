@@ -164,7 +164,6 @@ export default async function handler(
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
 
-		console.log(githubBody);
 		if (githubBody?.action === "closed") {
 			const previewDeploymentResult =
 				await findPreviewDeploymentsByPullRequestId(prId);
@@ -187,6 +186,7 @@ export default async function handler(
 		const repository = githubBody?.repository?.name;
 		const deploymentHash = githubBody?.pull_request?.head?.sha;
 		const branch = githubBody?.pull_request?.base?.ref;
+		const owner = githubBody?.repository?.owner?.login;
 
 		const apps = await db.query.applications.findMany({
 			where: and(
@@ -195,6 +195,7 @@ export default async function handler(
 				eq(applications.repository, repository),
 				eq(applications.branch, branch),
 				eq(applications.isPreviewDeploymentsActive, true),
+				eq(applications.owner, owner),
 			),
 			with: {
 				previewDeployments: true,

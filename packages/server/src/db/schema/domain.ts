@@ -34,7 +34,6 @@ export const domains = pgTable("domain", {
 	path: text("path").default("/"),
 	serviceName: text("serviceName"),
 	domainType: domainType("domainType").default("application"),
-	isPreviewDeployment: boolean("isPreviewDeployment").default(false), // TODO: remove
 	uniqueConfigKey: serial("uniqueConfigKey"),
 	createdAt: text("createdAt")
 		.notNull()

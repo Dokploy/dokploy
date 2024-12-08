@@ -1,6 +1,6 @@
 {
-  "id": "82e1398d-0f5d-4290-9cb2-fd812f096b28",
-  "prevId": "71016fed-2c39-4d31-aa33-0e0aceb313ef",
+  "id": "db518175-259d-4f4a-b6d0-fe95067bba61",
+  "prevId": "928417c8-2e7b-43ba-bc19-44b4d70107f1",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -1198,13 +1198,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'application'"
-        },
-        "isPreviewDeployment": {
-          "name": "isPreviewDeployment",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
         },
         "uniqueConfigKey": {
           "name": "uniqueConfigKey",

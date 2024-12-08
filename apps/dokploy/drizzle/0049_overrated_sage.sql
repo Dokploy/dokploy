@@ -1,1 +1,0 @@
-ALTER TABLE "application" ADD COLUMN "herokuVersion" text DEFAULT '24';
