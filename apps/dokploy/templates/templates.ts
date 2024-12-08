@@ -380,7 +380,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.12.1",
+		version: "v2.14.0",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -971,5 +971,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["event"],
 		load: () => import("./ontime/index").then((m) => m.generate),
+	},
+	{
+		id: "triggerdotdev",
+		name: "Trigger.dev",
+		version: "v3",
+		description:
+			"Trigger is a platform for building event-driven applications.",
+		logo: "triggerdotdev.svg",
+		links: {
+			github: "https://github.com/triggerdotdev/trigger.dev",
+			website: "https://trigger.dev/",
+			docs: "https://trigger.dev/docs",
+		},
+		tags: ["event-driven", "applications"],
+		load: () => import("./triggerdotdev/index").then((m) => m.generate),
 	},
 ];

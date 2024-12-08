@@ -1,5 +1,5 @@
 {
-  "id": "053ad983-6299-4420-a551-645490689733",
+  "id": "16ee50a9-7cbc-46a4-af70-c3c85ed45466",
   "prevId": "d70bcec5-e7af-4872-b2eb-f0a22ae2e3e8",
   "version": "6",
   "dialect": "postgresql",
@@ -37,67 +37,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "previewEnv": {
-          "name": "previewEnv",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previewBuildArgs": {
-          "name": "previewBuildArgs",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previewWildcard": {
-          "name": "previewWildcard",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previewPort": {
-          "name": "previewPort",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 3000
-        },
-        "previewHttps": {
-          "name": "previewHttps",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "previewPath": {
-          "name": "previewPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
-        "certificateType": {
-          "name": "certificateType",
-          "type": "certificateType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'none'"
-        },
-        "previewLimit": {
-          "name": "previewLimit",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 3
-        },
-        "isPreviewDeploymentsActive": {
-          "name": "isPreviewDeploymentsActive",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
         },
         "buildArgs": {
           "name": "buildArgs",
@@ -402,6 +341,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
+        },
+        "herokuVersion": {
+          "name": "herokuVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "publishDirectory": {
           "name": "publishDirectory",
@@ -1192,13 +1137,6 @@
           "notNull": false,
           "default": "'application'"
         },
-        "isPreviewDeployment": {
-          "name": "isPreviewDeployment",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
         "uniqueConfigKey": {
           "name": "uniqueConfigKey",
           "type": "serial",
@@ -1219,12 +1157,6 @@
         },
         "applicationId": {
           "name": "applicationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "previewDeploymentId": {
-          "name": "previewDeploymentId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1262,19 +1194,6 @@
           ],
           "columnsTo": [
             "applicationId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "domain_previewDeploymentId_preview_deployments_previewDeploymentId_fk": {
-          "name": "domain_previewDeploymentId_preview_deployments_previewDeploymentId_fk",
-          "tableFrom": "domain",
-          "tableTo": "preview_deployments",
-          "columnsFrom": [
-            "previewDeploymentId"
-          ],
-          "columnsTo": [
-            "previewDeploymentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2047,19 +1966,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "isPreviewDeployment": {
-          "name": "isPreviewDeployment",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
-        "previewDeploymentId": {
-          "name": "previewDeploymentId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -2104,19 +2010,6 @@
           ],
           "columnsTo": [
             "serverId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "deployment_previewDeploymentId_preview_deployments_previewDeploymentId_fk": {
-          "name": "deployment_previewDeploymentId_preview_deployments_previewDeploymentId_fk",
-          "tableFrom": "deployment",
-          "tableTo": "preview_deployments",
-          "columnsFrom": [
-            "previewDeploymentId"
-          ],
-          "columnsTo": [
-            "previewDeploymentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3927,142 +3820,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
-    },
-    "public.preview_deployments": {
-      "name": "preview_deployments",
-      "schema": "",
-      "columns": {
-        "previewDeploymentId": {
-          "name": "previewDeploymentId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "branch": {
-          "name": "branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pullRequestId": {
-          "name": "pullRequestId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pullRequestNumber": {
-          "name": "pullRequestNumber",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pullRequestURL": {
-          "name": "pullRequestURL",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pullRequestTitle": {
-          "name": "pullRequestTitle",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pullRequestCommentId": {
-          "name": "pullRequestCommentId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "appName": {
-          "name": "appName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "applicationId": {
-          "name": "applicationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "domainId": {
-          "name": "domainId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deploymentId": {
-          "name": "deploymentId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expiresAt": {
-          "name": "expiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "preview_deployments_applicationId_application_applicationId_fk": {
-          "name": "preview_deployments_applicationId_application_applicationId_fk",
-          "tableFrom": "preview_deployments",
-          "tableTo": "application",
-          "columnsFrom": [
-            "applicationId"
-          ],
-          "columnsTo": [
-            "applicationId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "preview_deployments_domainId_domain_domainId_fk": {
-          "name": "preview_deployments_domainId_domain_domainId_fk",
-          "tableFrom": "preview_deployments",
-          "tableTo": "domain",
-          "columnsFrom": [
-            "domainId"
-          ],
-          "columnsTo": [
-            "domainId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "preview_deployments_deploymentId_deployment_deploymentId_fk": {
-          "name": "preview_deployments_deploymentId_deployment_deploymentId_fk",
-          "tableFrom": "preview_deployments",
-          "tableTo": "deployment",
-          "columnsFrom": [
-            "deploymentId"
-          ],
-          "columnsTo": [
-            "deploymentId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "preview_deployments_appName_unique": {
-          "name": "preview_deployments_appName_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "appName"
-          ]
-        }
-      }
     }
   },
   "enums": {
@@ -4102,8 +3859,7 @@
       "schema": "public",
       "values": [
         "compose",
-        "application",
-        "preview"
+        "application"
       ]
     },
     "public.databaseType": {

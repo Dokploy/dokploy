@@ -1,6 +1,6 @@
 {
-  "id": "71016fed-2c39-4d31-aa33-0e0aceb313ef",
-  "prevId": "20236ed8-104c-487b-bcdf-d08b69fbc80a",
+  "id": "82e1398d-0f5d-4290-9cb2-fd812f096b28",
+  "prevId": "71016fed-2c39-4d31-aa33-0e0aceb313ef",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -402,6 +402,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
+        },
+        "herokuVersion": {
+          "name": "herokuVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'24'"
         },
         "publishDirectory": {
           "name": "publishDirectory",

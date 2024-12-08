@@ -77,6 +77,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
+			const owner = githubBody?.repository?.owner?.name;
 
 			const apps = await db.query.applications.findMany({
 				where: and(
@@ -84,6 +85,7 @@ export default async function handler(
 					eq(applications.autoDeploy, true),
 					eq(applications.branch, branchName),
 					eq(applications.repository, repository),
+					eq(applications.owner, owner),
 				),
 			});
 
@@ -118,6 +120,7 @@ export default async function handler(
 					eq(compose.autoDeploy, true),
 					eq(compose.branch, branchName),
 					eq(compose.repository, repository),
+					eq(compose.owner, owner),
 				),
 			});
 
@@ -160,6 +163,8 @@ export default async function handler(
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
+
+		console.log(githubBody);
 		if (githubBody?.action === "closed") {
 			const previewDeploymentResult =
 				await findPreviewDeploymentsByPullRequestId(prId);

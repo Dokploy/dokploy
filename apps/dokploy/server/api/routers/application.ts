@@ -296,6 +296,7 @@ export const applicationRouter = createTRPCRouter({
 				publishDirectory: input.publishDirectory,
 				dockerContextPath: input.dockerContextPath,
 				dockerBuildStage: input.dockerBuildStage,
+				herokuVersion: input.herokuVersion,
 			});
 
 			return true;

@@ -41,6 +41,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
+		herokuVersion: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("paketo_buildpacks"),
@@ -90,6 +91,13 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 						dockerBuildStage: data.dockerBuildStage || "",
 					}),
 				});
+			} else if (data.buildType === "heroku_buildpacks") {
+				form.reset({
+					buildType: data.buildType,
+					...(data.buildType && {
+						herokuVersion: data.herokuVersion || "",
+					}),
+				});
 			} else {
 				form.reset({
 					buildType: data.buildType,
@@ -110,6 +118,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === "dockerfile" ? data.dockerContextPath : null,
 			dockerBuildStage:
 				data.buildType === "dockerfile" ? data.dockerBuildStage : null,
+			herokuVersion:
+				data.buildType === "heroku_buildpacks" ? data.herokuVersion : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -200,6 +210,28 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								);
 							}}
 						/>
+						{buildType === "heroku_buildpacks" && (
+							<FormField
+								control={form.control}
+								name="herokuVersion"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Heroku Version (Optional)</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"Heroku Version (Default: 24)"}
+													{...field}
+													value={field.value ?? ""}
+												/>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						{buildType === "dockerfile" && (
 							<>
 								<FormField
