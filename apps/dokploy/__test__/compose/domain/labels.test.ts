@@ -17,7 +17,6 @@ describe("createDomainLabels", () => {
 		domainId: "",
 		path: "/",
 		createdAt: "",
-		isPreviewDeployment: false,
 		previewDeploymentId: "",
 	};
 

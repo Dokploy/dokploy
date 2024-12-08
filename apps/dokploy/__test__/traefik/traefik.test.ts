@@ -105,7 +105,6 @@ const baseDomain: Domain = {
 	composeId: "",
 	domainType: "application",
 	uniqueConfigKey: 1,
-	isPreviewDeployment: false,
 	previewDeploymentId: "",
 };
 
