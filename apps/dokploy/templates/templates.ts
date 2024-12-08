@@ -987,4 +987,19 @@ export const templates: TemplateData[] = [
 		tags: ["event-driven", "applications"],
 		load: () => import("./triggerdotdev/index").then((m) => m.generate),
 	},
+	{
+		id: "browserless",
+		name: "Browserless",
+		version: "2.23.0",
+		description:
+			"Browserless allows remote clients to connect and execute headless work, all inside of docker. It supports the standard, unforked Puppeteer and Playwright libraries, as well offering REST-based APIs for common actions like data collection, PDF generation and more.",
+		logo: "browserless.svg",
+		links: {
+			github: "https://github.com/browserless/browserless",
+			website: "https://www.browserless.io/",
+			docs: "https://docs.browserless.io/",
+		},
+		tags: ["browser", "automation"],
+		load: () => import("./browserless/index").then((m) => m.generate),
+	},
 ];
