@@ -2,7 +2,7 @@ version: '3'
 services:
   plantuml-server:
     image: plantuml/plantuml-server
-    expose:
+    ports:
       - "8080"
     networks:
       - dokploy-network
