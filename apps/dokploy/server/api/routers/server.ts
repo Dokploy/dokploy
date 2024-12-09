@@ -26,6 +26,7 @@ import {
 	haveActiveServices,
 	removeDeploymentsByServerId,
 	serverSetup,
+	serverValidate,
 	updateServerById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -116,6 +117,34 @@ export const serverRouter = createTRPCRouter({
 				return currentServer;
 			} catch (error) {
 				throw error;
+			}
+		}),
+	validate: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to validate this server",
+					});
+				}
+				const response = await serverValidate(input.serverId);
+				return response as unknown as {
+					isDockerInstalled: boolean;
+					isRCloneInstalled: boolean;
+					isSwarmInstalled: boolean;
+					isNixpacksInstalled: boolean;
+					isBuildpacksInstalled: boolean;
+					isMainDirectoryInstalled: boolean;
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+					cause: error as Error,
+				});
 			}
 		}),
 	remove: protectedProcedure

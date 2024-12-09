@@ -41,6 +41,7 @@ export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
+export * from "./setup/server-validate";
 
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
