@@ -21,6 +21,7 @@ const DockerProviderSchema = z.object({
 	}),
 	username: z.string().optional(),
 	password: z.string().optional(),
+	registryURL: z.string().optional(),
 });
 
 type DockerProvider = z.infer<typeof DockerProviderSchema>;
@@ -33,12 +34,12 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
-
 	const form = useForm<DockerProvider>({
 		defaultValues: {
 			dockerImage: "",
 			password: "",
 			username: "",
+			registryURL: "",
 		},
 		resolver: zodResolver(DockerProviderSchema),
 	});
@@ -49,6 +50,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				dockerImage: data.dockerImage || "",
 				password: data.password || "",
 				username: data.username || "",
+				registryURL: data.registryUrl || "",
 			});
 		}
 	}, [form.reset, data, form]);
@@ -59,6 +61,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			password: values.password || null,
 			applicationId,
 			username: values.username || null,
+			registryUrl: values.registryURL || null,
 		})
 			.then(async () => {
 				toast.success("Docker Provider Saved");
@@ -76,7 +79,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				className="flex flex-col gap-4"
 			>
 				<div className="grid md:grid-cols-2 gap-4 ">
-					<div className="md:col-span-2 space-y-4">
+					<div className="space-y-4">
 						<FormField
 							control={form.control}
 							name="dockerImage"
@@ -91,6 +94,19 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							)}
 						/>
 					</div>
+					<FormField
+						control={form.control}
+						name="registryURL"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Registry URL</FormLabel>
+								<FormControl>
+									<Input placeholder="Registry URL" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 					<div className="space-y-4">
 						<FormField
 							control={form.control}

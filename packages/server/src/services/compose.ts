@@ -214,7 +214,11 @@ export const deployCompose = async ({
 
 	try {
 		if (compose.sourceType === "github") {
-			await cloneGithubRepository(compose, deployment.logPath, true);
+			await cloneGithubRepository({
+				...compose,
+				logPath: deployment.logPath,
+				type: "compose",
+			});
 		} else if (compose.sourceType === "gitlab") {
 			await cloneGitlabRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "bitbucket") {
@@ -235,6 +239,7 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -248,6 +253,7 @@ export const deployCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 		throw error;
 	}
@@ -312,11 +318,12 @@ export const deployRemoteCompose = async ({
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
-				command += await getGithubCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
+				command += await getGithubCloneCommand({
+					...compose,
+					logPath: deployment.logPath,
+					type: "compose",
+					serverId: compose.serverId,
+				});
 			} else if (compose.sourceType === "gitlab") {
 				command += await getGitlabCloneCommand(
 					compose,
@@ -353,6 +360,7 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -376,6 +384,7 @@ export const deployRemoteCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error to build",
 			buildLink,
+			adminId: compose.project.adminId,
 		});
 		throw error;
 	}
@@ -453,6 +462,36 @@ export const removeCompose = async (compose: Compose) => {
 			}
 		}
 	} catch (error) {
+		throw error;
+	}
+
+	return true;
+};
+
+export const startCompose = async (composeId: string) => {
+	const compose = await findComposeById(composeId);
+	try {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		if (compose.composeType === "docker-compose") {
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`cd ${join(COMPOSE_PATH, compose.appName, "code")} && docker compose -p ${compose.appName} up -d`,
+				);
+			} else {
+				await execAsync(`docker compose -p ${compose.appName} up -d`, {
+					cwd: join(COMPOSE_PATH, compose.appName, "code"),
+				});
+			}
+		}
+
+		await updateCompose(composeId, {
+			composeStatus: "done",
+		});
+	} catch (error) {
+		await updateCompose(composeId, {
+			composeStatus: "idle",
+		});
 		throw error;
 	}
 

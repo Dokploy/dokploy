@@ -1,6 +1,6 @@
 name: Feature Request
 description: Suggest a new feature or improvement to the project
-labels: ['enhancement']
+labels: ["enhancement"]
 body:
   - type: textarea
     attributes:
@@ -31,3 +31,14 @@ body:
       description: Add any other context or screenshots about the feature request here.
     validations:
       required: false
+
+  - type: dropdown
+    attributes:
+      label: Will you send a PR to implement it?
+      description: Let us know if you are planning to submit a pull request to implement this feature.
+      options:
+        - "Yes"
+        - "No"
+        - "Maybe, need help"
+    validations:
+      required: true

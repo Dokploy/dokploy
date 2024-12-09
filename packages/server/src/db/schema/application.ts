@@ -22,9 +22,10 @@ import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import { applicationStatus, certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+import { previewDeployments } from "./preview-deployments";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",
@@ -114,6 +115,19 @@ export const applications = pgTable("application", {
 		.unique(),
 	description: text("description"),
 	env: text("env"),
+	previewEnv: text("previewEnv"),
+	previewBuildArgs: text("previewBuildArgs"),
+	previewWildcard: text("previewWildcard"),
+	previewPort: integer("previewPort").default(3000),
+	previewHttps: boolean("previewHttps").notNull().default(false),
+	previewPath: text("previewPath").default("/"),
+	previewCertificateType: certificateType("certificateType")
+		.notNull()
+		.default("none"),
+	previewLimit: integer("previewLimit").default(3),
+	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
+		false,
+	),
 	buildArgs: text("buildArgs"),
 	memoryReservation: integer("memoryReservation"),
 	memoryLimit: integer("memoryLimit"),
@@ -147,6 +161,7 @@ export const applications = pgTable("application", {
 	username: text("username"),
 	password: text("password"),
 	dockerImage: text("dockerImage"),
+	registryUrl: text("registryUrl"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -177,6 +192,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -238,6 +254,7 @@ export const applicationsRelations = relations(
 			fields: [applications.serverId],
 			references: [server.serverId],
 		}),
+		previewDeployments: many(previewDeployments),
 	}),
 );
 
@@ -347,7 +364,9 @@ const createSchema = createInsertSchema(applications, {
 	subtitle: z.string().optional(),
 	dockerImage: z.string().optional(),
 	username: z.string().optional(),
+	isPreviewDeploymentsActive: z.boolean().optional(),
 	password: z.string().optional(),
+	registryUrl: z.string().optional(),
 	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
 	dockerfile: z.string().optional(),
@@ -366,6 +385,7 @@ const createSchema = createInsertSchema(applications, {
 		"nixpacks",
 		"static",
 	]),
+	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -376,6 +396,14 @@ const createSchema = createInsertSchema(applications, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
+	previewPort: z.number().optional(),
+	previewEnv: z.string().optional(),
+	previewBuildArgs: z.string().optional(),
+	previewWildcard: z.string().optional(),
+	previewLimit: z.number().optional(),
+	previewHttps: z.boolean().optional(),
+	previewPath: z.string().optional(),
+	previewCertificateType: z.enum(["letsencrypt", "none"]).optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -406,6 +434,7 @@ export const apiSaveBuildType = createSchema
 		dockerfile: true,
 		dockerContextPath: true,
 		dockerBuildStage: true,
+		herokuVersion: true,
 	})
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true }));
@@ -451,6 +480,7 @@ export const apiSaveDockerProvider = createSchema
 		applicationId: true,
 		username: true,
 		password: true,
+		registryUrl: true,
 	})
 	.required();
 

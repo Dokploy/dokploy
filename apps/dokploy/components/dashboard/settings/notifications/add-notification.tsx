@@ -397,25 +397,23 @@ export const AddNotification = () => {
 								)}
 
 								{type === "discord" && (
-									<>
-										<FormField
-											control={form.control}
-											name="webhookUrl"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-															{...field}
-														/>
-													</FormControl>
+									<FormField
+										control={form.control}
+										name="webhookUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Webhook URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+														{...field}
+													/>
+												</FormControl>
 
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 								)}
 
 								{type === "email" && (
@@ -669,7 +667,7 @@ export const AddNotification = () => {
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when a dokploy is restarted.
+														Trigger the action when dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>

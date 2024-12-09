@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -11,11 +11,15 @@ import {
 } from "./utils";
 
 export const sendDockerCleanupNotifications = async (
+	adminId: string,
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.dockerCleanup, true),
+		where: and(
+			eq(notifications.dockerCleanup, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,
@@ -41,12 +45,27 @@ export const sendDockerCleanupNotifications = async (
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Docker Cleanup",
-				color: 0x00ff00,
+				title: "> `✅` - Docker Cleanup",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Message",
-						value: message,
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
+					},
+					{
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Successful",
+						inline: true,
+					},
+					{
+						name: "`📜`・Message",
+						value: `\`\`\`${message}\`\`\``,
 					},
 				],
 				timestamp: date.toISOString(),

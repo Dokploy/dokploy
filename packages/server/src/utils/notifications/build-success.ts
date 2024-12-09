@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -15,6 +15,7 @@ interface Props {
 	applicationName: string;
 	applicationType: string;
 	buildLink: string;
+	adminId: string;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -22,10 +23,14 @@ export const sendBuildSuccessNotifications = async ({
 	applicationName,
 	applicationType,
 	buildLink,
+	adminId,
 }: Props) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.appDeploy, true),
+		where: and(
+			eq(notifications.appDeploy, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,
@@ -52,27 +57,42 @@ export const sendBuildSuccessNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Build Success",
-				color: 0x00ff00,
+				title: "> `✅` - Build Success",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️`・Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️`・Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔`・Application Type",
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "Build Link",
-						value: buildLink,
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
+					},
+					{
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Successful",
+						inline: true,
+					},
+					{
+						name: "`🧷`・Build Link",
+						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
 				timestamp: date.toISOString(),

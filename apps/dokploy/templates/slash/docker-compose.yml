@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  slash-app:
+    image: yourselfhosted/slash:latest
+    networks:
+      - dokploy-network
+    volumes:
+      - slash-app-data:/var/opt/slash
+    environment:
+      - SLASH_DRIVER=postgres
+      - SLASH_DSN=postgresql://${DB_USER}:${DB_PASSWORD}@slash-postgres:5432/${DB_NAME}?sslmode=disable
+    depends_on:
+      slash-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  slash-postgres:
+    image: postgres:16-alpine
+    networks:
+      - dokploy-network
+    volumes:
+      - slash-postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  slash-app-data:
+  slash-postgres-data: 

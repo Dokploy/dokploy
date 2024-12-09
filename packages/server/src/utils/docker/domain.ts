@@ -259,10 +259,10 @@ export const createDomainLabels = async (
 	domain: Domain,
 	entrypoint: "web" | "websecure",
 ) => {
-	const { host, port, https, uniqueConfigKey, certificateType } = domain;
+	const { host, port, https, uniqueConfigKey, certificateType, path } = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)`,
+		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,

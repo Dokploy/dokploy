@@ -183,7 +183,10 @@ const createEnvFile = (compose: ComposeNested) => {
 		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
-	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
+	const envFileContent = prepareEnvironmentVariables(
+		envContent,
+		compose.project.env,
+	).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
 		mkdirSync(dirname(envFilePath), { recursive: true });
@@ -241,7 +244,10 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
-	const envFileContent = prepareEnvironmentVariables(envContent).join("\n");
+	const envFileContent = prepareEnvironmentVariables(
+		envContent,
+		compose.project.env,
+	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);
 	return `

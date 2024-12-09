@@ -11,7 +11,10 @@ export const buildHeroku = async (
 ) => {
 	const { env, appName } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 	try {
 		const args = [
 			"build",
@@ -19,7 +22,7 @@ export const buildHeroku = async (
 			"--path",
 			buildAppDirectory,
 			"--builder",
-			"heroku/builder:24",
+			`heroku/builder:${application.herokuVersion || "24"}`,
 		];
 
 		for (const env of envVariables) {
@@ -44,7 +47,10 @@ export const getHerokuCommand = (
 	const { env, appName } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const args = [
 		"build",
@@ -52,7 +58,7 @@ export const getHerokuCommand = (
 		"--path",
 		buildAppDirectory,
 		"--builder",
-		"heroku/builder:24",
+		`heroku/builder:${application.herokuVersion || "24"}`,
 	];
 
 	for (const env of envVariables) {

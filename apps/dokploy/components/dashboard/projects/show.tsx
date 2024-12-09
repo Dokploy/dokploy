@@ -25,7 +25,6 @@ import { api } from "@/utils/api";
 import {
 	AlertTriangle,
 	BookIcon,
-	CircuitBoard,
 	ExternalLink,
 	ExternalLinkIcon,
 	FolderInput,
@@ -35,6 +34,7 @@ import {
 import Link from "next/link";
 import { Fragment } from "react";
 import { toast } from "sonner";
+import { ProjectEnviroment } from "./project-enviroment";
 import { UpdateProject } from "./update";
 
 export const ShowProjects = () => {
@@ -190,7 +190,11 @@ export const ShowProjects = () => {
 														<DropdownMenuLabel className="font-normal">
 															Actions
 														</DropdownMenuLabel>
-
+														<div onClick={(e) => e.stopPropagation()}>
+															<ProjectEnviroment
+																projectId={project.projectId}
+															/>
+														</div>
 														<div onClick={(e) => e.stopPropagation()}>
 															<UpdateProject projectId={project.projectId} />
 														</div>

@@ -1,62 +1,139 @@
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const deleteMongoSchema = z.object({
+	projectName: z.string().min(1, {
+		message: "Database name is required",
+	}),
+});
+
+type DeleteMongo = z.infer<typeof deleteMongoSchema>;
 
 interface Props {
 	mongoId: string;
 }
 
+// commen
+
 export const DeleteMongo = ({ mongoId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, isLoading } = api.mongo.remove.useMutation();
+	const { data } = api.mongo.one.useQuery({ mongoId }, { enabled: !!mongoId });
 	const { push } = useRouter();
+	const form = useForm<DeleteMongo>({
+		defaultValues: {
+			projectName: "",
+		},
+		resolver: zodResolver(deleteMongoSchema),
+	});
+
+	const onSubmit = async (formData: DeleteMongo) => {
+		const expectedName = `${data?.name}/${data?.appName}`;
+		if (formData.projectName === expectedName) {
+			await mutateAsync({ mongoId })
+				.then((data) => {
+					push(`/dashboard/project/${data?.projectId}`);
+					toast.success("Database deleted successfully");
+					setIsOpen(false);
+				})
+				.catch(() => {
+					toast.error("Error deleting the database");
+				});
+		} else {
+			form.setError("projectName", {
+				message: "Database name does not match",
+			});
+		}
+	};
 	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+			<DialogTrigger asChild>
 				<Button variant="ghost" isLoading={isLoading}>
-					<TrashIcon className="size-4  text-muted-foreground " />
+					<TrashIcon className="size-4 text-muted-foreground" />
 				</Button>
-			</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-					<AlertDialogDescription>
+			</DialogTrigger>
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Are you absolutely sure?</DialogTitle>
+					<DialogDescription>
 						This action cannot be undone. This will permanently delete the
-						database
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={async () => {
-							await mutateAsync({
-								mongoId,
-							})
-								.then((data) => {
-									push(`/dashboard/project/${data?.projectId}`);
-									toast.success("Database delete succesfully");
-								})
-								.catch(() => {
-									toast.error("Error to delete the database");
-								});
+						database. If you are sure please enter the database name to delete
+						this database.
+					</DialogDescription>
+				</DialogHeader>
+				<div className="grid gap-4">
+					<Form {...form}>
+						<form
+							onSubmit={form.handleSubmit(onSubmit)}
+							id="hook-form-delete-mongo"
+							className="grid w-full gap-4"
+						>
+							<FormField
+								control={form.control}
+								name="projectName"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											To confirm, type "{data?.name}/{data?.appName}" in the box
+											below
+										</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Enter database name to confirm"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</form>
+					</Form>
+				</div>
+				<DialogFooter>
+					<Button
+						variant="secondary"
+						onClick={() => {
+							setIsOpen(false);
 						}}
 					>
+						Cancel
+					</Button>
+					<Button
+						isLoading={isLoading}
+						form="hook-form-delete-mongo"
+						type="submit"
+						variant="destructive"
+					>
 						Confirm
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };

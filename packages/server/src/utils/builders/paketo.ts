@@ -10,7 +10,10 @@ export const buildPaketo = async (
 ) => {
 	const { env, appName } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 	try {
 		const args = [
 			"build",
@@ -43,7 +46,10 @@ export const getPaketoCommand = (
 	const { env, appName } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const args = [
 		"build",

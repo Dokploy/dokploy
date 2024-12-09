@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -16,16 +16,21 @@ export const sendDatabaseBackupNotifications = async ({
 	databaseType,
 	type,
 	errorMessage,
+	adminId,
 }: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
 	type: "error" | "success";
+	adminId: string;
 	errorMessage?: string;
 }) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.databaseBackup, true),
+		where: and(
+			eq(notifications.databaseBackup, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,
@@ -59,39 +64,47 @@ export const sendDatabaseBackupNotifications = async ({
 			await sendDiscordNotification(discord, {
 				title:
 					type === "success"
-						? "✅ Database Backup Successful"
-						: "❌ Database Backup Failed",
-				color: type === "success" ? 0x00ff00 : 0xff0000,
+						? "> `✅` - Database Backup Successful"
+						: "> `❌` - Database Backup Failed",
+				color: type === "success" ? 0x57f287 : 0xed4245,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️`・Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️`・Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔`・Database",
 						value: databaseType,
 						inline: true,
 					},
 					{
-						name: "Time",
-						value: date.toLocaleString(),
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
 						inline: true,
 					},
 					{
-						name: "Type",
-						value: type,
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: type
+							.replace("error", "Failed")
+							.replace("success", "Successful"),
+						inline: true,
 					},
 					...(type === "error" && errorMessage
 						? [
 								{
-									name: "Error Message",
-									value: errorMessage,
+									name: "`⚠️`・Error Message",
+									value: `\`\`\`${errorMessage}\`\`\``,
 								},
 							]
 						: []),

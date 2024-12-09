@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -16,6 +16,7 @@ interface Props {
 	applicationType: string;
 	errorMessage: string;
 	buildLink: string;
+	adminId: string;
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -24,10 +25,14 @@ export const sendBuildErrorNotifications = async ({
 	applicationType,
 	errorMessage,
 	buildLink,
+	adminId,
 }: Props) => {
 	const date = new Date();
 	const notificationList = await db.query.notifications.findMany({
-		where: eq(notifications.appBuildError, true),
+		where: and(
+			eq(notifications.appBuildError, true),
+			eq(notifications.adminId, adminId),
+		),
 		with: {
 			email: true,
 			discord: true,
@@ -54,31 +59,46 @@ export const sendBuildErrorNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "⚠️ Build Failed",
-				color: 0xff0000,
+				title: "> `⚠️` - Build Failed",
+				color: 0xed4245,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️`・Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️`・Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔`・Type",
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "Error",
-						value: errorMessage,
+						name: "`📅`・Date",
+						value: date.toLocaleDateString(),
+						inline: true,
 					},
 					{
-						name: "Build Link",
-						value: buildLink,
+						name: "`⌚`・Time",
+						value: date.toLocaleTimeString(),
+						inline: true,
+					},
+					{
+						name: "`❓`・Type",
+						value: "Failed",
+						inline: true,
+					},
+					{
+						name: "`⚠️`・Error Message",
+						value: `\`\`\`${errorMessage}\`\`\``,
+					},
+					{
+						name: "`🧷`・Build Link",
+						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
 				timestamp: date.toISOString(),

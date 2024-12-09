@@ -1,0 +1,48 @@
+services:
+  heyform:
+    image: heyform/community-edition:latest
+    restart: always
+    volumes:
+      # Persist uploaded images
+      - heyform-data:/app/static/upload
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - 8000
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: 'mongodb://mongo:27017/heyform'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - heyform-network
+
+  mongo:
+    image: percona/percona-server-mongodb:4.4
+    restart: always
+    networks:
+      - heyform-network
+    volumes:
+      # Persist MongoDB data
+      - mongo-data:/data/db
+
+  redis:
+    image: redis
+    restart: always
+    command: "redis-server --appendonly yes"
+    networks:
+      - heyform-network
+    volumes:
+      # Persist KeyDB data
+      - redis-data:/data
+
+networks:
+  heyform-network:
+    driver: bridge
+
+volumes:
+  heyform-data:
+  mongo-data:
+  redis-data:

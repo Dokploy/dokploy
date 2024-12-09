@@ -21,7 +21,6 @@ import {
 import type { Session, User } from "lucia";
 import superjson from "superjson";
 import { ZodError } from "zod";
-
 /**
  * 1. CONTEXT
  *
