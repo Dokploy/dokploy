@@ -20,6 +20,7 @@ export * from "./services/mount";
 export * from "./services/certificate";
 export * from "./services/redirect";
 export * from "./services/security";
+export * from "./services/preview-deployment";
 export * from "./services/port";
 export * from "./services/redis";
 export * from "./services/compose";
@@ -40,6 +41,7 @@ export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
+export * from "./setup/server-validate";
 
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
