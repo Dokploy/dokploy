@@ -80,7 +80,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 											label="Docker Installed"
 											isEnabled={data?.docker?.enabled}
 											description={
-												data?.docker?.version
+												data?.docker?.enabled
 													? `Installed: ${data?.docker?.version}`
 													: undefined
 											}
@@ -89,7 +89,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 											label="RClone Installed"
 											isEnabled={data?.rclone?.enabled}
 											description={
-												data?.rclone?.version
+												data?.rclone?.enabled
 													? `Installed: ${data?.rclone?.version}`
 													: undefined
 											}
@@ -98,7 +98,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 											label="Nixpacks Installed"
 											isEnabled={data?.nixpacks?.enabled}
 											description={
-												data?.nixpacks?.version
+												data?.nixpacks?.enabled
 													? `Installed: ${data?.nixpacks?.version}`
 													: undefined
 											}
@@ -107,7 +107,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 											label="Buildpacks Installed"
 											isEnabled={data?.buildpacks?.enabled}
 											description={
-												data?.buildpacks?.version
+												data?.buildpacks?.enabled
 													? `Installed: ${data?.buildpacks?.version}`
 													: undefined
 											}
