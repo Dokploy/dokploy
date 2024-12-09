@@ -17,6 +17,7 @@ module.exports = {
 			"fa",
 			"ko",
 			"pt-br",
+			"ja",
 		],
 		localeDetection: false,
 	},
