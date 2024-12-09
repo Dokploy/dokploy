@@ -951,8 +951,8 @@ export const templates: TemplateData[] = [
 		logo: "ryot.png",
 		links: {
 			github: "https://github.com/IgnisDa/ryot",
-			website: "https://ryot.dev/",
-			docs: "https://ryot.dev/docs/getting-started",
+			website: "https://ryot.io/",
+			docs: "https://docs.ryot.io/",
 		},
 		tags: ["media", "tracking", "self-hosted"],
 		load: () => import("./ryot/index").then((m) => m.generate),
