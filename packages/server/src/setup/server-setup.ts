@@ -81,11 +81,6 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 				CURRENT_USER=$USER
 
-				echo "Installing requirements for: OS: $OS_TYPE"
-				if [ $EUID != 0 ]; then
-					echo "Please run this script as root or with sudo ❌" 
-					exit
-				fi
 				
 				# Check if the OS is manjaro, if so, change it to arch
 				if [ "$OS_TYPE" = "manjaro" ] || [ "$OS_TYPE" = "manjaro-arm" ]; then

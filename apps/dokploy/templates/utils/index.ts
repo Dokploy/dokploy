@@ -1,8 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Domain } from "@dokploy/server";
-// import { IS_CLOUD } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
@@ -12,7 +10,11 @@ export interface Schema {
 	projectName: string;
 }
 
-export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
+export type DomainSchema = {
+	host: string;
+	port: number;
+	serviceName: string;
+};
 
 export interface Template {
 	envs?: string[];

@@ -5,6 +5,7 @@ import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deploymen
 import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
+import { ImportTemplate } from "@/components/dashboard/compose/import-template";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
@@ -206,6 +207,7 @@ const Service = (
 							<TabsTrigger value="advanced">Advanced</TabsTrigger>
 						</TabsList>
 						<div className="flex flex-row gap-2">
+							<ImportTemplate composeId={composeId} />
 							<UpdateCompose composeId={composeId} />
 
 							{(auth?.rol === "admin" || user?.canDeleteServices) && (
