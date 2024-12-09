@@ -73,25 +73,48 @@ export const ValidateServer = ({ serverId }: Props) => {
 								<div className="border rounded-lg p-4">
 									<h3 className="text-lg font-semibold mb-1">Status</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Shows the configuration state that changes with the Enable
-										GPU
+										Shows the server configuration status
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
 											label="Docker Installed"
-											isEnabled={data?.isDockerInstalled}
+											isEnabled={data?.docker?.enabled}
+											description={
+												data?.docker?.version
+													? `Installed: ${data?.docker?.version}`
+													: undefined
+											}
 										/>
 										<StatusRow
 											label="RClone Installed"
-											isEnabled={data?.isRCloneInstalled}
+											isEnabled={data?.rclone?.enabled}
+											description={
+												data?.rclone?.version
+													? `Installed: ${data?.rclone?.version}`
+													: undefined
+											}
 										/>
 										<StatusRow
 											label="Nixpacks Installed"
-											isEnabled={data?.isNixpacksInstalled}
+											isEnabled={data?.nixpacks?.enabled}
+											description={
+												data?.nixpacks?.version
+													? `Installed: ${data?.nixpacks?.version}`
+													: undefined
+											}
 										/>
 										<StatusRow
 											label="Buildpacks Installed"
-											isEnabled={data?.isBuildpacksInstalled}
+											isEnabled={data?.buildpacks?.enabled}
+											description={
+												data?.buildpacks?.version
+													? `Installed: ${data?.buildpacks?.version}`
+													: undefined
+											}
+										/>
+										<StatusRow
+											label="Dokploy Network Installed"
+											isEnabled={data?.isDokployNetworkInstalled}
 										/>
 										<StatusRow
 											label="Swarm Installed"

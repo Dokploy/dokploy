@@ -132,11 +132,24 @@ export const serverRouter = createTRPCRouter({
 				}
 				const response = await serverValidate(input.serverId);
 				return response as unknown as {
-					isDockerInstalled: boolean;
-					isRCloneInstalled: boolean;
+					docker: {
+						enabled: boolean;
+						version: string;
+					};
+					rclone: {
+						enabled: boolean;
+						version: string;
+					};
+					nixpacks: {
+						enabled: boolean;
+						version: string;
+					};
+					buildpacks: {
+						enabled: boolean;
+						version: string;
+					};
+					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
-					isNixpacksInstalled: boolean;
-					isBuildpacksInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
 				};
 			} catch (error) {

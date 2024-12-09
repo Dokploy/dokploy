@@ -3,17 +3,17 @@ import { findServerById } from "../services/server";
 
 export const validateDocker = () => `
   if command_exists docker; then
-    echo true
+     echo "$(docker --version | awk '{print $3}' | sed 's/,//') true"
   else
-    echo false
+    echo "0.0.0 false"
   fi
 `;
 
 export const validateRClone = () => `
   if command_exists rclone; then
-    echo true
+    echo "$(rclone --version | head -n 1 | awk '{print $2}') true"
   else
-    echo false
+    echo "0.0.0 false"
   fi
 `;
 
@@ -27,17 +27,17 @@ export const validateSwarm = () => `
 
 export const validateNixpacks = () => `
   if command_exists nixpacks; then
-	echo true
+    echo "$(nixpacks --version | awk '{print $2}') true"
   else
-	echo false
+    echo "0.0.0 false"
   fi
 `;
 
 export const validateBuildpacks = () => `
   if command_exists pack; then
-	echo true
+    echo "$(pack --version | awk '{print $1}') true"
   else
-	echo false
+    echo "0.0.0 false"
   fi
 `;
 
@@ -48,6 +48,15 @@ export const validateMainDirectory = () => `
 	echo false
   fi
 `;
+
+export const validateDokployNetwork = () => `
+  if docker network ls | grep -q 'dokploy-network'; then
+	echo true
+  else
+	echo false
+  fi
+`;
+
 export const serverValidate = async (serverId: string) => {
 	const client = new Client();
 	const server = await findServerById(serverId);
@@ -63,14 +72,28 @@ export const serverValidate = async (serverId: string) => {
             command -v "$@" > /dev/null 2>&1
           }
 
-          isDockerInstalled=$(${validateDocker()})
-          isRCloneInstalled=$(${validateRClone()})
-          isSwarmInstalled=$(${validateSwarm()})
-		  isNixpacksInstalled=$(${validateNixpacks()})
-		  isBuildpacksInstalled=$(${validateBuildpacks()})
-		  isMainDirectoryInstalled=$(${validateMainDirectory()})
+          dockerVersionEnabled=$(${validateDocker()})
+          rcloneVersionEnabled=$(${validateRClone()})
+          nixpacksVersionEnabled=$(${validateNixpacks()})
+          buildpacksVersionEnabled=$(${validateBuildpacks()})
 
-  echo "{\\"isDockerInstalled\\": $isDockerInstalled, \\"isRCloneInstalled\\": $isRCloneInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isNixpacksInstalled\\": $isNixpacksInstalled, \\"isBuildpacksInstalled\\": $isBuildpacksInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
+          dockerVersion=$(echo $dockerVersionEnabled | awk '{print $1}')
+          dockerEnabled=$(echo $dockerVersionEnabled | awk '{print $2}')
+
+          rcloneVersion=$(echo $rcloneVersionEnabled | awk '{print $1}')
+          rcloneEnabled=$(echo $rcloneVersionEnabled | awk '{print $2}')
+
+          nixpacksVersion=$(echo $nixpacksVersionEnabled | awk '{print $1}')
+          nixpacksEnabled=$(echo $nixpacksVersionEnabled | awk '{print $2}')
+
+          buildpacksVersion=$(echo $buildpacksVersionEnabled | awk '{print $1}')
+          buildpacksEnabled=$(echo $buildpacksVersionEnabled | awk '{print $2}')
+
+          isDokployNetworkInstalled=$(${validateDokployNetwork()})
+          isSwarmInstalled=$(${validateSwarm()})
+          isMainDirectoryInstalled=$(${validateMainDirectory()})
+
+  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
         `;
 				client.exec(bashCommand, (err, stream) => {
 					if (err) {
