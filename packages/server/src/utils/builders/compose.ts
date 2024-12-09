@@ -13,7 +13,7 @@ import {
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
 import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
-import { execAsyncRemote } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -28,6 +28,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
+		await processComposeFile(compose);
 
 		const logContent = `
 App Name: ${appName}
@@ -84,6 +85,7 @@ export const getBuildComposeCommand = async (
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const processComposeFileCommand = getProcessComposeFileCommand(compose);
 
 	const newCompose = await writeDomainsToComposeRemote(
 		compose,
@@ -119,6 +121,8 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
+		${processComposeFileCommand}
+
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
 	
 		echo "Docker Compose Deployed: ✅" >> "${logPath}"
@@ -145,22 +149,21 @@ export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 
 	const path =
-		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-	let command = "";
+		sourceType === "raw"
+			? composeType === "stack"
+				? "docker-compose.processed.yml"
+				: "docker-compose.yml"
+			: composeType === "stack"
+				? join(dirname(compose.composePath), "docker-compose.processed.yml")
+				: compose.composePath;
 
-	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
-	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune`;
-	}
+	const baseCommand =
+		composeType === "docker-compose"
+			? `compose -p ${appName} -f ${path} up -d --build --remove-orphans`
+			: `stack deploy -c ${path} ${appName} --prune`;
 
 	const customCommand = sanitizeCommand(compose.command);
-
-	if (customCommand) {
-		command = `${command} ${customCommand}`;
-	}
-
-	return command;
+	return customCommand ? `${baseCommand} ${customCommand}` : baseCommand;
 };
 
 const createEnvFile = (compose: ComposeNested) => {
@@ -189,6 +192,38 @@ const createEnvFile = (compose: ComposeNested) => {
 		mkdirSync(dirname(envFilePath), { recursive: true });
 	}
 	writeFileSync(envFilePath, envFileContent);
+};
+
+export const processComposeFile = async (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths();
+	if (compose.composeType === "stack") {
+		const command = getProcessComposeFileCommand(compose);
+		await execAsync(command, {
+			cwd: join(COMPOSE_PATH, compose.appName, "code"),
+		});
+	}
+};
+
+export const getProcessComposeFileCommand = (compose: ComposeNested) => {
+	const { composeType, sourceType } = compose;
+
+	const composePath =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+
+	const destinationPath =
+		sourceType === "raw"
+			? "docker-compose.processed.yml"
+			: join(dirname(compose.composePath), "docker-compose.processed.yml");
+
+	let command = "";
+	if (composeType === "stack") {
+		command = [
+			"export $(grep -v '^#' .env | xargs)",
+			`docker stack config -c ${composePath} > ${destinationPath}`,
+		].join(" && ");
+	}
+
+	return command;
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
