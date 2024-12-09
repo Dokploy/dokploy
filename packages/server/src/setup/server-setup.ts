@@ -132,14 +132,16 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				echo -e "---------------------------------------------\n"
 				echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
 
+				command_exists() {
+					command -v "$@" > /dev/null 2>&1
+				}
+
 				${installUtilities()}
 
 				echo -e "2. Validating ports. "
 				${validatePorts()}
 
-				command_exists() {
-					command -v "$@" > /dev/null 2>&1
-				}
+				
 
 				echo -e "3. Installing RClone. "
 				${installRClone()}
