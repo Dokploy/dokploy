@@ -32,6 +32,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail");
 		const serverId = url.searchParams.get("serverId");
+		const search = url.searchParams.get("search");
 		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!containerId) {
@@ -51,9 +52,10 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const client = new Client();
 				client
 					.once("ready", () => {
-						const command = `
-						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
-					`;
+						const baseCommand = `docker container logs --tail ${tail} --follow ${containerId}`;
+						const command = search
+							? `${baseCommand} 2>&1 | grep -iF "${search}"`
+							: baseCommand;
 						client.exec(command, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
@@ -91,21 +93,18 @@ export const setupDockerContainerLogsWebSocketServer = (
 				});
 			} else {
 				const shell = getShell();
-				const ptyProcess = spawn(
-					shell,
-					[
-						"-c",
-						`docker container logs --tail ${tail} --follow ${containerId}`,
-					],
-					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
-					},
-				);
+				const baseCommand = `docker container logs --tail ${tail} --follow ${containerId}`;
+				const command = search
+					? `${baseCommand} 2>&1 | grep -iF "${search}"`
+					: baseCommand;
+				const ptyProcess = spawn(shell, ["-c", command], {
+					name: "xterm-256color",
+					cwd: process.env.HOME,
+					env: process.env,
+					encoding: "utf8",
+					cols: 80,
+					rows: 30,
+				});
 
 				ptyProcess.onData((data) => {
 					ws.send(data);

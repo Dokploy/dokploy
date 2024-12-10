@@ -4,19 +4,42 @@ import * as React from "react";
 export interface InputProps
 	extends React.InputHTMLAttributes<HTMLInputElement> {
 	errorMessage?: string;
+	debounceMs?: number;
+	onDebounce?: (value: string) => void;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-	({ className, errorMessage, type, ...props }, ref) => {
+	(
+		{
+			className,
+			errorMessage,
+			type,
+			debounceMs,
+			onDebounce,
+			onChange,
+			...props
+		},
+		ref,
+	) => {
+		React.useEffect(() => {
+			if (!debounceMs || !onChange) return;
+
+			const timer = setTimeout(() => {
+				onDebounce?.(props.value?.toString() ?? "");
+			}, debounceMs);
+
+			return () => clearTimeout(timer);
+		}, [props.value, debounceMs, onDebounce]);
+
 		return (
 			<>
 				<input
 					type={type}
 					className={cn(
-						// bg-gray
 						"flex h-10 w-full rounded-md bg-input px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none  focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
 						className,
 					)}
+					onChange={onChange}
 					ref={ref}
 					{...props}
 				/>
@@ -32,7 +55,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = "Input";
 
 const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
-	({ className, errorMessage, ...props }, ref) => {
+	({ className, errorMessage, onDebounce, ...props }, ref) => {
 		return (
 			<Input
 				type="text"
@@ -60,6 +83,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 						}
 					}
 				}}
+				onDebounce={onDebounce}
 			/>
 		);
 	},
