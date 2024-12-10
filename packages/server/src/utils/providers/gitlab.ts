@@ -244,7 +244,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
-		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -304,7 +304,7 @@ export const getGitlabBranches = async (input: {
 	const gitlabProvider = await findGitlabById(input.gitlabId);
 
 	const branchesResponse = await fetch(
-		`https://gitlab.com/api/v4/projects/${input.id}/repository/branches`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects/${input.id}/repository/branches`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -352,7 +352,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	await recreateDirectory(outputPath);
 	const gitlabUrl = gitlabProvider.gitlabUrl;
 	// What happen with oauth in self hosted instances?
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const repoclone = `${gitlabProvider.gitlabUrl}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 
 	try {
@@ -392,7 +392,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const repoclone = `${gitlabProvider.gitlabUrl}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 	try {
 		const command = `
