@@ -25,16 +25,16 @@ import {
   PostgresqlIcon,
   RedisIcon,
 } from "@/components/icons/data-tools-icons";
+import { api } from "@/utils/api";
+import { truncate } from "lodash";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
-interface Props {
-  data: Project[];
-}
-
-export const SearchCommand = ({ data }: Props) => {
+export const SearchCommand = () => {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+
+  const { data } = api.project.all.useQuery();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -53,61 +53,11 @@ export const SearchCommand = ({ data }: Props) => {
   return (
     <div>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder={"Search projects"} />
+        <CommandInput placeholder={"Search projects or settings"} />
         <CommandList>
           <CommandEmpty>
             No projects added yet. Click on Create project.
           </CommandEmpty>
-          <CommandGroup heading={"Application"}>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/projects");
-                setOpen(false);
-              }}
-            >
-              Projects
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/monitoring");
-                setOpen(false);
-              }}
-            >
-              Monitoring
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/traefik");
-                setOpen(false);
-              }}
-            >
-              Treafik
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/docker");
-                setOpen(false);
-              }}
-            >
-              Docker
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/requests");
-                setOpen(false);
-              }}
-            >
-              Requests
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/profile");
-                setOpen(false);
-              }}
-            >
-              Settings
-            </CommandItem>
-          </CommandGroup>
           <CommandGroup heading={"Projects"}>
             <CommandList>
               {data?.map((project) => (
@@ -161,6 +111,57 @@ export const SearchCommand = ({ data }: Props) => {
                 ));
               })}
             </CommandList>
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading={"Application"} hidden={true}>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/projects");
+                setOpen(false);
+              }}
+            >
+              Projects
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/monitoring");
+                setOpen(false);
+              }}
+            >
+              Monitoring
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/traefik");
+                setOpen(false);
+              }}
+            >
+              Traefik
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/docker");
+                setOpen(false);
+              }}
+            >
+              Docker
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/requests");
+                setOpen(false);
+              }}
+            >
+              Requests
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                router.push("/dashboard/profile");
+                setOpen(false);
+              }}
+            >
+              Settings
+            </CommandItem>
           </CommandGroup>
         </CommandList>
       </CommandDialog>
