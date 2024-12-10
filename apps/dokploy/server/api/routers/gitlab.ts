@@ -78,7 +78,6 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			console.log("DEBUG: gitlabProvider: ", gitlabProvider);
 			if (IS_CLOUD && gitlabProvider.gitProvider.adminId !== ctx.user.adminId) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
