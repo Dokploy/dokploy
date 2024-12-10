@@ -155,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
