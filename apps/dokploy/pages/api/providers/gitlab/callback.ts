@@ -7,8 +7,6 @@ export default async function handler(
 ) {
 	const { code, gitlabId } = req.query;
 
-	console.log("DEBUG: res.query: ", res);
-
 	if (!code || Array.isArray(code)) {
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
