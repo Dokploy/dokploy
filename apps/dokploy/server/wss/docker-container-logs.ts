@@ -31,6 +31,8 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail");
+		const search = url.searchParams.get("search");
+		const since = url.searchParams.get("since")
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateWebSocketRequest(req);
 
@@ -52,7 +54,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				client
 					.once("ready", () => {
 						const command = `
-						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
+						bash -c "docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -i '${search}'"
 					`;
 						client.exec(command, (err, stream) => {
 							if (err) {
@@ -95,7 +97,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					shell,
 					[
 						"-c",
-						`docker container logs --tail ${tail} --follow ${containerId}`,
+						`docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -i '${search}'`,
 					],
 					{
 						name: "xterm-256color",

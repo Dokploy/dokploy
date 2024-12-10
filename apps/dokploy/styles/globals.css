@@ -173,3 +173,29 @@
 		padding-top: 1rem !important;
 	}
 }
+
+/* Docker Logs Scrollbar */
+@layer utilities {
+	.custom-logs-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--muted-foreground)) transparent;
+	}
+
+	.custom-logs-scrollbar::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	.custom-logs-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb {
+		background-color: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 20px;
+	}
+
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: hsl(var(--muted-foreground) / 0.5);
+	}
+}
