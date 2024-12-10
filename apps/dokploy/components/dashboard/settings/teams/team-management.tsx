@@ -288,113 +288,123 @@ export const TeamManagement = ({ teamId }: Props) => {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{team?.members?.map((member) => (
-										<TableRow key={member.userId}>
-											<TableCell>{member.user.email}</TableCell>
-											<TableCell className="text-center">
-												<div className="flex justify-center">
-													<Select
-														value={member.role}
-														onValueChange={(value: AssignableTeamRole) =>
-															handleUpdateRole(member.userId, value)
+									{team?.members
+										?.filter((member) => member.user)
+										?.map((member) => (
+											<TableRow key={member.userId}>
+												<TableCell>{member.user?.email}</TableCell>
+												<TableCell className="text-center">
+													<div className="flex justify-center">
+														<Select
+															value={member.role}
+															onValueChange={(value: AssignableTeamRole) =>
+																handleUpdateRole(member.userId, value)
+															}
+															disabled={
+																isUpdating || member.role === OWNER_ROLE
+															}
+														>
+															<SelectTrigger className="w-fit min-w-[100px] bg-muted">
+																<SelectValue />
+															</SelectTrigger>
+															<SelectContent>
+																{teamRoles.map((role) => (
+																	<SelectItem key={role} value={role}>
+																		{role}
+																	</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+													</div>
+												</TableCell>
+												<TableCell className="text-center">
+													<Badge
+														variant={
+															member.user?.isRegistered
+																? "default"
+																: "secondary"
 														}
-														disabled={isUpdating || member.role === OWNER_ROLE}
 													>
-														<SelectTrigger className="w-fit min-w-[100px] bg-muted">
-															<SelectValue />
-														</SelectTrigger>
-														<SelectContent>
-															{teamRoles.map((role) => (
-																<SelectItem key={role} value={role}>
-																	{role}
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-												</div>
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant={
-														member.user.isRegistered ? "default" : "secondary"
-													}
-												>
-													{member.user.isRegistered ? "Active" : "Pending"}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-center">
-												<Badge
-													variant={
-														member.user.auth?.is2FAEnabled
-															? "default"
-															: "outline"
-													}
-												>
-													{member.user.auth?.is2FAEnabled
-														? "2FA Enabled"
-														: "2FA Disabled"}
-												</Badge>
-											</TableCell>
-											<TableCell className="text-right flex justify-end">
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button variant="ghost" className="h-8 w-8 p-0">
-															<span className="sr-only">Open menu</span>
-															<MoreHorizontal className="h-4 w-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuLabel>Team Actions</DropdownMenuLabel>
-														{member.role === OWNER_ROLE ? (
-															<>
-																<DropdownMenuItem
-																	className="cursor-pointer"
-																	onSelect={(e) => {
-																		e.preventDefault();
-																		toast.info(
-																			"Transfer ownership coming soon",
-																		);
-																	}}
-																>
-																	Transfer Ownership
-																</DropdownMenuItem>
-																<DropdownMenuItem
-																	className="cursor-pointer"
-																	onSelect={(e) => {
-																		e.preventDefault();
-																		toast.info("Activity log coming soon");
-																	}}
-																>
-																	View Activity Log
-																</DropdownMenuItem>
-															</>
-														) : (
-															<>
-																<AddMemberPermissions
-																	teamId={teamId}
-																	userId={member.userId}
-																/>
-																<DropdownMenuItem
-																	className="text-destructive cursor-pointer"
-																	onSelect={(e) => {
-																		e.preventDefault();
-																		setUserToDelete({
-																			id: member.userId,
-																			email: member.user.email,
-																		});
-																		setShowDeleteUserDialog(true);
-																	}}
-																	disabled={isDeleting}
-																>
-																	Delete User
-																</DropdownMenuItem>
-															</>
-														)}
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</TableCell>
-										</TableRow>
-									))}
+														{member.user?.isRegistered
+															? "Registered"
+															: "Not Registered"}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-center">
+													<Badge
+														variant={
+															member.user?.auth?.is2FAEnabled
+																? "default"
+																: "outline"
+														}
+													>
+														{member.user?.auth?.is2FAEnabled
+															? "2FA Enabled"
+															: "2FA Disabled"}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-right flex justify-end">
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button variant="ghost" className="h-8 w-8 p-0">
+																<span className="sr-only">Open menu</span>
+																<MoreHorizontal className="h-4 w-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuLabel>
+																Team Actions
+															</DropdownMenuLabel>
+															{member.role === OWNER_ROLE ? (
+																<>
+																	<DropdownMenuItem
+																		className="cursor-pointer"
+																		onSelect={(e) => {
+																			e.preventDefault();
+																			toast.info(
+																				"Transfer ownership coming soon",
+																			);
+																		}}
+																	>
+																		Transfer Ownership
+																	</DropdownMenuItem>
+																	<DropdownMenuItem
+																		className="cursor-pointer"
+																		onSelect={(e) => {
+																			e.preventDefault();
+																			toast.info("Activity log coming soon");
+																		}}
+																	>
+																		View Activity Log
+																	</DropdownMenuItem>
+																</>
+															) : (
+																<>
+																	<AddMemberPermissions
+																		teamId={teamId}
+																		userId={member.userId}
+																	/>
+																	<DropdownMenuItem
+																		className="text-destructive cursor-pointer"
+																		onSelect={(e) => {
+																			e.preventDefault();
+																			setUserToDelete({
+																				id: member.userId,
+																				email: member.user?.email || "",
+																			});
+																			setShowDeleteUserDialog(true);
+																		}}
+																		disabled={isDeleting}
+																	>
+																		Delete User
+																	</DropdownMenuItem>
+																</>
+															)}
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</TableCell>
+											</TableRow>
+										))}
 
 									{!team?.members?.length && (
 										<TableRow>

@@ -372,13 +372,13 @@ export const teamRouter = createTRPCRouter({
 				});
 			}
 
+			// Get all members including their auth info
 			const members = await ctx.db
 				.select({
 					userId: teamMembers.userId,
 					role: teamMembers.role,
-					expirationDate: sql<string>`NOW()`,
 					user: {
-						userId: teamMembers.userId,
+						userId: auth.id,
 						email: auth.email,
 						name: auth.email,
 						isRegistered: sql<boolean>`true`,
@@ -390,16 +390,21 @@ export const teamRouter = createTRPCRouter({
 				})
 				.from(teamMembers)
 				.innerJoin(auth, eq(teamMembers.userId, auth.id))
-				.where(eq(teamMembers.teamId, input.teamId))
-				.orderBy(
-					sql`CASE WHEN ${teamMembers.role} = 'OWNER' THEN 1 ELSE 2 END`,
-				);
+				.where(eq(teamMembers.teamId, input.teamId));
+
+			// Filter out any members with null user data
+			const validMembers = members.filter(
+				(member) => member.user && member.user.email,
+			);
+			const owner = validMembers.find((member) => member.role === "OWNER");
+			const otherMembers = validMembers.filter(
+				(member) => member.role !== "OWNER",
+			);
 
 			return {
 				...team[0],
-				members,
-				invitations: [],
-			} as Team;
+				members: owner ? [owner, ...otherMembers] : otherMembers,
+			} as unknown as Team;
 		}),
 
 	removeMember: protectedProcedure
@@ -601,5 +606,117 @@ export const teamRouter = createTRPCRouter({
 			return team;
 		}),
 
-	// ... (keep rest of existing team procedures)
+	addUserToTeam: protectedProcedure
+		.input(
+			z.object({
+				teamId: z.string(),
+				userId: z.string(),
+				role: z.enum(["ADMIN", "MEMBER", "GUEST"]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Debug log to check input
+			console.log("Adding user:", {
+				userId: input.userId,
+				teamId: input.teamId,
+			});
+
+			// First check if the user exists in auth table
+			const userAuth = await ctx.db
+				.select({
+					id: auth.id,
+					email: auth.email,
+				})
+				.from(auth)
+				.where(eq(auth.id, input.userId))
+				.limit(1);
+
+			console.log("Found user:", userAuth[0]); // Debug log
+
+			if (!userAuth.length) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `User with ID ${input.userId} not found in auth table`,
+				});
+			}
+
+			// Check if user is already a member
+			const existingMember = await ctx.db
+				.select({
+					userId: teamMembers.userId,
+					role: teamMembers.role,
+					user: {
+						userId: auth.id,
+						email: auth.email,
+						name: auth.email,
+						isRegistered: sql<boolean>`true`,
+						is2FAEnabled: sql<boolean>`COALESCE(${auth.is2FAEnabled}, false)`,
+						auth: sql<{ is2FAEnabled: boolean }>`jsonb_build_object(
+							'is2FAEnabled', COALESCE(${auth.is2FAEnabled}, false)
+						)`,
+					},
+				})
+				.from(teamMembers)
+				.innerJoin(auth, eq(teamMembers.userId, auth.id))
+				.where(
+					and(
+						eq(teamMembers.teamId, input.teamId),
+						eq(teamMembers.userId, input.userId),
+					),
+				)
+				.limit(1);
+
+			if (existingMember.length > 0) {
+				return {
+					success: true,
+					message: "User is already a member of this team",
+					alreadyMember: true,
+					member: existingMember[0],
+				};
+			}
+
+			// Add user to team with role-based permissions
+			const defaultPermissions = getDefaultPermissionsByRole(input.role);
+
+			// Insert the team member
+			await ctx.db.insert(teamMembers).values({
+				teamId: input.teamId,
+				userId: input.userId,
+				role: input.role,
+				...defaultPermissions,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			// Return the complete member info
+			const [newMember] = await ctx.db
+				.select({
+					userId: teamMembers.userId,
+					role: teamMembers.role,
+					user: {
+						userId: auth.id,
+						email: auth.email,
+						name: auth.email,
+						isRegistered: sql<boolean>`true`,
+						is2FAEnabled: sql<boolean>`COALESCE(${auth.is2FAEnabled}, false)`,
+						auth: sql<{ is2FAEnabled: boolean }>`jsonb_build_object(
+							'is2FAEnabled', COALESCE(${auth.is2FAEnabled}, false)
+						)`,
+					},
+				})
+				.from(teamMembers)
+				.innerJoin(auth, eq(teamMembers.userId, auth.id))
+				.where(
+					and(
+						eq(teamMembers.teamId, input.teamId),
+						eq(teamMembers.userId, input.userId),
+					),
+				);
+
+			return {
+				success: true,
+				message: "User added to team successfully",
+				member: newMember,
+			};
+		}),
 });

@@ -31,6 +31,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ShowTeams } from "../teams/show-teams";
 import { AddUserPermissions } from "./add-permissions";
+import { AddToTeam } from "./add-to-team";
 import { AddUser } from "./add-user";
 import { DeleteUser } from "./delete-user";
 
@@ -82,7 +83,7 @@ export const ShowUsers = () => {
 								<TableBody>
 									{data?.map((user) => {
 										return (
-											<TableRow key={user.userId}>
+											<TableRow key={user.authId}>
 												<TableCell className="w-[100px]">
 													{user.auth.email}
 												</TableCell>
@@ -137,7 +138,7 @@ export const ShowUsers = () => {
 															{user.isRegistered && (
 																<AddUserPermissions userId={user.userId} />
 															)}
-
+															<AddToTeam userId={user.authId} />
 															<DeleteUser authId={user.authId} />
 														</DropdownMenuContent>
 													</DropdownMenu>
