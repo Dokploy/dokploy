@@ -522,7 +522,8 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-		VERSION=1.28.1 bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
+	    export NIXPACKS_VERSION=1.29.1
+        bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version 1.28.1 installed ✅"
 	fi
 `;
