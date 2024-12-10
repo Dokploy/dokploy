@@ -7,13 +7,15 @@ export default async function handler(
 ) {
 	const { code, gitlabId } = req.query;
 
+	console.log("DEBUG: res.query: ", res);
+
 	if (!code || Array.isArray(code)) {
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 
 	const gitlab = await findGitlabById(gitlabId as string);
 
-	const response = await fetch("https://gitlab.com/oauth/token", {
+	const response = await fetch(`${gitlab.gitlabUrl}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
