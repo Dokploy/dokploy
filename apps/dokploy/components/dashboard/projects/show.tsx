@@ -36,6 +36,7 @@ import { Fragment } from "react";
 import { toast } from "sonner";
 import { ProjectEnviroment } from "./project-enviroment";
 import { UpdateProject } from "./update";
+import {SearchCommand} from "@/components/dashboard/projects/search-command";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -51,8 +52,14 @@ export const ShowProjects = () => {
 	);
 	const { mutateAsync } = api.project.remove.useMutation();
 
+
+
 	return (
 		<>
+
+			{/*@ts-expect-error Type mismatch*/}
+			<SearchCommand data={data} />
+
 			{data?.length === 0 && (
 				<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
 					<FolderInput className="size-10 md:size-28 text-muted-foreground" />
