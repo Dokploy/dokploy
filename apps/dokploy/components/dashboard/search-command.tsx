@@ -26,13 +26,14 @@ import {
   RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { api } from "@/utils/api";
-import { truncate } from "lodash";
+import { Badge } from "@/components/ui/badge";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
 export const SearchCommand = () => {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
 
   const { data } = api.project.all.useQuery();
   const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
@@ -54,7 +55,11 @@ export const SearchCommand = () => {
   return (
     <div>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder={"Search projects or settings"} />
+        <CommandInput
+          placeholder={"Search projects or settings"}
+          value={search}
+          onValueChange={setSearch}
+        />
         <CommandList>
           <CommandEmpty>
             No projects added yet. Click on Create project.
@@ -107,7 +112,24 @@ export const SearchCommand = () => {
                     {application.type === "compose" && (
                       <CircuitBoard className="h-6 w-6 mr-2" />
                     )}
-                    {application.name}
+                    <span className="flex-grow">
+                      {project.name} / {application.name}
+                    </span>
+                    <Badge
+                      className={
+                        application.status === "running"
+                          ? "bg-green-500"
+                          : application.status === "idle"
+                          ? "bg-yellow-500"
+                          : application.status === "error"
+                          ? "bg-red-500"
+                          : application.status === "done"
+                          ? "bg-cyan-500"
+                          : ""
+                      }
+                    >
+                      {application.status}
+                    </Badge>
                   </CommandItem>
                 ));
               })}
