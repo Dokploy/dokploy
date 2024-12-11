@@ -30,6 +30,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [since, setSince] = React.useState<TimeFilter>("all");
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const scrollToBottom = () => {
     if (autoScroll && scrollRef.current) {
@@ -106,12 +107,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 
     ws.onclose = (e) => {
       console.log("WebSocket closed:", e.reason);
-      setRawLogs(
-        (prev) =>
-          `${prev}Connection closed!\nReason: ${
-            e.reason || "WebSocket was closed try to refresh"
-          }\n`
-      );
+      setErrorMessage(`Connection closed!\nReason: ${e.reason || "WebSocket was closed try to refresh"}`);
     };
 
     return () => {
@@ -242,9 +238,11 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
             onScroll={handleScroll}
             className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
           >
-            {filteredLogs.map((filteredLog: LogLine, index: number) => (
-              <TerminalLine key={index} log={filteredLog} searchTerm={search} />
-            ))}
+            {
+              filteredLogs.length > 0 ? filteredLogs.map((filteredLog: LogLine, index: number) => (
+                <TerminalLine key={index} log={filteredLog} searchTerm={search} />
+              )) : <div className="flex justify-center items-center h-full text-muted-foreground">No logs found</div>
+            }
           </div>
         </div>
       </div>
