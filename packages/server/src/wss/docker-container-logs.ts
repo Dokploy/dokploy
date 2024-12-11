@@ -56,7 +56,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					client
 						.once("ready", () => {
 							const command = `
-						bash -c "docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -i '${search}'"
+						bash -c "docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -iF '${search}'"
 					`;
 							client.exec(command, (err, stream) => {
 								if (err) {
@@ -91,7 +91,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					shell,
 					[
 						"-c",
-						`docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -i '${search}'`,
+						`docker container logs --timestamps --tail ${tail} ${since === "all" ? "" : `--since ${since}`} --follow ${containerId} | grep -iF '${search}'`,
 					],
 					{
 						name: "xterm-256color",

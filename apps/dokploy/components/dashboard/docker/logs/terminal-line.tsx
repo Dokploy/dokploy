@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getLogType, type LogLine } from "./utils";
 import React from "react";
+import { escapeRegExp } from 'lodash';
 
 interface LogLineProps {
   log: LogLine;
@@ -27,7 +28,7 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
   const highlightMessage = (text: string, term: string) => {
     if (!term) return text;
 
-    const parts = text.split(new RegExp(`(${term})`, "gi"));
+    const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, "gi"));
     return parts.map((part, index) =>
       part.toLowerCase() === term.toLowerCase() ? (
         <span key={index} className="bg-yellow-200 dark:bg-yellow-900">
