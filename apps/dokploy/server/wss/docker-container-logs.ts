@@ -55,10 +55,10 @@ export const setupDockerContainerLogsWebSocketServer = (
 					.once("ready", () => {
 						const baseCommand = `docker container logs --timestamps --tail ${tail} ${
 							since === "all" ? "" : `--since ${since}`
-						  } --follow ${containerId}`;
-						const command = search 
-						  ? `${baseCommand} 2>&1 | grep -iF '${search}'` 
-						  : baseCommand;
+						} --follow ${containerId}`;
+						const command = search
+							? `${baseCommand} 2>&1 | grep -iF '${search}'`
+							: baseCommand;
 						client.exec(command, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
@@ -98,25 +98,18 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const shell = getShell();
 				const baseCommand = `docker container logs --timestamps --tail ${tail} ${
 					since === "all" ? "" : `--since ${since}`
-				  } --follow ${containerId}`;
-				const command = search 
-				  ? `${baseCommand} 2>&1 | grep -iF '${search}'` 
-				  : baseCommand;
-				const ptyProcess = spawn(
-					shell,
-					[
-						"-c",
-						command,
-					],
-					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
-					},
-				);
+				} --follow ${containerId}`;
+				const command = search
+					? `${baseCommand} 2>&1 | grep -iF '${search}'`
+					: baseCommand;
+				const ptyProcess = spawn(shell, ["-c", command], {
+					name: "xterm-256color",
+					cwd: process.env.HOME,
+					env: process.env,
+					encoding: "utf8",
+					cols: 80,
+					rows: 30,
+				});
 
 				ptyProcess.onData((data) => {
 					ws.send(data);
