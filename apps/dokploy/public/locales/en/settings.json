@@ -8,6 +8,7 @@
 	"settings.server.domain.form.certificate.placeholder": "Select a certificate",
 	"settings.server.domain.form.certificateOptions.none": "None",
 	"settings.server.domain.form.certificateOptions.letsencrypt": "Let's Encrypt (Default)",
+	"settings.server.domain.form.deploymentDomain": "Deployment Domain",
 
 	"settings.server.webServer.title": "Web Server",
 	"settings.server.webServer.description": "Reload or clean the web server.",

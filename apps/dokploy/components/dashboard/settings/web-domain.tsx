@@ -35,6 +35,7 @@ const addServerDomain = z
 		domain: z.string().min(1, { message: "URL is required" }),
 		letsEncryptEmail: z.string(),
 		certificateType: z.enum(["letsencrypt", "none"]),
+		deploymentDomain: z.string().default("traefik.me"),
 	})
 	.superRefine((data, ctx) => {
 		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
@@ -53,13 +54,19 @@ export const WebDomain = () => {
 	const { t } = useTranslation("settings");
 	const { data: user, refetch } = api.admin.one.useQuery();
 	const { mutateAsync, isLoading } =
-		api.settings.assignDomainServer.useMutation();
+		api.settings.assignDomainServer.useMutation<{
+			host: string | null;
+			letsEncryptEmail?: string | null;
+			certificateType?: "letsencrypt" | "none";
+			deploymentDomain?: string;
+		}>();
 
 	const form = useForm<AddServerDomain>({
 		defaultValues: {
 			domain: "",
 			certificateType: "none",
 			letsEncryptEmail: "",
+			deploymentDomain: "traefik.me",
 		},
 		resolver: zodResolver(addServerDomain),
 	});
@@ -69,6 +76,7 @@ export const WebDomain = () => {
 				domain: user?.host || "",
 				certificateType: user?.certificateType,
 				letsEncryptEmail: user?.letsEncryptEmail || "",
+				deploymentDomain: user?.deploymentDomain || "traefik.me",
 			});
 		}
 	}, [form, form.reset, user]);
@@ -78,6 +86,7 @@ export const WebDomain = () => {
 			host: data.domain,
 			letsEncryptEmail: data.letsEncryptEmail,
 			certificateType: data.certificateType,
+			deploymentDomain: data.deploymentDomain,
 		})
 			.then(async () => {
 				await refetch();
@@ -182,6 +191,32 @@ export const WebDomain = () => {
 													</SelectItem>
 												</SelectContent>
 											</Select>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="deploymentDomain"
+								render={({ field }) => {
+									return (
+										<FormItem className="md:col-span-2">
+											<FormLabel>
+												{t("settings.server.domain.form.deploymentDomain")}
+											</FormLabel>
+											<FormControl>
+												<div className="flex items-center gap-2">
+													<Input
+														className="w-full"
+														placeholder="traefik.me"
+														{...field}
+													/>
+													<span className="text-muted-foreground flex h-10 items-center px-2">
+														*.{field.value}
+													</span>
+												</div>
+											</FormControl>
 											<FormMessage />
 										</FormItem>
 									);

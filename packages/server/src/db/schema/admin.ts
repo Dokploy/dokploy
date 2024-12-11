@@ -20,6 +20,7 @@ export const admins = pgTable("admin", {
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
+	deploymentDomain: text("deploymentDomain").default("traefik.me"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	enableLogRotation: boolean("enableLogRotation").notNull().default(false),
 	authId: text("authId")
