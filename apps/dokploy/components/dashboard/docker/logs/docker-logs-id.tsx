@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/utils/api";
 
 interface Props {
   containerId: string;
@@ -22,6 +23,16 @@ type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
 type TypeFilter = "all" | "error" | "warning" | "success" | "info";
 
 export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
+  const { data } = api.docker.getConfig.useQuery(
+    {
+      containerId,
+      serverId,
+    },
+    {
+      enabled: !!containerId,
+    }
+  );
+
   const [rawLogs, setRawLogs] = React.useState("");
   const [filteredLogs, setFilteredLogs] = React.useState<LogLine[]>([]);
   const [autoScroll, setAutoScroll] = React.useState(true);
@@ -80,14 +91,16 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
       containerId,
       tail: lines.toString(),
       since,
-      search
+      search,
     });
-    
+
     if (serverId) {
-      params.append('serverId', serverId);
+      params.append("serverId", serverId);
     }
 
-    const wsUrl = `${protocol}//${window.location.host}/docker-container-logs?${params.toString()}`;
+    const wsUrl = `${protocol}//${
+      window.location.host
+    }/docker-container-logs?${params.toString()}`;
     console.log("Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
 
@@ -126,8 +139,9 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     const blob = new Blob([logContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+    const appName = data.Name.replace("/", "") || "app";
     a.href = url;
-    a.download = `dokploy-logs-${new Date().toISOString()}.txt`;
+    a.download = `logs-${appName}-${new Date().toISOString()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -226,6 +240,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
               size="sm"
               className="h-9"
               onClick={handleDownload}
+              disabled={filteredLogs.length === 0 || !data?.Name}
             >
               <DownloadIcon className="mr-2 h-4 w-4" />
               Download logs
@@ -234,13 +249,21 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
+            className="h-[720px] overflow-y-auto overflow-x-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
           >
-            {
-              filteredLogs.length > 0 ? filteredLogs.map((filteredLog: LogLine, index: number) => (
-                <TerminalLine key={index} log={filteredLog} searchTerm={search} />
-              )) : <div className="flex justify-center items-center h-full text-muted-foreground">No logs found</div>
-            }
+            {filteredLogs.length > 0 ? (
+              filteredLogs.map((filteredLog: LogLine, index: number) => (
+                <TerminalLine
+                  key={index}
+                  log={filteredLog}
+                  searchTerm={search}
+                />
+              ))
+            ) : (
+              <div className="flex justify-center items-center h-full text-muted-foreground">
+                No logs found
+              </div>
+            )}
           </div>
         </div>
       </div>
