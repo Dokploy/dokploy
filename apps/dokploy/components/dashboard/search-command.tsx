@@ -35,6 +35,7 @@ export const SearchCommand = () => {
   const [open, setOpen] = React.useState(false);
 
   const { data } = api.project.all.useQuery();
+  const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -122,41 +123,45 @@ export const SearchCommand = () => {
             >
               Projects
             </CommandItem>
+            {!isCloud && (
+              <>
+                <CommandItem
+                  onSelect={() => {
+                    router.push("/dashboard/monitoring");
+                    setOpen(false);
+                  }}
+                >
+                  Monitoring
+                </CommandItem>
+                <CommandItem
+                  onSelect={() => {
+                    router.push("/dashboard/traefik");
+                    setOpen(false);
+                  }}
+                >
+                  Traefik
+                </CommandItem>
+                <CommandItem
+                  onSelect={() => {
+                    router.push("/dashboard/docker");
+                    setOpen(false);
+                  }}
+                >
+                  Docker
+                </CommandItem>
+                <CommandItem
+                  onSelect={() => {
+                    router.push("/dashboard/requests");
+                    setOpen(false);
+                  }}
+                >
+                  Requests
+                </CommandItem>
+              </>
+            )}
             <CommandItem
               onSelect={() => {
-                router.push("/dashboard/monitoring");
-                setOpen(false);
-              }}
-            >
-              Monitoring
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/traefik");
-                setOpen(false);
-              }}
-            >
-              Traefik
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/docker");
-                setOpen(false);
-              }}
-            >
-              Docker
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/requests");
-                setOpen(false);
-              }}
-            >
-              Requests
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                router.push("/dashboard/profile");
+                router.push("/dashboard/settings/server");
                 setOpen(false);
               }}
             >
