@@ -76,11 +76,18 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     if (!containerId) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${
-      window.location.host
-    }/docker-container-logs?containerId=${containerId}&tail=${lines}&since=${since}&search=${search}${
-      serverId ? `&serverId=${serverId}` : ""
-    }`;
+    const params = new globalThis.URLSearchParams({
+      containerId,
+      tail: lines.toString(),
+      since,
+      search
+    });
+    
+    if (serverId) {
+      params.append('serverId', serverId);
+    }
+
+    const wsUrl = `${protocol}//${window.location.host}/docker-container-logs?${params.toString()}`;
     console.log("Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
 
@@ -101,8 +108,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
       console.log("WebSocket closed:", e.reason);
       setRawLogs(
         (prev) =>
-          prev +
-          `Connection closed!\nReason: ${
+          `${prev}Connection closed!\nReason: ${
             e.reason || "WebSocket was closed try to refresh"
           }\n`
       );
@@ -177,7 +183,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                 className="inline-flex h-9 text-sm text-white placeholder-gray-400 w-full sm:w-auto"
               />
               <Input
-                type="text"
+                type="search"
                 placeholder="Search logs..."
                 value={search}
                 onChange={handleSearch}
