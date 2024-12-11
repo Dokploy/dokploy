@@ -30,7 +30,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [since, setSince] = React.useState<TimeFilter>("all");
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const scrollToBottom = () => {
     if (autoScroll && scrollRef.current) {
@@ -107,7 +106,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 
     ws.onclose = (e) => {
       console.log("WebSocket closed:", e.reason);
-      setErrorMessage(`Connection closed!\nReason: ${e.reason || "WebSocket was closed try to refresh"}`);
     };
 
     return () => {
