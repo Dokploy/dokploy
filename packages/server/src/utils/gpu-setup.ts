@@ -303,7 +303,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 	await fs.writeFile(configFile, JSON.stringify(daemonConfig, null, 2));
 
 	const setupCommands = [
-		`pkexec sh -c '
+		`sudo sh -c '
 			cp ${configFile} /etc/docker/daemon.json && 
 			mkdir -p /etc/nvidia-container-runtime && 
 			sed -i "/swarm-resource/d" /etc/nvidia-container-runtime/config.toml &&
@@ -314,7 +314,14 @@ const setupLocalServer = async (daemonConfig: any) => {
 		`rm ${configFile}`,
 	].join(" && ");
 
-	await execAsync(setupCommands);
+	try {
+		await execAsync(setupCommands);
+	} catch (error) {
+		console.error("Setup failed:", error);
+		throw new Error(
+			"Failed to configure GPU support. Please ensure you have sudo privileges and try again.",
+		);
+	}
 };
 
 const addGpuLabel = async (nodeId: string, serverId?: string) => {

@@ -108,6 +108,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./baserow/index").then((m) => m.generate),
 	},
 	{
+		id: "budibase",
+		name: "Budibase",
+		version: "3.2.25",
+		description:
+			"Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.",
+		logo: "budibase.svg",
+		links: {
+			github: "https://github.com/Budibase/budibase",
+			website: "https://budibase.com/",
+			docs: "https://docs.budibase.com/docs/",
+		},
+		tags: ["database", "low-code", "nocode", "applications"],
+		load: () => import("./budibase/index").then((m) => m.generate),
+	},
+	{
 		id: "ghost",
 		name: "Ghost",
 		version: "5.0.0",
@@ -936,8 +951,8 @@ export const templates: TemplateData[] = [
 		logo: "ryot.png",
 		links: {
 			github: "https://github.com/IgnisDa/ryot",
-			website: "https://ryot.dev/",
-			docs: "https://ryot.dev/docs/getting-started",
+			website: "https://ryot.io/",
+			docs: "https://docs.ryot.io/",
 		},
 		tags: ["media", "tracking", "self-hosted"],
 		load: () => import("./ryot/index").then((m) => m.generate),
@@ -986,5 +1001,50 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["event-driven", "applications"],
 		load: () => import("./triggerdotdev/index").then((m) => m.generate),
+	},
+	{
+		id: "browserless",
+		name: "Browserless",
+		version: "2.23.0",
+		description:
+			"Browserless allows remote clients to connect and execute headless work, all inside of docker. It supports the standard, unforked Puppeteer and Playwright libraries, as well offering REST-based APIs for common actions like data collection, PDF generation and more.",
+		logo: "browserless.svg",
+		links: {
+			github: "https://github.com/browserless/browserless",
+			website: "https://www.browserless.io/",
+			docs: "https://docs.browserless.io/",
+		},
+		tags: ["browser", "automation"],
+		load: () => import("./browserless/index").then((m) => m.generate),
+  },
+    {
+		id: "drawio",
+		name: "draw.io",
+		version: "24.7.17",
+		description:
+			"draw.io is a configurable diagramming/whiteboarding visualization application.",
+		logo: "drawio.svg",
+		links: {
+			github: "https://github.com/jgraph/drawio",
+			website: "https://draw.io/",
+			docs: "https://www.drawio.com/doc/",
+		},
+		tags: ["drawing", "diagrams"],
+		load: () => import("./drawio/index").then((m) => m.generate),
+  },
+  {
+		id: "kimai",
+		name: "Kimai",
+		version: "2.26.0",
+		description:
+			"Kimai is a web-based multi-user time-tracking application. Works great for everyone: freelancers, companies, organizations - everyone can track their times, generate reports, create invoices and do so much more.",
+		logo: "kimai.svg",
+		links: {
+			github: "https://github.com/kimai/kimai",
+			website: "https://www.kimai.org",
+			docs: "https://www.kimai.org/documentation",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./kimai/index").then((m) => m.generate),
 	},
 ];

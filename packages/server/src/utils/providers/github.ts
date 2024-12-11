@@ -74,11 +74,22 @@ export type ApplicationWithGithub = InferResultType<
 >;
 
 export type ComposeWithGithub = InferResultType<"compose", { github: true }>;
-export const cloneGithubRepository = async (
-	entity: ApplicationWithGithub | ComposeWithGithub,
-	logPath: string,
-	isCompose = false,
-) => {
+
+interface CloneGithubRepository {
+	appName: string;
+	owner: string | null;
+	branch: string | null;
+	githubId: string | null;
+	repository: string | null;
+	logPath: string;
+	type?: "application" | "compose";
+}
+export const cloneGithubRepository = async ({
+	logPath,
+	type = "application",
+	...entity
+}: CloneGithubRepository) => {
+	const isCompose = type === "compose";
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { appName, repository, owner, branch, githubId } = entity;
@@ -145,13 +156,13 @@ export const cloneGithubRepository = async (
 	}
 };
 
-export const getGithubCloneCommand = async (
-	entity: ApplicationWithGithub | ComposeWithGithub,
-	logPath: string,
-	isCompose = false,
-) => {
+export const getGithubCloneCommand = async ({
+	logPath,
+	type = "application",
+	...entity
+}: CloneGithubRepository & { serverId: string }) => {
 	const { appName, repository, owner, branch, githubId, serverId } = entity;
-
+	const isCompose = type === "compose";
 	if (!serverId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",

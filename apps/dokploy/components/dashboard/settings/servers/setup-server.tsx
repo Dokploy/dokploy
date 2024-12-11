@@ -33,6 +33,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { GPUSupport } from "./gpu-support";
+import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;
@@ -90,9 +91,10 @@ export const SetupServer = ({ serverId }: Props) => {
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-1">
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-3 w-[400px]">
+							<TabsList className="grid grid-cols-4 w-[600px]">
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
+								<TabsTrigger value="validate">Validate</TabsTrigger>
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
@@ -203,7 +205,7 @@ export const SetupServer = ({ serverId }: Props) => {
 									<div className="flex flex-col gap-4">
 										<Card className="bg-background">
 											<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-												<div className="flex flex-row gap-2 justify-between w-full items-end max-sm:flex-col">
+												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 													<div className="flex flex-col gap-1">
 														<CardTitle className="text-xl">
 															Deployments
@@ -292,6 +294,14 @@ export const SetupServer = ({ serverId }: Props) => {
 										</Card>
 									</div>
 								</CardContent>
+							</TabsContent>
+							<TabsContent
+								value="validate"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+									<ValidateServer serverId={serverId} />
+								</div>
 							</TabsContent>
 							<TabsContent
 								value="gpu-setup"
