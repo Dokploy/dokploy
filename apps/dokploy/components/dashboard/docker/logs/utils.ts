@@ -88,7 +88,7 @@ export const getLogType = (message: string): LogStyle => {
 		/Error:\s.*(?:in|at)\s+.*:\d+(?::\d+)?/.test(lowerMessage) ||
 		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
 		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
-		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
+		/\b(?:&ash|critical|fatal)\b/i.test(lowerMessage) ||
 		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.error;
@@ -108,16 +108,16 @@ export const getLogType = (message: string): LogStyle => {
 	}
 
 	if (
-		/(?:successfully|complete[d]?)\s+(?:initialized|started|completed|done)/i.test(
+		/(?:successfully|complete[d]?)\s+(?:initialized|started|completed|created|done|deployed)/i.test(
 			lowerMessage,
 		) ||
 		/\[(?:success|ok|done)\]/i.test(lowerMessage) ||
 		/(?:listening|running)\s+(?:on|at)\s+(?:port\s+)?\d+/i.test(lowerMessage) ||
 		/(?:connected|established|ready)\s+(?:to|for|on)/i.test(lowerMessage) ||
 		/\b(?:loaded|mounted|initialized)\s+successfully\b/i.test(lowerMessage) ||
-		/✓|√|\[ok\]|done!/i.test(lowerMessage) ||
+		/✓|√|✅|\[ok\]|done!/i.test(lowerMessage) ||
 		/\b(?:success(?:ful)?|completed|ready)\b/i.test(lowerMessage) ||
-		/\b(?:started|running|active)\b/i.test(lowerMessage)
+		/\b(?:started|starting|active)\b/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.success;
 	}
