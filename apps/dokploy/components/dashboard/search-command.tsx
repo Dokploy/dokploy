@@ -68,7 +68,9 @@ export const SearchCommand = () => {
               {data?.map((project) => (
                 <CommandItem
                   key={project.projectId}
-                  onSelect={() => router.push(project.projectId)}
+                  onSelect={() => {
+                    router.push(`/dashboard/project/${project.projectId}`);
+                  }}
                 >
                   <BookIcon className="size-4 text-muted-foreground mr-2" />
                   {project.name}
@@ -84,11 +86,12 @@ export const SearchCommand = () => {
                 return applications.map((application) => (
                   <CommandItem
                     key={application.id}
-                    onSelect={() =>
+                    onSelect={() => {
                       router.push(
                         `/dashboard/project/${project.projectId}/services/${application.type}/${application.id}`
-                      )
-                    }
+                      );
+                      setOpen((open) => !open);
+                    }}
                   >
                     {application.type === "postgres" && (
                       <PostgresqlIcon className="h-6 w-6 mr-2" />
@@ -128,7 +131,7 @@ export const SearchCommand = () => {
             <CommandItem
               onSelect={() => {
                 router.push("/dashboard/projects");
-                setOpen(false);
+                setOpen((open) => !open);
               }}
             >
               Projects
@@ -138,7 +141,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/monitoring");
-                    setOpen(false);
+                    setOpen((open) => !open);
                   }}
                 >
                   Monitoring
@@ -146,7 +149,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/traefik");
-                    setOpen(false);
+                    setOpen((open) => !open);
                   }}
                 >
                   Traefik
@@ -154,7 +157,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/docker");
-                    setOpen(false);
+                    setOpen((open) => !open);
                   }}
                 >
                   Docker
@@ -162,7 +165,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/requests");
-                    setOpen(false);
+                    setOpen((open) => !open);
                   }}
                 >
                   Requests
@@ -172,7 +175,7 @@ export const SearchCommand = () => {
             <CommandItem
               onSelect={() => {
                 router.push("/dashboard/settings/server");
-                setOpen(false);
+                setOpen((open) => !open);
               }}
             >
               Settings
