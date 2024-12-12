@@ -67,7 +67,7 @@ export function parseLogs(logString: string): LogLine[] {
 				.trim();
 
 			return {
-				rawTimestamp: timestamp,
+				rawTimestamp: timestamp ?? null,
 				timestamp: timestamp ? new Date(timestamp.replace(" UTC", "Z")) : null,
 				message: cleanedMessage,
 			};
