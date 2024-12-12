@@ -155,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
@@ -1016,8 +1016,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["browser", "automation"],
 		load: () => import("./browserless/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "drawio",
 		name: "draw.io",
 		version: "24.7.17",
@@ -1031,8 +1031,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["drawing", "diagrams"],
 		load: () => import("./drawio/index").then((m) => m.generate),
-  },
-  {
+	},
+	{
 		id: "kimai",
 		name: "Kimai",
 		version: "2.26.0",
@@ -1046,5 +1046,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["invoice", "business", "finance"],
 		load: () => import("./kimai/index").then((m) => m.generate),
+	},
+	{
+		id: "logto",
+		name: "Logto",
+		version: "1.22.0",
+		description:
+			"Logto is an open-source Identity and Access Management (IAM) platform designed to streamline Customer Identity and Access Management (CIAM) and Workforce Identity Management.",
+		logo: "logto.png",
+		links: {
+			github: "https://github.com/logto-io/logto",
+			website: "https://logto.io/",
+			docs: "https://docs.logto.io/introduction",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./logto/index").then((m) => m.generate),
 	},
 ];
