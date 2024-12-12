@@ -26,7 +26,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
-			serverId,
+			serverId: serverId ?? undefined,
 		},
 		{
 			enabled: !!containerId,
