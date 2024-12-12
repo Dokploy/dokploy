@@ -90,7 +90,6 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 				</Select>
 				<DockerLogs
 					serverId={serverId || ""}
-					id="terminal"
 					containerId={containerId || "select-a-container"}
 				/>
 			</CardContent>
