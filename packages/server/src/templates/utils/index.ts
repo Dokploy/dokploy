@@ -6,6 +6,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 export interface Schema {
 	serverIp: string;
 	projectName: string;
+	wildcardDomain?: string | null;
 }
 
 export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
@@ -22,9 +23,14 @@ export interface Template {
 export const generateRandomDomain = ({
 	serverIp,
 	projectName,
+	wildcardDomain,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-");
+
+	if (wildcardDomain) {
+		return `${projectName}.${wildcardDomain}`;
+	}
 
 	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
