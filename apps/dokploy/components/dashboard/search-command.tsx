@@ -51,8 +51,6 @@ export const SearchCommand = () => {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  console.log("DEBUG: data: ", data);
-
   return (
     <div>
       <CommandDialog open={open} onOpenChange={setOpen}>
