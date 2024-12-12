@@ -27,6 +27,7 @@ import {
 } from "@/components/icons/data-tools-icons";
 import { api } from "@/utils/api";
 import { Badge } from "@/components/ui/badge";
+import { StatusTooltip } from "../shared/status-tooltip";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
@@ -115,21 +116,9 @@ export const SearchCommand = () => {
                     <span className="flex-grow">
                       {project.name} / {application.name}
                     </span>
-                    <Badge
-                      className={
-                        application.status === "running"
-                          ? "bg-green-500"
-                          : application.status === "idle"
-                          ? "bg-yellow-500"
-                          : application.status === "error"
-                          ? "bg-red-500"
-                          : application.status === "done"
-                          ? "bg-cyan-500"
-                          : ""
-                      }
-                    >
-                      {application.status}
-                    </Badge>
+                    <div>
+                      <StatusTooltip status={application.status} />
+                    </div>
                   </CommandItem>
                 ));
               })}
