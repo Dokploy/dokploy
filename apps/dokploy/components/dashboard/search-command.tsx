@@ -112,7 +112,8 @@ export const SearchCommand = () => {
                       <CircuitBoard className="h-6 w-6 mr-2" />
                     )}
                     <span className="flex-grow">
-                      {project.name} / {application.name}
+                      {project.name} / {application.name}{" "}
+                      <div style={{ display: "none" }}>{application.id}</div>
                     </span>
                     <div>
                       <StatusTooltip status={application.status} />
