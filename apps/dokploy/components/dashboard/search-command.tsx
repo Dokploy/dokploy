@@ -70,6 +70,7 @@ export const SearchCommand = () => {
                   key={project.projectId}
                   onSelect={() => {
                     router.push(`/dashboard/project/${project.projectId}`);
+                    setOpen(false);
                   }}
                 >
                   <BookIcon className="size-4 text-muted-foreground mr-2" />
@@ -90,7 +91,7 @@ export const SearchCommand = () => {
                       router.push(
                         `/dashboard/project/${project.projectId}/services/${application.type}/${application.id}`
                       );
-                      setOpen((open) => !open);
+                      setOpen(false);
                     }}
                   >
                     {application.type === "postgres" && (
@@ -131,7 +132,7 @@ export const SearchCommand = () => {
             <CommandItem
               onSelect={() => {
                 router.push("/dashboard/projects");
-                setOpen((open) => !open);
+                setOpen(false);
               }}
             >
               Projects
@@ -141,7 +142,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/monitoring");
-                    setOpen((open) => !open);
+                    setOpen(false);
                   }}
                 >
                   Monitoring
@@ -149,7 +150,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/traefik");
-                    setOpen((open) => !open);
+                    setOpen(false);
                   }}
                 >
                   Traefik
@@ -157,7 +158,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/docker");
-                    setOpen((open) => !open);
+                    setOpen(false);
                   }}
                 >
                   Docker
@@ -165,7 +166,7 @@ export const SearchCommand = () => {
                 <CommandItem
                   onSelect={() => {
                     router.push("/dashboard/requests");
-                    setOpen((open) => !open);
+                    setOpen(false);
                   }}
                 >
                   Requests
@@ -175,7 +176,7 @@ export const SearchCommand = () => {
             <CommandItem
               onSelect={() => {
                 router.push("/dashboard/settings/server");
-                setOpen((open) => !open);
+                setOpen(false);
               }}
             >
               Settings
