@@ -1,5 +1,5 @@
-export type LogType = "error" | "warning" | "success" | "info";
-export type LogVariant = "red" | "yellow" | "green" | "blue";
+export type LogType = "error"  | "warning" | "success" | "info" | "debug";
+export type LogVariant = "red" | "yellow"  | "green"   | "blue" | "orange";
 
 export interface LogLine {
 	rawTimestamp: string | null;
@@ -21,6 +21,11 @@ const LOG_STYLES: Record<LogType, LogStyle> = {
 	},
 	warning: {
 		type: "warning",
+		variant: "orange",
+		color: "bg-orange-500/40",
+	},
+	debug: {
+		type: "debug",
 		variant: "yellow",
 		color: "bg-yellow-500/40",
 	},
@@ -88,7 +93,7 @@ export const getLogType = (message: string): LogStyle => {
 		/Error:\s.*(?:in|at)\s+.*:\d+(?::\d+)?/.test(lowerMessage) ||
 		/\b(?:errno|code):\s*(?:\d+|[A-Z_]+)\b/i.test(lowerMessage) ||
 		/\[(?:error|err|fatal)\]/i.test(lowerMessage) ||
-		/\b(?:&ash|critical|fatal)\b/i.test(lowerMessage) ||
+		/\b(?:crash|critical|fatal)\b/i.test(lowerMessage) ||
 		/\b(?:fail(?:ed|ure)?|broken|dead)\b/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.error;
@@ -124,10 +129,10 @@ export const getLogType = (message: string): LogStyle => {
 
 	if (
 		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
-		/\[(info|log|debug|trace|server|db|api)\]/i.test(lowerMessage) ||
-		/\b(?:version|config|start|import|load)\b:?/i.test(lowerMessage)
+		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(lowerMessage) ||
+		/\b(?:version|config|import|load)\b:?/i.test(lowerMessage)
 	) {
-		return LOG_STYLES.info;
+		return LOG_STYLES.debug;
 	}
 
 	return LOG_STYLES.info;

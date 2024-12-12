@@ -102,6 +102,7 @@ export const ShowDeploymentCompose = ({
 								<TerminalLine
 									key={index}
 									log={log}
+									noTimestamp
 								/>
 							)) || "Loading..."}
 						<div ref={endOfLogsRef} />

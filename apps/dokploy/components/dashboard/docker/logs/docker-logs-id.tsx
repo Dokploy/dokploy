@@ -20,7 +20,7 @@ interface Props {
 }
 
 type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
-type TypeFilter = "all" | "error" | "warning" | "success" | "info";
+type TypeFilter = "all" | "error" | "warning" | "success" | "info" | "debug";
 
 export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const { data } = api.docker.getConfig.useQuery(
@@ -225,7 +225,10 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                     <Badge variant="red">Error</Badge>
                   </SelectItem>
                   <SelectItem value="warning">
-                    <Badge variant="yellow">Warning</Badge>
+                    <Badge variant="orange">Warning</Badge>
+                  </SelectItem>
+				  <SelectItem value="warning">
+                    <Badge variant="yellow">Debug</Badge>
                   </SelectItem>
                   <SelectItem value="success">
                     <Badge variant="green">Success</Badge>

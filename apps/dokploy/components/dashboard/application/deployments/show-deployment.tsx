@@ -94,6 +94,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 								<TerminalLine
 									key={index}
 									log={log}
+									noTimestamp
 								/>
 							)) || "Loading..."}
 						<div ref={endOfLogsRef} />

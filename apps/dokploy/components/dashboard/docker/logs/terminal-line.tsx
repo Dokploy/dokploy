@@ -12,10 +12,11 @@ import { type LogLine, getLogType } from "./utils";
 
 interface LogLineProps {
 	log: LogLine;
+	noTimestamp?: boolean;
 	searchTerm?: string;
 }
 
-export function TerminalLine({ log, searchTerm }: LogLineProps) {
+export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	const { timestamp, message, rawTimestamp } = log;
 	const { type, variant, color } = getLogType(message);
 
@@ -72,7 +73,9 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
 					? "bg-red-500/10 hover:bg-red-500/15"
 					: type === "warning"
 						? "bg-yellow-500/10 hover:bg-yellow-500/15"
-						: "hover:bg-gray-200/50 dark:hover:bg-gray-800/50",
+						: type === "debug"
+							? "bg-orange-500/10 hover:bg-orange-500/15"
+							: "hover:bg-gray-200/50 dark:hover:bg-gray-800/50",
 			)}
 		>
 			{" "}
@@ -80,9 +83,13 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
 				{/* Icon to expand the log item maybe implement a colapsible later */}
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
-				<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
-					{formattedTime}
-				</span>
+				{!noTimestamp && (
+					<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
+						{formattedTime}
+					</span>
+				)}
+
+        
 				<Badge
 					variant={variant}
 					className="w-14 justify-center text-[10px] px-1 py-0"
