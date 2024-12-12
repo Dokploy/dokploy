@@ -11,7 +11,7 @@ export const validateDocker = () => `
 
 export const validateRClone = () => `
   if command_exists rclone; then
-    echo "$(rclone --version | head -n 1 | awk '{print $2}') true"
+    echo "$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//') true"
   else
     echo "0.0.0 false"
   fi
@@ -27,7 +27,12 @@ export const validateSwarm = () => `
 
 export const validateNixpacks = () => `
   if command_exists nixpacks; then
-    echo "$(nixpacks --version | awk '{print $2}') true"
+	version=$(nixpacks --version | awk '{print $2}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
   else
     echo "0.0.0 false"
   fi
@@ -35,7 +40,12 @@ export const validateNixpacks = () => `
 
 export const validateBuildpacks = () => `
   if command_exists pack; then
-    echo "$(pack --version | awk '{print $1}') true"
+    version=$(pack --version | awk '{print $1}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
   else
     echo "0.0.0 false"
   fi
