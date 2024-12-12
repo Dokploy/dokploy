@@ -140,8 +140,9 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
 		const appName = data.Name.replace("/", "") || "app";
+		const isoDate = new Date().toISOString();
 		a.href = url;
-		a.download = `logs-${appName}-${new Date().toISOString()}.txt`;
+		a.download = `${appName}-${isoDate.slice(0, 10).replace(/-/g, "")}_${isoDate.slice(11, 19).replace(/:/g, "")}.log.txt`;
 		document.body.appendChild(a);
 		a.click();
 		document.body.removeChild(a);
