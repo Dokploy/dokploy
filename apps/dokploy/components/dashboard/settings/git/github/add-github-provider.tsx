@@ -107,7 +107,24 @@ export const AddGithubProvider = () => {
 								/>
 								<br />
 
-								<div className="flex w-full justify-end">
+								<div className="flex w-full items-center justify-between">
+									<a
+										href={
+											isOrganization && organizationName
+												? `https://github.com/organizations/${organizationName}/settings/installations`
+												: "https://github.com/settings/installations"
+										}
+										className={`text-muted-foreground text-sm hover:underline duration-300
+											 ${
+													isOrganization && !organizationName
+														? "pointer-events-none opacity-50"
+														: ""
+												}`}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										Unsure if you already have an app?
+									</a>
 									<Button
 										disabled={isOrganization && organizationName.length < 1}
 										type="submit"
