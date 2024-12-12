@@ -26,6 +26,7 @@ export const sendBuildSuccessNotifications = async ({
 	adminId,
 }: Props) => {
 	const date = new Date();
+	const unixDate = ~~((Number(date)) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appDeploy, true),
@@ -77,12 +78,12 @@ export const sendBuildSuccessNotifications = async ({
 					},
 					{
 						name: "`📅`・Date",
-						value: date.toLocaleDateString(),
+						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
 						name: "`⌚`・Time",
-						value: date.toLocaleTimeString(),
+						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
