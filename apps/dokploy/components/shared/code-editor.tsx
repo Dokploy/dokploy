@@ -12,12 +12,14 @@ interface Props extends ReactCodeMirrorProps {
 	disabled?: boolean;
 	language?: "yaml" | "json" | "properties";
 	lineWrapping?: boolean;
+	lineNumbers?: boolean;
 }
 
 export const CodeEditor = ({
 	className,
 	wrapperClassName,
 	language = "yaml",
+	lineNumbers = true,
 	...props
 }: Props) => {
 	const { resolvedTheme } = useTheme();
@@ -25,7 +27,7 @@ export const CodeEditor = ({
 		<div className={cn("relative overflow-auto", wrapperClassName)}>
 			<CodeMirror
 				basicSetup={{
-					lineNumbers: true,
+					lineNumbers,
 					foldGutter: true,
 					highlightSelectionMatches: true,
 					highlightActiveLine: !props.disabled,
