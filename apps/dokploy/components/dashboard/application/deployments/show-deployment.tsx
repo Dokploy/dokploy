@@ -6,6 +6,8 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect, useRef, useState } from "react";
+import { TerminalLine } from "../../docker/logs/terminal-line";
+import { LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	logPath: string | null;
@@ -15,6 +17,7 @@ interface Props {
 }
 export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	const [data, setData] = useState("");
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const endOfLogsRef = useRef<HTMLDivElement>(null);
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 
@@ -53,6 +56,11 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	};
 
 	useEffect(() => {
+		const logs = parseLogs(data);
+		setFilteredLogs(logs);
+	}, [data]);
+
+	useEffect(() => {
 		scrollToBottom();
 	}, [data]);
 
@@ -81,12 +89,15 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 				</DialogHeader>
 
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem]">
-					<code>
-						<pre className="whitespace-pre-wrap break-words">
-							{data || "Loading..."}
-						</pre>
+					<div>
+							{filteredLogs.map((log: LogLine, index: number) => (
+								<TerminalLine
+									key={index}
+									log={log}
+								/>
+							)) || "Loading..."}
 						<div ref={endOfLogsRef} />
-					</code>
+					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
