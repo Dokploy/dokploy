@@ -45,7 +45,7 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
 		);
 	};
 
-	const tooltip = (color: string, timestamp: string) => {
+	const tooltip = (color: string, timestamp: string | null) => {
 		return (
 			<TooltipProvider>
 				<Tooltip>
@@ -56,7 +56,7 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
 					</TooltipTrigger>
 					<TooltipContent>
 						<p className="text text-xs text-muted-foreground break-all max-w-md">
-							{timestamp}
+							{timestamp || "--- No time found ---"}
 						</p>
 					</TooltipContent>
 				</Tooltip>
@@ -79,7 +79,7 @@ export function TerminalLine({ log, searchTerm }: LogLineProps) {
 			<div className="flex items-start gap-x-2">
 				{/* Icon to expand the log item maybe implement a colapsible later */}
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
-				{rawTimestamp && tooltip(color, rawTimestamp)}
+				{tooltip(color, rawTimestamp)}
 				<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
 					{formattedTime}
 				</span>
