@@ -227,7 +227,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="warning">
                     <Badge variant="orange">Warning</Badge>
                   </SelectItem>
-				  <SelectItem value="warning">
+		  <SelectItem value="debug">
                     <Badge variant="yellow">Debug</Badge>
                   </SelectItem>
                   <SelectItem value="success">
