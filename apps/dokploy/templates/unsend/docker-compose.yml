@@ -39,8 +39,8 @@ services:
       - dokploy-network
     container_name: unsend-storage-prod
     ports:
-      - 9002:9002
-      - 9001:9001
+      - 9002
+      - 9001
     volumes:
       - storage:/data
     environment:
