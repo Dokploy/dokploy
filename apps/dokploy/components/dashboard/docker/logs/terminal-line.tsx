@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
+	TooltipPortal,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -46,22 +47,28 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		);
 	};
 
-	const tooltip = (color: string, timestamp: string | null) => {
-		return (
-			<TooltipProvider>
+	const tooltip = (color: string, timestamp: string) => {
+		const square = (
+			<div className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)} />
+		);
+		return timestamp ? (
+			<TooltipProvider delayDuration={0} disableHoverableContent>
 				<Tooltip>
-					<TooltipTrigger asChild>
-						<div
-							className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)}
-						/>
-					</TooltipTrigger>
-					<TooltipContent>
-						<p className="text text-xs text-muted-foreground break-all max-w-md">
-							{timestamp || "--- No time found ---"}
-						</p>
-					</TooltipContent>
+					<TooltipTrigger asChild>{square}</TooltipTrigger>
+					<TooltipPortal>
+						<TooltipContent
+							sideOffset={5}
+							className="bg-popover border-border z-[99999]"
+						>
+							<p className="text text-xs text-muted-foreground break-all max-w-md">
+								<pre>{timestamp}</pre>
+							</p>
+						</TooltipContent>
+					</TooltipPortal>
 				</Tooltip>
 			</TooltipProvider>
+		) : (
+			square
 		);
 	};
 
@@ -89,7 +96,6 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 					</span>
 				)}
 
-        
 				<Badge
 					variant={variant}
 					className="w-14 justify-center text-[10px] px-1 py-0"
