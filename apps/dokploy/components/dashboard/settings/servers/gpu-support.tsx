@@ -262,16 +262,16 @@ export function StatusRow({
 			<div className="flex items-center gap-2">
 				{showIcon ? (
 					<>
-						{isEnabled ? (
-							<CheckCircle2 className="size-4 text-green-500" />
-						) : (
-							<XCircle className="size-4 text-red-500" />
-						)}
 						<span
 							className={`text-sm ${isEnabled ? "text-green-500" : "text-red-500"}`}
 						>
 							{description || (isEnabled ? "Installed" : "Not Installed")}
 						</span>
+						{isEnabled ? (
+							<CheckCircle2 className="size-4 text-green-500" />
+						) : (
+							<XCircle className="size-4 text-red-500" />
+						)}
 					</>
 				) : (
 					<span className="text-sm text-muted-foreground">{value}</span>

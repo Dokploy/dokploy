@@ -79,6 +79,7 @@ const installRequirements = async (serverId: string, logPath: string) => {
 
 				DOCKER_VERSION=27.0.3
 				OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
+				SYS_ARCH=$(uname -m)
 				CURRENT_USER=$USER
 
 				echo "Installing requirements for: OS: $OS_TYPE"
@@ -127,6 +128,7 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				esac
 
 				echo -e "---------------------------------------------"
+				echo "| CPU Architecture  | $SYS_ARCH"
 				echo "| Operating System  | $OS_TYPE $OS_VERSION"
 				echo "| Docker            | $DOCKER_VERSION"
 				echo -e "---------------------------------------------\n"
@@ -318,8 +320,8 @@ const installUtilities = () => `
 		apk add curl wget git jq openssl >/dev/null
 		;;
 	ubuntu | debian | raspbian)
-		apt-get update -y >/dev/null
-		apt-get install -y curl wget git jq openssl >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git jq openssl >/dev/null
 		;;
 	centos | fedora | rhel | ol | rocky | almalinux | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
@@ -489,7 +491,8 @@ export const installRClone = () => `
 		echo "RClone already installed ✅"
 	else
 		curl https://rclone.org/install.sh | sudo bash
-		echo "RClone installed successfully ✅"
+		RCLONE_VERSION=$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//')
+		echo "RClone version $RCLONE_VERSION installed ✅"
 	fi
 `;
 
@@ -500,18 +503,20 @@ export const createTraefikInstance = () => {
 			echo "Traefik already exists ✅"
 		else
 			# Create the dokploy-traefik service
-		docker service create \
-			--name dokploy-traefik \
-			--replicas 1 \
-			--constraint 'node.role==manager' \
-			--network dokploy-network \
-			--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
-			--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
-			--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-			--label traefik.enable=true \
-			--publish mode=host,target=443,published=443 \
-			--publish mode=host,target=80,published=80 \
-			traefik:v3.1.2
+			TRAEFIK_VERSION=3.1.2
+			docker service create \
+				--name dokploy-traefik \
+				--replicas 1 \
+				--constraint 'node.role==manager' \
+				--network dokploy-network \
+				--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
+				--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
+				--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+				--label traefik.enable=true \
+				--publish mode=host,target=443,published=443 \
+				--publish mode=host,target=80,published=80 \
+				traefik:v$TRAEFIK_VERSION
+			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
 	`;
 
@@ -524,15 +529,20 @@ const installNixpacks = () => `
 	else
 	    export NIXPACKS_VERSION=1.29.1
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
-		echo "Nixpacks version 1.28.1 installed ✅"
+		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
 `;
 
 const installBuildpacks = () => `
+	SUFFIX=""
+	if [ "$SYS_ARCH" = "aarch64" ] || [ "$SYS_ARCH" = "arm64" ]; then
+		SUFFIX="-arm64"
+	fi
 	if command_exists pack; then
 		echo "Buildpacks already installed ✅"
 	else
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
-		echo "Buildpacks version 0.35.0 installed ✅"
+		BUILDPACKS_VERSION=0.35.0
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;
