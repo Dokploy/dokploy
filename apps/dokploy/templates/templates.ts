@@ -1062,4 +1062,19 @@ export const templates: TemplateData[] = [
 		tags: ["identity", "auth"],
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
+	{
+		id: "langflow",
+		name: "Langflow",
+		version: "1.1.1",
+		description:
+			"Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database. ",
+		logo: "langflow.svg",
+		links: {
+			github: "https://github.com/langflow-ai/langflow/tree/main",
+			website: "https://www.langflow.org/",
+			docs: "https://docs.langflow.org/",
+		},
+		tags: ["ai"],
+		load: () => import("./langflow/index").then((m) => m.generate),
+	},
 ];
