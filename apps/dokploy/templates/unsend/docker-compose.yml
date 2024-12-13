@@ -20,11 +20,10 @@ services:
     volumes:
       - database:/var/lib/postgresql/data
 
-  redis:
+  unsend-redis-prod:
     image: redis:7
     networks:
       - dokploy-network
-    container_name: unsend-redis-prod
     restart: always
     # ports:
     #   - "6379:6379"
