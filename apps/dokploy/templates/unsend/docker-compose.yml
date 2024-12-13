@@ -69,7 +69,7 @@ services:
     depends_on:
       unsend-db-prod:
         condition: service_healthy
-      redis:
+      unsend-redis-prod:
         condition: service_started
 
 volumes:
