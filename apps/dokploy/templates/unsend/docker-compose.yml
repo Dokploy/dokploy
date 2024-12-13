@@ -50,7 +50,6 @@ services:
     image: unsend/unsend:latest
     networks:
       - dokploy-network
-    container_name: unsend
     restart: always
     ports:
       - ${PORT:-3000}
