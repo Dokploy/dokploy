@@ -320,8 +320,8 @@ const installUtilities = () => `
 		apk add curl wget git jq openssl >/dev/null
 		;;
 	ubuntu | debian | raspbian)
-		apt-get update -y >/dev/null
-		apt-get install -y curl wget git jq openssl >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git jq openssl >/dev/null
 		;;
 	centos | fedora | rhel | ol | rocky | almalinux | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
