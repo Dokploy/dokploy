@@ -454,10 +454,10 @@ export const teamRouter = createTRPCRouter({
 				.limit(1);
 
 			const role = userTeamRole[0]?.role;
-			if (!role || role !== "ADMIN") {
+			if (!role || (role !== "ADMIN" && role !== "OWNER")) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "Only team admins can update member roles",
+					message: "Only team admins and owners can update member roles",
 				});
 			}
 

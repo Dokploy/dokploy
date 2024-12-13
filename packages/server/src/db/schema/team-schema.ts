@@ -80,10 +80,21 @@ export const teamInvitationsRelations = relations(
 	}),
 );
 
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+	team: one(teams, {
+		fields: [teamMembers.teamId],
+		references: [teams.id],
+	}),
+}));
+
+export const teamsRelations = relations(teams, ({ many }) => ({
+	members: many(teamMembers),
+	invitations: many(teamInvitations),
+}));
+
 export type TeamRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
-export type AssignableTeamRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
+export type AssignableTeamRole = "ADMIN" | "MEMBER" | "GUEST";
 export const teamRoles: AssignableTeamRole[] = [
-	"OWNER",
 	"ADMIN",
 	"MEMBER",
 	"GUEST",
@@ -137,7 +148,7 @@ export const updateTeamSchema = teamSchema.extend({
 export const teamMemberSchema = z.object({
 	teamId: z.string().uuid(),
 	userId: z.string(),
-	role: z.enum(["OWNER", "ADMIN", "MEMBER", "GUEST"]).default("GUEST"),
+	role: z.enum(["ADMIN", "MEMBER", "GUEST"]).default("GUEST"),
 });
 // Update the team creation service to automatically add owner as a member
 export const createTeam = async (

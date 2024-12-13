@@ -183,6 +183,12 @@ export const TeamManagement = ({ teamId }: Props) => {
 		resolver: zodResolver(generateInviteSchema),
 	});
 
+	const roleOptions = [
+		{ value: "ADMIN", label: "Admin" },
+		{ value: "MEMBER", label: "Member" },
+		{ value: "GUEST", label: "Guest" },
+	];
+
 	useEffect(() => {
 		form.reset();
 	}, [form, form.formState.isSubmitSuccessful]);
@@ -295,26 +301,30 @@ export const TeamManagement = ({ teamId }: Props) => {
 												<TableCell>{member.user?.email}</TableCell>
 												<TableCell className="text-center">
 													<div className="flex justify-center">
-														<Select
-															value={member.role}
-															onValueChange={(value: AssignableTeamRole) =>
-																handleUpdateRole(member.userId, value)
-															}
-															disabled={
-																isUpdating || member.role === OWNER_ROLE
-															}
-														>
-															<SelectTrigger className="w-fit min-w-[100px] bg-muted">
-																<SelectValue />
-															</SelectTrigger>
-															<SelectContent>
-																{teamRoles.map((role) => (
-																	<SelectItem key={role} value={role}>
-																		{role}
-																	</SelectItem>
-																))}
-															</SelectContent>
-														</Select>
+														{member.role === OWNER_ROLE ? (
+															<span className="px-3 py-2 bg-muted rounded-md text-sm">
+																Owner
+															</span>
+														) : (
+															<Select
+																value={member.role}
+																onValueChange={(value: AssignableTeamRole) =>
+																	handleUpdateRole(member.userId, value)
+																}
+																disabled={isUpdating}
+															>
+																<SelectTrigger className="w-fit min-w-[100px] bg-muted">
+																	<SelectValue />
+																</SelectTrigger>
+																<SelectContent>
+																	{roleOptions.map((role) => (
+																		<SelectItem key={role.value} value={role.value}>
+																			{role.label}
+																		</SelectItem>
+																	))}
+																</SelectContent>
+															</Select>
+														)}
 													</div>
 												</TableCell>
 												<TableCell className="text-center">
@@ -381,9 +391,8 @@ export const TeamManagement = ({ teamId }: Props) => {
 															) : (
 																<>
 																	<AddMemberPermissions
-																		teamId={teamId}
-																		userId={member.userId}
-																	/>
+																			teamId={teamId}
+																			userId={member.userId} role={"ADMIN"}																	/>
 																	<DropdownMenuItem
 																		className="text-destructive cursor-pointer"
 																		onSelect={(e) => {
@@ -685,18 +694,12 @@ export const TeamManagement = ({ teamId }: Props) => {
 												defaultValue={field.value}
 												className="flex flex-row gap-4"
 											>
-												<div className="flex items-center space-x-2">
-													<RadioGroupItem value="ADMIN" id="admin" />
-													<Label htmlFor="admin">Admin</Label>
-												</div>
-												<div className="flex items-center space-x-2">
-													<RadioGroupItem value="MEMBER" id="member" />
-													<Label htmlFor="member">Member</Label>
-												</div>
-												<div className="flex items-center space-x-2">
-													<RadioGroupItem value="GUEST" id="guest" />
-													<Label htmlFor="guest">Guest</Label>
-												</div>
+												{roleOptions.map((role) => (
+													<div key={role.value} className="flex items-center space-x-2">
+														<RadioGroupItem value={role.value} id={role.value} />
+														<Label htmlFor={role.value}>{role.label}</Label>
+													</div>
+												))}
 											</RadioGroup>
 										</FormControl>
 										<FormDescription>
