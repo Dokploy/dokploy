@@ -32,7 +32,7 @@ services:
     command: ["redis-server", "--maxmemory-policy", "noeviction"]
 
   unsend-storage-prod:
-    image: minio/minio
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     networks:
       - dokploy-network
     ports:
@@ -47,7 +47,7 @@ services:
     command: -c 'mkdir -p /data/unsend && minio server /data --console-address ":9001" --address ":9002"'
 
   unsend:
-    image: unsend/unsend:latest
+    image: unsend/unsend:v1.2.4
     networks:
       - dokploy-network
     restart: always
