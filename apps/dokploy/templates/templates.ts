@@ -1062,4 +1062,19 @@ export const templates: TemplateData[] = [
 		tags: ["identity", "auth"],
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
+	{
+		id: "penpot",
+		name: "Penpot",
+		version: "2.3.2",
+		description:
+			"Penpot is the web-based open-source design tool that bridges the gap between designers and developers.",
+		logo: "penpot.svg",
+		links: {
+			github: "https://github.com/penpot/penpot",
+			website: "https://penpot.app/",
+			docs: "https://docs.penpot.app/",
+		},
+		tags: ["desing", "collaboration"],
+		load: () => import("./penpot/index").then((m) => m.generate),
+	},
 ];
