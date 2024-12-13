@@ -436,13 +436,26 @@ export const rebuildRemoteCompose = async ({
 	return true;
 };
 
-export const removeCompose = async (compose: Compose) => {
+export const removeCompose = async (
+	compose: Compose,
+	deleteVolumes: boolean,
+) => {
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
+		console.log("API: DELETE VOLUMES=", deleteVolumes);
+
 		if (compose.composeType === "stack") {
-			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			const listVolumesCommand = `docker volume ls --format \"{{.Name}}\" | grep ${compose.appName}`;
+			const removeVolumesCommand = `${listVolumesCommand} | xargs -r docker volume rm`;
+			let command: string;
+			if (deleteVolumes) {
+				command = `cd ${projectPath} && docker stack rm ${compose.appName} && ${removeVolumesCommand} && rm -rf ${projectPath}`;
+			} else {
+				command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			}
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
@@ -452,7 +465,13 @@ export const removeCompose = async (compose: Compose) => {
 				cwd: projectPath,
 			});
 		} else {
-			const command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			let command: string;
+			if (deleteVolumes) {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down --volumes && rm -rf ${projectPath}`;
+			} else {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			}
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
