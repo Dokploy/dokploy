@@ -31,11 +31,10 @@ services:
       - cache:/data
     command: ["redis-server", "--maxmemory-policy", "noeviction"]
 
-  minio:
+  unsend-storage-prod:
     image: minio/minio
     networks:
       - dokploy-network
-    container_name: unsend-storage-prod
     ports:
       - 9002
       - 9001
