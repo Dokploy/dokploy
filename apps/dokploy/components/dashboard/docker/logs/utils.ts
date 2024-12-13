@@ -85,6 +85,15 @@ export const getLogType = (message: string): LogStyle => {
 	const lowerMessage = message.toLowerCase();
 
 	if (
+		/(?:^|\s)(?:info|inf|information):?\s/i.test(lowerMessage) ||
+		/\[(?:info|information)\]/i.test(lowerMessage) ||
+		/\b(?:status|state|current|progress)\b:?\s/i.test(lowerMessage) ||
+		/\b(?:processing|executing|performing)\b/i.test(lowerMessage)
+	) {
+		return LOG_STYLES.info;
+	}
+
+	if (
 		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
 		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
 		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
@@ -130,7 +139,7 @@ export const getLogType = (message: string): LogStyle => {
 	if (
 		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
 		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(lowerMessage) ||
-		/\b(?:version|config|import|load)\b:?/i.test(lowerMessage)
+		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.debug;
 	}
