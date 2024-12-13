@@ -47,7 +47,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		);
 	};
 
-	const tooltip = (color: string, timestamp: string) => {
+	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
 			<div className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)} />
 		);
