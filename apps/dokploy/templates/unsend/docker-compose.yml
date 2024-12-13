@@ -67,7 +67,7 @@ services:
       - NEXT_PUBLIC_IS_CLOUD=${NEXT_PUBLIC_IS_CLOUD:-false}
       - API_RATE_LIMIT=${API_RATE_LIMIT:-1}
     depends_on:
-      postgres:
+      unsend-db-prod:
         condition: service_healthy
       redis:
         condition: service_started
