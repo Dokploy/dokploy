@@ -1,11 +1,10 @@
 name: unsend-prod
 
 services:
-  postgres:
+  unsend-db-prod:
     image: postgres:16
     networks:
       - dokploy-network
-    container_name: unsend-db-prod
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER:?err}
