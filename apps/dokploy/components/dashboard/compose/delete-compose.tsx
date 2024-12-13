@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -11,6 +12,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -30,6 +32,7 @@ const deleteComposeSchema = z.object({
 	projectName: z.string().min(1, {
 		message: "Compose name is required",
 	}),
+	deleteVolumes: z.boolean(),
 });
 
 type DeleteCompose = z.infer<typeof deleteComposeSchema>;
@@ -49,6 +52,7 @@ export const DeleteCompose = ({ composeId }: Props) => {
 	const form = useForm<DeleteCompose>({
 		defaultValues: {
 			projectName: "",
+			deleteVolumes: false,
 		},
 		resolver: zodResolver(deleteComposeSchema),
 	});
@@ -110,6 +114,27 @@ export const DeleteCompose = ({ composeId }: Props) => {
 												{...field}
 											/>
 										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="deleteVolumes"
+								render={({ field }) => (
+									<FormItem>
+										<div className="flex items-center">
+											<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+
+											<FormLabel className="ml-2">
+												Delete volumes associated with this compose
+											</FormLabel>
+										</div>
 										<FormMessage />
 									</FormItem>
 								)}
