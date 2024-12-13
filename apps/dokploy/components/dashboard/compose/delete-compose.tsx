@@ -60,7 +60,8 @@ export const DeleteCompose = ({ composeId }: Props) => {
 	const onSubmit = async (formData: DeleteCompose) => {
 		const expectedName = `${data?.name}/${data?.appName}`;
 		if (formData.projectName === expectedName) {
-			await mutateAsync({ composeId })
+			const { deleteVolumes } = formData;
+			await mutateAsync({ composeId, deleteVolumes })
 				.then((result) => {
 					push(`/dashboard/project/${result?.projectId}`);
 					toast.success("Compose deleted successfully");
