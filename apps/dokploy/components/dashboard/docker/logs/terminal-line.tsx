@@ -103,9 +103,9 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 					{type}
 				</Badge>
 			</div>
-			<pre className="dark:text-gray-200 font-mono text-foreground whitespace-pre">
+			<span className="dark:text-gray-200 font-mono text-foreground whitespace-pre-wrap break-words">
 				{searchTerm ? highlightMessage(message, searchTerm) : message}
-			</pre>
+			</span>
 		</div>
 	);
 }
