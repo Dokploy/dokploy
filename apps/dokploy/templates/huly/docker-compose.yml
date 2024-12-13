@@ -25,7 +25,7 @@ services:
   minio:
     networks:
       - dokploy-network
-    image: "minio/minio"
+    image: "minio/minio:RELEASE.2024-11-07T00-52-20Z"
     command: server /data --address ":9000" --console-address ":9001"
     volumes:
       - files:/data
