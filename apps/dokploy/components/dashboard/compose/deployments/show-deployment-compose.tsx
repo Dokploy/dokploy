@@ -8,6 +8,9 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../../docker/logs/terminal-line";
 import { LogLine, parseLogs } from "../../docker/logs/utils";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
+
 
 interface Props {
 	logPath: string | null;
@@ -91,20 +94,27 @@ export const ShowDeploymentCompose = ({
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription>
-						See all the details of this deployment
+					See all the details of this deployment | <Badge variant="blank" className="text-xs">{filteredLogs.length} lines</Badge>
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem]">
 					<div>
 						
-					{filteredLogs.map((log: LogLine, index: number) => (
-								<TerminalLine
-									key={index}
-									log={log}
-									noTimestamp
-								/>
-							)) || "Loading..."}
+					{ 
+						filteredLogs.length > 0 ? filteredLogs.map((log: LogLine, index: number) => (
+							<TerminalLine
+								key={index}
+								log={log}
+								noTimestamp
+							/>
+						)) : 
+						(
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							<Loader2 className="h-6 w-6 animate-spin" />
+						</div>
+						)
+					}
 						<div ref={endOfLogsRef} />
 					</div>
 				</div>
