@@ -38,6 +38,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [autoScroll, setAutoScroll] = React.useState(true);
   const [lines, setLines] = React.useState<number>(100);
   const [search, setSearch] = React.useState<string>("");
+
   const [since, setSince] = React.useState<TimeFilter>("all");
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,7 +109,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 
     ws.onopen = () => {
       console.log("WebSocket connected");
-	  setIsLoading(false)
     };
 
     ws.onmessage = (e) => {
@@ -187,7 +187,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="shadow-md rounded-lg overflow-hidden">
+      <div className="rounded-lg overflow-hidden">
         <div className="space-y-4">
           <div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
             <div className="flex flex-wrap gap-4">
@@ -196,7 +196,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                 placeholder="Number of lines to show"
                 value={lines}
                 onChange={handleLines}
-                className="inline-flex h-9 text-sm text-white placeholder-gray-400 w-full sm:w-auto"
+                className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
               />
 
               <Select value={since} onValueChange={handleSince}>
@@ -227,7 +227,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="warning">
                     <Badge variant="orange">Warning</Badge>
                   </SelectItem>
-		              <SelectItem value="debug">
+                  <SelectItem value="debug">
                     <Badge variant="yellow">Debug</Badge>
                   </SelectItem>
                   <SelectItem value="success">
@@ -244,7 +244,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                 placeholder="Search logs..."
                 value={search}
                 onChange={handleSearch}
-                className="inline-flex h-9 text-sm text-white placeholder-gray-400 w-full sm:w-auto"
+                className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
               />
             </div>
 
