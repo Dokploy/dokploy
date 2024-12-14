@@ -1063,6 +1063,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
 	{
+		id: "huly",
+		name: "Huly",
+		version: "0.6.377",
+		description:
+			"Huly — All-in-One Project Management Platform (alternative to Linear, Jira, Slack, Notion, Motion)",
+		logo: "huly.svg",
+		links: {
+			github: "https://github.com/hcengineering/huly-selfhost",
+			website: "https://huly.io/",
+			docs: "https://docs.huly.io/",
+		},
+		tags: ["project-management", "community", "discussion"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	},
+	{
 		id: "unsend",
 		name: "Unsend",
 		version: "v1.2.4",
