@@ -31,24 +31,6 @@ volumes:
   # penpot_minio:
 
 services:
-  ## Traefik service declaration example. Consider using it if you are going to expose
-  ## penpot to the internet, or a different host than `localhost`.
-
-  penpot-traefik:
-     image: traefik:v2.9
-     networks:
-       - dokploy-network
-     command:
-       - "--api.insecure=true"
-       - "--entryPoints.web.address=:80"
-       - "--providers.docker=true"
-       - "--providers.docker.exposedbydefault=false"
-     volumes:
-       - "penpot_traefik:/traefik"
-       - "/var/run/docker.sock:/var/run/docker.sock"
-     ports:
-       - 80
-       - 443
 
   penpot-frontend:
     image: "penpotapp/frontend:2.3.2"
@@ -66,30 +48,6 @@ services:
 
     networks:
       - dokploy-network
-
-    labels:
-      - "traefik.enable=true"
-
-      ## HTTP: example of labels for the case where penpot will be exposed to the
-      ## internet with only HTTP (without HTTPS) using traefik.
-
-      # - "traefik.http.routers.penpot-http.entrypoints=web"
-      # - "traefik.http.routers.penpot-http.rule=Host(`<DOMAIN_NAME>`)"
-      # - "traefik.http.services.penpot-http.loadbalancer.server.port=80"
-
-      ## HTTPS: example of labels for the case where penpot will be exposed to the
-      ## internet with HTTPS using traefik.
-
-      # - "traefik.http.middlewares.http-redirect.redirectscheme.scheme=https"
-      # - "traefik.http.middlewares.http-redirect.redirectscheme.permanent=true"
-      # - "traefik.http.routers.penpot-http.entrypoints=web"
-      # - "traefik.http.routers.penpot-http.rule=Host(`<DOMAIN_NAME>`)"
-      # - "traefik.http.routers.penpot-http.middlewares=http-redirect"
-      # - "traefik.http.routers.penpot-https.entrypoints=websecure"
-      # - "traefik.http.routers.penpot-https.rule=Host(`<DOMAIN_NAME>`)"
-      # - "traefik.http.services.penpot-https.loadbalancer.server.port=80"
-      # - "traefik.http.routers.penpot-https.tls=true"
-      # - "traefik.http.routers.penpot-https.tls.certresolver=letsencrypt"
 
     environment:
       PENPOT_FLAGS: disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies
