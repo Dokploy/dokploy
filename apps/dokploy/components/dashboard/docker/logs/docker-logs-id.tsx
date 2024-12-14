@@ -200,7 +200,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
               />
 
               <Select value={since} onValueChange={handleSince}>
-                <SelectTrigger className="w-[180px] sm:w-auto h-9">
+                <SelectTrigger className="sm:w-[180px] w-full h-9">
                   <SelectValue placeholder="Time filter" />
                 </SelectTrigger>
                 <SelectContent>
@@ -214,7 +214,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
               </Select>
 
               <Select value={typeFilter} onValueChange={handleTypeFilter}>
-                <SelectTrigger className="w-[180px] sm:w-auto h-9">
+                <SelectTrigger className="sm:w-[180px] w-full h-9">
                   <SelectValue placeholder="Type filter" />
                 </SelectTrigger>
                 <SelectContent>
