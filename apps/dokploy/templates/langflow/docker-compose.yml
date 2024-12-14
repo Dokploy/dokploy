@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  langflow:
+    image: langflowai/langflow:v1.1.1
+    ports:
+      - 7860
+    depends_on:
+      - postgres-langflow
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres-langflow:5432/langflow
+      # This variable defines where the logs, file storage, monitor data and secret keys are stored.
+    volumes:
+      - langflow-data:/app/langflow
+    networks:
+      - dokploy-network
+
+  postgres-langflow:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: langflow
+    ports:
+      - 5432
+    volumes:
+      - langflow-postgres:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+
+volumes:
+  langflow-postgres:
+  langflow-data:
