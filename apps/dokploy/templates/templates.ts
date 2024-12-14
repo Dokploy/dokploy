@@ -1063,6 +1063,20 @@ export const templates: TemplateData[] = [
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
 	{
+		id: "unsend",
+		name: "Unsend",
+		version: "v1.2.4",
+		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
+		logo: "unsend.png", // we defined the name and the extension of the logo
+		links: {
+			github: "https://github.com/unsend-dev/unsend",
+			website: "https://unsend.dev/",
+			docs: "https://docs.unsend.dev/get-started/",
+		},
+		tags: ["e-mail", "marketing", "business"],
+		load: () => import("./unsend/index").then((m) => m.generate),
+	},
+	{
 		id: "langflow",
 		name: "Langflow",
 		version: "1.1.1",
