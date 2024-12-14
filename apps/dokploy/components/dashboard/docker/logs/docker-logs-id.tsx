@@ -38,6 +38,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [autoScroll, setAutoScroll] = React.useState(true);
   const [lines, setLines] = React.useState<number>(100);
   const [search, setSearch] = React.useState<string>("");
+
   const [since, setSince] = React.useState<TimeFilter>("all");
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -108,7 +109,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 
     ws.onopen = () => {
       console.log("WebSocket connected");
-	  setIsLoading(false)
     };
 
     ws.onmessage = (e) => {
@@ -227,7 +227,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="warning">
                     <Badge variant="orange">Warning</Badge>
                   </SelectItem>
-		              <SelectItem value="debug">
+                  <SelectItem value="debug">
                     <Badge variant="yellow">Debug</Badge>
                   </SelectItem>
                   <SelectItem value="success">
