@@ -25,9 +25,26 @@ export const ShowDeploymentCompose = ({
 	serverId,
 }: Props) => {
 	const [data, setData] = useState("");
-	const endOfLogsRef = useRef<HTMLDivElement>(null);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
+	const [autoScroll, setAutoScroll] = useState(true);
+	const scrollRef = useRef<HTMLDivElement>(null);
+
+	const scrollToBottom = () => {
+		if (autoScroll && scrollRef.current) {
+		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	  };
+	
+	const handleScroll = () => {
+		if (!scrollRef.current) return;
+	
+		const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+		const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+		setAutoScroll(isAtBottom);
+	  };
+	
+	
 	useEffect(() => {
 		if (!open || !logPath) return;
 
@@ -59,20 +76,19 @@ export const ShowDeploymentCompose = ({
 		};
 	}, [logPath, open]);
 
-	const scrollToBottom = () => {
-		endOfLogsRef.current?.scrollIntoView({ behavior: "smooth" });
-	};
 
 	useEffect(() => {
 		const logs = parseLogs(data);
-		console.log(data);
-		console.log(logs);
 		setFilteredLogs(logs);
 	}, [data]);
 
 	useEffect(() => {
 		scrollToBottom();
-	}, [data]);
+	
+		if (autoScroll && scrollRef.current) {
+		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	  }, [filteredLogs, autoScroll]);
 
 	return (
 		<Dialog
@@ -90,7 +106,7 @@ export const ShowDeploymentCompose = ({
 				}
 			}}
 		>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl max-h-screen"}>
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription>
@@ -98,8 +114,12 @@ export const ShowDeploymentCompose = ({
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem]">
-					<div>
+				<div 
+					ref={scrollRef}
+					onScroll={handleScroll}
+					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
+				>
+						
 						
 					{ 
 						filteredLogs.length > 0 ? filteredLogs.map((log: LogLine, index: number) => (
@@ -115,8 +135,6 @@ export const ShowDeploymentCompose = ({
 						</div>
 						)
 					}
-						<div ref={endOfLogsRef} />
-					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
