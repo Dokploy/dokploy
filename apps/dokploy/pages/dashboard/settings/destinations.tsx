@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="S3 Destinations">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
