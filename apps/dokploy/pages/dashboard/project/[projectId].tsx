@@ -39,6 +39,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { type ReactElement } from "react";
@@ -189,6 +190,9 @@ const Project = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				<Head>
+					<title>Project {data?.name} | Dokploy</title>
+				</Head>
 				<header className="mb-6 flex w-full items-center justify-between flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
 						<h1 className="text-xl font-bold lg:text-3xl">{data?.name}</h1>

@@ -34,6 +34,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
@@ -81,6 +82,11 @@ const Redis = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				<Head>
+					<title>
+						Project {data?.project.name} | {data?.name} | Dokploy
+					</title>
+				</Head>
 				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
 					<div className="flex  flex-col justify-between w-fit gap-2">
 						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
