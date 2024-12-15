@@ -35,11 +35,6 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
-		"xterm-addon-fit": "0.8.0",
-		"@xterm/xterm": "^5.3.0",
-		"xterm": "5.2.1",
-		"@xterm/addon-attach": "^0.11.0",
-		"@xterm/addon-web-links": "^0.10.0",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
@@ -76,6 +71,8 @@
 		"@trpc/server": "^10.43.6",
 		"@uiw/codemirror-theme-github": "^4.22.1",
 		"@uiw/react-codemirror": "^4.22.1",
+		"@xterm/addon-attach": "0.10.0",
+		"@xterm/xterm": "^5.4.0",
 		"adm-zip": "^0.5.14",
 		"bcrypt": "5.1.1",
 		"bullmq": "5.4.2",
@@ -120,6 +117,7 @@
 		"undici": "^6.19.2",
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
+		"xterm-addon-fit": "^0.8.0",
 		"zod": "^3.23.4",
 		"zod-form-data": "^2.0.2"
 	},

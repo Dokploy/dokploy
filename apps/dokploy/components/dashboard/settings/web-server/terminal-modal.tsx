@@ -11,7 +11,7 @@ import { api } from "@/utils/api";
 import dynamic from "next/dynamic";
 import type React from "react";
 
-const Terminal = dynamic(async () => (await import("./terminal")).Terminal, {
+const Terminal = dynamic(() => import("./terminal").then((e) => e.Terminal), {
 	ssr: false,
 });
 

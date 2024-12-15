@@ -1,16 +1,17 @@
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import { findServerById } from "@dokploy/server/services/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { validateWebSocketRequest } from "../auth/auth";
 import { getShell } from "./utils";
 
-export const setupDockerContainerTerminalWebSocketServer = (
+export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
 ) => {
 	const wssTerm = new WebSocketServer({
 		noServer: true,
-		path: "/docker-container-terminal",
+		path: "/docker-container-logs",
 	});
 
 	server.on("upgrade", (req, socket, head) => {
@@ -19,7 +20,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		if (pathname === "/_next/webpack-hmr") {
 			return;
 		}
-		if (pathname === "/docker-container-terminal") {
+		if (pathname === "/docker-container-logs") {
 			wssTerm.handleUpgrade(req, socket, head, function done(ws) {
 				wssTerm.emit("connection", ws, req);
 			});
@@ -30,7 +31,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
-		const activeWay = url.searchParams.get("activeWay");
+		const tail = url.searchParams.get("tail");
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateWebSocketRequest(req);
 
@@ -46,69 +47,50 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
-				if (!server.sshKeyId)
-					throw new Error("No SSH key available for this server");
 
-				const conn = new Client();
-				let stdout = "";
-				let stderr = "";
-				conn
-					.once("ready", () => {
-						conn.exec(
-							`docker exec -it ${containerId} ${activeWay}`,
-							{ pty: true },
-							(err, stream) => {
-								if (err) throw err;
-
+				if (!server.sshKeyId) return;
+				const client = new Client();
+				new Promise<void>((resolve, reject) => {
+					client
+						.once("ready", () => {
+							const command = `
+						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
+					`;
+							client.exec(command, (err, stream) => {
+								if (err) {
+									console.error("Execution error:", err);
+									reject(err);
+									return;
+								}
 								stream
-									.on("close", (code: number, signal: string) => {
-										ws.send(`\nContainer closed with code: ${code}\n`);
-										conn.end();
+									.on("close", () => {
+										client.end();
+										resolve();
 									})
 									.on("data", (data: string) => {
-										stdout += data.toString();
 										ws.send(data.toString());
 									})
 									.stderr.on("data", (data) => {
-										stderr += data.toString();
 										ws.send(data.toString());
-										console.error("Error: ", data.toString());
 									});
-
-								ws.on("message", (message) => {
-									try {
-										let command: string | Buffer[] | Buffer | ArrayBuffer;
-										if (Buffer.isBuffer(message)) {
-											command = message.toString("utf8");
-										} else {
-											command = message;
-										}
-										stream.write(command.toString());
-									} catch (error) {
-										// @ts-ignore
-										const errorMessage = error?.message as unknown as string;
-										ws.send(errorMessage);
-									}
-								});
-
-								ws.on("close", () => {
-									stream.end();
-								});
-							},
-						);
-					})
-					.connect({
-						host: server.ipAddress,
-						port: server.port,
-						username: server.username,
-						privateKey: server.sshKey?.privateKey,
-						timeout: 99999,
-					});
+							});
+						})
+						.connect({
+							host: server.ipAddress,
+							port: server.port,
+							username: server.username,
+							privateKey: server.sshKey?.privateKey,
+							timeout: 99999,
+						});
+				});
 			} else {
 				const shell = getShell();
 				const ptyProcess = spawn(
 					shell,
-					["-c", `docker exec -it ${containerId} ${activeWay}`],
+					[
+						"-c",
+						`docker container logs --tail ${tail} --follow ${containerId}`,
+					],
 					{
 						name: "xterm-256color",
 						cwd: process.env.HOME,

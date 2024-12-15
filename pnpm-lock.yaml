@@ -206,13 +206,10 @@ importers:
         specifier: ^4.22.1
         version: 4.23.0(@babel/runtime@7.25.0)(@codemirror/autocomplete@6.17.0(@codemirror/language@6.10.2)(@codemirror/state@6.4.1)(@codemirror/view@6.29.0)(@lezer/common@1.2.1))(@codemirror/language@6.10.2)(@codemirror/lint@6.8.1)(@codemirror/search@6.5.6)(@codemirror/state@6.4.1)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.29.0)(codemirror@6.0.1(@lezer/common@1.2.1))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@xterm/addon-attach':
-        specifier: ^0.11.0
-        version: 0.11.0(@xterm/xterm@5.5.0)
-      '@xterm/addon-web-links':
-        specifier: ^0.10.0
+        specifier: 0.10.0
         version: 0.10.0(@xterm/xterm@5.5.0)
       '@xterm/xterm':
-        specifier: ^5.3.0
+        specifier: ^5.4.0
         version: 5.5.0
       adm-zip:
         specifier: ^0.5.14
@@ -346,12 +343,9 @@ importers:
       ws:
         specifier: 8.16.0
         version: 8.16.0
-      xterm:
-        specifier: 5.2.1
-        version: 5.2.1
       xterm-addon-fit:
-        specifier: 0.8.0
-        version: 0.8.0(xterm@5.2.1)
+        specifier: ^0.8.0
+        version: 0.8.0(xterm@5.3.0)
       zod:
         specifier: ^3.23.4
         version: 3.23.8
@@ -3406,13 +3400,8 @@ packages:
   '@webassemblyjs/wast-printer@1.12.1':
     resolution: {integrity: sha512-+X4WAlOisVWQMikjbcvY2e0rwPsKQ9F688lksZhBcPycBBuii3O7m8FACbDMWDojpAqvjIncrG8J0XHKyQfVeA==}
 
-  '@xterm/addon-attach@0.11.0':
-    resolution: {integrity: sha512-JboCN0QAY6ZLY/SSB/Zl2cQ5zW1Eh4X3fH7BnuR1NB7xGRhzbqU2Npmpiw/3zFlxDaU88vtKzok44JKi2L2V2Q==}
-    peerDependencies:
-      '@xterm/xterm': ^5.0.0
-
-  '@xterm/addon-web-links@0.10.0':
-    resolution: {integrity: sha512-QhrHCUr8w6ATGviyXwcAIM1qN3nD1hdxwMC8fsW7z/6aaQlb2nt7zmByJt4eOn7ZzrHOzczljqV5S2pkdQp2xw==}
+  '@xterm/addon-attach@0.10.0':
+    resolution: {integrity: sha512-ES/XO8pC1tPHSkh4j7qzM8ajFt++u8KMvfRc9vKIbjHTDOxjl9IUVo+vcQgLn3FTCM3w2czTvBss8nMWlD83Cg==}
     peerDependencies:
       '@xterm/xterm': ^5.0.0
 
@@ -6796,8 +6785,8 @@ packages:
     peerDependencies:
       xterm: ^5.0.0
 
-  xterm@5.2.1:
-    resolution: {integrity: sha512-cs5Y1fFevgcdoh2hJROMVIWwoBHD80P1fIP79gopLHJIE4kTzzblanoivxTiQ4+92YM9IxS36H1q0MxIJXQBcA==}
+  xterm@5.3.0:
+    resolution: {integrity: sha512-8QqjlekLUFTrU6x7xck1MsPzPA571K5zNqWm0M0oroYEWVOptZ0+ubQSkQ3uxIEhcIHRujJy6emDWX4A7qyFzg==}
     deprecated: This package is now deprecated. Move to @xterm/xterm instead.
 
   y18n@4.0.3:
@@ -9646,11 +9635,7 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@xterm/addon-attach@0.11.0(@xterm/xterm@5.5.0)':
-    dependencies:
-      '@xterm/xterm': 5.5.0
-
-  '@xterm/addon-web-links@0.10.0(@xterm/xterm@5.5.0)':
+  '@xterm/addon-attach@0.10.0(@xterm/xterm@5.5.0)':
     dependencies:
       '@xterm/xterm': 5.5.0
 
@@ -13113,11 +13098,11 @@ snapshots:
 
   xtend@4.0.2: {}
 
-  xterm-addon-fit@0.8.0(xterm@5.2.1):
+  xterm-addon-fit@0.8.0(xterm@5.3.0):
     dependencies:
-      xterm: 5.2.1
+      xterm: 5.3.0
 
-  xterm@5.2.1: {}
+  xterm@5.3.0: {}
 
   y18n@4.0.3: {}
 

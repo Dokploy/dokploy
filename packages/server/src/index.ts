@@ -102,6 +102,11 @@ export * from "./utils/traefik/security";
 export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
 
+export * from "./wss/docker-container-logs";
+export * from "./wss/docker-container-terminal";
+export * from "./wss/docker-stats";
+export * from "./wss/listen-deployment";
+export * from "./wss/terminal";
 export * from "./wss/utils";
 
 export * from "./utils/access-log/handler";
