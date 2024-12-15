@@ -1124,7 +1124,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "elastic-search",
 		name: "Elasticsearch",
-		version: "1.1.1",
+		version: "8.10.2",
 		description:
 			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
 		logo: "elasticsearch.svg",
@@ -1133,7 +1133,7 @@ export const templates: TemplateData[] = [
 			website: "https://www.elastic.co/elasticsearch/",
 			docs: "https://docs.elastic.co/elasticsearch/",
 		},
-		tags: ["ai"],
+		tags: ["search", "analytics"],
 		load: () => import("./elastic-search/index").then((m) => m.generate),
 	},
 ];
