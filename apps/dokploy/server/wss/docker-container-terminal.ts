@@ -109,14 +109,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				const ptyProcess = spawn(
 					shell,
 					["-c", `docker exec -it ${containerId} ${activeWay}`],
-					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
-					},
+					{},
 				);
 
 				ptyProcess.onData((data) => {
