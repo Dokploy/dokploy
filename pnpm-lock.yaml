@@ -178,6 +178,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.0.7
         version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@reactour/tour':
+        specifier: 3.7.0
+        version: 3.7.0(react@18.2.0)
       '@stripe/stripe-js':
         specifier: 4.8.0
         version: 4.8.0
@@ -2871,6 +2874,26 @@ packages:
     peerDependencies:
       react: ^18.2.0
 
+  '@reactour/mask@1.1.0':
+    resolution: {integrity: sha512-GkJMLuTs3vTsm4Ryq2uXcE4sMzRP1p4xSd6juSOMqbHa7IVD/UiLCLqJWHR9xGSQPbYhpZAZAORUG5cS0U5tBA==}
+    peerDependencies:
+      react: 16.x || 17.x || 18.x
+
+  '@reactour/popover@1.2.0':
+    resolution: {integrity: sha512-1JMykZ+MmDmRlEVC5+DwlvK1exwV5bFHtiSFwVXnoPZmsSfwId6SLyjo9H6bybeuNtNEzviKdsF/ZBC1UQbDqg==}
+    peerDependencies:
+      react: 16.x || 17.x || 18.x
+
+  '@reactour/tour@3.7.0':
+    resolution: {integrity: sha512-p0USaOBc5fcNBS5ZiQ2lsmztAhIGCUfx913Zw14FbEM8bhSXpR1F2JD0alVj9Ya1N+pnTNYatf14rSNGJsEnCg==}
+    peerDependencies:
+      react: 16.x || 17.x || 18.x
+
+  '@reactour/utils@0.5.0':
+    resolution: {integrity: sha512-yQs5Nm/Dg1xRM7d/S/UILBV5OInrTgrjGzgc81/RP5khqdO5KnpOaC46yF83kDtCalte8X3RCwp+F2YA509k1w==}
+    peerDependencies:
+      react: 16.x || 17.x || 18.x
+
   '@redis/bloom@1.2.0':
     resolution: {integrity: sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==}
     peerDependencies:
@@ -2979,6 +3002,11 @@ packages:
     resolution: {integrity: sha512-2bIrL28PcK3YCqD9anGxDxamxdiJAxA+l7fWIwM5o8UqNy1t3d1NdAweO2XhA0KTDJ5aH1FsuiT5+7VhtHliXg==}
     cpu: [x64]
     os: [win32]
+
+  '@rooks/use-mutation-observer@4.11.2':
+    resolution: {integrity: sha512-vpsdrZdr6TkB1zZJcHx+fR1YC/pHs2BaqcuYiEGjBVbwY5xcC49+h0hAUtQKHth3oJqXfIX/Ng8S7s5HFHdM/A==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
@@ -6012,6 +6040,9 @@ packages:
   reselect@5.1.1:
     resolution: {integrity: sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w==}
 
+  resize-observer-polyfill@1.5.1:
+    resolution: {integrity: sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg==}
+
   resolve-alpn@1.2.1:
     resolution: {integrity: sha512-0a1F4l73/ZFZOakJnQ3FvkJ2+gSTQWz/r2KE5OdDY0TxPm5h4GkqkWWfM47T7HsbnOtcJVEF4epCVy6u7Q3K+g==}
 
@@ -8828,6 +8859,29 @@ snapshots:
     dependencies:
       react: 18.2.0
 
+  '@reactour/mask@1.1.0(react@18.2.0)':
+    dependencies:
+      '@reactour/utils': 0.5.0(react@18.2.0)
+      react: 18.2.0
+
+  '@reactour/popover@1.2.0(react@18.2.0)':
+    dependencies:
+      '@reactour/utils': 0.5.0(react@18.2.0)
+      react: 18.2.0
+
+  '@reactour/tour@3.7.0(react@18.2.0)':
+    dependencies:
+      '@reactour/mask': 1.1.0(react@18.2.0)
+      '@reactour/popover': 1.2.0(react@18.2.0)
+      '@reactour/utils': 0.5.0(react@18.2.0)
+      react: 18.2.0
+
+  '@reactour/utils@0.5.0(react@18.2.0)':
+    dependencies:
+      '@rooks/use-mutation-observer': 4.11.2(react@18.2.0)
+      react: 18.2.0
+      resize-observer-polyfill: 1.5.1
+
   '@redis/bloom@1.2.0(@redis/client@1.6.0)':
     dependencies:
       '@redis/client': 1.6.0
@@ -8901,6 +8955,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.19.1':
     optional: true
+
+  '@rooks/use-mutation-observer@4.11.2(react@18.2.0)':
+    dependencies:
+      react: 18.2.0
 
   '@selderee/plugin-htmlparser2@0.11.0':
     dependencies:
@@ -12237,6 +12295,8 @@ snapshots:
   requires-port@1.0.0: {}
 
   reselect@5.1.1: {}
+
+  resize-observer-polyfill@1.5.1: {}
 
   resolve-alpn@1.2.1: {}
 

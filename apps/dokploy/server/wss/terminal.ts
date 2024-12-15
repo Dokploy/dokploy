@@ -124,7 +124,6 @@ export const setupTerminalWebSocketServer = (
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
 			});
 	});
 };

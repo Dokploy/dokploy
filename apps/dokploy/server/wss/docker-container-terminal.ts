@@ -102,7 +102,6 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						port: server.port,
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
-						timeout: 99999,
 					});
 			} else {
 				const shell = getShell();
