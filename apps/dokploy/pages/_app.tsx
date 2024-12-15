@@ -4,7 +4,6 @@ import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
-import { TourProvider } from "@reactour/tour";
 import type { NextPage } from "next";
 import { appWithTranslation } from "next-i18next";
 import { ThemeProvider } from "next-themes";
@@ -15,21 +14,6 @@ import Script from "next/script";
 import type { ReactElement, ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const steps = [
-	{
-		selector: ".first-step",
-		content: "This is the first Step",
-	},
-	{
-		selector: ".second-step",
-		content: "This is the second Step",
-	},
-	{
-		selector: ".third-step",
-		content: "This is the third Step",
-	},
-];
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 	getLayout?: (page: ReactElement) => ReactNode;
@@ -65,19 +49,17 @@ const MyApp = ({
 					/>
 				)}
 
-			<TourProvider steps={steps}>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-					forcedTheme={Component.theme}
-				>
-					<Toaster richColors />
-					<SearchCommand />
-					{getLayout(<Component {...pageProps} />)}
-				</ThemeProvider>
-			</TourProvider>
+			<ThemeProvider
+				attribute="class"
+				defaultTheme="system"
+				enableSystem
+				disableTransitionOnChange
+				forcedTheme={Component.theme}
+			>
+				<Toaster richColors />
+				<SearchCommand />
+				{getLayout(<Component {...pageProps} />)}
+			</ThemeProvider>
 		</>
 	);
 };

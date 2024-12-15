@@ -31,8 +31,12 @@ import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
+import { useRouter } from "next/router";
+import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 
 export const ShowServers = () => {
+	const router = useRouter();
+	const query = router.query;
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
@@ -42,6 +46,7 @@ export const ShowServers = () => {
 
 	return (
 		<div className="p-6 space-y-6">
+			{query?.success && <WelcomeSuscription />}
 			<div className="space-y-2 flex flex-row justify-between items-end">
 				<div>
 					<h1 className="text-2xl font-bold">Servers</h1>

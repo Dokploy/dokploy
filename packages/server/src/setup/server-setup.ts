@@ -55,7 +55,7 @@ export const serverSetup = async (serverId: string) => {
 	} catch (err) {
 		console.log(err);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		writeStream.write(err);
+		writeStream.write(`${err} ❌\n`);
 		writeStream.close();
 	}
 };

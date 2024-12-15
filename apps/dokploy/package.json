@@ -35,7 +35,8 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
-		"@reactour/tour": "3.7.0",
+		"react-confetti-explosion":"2.1.2",
+		"@stepperize/react": "4.0.1",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
