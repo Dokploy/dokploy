@@ -110,12 +110,12 @@ export const setupDockerContainerTerminalWebSocketServer = (
 					shell,
 					["-c", `docker exec -it ${containerId} ${activeWay}`],
 					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
+						// name: "xterm-256color",
+						// cwd: process.env.HOME,
+						// env: process.env,
+						// encoding: "utf8",
+						// cols: 80,
+						// rows: 30,
 					},
 				);
 

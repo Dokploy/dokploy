@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttachAddon } from "@xterm/addon-attach";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 
 interface Props {
 	id: string;
@@ -25,13 +26,11 @@ export const DockerTerminal: React.FC<Props> = ({
 		}
 		const term = new Terminal({
 			cursorBlink: true,
-			cols: 80,
-			rows: 30,
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
 				cursor: "transparent",
-				background: "rgba(0, 0, 0, 0)",
+				background: "transparent",
 			},
 		});
 		const addonFit = new FitAddon();
@@ -47,6 +46,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		term.open(termRef.current);
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
+		term.loadAddon(new WebLinksAddon());
 		addonFit.fit();
 		return () => {
 			ws.readyState === WebSocket.OPEN && ws.close();
@@ -54,8 +54,8 @@ export const DockerTerminal: React.FC<Props> = ({
 	}, [containerId, activeWay, id]);
 
 	return (
-		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-2">
+		<div className="flex flex-col gap-4 w-full">
+			<div className="flex flex-col gap-2 w-full">
 				<span>
 					Select way to connect to <b>{containerId}</b>
 				</span>
@@ -66,7 +66,7 @@ export const DockerTerminal: React.FC<Props> = ({
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
+			<div className="w-full h-full rounded-lg p-2 border  min-h-[50vh]">
 				<div id={id} ref={termRef} />
 			</div>
 		</div>
