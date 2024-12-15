@@ -48,11 +48,24 @@ export const ShowServers = () => {
 		<div className="p-6 space-y-6">
 			{query?.success && <WelcomeSuscription />}
 			<div className="space-y-2 flex flex-row justify-between items-end">
-				<div>
-					<h1 className="text-2xl font-bold">Servers</h1>
-					<p className="text-muted-foreground">
-						Add servers to deploy your applications remotely.
-					</p>
+				<div className="flex flex-col gap-2">
+					<div>
+						<h1 className="text-2xl font-bold">Servers</h1>
+						<p className="text-muted-foreground">
+							Add servers to deploy your applications remotely.
+						</p>
+					</div>
+
+					{isCloud && (
+						<span
+							className="text-primary cursor-pointer text-sm"
+							onClick={() => {
+								router.push("/dashboard/settings/servers?success=true");
+							}}
+						>
+							Reset Onboarding
+						</span>
+					)}
 				</div>
 
 				{sshKeys && sshKeys?.length > 0 && (
@@ -105,7 +118,9 @@ export const ShowServers = () => {
 				{data && data?.length > 0 && (
 					<div className="flex flex-col gap-6 overflow-auto">
 						<Table>
-							<TableCaption>See all servers</TableCaption>
+							<TableCaption>
+								<div className="flex flex-col  gap-4">See all servers</div>
+							</TableCaption>
 							<TableHeader>
 								<TableRow>
 									<TableHead className="w-[100px]">Name</TableHead>
