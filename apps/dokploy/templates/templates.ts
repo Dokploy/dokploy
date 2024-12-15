@@ -1121,4 +1121,19 @@ export const templates: TemplateData[] = [
 		tags: ["ai"],
 		load: () => import("./langflow/index").then((m) => m.generate),
 	},
+	{
+		id: "elastic-search",
+		name: "Elasticsearch",
+		version: "1.1.1",
+		description:
+			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
+		logo: "elasticsearch.svg",
+		links: {
+			github: "https://github.com/elastic/elasticsearch",
+			website: "https://www.elastic.co/elasticsearch/",
+			docs: "https://docs.elastic.co/elasticsearch/",
+		},
+		tags: ["ai"],
+		load: () => import("./elastic-search/index").then((m) => m.generate),
+	},
 ];
