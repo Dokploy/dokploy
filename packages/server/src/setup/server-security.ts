@@ -89,6 +89,32 @@ export const serverSecurity = async (serverId: string) => {
             fi
           }
 
+		  check_dependencies() {
+			echo -e "Checking required dependencies..."
+			
+			local required_commands=("curl" "jq" "systemctl" "apt-get")
+			local missing_commands=()
+
+			for cmd in "\${required_commands[@]}"; do
+				if ! command -v "\$cmd" >/dev/null 2>&1; then
+					missing_commands+=("\$cmd")
+				fi
+			done
+
+		if [ \${#missing_commands[@]} -ne 0 ]; then
+				echo -e "\${RED}The following required commands are missing:\${NC}"
+				for cmd in "\${missing_commands[@]}"; do
+					echo "  - \$cmd"
+				done
+				echo
+				echo -e "\${YELLOW}Please install these commands before running this script.\${NC}"
+				exit 1
+		fi
+
+			echo -e "All required dependencies are installed\n"
+			return 0
+		}
+
 
           os=$(check_os)
           

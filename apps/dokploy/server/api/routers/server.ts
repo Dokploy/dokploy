@@ -26,6 +26,7 @@ import {
 	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
+	serverAudit,
 	serverSecurity,
 	serverSetup,
 	serverValidate,
@@ -179,11 +180,36 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to validate this server",
 					});
 				}
-				const response = await serverSecurity(input.serverId);
-				return {} as unknown as {
-					docker: {
+				const response = await serverAudit(input.serverId);
+				console.log(response);
+				return response as unknown as {
+					ufw: {
+						installed: boolean;
+						active: boolean;
+						defaultIncoming: string;
+					};
+					ssh: {
 						enabled: boolean;
-						version: string;
+						keyAuth: boolean;
+						permitRootLogin: string;
+						passwordAuth: string;
+						usePam: string;
+					};
+					nonRootUser: {
+						hasValidSudoUser: boolean;
+					};
+					unattendedUpgrades: {
+						installed: boolean;
+						active: boolean;
+						updateEnabled: number;
+						upgradeEnabled: number;
+					};
+					fail2ban: {
+						installed: boolean;
+						enabled: boolean;
+						active: boolean;
+						sshEnabled: string;
+						sshMode: string;
 					};
 				};
 			} catch (error) {

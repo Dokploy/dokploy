@@ -43,6 +43,7 @@ export * from "./setup/server-security";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";
+export * from "./setup/server-audit";
 
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";

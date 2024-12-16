@@ -26,18 +26,18 @@ const validateSsh = () => `
 `;
 
 const validateNonRootUser = () => `
-  sudoUsers=$(grep -Po '^sudo:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
-  adminUsers=$(grep -Po '^admin:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
-  privilegedUsers=$(echo -e "${sudoUsers}\\n${adminUsers}" | sort -u | grep -v '^$')
+  sudoUsers=\$(grep -Po '^sudo:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
+  adminUsers=\$(grep -Po '^admin:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
+  privilegedUsers=\$(echo -e "\${sudoUsers}\\n\${adminUsers}" | sort -u | grep -v '^$')
   validUserFound=false
 
   while IFS= read -r user; do
-    userShell=$(getent passwd "$user" | cut -d: -f7)
-    if [[ "$userShell" != "/usr/sbin/nologin" && "$userShell" != "/bin/false" ]]; then
+    userShell=\$(getent passwd "\$user" | cut -d: -f7)
+    if [[ "\$userShell" != "/usr/sbin/nologin" && "\$userShell" != "/bin/false" ]]; then
       validUserFound=true
       break
     fi
-  done <<< "$privilegedUsers"
+  done <<< "\$privilegedUsers"
 
   echo "{\\"hasValidSudoUser\\": $validUserFound}"
 `;
