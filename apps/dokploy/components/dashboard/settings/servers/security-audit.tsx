@@ -63,6 +63,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 					</CardHeader>
 
 					<CardContent className="flex flex-col gap-4">
+						<AlertBlock type="info" className="w-full">
+							Ubuntu/Debian OS support is currently supported (Experimental)
+						</AlertBlock>
 						{isLoading ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />

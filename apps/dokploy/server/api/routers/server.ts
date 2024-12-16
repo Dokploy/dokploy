@@ -27,7 +27,6 @@ import {
 	haveActiveServices,
 	removeDeploymentsByServerId,
 	serverAudit,
-	serverSecurity,
 	serverSetup,
 	serverValidate,
 	updateServerById,
