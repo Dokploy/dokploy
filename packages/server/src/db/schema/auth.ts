@@ -92,6 +92,7 @@ export const apiUpdateAuth = createSchema.partial().extend({
 	email: z.string().nullable(),
 	password: z.string().nullable(),
 	image: z.string().optional(),
+	currentPassword: z.string().nullable(),
 });
 
 export const apiUpdateAuthByAdmin = createSchema.partial().extend({

@@ -81,7 +81,7 @@ export const stripeRouter = createTRPCRouter({
 					adminId: admin.adminId,
 				},
 				allow_promotion_codes: true,
-				success_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
