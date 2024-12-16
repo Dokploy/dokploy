@@ -1,6 +1,7 @@
 import { Client } from "ssh2";
 import { findServerById } from "../services/server";
 
+// Thanks for the idea to https://github.com/healthyhost/audit-vps-script/tree/main
 const validateUfw = () => `
   if command -v ufw >/dev/null 2>&1; then
     isInstalled=true
@@ -25,40 +26,6 @@ const validateSsh = () => `
   fi
 `;
 
-const validateNonRootUser = () => `
-  sudoUsers=\$(grep -Po '^sudo:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
-  adminUsers=\$(grep -Po '^admin:.*:\\K.*$' /etc/group | tr ',' '\\n' | grep -v root)
-  privilegedUsers=\$(echo -e "\${sudoUsers}\\n\${adminUsers}" | sort -u | grep -v '^$')
-  validUserFound=false
-
-  while IFS= read -r user; do
-    userShell=\$(getent passwd "\$user" | cut -d: -f7)
-    if [[ "\$userShell" != "/usr/sbin/nologin" && "\$userShell" != "/bin/false" ]]; then
-      validUserFound=true
-      break
-    fi
-  done <<< "\$privilegedUsers"
-
-  echo "{\\"hasValidSudoUser\\": $validUserFound}"
-`;
-
-const validateUnattendedUpgrades = () => `
-  if dpkg -l | grep -q "unattended-upgrades"; then
-    isInstalled=true
-    isActive=$(systemctl is-active --quiet unattended-upgrades.service && echo true || echo false)
-    
-    if [ -f "/etc/apt/apt.conf.d/20auto-upgrades" ]; then
-      updateEnabled=$(grep "APT::Periodic::Update-Package-Lists" "/etc/apt/apt.conf.d/20auto-upgrades" | grep -o '[0-9]\\+' || echo "0")
-      upgradeEnabled=$(grep "APT::Periodic::Unattended-Upgrade" "/etc/apt/apt.conf.d/20auto-upgrades" | grep -o '[0-9]\\+' || echo "0")
-      echo "{\\"installed\\": $isInstalled, \\"active\\": $isActive, \\"updateEnabled\\": $updateEnabled, \\"upgradeEnabled\\": $upgradeEnabled}"
-    else
-      echo "{\\"installed\\": $isInstalled, \\"active\\": $isActive, \\"updateEnabled\\": 0, \\"upgradeEnabled\\": 0}"
-    fi
-  else
-    echo "{\\"installed\\": false, \\"active\\": false, \\"updateEnabled\\": 0, \\"upgradeEnabled\\": 0}"
-  fi
-`;
-
 const validateFail2ban = () => `
   if dpkg -l | grep -q "fail2ban"; then
     isInstalled=true
@@ -78,72 +45,70 @@ const validateFail2ban = () => `
 `;
 
 export const serverAudit = async (serverId: string) => {
-  const client = new Client();
-  const server = await findServerById(serverId);
-  if (!server.sshKeyId) {
-    throw new Error("No SSH Key found");
-  }
+	const client = new Client();
+	const server = await findServerById(serverId);
+	if (!server.sshKeyId) {
+		throw new Error("No SSH Key found");
+	}
 
-  return new Promise<any>((resolve, reject) => {
-    client
-      .once("ready", () => {
-        const bashCommand = `
+	return new Promise<any>((resolve, reject) => {
+		client
+			.once("ready", () => {
+				const bashCommand = `
           command_exists() {
             command -v "$@" > /dev/null 2>&1
           }
 
           ufwStatus=$(${validateUfw()})
           sshStatus=$(${validateSsh()})
-          nonRootStatus=$(${validateNonRootUser()})
-          upgradesStatus=$(${validateUnattendedUpgrades()})
           fail2banStatus=$(${validateFail2ban()})
 
-          echo "{\\"ufw\\": $ufwStatus, \\"ssh\\": $sshStatus, \\"nonRootUser\\": $nonRootStatus, \\"unattendedUpgrades\\": $upgradesStatus, \\"fail2ban\\": $fail2banStatus}"
+          echo "{\\"ufw\\": $ufwStatus, \\"ssh\\": $sshStatus, \\"fail2ban\\": $fail2banStatus}"
         `;
 
-        client.exec(bashCommand, (err, stream) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          let output = "";
-          stream
-            .on("close", () => {
-              client.end();
-              try {
-                const result = JSON.parse(output.trim());
-                resolve(result);
-              } catch (parseError) {
-                reject(
-                  new Error(
-                    `Failed to parse output: ${parseError instanceof Error ? parseError.message : parseError}`,
-                  ),
-                );
-              }
-            })
-            .on("data", (data: string) => {
-              output += data;
-            })
-            .stderr.on("data", (data) => {});
-        });
-      })
-      .on("error", (err) => {
-        client.end();
-        if (err.level === "client-authentication") {
-          reject(
-            new Error(
-              `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-            ),
-          );
-        } else {
-          reject(new Error(`SSH connection error: ${err.message}`));
-        }
-      })
-      .connect({
-        host: server.ipAddress,
-        port: server.port,
-        username: server.username,
-        privateKey: server.sshKey?.privateKey,
-      });
-  });
+				client.exec(bashCommand, (err, stream) => {
+					if (err) {
+						reject(err);
+						return;
+					}
+					let output = "";
+					stream
+						.on("close", () => {
+							client.end();
+							try {
+								const result = JSON.parse(output.trim());
+								resolve(result);
+							} catch (parseError) {
+								reject(
+									new Error(
+										`Failed to parse output: ${parseError instanceof Error ? parseError.message : parseError}`,
+									),
+								);
+							}
+						})
+						.on("data", (data: string) => {
+							output += data;
+						})
+						.stderr.on("data", (data) => {});
+				});
+			})
+			.on("error", (err) => {
+				client.end();
+				if (err.level === "client-authentication") {
+					reject(
+						new Error(
+							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+						),
+					);
+				} else {
+					reject(new Error(`SSH connection error: ${err.message}`));
+				}
+			})
+			.connect({
+				host: server.ipAddress,
+				port: server.port,
+				username: server.username,
+				privateKey: server.sshKey?.privateKey,
+			});
+	});
 };

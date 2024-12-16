@@ -8,7 +8,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Loader2, LockKeyhole, PcCase, RefreshCw } from "lucide-react";
+import { Loader2, LockKeyhole, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { StatusRow } from "./gpu-support";
 
@@ -16,7 +16,7 @@ interface Props {
 	serverId: string;
 }
 
-export const SecuritySetup = ({ serverId }: Props) => {
+export const SecurityAudit = ({ serverId }: Props) => {
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const { data, refetch, error, isLoading, isError } =
 		api.server.security.useQuery(
@@ -82,8 +82,8 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="UFW Installed"
 											isEnabled={data?.ufw?.installed}
 											description={
-												data?.ufw?.installed 
-													? "Installed (Recommended)" 
+												data?.ufw?.installed
+													? "Installed (Recommended)"
 													: "Not Installed (UFW should be installed for security)"
 											}
 										/>
@@ -91,8 +91,8 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="Status"
 											isEnabled={data?.ufw?.active}
 											description={
-												data?.ufw?.active 
-													? "Active (Recommended)" 
+												data?.ufw?.active
+													? "Active (Recommended)"
 													: "Not Active (UFW should be enabled for security)"
 											}
 										/>
@@ -119,7 +119,9 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="Enabled"
 											isEnabled={data?.ssh.enabled}
 											description={
-												data?.ssh.enabled ? "Enabled" : "Not Enabled (SSH should be enabled)"
+												data?.ssh.enabled
+													? "Enabled"
+													: "Not Enabled (SSH should be enabled)"
 											}
 										/>
 										<StatusRow
@@ -172,8 +174,8 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="Installed"
 											isEnabled={data?.fail2ban.installed}
 											description={
-												data?.fail2ban.installed 
-													? "Installed (Recommended)" 
+												data?.fail2ban.installed
+													? "Installed (Recommended)"
 													: "Not Installed (Fail2Ban should be installed for protection against brute force attacks)"
 											}
 										/>
@@ -182,8 +184,8 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="Enabled"
 											isEnabled={data?.fail2ban.enabled}
 											description={
-												data?.fail2ban.enabled 
-													? "Enabled (Recommended)" 
+												data?.fail2ban.enabled
+													? "Enabled (Recommended)"
 													: "Not Enabled (Fail2Ban service should be enabled)"
 											}
 										/>
@@ -191,8 +193,8 @@ export const SecuritySetup = ({ serverId }: Props) => {
 											label="Active"
 											isEnabled={data?.fail2ban.active}
 											description={
-												data?.fail2ban.active 
-													? "Active (Recommended)" 
+												data?.fail2ban.active
+													? "Active (Recommended)"
 													: "Not Active (Fail2Ban service should be running)"
 											}
 										/>

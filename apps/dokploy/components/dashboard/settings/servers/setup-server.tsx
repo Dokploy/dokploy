@@ -35,7 +35,7 @@ import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { ValidateServer } from "./validate-server";
-import { SecuritySetup } from "./security-setup";
+import { SecurityAudit } from "./security-audit";
 
 interface Props {
 	serverId: string;
@@ -343,7 +343,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<SecuritySetup serverId={serverId} />
+									<SecurityAudit serverId={serverId} />
 								</div>
 							</TabsContent>
 							<TabsContent

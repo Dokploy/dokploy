@@ -181,7 +181,6 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 				const response = await serverAudit(input.serverId);
-				console.log(response);
 				return response as unknown as {
 					ufw: {
 						installed: boolean;
