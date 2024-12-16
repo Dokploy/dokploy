@@ -9,18 +9,50 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { Download as DownloadIcon, Loader2 } from "lucide-react";
+import {
+	CheckCircle2Icon,
+  Download as DownloadIcon,
+	Loader2,
+	Bug,
+	InfoIcon,
+	CircleX,
+	TriangleAlert,
+} from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { TerminalLine } from "./terminal-line";
 import { type LogLine, getLogType, parseLogs } from "./utils";
+import { StatusLogsFilter } from "./status-logs-filter";
 
 interface Props {
   containerId: string;
   serverId?: string | null;
 }
 
+
 type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
-type TypeFilter = "all" | "error" | "warning" | "success" | "info" | "debug";
+
+export const priorities = [
+	{
+		label: "Info",
+		value: "info",
+	},
+	{
+		label: "Success",
+		value: "success",
+	},
+	{
+		label: "Warning",
+		value: "warning",
+	},
+	{
+		label: "Debug",
+		value: "debug",
+	},
+	{
+		label: "Error",
+		value: "error",
+	},
+];
 
 export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const { data } = api.docker.getConfig.useQuery(
@@ -40,7 +72,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [search, setSearch] = React.useState<string>("");
 
   const [since, setSince] = React.useState<TimeFilter>("all");
-  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
+	const [typeFilter, setTypeFilter] = React.useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -72,10 +104,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     setRawLogs("");
     setFilteredLogs([]);
     setSince(value);
-  };
-
-  const handleTypeFilter = (value: TypeFilter) => {
-    setTypeFilter(value);
   };
 
   useEffect(() => {
@@ -179,11 +207,13 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const handleFilter = (logs: LogLine[]) => {
     return logs.filter((log) => {
       const logType = getLogType(log.message).type;
+  
+      if (typeFilter.length === 0) {
+        return true;
+      }
 
-      const matchesType = typeFilter === "all" || logType === typeFilter;
-
-      return matchesType;
-    });
+      return typeFilter.includes(logType);
+      });
   };
 
   useEffect(() => {
@@ -232,32 +262,13 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="all">All time</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Select value={typeFilter} onValueChange={handleTypeFilter}>
-                <SelectTrigger className="sm:w-[180px] w-full h-9">
-                  <SelectValue placeholder="Type filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <Badge variant="blank">All</Badge>
-                  </SelectItem>
-                  <SelectItem value="error">
-                    <Badge variant="red">Error</Badge>
-                  </SelectItem>
-                  <SelectItem value="warning">
-                    <Badge variant="orange">Warning</Badge>
-                  </SelectItem>
-                  <SelectItem value="debug">
-                    <Badge variant="yellow">Debug</Badge>
-                  </SelectItem>
-                  <SelectItem value="success">
-                    <Badge variant="green">Success</Badge>
-                  </SelectItem>
-                  <SelectItem value="info">
-                    <Badge variant="blue">Info</Badge>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              
+              <StatusLogsFilter
+								value={typeFilter}
+								setValue={setTypeFilter}
+								title="Log type"
+								options={priorities}
+							/>
 
               <Input
                 type="search"
