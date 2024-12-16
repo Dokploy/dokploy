@@ -82,6 +82,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     if (!containerId) return;
     
     let isCurrentConnection = true;
+    let noDataTimeout: NodeJS.Timeout;
     setIsLoading(true);
     setRawLogs("");
     setFilteredLogs([]);
@@ -104,34 +105,48 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     console.log("Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
 
+    const resetNoDataTimeout = () => {
+      if (noDataTimeout) clearTimeout(noDataTimeout);
+      noDataTimeout = setTimeout(() => {
+        if (isCurrentConnection) {
+          setIsLoading(false);
+        }
+      }, 2000); // Wait 2 seconds for data before showing "No logs found"
+    };
+
     ws.onopen = () => {
       if (!isCurrentConnection) {
         ws.close();
         return;
       }
       console.log("WebSocket connected");
+      resetNoDataTimeout();
     };
 
     ws.onmessage = (e) => {
       if (!isCurrentConnection) return;
       setRawLogs((prev) => prev + e.data);
       setIsLoading(false);
+      if (noDataTimeout) clearTimeout(noDataTimeout);
     };
 
     ws.onerror = (error) => {
       if (!isCurrentConnection) return;
       console.error("WebSocket error:", error);
       setIsLoading(false);
+      if (noDataTimeout) clearTimeout(noDataTimeout);
     };
 
     ws.onclose = (e) => {
       if (!isCurrentConnection) return;
       console.log("WebSocket closed:", e.reason);
       setIsLoading(false);
+      if (noDataTimeout) clearTimeout(noDataTimeout);
     };
 
     return () => {
       isCurrentConnection = false;
+      if (noDataTimeout) clearTimeout(noDataTimeout);
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }

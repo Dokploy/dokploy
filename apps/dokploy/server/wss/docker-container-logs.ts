@@ -60,7 +60,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 						const command = search
 							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
 							: baseCommand;
-						console.log("Executing SSH command:", command);
 						client.exec(command, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
@@ -68,24 +67,15 @@ export const setupDockerContainerLogsWebSocketServer = (
 								client.end();
 								return;
 							}
-
-							let dataReceived = false;
-
 							stream
 								.on("close", () => {
-									console.log("Stream closed, dataReceived:", dataReceived);
-									if (!dataReceived) {
-										ws.send("No matching logs found");
-									}
 									client.end();
 									ws.close();
 								})
 								.on("data", (data: string) => {
-									dataReceived = true;
 									ws.send(data.toString());
 								})
 								.stderr.on("data", (data) => {
-									console.error("Stream stderr:", data.toString());
 									ws.send(data.toString());
 								});
 						});
@@ -111,7 +101,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					since === "all" ? "" : `--since ${since}`
 				} --follow ${containerId}`;
 				const command = search
-					? `${baseCommand} 2>&1 | grep --line-buffered -iF '${search}'`
+					? `${baseCommand} 2>&1 | grep -iF '${search}'`
 					: baseCommand;
 				const ptyProcess = spawn(shell, ["-c", command], {
 					name: "xterm-256color",
