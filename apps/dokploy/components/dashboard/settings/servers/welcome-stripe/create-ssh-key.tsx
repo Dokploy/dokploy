@@ -50,7 +50,7 @@ export const CreateSSHKey = () => {
 		<Card className="h-full bg-transparent">
 			<CardContent>
 				<div className="grid w-full gap-4 pt-4">
-					{isLoading ? (
+					{isLoading || !cloudSSHKey ? (
 						<div className="min-h-[25vh] justify-center flex items-center gap-4">
 							<Loader2
 								className="animate-spin text-muted-foreground"
