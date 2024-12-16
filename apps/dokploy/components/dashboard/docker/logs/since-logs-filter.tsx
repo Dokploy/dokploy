@@ -47,7 +47,7 @@ const timeRanges: Array<{ label: string; value: TimeFilter }> = [
 ] as const;
 
 interface SinceLogsFilterProps {
-	value: string;
+	value: TimeFilter;
 	onValueChange: (value: TimeFilter) => void;
 	showTimestamp: boolean;
 	onTimestampChange: (show: boolean) => void;
