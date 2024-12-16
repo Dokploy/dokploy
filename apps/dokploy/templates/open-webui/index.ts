@@ -12,8 +12,8 @@ export function generate(schema: Schema): Template {
 		`OPEN_WEBUI_HOST=${randomDomain}`,
 		"OPEN_WEBUI_PORT=8080",
 		`HASH=${mainServiceHash}`,
-		"OLLAMA_DOCKER_TAG=0.1.47",
-		"WEBUI_DOCKER_TAG=0.3.7",
+		"OLLAMA_DOCKER_TAG=0.5.1",
+		"WEBUI_DOCKER_TAG=0.4.8",
 	];
 
 	return {
