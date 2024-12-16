@@ -92,7 +92,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 				template.tags.some((tag) => selectedTags.includes(tag));
 			const matchesQuery =
 				query === "" ||
-				template.name.toLowerCase().includes(query.toLowerCase());
+				template.name.toLowerCase().includes(query.toLowerCase()) ||
+				template.description.toLowerCase().includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
 		}) || [];
 

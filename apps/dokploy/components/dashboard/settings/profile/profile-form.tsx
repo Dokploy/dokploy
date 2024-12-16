@@ -26,10 +26,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
 import { Enable2FA } from "./enable-2fa";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 const profileSchema = z.object({
 	email: z.string(),
 	password: z.string().nullable(),
+	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 });
 
@@ -52,7 +54,8 @@ const randomImages = [
 
 export const ProfileForm = () => {
 	const { data, refetch } = api.auth.get.useQuery();
-	const { mutateAsync, isLoading } = api.auth.update.useMutation();
+	const { mutateAsync, isLoading, isError, error } =
+		api.auth.update.useMutation();
 	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 
@@ -68,6 +71,7 @@ export const ProfileForm = () => {
 			email: data?.email || "",
 			password: "",
 			image: data?.image || "",
+			currentPassword: "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -78,6 +82,7 @@ export const ProfileForm = () => {
 				email: data?.email || "",
 				password: "",
 				image: data?.image || "",
+				currentPassword: "",
 			});
 
 			if (data.email) {
@@ -94,6 +99,7 @@ export const ProfileForm = () => {
 			email: values.email.toLowerCase(),
 			password: values.password,
 			image: values.image,
+			currentPassword: values.currentPassword,
 		})
 			.then(async () => {
 				await refetch();
@@ -116,6 +122,8 @@ export const ProfileForm = () => {
 				{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
 			</CardHeader>
 			<CardContent className="space-y-2">
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
 						<div className="space-y-4">
@@ -129,6 +137,24 @@ export const ProfileForm = () => {
 											<Input
 												placeholder={t("settings.profile.email")}
 												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="currentPassword"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Current Password</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder={t("settings.profile.password")}
+												{...field}
+												value={field.value || ""}
 											/>
 										</FormControl>
 										<FormMessage />

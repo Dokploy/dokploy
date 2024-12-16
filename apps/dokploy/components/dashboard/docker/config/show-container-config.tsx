@@ -1,3 +1,4 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Dialog,
 	DialogContent,
@@ -34,7 +35,7 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 					View Config
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className={"w-full md:w-[70vw] max-w-max"}>
+			<DialogContent className={"w-full md:w-[70vw] min-w-[70vw]"}>
 				<DialogHeader>
 					<DialogTitle>Container Config</DialogTitle>
 					<DialogDescription>
@@ -44,7 +45,13 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 				<div className="text-wrap rounded-lg border p-4 text-sm bg-card overflow-y-auto max-h-[80vh]">
 					<code>
 						<pre className="whitespace-pre-wrap break-words">
-							{JSON.stringify(data, null, 2)}
+							<CodeEditor
+								language="json"
+								lineWrapping
+								lineNumbers={false}
+								readOnly
+								value={JSON.stringify(data, null, 2)}
+							/>
 						</pre>
 					</code>
 				</div>

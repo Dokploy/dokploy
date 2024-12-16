@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const DeployApplication = ({ applicationId }: Props) => {
+	const router = useRouter();
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -51,6 +53,9 @@ export const DeployApplication = ({ applicationId }: Props) => {
 								.then(async () => {
 									toast.success("Application deployed succesfully");
 									await refetch();
+									router.push(
+										`/dashboard/project/${data?.projectId}/services/application/${applicationId}?tab=deployments`,
+									);
 								})
 
 								.catch(() => {

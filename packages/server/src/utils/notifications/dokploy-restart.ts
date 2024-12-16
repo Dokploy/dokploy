@@ -12,6 +12,7 @@ import {
 
 export const sendDokployRestartNotifications = async () => {
 	const date = new Date();
+	const unixDate = ~~((Number(date)) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: eq(notifications.dokployRestart, true),
 		with: {
@@ -39,12 +40,12 @@ export const sendDokployRestartNotifications = async () => {
 				fields: [
 					{
 						name: "`📅`・Date",
-						value: date.toLocaleDateString(),
+						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
 						name: "`⌚`・Time",
-						value: date.toLocaleTimeString(),
+						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{

@@ -134,7 +134,7 @@ const Register = ({ isCloud }: Props) => {
 								</span>
 							</div>
 						)}
-						{data && (
+						{data?.type === "cloud" && (
 							<AlertBlock type="success" className="mx-4 my-2">
 								<span>
 									Registration succesfuly, Please check your inbox or spam

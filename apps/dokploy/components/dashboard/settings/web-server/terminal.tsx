@@ -20,13 +20,11 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		}
 		const term = new XTerm({
 			cursorBlink: true,
-			cols: 80,
-			rows: 30,
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
 				cursor: "transparent",
-				background: "#19191A",
+				background: "transparent",
 			},
 		});
 		const addonFit = new FitAddon();
@@ -40,6 +38,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		// @ts-ignore
 		term.open(termRef.current);
+		// @ts-ignore
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
@@ -50,7 +49,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="w-full h-full bg-input rounded-lg p-2 ">
+			<div className="w-full h-full bg-transparent border rounded-lg p-2 ">
 				<div id={id} ref={termRef} className="rounded-xl" />
 			</div>
 		</div>

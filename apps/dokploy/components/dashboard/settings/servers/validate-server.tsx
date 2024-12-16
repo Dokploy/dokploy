@@ -1,4 +1,5 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -8,9 +9,8 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Loader2, PcCase, RefreshCw } from "lucide-react";
-import { StatusRow } from "./gpu-support";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { StatusRow } from "./gpu-support";
 
 interface Props {
 	serverId: string;
@@ -66,7 +66,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 						{isLoading ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking Server Configuration</span>
+								<span>Checking Server configuration</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
@@ -113,16 +113,31 @@ export const ValidateServer = ({ serverId }: Props) => {
 											}
 										/>
 										<StatusRow
-											label="Dokploy Network Installed"
-											isEnabled={data?.isDokployNetworkInstalled}
+											label="Docker Swarm Initialized"
+											isEnabled={data?.isSwarmInstalled}
+											description={
+												data?.isSwarmInstalled
+													? "Initialized"
+													: "Not Initialized"
+											}
 										/>
 										<StatusRow
-											label="Swarm Installed"
-											isEnabled={data?.isSwarmInstalled}
+											label="Dokploy Network Created"
+											isEnabled={data?.isDokployNetworkInstalled}
+											description={
+												data?.isDokployNetworkInstalled
+													? "Created"
+													: "Not Created"
+											}
 										/>
 										<StatusRow
 											label="Main Directory Created"
 											isEnabled={data?.isMainDirectoryInstalled}
+											description={
+												data?.isMainDirectoryInstalled
+													? "Created"
+													: "Not Created"
+											}
 										/>
 									</div>
 								</div>

@@ -41,9 +41,10 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
+import React, { useState, useEffect, type ReactElement } from "react";
 import superjson from "superjson";
 
 type TabState =
@@ -61,7 +62,14 @@ const Service = (
 	const { applicationId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
-	const [tab, setSab] = useState<TabState>(activeTab);
+	const [tab, setTab] = useState<TabState>(activeTab);
+
+	useEffect(() => {
+		if (router.query.tab) {
+			setTab(router.query.tab as TabState);
+		}
+	}, [router.query.tab]);
+
 	const { data } = api.application.one.useQuery(
 		{ applicationId },
 		{
@@ -101,6 +109,11 @@ const Service = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				<Head>
+					<title>
+						Project {data?.project.name} | {data?.name} | Dokploy
+					</title>
+				</Head>
 				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
 					<div className="flex  flex-col justify-between w-fit gap-2">
 						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
@@ -185,9 +198,9 @@ const Service = (
 					defaultValue="general"
 					className="w-full"
 					onValueChange={(e) => {
-						setSab(e as TabState);
+						setTab(e as TabState);
 						const newPath = `/dashboard/project/${projectId}/services/application/${applicationId}?tab=${e}`;
-						router.push(newPath, undefined, { shallow: true });
+						router.push(newPath);
 					}}
 				>
 					<div className="flex flex-row items-center justify-between  w-full gap-4">

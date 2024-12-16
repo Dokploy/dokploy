@@ -70,53 +70,44 @@ export const setupTerminalWebSocketServer = (
 		let stderr = "";
 		conn
 			.once("ready", () => {
-				conn.shell(
-					{
-						term: "terminal",
-						cols: 80,
-						rows: 30,
-						height: 30,
-						width: 80,
-					},
-					(err, stream) => {
-						if (err) throw err;
+				conn.shell({}, (err, stream) => {
+					if (err) throw err;
 
-						stream
-							.on("close", (code: number, signal: string) => {
-								ws.send(`\nContainer closed with code: ${code}\n`);
-								conn.end();
-							})
-							.on("data", (data: string) => {
-								stdout += data.toString();
-								ws.send(data.toString());
-							})
-							.stderr.on("data", (data) => {
-								stderr += data.toString();
-								ws.send(data.toString());
-								console.error("Error: ", data.toString());
-							});
+					stream
+						.on("close", (code: number, signal: string) => {
+							ws.send(`\nContainer closed with code: ${code}\n`);
+							conn.end();
+						})
+						.on("data", (data: string) => {
+							stdout += data.toString();
+							ws.send(data.toString());
+						})
+						.stderr.on("data", (data) => {
+							stderr += data.toString();
+							ws.send(data.toString());
+							console.error("Error: ", data.toString());
+						});
 
-						ws.on("message", (message) => {
-							try {
-								let command: string | Buffer[] | Buffer | ArrayBuffer;
-								if (Buffer.isBuffer(message)) {
-									command = message.toString("utf8");
-								} else {
-									command = message;
-								}
-								stream.write(command.toString());
-							} catch (error) {
-								// @ts-ignore
-								const errorMessage = error?.message as unknown as string;
-								ws.send(errorMessage);
+					ws.on("message", (message) => {
+						try {
+							let command: string | Buffer[] | Buffer | ArrayBuffer;
+							if (Buffer.isBuffer(message)) {
+								command = message.toString("utf8");
+							} else {
+								command = message;
 							}
-						});
+							stream.write(command.toString());
+						} catch (error) {
+							// @ts-ignore
+							const errorMessage = error?.message as unknown as string;
+							ws.send(errorMessage);
+						}
+					});
 
-						ws.on("close", () => {
-							stream.end();
-						});
-					},
-				);
+					ws.on("close", () => {
+						stream.end();
+					});
+				});
 			})
 			.on("error", (err) => {
 				if (err.level === "client-authentication") {
@@ -133,7 +124,6 @@ export const setupTerminalWebSocketServer = (
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
 			});
 	});
 };

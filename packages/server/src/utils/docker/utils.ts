@@ -317,16 +317,12 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
-			NanoCPUs: memoryLimit ? (cpuLimit || 1) * 1000 * 1000 * 1000 : undefined,
+			MemoryBytes: memoryLimit ?? undefined,
+			NanoCPUs: cpuLimit ?? undefined,
 		},
 		Reservations: {
-			MemoryBytes: memoryLimit
-				? (memoryReservation || 1) * 1024 * 1024
-				: undefined,
-			NanoCPUs: memoryLimit
-				? (cpuReservation || 1) * 1000 * 1000 * 1000
-				: undefined,
+			MemoryBytes: memoryReservation ?? undefined,
+			NanoCPUs: cpuReservation ?? undefined,
 		},
 	};
 };

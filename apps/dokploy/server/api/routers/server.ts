@@ -18,6 +18,7 @@ import {
 import {
 	IS_CLOUD,
 	createServer,
+	defaultCommand,
 	deleteServer,
 	findAdminById,
 	findServerById,
@@ -68,6 +69,11 @@ export const serverRouter = createTRPCRouter({
 			}
 
 			return server;
+		}),
+	getDefaultCommand: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			return defaultCommand();
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db

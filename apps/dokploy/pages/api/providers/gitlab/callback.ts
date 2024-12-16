@@ -13,7 +13,7 @@ export default async function handler(
 
 	const gitlab = await findGitlabById(gitlabId as string);
 
-	const response = await fetch("https://gitlab.com/oauth/token", {
+	const response = await fetch(`${gitlab.gitlabUrl}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
