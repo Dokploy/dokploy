@@ -17,9 +17,9 @@ import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
 import React from "react";
 
-type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
+export type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
 
-const timeRanges = [
+const timeRanges: Array<{ label: string; value: TimeFilter }> = [
 	{
 		label: "All time",
 		value: "all",
@@ -44,7 +44,7 @@ const timeRanges = [
 		label: "Last 30 days",
 		value: "720h",
 	},
-];
+] as const;
 
 interface SinceLogsFilterProps {
 	value: string;

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { Download as DownloadIcon, Loader2 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
-import { SinceLogsFilter } from "./since-logs-filter";
+import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
 import { StatusLogsFilter } from "./status-logs-filter";
 import { TerminalLine } from "./terminal-line";
 import { type LogLine, getLogType, parseLogs } from "./utils";
@@ -12,8 +12,6 @@ interface Props {
 	containerId: string;
 	serverId?: string | null;
 }
-
-type TimeFilter = "all" | "timestamp" | "1h" | "6h" | "24h" | "168h" | "720h";
 
 export const priorities = [
 	{
@@ -84,14 +82,10 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 		setLines(Number(e.target.value) || 1);
 	};
 
-	const handleSince = (value: string) => {
-		if (value === "timestamp") {
-			setShowTimestamp(!showTimestamp);
-		} else {
-			setRawLogs("");
-			setFilteredLogs([]);
-			setSince(value);
-		}
+	const handleSince = (value: TimeFilter) => {
+    setRawLogs("");
+    setFilteredLogs([]);
+    setSince(value);
 	};
 
 	useEffect(() => {
