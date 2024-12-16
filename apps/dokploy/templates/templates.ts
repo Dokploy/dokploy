@@ -155,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
@@ -1016,8 +1016,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["browser", "automation"],
 		load: () => import("./browserless/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "drawio",
 		name: "draw.io",
 		version: "24.7.17",
@@ -1031,8 +1031,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["drawing", "diagrams"],
 		load: () => import("./drawio/index").then((m) => m.generate),
-  },
-  {
+	},
+	{
 		id: "kimai",
 		name: "Kimai",
 		version: "2.26.0",
@@ -1046,5 +1046,94 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["invoice", "business", "finance"],
 		load: () => import("./kimai/index").then((m) => m.generate),
+	},
+	{
+		id: "logto",
+		name: "Logto",
+		version: "1.22.0",
+		description:
+			"Logto is an open-source Identity and Access Management (IAM) platform designed to streamline Customer Identity and Access Management (CIAM) and Workforce Identity Management.",
+		logo: "logto.png",
+		links: {
+			github: "https://github.com/logto-io/logto",
+			website: "https://logto.io/",
+			docs: "https://docs.logto.io/introduction",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./logto/index").then((m) => m.generate),
+	},
+	{
+		id: "penpot",
+		name: "Penpot",
+		version: "2.3.2",
+		description:
+			"Penpot is the web-based open-source design tool that bridges the gap between designers and developers.",
+		logo: "penpot.svg",
+		links: {
+			github: "https://github.com/penpot/penpot",
+			website: "https://penpot.app/",
+			docs: "https://docs.penpot.app/",
+		},
+		tags: ["desing", "collaboration"],
+		load: () => import("./penpot/index").then((m) => m.generate),
+	},
+	{
+		id: "huly",
+		name: "Huly",
+		version: "0.6.377",
+		description:
+			"Huly — All-in-One Project Management Platform (alternative to Linear, Jira, Slack, Notion, Motion)",
+		logo: "huly.svg",
+		links: {
+			github: "https://github.com/hcengineering/huly-selfhost",
+			website: "https://huly.io/",
+			docs: "https://docs.huly.io/",
+		},
+		tags: ["project-management", "community", "discussion"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	},
+	{
+		id: "unsend",
+		name: "Unsend",
+		version: "v1.2.4",
+		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
+		logo: "unsend.png", // we defined the name and the extension of the logo
+		links: {
+			github: "https://github.com/unsend-dev/unsend",
+			website: "https://unsend.dev/",
+			docs: "https://docs.unsend.dev/get-started/",
+		},
+		tags: ["e-mail", "marketing", "business"],
+		load: () => import("./unsend/index").then((m) => m.generate),
+	},
+	{
+		id: "langflow",
+		name: "Langflow",
+		version: "1.1.1",
+		description:
+			"Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database. ",
+		logo: "langflow.svg",
+		links: {
+			github: "https://github.com/langflow-ai/langflow/tree/main",
+			website: "https://www.langflow.org/",
+			docs: "https://docs.langflow.org/",
+		},
+		tags: ["ai"],
+		load: () => import("./langflow/index").then((m) => m.generate),
+	},
+	{
+		id: "elastic-search",
+		name: "Elasticsearch",
+		version: "8.10.2",
+		description:
+			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
+		logo: "elasticsearch.svg",
+		links: {
+			github: "https://github.com/elastic/elasticsearch",
+			website: "https://www.elastic.co/elasticsearch/",
+			docs: "https://docs.elastic.co/elasticsearch/",
+		},
+		tags: ["search", "analytics"],
+		load: () => import("./elastic-search/index").then((m) => m.generate),
 	},
 ];

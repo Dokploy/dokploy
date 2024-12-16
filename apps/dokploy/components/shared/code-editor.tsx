@@ -2,7 +2,9 @@ import { cn } from "@/lib/utils";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
+
 import { properties } from "@codemirror/legacy-modes/mode/properties";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { EditorView } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
@@ -10,14 +12,16 @@ import { useTheme } from "next-themes";
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
-	language?: "yaml" | "json" | "properties";
+	language?: "yaml" | "json" | "properties" | "shell";
 	lineWrapping?: boolean;
+	lineNumbers?: boolean;
 }
 
 export const CodeEditor = ({
 	className,
 	wrapperClassName,
 	language = "yaml",
+	lineNumbers = true,
 	...props
 }: Props) => {
 	const { resolvedTheme } = useTheme();
@@ -25,7 +29,7 @@ export const CodeEditor = ({
 		<div className={cn("relative overflow-auto", wrapperClassName)}>
 			<CodeMirror
 				basicSetup={{
-					lineNumbers: true,
+					lineNumbers,
 					foldGutter: true,
 					highlightSelectionMatches: true,
 					highlightActiveLine: !props.disabled,
@@ -37,7 +41,9 @@ export const CodeEditor = ({
 						? yaml()
 						: language === "json"
 							? json()
-							: StreamLanguage.define(properties),
+							: language === "shell"
+								? StreamLanguage.define(shell)
+								: StreamLanguage.define(properties),
 					props.lineWrapping ? EditorView.lineWrapping : [],
 				]}
 				{...props}

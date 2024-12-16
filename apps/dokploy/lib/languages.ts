@@ -11,6 +11,8 @@ export enum Languages {
 	Persian = "fa",
 	Korean = "ko",
 	Portuguese = "pt-br",
+	Italian = "it",
+	Japanese = "ja",
 }
 
 export type Language = keyof typeof Languages;

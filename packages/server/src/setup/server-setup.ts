@@ -55,9 +55,119 @@ export const serverSetup = async (serverId: string) => {
 	} catch (err) {
 		console.log(err);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		writeStream.write(err);
+		writeStream.write(`${err} ❌\n`);
 		writeStream.close();
 	}
+};
+
+export const defaultCommand = () => {
+	const bashCommand = `
+set -e;
+DOCKER_VERSION=27.0.3
+OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
+SYS_ARCH=$(uname -m)
+CURRENT_USER=$USER
+
+echo "Installing requirements for: OS: $OS_TYPE"
+if [ $EUID != 0 ]; then
+	echo "Please run this script as root or with sudo ❌" 
+	exit
+fi
+
+# Check if the OS is manjaro, if so, change it to arch
+if [ "$OS_TYPE" = "manjaro" ] || [ "$OS_TYPE" = "manjaro-arm" ]; then
+	OS_TYPE="arch"
+fi
+
+# Check if the OS is Asahi Linux, if so, change it to fedora
+if [ "$OS_TYPE" = "fedora-asahi-remix" ]; then
+	OS_TYPE="fedora"
+fi
+
+# Check if the OS is popOS, if so, change it to ubuntu
+if [ "$OS_TYPE" = "pop" ]; then
+	OS_TYPE="ubuntu"
+fi
+
+# Check if the OS is linuxmint, if so, change it to ubuntu
+if [ "$OS_TYPE" = "linuxmint" ]; then
+	OS_TYPE="ubuntu"
+fi
+
+#Check if the OS is zorin, if so, change it to ubuntu
+if [ "$OS_TYPE" = "zorin" ]; then
+	OS_TYPE="ubuntu"
+fi
+
+if [ "$OS_TYPE" = "arch" ] || [ "$OS_TYPE" = "archarm" ]; then
+	OS_VERSION="rolling"
+else
+	OS_VERSION=$(grep -w "VERSION_ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
+fi
+
+if [ "$OS_TYPE" = 'amzn' ]; then
+    dnf install -y findutils >/dev/null
+fi
+
+case "$OS_TYPE" in
+arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | amzn | alpine) ;;
+*)
+	echo "This script only supports Debian, Redhat, Arch Linux, Alpine Linux, or SLES based operating systems for now."
+	exit
+	;;
+esac
+
+echo -e "---------------------------------------------"
+echo "| CPU Architecture  | $SYS_ARCH"
+echo "| Operating System  | $OS_TYPE $OS_VERSION"
+echo "| Docker            | $DOCKER_VERSION"
+echo -e "---------------------------------------------\n"
+echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
+
+command_exists() {
+	command -v "$@" > /dev/null 2>&1
+}
+
+${installUtilities()}
+
+echo -e "2. Validating ports. "
+${validatePorts()}
+
+
+
+echo -e "3. Installing RClone. "
+${installRClone()}
+
+echo -e "4. Installing Docker. "
+${installDocker()}
+
+echo -e "5. Setting up Docker Swarm"
+${setupSwarm()}
+
+echo -e "6. Setting up Network"
+${setupNetwork()}
+
+echo -e "7. Setting up Directories"
+${setupMainDirectory()}
+${setupDirectories()}
+
+echo -e "8. Setting up Traefik"
+${createTraefikConfig()}
+
+echo -e "9. Setting up Middlewares"
+${createDefaultMiddlewares()}
+
+echo -e "10. Setting up Traefik Instance"
+${createTraefikInstance()}
+
+echo -e "11. Installing Nixpacks"
+${installNixpacks()}
+
+echo -e "12. Installing Buildpacks"
+${installBuildpacks()}
+				`;
+
+	return bashCommand;
 };
 
 const installRequirements = async (serverId: string, logPath: string) => {
@@ -73,108 +183,8 @@ const installRequirements = async (serverId: string, logPath: string) => {
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
-				const bashCommand = `
-				set -e;
-				# Thanks to coolify <3
-
-				DOCKER_VERSION=27.0.3
-				OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
-				CURRENT_USER=$USER
-
-				echo "Installing requirements for: OS: $OS_TYPE"
-				if [ $EUID != 0 ]; then
-					echo "Please run this script as root or with sudo ❌" 
-					exit
-				fi
-				
-				# Check if the OS is manjaro, if so, change it to arch
-				if [ "$OS_TYPE" = "manjaro" ] || [ "$OS_TYPE" = "manjaro-arm" ]; then
-					OS_TYPE="arch"
-				fi
-
-				# Check if the OS is Asahi Linux, if so, change it to fedora
-				if [ "$OS_TYPE" = "fedora-asahi-remix" ]; then
-					OS_TYPE="fedora"
-				fi
-
-				# Check if the OS is popOS, if so, change it to ubuntu
-				if [ "$OS_TYPE" = "pop" ]; then
-					OS_TYPE="ubuntu"
-				fi
-
-				# Check if the OS is linuxmint, if so, change it to ubuntu
-				if [ "$OS_TYPE" = "linuxmint" ]; then
-					OS_TYPE="ubuntu"
-				fi
-
-				#Check if the OS is zorin, if so, change it to ubuntu
-				if [ "$OS_TYPE" = "zorin" ]; then
-					OS_TYPE="ubuntu"
-				fi
-
-				if [ "$OS_TYPE" = "arch" ] || [ "$OS_TYPE" = "archarm" ]; then
-					OS_VERSION="rolling"
-				else
-					OS_VERSION=$(grep -w "VERSION_ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
-				fi
-
-				case "$OS_TYPE" in
-				arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | amzn | alpine) ;;
-				*)
-					echo "This script only supports Debian, Redhat, Arch Linux, Alpine Linux, or SLES based operating systems for now."
-					exit
-					;;
-				esac
-
-				echo -e "---------------------------------------------"
-				echo "| Operating System  | $OS_TYPE $OS_VERSION"
-				echo "| Docker            | $DOCKER_VERSION"
-				echo -e "---------------------------------------------\n"
-				echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
-
-				command_exists() {
-					command -v "$@" > /dev/null 2>&1
-				}
-
-				${installUtilities()}
-
-				echo -e "2. Validating ports. "
-				${validatePorts()}
-
-				
-
-				echo -e "3. Installing RClone. "
-				${installRClone()}
-
-				echo -e "4. Installing Docker. "
-				${installDocker()}
-
-				echo -e "5. Setting up Docker Swarm"
-				${setupSwarm()}
-
-				echo -e "6. Setting up Network"
-				${setupNetwork()}
-
-				echo -e "7. Setting up Directories"
-				${setupMainDirectory()}
-				${setupDirectories()}
-
-				echo -e "8. Setting up Traefik"
-				${createTraefikConfig()}
-
-				echo -e "9. Setting up Middlewares"
-				${createDefaultMiddlewares()}
-
-				echo -e "10. Setting up Traefik Instance"
-				${createTraefikInstance()}
-
-				echo -e "11. Installing Nixpacks"
-				${installNixpacks()}
-
-				echo -e "12. Installing Buildpacks"
-				${installBuildpacks()}
-				`;
-				client.exec(bashCommand, (err, stream) => {
+				const command = server.command || defaultCommand();
+				client.exec(command, (err, stream) => {
 					if (err) {
 						writeStream.write(err);
 						reject(err);
@@ -216,7 +226,6 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
 			});
 	});
 };
@@ -318,8 +327,8 @@ const installUtilities = () => `
 		apk add curl wget git jq openssl >/dev/null
 		;;
 	ubuntu | debian | raspbian)
-		apt-get update -y >/dev/null
-		apt-get install -y curl wget git jq openssl >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git jq openssl >/dev/null
 		;;
 	centos | fedora | rhel | ol | rocky | almalinux | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
@@ -489,7 +498,8 @@ export const installRClone = () => `
 		echo "RClone already installed ✅"
 	else
 		curl https://rclone.org/install.sh | sudo bash
-		echo "RClone installed successfully ✅"
+		RCLONE_VERSION=$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//')
+		echo "RClone version $RCLONE_VERSION installed ✅"
 	fi
 `;
 
@@ -500,18 +510,20 @@ export const createTraefikInstance = () => {
 			echo "Traefik already exists ✅"
 		else
 			# Create the dokploy-traefik service
-		docker service create \
-			--name dokploy-traefik \
-			--replicas 1 \
-			--constraint 'node.role==manager' \
-			--network dokploy-network \
-			--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
-			--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
-			--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-			--label traefik.enable=true \
-			--publish mode=host,target=443,published=443 \
-			--publish mode=host,target=80,published=80 \
-			traefik:v3.1.2
+			TRAEFIK_VERSION=3.1.2
+			docker service create \
+				--name dokploy-traefik \
+				--replicas 1 \
+				--constraint 'node.role==manager' \
+				--network dokploy-network \
+				--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
+				--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
+				--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+				--label traefik.enable=true \
+				--publish mode=host,target=443,published=443 \
+				--publish mode=host,target=80,published=80 \
+				traefik:v$TRAEFIK_VERSION
+			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
 	`;
 
@@ -524,15 +536,20 @@ const installNixpacks = () => `
 	else
 	    export NIXPACKS_VERSION=1.29.1
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
-		echo "Nixpacks version 1.28.1 installed ✅"
+		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
 `;
 
 const installBuildpacks = () => `
+	SUFFIX=""
+	if [ "$SYS_ARCH" = "aarch64" ] || [ "$SYS_ARCH" = "arm64" ]; then
+		SUFFIX="-arm64"
+	fi
 	if command_exists pack; then
 		echo "Buildpacks already installed ✅"
 	else
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
-		echo "Buildpacks version 0.35.0 installed ✅"
+		BUILDPACKS_VERSION=0.35.0
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;

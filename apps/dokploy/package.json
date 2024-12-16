@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.14.1",
+	"version": "v0.15.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -35,6 +35,8 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"react-confetti-explosion":"2.1.2",
+		"@stepperize/react": "4.0.1",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
