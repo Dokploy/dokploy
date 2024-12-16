@@ -84,7 +84,7 @@ const MySql = (
 				</Breadcrumb>
 				<Head>
 					<title>
-						Project {data?.project.name} | {data?.name} | Dokploy
+						Database: {data?.name} - {data?.project.name} | Dokploy
 					</title>
 				</Head>
 				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
