@@ -46,7 +46,7 @@ export const ShowServers = () => {
 
 	return (
 		<div className="p-6 space-y-6">
-			{query?.success && <WelcomeSuscription />}
+			{query?.success && isCloud && <WelcomeSuscription />}
 			<div className="space-y-2 flex flex-row justify-between items-end">
 				<div className="flex flex-col gap-2">
 					<div>

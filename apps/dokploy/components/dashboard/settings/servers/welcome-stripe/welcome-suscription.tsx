@@ -18,22 +18,10 @@ import { CreateServer } from "./create-server";
 import { CreateSSHKey } from "./create-ssh-key";
 import { Setup } from "./setup";
 import { Verify } from "./verify";
-import {
-	Database,
-	Globe,
-	GitMerge,
-	Code,
-	Users,
-	Code2,
-	Plug,
-} from "lucide-react";
+import { Database, Globe, GitMerge, Users, Code2, Plug } from "lucide-react";
 import ConfettiExplosion from "react-confetti-explosion";
 import Link from "next/link";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
-
-interface Props {
-	children?: React.ReactNode;
-}
 
 export const { useStepper, steps, Scoped } = defineStepper(
 	{
@@ -56,7 +44,7 @@ export const { useStepper, steps, Scoped } = defineStepper(
 	{ id: "complete", title: "Complete", description: "Checkout complete" },
 );
 
-export const WelcomeSuscription = ({ children }: Props) => {
+export const WelcomeSuscription = () => {
 	const [showConfetti, setShowConfetti] = useState(false);
 	const stepper = useStepper();
 	const [isOpen, setIsOpen] = useState(true);
@@ -92,9 +80,10 @@ export const WelcomeSuscription = ({ children }: Props) => {
 					<DialogTitle className="text-2xl text-center">
 						Welcome To Dokploy Cloud 🎉
 					</DialogTitle>
-					<DialogDescription className="text-center">
-						Thank you for choosing Dokploy Cloud, before you start you need to
-						configure your remote server
+					<DialogDescription className="text-center max-w-xl mx-auto">
+						Thank you for choosing Dokploy Cloud! 🚀 We're excited to have you
+						onboard. Before you dive in, you'll need to configure your remote
+						server to unlock all the features we offer.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
@@ -120,9 +109,7 @@ export const WelcomeSuscription = ({ children }: Props) => {
 												type="button"
 												role="tab"
 												variant={
-													index <= stepper.current.index
-														? "default"
-														: "secondary"
+													index <= stepper.current.index ? "secondary" : "ghost"
 												}
 												aria-current={
 													stepper.current.id === step.id ? "step" : undefined
@@ -130,7 +117,7 @@ export const WelcomeSuscription = ({ children }: Props) => {
 												aria-posinset={index + 1}
 												aria-setsize={steps.length}
 												aria-selected={stepper.current.id === step.id}
-												className="flex size-10 items-center justify-center rounded-full"
+												className="flex size-10 items-center justify-center rounded-full border-2 border-border"
 												onClick={() => stepper.goTo(step.id)}
 											>
 												{index + 1}

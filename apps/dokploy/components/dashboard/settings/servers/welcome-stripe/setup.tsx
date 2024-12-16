@@ -55,7 +55,7 @@ export const Setup = () => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 					<div className="flex flex-col gap-2 w-full">
-						<Label>Select a server</Label>
+						<Label>Select the server and click on setup server</Label>
 						<Select onValueChange={setServerId} defaultValue={serverId}>
 							<SelectTrigger>
 								<SelectValue placeholder="Select a server" />
