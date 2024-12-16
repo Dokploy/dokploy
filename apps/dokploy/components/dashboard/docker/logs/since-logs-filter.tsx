@@ -91,7 +91,11 @@ export function SinceLogsFilter({
 								return (
 									<CommandItem
 										key={range.value}
-										onSelect={() => onValueChange(range.value)}
+										onSelect={() => {
+											if (!isSelected) {
+												onValueChange(range.value);
+											}
+										}}
 									>
 										<div
 											className={cn(
