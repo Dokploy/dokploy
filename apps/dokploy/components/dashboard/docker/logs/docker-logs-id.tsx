@@ -59,8 +59,6 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRawLogs("");
-    setFilteredLogs([]);
     setSearch(e.target.value || "");
   };
 
@@ -81,13 +79,12 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   };
 
   useEffect(() => {
+    if (!containerId) return;
+    
+    let isCurrentConnection = true;
+    setIsLoading(true);
     setRawLogs("");
     setFilteredLogs([]);
-  }, [containerId]);
-
-  useEffect(() => {
-    if (!containerId) return;
-    setIsLoading(true);
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const params = new globalThis.URLSearchParams({
@@ -108,25 +105,33 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
+      if (!isCurrentConnection) {
+        ws.close();
+        return;
+      }
       console.log("WebSocket connected");
     };
 
     ws.onmessage = (e) => {
+      if (!isCurrentConnection) return;
       setRawLogs((prev) => prev + e.data);
       setIsLoading(false);
     };
 
     ws.onerror = (error) => {
+      if (!isCurrentConnection) return;
       console.error("WebSocket error:", error);
       setIsLoading(false);
     };
 
     ws.onclose = (e) => {
+      if (!isCurrentConnection) return;
       console.log("WebSocket closed:", e.reason);
       setIsLoading(false);
     };
 
     return () => {
+      isCurrentConnection = false;
       if (ws.readyState === WebSocket.OPEN) {
         ws.close();
       }
