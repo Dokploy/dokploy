@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CheckIcon, PlusCircle } from "lucide-react";
+import { CheckIcon } from "lucide-react";
 import React from "react";
 
 interface StatusLogsFilterProps {

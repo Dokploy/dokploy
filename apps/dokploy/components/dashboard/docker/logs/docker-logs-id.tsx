@@ -10,13 +10,8 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import {
-	CheckCircle2Icon,
   Download as DownloadIcon,
-	Loader2,
-	Bug,
-	InfoIcon,
-	CircleX,
-	TriangleAlert,
+	Loader2
 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { TerminalLine } from "./terminal-line";
@@ -262,7 +257,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="all">All time</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
