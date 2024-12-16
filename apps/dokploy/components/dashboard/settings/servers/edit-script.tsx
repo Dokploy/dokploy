@@ -128,6 +128,7 @@ export const EditScript = ({ serverId }: Props) => {
 										<FormControl className="max-h-[75vh] max-w-[60rem] overflow-y-scroll overflow-x-hidden">
 											<CodeEditor
 												language="shell"
+												wrapperClassName="font-mono"
 												{...field}
 												placeholder={`
 set -e
