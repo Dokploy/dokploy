@@ -1,26 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectSeparator
-} from "@/components/ui/select";
 import { api } from "@/utils/api";
-import {
-  Download as DownloadIcon,
-	Loader2
-} from "lucide-react";
+import { Download as DownloadIcon, Loader2 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { SinceLogsFilter } from "./since-logs-filter";
+import { StatusLogsFilter } from "./status-logs-filter";
 import { TerminalLine } from "./terminal-line";
 import { type LogLine, getLogType, parseLogs } from "./utils";
-import { StatusLogsFilter } from "./status-logs-filter";
 
 interface Props {
-  containerId: string;
-  serverId?: string | null;
+	containerId: string;
+	serverId?: string | null;
 }
 
 type TimeFilter = "all" | "timestamp" | "1h" | "6h" | "24h" | "168h" | "720h";
@@ -49,276 +39,264 @@ export const priorities = [
 ];
 
 export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
-  const { data } = api.docker.getConfig.useQuery(
-    {
-      containerId,
-      serverId: serverId ?? undefined,
-    },
-    {
-      enabled: !!containerId,
-    }
-  );
+	const { data } = api.docker.getConfig.useQuery(
+		{
+			containerId,
+			serverId: serverId ?? undefined,
+		},
+		{
+			enabled: !!containerId,
+		},
+	);
 
-  const [rawLogs, setRawLogs] = React.useState("");
-  const [filteredLogs, setFilteredLogs] = React.useState<LogLine[]>([]);
-  const [autoScroll, setAutoScroll] = React.useState(true);
-  const [lines, setLines] = React.useState<number>(100);
-  const [search, setSearch] = React.useState<string>("");
-  const [showTimestamp, setShowTimestamp] = React.useState(true);
-  const [since, setSince] = React.useState<TimeFilter>("all");
+	const [rawLogs, setRawLogs] = React.useState("");
+	const [filteredLogs, setFilteredLogs] = React.useState<LogLine[]>([]);
+	const [autoScroll, setAutoScroll] = React.useState(true);
+	const [lines, setLines] = React.useState<number>(100);
+	const [search, setSearch] = React.useState<string>("");
+	const [showTimestamp, setShowTimestamp] = React.useState(true);
+	const [since, setSince] = React.useState<TimeFilter>("all");
 	const [typeFilter, setTypeFilter] = React.useState<string[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const [isLoading, setIsLoading] = React.useState(false);
 
-  const scrollToBottom = () => {
-    if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  };
+	const scrollToBottom = () => {
+		if (autoScroll && scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	};
 
-  const handleScroll = () => {
-    if (!scrollRef.current) return;
+	const handleScroll = () => {
+		if (!scrollRef.current) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
-    setAutoScroll(isAtBottom);
-  };
+		const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+		const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+		setAutoScroll(isAtBottom);
+	};
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value || "");
-  };
+	const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearch(e.target.value || "");
+	};
 
-  const handleLines = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRawLogs("");
-    setFilteredLogs([]);
-    setLines(Number(e.target.value) || 1);
-  };
+	const handleLines = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setRawLogs("");
+		setFilteredLogs([]);
+		setLines(Number(e.target.value) || 1);
+	};
 
-  const handleSince = (value: TimeFilter) => {
-    if (value === "timestamp") {
-      setShowTimestamp(!showTimestamp);
-    } else {
-      setRawLogs("");
-      setFilteredLogs([]);
-      setSince(value);
-    }
-  };
+	const handleSince = (value: string) => {
+		if (value === "timestamp") {
+			setShowTimestamp(!showTimestamp);
+		} else {
+			setRawLogs("");
+			setFilteredLogs([]);
+			setSince(value);
+		}
+	};
 
-  useEffect(() => {
-    if (!containerId) return;
-    
-    let isCurrentConnection = true;
-    let noDataTimeout: NodeJS.Timeout;
-    setIsLoading(true);
-    setRawLogs("");
-    setFilteredLogs([]);
+	useEffect(() => {
+		if (!containerId) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const params = new globalThis.URLSearchParams({
-      containerId,
-      tail: lines.toString(),
-      since,
-      search,
-    });
+		let isCurrentConnection = true;
+		let noDataTimeout: NodeJS.Timeout;
+		setIsLoading(true);
+		setRawLogs("");
+		setFilteredLogs([]);
 
-    if (serverId) {
-      params.append("serverId", serverId);
-    }
+		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+		const params = new globalThis.URLSearchParams({
+			containerId,
+			tail: lines.toString(),
+			since,
+			search,
+		});
 
-    const wsUrl = `${protocol}//${
-      window.location.host
-    }/docker-container-logs?${params.toString()}`;
-    console.log("Connecting to WebSocket:", wsUrl);
-    const ws = new WebSocket(wsUrl);
+		if (serverId) {
+			params.append("serverId", serverId);
+		}
 
-    const resetNoDataTimeout = () => {
-      if (noDataTimeout) clearTimeout(noDataTimeout);
-      noDataTimeout = setTimeout(() => {
-        if (isCurrentConnection) {
-          setIsLoading(false);
-        }
-      }, 2000); // Wait 2 seconds for data before showing "No logs found"
-    };
+		const wsUrl = `${protocol}//${
+			window.location.host
+		}/docker-container-logs?${params.toString()}`;
+		console.log("Connecting to WebSocket:", wsUrl);
+		const ws = new WebSocket(wsUrl);
 
-    ws.onopen = () => {
-      if (!isCurrentConnection) {
-        ws.close();
-        return;
-      }
-      console.log("WebSocket connected");
-      resetNoDataTimeout();
-    };
+		const resetNoDataTimeout = () => {
+			if (noDataTimeout) clearTimeout(noDataTimeout);
+			noDataTimeout = setTimeout(() => {
+				if (isCurrentConnection) {
+					setIsLoading(false);
+				}
+			}, 2000); // Wait 2 seconds for data before showing "No logs found"
+		};
 
-    ws.onmessage = (e) => {
-      if (!isCurrentConnection) return;
-      setRawLogs((prev) => prev + e.data);
-      setIsLoading(false);
-      if (noDataTimeout) clearTimeout(noDataTimeout);
-    };
+		ws.onopen = () => {
+			if (!isCurrentConnection) {
+				ws.close();
+				return;
+			}
+			console.log("WebSocket connected");
+			resetNoDataTimeout();
+		};
 
-    ws.onerror = (error) => {
-      if (!isCurrentConnection) return;
-      console.error("WebSocket error:", error);
-      setIsLoading(false);
-      if (noDataTimeout) clearTimeout(noDataTimeout);
-    };
+		ws.onmessage = (e) => {
+			if (!isCurrentConnection) return;
+			setRawLogs((prev) => prev + e.data);
+			setIsLoading(false);
+			if (noDataTimeout) clearTimeout(noDataTimeout);
+		};
 
-    ws.onclose = (e) => {
-      if (!isCurrentConnection) return;
-      console.log("WebSocket closed:", e.reason);
-      setIsLoading(false);
-      if (noDataTimeout) clearTimeout(noDataTimeout);
-    };
+		ws.onerror = (error) => {
+			if (!isCurrentConnection) return;
+			console.error("WebSocket error:", error);
+			setIsLoading(false);
+			if (noDataTimeout) clearTimeout(noDataTimeout);
+		};
 
-    return () => {
-      isCurrentConnection = false;
-      if (noDataTimeout) clearTimeout(noDataTimeout);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-  }, [containerId, serverId, lines, search, since]);
+		ws.onclose = (e) => {
+			if (!isCurrentConnection) return;
+			console.log("WebSocket closed:", e.reason);
+			setIsLoading(false);
+			if (noDataTimeout) clearTimeout(noDataTimeout);
+		};
 
-  const handleDownload = () => {
-    const logContent = filteredLogs
-      .map(
-        ({ timestamp, message }: { timestamp: Date | null; message: string }) =>
-          `${timestamp?.toISOString() || "No timestamp"} ${message}`
-      )
-      .join("\n");
+		return () => {
+			isCurrentConnection = false;
+			if (noDataTimeout) clearTimeout(noDataTimeout);
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.close();
+			}
+		};
+	}, [containerId, serverId, lines, search, since]);
 
-    const blob = new Blob([logContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const appName = data.Name.replace("/", "") || "app";
-    const isoDate = new Date().toISOString();
-    a.href = url;
-    a.download = `${appName}-${isoDate.slice(0, 10).replace(/-/g, "")}_${isoDate
-      .slice(11, 19)
-      .replace(/:/g, "")}.log.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+	const handleDownload = () => {
+		const logContent = filteredLogs
+			.map(
+				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
+					`${timestamp?.toISOString() || "No timestamp"} ${message}`,
+			)
+			.join("\n");
 
-  const handleFilter = (logs: LogLine[]) => {
-    return logs.filter((log) => {
-      const logType = getLogType(log.message).type;
-  
-      if (typeFilter.length === 0) {
-        return true;
-      }
+		const blob = new Blob([logContent], { type: "text/plain" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		const appName = data.Name.replace("/", "") || "app";
+		const isoDate = new Date().toISOString();
+		a.href = url;
+		a.download = `${appName}-${isoDate.slice(0, 10).replace(/-/g, "")}_${isoDate
+			.slice(11, 19)
+			.replace(/:/g, "")}.log.txt`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
 
-      return typeFilter.includes(logType);
-      });
-  };
+	const handleFilter = (logs: LogLine[]) => {
+		return logs.filter((log) => {
+			const logType = getLogType(log.message).type;
 
-  useEffect(() => {
-    setRawLogs("");
-    setFilteredLogs([]);
-  }, [containerId]);
+			if (typeFilter.length === 0) {
+				return true;
+			}
 
-  useEffect(() => {
-    const logs = parseLogs(rawLogs);
-    const filtered = handleFilter(logs);
-    setFilteredLogs(filtered);
-  }, [rawLogs, search, lines, since, typeFilter]);
+			return typeFilter.includes(logType);
+		});
+	};
 
-  useEffect(() => {
-    scrollToBottom();
+	useEffect(() => {
+		setRawLogs("");
+		setFilteredLogs([]);
+	}, [containerId]);
 
-    if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [filteredLogs, autoScroll]);
+	useEffect(() => {
+		const logs = parseLogs(rawLogs);
+		const filtered = handleFilter(logs);
+		setFilteredLogs(filtered);
+	}, [rawLogs, search, lines, since, typeFilter]);
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="rounded-lg overflow-hidden">
-        <div className="space-y-4">
-          <div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
-            <div className="flex flex-wrap gap-4">
-              <Input
-                type="text"
-                placeholder="Number of lines to show"
-                value={lines}
-                onChange={handleLines}
-                className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
-              />
+	useEffect(() => {
+		scrollToBottom();
 
-              <Select value={since} onValueChange={handleSince}>
-                <SelectTrigger className="sm:w-[180px] w-full h-9">
-                  <SelectValue placeholder="Time filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1h">Last hour</SelectItem>
-                  <SelectItem value="6h">Last 6 hours</SelectItem>
-                  <SelectItem value="24h">Last 24 hours</SelectItem>
-                  <SelectItem value="168h">Last 7 days</SelectItem>
-                  <SelectItem value="720h">Last 30 days</SelectItem>
-                  <SelectItem value="all">All time</SelectItem>
-                  <SelectSeparator/>
-                  <SelectItem value="timestamp">
-                    {showTimestamp ? "Hide timestamp" : "Show timestamp"}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+		if (autoScroll && scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	}, [filteredLogs, autoScroll]);
 
-              <StatusLogsFilter
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="rounded-lg overflow-hidden">
+				<div className="space-y-4">
+					<div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
+						<div className="flex flex-wrap gap-4">
+							<Input
+								type="text"
+								placeholder="Number of lines to show"
+								value={lines}
+								onChange={handleLines}
+								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
+							/>
+
+							<SinceLogsFilter
+								value={since}
+								onValueChange={handleSince}
+								showTimestamp={showTimestamp}
+								onTimestampChange={setShowTimestamp}
+							/>
+
+							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
 								title="Log type"
 								options={priorities}
 							/>
 
-              <Input
-                type="search"
-                placeholder="Search logs..."
-                value={search}
-                onChange={handleSearch}
-                className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
-              />
-              
-            </div>
+							<Input
+								type="search"
+								placeholder="Search logs..."
+								value={search}
+								onChange={handleSearch}
+								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
+							/>
+						</div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 sm:w-auto w-full"
-              onClick={handleDownload}
-              disabled={filteredLogs.length === 0 || !data?.Name}
-            >
-              <DownloadIcon className="mr-2 h-4 w-4" />
-              Download logs
-            </Button>
-          </div>
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
-          >
-            {filteredLogs.length > 0 ? (
-              filteredLogs.map((filteredLog: LogLine, index: number) => (
-                <TerminalLine
-                  key={index}
-                  log={filteredLog}
-                  searchTerm={search}
-                  noTimestamp={!showTimestamp}
-                />
-              ))
-            ) : isLoading ? (
-              <div className="flex justify-center items-center h-full text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <div className="flex justify-center items-center h-full text-muted-foreground">
-                No logs found
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-9 sm:w-auto w-full"
+							onClick={handleDownload}
+							disabled={filteredLogs.length === 0 || !data?.Name}
+						>
+							<DownloadIcon className="mr-2 h-4 w-4" />
+							Download logs
+						</Button>
+					</div>
+					<div
+						ref={scrollRef}
+						onScroll={handleScroll}
+						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					>
+						{filteredLogs.length > 0 ? (
+							filteredLogs.map((filteredLog: LogLine, index: number) => (
+								<TerminalLine
+									key={index}
+									log={filteredLog}
+									searchTerm={search}
+									noTimestamp={!showTimestamp}
+								/>
+							))
+						) : isLoading ? (
+							<div className="flex justify-center items-center h-full text-muted-foreground">
+								<Loader2 className="h-6 w-6 animate-spin" />
+							</div>
+						) : (
+							<div className="flex justify-center items-center h-full text-muted-foreground">
+								No logs found
+							</div>
+						)}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 };
