@@ -102,7 +102,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
-								<TabsTrigger value="security">Security</TabsTrigger>
+								<TabsTrigger value="audit">Security</TabsTrigger>
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
@@ -339,7 +339,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								</div>
 							</TabsContent>
 							<TabsContent
-								value="security"
+								value="audit"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
