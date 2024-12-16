@@ -39,6 +39,7 @@ export * from "./setup/config-paths";
 export * from "./setup/postgres-setup";
 export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
+export * from "./setup/server-security";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";

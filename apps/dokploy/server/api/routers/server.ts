@@ -26,6 +26,7 @@ import {
 	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
+	serverSecurity,
 	serverSetup,
 	serverValidate,
 	updateServerById,
@@ -157,6 +158,33 @@ export const serverRouter = createTRPCRouter({
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+					cause: error as Error,
+				});
+			}
+		}),
+
+	security: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to validate this server",
+					});
+				}
+				const response = await serverSecurity(input.serverId);
+				return {} as unknown as {
+					docker: {
+						enabled: boolean;
+						version: string;
+					};
 				};
 			} catch (error) {
 				throw new TRPCError({
