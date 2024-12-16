@@ -108,8 +108,7 @@ export const EditScript = ({ serverId }: Props) => {
 					</DialogDescription>
 
 					<AlertBlock type="warning">
-						We suggest to don't modify the script if you don't know what you are
-						doing
+						We recommend not modifying this script unless you know what you are doing.
 					</AlertBlock>
 				</DialogHeader>
 				<div className="grid gap-4">
