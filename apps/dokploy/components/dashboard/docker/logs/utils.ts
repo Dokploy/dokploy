@@ -1,5 +1,5 @@
-export type LogType = "error"  | "warning" | "success" | "info" | "debug";
-export type LogVariant = "red" | "yellow"  | "green"   | "blue" | "orange";
+export type LogType = "error" | "warning" | "success" | "info" | "debug";
+export type LogVariant = "red" | "yellow" | "green" | "blue" | "orange";
 
 export interface LogLine {
 	rawTimestamp: string | null;
@@ -12,6 +12,47 @@ interface LogStyle {
 	variant: LogVariant;
 	color: string;
 }
+interface AnsiSegment {
+	text: string;
+	className: string;
+}
+
+const ansiToTailwind: Record<number, string> = {
+	// Reset
+	0: "",
+	// Regular colors
+	30: "text-black dark:text-gray-900",
+	31: "text-red-600 dark:text-red-500",
+	32: "text-green-600 dark:text-green-500",
+	33: "text-yellow-600 dark:text-yellow-500",
+	34: "text-blue-600 dark:text-blue-500",
+	35: "text-purple-600 dark:text-purple-500",
+	36: "text-cyan-600 dark:text-cyan-500",
+	37: "text-gray-600 dark:text-gray-400",
+	// Bright colors
+	90: "text-gray-500 dark:text-gray-600",
+	91: "text-red-500 dark:text-red-600",
+	92: "text-green-500 dark:text-green-600",
+	93: "text-yellow-500 dark:text-yellow-600",
+	94: "text-blue-500 dark:text-blue-600",
+	95: "text-purple-500 dark:text-purple-600",
+	96: "text-cyan-500 dark:text-cyan-600",
+	97: "text-white dark:text-gray-300",
+	// Background colors
+	40: "bg-black",
+	41: "bg-red-600",
+	42: "bg-green-600",
+	43: "bg-yellow-600",
+	44: "bg-blue-600",
+	45: "bg-purple-600",
+	46: "bg-cyan-600",
+	47: "bg-white",
+	// Formatting
+	1: "font-bold",
+	2: "opacity-75",
+	3: "italic",
+	4: "underline",
+};
 
 const LOG_STYLES: Record<LogType, LogStyle> = {
 	error: {
@@ -138,11 +179,68 @@ export const getLogType = (message: string): LogStyle => {
 
 	if (
 		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
-		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(lowerMessage) ||
-		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(lowerMessage)
+		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(
+			lowerMessage,
+		) ||
+		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(
+			lowerMessage,
+		)
 	) {
 		return LOG_STYLES.debug;
 	}
 
 	return LOG_STYLES.info;
 };
+
+export function parseAnsi(text: string) {
+	const segments: { text: string; className: string }[] = [];
+	let currentIndex = 0;
+	let currentClasses: string[] = [];
+
+	while (currentIndex < text.length) {
+		const escStart = text.indexOf("\x1b[", currentIndex);
+
+		// No more escape sequences found
+		if (escStart === -1) {
+			if (currentIndex < text.length) {
+				segments.push({
+					text: text.slice(currentIndex),
+					className: currentClasses.join(" "),
+				});
+			}
+			break;
+		}
+
+		// Add text before escape sequence
+		if (escStart > currentIndex) {
+			segments.push({
+				text: text.slice(currentIndex, escStart),
+				className: currentClasses.join(" "),
+			});
+		}
+
+		const escEnd = text.indexOf("m", escStart);
+		if (escEnd === -1) break;
+
+		// Handle multiple codes in one sequence (e.g., \x1b[1;31m)
+		const codesStr = text.slice(escStart + 2, escEnd);
+		const codes = codesStr.split(";").map((c) => Number.parseInt(c, 10));
+
+		if (codes.includes(0)) {
+			// Reset all formatting
+			currentClasses = [];
+		} else {
+			// Add new classes for each code
+			for (const code of codes) {
+				const className = ansiToTailwind[code];
+				if (className && !currentClasses.includes(className)) {
+					currentClasses.push(className);
+				}
+			}
+		}
+
+		currentIndex = escEnd + 1;
+	}
+
+	return segments;
+}
