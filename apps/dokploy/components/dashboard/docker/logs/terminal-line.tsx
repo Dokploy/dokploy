@@ -91,7 +91,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
 				{!noTimestamp && (
-					<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
+					<span className="select-none pl-2 text-muted-foreground w-full sm:w-auto flex-shrink-0">
 						{formattedTime}
 					</span>
 				)}

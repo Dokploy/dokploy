@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -7,6 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import {
@@ -23,8 +23,7 @@ interface Props {
   serverId?: string | null;
 }
 
-
-type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
+type TimeFilter = "all" | "timestamp" | "1h" | "6h" | "24h" | "168h" | "720h";
 
 export const priorities = [
 	{
@@ -65,7 +64,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   const [autoScroll, setAutoScroll] = React.useState(true);
   const [lines, setLines] = React.useState<number>(100);
   const [search, setSearch] = React.useState<string>("");
-
+  const [showTimestamp, setShowTimestamp] = React.useState(true);
   const [since, setSince] = React.useState<TimeFilter>("all");
 	const [typeFilter, setTypeFilter] = React.useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,9 +95,13 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
   };
 
   const handleSince = (value: TimeFilter) => {
-    setRawLogs("");
-    setFilteredLogs([]);
-    setSince(value);
+    if (value === "timestamp") {
+      setShowTimestamp(!showTimestamp);
+    } else {
+      setRawLogs("");
+      setFilteredLogs([]);
+      setSince(value);
+    }
   };
 
   useEffect(() => {
@@ -255,6 +258,10 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   <SelectItem value="168h">Last 7 days</SelectItem>
                   <SelectItem value="720h">Last 30 days</SelectItem>
                   <SelectItem value="all">All time</SelectItem>
+                  <SelectSeparator/>
+                  <SelectItem value="timestamp">
+                    {showTimestamp ? "Hide timestamp" : "Show timestamp"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -272,12 +279,13 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                 onChange={handleSearch}
                 className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
               />
+              
             </div>
 
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
+              className="h-9 sm:w-auto w-full"
               onClick={handleDownload}
               disabled={filteredLogs.length === 0 || !data?.Name}
             >
@@ -296,6 +304,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
                   key={index}
                   log={filteredLog}
                   searchTerm={search}
+                  noTimestamp={!showTimestamp}
                 />
               ))
             ) : isLoading ? (
