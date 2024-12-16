@@ -108,8 +108,7 @@ export const EditScript = ({ serverId }: Props) => {
 					</DialogDescription>
 
 					<AlertBlock type="warning">
-						We suggest to don't modify the script if you don't know what you are
-						doing
+						We recommend not modifying this script unless you know what you are doing.
 					</AlertBlock>
 				</DialogHeader>
 				<div className="grid gap-4">
@@ -128,6 +127,7 @@ export const EditScript = ({ serverId }: Props) => {
 										<FormControl className="max-h-[75vh] max-w-[60rem] overflow-y-scroll overflow-x-hidden">
 											<CodeEditor
 												language="shell"
+												wrapperClassName="font-mono"
 												{...field}
 												placeholder={`
 set -e
