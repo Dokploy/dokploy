@@ -270,7 +270,7 @@ export const CreateServer = ({ stepper }: Props) => {
 					<DialogFooter className="pt-5">
 						<Button
 							isLoading={form.formState.isSubmitting}
-							// disabled={!canCreateMoreServers}
+							disabled={!canCreateMoreServers}
 							form="hook-form-add-server"
 							type="submit"
 						>

@@ -88,6 +88,9 @@ export const isAdminPresent = async () => {
 export const findAdminByAuthId = async (authId: string) => {
 	const admin = await db.query.admins.findFirst({
 		where: eq(admins.authId, authId),
+		with: {
+			users: true,
+		},
 	});
 	if (!admin) {
 		throw new TRPCError({
@@ -135,6 +138,24 @@ export const getUserByToken = async (token: string) => {
 
 export const removeUserByAuthId = async (authId: string) => {
 	await db
+		.delete(auth)
+		.where(eq(auth.id, authId))
+		.returning()
+		.then((res) => res[0]);
+};
+
+export const removeAdminByAuthId = async (authId: string) => {
+	const admin = await findAdminByAuthId(authId);
+	if (!admin) return null;
+
+	// First delete all associated users
+	const users = admin.users;
+
+	for (const user of users) {
+		await removeUserByAuthId(user.authId);
+	}
+	// Then delete the auth record which will cascade delete the admin
+	return await db
 		.delete(auth)
 		.where(eq(auth.id, authId))
 		.returning()
