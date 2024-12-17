@@ -1,6 +1,11 @@
+import { ShowServers } from "@/components/dashboard/settings/servers/show-servers";
+import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
+import ShowApplicationServers from "@/components/dashboard/swarm/servers/show-server";
 import ShowSwarmNodes from "@/components/dashboard/swarm/show/show-nodes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Separator } from "@/components/ui/separator";
 import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -8,7 +13,19 @@ import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Dashboard = () => {
-	return <ShowSwarmNodes />;
+	return (
+		<>
+			<div className="flex flex-wrap gap-4 py-4">
+				<SwarmMonitorCard />
+			</div>
+
+			{/* <h1>Swarm Nodes</h1>
+			<ShowSwarmNodes />
+			<Separator />
+			<h1 className="mt-24">Server Nodes</h1>
+			<ShowApplicationServers /> */}
+		</>
+	);
 };
 
 export default Dashboard;

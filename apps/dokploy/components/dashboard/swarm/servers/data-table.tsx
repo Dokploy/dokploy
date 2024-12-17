@@ -35,11 +35,13 @@ import React from "react";
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[];
 	data: TData[];
+	isLoading: boolean;
 }
 
 export function DataTable<TData, TValue>({
 	columns,
 	data,
+	isLoading,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -48,10 +50,6 @@ export function DataTable<TData, TValue>({
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
-	const [pagination, setPagination] = React.useState({
-		pageIndex: 0, //initial page index
-		pageSize: 8, //default page size
-	});
 
 	const table = useReactTable({
 		data,
@@ -111,64 +109,79 @@ export function DataTable<TData, TValue>({
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
-				<Table>
-					<TableHeader>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => {
-									return (
-										<TableHead key={header.id}>
-											{header.isPlaceholder
-												? null
-												: flexRender(
-														header.column.columnDef.header,
-														header.getContext(),
+
+				<div className="rounded-md border">
+					{isLoading ? (
+						<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+							<span className="text-muted-foreground text-lg font-medium">
+								Loading...
+							</span>
+						</div>
+					) : data?.length === 0 ? (
+						<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
+							<span className="text-muted-foreground text-lg font-medium">
+								No results.
+							</span>
+						</div>
+					) : (
+						<Table>
+							<TableHeader>
+								{table.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => {
+											return (
+												<TableHead key={header.id}>
+													{header.isPlaceholder
+														? null
+														: flexRender(
+																header.column.columnDef.header,
+																header.getContext(),
+															)}
+												</TableHead>
+											);
+										})}
+									</TableRow>
+								))}
+							</TableHeader>
+							<TableBody>
+								{table?.getRowModel()?.rows?.length ? (
+									table.getRowModel().rows.map((row) => (
+										<TableRow
+											key={row.id}
+											data-state={row.getIsSelected() && "selected"}
+										>
+											{row.getVisibleCells().map((cell) => (
+												<TableCell key={cell.id}>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext(),
 													)}
-										</TableHead>
-									);
-								})}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{table?.getRowModel()?.rows?.length ? (
-							table.getRowModel().rows.map((row) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}
-								>
-									{row.getVisibleCells().map((cell) => (
-										<TableCell key={cell.id}>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
+												</TableCell>
+											))}
+										</TableRow>
+									))
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className="h-24 text-center"
+										>
+											{isLoading ? (
+												<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
+													<span className="text-muted-foreground text-lg font-medium">
+														Loading...
+													</span>
+												</div>
+											) : (
+												<>No results.</>
 											)}
 										</TableCell>
-									))}
-								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-24 text-center"
-								>
-									No results.
-									{/* {isLoading ? (
-                    <div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-                      <span className="text-muted-foreground text-lg font-medium">
-                        Loading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>No results.</>
-                  )} */}
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+					)}
+				</div>
 				{data && data?.length > 0 && (
 					<div className="flex items-center justify-end space-x-2 py-4">
 						<div className="space-x-2 flex flex-wrap">
