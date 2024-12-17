@@ -1,4 +1,6 @@
 packages:
   - "apps/dokploy"
-  - "apps/docs"
-  - "apps/website"
+  - "apps/api"
+  - "apps/schedules"
+  - "apps/models"
+  - "packages/server"

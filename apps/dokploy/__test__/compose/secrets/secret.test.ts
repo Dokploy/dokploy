@@ -1,5 +1,5 @@
-import { addPrefixToAllSecrets } from "@/server/utils/docker/compose/secrets";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { addSuffixToAllSecrets } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -47,11 +47,11 @@ secrets:
     file: ./app_secret.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all secrets", () => {
+test("Add suffix to all secrets", () => {
 	const composeData = load(composeFileCombinedSecrets) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllSecrets(composeData, prefix);
+	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFileCombinedSecrets);
 });
@@ -98,11 +98,11 @@ secrets:
     file: ./cache_secret.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all secrets (3rd Case)", () => {
+test("Add suffix to all secrets (3rd Case)", () => {
 	const composeData = load(composeFileCombinedSecrets3) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllSecrets(composeData, prefix);
+	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFileCombinedSecrets3);
 });
@@ -149,11 +149,11 @@ secrets:
     file: ./db_password.txt
 `) as ComposeSpecification;
 
-test("Add prefix to all secrets (4th Case)", () => {
+test("Add suffix to all secrets (4th Case)", () => {
 	const composeData = load(composeFileCombinedSecrets4) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllSecrets(composeData, prefix);
+	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFileCombinedSecrets4);
 });

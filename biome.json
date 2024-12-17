@@ -1,13 +1,23 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"ignore": ["node_modules/**", ".next/**", "drizzle/**", ".docker", "dist"]
+		"ignore": [
+			"node_modules/**",
+			".next/**",
+			"drizzle/**",
+			".docker",
+			"dist",
+			"packages/server/package.json"
+		]
 	},
 	"organizeImports": {
 		"enabled": true
 	},
 	"linter": {
 		"rules": {
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			},
 			"complexity": {
 				"noUselessCatch": "off",
 				"noBannedTypes": "off"

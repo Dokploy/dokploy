@@ -17,10 +17,18 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Container } from "lucide-react";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,10 +44,9 @@ const AddRegistrySchema = z.object({
 	password: z.string().min(1, {
 		message: "Password is required",
 	}),
-	registryUrl: z.string().min(1, {
-		message: "Registry URL is required",
-	}),
+	registryUrl: z.string(),
 	imagePrefix: z.string(),
+	serverId: z.string().optional(),
 });
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
@@ -48,9 +55,9 @@ export const AddRegistry = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.registry.create.useMutation();
+	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync: testRegistry, isLoading } =
 		api.registry.testRegistry.useMutation();
-	const router = useRouter();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
 			username: "",
@@ -58,6 +65,7 @@ export const AddRegistry = () => {
 			registryUrl: "",
 			imagePrefix: "",
 			registryName: "",
+			serverId: "",
 		},
 		resolver: zodResolver(AddRegistrySchema),
 	});
@@ -67,6 +75,7 @@ export const AddRegistry = () => {
 	const registryUrl = form.watch("registryUrl");
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
+	const serverId = form.watch("serverId");
 
 	useEffect(() => {
 		form.reset({
@@ -74,6 +83,7 @@ export const AddRegistry = () => {
 			password: "",
 			registryUrl: "",
 			imagePrefix: "",
+			serverId: "",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
@@ -85,6 +95,7 @@ export const AddRegistry = () => {
 			registryUrl: data.registryUrl,
 			registryType: "cloud",
 			imagePrefix: data.imagePrefix,
+			serverId: data.serverId,
 		})
 			.then(async (data) => {
 				await utils.registry.all.invalidate();
@@ -211,34 +222,77 @@ export const AddRegistry = () => {
 								)}
 							/>
 						</div>
-						<DialogFooter className="flex flex-row w-full sm:justify-between gap-4 flex-wrap">
-							<Button
-								type="button"
-								variant={"secondary"}
-								isLoading={isLoading}
-								onClick={async () => {
-									await testRegistry({
-										username: username,
-										password: password,
-										registryUrl: registryUrl,
-										registryName: registryName,
-										registryType: "cloud",
-										imagePrefix: imagePrefix,
-									})
-										.then((data) => {
-											if (data) {
-												toast.success("Registry Tested Successfully");
-											} else {
-												toast.error("Registry Test Failed");
-											}
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col">
+							<div className="flex flex-col gap-4 border p-2 rounded-lg">
+								<span className="text-sm text-muted-foreground">
+									Select a server to test the registry. If you don't have a
+									server choose the default one.
+								</span>
+								<FormField
+									control={form.control}
+									name="serverId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Server (Optional)</FormLabel>
+											<FormControl>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+												>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Select a server" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectGroup>
+															<SelectLabel>Servers</SelectLabel>
+															{servers?.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+															<SelectItem value={"none"}>None</SelectItem>
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<Button
+									type="button"
+									variant={"secondary"}
+									isLoading={isLoading}
+									onClick={async () => {
+										await testRegistry({
+											username: username,
+											password: password,
+											registryUrl: registryUrl,
+											registryName: registryName,
+											registryType: "cloud",
+											imagePrefix: imagePrefix,
+											serverId: serverId,
 										})
-										.catch(() => {
-											toast.error("Error to test the registry");
-										});
-								}}
-							>
-								Test Registry
-							</Button>
+											.then((data) => {
+												if (data) {
+													toast.success("Registry Tested Successfully");
+												} else {
+													toast.error("Registry Test Failed");
+												}
+											})
+											.catch(() => {
+												toast.error("Error to test the registry");
+											});
+									}}
+								>
+									Test Registry
+								</Button>
+							</div>
+
 							<Button isLoading={form.formState.isSubmitting} type="submit">
 								Create
 							</Button>

@@ -18,26 +18,41 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
+	provider: z.string().optional(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
 	bucket: z.string(),
 	region: z.string(),
 	endpoint: z.string(),
+	serverId: z.string().optional(),
 });
 
 type AddDestination = z.infer<typeof addDestination>;
 
 export const AddDestination = () => {
 	const utils = api.useUtils();
+	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { mutateAsync, isError, error, isLoading } =
 		api.destination.create.useMutation();
@@ -45,6 +60,7 @@ export const AddDestination = () => {
 		api.destination.testConnection.useMutation();
 	const form = useForm<AddDestination>({
 		defaultValues: {
+			provider: "",
 			accessKeyId: "",
 			bucket: "",
 			name: "",
@@ -60,6 +76,7 @@ export const AddDestination = () => {
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
+			provider: data.provider || "",
 			accessKey: data.accessKeyId,
 			bucket: data.bucket,
 			endpoint: data.endpoint,
@@ -104,6 +121,40 @@ export const AddDestination = () => {
 										<FormLabel>Name</FormLabel>
 										<FormControl>
 											<Input placeholder={"S3 Bucket"} {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
+						/>
+						<FormField
+							control={form.control}
+							name="provider"
+							render={({ field }) => {
+								return (
+									<FormItem>
+										<FormLabel>Provider</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a S3 Provider" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{S3_PROVIDERS.map((s3Provider) => (
+														<SelectItem
+															key={s3Provider.key}
+															value={s3Provider.key}
+														>
+															{s3Provider.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -189,30 +240,108 @@ export const AddDestination = () => {
 						/>
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-between pt-3">
-						<Button
-							isLoading={isLoadingConnection}
-							type="button"
-							variant="secondary"
-							onClick={async () => {
-								await testConnection({
-									accessKey: form.getValues("accessKeyId"),
-									bucket: form.getValues("bucket"),
-									endpoint: form.getValues("endpoint"),
-									name: "Test",
-									region: form.getValues("region"),
-									secretAccessKey: form.getValues("secretAccessKey"),
-								})
-									.then(async () => {
-										toast.success("Connection Success");
+					<DialogFooter
+						className={cn(
+							isCloud ? "!flex-col" : "flex-row",
+							"flex w-full  !justify-between pt-3 gap-4",
+						)}
+					>
+						{isCloud ? (
+							<div className="flex flex-col gap-4 border p-2 rounded-lg">
+								<span className="text-sm text-muted-foreground">
+									Select a server to test the destination. If you don't have a
+									server choose the default one.
+								</span>
+								<FormField
+									control={form.control}
+									name="serverId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Server (Optional)</FormLabel>
+											<FormControl>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+												>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Select a server" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectGroup>
+															<SelectLabel>Servers</SelectLabel>
+															{servers?.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+															<SelectItem value={"none"}>None</SelectItem>
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<Button
+									type="button"
+									variant={"secondary"}
+									isLoading={isLoading}
+									onClick={async () => {
+										await testConnection({
+											provider: form.getValues("provider") || "",
+											accessKey: form.getValues("accessKeyId"),
+											bucket: form.getValues("bucket"),
+											endpoint: form.getValues("endpoint"),
+											name: "Test",
+											region: form.getValues("region"),
+											secretAccessKey: form.getValues("secretAccessKey"),
+											serverId: form.getValues("serverId"),
+										})
+											.then(async () => {
+												toast.success("Connection Success");
+											})
+											.catch((e) => {
+												toast.error("Error to connect the provider", {
+													description: e.message,
+												});
+											});
+									}}
+								>
+									Test Connection
+								</Button>
+							</div>
+						) : (
+							<Button
+								isLoading={isLoadingConnection}
+								type="button"
+								variant="secondary"
+								onClick={async () => {
+									await testConnection({
+										provider: form.getValues("provider") || "",
+										accessKey: form.getValues("accessKeyId"),
+										bucket: form.getValues("bucket"),
+										endpoint: form.getValues("endpoint"),
+										name: "Test",
+										region: form.getValues("region"),
+										secretAccessKey: form.getValues("secretAccessKey"),
 									})
-									.catch(() => {
-										toast.error("Error to connect the provider");
-									});
-							}}
-						>
-							Test connection
-						</Button>
+										.then(async () => {
+											toast.success("Connection Success");
+										})
+										.catch(() => {
+											toast.error("Error to connect the provider");
+										});
+								}}
+							>
+								Test connection
+							</Button>
+						)}
+
 						<Button
 							isLoading={isLoading}
 							form="hook-form-destination-add"

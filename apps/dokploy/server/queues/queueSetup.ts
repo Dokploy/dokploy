@@ -1,10 +1,6 @@
-import { type ConnectionOptions, Queue } from "bullmq";
+import { Queue } from "bullmq";
+import { redisConfig } from "./redis-connection";
 
-export const redisConfig: ConnectionOptions = {
-	host: process.env.NODE_ENV === "production" ? "dokploy-redis" : "127.0.0.1",
-	port: 6379,
-};
-// TODO: maybe add a options to clean the queue to the times
 const myQueue = new Queue("deployments", {
 	connection: redisConfig,
 });
@@ -22,5 +18,27 @@ myQueue.on("error", (error) => {
 		);
 	}
 });
+
+export const cleanQueuesByApplication = async (applicationId: string) => {
+	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
+
+	for (const job of jobs) {
+		if (job?.data?.applicationId === applicationId) {
+			await job.remove();
+			console.log(`Removed job ${job.id} for application ${applicationId}`);
+		}
+	}
+};
+
+export const cleanQueuesByCompose = async (composeId: string) => {
+	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
+
+	for (const job of jobs) {
+		if (job?.data?.composeId === composeId) {
+			await job.remove();
+			console.log(`Removed job ${job.id} for compose ${composeId}`);
+		}
+	}
+};
 
 export { myQueue };

@@ -1,0 +1,37 @@
+version: "3.8"
+services:
+  gitea:
+    image: gitea/gitea:1.22.3
+    environment:
+      - USER_UID=${USER_UID}
+      - USER_GID=${USER_GID}
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
+    restart: always
+    networks:
+      - dokploy-network
+    volumes:
+      - gitea_server:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    networks:
+      - dokploy-network
+    volumes:
+      - gitea_db:/var/lib/postgresql/data
+
+volumes:
+  gitea_db:
+  gitea_server:

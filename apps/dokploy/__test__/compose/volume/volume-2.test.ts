@@ -1,9 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import {
-	addPrefixToAllVolumes,
-	addPrefixToVolumesRoot,
-} from "@/server/utils/docker/compose/volume";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToAllVolumes, addSuffixToVolumesRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -142,15 +139,15 @@ test("Generate random hash with 8 characters", () => {
 
 // Docker compose needs unique names for services, volumes, networks and containers
 // So base on a input which is a dockercompose file, it should replace the name with a hash and return a new dockercompose file
-test("Add prefix to volumes root property", () => {
+test("Add suffix to volumes root property", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.volumes) {
 		return;
 	}
-	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+	const volumes = addSuffixToVolumesRoot(composeData.volumes, suffix);
 
 	// {
 	// 	'db-data-af045046': { driver: 'local' },
@@ -160,15 +157,15 @@ test("Add prefix to volumes root property", () => {
 
 	expect(volumes).toBeDefined();
 	for (const volumeKey of Object.keys(volumes)) {
-		expect(volumeKey).toContain(`-${prefix}`);
+		expect(volumeKey).toContain(`-${suffix}`);
 	}
 });
 
-test("Expect to change the prefix in all the possible places", () => {
+test("Expect to change the suffix in all the possible places", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerCompose);
 });
@@ -217,11 +214,11 @@ volumes:
   mongo-data-testhash:
 `) as ComposeSpecification;
 
-test("Expect to change the prefix in all the possible places (2 Try)", () => {
+test("Expect to change the suffix in all the possible places (2 Try)", () => {
 	const composeData = load(composeFile2) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerCompose2);
 });
@@ -270,11 +267,11 @@ volumes:
   mongo-data-testhash:
 `) as ComposeSpecification;
 
-test("Expect to change the prefix in all the possible places (3 Try)", () => {
+test("Expect to change the suffix in all the possible places (3 Try)", () => {
 	const composeData = load(composeFile3) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerCompose3);
 });
@@ -1011,11 +1008,11 @@ volumes:
   db-config-testhash:
 `) as ComposeSpecification;
 
-test("Expect to change the prefix in all the possible places (4 Try)", () => {
+test("Expect to change the suffix in all the possible places (4 Try)", () => {
 	const composeData = load(composeFileComplex) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerComposeComplex);
 });
@@ -1110,11 +1107,11 @@ volumes:
   db-data-testhash:
 `) as ComposeSpecification;
 
-test("Expect to change the prefix in all the possible places (5 Try)", () => {
+test("Expect to change the suffix in all the possible places (5 Try)", () => {
 	const composeData = load(composeFileExample1) as ComposeSpecification;
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllVolumes(composeData, prefix);
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerComposeExample1);
 });

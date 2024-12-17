@@ -77,15 +77,15 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 				});
 			})
 			.catch((e) => {
-				console.log(e);
 				toast.error("Error to update the compose config");
 			});
 	};
 	return (
 		<>
-			<div className="w-full flex flex-col lg:flex-row gap-4 ">
+			<div className="w-full flex flex-col gap-4 ">
 				<Form {...form}>
 					<form
+						id="hook-form-save-compose-file"
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="w-full relative space-y-4"
 					>
@@ -121,21 +121,21 @@ services:
 								</FormItem>
 							)}
 						/>
-
-						<div className="flex justify-between flex-col lg:flex-row gap-2">
-							<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
-								<RandomizeCompose composeId={composeId} />
-							</div>
-							<Button
-								type="submit"
-								isLoading={isLoading}
-								className="lg:w-fit w-full"
-							>
-								Save
-							</Button>
-						</div>
 					</form>
 				</Form>
+				<div className="flex justify-between flex-col lg:flex-row gap-2">
+					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
+						<RandomizeCompose composeId={composeId} />
+					</div>
+					<Button
+						type="submit"
+						form="hook-form-save-compose-file"
+						isLoading={isLoading}
+						className="lg:w-fit w-full"
+					>
+						Save
+					</Button>
+				</div>
 			</div>
 		</>
 	);

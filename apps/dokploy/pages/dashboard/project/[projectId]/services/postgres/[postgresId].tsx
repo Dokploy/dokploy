@@ -9,23 +9,33 @@ import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/sho
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, type ReactElement } from "react";
@@ -73,6 +83,11 @@ const Postgresql = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				<Head>
+					<title>
+						Database: {data?.name} - {data?.project.name} | Dokploy
+					</title>
+				</Head>
 				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
 					<div className="flex  flex-col justify-between w-fit gap-2">
 						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
@@ -81,7 +96,41 @@ const Postgresql = (
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-
+						<div className="flex flex-row h-fit w-fit gap-2">
+							<Badge
+								variant={
+									!data?.serverId
+										? "default"
+										: data?.server?.serverStatus === "active"
+											? "default"
+											: "destructive"
+								}
+							>
+								{data?.server?.name || "Dokploy Server"}
+							</Badge>
+							{data?.server?.serverStatus === "inactive" && (
+								<TooltipProvider delayDuration={0}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Label className="break-all w-fit flex flex-row gap-1 items-center">
+												<HelpCircle className="size-4 text-muted-foreground" />
+											</Label>
+										</TooltipTrigger>
+										<TooltipContent
+											className="z-[999] w-[300px]"
+											align="start"
+											side="top"
+										>
+											<span>
+												You cannot, deploy this application because the server
+												is inactive, please upgrade your plan to add more
+												servers.
+											</span>
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							)}
+						</div>
 						{data?.description && (
 							<p className="text-sm text-muted-foreground  max-w-6xl">
 								{data?.description}
@@ -97,68 +146,100 @@ const Postgresql = (
 					</div>
 				</header>
 			</div>
-			<Tabs
-				value={tab}
-				defaultValue="general"
-				className="w-full"
-				onValueChange={(e) => {
-					setSab(e as TabState);
-					const newPath = `/dashboard/project/${projectId}/services/postgres/${postgresId}?tab=${e}`;
-
-					router.push(newPath, undefined, { shallow: true });
-				}}
-			>
-				<div className="flex flex-row items-center justify-between  w-full gap-4">
-					<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-y-scroll justify-start">
-						<TabsTrigger value="general">General</TabsTrigger>
-						<TabsTrigger value="environment">Environment</TabsTrigger>
-						<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-						<TabsTrigger value="backups">Backups</TabsTrigger>
-						<TabsTrigger value="logs">Logs</TabsTrigger>
-						<TabsTrigger value="advanced">Advanced</TabsTrigger>
-					</TabsList>
-
-					<div className="flex flex-row gap-2">
-						<UpdatePostgres postgresId={postgresId} />
-						{(auth?.rol === "admin" || user?.canDeleteServices) && (
-							<DeletePostgres postgresId={postgresId} />
-						)}
+			{data?.server?.serverStatus === "inactive" ? (
+				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+						<ServerOff className="size-10 text-muted-foreground self-center" />
+						<span className="text-center text-base text-muted-foreground">
+							This service is hosted on the server {data.server.name}, but this
+							server has been disabled because your current plan doesn't include
+							enough servers. Please purchase more servers to regain access to
+							this application.
+						</span>
+						<span className="text-center text-base text-muted-foreground">
+							Go to{" "}
+							<Link href="/dashboard/settings/billing" className="text-primary">
+								Billing
+							</Link>
+						</span>
 					</div>
 				</div>
+			) : (
+				<Tabs
+					value={tab}
+					defaultValue="general"
+					className="w-full"
+					onValueChange={(e) => {
+						setSab(e as TabState);
+						const newPath = `/dashboard/project/${projectId}/services/postgres/${postgresId}?tab=${e}`;
 
-				<TabsContent value="general">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowGeneralPostgres postgresId={postgresId} />
-						<ShowInternalPostgresCredentials postgresId={postgresId} />
-						<ShowExternalPostgresCredentials postgresId={postgresId} />
+						router.push(newPath, undefined, { shallow: true });
+					}}
+				>
+					<div className="flex flex-row items-center justify-between  w-full gap-4">
+						<TabsList
+							className={cn(
+								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+								data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
+							)}
+						>
+							<TabsTrigger value="general">General</TabsTrigger>
+							<TabsTrigger value="environment">Environment</TabsTrigger>
+							{!data?.serverId && (
+								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+							)}
+							<TabsTrigger value="backups">Backups</TabsTrigger>
+							<TabsTrigger value="logs">Logs</TabsTrigger>
+							<TabsTrigger value="advanced">Advanced</TabsTrigger>
+						</TabsList>
+
+						<div className="flex flex-row gap-2">
+							<UpdatePostgres postgresId={postgresId} />
+							{(auth?.rol === "admin" || user?.canDeleteServices) && (
+								<DeletePostgres postgresId={postgresId} />
+							)}
+						</div>
 					</div>
-				</TabsContent>
-				<TabsContent value="environment">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowPostgresEnvironment postgresId={postgresId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="monitoring">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<DockerMonitoring appName={data?.appName || ""} />
-					</div>
-				</TabsContent>
-				<TabsContent value="logs">
-					<div className="flex flex-col gap-4  pt-2.5">
-						<ShowDockerLogs appName={data?.appName || ""} />
-					</div>
-				</TabsContent>
-				<TabsContent value="backups">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowBackupPostgres postgresId={postgresId} />
-					</div>
-				</TabsContent>
-				<TabsContent value="advanced">
-					<div className="flex flex-col gap-4 pt-2.5">
-						<ShowAdvancedPostgres postgresId={postgresId} />
-					</div>
-				</TabsContent>
-			</Tabs>
+
+					<TabsContent value="general">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowGeneralPostgres postgresId={postgresId} />
+							<ShowInternalPostgresCredentials postgresId={postgresId} />
+							<ShowExternalPostgresCredentials postgresId={postgresId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="environment">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowPostgresEnvironment postgresId={postgresId} />
+						</div>
+					</TabsContent>
+					{!data?.serverId && (
+						<TabsContent value="monitoring">
+							<div className="flex flex-col gap-4 pt-2.5">
+								<DockerMonitoring appName={data?.appName || ""} />
+							</div>
+						</TabsContent>
+					)}
+					<TabsContent value="logs">
+						<div className="flex flex-col gap-4  pt-2.5">
+							<ShowDockerLogs
+								serverId={data?.serverId || ""}
+								appName={data?.appName || ""}
+							/>
+						</div>
+					</TabsContent>
+					<TabsContent value="backups">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowBackupPostgres postgresId={postgresId} />
+						</div>
+					</TabsContent>
+					<TabsContent value="advanced">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowAdvancedPostgres postgresId={postgresId} />
+						</div>
+					</TabsContent>
+				</Tabs>
+			)}
 		</div>
 	);
 };

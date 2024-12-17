@@ -1,9 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import {
-	addPrefixToAllConfigs,
-	addPrefixToConfigsRoot,
-} from "@/server/utils/docker/compose/configs";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToAllConfigs, addSuffixToConfigsRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -80,12 +77,12 @@ configs:
     file: ./db-config.yml
 `) as ComposeSpecification;
 
-test("Add prefix to all configs in root and services", () => {
+test("Add suffix to all configs in root and services", () => {
 	const composeData = load(composeFileCombinedConfigs) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllConfigs(composeData, prefix);
+	const updatedComposeData = addSuffixToAllConfigs(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFileCombinedConfigs);
 });
@@ -162,14 +159,14 @@ configs:
     file: ./db-config.yml
 `) as ComposeSpecification;
 
-test("Add prefix to configs with environment and external", () => {
+test("Add suffix to configs with environment and external", () => {
 	const composeData = load(
 		composeFileWithEnvAndExternal,
 	) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllConfigs(composeData, prefix);
+	const updatedComposeData = addSuffixToAllConfigs(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedComposeFileWithEnvAndExternal);
 });
@@ -234,14 +231,14 @@ configs:
     file: ./db-config.yml
 `) as ComposeSpecification;
 
-test("Add prefix to configs with template driver and labels", () => {
+test("Add suffix to configs with template driver and labels", () => {
 	const composeData = load(
 		composeFileWithTemplateDriverAndLabels,
 	) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
-	const updatedComposeData = addPrefixToAllConfigs(composeData, prefix);
+	const updatedComposeData = addSuffixToAllConfigs(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(
 		expectedComposeFileWithTemplateDriverAndLabels,

@@ -1,7 +1,9 @@
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/deployments-queue";
+import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { IS_CLOUD } from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -66,6 +68,18 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
+		} else if (sourceType === "gitlab") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.gitlabBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+		} else if (sourceType === "bitbucket") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.bitbucketBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
 		}
 
 		try {
@@ -75,7 +89,14 @@ export default async function handler(
 				descriptionLog: `Hash: ${deploymentHash}`,
 				type: "deploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

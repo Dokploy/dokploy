@@ -1,0 +1,45 @@
+services:
+  all-in-one:
+    image: daveearley/hi.events-all-in-one:v0.8.0-beta.1
+    restart: always
+    environment:
+      - VITE_FRONTEND_URL=https://${DOMAIN}
+      - APP_FRONTEND_URL=https://${DOMAIN}
+      - VITE_API_URL_CLIENT=https://${DOMAIN}/api
+      - VITE_API_URL_SERVER=http://localhost:80/api
+      - VITE_STRIPE_PUBLISHABLE_KEY
+      - LOG_CHANNEL=stderr
+      - QUEUE_CONNECTION=sync
+      - MAIL_MAILER=array
+      - APP_KEY
+      - JWT_SECRET
+      - FILESYSTEM_PUBLIC_DISK=public
+      - FILESYSTEM_PRIVATE_DISK=local
+      - APP_CDN_URL=https://${DOMAIN}/storage
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - MAIL_MAILER
+      - MAIL_HOST
+      - MAIL_PORT
+      - MAIL_FROM_ADDRESS
+      - MAIL_FROM_NAME
+    depends_on:
+      - postgres
+
+  postgres:
+    image: elestio/postgres:16
+    restart: always
+    networks:
+      - dokploy-network
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - pg_hi-events_data:/var/lib/postgresql/data
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  pg_hi-events_data:

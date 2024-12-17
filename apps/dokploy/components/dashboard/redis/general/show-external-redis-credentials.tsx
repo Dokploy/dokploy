@@ -48,6 +48,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 	const { data, refetch } = api.redis.one.useQuery({ redisId });
 	const { mutateAsync, isLoading } = api.redis.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
+	const getIp = data?.server?.ipAddress || ip;
 
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
@@ -81,11 +82,11 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 			const hostname = window.location.hostname;
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `redis://default:${data?.databasePassword}@${ip}:${port}`;
+			return `redis://default:${data?.databasePassword}@${getIp}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
-	}, [data?.appName, data?.externalPort, data?.databasePassword, form, ip]);
+	}, [data?.appName, data?.externalPort, data?.databasePassword, form, getIp]);
 	return (
 		<>
 			<div className="flex w-full flex-col gap-5 ">

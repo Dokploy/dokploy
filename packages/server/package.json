@@ -1,0 +1,91 @@
+{
+  "name": "@dokploy/server",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./db": {
+      "import": "./src/db/index.ts",
+      "require": "./dist/db/index.cjs.js"
+    },
+    "./setup/*": {
+      "import": "./src/setup/*.ts",
+      "require": "./dist/setup/index.cjs.js"
+    },
+    "./constants": {
+      "import": "./src/constants/index.ts",
+      "require": "./dist/constants.cjs.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run switch:prod && rm -rf ./dist && tsc --project tsconfig.server.json && tsc-alias -p tsconfig.server.json",
+    "build:types": "tsc --emitDeclarationOnly --experimenta-dts",
+    "switch:dev": "node scripts/switchToSrc.js",
+    "switch:prod": "node scripts/switchToDist.js",
+    "dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
+    "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "rotating-file-stream": "3.2.3",
+    "@faker-js/faker": "^8.4.1",
+    "@lucia-auth/adapter-drizzle": "1.0.7",
+    "@octokit/auth-app": "^6.0.4",
+    "@react-email/components": "^0.0.21",
+    "@trpc/server": "^10.43.6",
+    "adm-zip": "^0.5.14",
+    "bcrypt": "5.1.1",
+    "bl": "6.0.11",
+    "boxen": "^7.1.1",
+    "date-fns": "3.6.0",
+    "dockerode": "4.0.2",
+    "dotenv": "16.4.5",
+    "drizzle-orm": "^0.30.8",
+    "drizzle-zod": "0.5.1",
+    "hi-base32": "^0.5.1",
+    "js-yaml": "4.1.0",
+    "lodash": "4.17.21",
+    "lucia": "^3.0.1",
+    "nanoid": "3",
+    "node-os-utils": "1.3.7",
+    "node-pty": "1.0.0",
+    "node-schedule": "2.1.1",
+    "nodemailer": "6.9.14",
+    "octokit": "3.1.2",
+    "otpauth": "^9.2.3",
+    "postgres": "3.4.4",
+    "public-ip": "6.0.2",
+    "qrcode": "^1.5.3",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "slugify": "^1.6.6",
+    "ws": "8.16.0",
+    "zod": "^3.23.4",
+    "ssh2": "1.15.0"
+  },
+  "devDependencies": {
+    "esbuild-plugin-alias": "0.2.1",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.1",
+    "tsc-alias": "1.8.10",
+    "@types/adm-zip": "^0.5.5",
+    "@types/bcrypt": "5.0.2",
+    "@types/dockerode": "3.3.23",
+    "@types/js-yaml": "4.0.9",
+    "@types/lodash": "4.17.4",
+    "@types/node": "^18.17.0",
+    "@types/node-os-utils": "1.3.4",
+    "@types/node-schedule": "2.1.6",
+    "@types/nodemailer": "^6.4.15",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@types/ws": "8.5.10",
+    "drizzle-kit": "^0.21.1",
+    "esbuild": "0.20.2",
+    "postcss": "^8.4.31",
+    "typescript": "^5.4.2",
+    "@types/ssh2": "1.15.1"
+  }
+}

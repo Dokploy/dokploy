@@ -1,6 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { Domain } from "@dokploy/server";
+// import { IS_CLOUD } from "@/server/constants";
 import { TRPCError } from "@trpc/server";
 import { templates } from "../templates";
 import type { TemplatesKeys } from "../types/templates-data.type";
@@ -10,12 +12,15 @@ export interface Schema {
 	projectName: string;
 }
 
+export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
+
 export interface Template {
-	envs: string[];
+	envs?: string[];
 	mounts?: {
 		filePath: string;
 		content?: string;
 	}[];
+	domains?: DomainSchema[];
 }
 
 export const generateRandomDomain = ({
@@ -24,7 +29,8 @@ export const generateRandomDomain = ({
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-");
-	return `${projectName}-${hash}-${slugIp}.traefik.me`;
+
+	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 
 export const generateHash = (projectName: string, quantity = 3): string => {

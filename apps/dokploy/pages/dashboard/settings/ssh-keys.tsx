@@ -2,7 +2,7 @@ import { ShowDestinations } from "@/components/dashboard/settings/ssh-keys/show-
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="SSH Keys">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
@@ -53,6 +53,7 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 		const auth = await helpers.auth.get.fetch();
+		await helpers.settings.isCloud.prefetch();
 
 		if (auth.rol === "user") {
 			const user = await helpers.user.byAuthId.fetch({

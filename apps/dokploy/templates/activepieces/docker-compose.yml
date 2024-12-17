@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  activepieces:
+    image: activepieces/activepieces:0.35.0
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      AP_ENGINE_EXECUTABLE_PATH: dist/packages/engine/main.js
+      AP_API_KEY: ${AP_API_KEY}
+      AP_ENCRYPTION_KEY: ${AP_ENCRYPTION_KEY}
+      AP_JWT_SECRET: ${AP_JWT_SECRET}
+      AP_ENVIRONMENT: prod
+      AP_FRONTEND_URL: https://${AP_HOST}
+      AP_WEBHOOK_TIMEOUT_SECONDS: 30
+      AP_TRIGGER_DEFAULT_POLL_INTERVAL: 5
+      AP_POSTGRES_DATABASE: activepieces
+      AP_POSTGRES_HOST: postgres
+      AP_POSTGRES_PORT: 5432
+      AP_POSTGRES_USERNAME: activepieces
+      AP_POSTGRES_PASSWORD: ${AP_POSTGRES_PASSWORD}
+      AP_EXECUTION_MODE: UNSANDBOXED
+      AP_REDIS_HOST: redis
+      AP_REDIS_PORT: 6379
+      AP_SANDBOX_RUN_TIME_SECONDS: 600
+      AP_TELEMETRY_ENABLED: "false"
+      AP_TEMPLATES_SOURCE_URL: https://cloud.activepieces.com/api/v1/flow-templates
+
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      POSTGRES_DB: activepieces
+      POSTGRES_PASSWORD: ${AP_POSTGRES_PASSWORD}
+      POSTGRES_USER: activepieces
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U activepieces -d activepieces"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data: 

@@ -1,0 +1,41 @@
+{
+	"compilerOptions": {
+		/* Base Options: */
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "es2022",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"moduleDetection": "force",
+		"isolatedModules": true,
+		/* Strictness */
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"checkJs": true,
+		/* Bundled projects */
+		"lib": ["dom", "dom.iterable", "ES2022"],
+		"noEmit": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "preserve",
+		"plugins": [{ "name": "next" }],
+		"outDir": "./dist",
+		/* Path Aliases */
+		"baseUrl": ".",
+		"paths": {
+			"@dokploy/server/*": ["./src/*"]
+		}
+	},
+	"include": ["next-env.d.ts", "./src/**/*.ts"],
+
+	"exclude": [
+		"tsup.ts",
+		"node_modules",
+		"dokploy",
+		"config",
+		"dist",
+		"webpack.config.server.js",
+		"migration.ts",
+		"setup.ts"
+	]
+}

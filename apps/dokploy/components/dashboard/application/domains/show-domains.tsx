@@ -52,7 +52,7 @@ export const ShowDomains = ({ applicationId }: Props) => {
 						<div className="flex w-full flex-col items-center justify-center gap-3">
 							<GlobeIcon className="size-8 text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
-								To access to the application is required to set at least 1
+								To access the application it is required to set at least 1
 								domain
 							</span>
 							<div className="flex flex-row gap-4 flex-wrap">
@@ -71,7 +71,10 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										key={item.domainId}
 										className="flex w-full items-center gap-4 max-sm:flex-wrap border p-4 rounded-lg"
 									>
-										<Link target="_blank" href={`http://${item.host}`}>
+										<Link
+											target="_blank"
+											href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+										>
 											<ExternalLink className="size-5" />
 										</Link>
 

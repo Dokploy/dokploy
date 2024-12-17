@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToVolumesRoot } from "@/server/utils/docker/compose/volume";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToVolumesRoot } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -29,18 +29,18 @@ test("Generate random hash with 8 characters", () => {
 	expect(hash.length).toBe(8);
 });
 
-test("Add prefix to volumes in root property", () => {
+test("Add suffix to volumes in root property", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.volumes) {
 		return;
 	}
-	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+	const volumes = addSuffixToVolumesRoot(composeData.volumes, suffix);
 	expect(volumes).toBeDefined();
 	for (const volumeKey of Object.keys(volumes)) {
-		expect(volumeKey).toContain(`-${prefix}`);
+		expect(volumeKey).toContain(`-${suffix}`);
 		expect(volumes[volumeKey]).toBeDefined();
 	}
 });
@@ -67,18 +67,18 @@ networks:
     driver: bridge
 `;
 
-test("Add prefix to volumes in root property (Case 2)", () => {
+test("Add suffix to volumes in root property (Case 2)", () => {
 	const composeData = load(composeFile2) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.volumes) {
 		return;
 	}
-	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+	const volumes = addSuffixToVolumesRoot(composeData.volumes, suffix);
 	expect(volumes).toBeDefined();
 	for (const volumeKey of Object.keys(volumes)) {
-		expect(volumeKey).toContain(`-${prefix}`);
+		expect(volumeKey).toContain(`-${suffix}`);
 		expect(volumes[volumeKey]).toBeDefined();
 	}
 });
@@ -101,19 +101,19 @@ networks:
     driver: bridge
 `;
 
-test("Add prefix to volumes in root property (Case 3)", () => {
+test("Add suffix to volumes in root property (Case 3)", () => {
 	const composeData = load(composeFile3) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.volumes) {
 		return;
 	}
-	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+	const volumes = addSuffixToVolumesRoot(composeData.volumes, suffix);
 
 	expect(volumes).toBeDefined();
 	for (const volumeKey of Object.keys(volumes)) {
-		expect(volumeKey).toContain(`-${prefix}`);
+		expect(volumeKey).toContain(`-${suffix}`);
 		expect(volumes[volumeKey]).toBeDefined();
 	}
 });
@@ -179,15 +179,15 @@ volumes:
 
 `) as ComposeSpecification;
 
-test("Add prefix to volumes in root property", () => {
+test("Add suffix to volumes in root property", () => {
 	const composeData = load(composeFile4) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
 	if (!composeData?.volumes) {
 		return;
 	}
-	const volumes = addPrefixToVolumesRoot(composeData.volumes, prefix);
+	const volumes = addSuffixToVolumesRoot(composeData.volumes, suffix);
 	const updatedComposeData = { ...composeData, volumes };
 
 	// Verificar que el resultado coincide con el archivo esperado

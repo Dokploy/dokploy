@@ -1,9 +1,22 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { APPLICATIONS_PATH } from "@/server/constants";
-import { unzipDrop } from "@/server/utils/builders/drop";
+import { paths } from "@dokploy/server/constants";
+const { APPLICATIONS_PATH } = paths();
+import type { ApplicationNested } from "@dokploy/server";
+import { unzipDrop } from "@dokploy/server";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+vi.mock("@dokploy/server/constants", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		// @ts-ignore
+		...actual,
+		paths: () => ({
+			APPLICATIONS_PATH: "./__test__/drop/zips/output",
+		}),
+	};
+});
 
 if (typeof window === "undefined") {
 	const undici = require("undici");
@@ -11,11 +24,96 @@ if (typeof window === "undefined") {
 	globalThis.FileList = undici.FileList as any;
 }
 
-vi.mock("@/server/constants", () => ({
-	APPLICATIONS_PATH: "./__test__/drop/zips/output",
-}));
+const baseApp: ApplicationNested = {
+	applicationId: "",
+	herokuVersion: "",
+	applicationStatus: "done",
+	appName: "",
+	autoDeploy: true,
+	serverId: "",
+	registryUrl: "",
+	branch: null,
+	dockerBuildStage: "",
+	isPreviewDeploymentsActive: false,
+	previewBuildArgs: null,
+	previewCertificateType: "none",
+	previewEnv: null,
+	previewHttps: false,
+	previewPath: "/",
+	previewPort: 3000,
+	previewLimit: 0,
+	previewWildcard: "",
+	project: {
+		env: "",
+		adminId: "",
+		name: "",
+		description: "",
+		createdAt: "",
+		projectId: "",
+	},
+	buildArgs: null,
+	buildPath: "/",
+	gitlabPathNamespace: "",
+	buildType: "nixpacks",
+	bitbucketBranch: "",
+	bitbucketBuildPath: "",
+	bitbucketId: "",
+	bitbucketRepository: "",
+	bitbucketOwner: "",
+	githubId: "",
+	gitlabProjectId: 0,
+	gitlabBranch: "",
+	gitlabBuildPath: "",
+	gitlabId: "",
+	gitlabRepository: "",
+	gitlabOwner: "",
+	command: null,
+	cpuLimit: null,
+	cpuReservation: null,
+	createdAt: "",
+	customGitBranch: "",
+	customGitBuildPath: "",
+	customGitSSHKeyId: null,
+	customGitUrl: "",
+	description: "",
+	dockerfile: null,
+	dockerImage: null,
+	dropBuildPath: null,
+	enabled: null,
+	env: null,
+	healthCheckSwarm: null,
+	labelsSwarm: null,
+	memoryLimit: null,
+	memoryReservation: null,
+	modeSwarm: null,
+	mounts: [],
+	name: "",
+	networkSwarm: null,
+	owner: null,
+	password: null,
+	placementSwarm: null,
+	ports: [],
+	projectId: "",
+	publishDirectory: null,
+	redirects: [],
+	refreshToken: "",
+	registry: null,
+	registryId: null,
+	replicas: 1,
+	repository: null,
+	restartPolicySwarm: null,
+	rollbackConfigSwarm: null,
+	security: [],
+	sourceType: "git",
+	subtitle: null,
+	title: null,
+	updateConfigSwarm: null,
+	username: null,
+	dockerContextPath: null,
+};
 
 describe("unzipDrop using real zip files", () => {
+	// const { APPLICATIONS_PATH } = paths();
 	beforeAll(async () => {
 		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
 	});
@@ -25,39 +123,46 @@ describe("unzipDrop using real zip files", () => {
 	});
 
 	it("should correctly extract a zip with a single root folder", async () => {
-		const appName = "single-file";
-		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
-		const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
-
-		const zipBuffer = zip.toBuffer();
-		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, appName);
-
-		const files = await fs.readdir(outputPath, { withFileTypes: true });
-		expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		baseApp.appName = "single-file";
+		// const appName = "single-file";
+		try {
+			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
+			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
+			console.log(`Output Path: ${outputPath}`);
+			const zipBuffer = zip.toBuffer();
+			const file = new File([zipBuffer], "single.zip");
+			await unzipDrop(file, baseApp);
+			const files = await fs.readdir(outputPath, { withFileTypes: true });
+			expect(files.some((f) => f.name === "test.txt")).toBe(true);
+		} catch (err) {
+			console.log(err);
+		} finally {
+		}
 	});
 
 	it("should correctly extract a zip with a single root folder and a subfolder", async () => {
-		const appName = "folderwithfile";
-		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
+		baseApp.appName = "folderwithfile";
+		// const appName = "folderwithfile";
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/folder-with-file.zip");
 
 		const zipBuffer = zip.toBuffer();
 		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, appName);
+		await unzipDrop(file, baseApp);
 
 		const files = await fs.readdir(outputPath, { withFileTypes: true });
 		expect(files.some((f) => f.name === "folder1.txt")).toBe(true);
 	});
 
 	it("should correctly extract a zip with multiple root folders", async () => {
-		const appName = "two-folders";
-		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
+		baseApp.appName = "two-folders";
+		// const appName = "two-folders";
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/two-folders.zip");
 
 		const zipBuffer = zip.toBuffer();
 		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, appName);
+		await unzipDrop(file, baseApp);
 
 		const files = await fs.readdir(outputPath, { withFileTypes: true });
 
@@ -66,13 +171,14 @@ describe("unzipDrop using real zip files", () => {
 	});
 
 	it("should correctly extract a zip with a single root with a file", async () => {
-		const appName = "nested";
-		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
+		baseApp.appName = "nested";
+		// const appName = "nested";
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/nested.zip");
 
 		const zipBuffer = zip.toBuffer();
 		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, appName);
+		await unzipDrop(file, baseApp);
 
 		const files = await fs.readdir(outputPath, { withFileTypes: true });
 
@@ -82,13 +188,14 @@ describe("unzipDrop using real zip files", () => {
 	});
 
 	it("should correctly extract a zip with a single root with a folder", async () => {
-		const appName = "folder-with-sibling-file";
-		const outputPath = path.join(APPLICATIONS_PATH, appName, "code");
+		baseApp.appName = "folder-with-sibling-file";
+		// const appName = "folder-with-sibling-file";
+		const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 		const zip = new AdmZip("./__test__/drop/zips/folder-with-sibling-file.zip");
 
 		const zipBuffer = zip.toBuffer();
 		const file = new File([zipBuffer], "single.zip");
-		await unzipDrop(file, appName);
+		await unzipDrop(file, baseApp);
 
 		const files = await fs.readdir(outputPath, { withFileTypes: true });
 

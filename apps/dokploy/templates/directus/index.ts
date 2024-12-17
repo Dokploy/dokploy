@@ -1,20 +1,31 @@
 import {
+	type DomainSchema,
 	type Schema,
 	type Template,
-	generateHash,
+	generateBase64,
+	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
-	const randomDomain = generateRandomDomain(schema);
+	const directusSecret = generateBase64(64);
+	const databasePassword = generatePassword();
+
+	const domains: DomainSchema[] = [
+		{
+			host: generateRandomDomain(schema),
+			port: 8055,
+			serviceName: "directus",
+		},
+	];
+
 	const envs = [
-		`DIRECTUS_HOST=${randomDomain}`,
-		"DIRECTUS_PORT=8055",
-		`HASH=${mainServiceHash}`,
+		`DATABASE_PASSWORD=${databasePassword}`,
+		`DIRECTUS_SECRET=${directusSecret}`,
 	];
 
 	return {
+		domains,
 		envs,
 	};
 }

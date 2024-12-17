@@ -86,14 +86,12 @@ export const ShowVolumes = ({ mysqlId }: Props) => {
 											)}
 
 											{mount.type === "file" && (
-												<>
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">Content</span>
-														<span className="text-sm text-muted-foreground">
-															{mount.content}
-														</span>
-													</div>
-												</>
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Content</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.content}
+													</span>
+												</div>
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">

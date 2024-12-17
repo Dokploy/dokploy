@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const DeployApplication = ({ applicationId }: Props) => {
+	const router = useRouter();
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -45,14 +47,20 @@ export const DeployApplication = ({ applicationId }: Props) => {
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							toast.success("Deploying Application....");
-
-							await refetch();
 							await deploy({
 								applicationId,
-							}).catch(() => {
-								toast.error("Error to deploy Application");
-							});
+							})
+								.then(async () => {
+									toast.success("Application deployed succesfully");
+									await refetch();
+									router.push(
+										`/dashboard/project/${data?.projectId}/services/application/${applicationId}?tab=deployments`,
+									);
+								})
+
+								.catch(() => {
+									toast.error("Error to deploy Application");
+								});
 
 							await refetch();
 						}}

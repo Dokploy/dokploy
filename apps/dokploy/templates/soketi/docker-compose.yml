@@ -1,0 +1,11 @@
+version: "3"
+
+services:
+  soketi:
+    image: quay.io/soketi/soketi:1.6.1-16-debian
+    environment:
+      SOKETI_DEBUG: "1"
+      SOKETI_HOST: "0.0.0.0"
+      SOKETI_PORT: "6001"
+      SOKETI_METRICS_SERVER_PORT: "9601"
+    restart: unless-stopped

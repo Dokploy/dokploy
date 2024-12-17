@@ -1,0 +1,51 @@
+services:
+  aptabase_db:
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: aptabase
+      POSTGRES_PASSWORD: sTr0NGp4ssw0rd
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aptabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  aptabase_events_db:
+    image: clickhouse/clickhouse-server:23.8.16.16-alpine
+    restart: always
+    volumes:
+      - events-db-data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: aptabase
+      CLICKHOUSE_PASSWORD: sTr0NGp4ssw0rd
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8123 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  aptabase:
+    image: ghcr.io/aptabase/aptabase:main
+    restart: always
+    environment:
+      BASE_URL: http://${APTABASE_HOST}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DATABASE_URL: Server=aptabase_db;Port=5432;User Id=aptabase;Password=sTr0NGp4ssw0rd;Database=aptabase
+      CLICKHOUSE_URL: Host=aptabase_events_db;Port=8123;Username=aptabase;Password=sTr0NGp4ssw0rd
+
+volumes:
+  db-data:
+    driver: local
+  events-db-data:
+    driver: local

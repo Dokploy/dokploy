@@ -1,18 +1,52 @@
-import type { Domain } from "@/server/api/services/domain";
-import type { Redirect } from "@/server/api/services/redirect";
-import type { ApplicationNested } from "@/server/utils/builders";
-import { createRouterConfig } from "@/server/utils/traefik/domain";
+import type { Domain } from "@dokploy/server";
+import type { Redirect } from "@dokploy/server";
+import type { ApplicationNested } from "@dokploy/server";
+import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
 	applicationId: "",
+	herokuVersion: "",
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
+	serverId: "",
 	branch: null,
+	dockerBuildStage: "",
+	registryUrl: "",
 	buildArgs: null,
+	isPreviewDeploymentsActive: false,
+	previewBuildArgs: null,
+	previewCertificateType: "none",
+	previewEnv: null,
+	previewHttps: false,
+	previewPath: "/",
+	previewPort: 3000,
+	previewLimit: 0,
+	previewWildcard: "",
+	project: {
+		env: "",
+		adminId: "",
+		name: "",
+		description: "",
+		createdAt: "",
+		projectId: "",
+	},
 	buildPath: "/",
+	gitlabPathNamespace: "",
 	buildType: "nixpacks",
+	bitbucketBranch: "",
+	bitbucketBuildPath: "",
+	bitbucketId: "",
+	bitbucketRepository: "",
+	bitbucketOwner: "",
+	githubId: "",
+	gitlabProjectId: 0,
+	gitlabBranch: "",
+	gitlabBuildPath: "",
+	gitlabId: "",
+	gitlabRepository: "",
+	gitlabOwner: "",
 	command: null,
 	cpuLimit: null,
 	cpuReservation: null,
@@ -71,6 +105,7 @@ const baseDomain: Domain = {
 	composeId: "",
 	domainType: "application",
 	uniqueConfigKey: 1,
+	previewDeploymentId: "",
 };
 
 const baseRedirect: Redirect = {

@@ -8,9 +8,14 @@ import { AttachAddon } from "@xterm/addon-attach";
 interface Props {
 	id: string;
 	containerId: string;
+	serverId?: string;
 }
 
-export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
+export const DockerTerminal: React.FC<Props> = ({
+	id,
+	containerId,
+	serverId,
+}) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	useEffect(() => {
@@ -20,8 +25,6 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 		}
 		const term = new Terminal({
 			cursorBlink: true,
-			cols: 80,
-			rows: 30,
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
@@ -33,13 +36,14 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}`;
+		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
 
 		const ws = new WebSocket(wsUrl);
 
 		const addonAttach = new AttachAddon(ws);
 		// @ts-ignore
 		term.open(termRef.current);
+		// @ts-ignore
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
@@ -61,7 +65,7 @@ export const DockerTerminal: React.FC<Props> = ({ id, containerId }) => {
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
+			<div className="w-full h-full rounded-lg p-2 bg-transparent border">
 				<div id={id} ref={termRef} />
 			</div>
 		</div>

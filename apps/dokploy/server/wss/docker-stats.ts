@@ -1,11 +1,11 @@
 import type http from "node:http";
-import { WebSocketServer } from "ws";
-import { validateWebSocketRequest } from "../auth/auth";
-import { docker } from "../constants";
 import {
+	docker,
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
-} from "../monitoring/utilts";
+	validateWebSocketRequest,
+} from "@dokploy/server";
+import { WebSocketServer } from "ws";
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -46,7 +46,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close();
 			return;
 		}
-
 		const intervalId = setInterval(async () => {
 			try {
 				const filter = {
@@ -72,7 +71,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 
-				await recordAdvancedStats(appName, container?.Id);
+				const stats = await docker.getContainer(container.Id).stats({
+					stream: false,
+				});
+
+				await recordAdvancedStats(stats, appName);
 				const data = await getLastAdvancedStatsFile(appName);
 
 				ws.send(

@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToConfigsInServices } from "@/server/utils/docker/compose/configs";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToConfigsInServices } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -19,19 +19,19 @@ configs:
     file: ./web-config.yml
 `;
 
-test("Add prefix to configs in services", () => {
+test("Add suffix to configs in services", () => {
 	const composeData = load(composeFile) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.services) {
 		return;
 	}
-	const services = addPrefixToConfigsInServices(composeData.services, prefix);
+	const services = addSuffixToConfigsInServices(composeData.services, suffix);
 	const actualComposeData = { ...composeData, services };
 
 	expect(actualComposeData.services?.web?.configs).toContainEqual({
-		source: `web-config-${prefix}`,
+		source: `web-config-${suffix}`,
 		target: "/etc/nginx/nginx.conf",
 	});
 });
@@ -51,17 +51,17 @@ configs:
     file: ./web-config.yml
 `;
 
-test("Add prefix to configs in services with single config", () => {
+test("Add suffix to configs in services with single config", () => {
 	const composeData = load(
 		composeFileSingleServiceConfig,
 	) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.services) {
 		return;
 	}
-	const services = addPrefixToConfigsInServices(composeData.services, prefix);
+	const services = addSuffixToConfigsInServices(composeData.services, suffix);
 
 	expect(services).toBeDefined();
 	for (const serviceKey of Object.keys(services)) {
@@ -69,7 +69,7 @@ test("Add prefix to configs in services with single config", () => {
 		if (serviceConfigs) {
 			for (const config of serviceConfigs) {
 				if (typeof config === "object") {
-					expect(config.source).toContain(`-${prefix}`);
+					expect(config.source).toContain(`-${suffix}`);
 				}
 			}
 		}
@@ -105,17 +105,17 @@ configs:
     file: ./common-config.yml
 `;
 
-test("Add prefix to configs in services with multiple configs", () => {
+test("Add suffix to configs in services with multiple configs", () => {
 	const composeData = load(
 		composeFileMultipleServicesConfigs,
 	) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData?.services) {
 		return;
 	}
-	const services = addPrefixToConfigsInServices(composeData.services, prefix);
+	const services = addSuffixToConfigsInServices(composeData.services, suffix);
 
 	expect(services).toBeDefined();
 	for (const serviceKey of Object.keys(services)) {
@@ -123,7 +123,7 @@ test("Add prefix to configs in services with multiple configs", () => {
 		if (serviceConfigs) {
 			for (const config of serviceConfigs) {
 				if (typeof config === "object") {
-					expect(config.source).toContain(`-${prefix}`);
+					expect(config.source).toContain(`-${suffix}`);
 				}
 			}
 		}
@@ -179,17 +179,17 @@ services:
 
 `) as ComposeSpecification;
 
-test("Add prefix to configs in services", () => {
+test("Add suffix to configs in services", () => {
 	const composeData = load(composeFileConfigServices) as ComposeSpecification;
 
-	const prefix = "testhash";
+	const suffix = "testhash";
 
 	if (!composeData?.services) {
 		return;
 	}
-	const updatedComposeData = addPrefixToConfigsInServices(
+	const updatedComposeData = addSuffixToConfigsInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 

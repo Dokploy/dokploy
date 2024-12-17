@@ -1,6 +1,6 @@
 import { appRouter } from "@/server/api/root";
-import { validateRequest } from "@/server/auth/auth";
 import { api } from "@/utils/api";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext, NextPage } from "next";
 import dynamic from "next/dynamic";
@@ -15,7 +15,6 @@ const Home: NextPage = () => {
 	const [spec, setSpec] = useState({});
 
 	useEffect(() => {
-		// Esto solo se ejecutará en el cliente
 		if (data) {
 			const protocolAndHost = `${window.location.protocol}//${window.location.host}/api`;
 			const newSpec = {

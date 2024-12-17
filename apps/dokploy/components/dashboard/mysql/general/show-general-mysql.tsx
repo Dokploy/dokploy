@@ -35,7 +35,10 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 							<StopMysql mysqlId={mysqlId} />
 						)}
 
-						<DockerTerminalModal appName={data?.appName || ""}>
+						<DockerTerminalModal
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						>
 							<Button variant="outline">
 								<Terminal />
 								Open Terminal

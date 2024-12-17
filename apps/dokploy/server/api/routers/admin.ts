@@ -3,42 +3,48 @@ import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
 	apiFindOneToken,
-	apiGetBranches,
 	apiRemoveUser,
+	apiUpdateAdmin,
 	users,
 } from "@/server/db/schema";
-import { haveGithubRequirements } from "@/server/utils/providers/github";
-import { createAppAuth } from "@octokit/auth-app";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { Octokit } from "octokit";
 import {
 	createInvitation,
-	findAdmin,
+	findAdminById,
+	findUserByAuthId,
+	findUserById,
 	getUserByToken,
 	removeUserByAuthId,
 	updateAdmin,
-} from "../services/admin";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "../trpc";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { adminProcedure, createTRPCRouter, publicProcedure } from "../trpc";
 
 export const adminRouter = createTRPCRouter({
-	one: adminProcedure.query(async () => {
-		const { sshPrivateKey, ...rest } = await findAdmin();
+	one: adminProcedure.query(async ({ ctx }) => {
+		const { sshPrivateKey, ...rest } = await findAdminById(ctx.user.adminId);
 		return {
 			haveSSH: !!sshPrivateKey,
 			...rest,
 		};
 	}),
+	update: adminProcedure
+		.input(apiUpdateAdmin)
+		.mutation(async ({ input, ctx }) => {
+			if (ctx.user.rol === "user") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this admin",
+				});
+			}
+			const { authId } = await findAdminById(ctx.user.adminId);
+			return updateAdmin(authId, input);
+		}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
-				await createInvitation(input);
+				await createInvitation(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -50,8 +56,16 @@ export const adminRouter = createTRPCRouter({
 		}),
 	removeUser: adminProcedure
 		.input(apiRemoveUser)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const user = await findUserByAuthId(input.authId);
+
+				if (user.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to delete this user",
+					});
+				}
 				return await removeUserByAuthId(input.authId);
 			} catch (error) {
 				throw new TRPCError({
@@ -68,8 +82,16 @@ export const adminRouter = createTRPCRouter({
 		}),
 	assignPermissions: adminProcedure
 		.input(apiAssignPermissions)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const user = await findUserById(input.userId);
+
+				if (user.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to assign permissions",
+					});
+				}
 				await db
 					.update(users)
 					.set({
@@ -77,97 +99,7 @@ export const adminRouter = createTRPCRouter({
 					})
 					.where(eq(users.userId, input.userId));
 			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error to assign permissions",
-				});
+				throw error;
 			}
 		}),
-
-	cleanGithubApp: adminProcedure.mutation(async ({ ctx }) => {
-		try {
-			return await updateAdmin(ctx.user.authId, {
-				githubAppName: "",
-				githubClientId: "",
-				githubClientSecret: "",
-				githubInstallationId: "",
-			});
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error to delete this github app",
-				cause: error,
-			});
-		}
-	}),
-
-	getRepositories: protectedProcedure.query(async () => {
-		const admin = await findAdmin();
-
-		const completeRequirements = haveGithubRequirements(admin);
-
-		if (!completeRequirements) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Admin need to setup correctly github account",
-			});
-		}
-
-		const octokit = new Octokit({
-			authStrategy: createAppAuth,
-			auth: {
-				appId: admin.githubAppId,
-				privateKey: admin.githubPrivateKey,
-				installationId: admin.githubInstallationId,
-			},
-		});
-
-		const repositories = (await octokit.paginate(
-			octokit.rest.apps.listReposAccessibleToInstallation,
-		)) as unknown as Awaited<
-			ReturnType<typeof octokit.rest.apps.listReposAccessibleToInstallation>
-		>["data"]["repositories"];
-
-		return repositories;
-	}),
-	getBranches: protectedProcedure
-		.input(apiGetBranches)
-		.query(async ({ input }) => {
-			const admin = await findAdmin();
-
-			const completeRequirements = haveGithubRequirements(admin);
-
-			if (!completeRequirements) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Admin need to setup correctly github account",
-				});
-			}
-
-			const octokit = new Octokit({
-				authStrategy: createAppAuth,
-				auth: {
-					appId: admin.githubAppId,
-					privateKey: admin.githubPrivateKey,
-					installationId: admin.githubInstallationId,
-				},
-			});
-
-			const branches = (await octokit.paginate(
-				octokit.rest.repos.listBranches,
-				{
-					owner: input.owner,
-					repo: input.repo,
-				},
-			)) as unknown as Awaited<
-				ReturnType<typeof octokit.rest.repos.listBranches>
-			>["data"];
-
-			return branches;
-		}),
-	haveGithubConfigured: protectedProcedure.query(async () => {
-		const adminResponse = await findAdmin();
-
-		return haveGithubRequirements(adminResponse);
-	}),
 });

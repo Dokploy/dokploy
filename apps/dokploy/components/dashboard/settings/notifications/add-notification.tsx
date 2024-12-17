@@ -109,7 +109,7 @@ export type NotificationSchema = z.infer<typeof notificationSchema>;
 export const AddNotification = () => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
-
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
 
@@ -397,25 +397,23 @@ export const AddNotification = () => {
 								)}
 
 								{type === "discord" && (
-									<>
-										<FormField
-											control={form.control}
-											name="webhookUrl"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-															{...field}
-														/>
-													</FormControl>
+									<FormField
+										control={form.control}
+										name="webhookUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Webhook URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+														{...field}
+													/>
+												</FormControl>
 
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 								)}
 
 								{type === "email" && (
@@ -660,26 +658,28 @@ export const AddNotification = () => {
 									)}
 								/>
 
-								<FormField
-									control={form.control}
-									name="dokployRestart"
-									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div className="space-y-0.5">
-												<FormLabel>Dokploy Restart</FormLabel>
-												<FormDescription>
-													Trigger the action when a dokploy is restarted.
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
+								{!isCloud && (
+									<FormField
+										control={form.control}
+										name="dokployRestart"
+										render={({ field }) => (
+											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="space-y-0.5">
+													<FormLabel>Dokploy Restart</FormLabel>
+													<FormDescription>
+														Trigger the action when dokploy is restarted.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

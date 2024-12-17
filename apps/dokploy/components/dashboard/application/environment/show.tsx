@@ -61,7 +61,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex w-full flex-col gap-5 "
 			>
-				<Card className="bg-background">
+				<Card className="bg-background p-6">
 					<Secrets
 						name="env"
 						title="Environment Settings"

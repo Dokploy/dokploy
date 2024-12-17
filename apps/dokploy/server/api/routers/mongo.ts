@@ -8,22 +8,25 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
-} from "@/server/db/schema/mongo";
+} from "@/server/db/schema";
 import {
-	removeService,
-	startService,
-	stopService,
-} from "@/server/utils/docker/utils";
-import { TRPCError } from "@trpc/server";
-import {
+	IS_CLOUD,
+	addNewService,
+	checkServiceAccess,
 	createMongo,
+	createMount,
 	deployMongo,
 	findMongoById,
+	findProjectById,
 	removeMongoById,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
 	updateMongoById,
-} from "../services/mongo";
-import { createMount } from "../services/mount";
-import { addNewService, checkServiceAccess } from "../services/user";
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -34,6 +37,20 @@ export const mongoRouter = createTRPCRouter({
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
 
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create a mongo",
+					});
+				}
+
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newMongo = await createMongo(input);
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newMongo.mongoId);
@@ -66,15 +83,33 @@ export const mongoRouter = createTRPCRouter({
 				await checkServiceAccess(ctx.user.authId, input.mongoId, "access");
 			}
 
-			return await findMongoById(input.mongoId);
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this mongo",
+				});
+			}
+			return mongo;
 		}),
 
 	start: protectedProcedure
 		.input(apiFindOneMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const service = await findMongoById(input.mongoId);
 
-			await startService(service.appName);
+			if (service.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to start this mongo",
+				});
+			}
+
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
 			});
@@ -83,9 +118,21 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			await stopService(mongo.appName);
+
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this mongo",
+				});
+			}
+
+			if (mongo.serverId) {
+				await stopServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await stopService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "idle",
 			});
@@ -94,8 +141,14 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this external port",
+				});
+			}
 			await updateMongoById(input.mongoId, {
 				externalPort: input.externalPort,
 			});
@@ -104,13 +157,26 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this mongo",
+				});
+			}
 			return deployMongo(input.mongoId);
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMongoStatus)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to change this mongo status",
+				});
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: input.applicationStatus,
 			});
@@ -118,12 +184,28 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetMongo)
-		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to reload this mongo",
+				});
+			}
+			if (mongo.serverId) {
+				await stopServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await stopService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "idle",
 			});
-			await startService(input.appName);
+
+			if (mongo.serverId) {
+				await startServiceRemote(mongo.serverId, mongo.appName);
+			} else {
+				await startService(mongo.appName);
+			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
 			});
@@ -138,8 +220,15 @@ export const mongoRouter = createTRPCRouter({
 
 			const mongo = await findMongoById(input.mongoId);
 
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to delete this mongo",
+				});
+			}
+
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName),
+				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await removeMongoById(input.mongoId),
 			];
 
@@ -153,7 +242,14 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this environment",
+				});
+			}
 			const service = await updateMongoById(input.mongoId, {
 				env: input.env,
 			});
@@ -169,8 +265,15 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMongo)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const { mongoId, ...rest } = input;
+			const mongo = await findMongoById(mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this mongo",
+				});
+			}
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});

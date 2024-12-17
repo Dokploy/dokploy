@@ -25,9 +25,10 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 		{ applicationId },
 		{
 			enabled: !!applicationId,
-			refetchInterval: 5000,
+			refetchInterval: 1000,
 		},
 	);
+
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
 		setUrl(document.location.origin);
@@ -110,6 +111,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 					</div>
 				)}
 				<ShowDeployment
+					serverId={data?.serverId || ""}
 					open={activeLog !== null}
 					onClose={() => setActiveLog(null)}
 					logPath={activeLog}

@@ -37,9 +37,11 @@ const mySchema = z.discriminatedUnion("buildType", [
 			})
 			.min(1, "Dockerfile required"),
 		dockerContextPath: z.string().nullable().default(""),
+		dockerBuildStage: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("heroku_buildpacks"),
+		herokuVersion: z.string().nullable().default(""),
 	}),
 	z.object({
 		buildType: z.literal("paketo_buildpacks"),
@@ -86,6 +88,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					...(data.buildType && {
 						dockerfile: data.dockerfile || "",
 						dockerContextPath: data.dockerContextPath || "",
+						dockerBuildStage: data.dockerBuildStage || "",
+					}),
+				});
+			} else if (data.buildType === "heroku_buildpacks") {
+				form.reset({
+					buildType: data.buildType,
+					...(data.buildType && {
+						herokuVersion: data.herokuVersion || "",
 					}),
 				});
 			} else {
@@ -106,6 +116,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			dockerfile: data.buildType === "dockerfile" ? data.dockerfile : null,
 			dockerContextPath:
 				data.buildType === "dockerfile" ? data.dockerContextPath : null,
+			dockerBuildStage:
+				data.buildType === "dockerfile" ? data.dockerBuildStage : null,
+			herokuVersion:
+				data.buildType === "heroku_buildpacks" ? data.herokuVersion : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -196,6 +210,28 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								);
 							}}
 						/>
+						{buildType === "heroku_buildpacks" && (
+							<FormField
+								control={form.control}
+								name="herokuVersion"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Heroku Version (Optional)</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"Heroku Version (Default: 24)"}
+													{...field}
+													value={field.value ?? ""}
+												/>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						{buildType === "dockerfile" && (
 							<>
 								<FormField
@@ -237,6 +273,32 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												</FormControl>
 
 												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="dockerBuildStage"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<div className="space-y-0.5">
+													<FormLabel>Docker Build Stage</FormLabel>
+													<FormDescription>
+														Allows you to target a specific stage in a
+														Multi-stage Dockerfile. If empty, Docker defaults to
+														build the last defined stage.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Input
+														placeholder={"E.g. production"}
+														{...field}
+														value={field.value ?? ""}
+													/>
+												</FormControl>
 											</FormItem>
 										);
 									}}

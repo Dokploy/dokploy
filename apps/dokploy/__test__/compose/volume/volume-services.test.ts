@@ -1,6 +1,6 @@
-import { generateRandomHash } from "@/server/utils/docker/compose";
-import { addPrefixToVolumesInServices } from "@/server/utils/docker/compose/volume";
-import type { ComposeSpecification } from "@/server/utils/docker/types";
+import { generateRandomHash } from "@dokploy/server";
+import { addSuffixToVolumesInServices } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
@@ -21,22 +21,22 @@ services:
       - db_data:/var/lib/postgresql/data
 `;
 
-test("Add prefix to volumes declared directly in services", () => {
+test("Add suffix to volumes declared directly in services", () => {
 	const composeData = load(composeFile1) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
 
-	const updatedComposeData = addPrefixToVolumesInServices(
+	const updatedComposeData = addSuffixToVolumesInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 	expect(actualComposeData.services?.db?.volumes).toContain(
-		`db_data-${prefix}:/var/lib/postgresql/data`,
+		`db_data-${suffix}:/var/lib/postgresql/data`,
 	);
 });
 
@@ -56,25 +56,25 @@ volumes:
     driver: local
 `;
 
-test("Add prefix to volumes declared directly in services (Case 2)", () => {
+test("Add suffix to volumes declared directly in services (Case 2)", () => {
 	const composeData = load(composeFileTypeVolume) as ComposeSpecification;
 
-	const prefix = generateRandomHash();
+	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
 		return;
 	}
 
-	const updatedComposeData = addPrefixToVolumesInServices(
+	const updatedComposeData = addSuffixToVolumesInServices(
 		composeData.services,
-		prefix,
+		suffix,
 	);
 	const actualComposeData = { ...composeData, services: updatedComposeData };
 
 	expect(actualComposeData.services?.db?.volumes).toEqual([
 		{
 			type: "volume",
-			source: `db-test-${prefix}`,
+			source: `db-test-${suffix}`,
 			target: "/var/lib/postgresql/data",
 		},
 	]);

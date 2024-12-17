@@ -1,7 +1,7 @@
 import { AddProject } from "@/components/dashboard/projects/add";
-import type { Auth } from "@/server/api/services/auth";
-import type { User } from "@/server/api/services/user";
 import { api } from "@/utils/api";
+import type { Auth, IS_CLOUD, User } from "@dokploy/server";
+import { is } from "drizzle-orm";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -11,6 +11,7 @@ interface TabInfo {
 	tabLabel?: string;
 	description: string;
 	index: string;
+	type: TabState;
 	isShow?: ({ rol, user }: { rol?: Auth["rol"]; user?: User }) => boolean;
 }
 
@@ -19,41 +20,68 @@ export type TabState =
 	| "monitoring"
 	| "settings"
 	| "traefik"
+	| "requests"
 	| "docker";
 
-const tabMap: Record<TabState, TabInfo> = {
-	projects: {
-		label: "Projects",
-		description: "Manage your projects",
-		index: "/dashboard/projects",
-	},
-	monitoring: {
-		label: "Monitoring",
-		description: "Monitor your projects",
-		index: "/dashboard/monitoring",
-	},
-	traefik: {
-		label: "Traefik",
-		tabLabel: "Traefik File System",
-		description: "Manage your traefik",
-		index: "/dashboard/traefik",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
+const getTabMaps = (isCloud: boolean) => {
+	const elements: TabInfo[] = [
+		{
+			label: "Projects",
+			description: "Manage your projects",
+			index: "/dashboard/projects",
+			type: "projects",
 		},
-	},
-	docker: {
-		label: "Docker",
-		description: "Manage your docker",
-		index: "/dashboard/docker",
-		isShow: ({ rol, user }) => {
-			return Boolean(rol === "admin" || user?.canAccessToDocker);
-		},
-	},
-	settings: {
+	];
+
+	if (!isCloud) {
+		elements.push(
+			{
+				label: "Monitoring",
+				description: "Monitor your projects",
+				index: "/dashboard/monitoring",
+				type: "monitoring",
+			},
+			{
+				label: "Traefik",
+				tabLabel: "Traefik File System",
+				description: "Manage your traefik",
+				index: "/dashboard/traefik",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToTraefikFiles);
+				},
+				type: "traefik",
+			},
+			{
+				label: "Docker",
+				description: "Manage your docker",
+				index: "/dashboard/docker",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToDocker);
+				},
+				type: "docker",
+			},
+			{
+				label: "Requests",
+				description: "Manage your requests",
+				index: "/dashboard/requests",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToDocker);
+				},
+				type: "requests",
+			},
+		);
+	}
+
+	elements.push({
 		label: "Settings",
 		description: "Manage your settings",
-		index: "/dashboard/settings/server",
-	},
+		type: "settings",
+		index: isCloud
+			? "/dashboard/settings/profile"
+			: "/dashboard/settings/server",
+	});
+
+	return elements;
 };
 
 interface Props {
@@ -63,9 +91,10 @@ interface Props {
 
 export const NavigationTabs = ({ tab, children }: Props) => {
 	const router = useRouter();
-
 	const { data } = api.auth.get.useQuery();
 	const [activeTab, setActiveTab] = useState<TabState>(tab);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const tabMap = useMemo(() => getTabMaps(isCloud ?? false), [isCloud]);
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
@@ -80,7 +109,7 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 	}, [tab]);
 
 	const activeTabInfo = useMemo(() => {
-		return tabMap[activeTab];
+		return tabMap.find((tab) => tab.type === activeTab);
 	}, [activeTab]);
 
 	return (
@@ -88,10 +117,10 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 			<header className="mb-6 flex w-full items-center gap-2 justify-between flex-wrap">
 				<div className="flex flex-col gap-2">
 					<h1 className="text-xl font-bold lg:text-3xl">
-						{activeTabInfo.label}
+						{activeTabInfo?.label}
 					</h1>
 					<p className="lg:text-medium text-muted-foreground">
-						{activeTabInfo.description}
+						{activeTabInfo?.description}
 					</p>
 				</div>
 				{tab === "projects" &&
@@ -103,27 +132,26 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 					className="w-full"
 					onValueChange={async (e) => {
 						setActiveTab(e as TabState);
-						router.push(tabMap[e as TabState].index);
+						const tab = tabMap.find((tab) => tab.type === e);
+						router.push(tab?.index || "");
 					}}
 				>
-					{/* className="grid w-fit grid-cols-4 bg-transparent" */}
-					<div className="flex flex-row items-center justify-between w-full gap-4 max-sm:overflow-x-auto border-b border-b-divider pb-1">
+					<div className="flex flex-row items-center justify-between w-full gap-4 max-sm:overflow-x-auto overflow-y-hidden border-b border-b-divider pb-1">
 						<TabsList className="bg-transparent relative px-0">
-							{Object.keys(tabMap).map((key) => {
-								const tab = tabMap[key as TabState];
-								if (tab.isShow && !tab.isShow?.({ rol: data?.rol, user })) {
+							{tabMap.map((tab, index) => {
+								if (tab?.isShow && !tab?.isShow?.({ rol: data?.rol, user })) {
 									return null;
 								}
 								return (
 									<TabsTrigger
-										key={key}
-										value={key}
+										key={tab.type}
+										value={tab.type}
 										className="relative py-2.5 md:px-5 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-md hover:bg-zinc-100 hover:dark:bg-zinc-800 data-[state=active]:hover:bg-zinc-100 data-[state=active]:hover:dark:bg-zinc-800"
 									>
 										<span className="relative z-[1] w-full">
-											{tab.tabLabel || tab.label}
+											{tab?.tabLabel || tab?.label}
 										</span>
-										{key === activeTab && (
+										{tab.type === activeTab && (
 											<div className="absolute -bottom-[5.5px] w-full">
 												<div className="h-0.5 bg-foreground rounded-t-md" />
 											</div>

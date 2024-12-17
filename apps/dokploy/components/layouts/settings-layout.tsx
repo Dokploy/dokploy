@@ -4,6 +4,7 @@ interface Props {
 
 export const SettingsLayout = ({ children }: Props) => {
 	const { data } = api.auth.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: data?.id || "",
@@ -17,7 +18,7 @@ export const SettingsLayout = ({ children }: Props) => {
 			<div className="md:max-w-[18rem] w-full">
 				<Nav
 					links={[
-						...(data?.rol === "admin"
+						...(data?.rol === "admin" && !isCloud
 							? [
 									{
 										title: "Server",
@@ -47,6 +48,7 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Database,
 										href: "/dashboard/settings/destinations",
 									},
+
 									{
 										title: "Certificates",
 										label: "",
@@ -60,23 +62,57 @@ export const SettingsLayout = ({ children }: Props) => {
 										href: "/dashboard/settings/ssh-keys",
 									},
 									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+									{
 										title: "Users",
 										label: "",
 										icon: Users,
 										href: "/dashboard/settings/users",
 									},
+
 									{
-										title: "Cluster",
+										title: "Registry",
 										label: "",
-										icon: Server,
-										href: "/dashboard/settings/cluster",
+										icon: GalleryVerticalEnd,
+										href: "/dashboard/settings/registry",
 									},
+
+									...(!isCloud
+										? [
+												{
+													title: "Cluster",
+													label: "",
+													icon: BoxesIcon,
+													href: "/dashboard/settings/cluster",
+												},
+											]
+										: []),
 									{
 										title: "Notifications",
 										label: "",
 										icon: Bell,
 										href: "/dashboard/settings/notifications",
 									},
+									{
+										title: "Servers",
+										label: "",
+										icon: Server,
+										href: "/dashboard/settings/servers",
+									},
+									...(isCloud
+										? [
+												{
+													title: "Billing",
+													label: "",
+													icon: CreditCardIcon,
+													href: "/dashboard/settings/billing",
+												},
+											]
+										: []),
 								]
 							: []),
 						...(user?.canAccessToSSHKeys
@@ -86,6 +122,16 @@ export const SettingsLayout = ({ children }: Props) => {
 										label: "",
 										icon: KeyRound,
 										href: "/dashboard/settings/ssh-keys",
+									},
+								]
+							: []),
+						...(user?.canAccessToGitProviders
+							? [
+									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
 									},
 								]
 							: []),
@@ -101,8 +147,14 @@ export const SettingsLayout = ({ children }: Props) => {
 import {
 	Activity,
 	Bell,
+	BoxesIcon,
+	CreditCardIcon,
 	Database,
+	GalleryVerticalEnd,
+	GitBranch,
+	KeyIcon,
 	KeyRound,
+	ListMusic,
 	type LucideIcon,
 	Route,
 	Server,

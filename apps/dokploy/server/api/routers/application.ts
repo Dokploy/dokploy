@@ -9,50 +9,51 @@ import {
 	apiFindMonitoringStats,
 	apiFindOneApplication,
 	apiReloadApplication,
+	apiSaveBitbucketProvider,
 	apiSaveBuildType,
 	apiSaveDockerProvider,
 	apiSaveEnvironmentVariables,
 	apiSaveGitProvider,
 	apiSaveGithubProvider,
+	apiSaveGitlabProvider,
 	apiUpdateApplication,
 	applications,
-} from "@/server/db/schema/application";
+} from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { uploadFileSchema } from "@/utils/schema";
 import {
-	type DeploymentJob,
-	cleanQueuesByApplication,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
-import {
-	removeService,
-	startService,
-	stopService,
-} from "@/server/utils/docker/utils";
-import {
+	IS_CLOUD,
+	addNewService,
+	checkServiceAccess,
+	createApplication,
+	deleteAllMiddlewares,
+	findApplicationById,
+	findProjectById,
+	getApplicationStats,
+	readConfig,
+	readRemoteConfig,
+	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
-} from "@/server/utils/filesystem/directory";
-import {
-	readConfig,
+	removeService,
 	removeTraefikConfig,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+	unzipDrop,
+	updateApplication,
+	updateApplicationStatus,
 	writeConfig,
-} from "@/server/utils/traefik/application";
-import { deleteAllMiddlewares } from "@/server/utils/traefik/middleware";
+	writeConfigRemote,
+	// uploadFileSchema
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import {
-	createApplication,
-	findApplicationById,
-	getApplicationStats,
-	updateApplication,
-	updateApplicationStatus,
-} from "../services/application";
-import { removeDeployments } from "../services/deployment";
-import { addNewService, checkServiceAccess } from "../services/user";
-
-import { unzipDrop } from "@/server/utils/builders/drop";
-import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -62,11 +63,27 @@ export const applicationRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
 				}
+
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You need to use a server to create an application",
+					});
+				}
+
+				const project = await findProjectById(input.projectId);
+				if (project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
 				const newApplication = await createApplication(input);
 
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newApplication.applicationId);
 				}
+				return newApplication;
 			} catch (error: unknown) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -88,15 +105,38 @@ export const applicationRouter = createTRPCRouter({
 					"access",
 				);
 			}
-			return await findApplicationById(input.applicationId);
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this application",
+				});
+			}
+			return application;
 		}),
 
 	reload: protectedProcedure
 		.input(apiReloadApplication)
-		.mutation(async ({ input }) => {
-			await stopService(input.appName);
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to reload this application",
+				});
+			}
+			if (application.serverId) {
+				await stopServiceRemote(application.serverId, input.appName);
+			} else {
+				await stopService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
-			await startService(input.appName);
+
+			if (application.serverId) {
+				await startServiceRemote(application.serverId, input.appName);
+			} else {
+				await startService(input.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 			return true;
 		}),
@@ -113,18 +153,32 @@ export const applicationRouter = createTRPCRouter({
 			}
 			const application = await findApplicationById(input.applicationId);
 
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to delete this application",
+				});
+			}
+
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
 
 			const cleanupOperations = [
-				async () => deleteAllMiddlewares(application),
+				async () => await deleteAllMiddlewares(application),
 				async () => await removeDeployments(application),
-				async () => await removeDirectoryCode(application?.appName),
-				async () => await removeMonitoringDirectory(application?.appName),
-				async () => await removeTraefikConfig(application?.appName),
-				async () => await removeService(application?.appName),
+				async () =>
+					await removeDirectoryCode(application.appName, application.serverId),
+				async () =>
+					await removeMonitoringDirectory(
+						application.appName,
+						application.serverId,
+					),
+				async () =>
+					await removeTraefikConfig(application.appName, application.serverId),
+				async () =>
+					await removeService(application?.appName, application.serverId),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -138,9 +192,19 @@ export const applicationRouter = createTRPCRouter({
 
 	stop: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
-			await stopService(service.appName);
+			if (service.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this application",
+				});
+			}
+			if (service.serverId) {
+				await stopServiceRemote(service.serverId, service.appName);
+			} else {
+				await stopService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "idle");
 
 			return service;
@@ -148,10 +212,20 @@ export const applicationRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
+			if (service.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to start this application",
+				});
+			}
 
-			await startService(service.appName);
+			if (service.serverId) {
+				await startServiceRemote(service.serverId, service.appName);
+			} else {
+				await startService(service.appName);
+			}
 			await updateApplicationStatus(input.applicationId, "done");
 
 			return service;
@@ -159,14 +233,28 @@ export const applicationRouter = createTRPCRouter({
 
 	redeploy: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to redeploy this application",
+				});
+			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Rebuild deployment",
 				descriptionLog: "",
 				type: "redeploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -178,7 +266,14 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this environment",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				env: input.env,
 				buildArgs: input.buildArgs,
@@ -187,19 +282,35 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveBuildType: protectedProcedure
 		.input(apiSaveBuildType)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this build type",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				buildType: input.buildType,
 				dockerfile: input.dockerfile,
 				publishDirectory: input.publishDirectory,
 				dockerContextPath: input.dockerContextPath,
+				dockerBuildStage: input.dockerBuildStage,
+				herokuVersion: input.herokuVersion,
 			});
 
 			return true;
 		}),
 	saveGithubProvider: protectedProcedure
 		.input(apiSaveGithubProvider)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this github provider",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
@@ -207,26 +318,88 @@ export const applicationRouter = createTRPCRouter({
 				owner: input.owner,
 				buildPath: input.buildPath,
 				applicationStatus: "idle",
+				githubId: input.githubId,
+			});
+
+			return true;
+		}),
+	saveGitlabProvider: protectedProcedure
+		.input(apiSaveGitlabProvider)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this gitlab provider",
+				});
+			}
+			await updateApplication(input.applicationId, {
+				gitlabRepository: input.gitlabRepository,
+				gitlabOwner: input.gitlabOwner,
+				gitlabBranch: input.gitlabBranch,
+				gitlabBuildPath: input.gitlabBuildPath,
+				sourceType: "gitlab",
+				applicationStatus: "idle",
+				gitlabId: input.gitlabId,
+				gitlabProjectId: input.gitlabProjectId,
+				gitlabPathNamespace: input.gitlabPathNamespace,
+			});
+
+			return true;
+		}),
+	saveBitbucketProvider: protectedProcedure
+		.input(apiSaveBitbucketProvider)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this bitbucket provider",
+				});
+			}
+			await updateApplication(input.applicationId, {
+				bitbucketRepository: input.bitbucketRepository,
+				bitbucketOwner: input.bitbucketOwner,
+				bitbucketBranch: input.bitbucketBranch,
+				bitbucketBuildPath: input.bitbucketBuildPath,
+				sourceType: "bitbucket",
+				applicationStatus: "idle",
+				bitbucketId: input.bitbucketId,
 			});
 
 			return true;
 		}),
 	saveDockerProvider: protectedProcedure
 		.input(apiSaveDockerProvider)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this docker provider",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
 				username: input.username,
 				password: input.password,
 				sourceType: "docker",
 				applicationStatus: "idle",
+				registryUrl: input.registryUrl,
 			});
 
 			return true;
 		}),
 	saveGitProdiver: protectedProcedure
 		.input(apiSaveGitProvider)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this git provider",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
@@ -240,18 +413,32 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	markRunning: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to mark this application as running",
+				});
+			}
 			await updateApplicationStatus(input.applicationId, "running");
 		}),
 	update: protectedProcedure
 		.input(apiUpdateApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this application",
+				});
+			}
 			const { applicationId, ...rest } = input;
-			const application = await updateApplication(applicationId, {
+			const updateApp = await updateApplication(applicationId, {
 				...rest,
 			});
 
-			if (!application) {
+			if (!updateApp) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Update: Error to update application",
@@ -262,7 +449,14 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	refreshToken: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to refresh this application",
+				});
+			}
 			await updateApplication(input.applicationId, {
 				refreshToken: nanoid(),
 			});
@@ -270,14 +464,28 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this application",
+				});
+			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: "Manual deployment",
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!application.serverId,
 			};
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+
+				return true;
+			}
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -290,16 +498,37 @@ export const applicationRouter = createTRPCRouter({
 
 	cleanQueues: protectedProcedure
 		.input(apiFindOneApplication)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to clean this application",
+				});
+			}
 			await cleanQueuesByApplication(input.applicationId);
 		}),
 
 	readTraefikConfig: protectedProcedure
 		.input(apiFindOneApplication)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to read this application",
+				});
+			}
 
-			const traefikConfig = readConfig(application.appName);
+			let traefikConfig = null;
+			if (application.serverId) {
+				traefikConfig = await readRemoteConfig(
+					application.serverId,
+					application.appName,
+				);
+			} else {
+				traefikConfig = readConfig(application.appName);
+			}
 			return traefikConfig;
 		}),
 
@@ -314,24 +543,38 @@ export const applicationRouter = createTRPCRouter({
 		})
 		.use(uploadProcedure)
 		.input(uploadFileSchema)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const zipFile = input.zip;
+
+			const app = await findApplicationById(input.applicationId as string);
+
+			if (app.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this application",
+				});
+			}
 
 			updateApplication(input.applicationId as string, {
 				sourceType: "drop",
 				dropBuildPath: input.dropBuildPath,
 			});
 
-			const app = await findApplicationById(input.applicationId as string);
-			await unzipDrop(zipFile, app.appName);
-
+			await unzipDrop(zipFile, app);
 			const jobData: DeploymentJob = {
 				applicationId: app.applicationId,
 				titleLog: "Manual deployment",
 				descriptionLog: "",
 				type: "deploy",
 				applicationType: "application",
+				server: !!app.serverId,
 			};
+			if (IS_CLOUD && app.serverId) {
+				jobData.serverId = app.serverId;
+				await deploy(jobData);
+				return true;
+			}
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -344,21 +587,38 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	updateTraefikConfig: protectedProcedure
 		.input(z.object({ applicationId: z.string(), traefikConfig: z.string() }))
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			writeConfig(application.appName, input.traefikConfig);
+
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this application",
+				});
+			}
+
+			if (application.serverId) {
+				await writeConfigRemote(
+					application.serverId,
+					application.appName,
+					input.traefikConfig,
+				);
+			} else {
+				writeConfig(application.appName, input.traefikConfig);
+			}
 			return true;
 		}),
 	readAppMonitoring: protectedProcedure
 		.input(apiFindMonitoringStats)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Functionality not available in cloud version",
+				});
+			}
 			const stats = await getApplicationStats(input.appName);
 
 			return stats;
 		}),
 });
-
-// Paketo Buildpacks:     paketobuildpacks/builder-jammy-full                     Ubuntu 22.04 Jammy Jellyfish full image with buildpacks for Apache HTTPD, Go, Java, Java Native Image, .NET, NGINX, Node.js, PHP, Procfile, Python, and Ruby
-// Heroku:                heroku/builder:22                                       Heroku-22 (Ubuntu 22.04) base image with buildpacks for Go, Java, Node.js, PHP, Python, Ruby & Scala.
-// pack build imageName --path ./ --builder paketobuildpacks/builder-jammy-full
-// pack build prueba-pack --path ./ --builder heroku/builder:22

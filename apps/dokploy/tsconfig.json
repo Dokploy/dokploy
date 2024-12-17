@@ -26,7 +26,8 @@
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./*"]
+			"@/*": ["./*"],
+			"@dokploy/server/*": ["../../packages/server/src/*"]
 		}
 	},
 
@@ -38,7 +39,8 @@
 		"**/*.js",
 		".next/types/**/*.ts",
 		"env.js",
-		"next.config.mjs"
+		"next.config.mjs",
+		"next-i18next.config.mjs"
 	],
 	"exclude": [
 		"node_modules",

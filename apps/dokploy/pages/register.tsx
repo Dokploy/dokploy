@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +16,11 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { isAdminPresent } from "@/server/api/services/admin";
 import { api } from "@/utils/api";
+import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -66,11 +68,13 @@ type Register = z.infer<typeof registerSchema>;
 
 interface Props {
 	hasAdmin: boolean;
+	isCloud: boolean;
 }
 
-const Register = ({ hasAdmin }: Props) => {
+const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
-	const { mutateAsync, error, isError } = api.auth.createAdmin.useMutation();
+	const { mutateAsync, error, isError, data } =
+		api.auth.createAdmin.useMutation();
 
 	const form = useForm<Register>({
 		defaultValues: {
@@ -87,14 +91,16 @@ const Register = ({ hasAdmin }: Props) => {
 
 	const onSubmit = async (values: Register) => {
 		await mutateAsync({
-			email: values.email,
+			email: values.email.toLowerCase(),
 			password: values.password,
 		})
 			.then(() => {
 				toast.success("User registration succesfuly", {
 					duration: 2000,
 				});
-				router.push("/");
+				if (!isCloud) {
+					router.push("/");
+				}
 			})
 			.catch((e) => e);
 	};
@@ -111,9 +117,12 @@ const Register = ({ hasAdmin }: Props) => {
 						<span className="font-medium text-sm">Dokploy</span>
 					</Link>
 
-					<CardTitle className="text-2xl font-bold">Setup the server</CardTitle>
+					<CardTitle className="text-2xl font-bold">
+						{isCloud ? "Create an account" : "Setup the server"}
+					</CardTitle>
 					<CardDescription>
-						Enter your email and password to setup the server
+						Enter your email and password to{" "}
+						{isCloud ? "create an account" : "setup the server"}
 					</CardDescription>
 					<Card className="mx-auto w-full max-w-lg bg-transparent">
 						<div className="p-3" />
@@ -124,6 +133,14 @@ const Register = ({ hasAdmin }: Props) => {
 									{error?.message}
 								</span>
 							</div>
+						)}
+						{data?.type === "cloud" && (
+							<AlertBlock type="success" className="mx-4 my-2">
+								<span>
+									Registration succesfuly, Please check your inbox or spam
+									folder to confirm your account.
+								</span>
+							</AlertBlock>
 						)}
 						<CardContent>
 							<Form {...form}>
@@ -191,24 +208,26 @@ const Register = ({ hasAdmin }: Props) => {
 									</div>
 								</form>
 							</Form>
-							{hasAdmin && (
-								<div className="mt-4 text-center text-sm">
-									Already have account?
-									<Link className="underline" href="/">
-										Sign in
+							<div className="flex flex-row justify-between flex-wrap">
+								{isCloud && (
+									<div className="mt-4 text-center text-sm flex gap-2">
+										Already have account?
+										<Link className="underline" href="/">
+											Sign in
+										</Link>
+									</div>
+								)}
+
+								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+									Need help?
+									<Link
+										className="underline"
+										href="https://dokploy.com"
+										target="_blank"
+									>
+										Contact us
 									</Link>
 								</div>
-							)}
-
-							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								Need help?
-								<Link
-									className="underline"
-									href="https://dokploy.com"
-									target="_blank"
-								>
-									Contact us
-								</Link>
 							</div>
 						</CardContent>
 					</Card>
@@ -219,7 +238,24 @@ const Register = ({ hasAdmin }: Props) => {
 };
 
 export default Register;
-export async function getServerSideProps() {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+	if (IS_CLOUD) {
+		const { user } = await validateRequest(context.req, context.res);
+
+		if (user) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/dashboard/projects",
+				},
+			};
+		}
+		return {
+			props: {
+				isCloud: true,
+			},
+		};
+	}
 	const hasAdmin = await isAdminPresent();
 
 	if (hasAdmin) {
@@ -232,7 +268,7 @@ export async function getServerSideProps() {
 	}
 	return {
 		props: {
-			hasAdmin,
+			isCloud: false,
 		},
 	};
 }

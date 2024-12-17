@@ -1,0 +1,107 @@
+x-webapp-env: &webapp-env
+  LOGIN_ORIGIN: &trigger-url ${TRIGGER_PROTOCOL:-http}://${TRIGGER_DOMAIN:-localhost:3040}
+  APP_ORIGIN: *trigger-url
+  DEV_OTEL_EXPORTER_OTLP_ENDPOINT: &trigger-otel ${TRIGGER_PROTOCOL:-http}://${TRIGGER_DOMAIN:-localhost:3040}/otel
+  ELECTRIC_ORIGIN: http://electric:3000
+
+x-worker-env: &worker-env
+  PLATFORM_HOST: webapp
+  PLATFORM_WS_PORT: 3030
+  SECURE_CONNECTION: "false"
+  OTEL_EXPORTER_OTLP_ENDPOINT: *trigger-otel
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  webapp:
+
+services:
+  webapp:
+    image: ghcr.io/triggerdotdev/trigger.dev:${TRIGGER_IMAGE_TAG:-v3}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    env_file:
+      - .env
+    environment:
+      <<: *webapp-env
+    ports:
+      - 3000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - webapp
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG:-16}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    networks:
+      - webapp
+    ports:
+      - 5432
+    command:
+      - -c
+      - wal_level=logical
+
+  redis:
+    image: redis:${REDIS_IMAGE_TAG:-7}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - redis-data:/data
+    networks:
+      - webapp
+    ports:
+      - 6379
+
+  docker-provider:
+    image: ghcr.io/triggerdotdev/provider/docker:${TRIGGER_IMAGE_TAG:-v3}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+    networks:
+      - webapp
+    depends_on:
+      - webapp
+    ports:
+      - 9020
+    env_file:
+      - .env
+    environment:
+      <<: *worker-env
+      PLATFORM_SECRET: $PROVIDER_SECRET
+
+  coordinator:
+    image: ghcr.io/triggerdotdev/coordinator:${TRIGGER_IMAGE_TAG:-v3}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+    networks:
+      - webapp
+    depends_on:
+      - webapp
+    ports:
+      - 9020
+    env_file:
+      - .env
+    environment:
+      <<: *worker-env
+      PLATFORM_SECRET: $COORDINATOR_SECRET
+
+  electric:
+    image: electricsql/electric:${ELECTRIC_IMAGE_TAG:-latest}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      DATABASE_URL: ${DATABASE_URL}?sslmode=disable
+    networks:
+      - webapp
+    depends_on:
+      - postgres
+    ports:
+      - 3000

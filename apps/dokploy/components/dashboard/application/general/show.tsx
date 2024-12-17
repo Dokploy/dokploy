@@ -2,9 +2,9 @@ import { ShowBuildChooseForm } from "@/components/dashboard/application/build/sh
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Toggle } from "@/components/ui/toggle";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { CheckCircle2, Terminal } from "lucide-react";
+import { Terminal } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
@@ -39,39 +39,42 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						appName={data?.appName || ""}
 					/>
 
-					<Toggle
-						aria-label="Toggle italic"
-						pressed={data?.autoDeploy || false}
-						onPressedChange={async (enabled) => {
-							await update({
-								applicationId,
-								autoDeploy: enabled,
-							})
-								.then(async () => {
-									toast.success("Auto Deploy Updated");
-									await refetch();
-								})
-								.catch(() => {
-									toast.error("Error to update Auto Deploy");
-								});
-						}}
-						className="flex flex-row gap-2 items-center"
-					>
-						Autodeploy
-						{data?.autoDeploy && <CheckCircle2 className="size-4" />}
-					</Toggle>
 					<RedbuildApplication applicationId={applicationId} />
 					{data?.applicationStatus === "idle" ? (
 						<StartApplication applicationId={applicationId} />
 					) : (
 						<StopApplication applicationId={applicationId} />
 					)}
-					<DockerTerminalModal appName={data?.appName || ""}>
+					<DockerTerminalModal
+						appName={data?.appName || ""}
+						serverId={data?.serverId || ""}
+					>
 						<Button variant="outline">
 							<Terminal />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
+					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<span className="text-sm font-medium">Autodeploy</span>
+						<Switch
+							aria-label="Toggle italic"
+							checked={data?.autoDeploy || false}
+							onCheckedChange={async (enabled) => {
+								await update({
+									applicationId,
+									autoDeploy: enabled,
+								})
+									.then(async () => {
+										toast.success("Auto Deploy Updated");
+										await refetch();
+									})
+									.catch(() => {
+										toast.error("Error to update Auto Deploy");
+									});
+							}}
+							className="flex flex-row gap-2 items-center"
+						/>
+					</div>
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />
