@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { Download as DownloadIcon, Loader2 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { LineCountFilter } from "./line-count-filter";
 import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
 import { StatusLogsFilter } from "./status-logs-filter";
 import { TerminalLine } from "./terminal-line";
@@ -76,16 +77,16 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 		setSearch(e.target.value || "");
 	};
 
-	const handleLines = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleLines = (lines: number) => {
 		setRawLogs("");
 		setFilteredLogs([]);
-		setLines(Number(e.target.value) || 1);
+		setLines(lines);
 	};
 
 	const handleSince = (value: TimeFilter) => {
-    setRawLogs("");
-    setFilteredLogs([]);
-    setSince(value);
+		setRawLogs("");
+		setFilteredLogs([]);
+		setSince(value);
 	};
 
 	useEffect(() => {
@@ -223,13 +224,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 				<div className="space-y-4">
 					<div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
 						<div className="flex flex-wrap gap-4">
-							<Input
-								type="text"
-								placeholder="Number of lines to show"
-								value={lines}
-								onChange={handleLines}
-								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
-							/>
+							<LineCountFilter value={lines} onValueChange={handleLines} />
 
 							<SinceLogsFilter
 								value={since}
