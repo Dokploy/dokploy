@@ -1,4 +1,3 @@
-import { ShowSwarm } from "@/components/dashboard/swarm/show/node-list";
 import ShowSwarmNodes from "@/components/dashboard/swarm/show/show-nodes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
@@ -9,73 +8,73 @@ import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Dashboard = () => {
-  return <ShowSwarmNodes />;
+	return <ShowSwarmNodes />;
 };
 
 export default Dashboard;
 
 Dashboard.getLayout = (page: ReactElement) => {
-  return <DashboardLayout tab={"swarm"}>{page}</DashboardLayout>;
+	return <DashboardLayout tab={"swarm"}>{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
-  ctx: GetServerSidePropsContext<{ serviceId: string }>
+	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-  if (IS_CLOUD) {
-    return {
-      redirect: {
-        permanent: true,
-        destination: "/dashboard/projects",
-      },
-    };
-  }
-  const { user, session } = await validateRequest(ctx.req, ctx.res);
-  if (!user) {
-    return {
-      redirect: {
-        permanent: true,
-        destination: "/",
-      },
-    };
-  }
-  const { req, res } = ctx;
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
+	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	if (!user) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
+	}
+	const { req, res } = ctx;
 
-  const helpers = createServerSideHelpers({
-    router: appRouter,
-    ctx: {
-      req: req as any,
-      res: res as any,
-      db: null as any,
-      session: session,
-      user: user,
-    },
-    transformer: superjson,
-  });
-  try {
-    await helpers.project.all.prefetch();
-    const auth = await helpers.auth.get.fetch();
+	const helpers = createServerSideHelpers({
+		router: appRouter,
+		ctx: {
+			req: req as any,
+			res: res as any,
+			db: null as any,
+			session: session,
+			user: user,
+		},
+		transformer: superjson,
+	});
+	try {
+		await helpers.project.all.prefetch();
+		const auth = await helpers.auth.get.fetch();
 
-    if (auth.rol === "user") {
-      const user = await helpers.user.byAuthId.fetch({
-        authId: auth.id,
-      });
+		if (auth.rol === "user") {
+			const user = await helpers.user.byAuthId.fetch({
+				authId: auth.id,
+			});
 
-      if (!user.canAccessToDocker) {
-        return {
-          redirect: {
-            permanent: true,
-            destination: "/",
-          },
-        };
-      }
-    }
-    return {
-      props: {
-        trpcState: helpers.dehydrate(),
-      },
-    };
-  } catch (error) {
-    return {
-      props: {},
-    };
-  }
+			if (!user.canAccessToDocker) {
+				return {
+					redirect: {
+						permanent: true,
+						destination: "/",
+					},
+				};
+			}
+		}
+		return {
+			props: {
+				trpcState: helpers.dehydrate(),
+			},
+		};
+	} catch (error) {
+		return {
+			props: {},
+		};
+	}
 }
