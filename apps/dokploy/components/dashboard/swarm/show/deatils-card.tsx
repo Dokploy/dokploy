@@ -8,11 +8,13 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { api } from "@/utils/api";
 import {
 	AlertCircle,
 	CheckCircle,
 	HelpCircle,
 	Layers,
+	LoaderIcon,
 	Settings,
 } from "lucide-react";
 import { useState } from "react";
@@ -37,6 +39,10 @@ export function NodeCard({ node }: NodeCardProps) {
 	const [showConfig, setShowConfig] = useState(false);
 	const [showServices, setShowServices] = useState(false);
 
+	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
+		nodeId: node.ID,
+	});
+
 	const getStatusIcon = (status: string) => {
 		switch (status) {
 			case "Ready":
@@ -48,6 +54,30 @@ export function NodeCard({ node }: NodeCardProps) {
 		}
 	};
 
+	if (isLoading) {
+		return (
+			<Card className="w-full">
+				<CardHeader>
+					<CardTitle className="flex items-center justify-between">
+						<span className="flex items-center gap-2">
+							{getStatusIcon(node.Status)}
+							{node.Hostname}
+						</span>
+						<Badge variant="outline" className="text-xs">
+							{node.ManagerStatus || "Worker"}
+						</Badge>
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex items-center justify-center">
+						<LoaderIcon className="h-6 w-6 animate-spin" />
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	console.log(data);
 	return (
 		<Card className="w-full">
 			<CardHeader>
@@ -68,12 +98,43 @@ export function NodeCard({ node }: NodeCardProps) {
 						<span>{node.Status}</span>
 					</div>
 					<div className="flex justify-between">
+						<span className="font-medium">IP Address:</span>
+						{isLoading ? (
+							<LoaderIcon className="animate-spin" />
+						) : (
+							<span>{data.Status.Addr}</span>
+						)}
+					</div>
+					<div className="flex justify-between">
 						<span className="font-medium">Availability:</span>
 						<span>{node.Availability}</span>
 					</div>
 					<div className="flex justify-between">
 						<span className="font-medium">Engine Version:</span>
 						<span>{node.EngineVersion}</span>
+					</div>
+					<div className="flex justify-between">
+						<span className="font-medium">CPU:</span>
+						{isLoading ? (
+							<LoaderIcon className="animate-spin" />
+						) : (
+							<span>
+								{(data.Description.Resources.NanoCPUs / 1e9).toFixed(2)} GHz
+							</span>
+						)}
+					</div>
+					<div className="flex justify-between">
+						<span className="font-medium">Memory:</span>
+						{isLoading ? (
+							<LoaderIcon className="animate-spin" />
+						) : (
+							<span>
+								{(data.Description.Resources.MemoryBytes / 1024 ** 3).toFixed(
+									2,
+								)}{" "}
+								GB
+							</span>
+						)}
 					</div>
 					<div className="flex justify-between">
 						<span className="font-medium">TLS Status:</span>
