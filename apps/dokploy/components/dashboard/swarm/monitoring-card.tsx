@@ -94,6 +94,8 @@ export default function SwarmMonitorCard() {
 				return <CheckCircle className="h-4 w-4 text-green-500" />;
 			case "Down":
 				return <AlertCircle className="h-4 w-4 text-red-500" />;
+			case "Disconnected":
+				return <AlertCircle className="h-4 w-4 text-red-800" />;
 			default:
 				return <HelpCircle className="h-4 w-4 text-yellow-500" />;
 		}
@@ -101,7 +103,7 @@ export default function SwarmMonitorCard() {
 
 	return (
 		<div className="w-full max-w-7xl mx-auto">
-			<Card className="mb-6">
+			<Card className="mb-6 bg-transparent">
 				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="flex items-center gap-2">
 						<Server className="h-6 w-6" />

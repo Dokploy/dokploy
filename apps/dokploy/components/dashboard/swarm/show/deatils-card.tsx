@@ -56,7 +56,7 @@ export function NodeCard({ node }: NodeCardProps) {
 
 	if (isLoading) {
 		return (
-			<Card className="w-full">
+			<Card className="w-full bg-transparent">
 				<CardHeader>
 					<CardTitle className="flex items-center justify-between">
 						<span className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function NodeCard({ node }: NodeCardProps) {
 
 	console.log(data);
 	return (
-		<Card className="w-full">
+		<Card className="w-full bg-transparent">
 			<CardHeader>
 				<CardTitle className="flex items-center justify-between">
 					<span className="flex items-center gap-2">
