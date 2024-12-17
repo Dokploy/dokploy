@@ -102,14 +102,25 @@ export default function SwarmMonitorCard() {
 	return (
 		<div className="w-full max-w-7xl mx-auto">
 			<Card className="mb-6">
-				<CardHeader>
+				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="flex items-center gap-2">
 						<Server className="h-6 w-6" />
 						Docker Swarm Monitor
 					</CardTitle>
+					{/* <Button
+						variant="outline"
+						size="sm"
+						onClick={handleRefresh}
+						disabled={isRefreshing}
+					>
+						<RefreshCw
+							className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+						/>
+						Refresh
+					</Button> */}
 				</CardHeader>
 				<CardContent>
-					<div className="grid gap-4">
+					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						<div className="flex justify-between items-center">
 							<span className="text-sm font-medium">Total Nodes:</span>
 							<Badge variant="secondary">{totalNodes}</Badge>
@@ -121,24 +132,23 @@ export default function SwarmMonitorCard() {
 									<TooltipTrigger>
 										<Badge
 											variant="secondary"
-											className="bg-green-100 dark:bg-green-400 text-black "
+											className="bg-green-100 dark:bg-green-400 text-black"
 										>
 											{activeNodesCount} / {totalNodes}
 										</Badge>
 									</TooltipTrigger>
 									<TooltipContent>
-										{activeNodes.map((node) => (
-											<div key={node.id} className="flex items-center gap-2">
-												{getStatusIcon(node.Status)}
-												{node.Hostname}
-											</div>
-										))}
+										<div className="max-h-48 overflow-y-auto">
+											{activeNodes.map((node) => (
+												<div key={node.ID} className="flex items-center gap-2">
+													{getStatusIcon(node.Status)}
+													{node.Hostname}
+												</div>
+											))}
+										</div>
 									</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>
-							{/* <Badge variant="secondary" className="bg-green-100 text-green-800">
-							{activeNodesCount} / {totalNodes}
-						</Badge> */}
 						</div>
 						<div className="flex justify-between items-center">
 							<span className="text-sm font-medium">Manager Nodes:</span>
@@ -153,38 +163,37 @@ export default function SwarmMonitorCard() {
 										</Badge>
 									</TooltipTrigger>
 									<TooltipContent>
-										{managerNodes.map((node) => (
-											<div key={node.id} className="flex items-center gap-2">
-												{getStatusIcon(node.Status)}
-												{node.Hostname}
-											</div>
-										))}
+										<div className="max-h-48 overflow-y-auto">
+											{managerNodes.map((node) => (
+												<div key={node.ID} className="flex items-center gap-2">
+													{getStatusIcon(node.Status)}
+													{node.Hostname}
+												</div>
+											))}
+										</div>
 									</TooltipContent>
 								</Tooltip>
 							</TooltipProvider>
-							{/* <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-							{managerNodes} / {totalNodes}
-						</Badge> */}
 						</div>
-						<div className="border-t pt-4">
-							<h4 className="text-sm font-semibold mb-2">Node Status:</h4>
-							<ul className="space-y-2">
-								{nodes.map((node) => (
-									<li
-										key={node.ID}
-										className="flex justify-between items-center text-sm"
-									>
-										<span className="flex items-center gap-2">
-											{getStatusIcon(node.Status)}
-											{node.Hostname}
-										</span>
-										<Badge variant="outline" className="text-xs">
-											{node.ManagerStatus || "Worker"}
-										</Badge>
-									</li>
-								))}
-							</ul>
-						</div>
+					</div>
+					<div className="border-t pt-4 mt-4">
+						<h4 className="text-sm font-semibold mb-2">Node Status:</h4>
+						<ul className="space-y-2">
+							{nodes.map((node) => (
+								<li
+									key={node.ID}
+									className="flex justify-between items-center text-sm"
+								>
+									<span className="flex items-center gap-2">
+										{getStatusIcon(node.Status)}
+										{node.Hostname}
+									</span>
+									<Badge variant="outline" className="text-xs">
+										{node.ManagerStatus || "Worker"}
+									</Badge>
+								</li>
+							))}
+						</ul>
 					</div>
 				</CardContent>
 			</Card>
