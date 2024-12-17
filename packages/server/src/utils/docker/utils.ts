@@ -44,7 +44,11 @@ export const pullImage = async (
 				onData,
 			);
 		}
-		await spawnAsync("docker", ["pull", dockerImage], onData);
+		const imageUrl = authConfig?.registryUrl
+				? `${authConfig.registryUrl}/${dockerImage}`
+				: dockerImage;
+
+		await spawnAsync("docker", ["pull", imageUrl], onData);
 	} catch (error) {
 		throw error;
 	}
