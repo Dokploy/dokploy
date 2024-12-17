@@ -37,7 +37,7 @@ const ShowNodeContainers = ({ serverId }: Props) => {
 						See all containers running on this node
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[90vh] overflow-auto ">
+				<div className="text-wrap rounded-lgtext-sm sm:max-w-[59rem] bg-transparent max-h-[90vh] overflow-auto ">
 					<ShowContainers serverId={serverId} />
 				</div>
 			</DialogContent>
