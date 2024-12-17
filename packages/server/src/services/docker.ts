@@ -265,59 +265,34 @@ export const getNodeInfo = async (nodeId: string) => {
 
 export const getNodeApplications = async () => {
 	try {
-		// TODO: Implement this
-		// const { stdout, stderr } = await execAsync(
-		//   `docker service ls --format '{{json .}}'`
-		// );
+		const { stdout, stderr } = await execAsync(
+			`docker service ls --format '{{json .}}'`,
+		);
 
-		const stdout = `{"ID":"pxvnj68dxom9","Image":"dokploy/dokploy:latest","Mode":"replicated","Name":"dokploy","Ports":"","Replicas":"1/1"}
-{"ID":"1sweo6dr2vrn","Image":"postgres:16","Mode":"replicated","Name":"dokploy-postgres","Ports":"","Replicas":"1/1"}
-{"ID":"tnl2fck3rbop","Image":"redis:7","Mode":"replicated","Name":"dokploy-redis","Ports":"","Replicas":"1/1"}
-{"ID":"o9ady4y1p96x","Image":"traefik:v3.1.2","Mode":"replicated","Name":"dokploy-traefik","Ports":"","Replicas":"1/1"}
-{"ID":"rsxe3l71h9y4","Image":"esports-manager-api-eg8t7w:latest","Mode":"replicated","Name":"esports-manager-api-eg8t7w","Ports":"","Replicas":"1/1"}
-{"ID":"fw52vzcw5dc0","Image":"team-synix-admin-dvgspy:latest","Mode":"replicated","Name":"team-synix-admin-dvgspy","Ports":"","Replicas":"1/1"}
-{"ID":"551bwmtd6b4t","Image":"team-synix-leaderboard-9vx8ca:latest","Mode":"replicated","Name":"team-synix-leaderboard-9vx8ca","Ports":"","Replicas":"1/1"}
-{"ID":"h1eyg3g1tyn3","Image":"postgres:15","Mode":"replicated","Name":"team-synix-webpage-db-fkivnf","Ports":"","Replicas":"1/1"}`;
-
-		// if (stderr) {
-		//   console.error(`Error: ${stderr}`);
-		//   return;
-		// }
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
 
 		const appArray = stdout
 			.trim()
 			.split("\n")
 			.map((line) => JSON.parse(line));
 
-		console.log(appArray);
 		return appArray;
 	} catch (error) {}
 };
 
 export const getApplicationInfo = async (appName: string) => {
 	try {
-		// TODO: Implement this
-		// const { stdout, stderr } = await execAsync(
-		//   `docker service ps ${appName} --format '{{json .}}'`
-		// );
+		const { stdout, stderr } = await execAsync(
+			`docker service ps ${appName} --format '{{json .}}'`,
+		);
 
-		const stdout = `{"CurrentState":"Running 2 weeks ago","DesiredState":"Running","Error":"","ID":"nx8jxlmb8niw","Image":"postgres:16","Name":"dokploy-postgres.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 2 weeks ago","DesiredState":"Running","Error":"","ID":"s288g9lwtvi4","Image":"redis:7","Name":"dokploy-redis.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 2 weeks ago","DesiredState":"Running","Error":"","ID":"2vcmejz51b23","Image":"traefik:v3.1.2","Name":"dokploy-traefik.1","Node":"v2202411192718297480","Ports":"*:80-\u003e80/tcp,*:80-\u003e80/tcp,*:443-\u003e443/tcp,*:443-\u003e443/tcp"}
-{"CurrentState":"Running 26 hours ago","DesiredState":"Running","Error":"","ID":"79iatnbsm2um","Image":"dokploy/dokploy:latest","Name":"dokploy.1","Node":"v2202411192718297480","Ports":"*:3000-\u003e3000/tcp,*:3000-\u003e3000/tcp"}
-{"CurrentState":"Shutdown 26 hours ago","DesiredState":"Shutdown","Error":"","ID":"zcwxs501zs7w","Image":"dokploy/dokploy:latest","Name":"dokploy.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Shutdown 7 days ago","DesiredState":"Shutdown","Error":"","ID":"t59qhkoenno4","Image":"dokploy/dokploy:latest","Name":"dokploy.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Shutdown 7 days ago","DesiredState":"Shutdown","Error":"","ID":"o5xtcuj6um7e","Image":"dokploy/dokploy:latest","Name":"dokploy.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 2 weeks ago","DesiredState":"Running","Error":"","ID":"q1lr9rmf452g","Image":"esports-manager-api-eg8t7w:latest","Name":"esports-manager-api-eg8t7w.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Shutdown 2 weeks ago","DesiredState":"Shutdown","Error":"","ID":"y9ixpg6b8qdo","Image":"esports-manager-api-eg8t7w:latest","Name":"esports-manager-api-eg8t7w.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 24 hours ago","DesiredState":"Running","Error":"","ID":"xgcb919qjg1a","Image":"team-synix-admin-dvgspy:latest","Name":"team-synix-admin-dvgspy.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 26 hours ago","DesiredState":"Running","Error":"","ID":"7yi95wh8zhh6","Image":"team-synix-leaderboard-9vx8ca:latest","Name":"team-synix-leaderboard-9vx8ca.1","Node":"v2202411192718297480","Ports":""}
-{"CurrentState":"Running 2 weeks ago","DesiredState":"Running","Error":"","ID":"89yzsnghpbq6","Image":"postgres:15","Name":"team-synix-webpage-db-fkivnf.1","Node":"v2202411192718297480","Ports":""}`;
-
-		// if (stderr) {
-		//   console.error(`Error: ${stderr}`);
-		//   return;
-		// }
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
 
 		const appArray = stdout
 			.trim()
