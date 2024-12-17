@@ -4,6 +4,8 @@ import {
 	getContainers,
 	getContainersByAppLabel,
 	getContainersByAppNameMatch,
+	getServiceContainersByAppName,
+	getStackContainersByAppName,
 } from "@dokploy/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -56,6 +58,28 @@ export const dockerRouter = createTRPCRouter({
 				input.appType,
 				input.serverId,
 			);
+		}),
+
+	getStackContainersByAppName: protectedProcedure
+		.input(
+			z.object({
+				appName: z.string().min(1),
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			return await getStackContainersByAppName(input.appName, input.serverId);
+		}),
+
+	getServiceContainersByAppName: protectedProcedure
+		.input(
+			z.object({
+				appName: z.string().min(1),
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			return await getServiceContainersByAppName(input.appName, input.serverId);
 		}),
 
 	getContainersByAppLabel: protectedProcedure

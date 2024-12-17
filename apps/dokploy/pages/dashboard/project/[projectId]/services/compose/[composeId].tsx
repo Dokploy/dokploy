@@ -6,6 +6,7 @@ import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-
 import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
+import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
@@ -251,11 +252,21 @@ const Service = (
 
 					<TabsContent value="logs">
 						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDockerLogsCompose
-								serverId={data?.serverId || ""}
-								appName={data?.appName || ""}
-								appType={data?.composeType || "docker-compose"}
-							/>
+							{
+								data?.composeType === "docker-compose" ? (
+									<ShowDockerLogsCompose
+										serverId={data?.serverId || ""}
+										appName={data?.appName || ""}
+										appType={data?.composeType || "docker-compose"}
+									/>
+								) : (
+									<ShowDockerLogsStack
+										serverId={data?.serverId || ""}
+										appName={data?.appName || ""}
+									/>
+								)
+							}
+							
 						</div>
 					</TabsContent>
 
