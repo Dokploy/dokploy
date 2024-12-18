@@ -117,7 +117,7 @@ export const ShowDeploymentCompose = ({
 				<div 
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 				>
 						
 						
