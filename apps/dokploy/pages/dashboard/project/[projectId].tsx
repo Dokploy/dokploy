@@ -191,7 +191,7 @@ const Project = (
 					</BreadcrumbItem>
 				</Breadcrumb>
 				<Head>
-					<title>Project {data?.name} | Dokploy</title>
+					<title>Project: {data?.name} | Dokploy</title>
 				</Head>
 				<header className="mb-6 flex w-full items-center justify-between flex-wrap gap-2">
 					<div className="flex flex-col gap-2">

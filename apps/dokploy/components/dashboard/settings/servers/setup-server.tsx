@@ -32,8 +32,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
+import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { ValidateServer } from "./validate-server";
+import { SecurityAudit } from "./security-audit";
 
 interface Props {
 	serverId: string;
@@ -89,12 +91,18 @@ export const SetupServer = ({ serverId }: Props) => {
 						</AlertBlock>
 					</div>
 				) : (
-					<div id="hook-form-add-gitlab" className="grid w-full gap-1">
+					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
+						<AlertBlock type="warning">
+							Using a root user is required to ensure everything works as
+							expected.
+						</AlertBlock>
+
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-4 w-[600px]">
+							<TabsList className="grid grid-cols-5 w-[700px]">
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
+								<TabsTrigger value="audit">Security</TabsTrigger>
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
@@ -139,7 +147,7 @@ export const SetupServer = ({ serverId }: Props) => {
 											Automatic process
 										</span>
 										<Link
-											href="https://docs.dokploy.com/en/docs/core/get-started/introduction"
+											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2"
 										>
@@ -198,6 +206,28 @@ export const SetupServer = ({ serverId }: Props) => {
 											</li>
 										</ul>
 									</div>
+									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
+										<span className="text-base font-semibold text-primary">
+											Supported Distros:
+										</span>
+										<p>
+											We strongly recommend to use the following distros to
+											ensure the best experience:
+										</p>
+										<ul>
+											<li>1. Ubuntu 24.04 LTS</li>
+											<li>2. Ubuntu 23.10 LTS </li>
+											<li>3. Ubuntu 22.04 LTS</li>
+											<li>4. Ubuntu 20.04 LTS</li>
+											<li>5. Ubuntu 18.04 LTS</li>
+											<li>6. Debian 12</li>
+											<li>7. Debian 11</li>
+											<li>8. Debian 10</li>
+											<li>9. Fedora 40</li>
+											<li>10. Centos 9</li>
+											<li>11. Centos 8</li>
+										</ul>
+									</div>
 								</div>
 							</TabsContent>
 							<TabsContent value="deployments">
@@ -214,24 +244,29 @@ export const SetupServer = ({ serverId }: Props) => {
 															See all the 5 Server Setup
 														</CardDescription>
 													</div>
-													<DialogAction
-														title={"Setup Server?"}
-														description="This will setup the server and all associated data"
-														onClick={async () => {
-															await mutateAsync({
-																serverId: server?.serverId || "",
-															})
-																.then(async () => {
-																	refetch();
-																	toast.success("Server setup successfully");
+													<div className="flex flex-row gap-2">
+														<EditScript serverId={server?.serverId || ""} />
+														<DialogAction
+															title={"Setup Server?"}
+															description="This will setup the server and all associated data"
+															onClick={async () => {
+																await mutateAsync({
+																	serverId: server?.serverId || "",
 																})
-																.catch(() => {
-																	toast.error("Error configuring server");
-																});
-														}}
-													>
-														<Button isLoading={isLoading}>Setup Server</Button>
-													</DialogAction>
+																	.then(async () => {
+																		refetch();
+																		toast.success("Server setup successfully");
+																	})
+																	.catch(() => {
+																		toast.error("Error configuring server");
+																	});
+															}}
+														>
+															<Button isLoading={isLoading}>
+																Setup Server
+															</Button>
+														</DialogAction>
+													</div>
 												</div>
 											</CardHeader>
 											<CardContent className="flex flex-col gap-4">
@@ -301,6 +336,14 @@ export const SetupServer = ({ serverId }: Props) => {
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 									<ValidateServer serverId={serverId} />
+								</div>
+							</TabsContent>
+							<TabsContent
+								value="audit"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+									<SecurityAudit serverId={serverId} />
 								</div>
 							</TabsContent>
 							<TabsContent
