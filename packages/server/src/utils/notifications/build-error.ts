@@ -28,7 +28,7 @@ export const sendBuildErrorNotifications = async ({
 	adminId,
 }: Props) => {
 	const date = new Date();
-	const unixDate = ~~((Number(date)) / 1000);
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appBuildError, true),
@@ -60,45 +60,45 @@ export const sendBuildErrorNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "> `⚠️` - Build Failed",
+				title: "> `⚠️` Build Failed",
 				color: 0xed4245,
 				fields: [
 					{
-						name: "`🛠️`・Project",
+						name: "`🛠️` Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "`⚙️`・Application",
+						name: "`⚙️` Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "`❔`・Type",
+						name: "`❔` Type",
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "`📅`・Date",
+						name: "`📅` Date",
 						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "`⌚`・Time",
+						name: "`⌚` Time",
 						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
-						name: "`❓`・Type",
+						name: "`❓`Type",
 						value: "Failed",
 						inline: true,
 					},
 					{
-						name: "`⚠️`・Error Message",
+						name: "`⚠️` Error Message",
 						value: `\`\`\`${errorMessage}\`\`\``,
 					},
 					{
-						name: "`🧷`・Build Link",
+						name: "`🧷` Build Link",
 						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
