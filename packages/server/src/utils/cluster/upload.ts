@@ -19,21 +19,25 @@ export const uploadImage = async (
 
 	const finalURL = registryUrl;
 
-	const registryTag = join(imagePrefix || "", imageName);
+	const registryTag =
+		`${registryUrl}/${join(imagePrefix || "", imageName)}`.replace(/\/+/g, "/");
 
 	try {
 		writeStream.write(
-			`📦 [Enabled Registry] Uploading image to ${registry.registryType} | ${registryTag} | ${finalURL}\n`,
+			`📦 [Enabled Registry] Uploading image to ${registry.registryType} | ${imageName} | ${finalURL}\n`,
 		);
-		await spawnAsync(
+		const loginCommand = spawnAsync(
 			"docker",
-			["login", finalURL, "-u", registry.username, "-p", registry.password],
+			["login", finalURL, "-u", registry.username, "--password-stdin"],
 			(data) => {
 				if (writeStream.writable) {
 					writeStream.write(data);
 				}
 			},
 		);
+		loginCommand.child?.stdin?.write(registry.password);
+		loginCommand.child?.stdin?.end();
+		await loginCommand;
 
 		await spawnAsync("docker", ["tag", imageName, registryTag], (data) => {
 			if (writeStream.writable) {
@@ -73,17 +77,16 @@ export const uploadImageRemoteCommand = (
 	try {
 		const command = `
 		echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" >> ${logPath};
-		docker login ${finalURL} -u ${registry.username} -p ${registry.password} >> ${logPath} 2>> ${logPath} || { 
+		echo "${registry.password}" | docker login ${finalURL} -u ${registry.username} --password-stdin >> ${logPath} 2>> ${logPath} || { 
 			echo "❌ DockerHub Failed" >> ${logPath};
 			exit 1;
 		}
-		echo "✅ DockerHub Login Success" >> ${logPath};
+		echo "✅ Registry Login Success" >> ${logPath};
 		docker tag ${imageName} ${registryTag} >> ${logPath} 2>> ${logPath} || { 
 			echo "❌ Error tagging image" >> ${logPath};
 			exit 1;
 		}
-			echo "✅ Image Tagged" >> ${logPath};
-
+		echo "✅ Image Tagged" >> ${logPath};
 		docker push ${registryTag} 2>> ${logPath} || { 
 			echo "❌ Error pushing image" >> ${logPath};
 			exit 1;
