@@ -14,14 +14,14 @@ const badgeVariants = cva(
 					"border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
 				destructive:
 					"border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-				red: "border-transparent select-none items-center whitespace-nowrap font-medium bg-red-500/15 text-destructive text-xs h-4 px-1 py-1 rounded-md",
+				red: "border-transparent select-none items-center whitespace-nowrap font-medium bg-red-600/20 dark:bg-red-500/15 text-destructive text-xs h-4 px-1 py-1 rounded-md",
 				yellow:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-yellow-500/15 text-yellow-500 text-xs h-4 px-1 py-1 rounded-md",
+					"border-transparent select-none items-center whitespace-nowrap font-medium bg-yellow-600/20 dark:bg-yellow-500/15 dark:text-yellow-500 text-yellow-600 text-xs h-4 px-1 py-1 rounded-md",
 				orange:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-orange-500/15 text-orange-500 text-xs h-4 px-1 py-1 rounded-md",
+					"border-transparent select-none items-center whitespace-nowrap font-medium bg-orange-600/20 dark:bg-orange-500/15 dark:text-orange-500 text-orange-600 text-xs h-4 px-1 py-1 rounded-md",
 				green:
-					"border-transparent select-none items-center whitespace-nowrap font-medium bg-emerald-500/15 text-emerald-500 text-xs h-4 px-1 py-1 rounded-md",
-				blue: "border-transparent select-none items-center whitespace-nowrap font-medium bg-blue-500/15 text-blue-500 text-xs h-4 px-1 py-1 rounded-md",
+					"border-transparent select-none items-center whitespace-nowrap font-medium bg-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-500 text-emerald-600 text-xs h-4 px-1 py-1 rounded-md",
+				blue: "border-transparent select-none items-center whitespace-nowrap font-medium bg-blue-600/20 dark:bg-blue-500/15 dark:text-blue-500 text-blue-600 text-xs h-4 px-1 py-1 rounded-md",
 				blank:
 					"border-transparent select-none items-center whitespace-nowrap font-medium dark:bg-white/15 bg-black/15 text-foreground text-xs h-4 px-1 py-1 rounded-md",
 				outline: "text-foreground",
