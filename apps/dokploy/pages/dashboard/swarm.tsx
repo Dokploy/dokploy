@@ -1,6 +1,7 @@
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
 import ServersOverview from "@/components/dashboard/swarm/servers/servers-overview";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Separator } from "@/components/ui/separator";
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -14,13 +15,10 @@ const Dashboard = () => {
 			<div className="flex flex-wrap gap-4 py-4">
 				<SwarmMonitorCard />
 			</div>
-			<ServersOverview />
-			{/* <ShowApplicationServers /> */}
-			{/* <h1>Swarm Nodes</h1>
-			<ShowSwarmNodes />
-			<Separator />
-			<h1 className="mt-24">Server Nodes</h1>
-			<ShowApplicationServers /> */}
+			<Separator className="my-8" />
+			<div className="flex flex-wrap gap-4 py-4">
+				<ServersOverview />
+			</div>
 		</>
 	);
 };

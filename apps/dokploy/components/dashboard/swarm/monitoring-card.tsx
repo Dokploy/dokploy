@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Tooltip,
@@ -15,6 +16,7 @@ import {
 	Loader2,
 	Server,
 } from "lucide-react";
+import Link from "next/link";
 import { NodeCard } from "./details/details-card";
 
 export interface SwarmList {
@@ -72,7 +74,6 @@ export default function SwarmMonitorCard() {
 		);
 	}
 
-	console.log(nodes);
 	const totalNodes = nodes.length;
 	const activeNodesCount = nodes.filter(
 		(node) => node.Status === "Ready",
@@ -103,23 +104,21 @@ export default function SwarmMonitorCard() {
 
 	return (
 		<div className="w-full max-w-7xl mx-auto">
+			<div className="flex justify-between items-center mb-4">
+				<h1 className="text-2xl font-bold">Docker Swarm Overview</h1>
+				<Button
+					type="button"
+					onClick={() => window.location.replace("/dashboard/settings/cluster")}
+				>
+					Manage Cluster
+				</Button>
+			</div>
 			<Card className="mb-6 bg-transparent">
 				<CardHeader className="flex flex-row items-center justify-between">
 					<CardTitle className="flex items-center gap-2">
 						<Server className="h-6 w-6" />
 						Docker Swarm Monitor
 					</CardTitle>
-					{/* <Button
-						variant="outline"
-						size="sm"
-						onClick={handleRefresh}
-						disabled={isRefreshing}
-					>
-						<RefreshCw
-							className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
-						/>
-						Refresh
-					</Button> */}
 				</CardHeader>
 				<CardContent>
 					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
