@@ -3,10 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AlertCircle, CheckCircle, HelpCircle, ServerIcon } from "lucide-react";
-import { useState } from "react";
-import { ShowContainers } from "../docker/show/show-containers";
-// import type { Server } from "../types/server";
-// import { ShowServerContainers } from "./ShowServerContainers";
+import { ShowContainers } from "../../docker/show/show-containers";
 
 export interface Server {
 	serverId: string;
@@ -29,8 +26,6 @@ interface ServerOverviewCardProps {
 }
 
 export function ServerOverviewCard({ server }: ServerOverviewCardProps) {
-	const [showContainers, setShowContainers] = useState(false);
-
 	const getStatusIcon = (status: string) => {
 		switch (status) {
 			case "active":
@@ -101,21 +96,7 @@ export function ServerOverviewCard({ server }: ServerOverviewCardProps) {
 							<ShowContainers serverId={server.serverId} />
 						</DialogContent>
 					</Dialog>
-					{/* <Button
-						variant="outline"
-						size="sm"
-						className="w-full"
-						onClick={() => setShowContainers(!showContainers)}
-					>
-						<ServerIcon className="h-4 w-4 mr-2" />
-						{showContainers ? "Hide" : "Show"} Containers
-					</Button> */}
 				</div>
-				{/* {showContainers && (
-					<div className="mt-4">
-						<ShowContainers serverId={server.serverId} />
-					</div>
-				)} */}
 			</CardContent>
 		</Card>
 	);

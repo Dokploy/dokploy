@@ -1,5 +1,5 @@
 import { api } from "@/utils/api";
-import { ServerOverviewCard } from "../server-card";
+import { ServerOverviewCard } from "./server-card";
 
 export default function ServersOverview() {
 	const { data: servers, isLoading } = api.server.all.useQuery();

@@ -7,7 +7,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import { Layers, LoaderIcon } from "lucide-react";
 import React from "react";
@@ -108,7 +107,6 @@ const ShowNodeApplications = ({ nodeName }: Props) => {
 				<div className="max-h-[90vh]">
 					<DataTable columns={columns} data={combinedData ?? []} />
 				</div>
-				{/* <div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto"></div> */}
 			</DialogContent>
 		</Dialog>
 	);

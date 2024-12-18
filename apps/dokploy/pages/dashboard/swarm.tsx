@@ -1,6 +1,6 @@
 import { ShowServers } from "@/components/dashboard/settings/servers/show-servers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
-import { ServerOverviewCard } from "@/components/dashboard/swarm/server-card";
+import { ServerOverviewCard } from "@/components/dashboard/swarm/servers/server-card";
 import ServersOverview from "@/components/dashboard/swarm/servers/servers-overview";
 import ShowApplicationServers from "@/components/dashboard/swarm/servers/show-server";
 import ShowSwarmNodes from "@/components/dashboard/swarm/show/show-nodes";

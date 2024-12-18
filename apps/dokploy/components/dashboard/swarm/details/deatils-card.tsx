@@ -1,25 +1,10 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import {
-	AlertCircle,
-	CheckCircle,
-	HelpCircle,
-	Layers,
-	LoaderIcon,
-	Settings,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, HelpCircle, LoaderIcon } from "lucide-react";
 import { useState } from "react";
 import ShowNodeApplications from "../applications/show-applications";
-import { ShowNodeConfig } from "../details/show-node";
+import { ShowNodeConfig } from "./show-node-config";
 
 export interface SwarmList {
 	ID: string;
@@ -36,9 +21,6 @@ interface NodeCardProps {
 }
 
 export function NodeCard({ node }: NodeCardProps) {
-	const [showConfig, setShowConfig] = useState(false);
-	const [showServices, setShowServices] = useState(false);
-
 	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
 		nodeId: node.ID,
 	});
@@ -77,7 +59,6 @@ export function NodeCard({ node }: NodeCardProps) {
 		);
 	}
 
-	console.log(data);
 	return (
 		<Card className="w-full bg-transparent">
 			<CardHeader>
@@ -143,41 +124,7 @@ export function NodeCard({ node }: NodeCardProps) {
 				</div>
 				<div className="flex gap-2 mt-4">
 					<ShowNodeConfig nodeId={node.ID} />
-					{/* <Dialog open={showConfig} onOpenChange={setShowConfig}>
-						<DialogTrigger asChild>
-							<Button variant="outline" size="sm" className="w-full">
-								<Settings className="h-4 w-4 mr-2" />
-								Config
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Node Configuration</DialogTitle>
-							</DialogHeader>
-							<div className="mt-4">
-								<pre className="bg-gray-100 p-4 rounded-md overflow-auto">
-									{JSON.stringify(node, null, 2)}
-								</pre>
-							</div>
-						</DialogContent>
-					</Dialog> */}
 					<ShowNodeApplications nodeName="node.Hostname" />
-					{/* <Dialog open={showServices} onOpenChange={setShowServices}>
-						<DialogTrigger asChild>
-							<Button variant="outline" size="sm" className="w-full">
-								<Layers className="h-4 w-4 mr-2" />
-								Services
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Node Services</DialogTitle>
-							</DialogHeader>
-							<div className="mt-4">
-								<p>Service information would be displayed here.</p>
-							</div>
-						</DialogContent>
-					</Dialog> */}
 				</div>
 			</CardContent>
 		</Card>

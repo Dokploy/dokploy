@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Badge } from "@/components/ui/badge";
-import { ShowNodeConfig } from "../details/show-node";
+import { ShowNodeConfig } from "../details/show-node-config";
 // import { ShowContainerConfig } from "../config/show-container-config";
 // import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 // import { DockerTerminalModal } from "../terminal/docker-terminal-modal";

@@ -8,10 +8,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import { Settings } from "lucide-react";
-import React from "react";
 
 interface Props {
 	nodeId: string;
@@ -22,12 +20,6 @@ export const ShowNodeConfig = ({ nodeId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				{/* <DropdownMenuItem
-					className="w-full cursor-pointer"
-					onSelect={(e) => e.preventDefault()}
-				>
-					Show Config
-				</DropdownMenuItem> */}
 				<Button variant="outline" size="sm" className="w-full">
 					<Settings className="h-4 w-4 mr-2" />
 					Config
