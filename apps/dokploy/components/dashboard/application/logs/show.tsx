@@ -35,7 +35,7 @@ interface Props {
 }
 
 export const ShowDockerLogs = ({ appName, serverId }: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
+	const { data, isLoading } = api.docker.getServiceContainersByAppName.useQuery(
 		{
 			appName,
 			serverId,
@@ -81,7 +81,8 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 									key={container.containerId}
 									value={container.containerId}
 								>
-									{container.name} ({container.containerId}) {container.state}
+									{container.name} ({container.containerId}@{container.node}){" "}
+									{container.state}
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>
@@ -91,6 +92,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 				<DockerLogs
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
+					runType="swarm"
 				/>
 			</CardContent>
 		</Card>

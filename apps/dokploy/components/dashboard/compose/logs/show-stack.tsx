@@ -32,18 +32,12 @@ export const DockerLogs = dynamic(
 interface Props {
 	appName: string;
 	serverId?: string;
-	appType: "stack" | "docker-compose";
 }
 
-export const ShowDockerLogsCompose = ({
-	appName,
-	appType,
-	serverId,
-}: Props) => {
-	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
+export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
+	const { data, isLoading } = api.docker.getStackContainersByAppName.useQuery(
 		{
 			appName,
-			appType,
 			serverId,
 		},
 		{
@@ -87,7 +81,8 @@ export const ShowDockerLogsCompose = ({
 									key={container.containerId}
 									value={container.containerId}
 								>
-									{container.name} ({container.containerId}) {container.state}
+									{container.name} ({container.containerId}@{container.node}){" "}
+									{container.state}
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>
@@ -97,7 +92,7 @@ export const ShowDockerLogsCompose = ({
 				<DockerLogs
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
-					runType="native"
+					runType="swarm"
 				/>
 			</CardContent>
 		</Card>
