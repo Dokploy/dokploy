@@ -2,7 +2,6 @@
 services:
   onedev:
     image: 1dev/server:11.6.6
-    container_name: onedev
     restart: always
 
     volumes:
