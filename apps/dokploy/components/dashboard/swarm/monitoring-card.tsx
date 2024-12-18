@@ -15,7 +15,7 @@ import {
 	Loader2,
 	Server,
 } from "lucide-react";
-import { NodeCard } from "./details/deatils-card";
+import { NodeCard } from "./details/details-card";
 
 export interface SwarmList {
 	ID: string;
