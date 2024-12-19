@@ -87,7 +87,7 @@ export const Login2FA = ({ authId }: Props) => {
 						</span>
 					</div>
 				)}
-				<CardTitle className="text-xl font-bold">2FA Setup</CardTitle>
+				<CardTitle className="text-xl font-bold">2FA Login</CardTitle>
 
 				<FormField
 					control={form.control}
