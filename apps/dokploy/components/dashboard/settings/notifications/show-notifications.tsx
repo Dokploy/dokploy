@@ -72,7 +72,7 @@ export const ShowNotifications = () => {
 									{notification.name}
 								  </span>
 								  <span className="text-xs font-medium text-muted-foreground">
-									  {notification.notificationType[0].toUpperCase() + notification.notificationType.slice(1)} notification
+									  {notification.notificationType && notification.notificationType[0].toUpperCase() + notification.notificationType.slice(1)} notification
 								  </span>
 								</div>
 							  </div>
