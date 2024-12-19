@@ -26,7 +26,7 @@ services:
         hard: 262144
 
   plausible:
-    image: ghcr.io/plausible/community-edition:v2.1.0
+    image: ghcr.io/plausible/community-edition:v2.1.4
     restart: always
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
