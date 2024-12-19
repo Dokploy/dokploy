@@ -1,6 +1,3 @@
-import { DateTooltip } from "@/components/shared/date-tooltip";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -10,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 import { toast } from "sonner";
 import { PreviewDeploymentCard } from "./preview-deployment-card";
 import { ShowPreviewSettings } from "./show-preview-settings";
@@ -95,7 +92,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
                           </div>
                         ) : (
                           <PreviewDeploymentCard
-                            key={previewDeployment?.previewDeploymentId}
+                            key={previewDeployment?.previewDeploymentId || ""}
                             appName={previewDeployment.appName}
                             serverId={data?.serverId || ""}
                             onDeploymentDelete={handleDeletePreviewDeployment}
