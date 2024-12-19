@@ -1,0 +1,551 @@
+x-restart-policy: &restart_policy
+  restart: unless-stopped
+x-depends_on-healthy: &depends_on-healthy
+  condition: service_healthy
+x-depends_on-default: &depends_on-default
+  condition: service_started
+x-healthcheck-defaults: &healthcheck_defaults
+  # Avoid setting the interval too small, as docker uses much more CPU than one would expect.
+  # Related issues:
+  # https://github.com/moby/moby/issues/39102
+  # https://github.com/moby/moby/issues/39388
+  # https://github.com/getsentry/self-hosted/issues/1000
+  interval: "$HEALTHCHECK_INTERVAL"
+  timeout: "$HEALTHCHECK_TIMEOUT"
+  retries: $HEALTHCHECK_RETRIES
+  start_period: 10s
+x-sentry-defaults: &sentry_defaults
+  <<: *restart_policy
+  image: sentry-self-hosted-local
+  # Set the platform to build for linux/arm64 when needed on Apple silicon Macs.
+  platform: ${DOCKER_PLATFORM:-}
+  build:
+    context: ./sentry
+    args:
+      - SENTRY_IMAGE
+  depends_on:
+    redis:
+      <<: *depends_on-healthy
+    kafka:
+      <<: *depends_on-healthy
+    postgres:
+      <<: *depends_on-healthy
+    memcached:
+      <<: *depends_on-default
+    smtp:
+      <<: *depends_on-default
+    snuba-api:
+      <<: *depends_on-default
+    symbolicator:
+      <<: *depends_on-default
+  entrypoint: "/etc/sentry/entrypoint.sh"
+  command: ["run", "web"]
+  environment:
+    PYTHONUSERBASE: "/data/custom-packages"
+    SENTRY_CONF: "/etc/sentry"
+    SNUBA: "http://snuba-api:1218"
+    VROOM: "http://vroom:8085"
+    # Force everything to use the system CA bundle
+    # This is mostly needed to support installing custom CA certs
+    # This one is used by botocore
+    DEFAULT_CA_BUNDLE: &ca_bundle "/etc/ssl/certs/ca-certificates.crt"
+    # This one is used by requests
+    REQUESTS_CA_BUNDLE: *ca_bundle
+    # This one is used by grpc/google modules
+    GRPC_DEFAULT_SSL_ROOTS_FILE_PATH_ENV_VAR: *ca_bundle
+    # Leaving the value empty to just pass whatever is set
+    # on the host system (or in the .env file)
+    COMPOSE_PROFILES:
+    SENTRY_EVENT_RETENTION_DAYS:
+    SENTRY_MAIL_HOST:
+    SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:
+  volumes:
+    - "sentry-data:/data"
+    - "./sentry:/etc/sentry"
+    - "./geoip:/geoip:ro"
+    - "./certificates:/usr/local/share/ca-certificates:ro"
+x-snuba-defaults: &snuba_defaults
+  <<: *restart_policy
+  depends_on:
+    clickhouse:
+      <<: *depends_on-healthy
+    kafka:
+      <<: *depends_on-healthy
+    redis:
+      <<: *depends_on-healthy
+  image: "$SNUBA_IMAGE"
+  environment:
+    SNUBA_SETTINGS: self_hosted
+    CLICKHOUSE_HOST: clickhouse
+    DEFAULT_BROKERS: "kafka:9092"
+    REDIS_HOST: redis
+    UWSGI_MAX_REQUESTS: "10000"
+    UWSGI_DISABLE_LOGGING: "true"
+    # Leaving the value empty to just pass whatever is set
+    # on the host system (or in the .env file)
+    SENTRY_EVENT_RETENTION_DAYS:
+services:
+  smtp:
+    <<: *restart_policy
+    platform: linux/amd64
+    image: tianon/exim4
+    hostname: "${SENTRY_MAIL_HOST:-}"
+    volumes:
+      - "sentry-smtp:/var/spool/exim4"
+      - "sentry-smtp-log:/var/log/exim4"
+  memcached:
+    <<: *restart_policy
+    image: "memcached:1.6.26-alpine"
+    command: ["-I", "${SENTRY_MAX_EXTERNAL_SOURCEMAP_SIZE:-1M}"]
+    healthcheck:
+      <<: *healthcheck_defaults
+      # From: https://stackoverflow.com/a/31877626/5155484
+      test: echo stats | nc 127.0.0.1 11211
+  redis:
+    <<: *restart_policy
+    image: "redis:6.2.14-alpine"
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: redis-cli ping | grep PONG
+    volumes:
+      - "sentry-redis:/data"
+      - type: bind
+        read_only: true
+        source: ./redis.conf
+        target: /usr/local/etc/redis/redis.conf
+    ulimits:
+      nofile:
+        soft: 10032
+        hard: 10032
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  postgres:
+    <<: *restart_policy
+    # Using the same postgres version as Sentry dev for consistency purposes
+    image: "postgres:14.11"
+    healthcheck:
+      <<: *healthcheck_defaults
+      # Using default user "postgres" from sentry/sentry.conf.example.py or value of POSTGRES_USER if provided
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+    command:
+      [
+        "postgres",
+        "-c",
+        "max_connections=${POSTGRES_MAX_CONNECTIONS:-100}",
+      ]
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    volumes:
+      - "sentry-postgres:/var/lib/postgresql/data"
+  kafka:
+    <<: *restart_policy
+    image: "confluentinc/cp-kafka:7.6.1"
+    environment:
+      # https://docs.confluent.io/platform/current/installation/docker/config-reference.html#cp-kakfa-example
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1001@127.0.0.1:29093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_NODE_ID: "1001"
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:29092,INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://127.0.0.1:29092,INTERNAL://kafka:9093,EXTERNAL://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: "1"
+      KAFKA_LOG_RETENTION_HOURS: "24"
+      KAFKA_MESSAGE_MAX_BYTES: "50000000" #50MB or bust
+      KAFKA_MAX_REQUEST_SIZE: "50000000" #50MB on requests apparently too
+      CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+      KAFKA_LOG4J_LOGGERS: "kafka.cluster=WARN,kafka.controller=WARN,kafka.coordinator=WARN,kafka.log=WARN,kafka.server=WARN,state.change.logger=WARN"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "WARN"
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: "WARN"
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
+    volumes:
+      - "sentry-kafka:/var/lib/kafka/data"
+      - "sentry-kafka-log:/var/lib/kafka/log"
+      - "sentry-secrets:/etc/kafka/secrets"
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: ["CMD-SHELL", "nc -z localhost 9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+  clickhouse:
+    <<: *restart_policy
+    image: clickhouse-self-hosted-local
+    build:
+      context: ./clickhouse
+      args:
+        BASE_IMAGE: "altinity/clickhouse-server:23.8.11.29.altinitystable"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - "sentry-clickhouse:/var/lib/clickhouse"
+      - "sentry-clickhouse-log:/var/log/clickhouse-server"
+      - type: bind
+        read_only: true
+        source: ./clickhouse/config.xml
+        target: /etc/clickhouse-server/config.d/sentry.xml
+    environment:
+      # This limits Clickhouse's memory to 30% of the host memory
+      # If you have high volume and your search return incomplete results
+      # You might want to change this to a higher value (and ensure your host has enough memory)
+      MAX_MEMORY_USAGE_RATIO: 0.3
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          # Manually override any http_proxy envvar that might be set, because
+          # this wget does not support no_proxy. See:
+          # https://github.com/getsentry/self-hosted/issues/1537
+          "http_proxy='' wget -nv -t1 --spider 'http://localhost:8123/' || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+  geoipupdate:
+    image: "ghcr.io/maxmind/geoipupdate:v6.1.0"
+    # Override the entrypoint in order to avoid using envvars for config.
+    # Futz with settings so we can keep mmdb and conf in same dir on host
+    # (image looks for them in separate dirs by default).
+    entrypoint:
+      ["/usr/bin/geoipupdate", "-d", "/sentry", "-f", "/sentry/GeoIP.conf"]
+    volumes:
+      - "./geoip:/sentry"
+  snuba-api:
+    <<: *snuba_defaults
+  # Kafka consumer responsible for feeding events into Clickhouse
+  snuba-errors-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage errors --consumer-group snuba-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+  # Kafka consumer responsible for feeding outcomes into Clickhouse
+  # Use --auto-offset-reset=earliest to recover up to 7 days of TSDB data
+  # since we did not do a proper migration
+  snuba-outcomes-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage outcomes_raw --consumer-group snuba-consumers --auto-offset-reset=earliest --max-batch-time-ms 750 --no-strict-offset-reset
+  snuba-outcomes-billing-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage outcomes_raw --consumer-group snuba-consumers --auto-offset-reset=earliest --max-batch-time-ms 750 --no-strict-offset-reset --raw-events-topic outcomes-billing
+  snuba-group-attributes-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage group_attributes --consumer-group snuba-group-attributes-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+  snuba-replacer:
+    <<: *snuba_defaults
+    command: replacer --storage errors --auto-offset-reset=latest --no-strict-offset-reset
+  snuba-subscription-consumer-events:
+    <<: *snuba_defaults
+    command: subscriptions-scheduler-executor --dataset events --entity events --auto-offset-reset=latest --no-strict-offset-reset --consumer-group=snuba-events-subscriptions-consumers --followed-consumer-group=snuba-consumers --schedule-ttl=60 --stale-threshold-seconds=900
+  #############################################
+  ## Feature Complete Sentry Snuba Consumers ##
+  #############################################
+  # Kafka consumer responsible for feeding transactions data into Clickhouse
+  snuba-transactions-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage transactions --consumer-group transactions_group --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-replays-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage replays --consumer-group snuba-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-issue-occurrence-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage search_issues --consumer-group generic_events_group --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-metrics-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage metrics_raw --consumer-group snuba-metrics-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-subscription-consumer-transactions:
+    <<: *snuba_defaults
+    command: subscriptions-scheduler-executor --dataset transactions --entity transactions --auto-offset-reset=latest --no-strict-offset-reset --consumer-group=snuba-transactions-subscriptions-consumers --followed-consumer-group=transactions_group --schedule-ttl=60 --stale-threshold-seconds=900
+    profiles:
+      - feature-complete
+  snuba-subscription-consumer-metrics:
+    <<: *snuba_defaults
+    command: subscriptions-scheduler-executor --dataset metrics --entity metrics_sets --entity metrics_counters --auto-offset-reset=latest --no-strict-offset-reset --consumer-group=snuba-metrics-subscriptions-consumers --followed-consumer-group=snuba-metrics-consumers --schedule-ttl=60 --stale-threshold-seconds=900
+    profiles:
+      - feature-complete
+  snuba-generic-metrics-distributions-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage generic_metrics_distributions_raw --consumer-group snuba-gen-metrics-distributions-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-generic-metrics-sets-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage generic_metrics_sets_raw --consumer-group snuba-gen-metrics-sets-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-generic-metrics-counters-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage generic_metrics_counters_raw --consumer-group snuba-gen-metrics-counters-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-generic-metrics-gauges-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage generic_metrics_gauges_raw --consumer-group snuba-gen-metrics-gauges-consumers --auto-offset-reset=latest --max-batch-time-ms 750 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-profiling-profiles-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage profiles --consumer-group snuba-consumers --auto-offset-reset=latest --max-batch-time-ms 1000 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-profiling-functions-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage functions_raw --consumer-group snuba-consumers --auto-offset-reset=latest --max-batch-time-ms 1000 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  snuba-spans-consumer:
+    <<: *snuba_defaults
+    command: rust-consumer --storage spans --consumer-group snuba-spans-consumers --auto-offset-reset=latest --max-batch-time-ms 1000 --no-strict-offset-reset
+    profiles:
+      - feature-complete
+  symbolicator:
+    <<: *restart_policy
+    image: "$SYMBOLICATOR_IMAGE"
+    volumes:
+      - "sentry-symbolicator:/data"
+      - type: bind
+        read_only: true
+        source: ./symbolicator
+        target: /etc/symbolicator
+    command: run -c /etc/symbolicator/config.yml
+  symbolicator-cleanup:
+    <<: *restart_policy
+    image: symbolicator-cleanup-self-hosted-local
+    build:
+      context: ./cron
+      args:
+        BASE_IMAGE: "$SYMBOLICATOR_IMAGE"
+    command: '"55 23 * * * gosu symbolicator symbolicator cleanup"'
+    volumes:
+      - "sentry-symbolicator:/data"
+  web:
+    <<: *sentry_defaults
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
+    healthcheck:
+      <<: *healthcheck_defaults
+      test:
+        - "CMD"
+        - "/bin/bash"
+        - "-c"
+        # Courtesy of https://unix.stackexchange.com/a/234089/108960
+        - 'exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e "GET /_health/ HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n" >&3 && grep ok -s -m 1 <&3'
+  cron:
+    <<: *sentry_defaults
+    command: run cron
+  worker:
+    <<: *sentry_defaults
+    command: run worker
+  events-consumer:
+    <<: *sentry_defaults
+    command: run consumer ingest-events --consumer-group ingest-consumer
+  attachments-consumer:
+    <<: *sentry_defaults
+    command: run consumer ingest-attachments --consumer-group ingest-consumer
+  post-process-forwarder-errors:
+    <<: *sentry_defaults
+    command: run consumer --no-strict-offset-reset post-process-forwarder-errors --consumer-group post-process-forwarder --synchronize-commit-log-topic=snuba-commit-log --synchronize-commit-group=snuba-consumers
+  subscription-consumer-events:
+    <<: *sentry_defaults
+    command: run consumer events-subscription-results --consumer-group query-subscription-consumer
+  ##############################################
+  ## Feature Complete Sentry Ingest Consumers ##
+  ##############################################
+  transactions-consumer:
+    <<: *sentry_defaults
+    command: run consumer ingest-transactions --consumer-group ingest-consumer
+    profiles:
+      - feature-complete
+  metrics-consumer:
+    <<: *sentry_defaults
+    command: run consumer ingest-metrics --consumer-group metrics-consumer
+    profiles:
+      - feature-complete
+  generic-metrics-consumer:
+    <<: *sentry_defaults
+    command: run consumer ingest-generic-metrics --consumer-group generic-metrics-consumer
+    profiles:
+      - feature-complete
+  billing-metrics-consumer:
+    <<: *sentry_defaults
+    command: run consumer billing-metrics-consumer --consumer-group billing-metrics-consumer
+    profiles:
+      - feature-complete
+  ingest-replay-recordings:
+    <<: *sentry_defaults
+    command: run consumer ingest-replay-recordings --consumer-group ingest-replay-recordings
+    profiles:
+      - feature-complete
+  ingest-occurrences:
+    <<: *sentry_defaults
+    command: run consumer ingest-occurrences --consumer-group ingest-occurrences
+    profiles:
+      - feature-complete
+  ingest-profiles:
+    <<: *sentry_defaults
+    command: run consumer ingest-profiles --consumer-group ingest-profiles
+    profiles:
+      - feature-complete
+  ingest-monitors:
+    <<: *sentry_defaults
+    command: run consumer ingest-monitors --consumer-group ingest-monitors
+    profiles:
+      - feature-complete
+  ingest-feedback-events:
+    <<: *sentry_defaults
+    command: run consumer ingest-feedback-events --consumer-group ingest-feedback
+    profiles:
+      - feature-complete
+  monitors-clock-tick:
+    <<: *sentry_defaults
+    command: run consumer monitors-clock-tick --consumer-group monitors-clock-tick
+    profiles:
+      - feature-complete
+  monitors-clock-tasks:
+    <<: *sentry_defaults
+    command: run consumer monitors-clock-tasks --consumer-group monitors-clock-tasks
+    profiles:
+      - feature-complete
+  post-process-forwarder-transactions:
+    <<: *sentry_defaults
+    command: run consumer --no-strict-offset-reset post-process-forwarder-transactions --consumer-group post-process-forwarder --synchronize-commit-log-topic=snuba-transactions-commit-log --synchronize-commit-group transactions_group
+    profiles:
+      - feature-complete
+  post-process-forwarder-issue-platform:
+    <<: *sentry_defaults
+    command: run consumer --no-strict-offset-reset post-process-forwarder-issue-platform --consumer-group post-process-forwarder --synchronize-commit-log-topic=snuba-generic-events-commit-log --synchronize-commit-group generic_events_group
+    profiles:
+      - feature-complete
+  subscription-consumer-transactions:
+    <<: *sentry_defaults
+    command: run consumer transactions-subscription-results --consumer-group query-subscription-consumer
+    profiles:
+      - feature-complete
+  subscription-consumer-metrics:
+    <<: *sentry_defaults
+    command: run consumer metrics-subscription-results --consumer-group query-subscription-consumer
+    profiles:
+      - feature-complete
+  subscription-consumer-generic-metrics:
+    <<: *sentry_defaults
+    command: run consumer generic-metrics-subscription-results --consumer-group query-subscription-consumer
+    profiles:
+      - feature-complete
+  sentry-cleanup:
+    <<: *sentry_defaults
+    image: sentry-cleanup-self-hosted-local
+    build:
+      context: ./cron
+      args:
+        BASE_IMAGE: sentry-self-hosted-local
+    entrypoint: "/entrypoint.sh"
+    command: '"0 0 * * * gosu sentry sentry cleanup --days $SENTRY_EVENT_RETENTION_DAYS"'
+  nginx:
+    <<: *restart_policy
+    ports:
+      - "$SENTRY_BIND:80/tcp"
+    image: "nginx:1.25.4-alpine"
+    volumes:
+      - type: bind
+        read_only: true
+        source: ./nginx.conf
+        target: /etc/nginx/nginx.conf
+      - sentry-nginx-cache:/var/cache/nginx
+      - sentry-nginx-www:/var/www
+    depends_on:
+      - web
+      - relay
+  relay:
+    <<: *restart_policy
+    image: "$RELAY_IMAGE"
+    volumes:
+      - type: bind
+        read_only: true
+        source: ./relay
+        target: /work/.relay
+      - type: bind
+        read_only: true
+        source: ./geoip
+        target: /geoip
+    depends_on:
+      kafka:
+        <<: *depends_on-healthy
+      redis:
+        <<: *depends_on-healthy
+      web:
+        <<: *depends_on-healthy
+  vroom:
+    <<: *restart_policy
+    image: "$VROOM_IMAGE"
+    environment:
+      SENTRY_KAFKA_BROKERS_PROFILING: "kafka:9092"
+      SENTRY_KAFKA_BROKERS_OCCURRENCES: "kafka:9092"
+      SENTRY_BUCKET_PROFILES: file://localhost//var/lib/sentry-profiles
+      SENTRY_SNUBA_HOST: "http://snuba-api:1218"
+    volumes:
+      - sentry-vroom:/var/lib/sentry-profiles
+    depends_on:
+      kafka:
+        <<: *depends_on-healthy
+    profiles:
+      - feature-complete
+  vroom-cleanup:
+    <<: *restart_policy
+    image: vroom-cleanup-self-hosted-local
+    build:
+      context: ./cron
+      args:
+        BASE_IMAGE: "$VROOM_IMAGE"
+    entrypoint: "/entrypoint.sh"
+    environment:
+      # Leaving the value empty to just pass whatever is set
+      # on the host system (or in the .env file)
+      SENTRY_EVENT_RETENTION_DAYS:
+    command: '"0 0 * * * find /var/lib/sentry-profiles -type f -mtime +$SENTRY_EVENT_RETENTION_DAYS -delete"'
+    volumes:
+      - sentry-vroom:/var/lib/sentry-profiles
+    profiles:
+      - feature-complete
+
+volumes:
+  # These store application data that should persist across restarts.
+  sentry-data:
+    external: true
+  sentry-postgres:
+    external: true
+  sentry-redis:
+    external: true
+  sentry-kafka:
+    external: true
+  sentry-clickhouse:
+    external: true
+  sentry-symbolicator:
+    external: true
+  # This volume stores JS SDK assets and the data inside this volume should
+  # be cleaned periodically on upgrades.
+  sentry-nginx-www:
+  # This volume stores profiles and should be persisted.
+  # Not being external will still persist data across restarts.
+  # It won't persist if someone does a docker compose down -v.
+  sentry-vroom:
+  # These store ephemeral data that needn't persist across restarts.
+  # That said, volumes will be persisted across restarts until they are deleted.
+  sentry-secrets:
+  sentry-smtp:
+  sentry-nginx-cache:
+  sentry-kafka-log:
+  sentry-smtp-log:
+  sentry-clickhouse-log:
