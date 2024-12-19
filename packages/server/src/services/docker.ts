@@ -157,6 +157,124 @@ export const getContainersByAppNameMatch = async (
 	return [];
 };
 
+export const getStackContainersByAppName = async (
+	appName: string,
+	serverId?: string,
+) => {
+	try {
+		let result: string[] = [];
+
+		const command = `docker stack ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
+		if (serverId) {
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
+		}
+
+		const containers = result.map((line) => {
+			const parts = line.split(" | ");
+			const containerId = parts[0]
+				? parts[0].replace("CONTAINER ID : ", "").trim()
+				: "No container id";
+			const name = parts[1]
+				? parts[1].replace("Name: ", "").trim()
+				: "No container name";
+
+			const state = parts[2]
+				? parts[2].replace("State: ", "").trim()
+				: "No state";
+			const node = parts[3]
+				? parts[3].replace("Node: ", "").trim()
+				: "No specific node";
+			return {
+				containerId,
+				name,
+				state,
+				node,
+			};
+		});
+
+		return containers || [];
+	} catch (error) {}
+
+	return [];
+};
+
+export const getServiceContainersByAppName = async (
+	appName: string,
+	serverId?: string,
+) => {
+	try {
+		let result: string[] = [];
+
+		const command = `docker service ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
+
+		if (serverId) {
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
+		}
+
+		const containers = result.map((line) => {
+			const parts = line.split(" | ");
+			const containerId = parts[0]
+				? parts[0].replace("CONTAINER ID : ", "").trim()
+				: "No container id";
+			const name = parts[1]
+				? parts[1].replace("Name: ", "").trim()
+				: "No container name";
+
+			const state = parts[2]
+				? parts[2].replace("State: ", "").trim()
+				: "No state";
+
+			const node = parts[3]
+				? parts[3].replace("Node: ", "").trim()
+				: "No specific node";
+			return {
+				containerId,
+				name,
+				state,
+				node,
+			};
+		});
+
+		return containers || [];
+	} catch (error) {}
+
+	return [];
+};
+
 export const getContainersByAppLabel = async (
 	appName: string,
 	serverId?: string,

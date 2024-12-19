@@ -12,6 +12,7 @@ import { type LogLine, getLogType, parseLogs } from "./utils";
 interface Props {
 	containerId: string;
 	serverId?: string | null;
+	runType: "swarm" | "native";
 }
 
 export const priorities = [
@@ -37,7 +38,11 @@ export const priorities = [
 	},
 ];
 
-export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
+export const DockerLogsId: React.FC<Props> = ({
+	containerId,
+	serverId,
+	runType,
+}) => {
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -104,6 +109,7 @@ export const DockerLogsId: React.FC<Props> = ({ containerId, serverId }) => {
 			tail: lines.toString(),
 			since,
 			search,
+			runType,
 		});
 
 		if (serverId) {
