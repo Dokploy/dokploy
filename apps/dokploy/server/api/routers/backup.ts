@@ -23,6 +23,10 @@ import {
 	runPostgresBackup,
 	scheduleBackup,
 	updateBackupById,
+	restorePostgresBackup,
+	restoreMySqlBackup,
+	restoreMariadbBackup,
+	restoreMongoBackup,
 } from "@dokploy/server";
 
 import { TRPCError } from "@trpc/server";
@@ -206,27 +210,39 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	restore: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input }) => {
+			try {
+				const backup = await findBackupById(input.backupId);
+				const databaseType = backup.databaseType;
+
+				if (databaseType === "postgres") {
+					const postgres = await findPostgresByBackupId(backup.backupId);
+					await restorePostgresBackup(postgres, backup);
+				} else if (databaseType === "mysql") {
+					const mysql = await findMySqlByBackupId(backup.backupId);
+					await restoreMySqlBackup(mysql, backup);
+				} else if (databaseType === "mariadb") {
+					const mariadb = await findMariadbByBackupId(backup.backupId);
+					await restoreMariadbBackup(mariadb, backup);
+				} else if (databaseType === "mongo") {
+					const mongo = await findMongoByBackupId(backup.backupId);
+					await restoreMongoBackup(mongo, backup);
+				} else {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Unsupported database type",
+					});
+				}
+
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error to restore the backup",
+					cause: error,
+				});
+			}
+		}),
 });
-
-// export const getAdminId = async (backupId: string) => {
-// 	const backup = await findBackupById(backupId);
-
-// 	if (backup.databaseType === "postgres" && backup.postgresId) {
-// 		const postgres = await findPostgresById(backup.postgresId);
-// 		return postgres.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mariadb" && backup.mariadbId) {
-// 		const mariadb = await findMariadbById(backup.mariadbId);
-// 		return mariadb.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mysql" && backup.mysqlId) {
-// 		const mysql = await findMySqlById(backup.mysqlId);
-// 		return mysql.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mongo" && backup.mongoId) {
-// 		const mongo = await findMongoById(backup.mongoId);
-// 		return mongo.project.adminId;
-// 	}
-
-// 	return null;
-// };

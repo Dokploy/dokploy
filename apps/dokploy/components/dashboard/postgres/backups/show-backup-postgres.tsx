@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { AddBackup } from "../../database/backups/add-backup";
 import { DeleteBackup } from "../../database/backups/delete-backup";
 import { UpdateBackup } from "../../database/backups/update-backup";
+import { RestoreBackup } from "../../database/backups/restore-backup";
+
 interface Props {
 	postgresId: string;
 }
@@ -162,6 +164,9 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 													/>
 													<DeleteBackup
 														backupId={backup.backupId}
+														refetch={refetchPostgres}
+													/>
+													<RestoreBackup
 														refetch={refetchPostgres}
 													/>
 												</div>
