@@ -188,9 +188,9 @@ export const authRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const currentAuth = await findAuthByEmail(ctx.user.email);
 
-			if (input.password) {
+			if (input.currentPassword) {
 				const correctPassword = bcrypt.compareSync(
-					input.password,
+					input.currentPassword,
 					currentAuth?.password || "",
 				);
 				if (!correctPassword) {
