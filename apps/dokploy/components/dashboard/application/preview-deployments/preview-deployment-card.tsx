@@ -13,20 +13,20 @@ import { DateTooltip } from "@/components/shared/date-tooltip";
 
 interface PreviewDeploymentCardProps {
   appName: string;
-  serverId: string | undefined;
+  serverId: string;
   onDeploymentDelete: (deploymentId: string) => void;
   deploymentId: string;
   deploymentUrl: string;
   deployments: RouterOutputs["deployment"]["all"];
 
-  domainId: string | undefined;
-  domainHost: string | undefined;
+  domainId: string;
+  domainHost: string;
 
-  pullRequestTitle: string | undefined;
-  pullRequestUrl: string | undefined;
+  pullRequestTitle: string;
+  pullRequestUrl: string;
   status: "running" | "error" | "done" | "idle" | undefined | null;
-  branch: string | undefined;
-  date: string | undefined;
+  branch: string;
+  date: string;
   isLoading: boolean;
 }
 

@@ -99,15 +99,15 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
                             deploymentId={previewDeployment.previewDeploymentId}
                             deploymentUrl={`http://${domain?.host}`}
                             deployments={previewDeployment?.deployments || []}
-                            domainId={domain?.domainId}
-                            domainHost={domain?.host}
+                            domainId={domain?.domainId || ""}
+                            domainHost={domain?.host || ""}
                             pullRequestTitle={
-                              previewDeployment?.pullRequestTitle
+                              previewDeployment?.pullRequestTitle || ""
                             }
-                            pullRequestUrl={previewDeployment?.pullRequestURL}
+                            pullRequestUrl={previewDeployment?.pullRequestURL || ""}
                             status={previewDeployment.previewStatus}
-                            branch={previewDeployment?.branch}
-                            date={previewDeployment?.createdAt}
+                            branch={previewDeployment?.branch || ""}
+                            date={previewDeployment?.createdAt || ""}
                             isLoading={isLoading}
                           />
                         )}
