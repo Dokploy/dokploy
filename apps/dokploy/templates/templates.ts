@@ -1151,4 +1151,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "development"],
 		load: () => import("./onedev/index").then((m) => m.generate),
 	},
+	{
+		id: "sentry",
+		name: "Sentry",
+		version: "24.12.0",
+		description:
+			"Sentry, feature-complete and packaged up for low-volume deployments and proofs-of-concept.",
+		logo: "sentry.jpeg",
+		links: {
+			github: "https://github.com/getsentry/self-hosted",
+			website: "https://sentry.io/welcome/",
+			docs: "https://develop.sentry.dev/self-hosted/",
+		},
+		tags: ["self-hosted", "error-monitoring", "logging"],
+		load: () => import("./sentry/index").then((m) => m.generate),
+	},
 ];
