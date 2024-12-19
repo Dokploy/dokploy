@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -31,6 +32,7 @@ const deleteApplicationSchema = z.object({
 	projectName: z.string().min(1, {
 		message: "Application name is required",
 	}),
+	deleteVolumes: z.boolean(),
 });
 
 type DeleteApplication = z.infer<typeof deleteApplicationSchema>;
@@ -50,6 +52,7 @@ export const DeleteApplication = ({ applicationId }: Props) => {
 	const form = useForm<DeleteApplication>({
 		defaultValues: {
 			projectName: "",
+			deleteVolumes: false,
 		},
 		resolver: zodResolver(deleteApplicationSchema),
 	});
@@ -59,6 +62,7 @@ export const DeleteApplication = ({ applicationId }: Props) => {
 		if (formData.projectName === expectedName) {
 			await mutateAsync({
 				applicationId,
+				deleteVolumes: formData.deleteVolumes,
 			})
 				.then((data) => {
 					push(`/dashboard/project/${data?.projectId}`);
@@ -130,6 +134,27 @@ export const DeleteApplication = ({ applicationId }: Props) => {
 												{...field}
 											/>
 										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="deleteVolumes"
+								render={({ field }) => (
+									<FormItem>
+										<div className="flex items-center">
+											<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+
+											<FormLabel className="ml-2">
+												Delete volumes associated with this compose
+											</FormLabel>
+										</div>
 										<FormMessage />
 									</FormItem>
 								)}

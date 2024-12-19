@@ -17,6 +17,7 @@ import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
+import { previewDeployments } from "./preview-deployments";
 import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
@@ -25,7 +26,6 @@ import { server } from "./server";
 import { applicationStatus, certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { previewDeployments } from "./preview-deployments";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",
@@ -518,3 +518,8 @@ export const apiUpdateApplication = createSchema
 		applicationId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiDeleteApplication = z.object({
+	applicationId: z.string().min(1),
+	deleteVolumes: z.boolean(),
+});

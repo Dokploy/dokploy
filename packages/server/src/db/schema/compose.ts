@@ -155,6 +155,11 @@ export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
 });
 
+export const apiDeleteCompose = z.object({
+	composeId: z.string().min(1),
+	deleteVolumes: z.boolean(),
+});
+
 export const apiFetchServices = z.object({
 	composeId: z.string().min(1),
 	type: z.enum(["fetch", "cache"]).optional().default("cache"),
