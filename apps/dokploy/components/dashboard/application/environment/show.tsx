@@ -2,11 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { StandardEnvForm } from "./standard-env-form";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
@@ -59,15 +61,32 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="flex w-full flex-col gap-5 "
+				className="flex w-full flex-col gap-5"
 			>
 				<Card className="bg-background p-6">
-					<Secrets
-						name="env"
-						title="Environment Settings"
-						description="You can add environment variables to your resource."
-						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
-					/>
+					<Tabs defaultValue="standard">
+						<TabsList className="mb-4">
+							<TabsTrigger value="standard">Standard</TabsTrigger>
+							<TabsTrigger value="advanced">Advanced</TabsTrigger>
+						</TabsList>
+
+						<TabsContent value="standard">
+							<StandardEnvForm
+								value={form.watch("env")}
+								onChange={(value) => form.setValue("env", value)}
+							/>
+						</TabsContent>
+
+						<TabsContent value="advanced">
+							<Secrets
+								name="env"
+								title="Environment Settings"
+								description="You can add environment variables to your resource."
+								placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
+							/>
+						</TabsContent>
+					</Tabs>
+
 					{data?.buildType === "dockerfile" && (
 						<Secrets
 							name="buildArgs"
