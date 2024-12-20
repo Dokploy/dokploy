@@ -3,37 +3,49 @@ import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
 import { getServiceContainer } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import { spawnAsync } from "../utils/process/spawnAsync";
 // import packageInfo from "../../../package.json";
 
-const updateIsAvailable = async () => {
-	try {
-		const service = await getServiceContainer("dokploy");
+/** Returns current Dokploy docker image tag or `latest` by default. */
+export const getDokployImageTag = () => {
+	return process.env.RELEASE_TAG || "latest";
+};
 
-		const localImage = await docker.getImage(getDokployImage()).inspect();
-		return localImage.Id !== service?.ImageID;
-	} catch (error) {
-		return false;
-	}
+/** Checks if server update is available by comparing current image's digest against digest for provided image tag via Docker hub API */
+export const checkIsUpdateAvailable = async () => {
+	const commandResult = await spawnAsync("docker", [
+		"inspect",
+		"--format={{index .RepoDigests 0}}",
+		getDokployImage(),
+	]);
+
+	const currentDigest = commandResult.toString().trim().split("@")[1];
+
+	const url = `https://hub.docker.com/v2/repositories/dokploy/dokploy/tags/${getDokployImageTag()}`;
+	const response = await fetch(url, {
+		method: "GET",
+		headers: { "Content-Type": "application/json" },
+	});
+
+	const data = (await response.json()) as { digest: string };
+	const { digest } = data;
+
+	return digest !== currentDigest;
 };
 
 export const getDokployImage = () => {
-	return `dokploy/dokploy:${process.env.RELEASE_TAG || "latest"}`;
+	return `dokploy/dokploy:${getDokployImageTag()}`;
 };
 
 export const pullLatestRelease = async () => {
-	try {
-		const stream = await docker.pull(getDokployImage(), {});
-		await new Promise((resolve, reject) => {
-			docker.modem.followProgress(stream, (err, res) =>
-				err ? reject(err) : resolve(res),
-			);
-		});
-		const newUpdateIsAvailable = await updateIsAvailable();
-		return newUpdateIsAvailable;
-	} catch (error) {}
-
-	return false;
+	const stream = await docker.pull(getDokployImage());
+	await new Promise((resolve, reject) => {
+		docker.modem.followProgress(stream, (err, res) =>
+			err ? reject(err) : resolve(res),
+		);
+	});
 };
+
 export const getDokployVersion = () => {
 	// return packageInfo.version;
 };
