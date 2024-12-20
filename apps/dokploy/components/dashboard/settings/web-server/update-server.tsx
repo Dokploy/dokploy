@@ -20,9 +20,27 @@ export const UpdateServer = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<null | boolean>(
 		null,
 	);
-	const { mutateAsync: checkServerUpdates, isLoading } =
-		api.settings.checkServerUpdates.useMutation();
+	const { mutateAsync: checkForUpdate, isLoading } =
+		api.settings.checkForUpdate.useMutation();
 	const [isOpen, setIsOpen] = useState(false);
+
+	const handleCheckUpdates = async () => {
+		try {
+			const updateAvailable = await checkForUpdate();
+			setIsUpdateAvailable(updateAvailable);
+			if (updateAvailable) {
+				toast.success("Update is available!");
+			} else {
+				toast.info("No updates available");
+			}
+		} catch (error) {
+			console.error("Error checking for updates:", error);
+			setIsUpdateAvailable(false);
+			toast.error(
+				"An error occurred while checking for updates, please try again.",
+			);
+		}
+	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -76,24 +94,7 @@ export const UpdateServer = () => {
 						) : (
 							<Button
 								className="w-full"
-								onClick={async () => {
-									await checkServerUpdates()
-										.then(async (updateAvailable) => {
-											setIsUpdateAvailable(updateAvailable);
-											toast.info(
-												updateAvailable
-													? "Update is available"
-													: "No updates available",
-											);
-										})
-										.catch((error) => {
-											console.error("Error checking for updates:", error);
-											setIsUpdateAvailable(false);
-											toast.error(
-												"An error occurred while checking for updates, please try again.",
-											);
-										});
-								}}
+								onClick={handleCheckUpdates}
 								isLoading={isLoading}
 							>
 								{isLoading ? "Checking for updates..." : "Check for updates"}
