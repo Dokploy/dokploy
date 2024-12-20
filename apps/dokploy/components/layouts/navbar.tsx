@@ -41,6 +41,10 @@ export const Navbar = () => {
 
 	useEffect(() => {
 		// Handling of automatic check for server updates
+		if (isCloud) {
+			return;
+		}
+
 		if (!localStorage.getItem("enableAutoCheckUpdates")) {
 			// Enable auto update checking by default if user didn't change it
 			localStorage.setItem("enableAutoCheckUpdates", "true");
