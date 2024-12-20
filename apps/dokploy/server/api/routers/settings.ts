@@ -45,6 +45,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateAdmin,
+	checkIsUpdateAvailable,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -342,17 +343,20 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-
-	checkAndUpdateImage: adminProcedure.mutation(async () => {
+	checkForUpdate: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		return await pullLatestRelease();
+
+		return await checkIsUpdateAvailable();
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
+
+		await pullLatestRelease();
+
 		await spawnAsync("docker", [
 			"service",
 			"update",
@@ -361,6 +365,7 @@ export const settingsRouter = createTRPCRouter({
 			getDokployImage(),
 			"dokploy",
 		]);
+
 		return true;
 	}),
 
