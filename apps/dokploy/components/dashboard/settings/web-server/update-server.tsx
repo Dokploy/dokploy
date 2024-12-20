@@ -14,13 +14,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UpdateWebServer } from "./update-webserver";
+import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 
 export const UpdateServer = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<null | boolean>(
 		null,
 	);
-	const { mutateAsync: checkAndUpdateImage, isLoading } =
-		api.settings.checkAndUpdateImage.useMutation();
+	const { mutateAsync: checkServerUpdates, isLoading } =
+		api.settings.checkServerUpdates.useMutation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -61,6 +62,7 @@ export const UpdateServer = () => {
 					</AlertBlock>
 
 					<div className="w-full flex flex-col gap-4">
+						<ToggleAutoCheckUpdates />
 						{isUpdateAvailable === false && (
 							<div className="flex flex-col items-center gap-3">
 								<RefreshCcw className="size-6 self-center text-muted-foreground" />
@@ -75,7 +77,7 @@ export const UpdateServer = () => {
 							<Button
 								className="w-full"
 								onClick={async () => {
-									await checkAndUpdateImage()
+									await checkServerUpdates()
 										.then(async (updateAvailable) => {
 											setIsUpdateAvailable(updateAvailable);
 											toast.info(
@@ -84,7 +86,8 @@ export const UpdateServer = () => {
 													: "No updates available",
 											);
 										})
-										.catch(() => {
+										.catch((error) => {
+											console.error("Error checking for updates:", error);
 											setIsUpdateAvailable(false);
 											toast.error(
 												"An error occurred while checking for updates, please try again.",
