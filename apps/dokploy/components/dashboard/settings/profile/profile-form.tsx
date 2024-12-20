@@ -104,6 +104,7 @@ export const ProfileForm = () => {
 			.then(async () => {
 				await refetch();
 				toast.success("Profile Updated");
+				form.reset();
 			})
 			.catch(() => {
 				toast.error("Error to Update the profile");
