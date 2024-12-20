@@ -7,7 +7,7 @@ export const ToggleAutoCheckUpdates = () => {
 		localStorage.getItem("enableAutoCheckUpdates") === "true",
 	);
 
-	const handleToggle = async (checked: boolean) => {
+	const handleToggle = (checked: boolean) => {
 		setEnabled(checked);
 		localStorage.setItem("enableAutoCheckUpdates", String(checked));
 	};
