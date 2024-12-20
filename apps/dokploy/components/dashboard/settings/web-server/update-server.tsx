@@ -20,16 +20,16 @@ export const UpdateServer = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<null | boolean>(
 		null,
 	);
-	const { mutateAsync: checkForUpdate, isLoading } =
-		api.settings.checkForUpdate.useMutation();
+	const { mutateAsync: getUpdateData, isLoading } =
+		api.settings.getUpdateData.useMutation();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleCheckUpdates = async () => {
 		try {
-			const updateAvailable = await checkForUpdate();
+			const { updateAvailable, latestVersion } = await getUpdateData();
 			setIsUpdateAvailable(updateAvailable);
 			if (updateAvailable) {
-				toast.success("Update is available!");
+				toast.success(`${latestVersion} update is available!`);
 			} else {
 				toast.info("No updates available");
 			}

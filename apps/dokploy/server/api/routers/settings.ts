@@ -45,7 +45,7 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateAdmin,
-	checkIsUpdateAvailable,
+	getUpdateData,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -343,12 +343,12 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-	checkForUpdate: adminProcedure.mutation(async () => {
+	getUpdateData: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
-			return true;
+			return { latestVersion: null, updateAvailable: false };
 		}
 
-		return await checkIsUpdateAvailable();
+		return await getUpdateData();
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {

@@ -34,8 +34,8 @@ export const Navbar = () => {
 		},
 	);
 	const { mutateAsync } = api.auth.logout.useMutation();
-	const { mutateAsync: checkForUpdate } =
-		api.settings.checkForUpdate.useMutation();
+	const { mutateAsync: getUpdateData } =
+		api.settings.getUpdateData.useMutation();
 
 	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
 
@@ -58,7 +58,7 @@ export const Navbar = () => {
 					return;
 				}
 
-				const updateAvailable = await checkForUpdate();
+				const { updateAvailable } = await getUpdateData();
 
 				if (updateAvailable) {
 					// Stop interval when update is available

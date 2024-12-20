@@ -1,7 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
-import { getServiceContainer } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { spawnAsync } from "../utils/process/spawnAsync";
 // import packageInfo from "../../../package.json";
@@ -11,8 +10,11 @@ export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
 };
 
-/** Checks if server update is available by comparing current image's digest against digest for provided image tag via Docker hub API */
-export const checkIsUpdateAvailable = async () => {
+/** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
+export const getUpdateData = async (): Promise<{
+	latestVersion: string | null;
+	updateAvailable: boolean;
+}> => {
 	const commandResult = await spawnAsync("docker", [
 		"inspect",
 		"--format={{index .RepoDigests 0}}",
@@ -21,16 +23,35 @@ export const checkIsUpdateAvailable = async () => {
 
 	const currentDigest = commandResult.toString().trim().split("@")[1];
 
-	const url = `https://hub.docker.com/v2/repositories/dokploy/dokploy/tags/${getDokployImageTag()}`;
+	const url = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 	const response = await fetch(url, {
 		method: "GET",
 		headers: { "Content-Type": "application/json" },
 	});
 
-	const data = (await response.json()) as { digest: string };
-	const { digest } = data;
+	const data = (await response.json()) as {
+		results: [{ digest: string; name: string }];
+	};
+	const { results } = data;
+	const latestTagDigest = results.find((t) => t.name === "latest")?.digest;
 
-	return digest !== currentDigest;
+	if (!latestTagDigest) {
+		return { latestVersion: null, updateAvailable: false };
+	}
+
+	const versionedTag = results.find(
+		(t) => t.digest === latestTagDigest && t.name.startsWith("v"),
+	);
+
+	if (!versionedTag) {
+		return { latestVersion: null, updateAvailable: false };
+	}
+
+	const { name: latestVersion, digest } = versionedTag;
+
+	const updateAvailable = digest !== currentDigest;
+
+	return { latestVersion, updateAvailable };
 };
 
 export const getDokployImage = () => {
