@@ -78,11 +78,17 @@ export const UpdateServer = () => {
 									await checkAndUpdateImage()
 										.then(async (updateAvailable) => {
 											setIsUpdateAvailable(updateAvailable);
-											toast.info(updateAvailable ? "Update is available" : "No updates available");
+											toast.info(
+												updateAvailable
+													? "Update is available"
+													: "No updates available",
+											);
 										})
 										.catch(() => {
 											setIsUpdateAvailable(false);
-											toast.error("An error occurred while checking for updates, please try again.");
+											toast.error(
+												"An error occurred while checking for updates, please try again.",
+											);
 										});
 								}}
 								isLoading={isLoading}
