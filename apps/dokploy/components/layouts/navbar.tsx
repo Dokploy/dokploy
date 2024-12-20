@@ -15,8 +15,13 @@ import { useRouter } from "next/router";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
+import { useEffect, useRef, useState } from "react";
+import { UpdateWebServer } from "../dashboard/settings/web-server/update-webserver";
+
+const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 15;
 
 export const Navbar = () => {
+	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
 	const router = useRouter();
 	const { data } = api.auth.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -29,6 +34,55 @@ export const Navbar = () => {
 		},
 	);
 	const { mutateAsync } = api.auth.logout.useMutation();
+	const { mutateAsync: checkForUpdate } =
+		api.settings.checkForUpdate.useMutation();
+
+	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
+
+	useEffect(() => {
+		// Handling of automatic check for server updates
+		if (!localStorage.getItem("enableAutoCheckUpdates")) {
+			// Enable auto update checking by default if user didn't change it
+			localStorage.setItem("enableAutoCheckUpdates", "true");
+		}
+
+		const clearUpdatesInterval = () => {
+			if (checkUpdatesIntervalRef.current) {
+				clearInterval(checkUpdatesIntervalRef.current);
+			}
+		};
+
+		const checkUpdates = async () => {
+			try {
+				if (localStorage.getItem("enableAutoCheckUpdates") !== "true") {
+					return;
+				}
+
+				const updateAvailable = await checkForUpdate();
+
+				if (updateAvailable) {
+					// Stop interval when update is available
+					clearUpdatesInterval();
+					setIsUpdateAvailable(true);
+				}
+			} catch (error) {
+				console.error("Error auto-checking for updates:", error);
+			}
+		};
+
+		checkUpdatesIntervalRef.current = setInterval(
+			checkUpdates,
+			AUTO_CHECK_UPDATES_INTERVAL_MINUTES * 60000,
+		);
+
+		// Also check for updates on initial page load
+		checkUpdates();
+
+		return () => {
+			clearUpdatesInterval();
+		};
+	}, []);
+
 	return (
 		<nav className="border-divider sticky inset-x-0 top-0 z-40 flex h-auto w-full items-center justify-center border-b bg-background/70 backdrop-blur-lg backdrop-saturate-150 data-[menu-open=true]:border-none data-[menu-open=true]:backdrop-blur-xl">
 			<header className="relative z-40 flex w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6 h-16">
@@ -43,6 +97,11 @@ export const Navbar = () => {
 						</span>
 					</Link>
 				</div>
+				{isUpdateAvailable && (
+					<div>
+						<UpdateWebServer isNavbar />
+					</div>
+				)}
 				<Link
 					className={buttonVariants({
 						variant: "outline",
