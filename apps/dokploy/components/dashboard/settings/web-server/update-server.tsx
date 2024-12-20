@@ -76,18 +76,18 @@ export const UpdateServer = () => {
 								className="w-full"
 								onClick={async () => {
 									await checkAndUpdateImage()
-										.then(async (e) => {
-											setIsUpdateAvailable(e);
+										.then(async (updateAvailable) => {
+											setIsUpdateAvailable(updateAvailable);
+											toast.info(updateAvailable ? "Update is available" : "No updates available");
 										})
 										.catch(() => {
 											setIsUpdateAvailable(false);
-											toast.error("Error to check updates");
+											toast.error("An error occurred while checking for updates, please try again.");
 										});
-									toast.success("Check updates");
 								}}
 								isLoading={isLoading}
 							>
-								Check Updates
+								{isLoading ? "Checking for updates..." : "Check for updates"}
 							</Button>
 						)}
 					</div>
