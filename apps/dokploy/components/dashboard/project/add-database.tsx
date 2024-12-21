@@ -35,6 +35,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
@@ -95,6 +96,7 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("mongo"),
 			databaseUser: z.string().default("mongo"),
+			replicaSets: z.boolean().default(false),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -216,6 +218,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
+				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
@@ -540,6 +543,30 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										);
 									}}
 								/>
+
+								{type === "mongo" && (
+									<FormField
+										control={form.control}
+										name="replicaSets"
+										render={({ field }) => {
+											return (
+												<FormItem>
+													<FormLabel>Use Replica Sets</FormLabel>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+															disabled
+															aria-readonly
+														/>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

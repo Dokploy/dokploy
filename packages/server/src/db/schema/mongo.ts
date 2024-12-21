@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -43,6 +43,7 @@ export const mongo = pgTable("mongo", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	replicaSets: boolean("replicaSets").default(false),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
@@ -77,6 +78,7 @@ const createSchema = createInsertSchema(mongo, {
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
+	replicaSets: z.boolean().default(false),
 });
 
 export const apiCreateMongo = createSchema
@@ -89,6 +91,7 @@ export const apiCreateMongo = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		serverId: true,
+		replicaSets: true,
 	})
 	.required();
 
