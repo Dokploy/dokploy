@@ -29,7 +29,9 @@ import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ShowTeams } from "../teams/show-teams";
 import { AddUserPermissions } from "./add-permissions";
+import { AddToTeam } from "./add-to-team";
 import { AddUser } from "./add-user";
 import { DeleteUser } from "./delete-user";
 
@@ -41,7 +43,8 @@ export const ShowUsers = () => {
 	}, []);
 
 	return (
-		<div className=" col-span-2">
+		<div className="space-y-5">
+			<ShowTeams />
 			<Card className="bg-transparent  ">
 				<CardHeader className="flex flex-row gap-2 justify-between w-full flex-wrap">
 					<div className="flex flex-col gap-2">
@@ -80,7 +83,7 @@ export const ShowUsers = () => {
 								<TableBody>
 									{data?.map((user) => {
 										return (
-											<TableRow key={user.userId}>
+											<TableRow key={user.authId}>
 												<TableCell className="w-[100px]">
 													{user.auth.email}
 												</TableCell>
@@ -135,7 +138,7 @@ export const ShowUsers = () => {
 															{user.isRegistered && (
 																<AddUserPermissions userId={user.userId} />
 															)}
-
+															<AddToTeam userId={user.authId} />
 															<DeleteUser authId={user.authId} />
 														</DropdownMenuContent>
 													</DropdownMenu>
