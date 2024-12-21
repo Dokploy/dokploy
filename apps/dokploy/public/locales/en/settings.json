@@ -13,6 +13,7 @@
 	"settings.server.webServer.description": "Reload or clean the web server.",
 	"settings.server.webServer.actions": "Actions",
 	"settings.server.webServer.reload": "Reload",
+	"settings.server.webServer.enterTerminal": "Enter the terminal",
 	"settings.server.webServer.watchLogs": "Watch logs",
 	"settings.server.webServer.updateServerIp": "Update Server IP",
 	"settings.server.webServer.server.label": "Server",

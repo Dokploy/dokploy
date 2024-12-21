@@ -13,6 +13,7 @@
 	"settings.server.webServer.description": "Przeładuj lub wyczyść serwer",
 	"settings.server.webServer.actions": "Akcje",
 	"settings.server.webServer.reload": "Przeładuj",
+	"settings.server.webServer.enterTerminal": "Otwórz terminal",
 	"settings.server.webServer.watchLogs": "Obserwuj logi",
 	"settings.server.webServer.updateServerIp": "Zaktualizuj IP serwera",
 	"settings.server.webServer.server.label": "Serwer",
