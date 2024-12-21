@@ -28,6 +28,7 @@ const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
+		const host = process.env.EXPOSE_ALL_INTERFACES === "true" ? "0.0.0.0" : "127.0.0.1";
 		const server = http.createServer((req, res) => {
 			handle(req, res);
 		});
@@ -63,7 +64,7 @@ void app.prepare().then(async () => {
 			await migration();
 		}
 
-		server.listen(PORT);
+		server.listen(PORT, host);
 		console.log("Server Started:", PORT);
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");

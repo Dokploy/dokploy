@@ -7,11 +7,20 @@ import { createClient } from "redis";
 import { logger } from "./logger";
 import { type DeployJob, deployJobSchema } from "./schema";
 import { deploy } from "./utils";
+import rateLimit from "express-rate-limit";
 
 const app = new Hono();
 const redisClient = createClient({
 	url: process.env.REDIS_URL,
 });
+
+const limiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 100, // limit each IP to 100 requests per windowMs
+	message: "Too many requests from this IP, please try again later.",
+});
+
+app.use(limiter);
 
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
@@ -57,5 +66,6 @@ const queue = new Queue({
 })();
 
 const port = Number.parseInt(process.env.PORT || "3000");
+const host = process.env.EXPOSE_ALL_INTERFACES === "true" ? "0.0.0.0" : "127.0.0.1";
 logger.info("Starting Deployments Server ✅", port);
-serve({ fetch: app.fetch, port });
+serve({ fetch: app.fetch, port, host });

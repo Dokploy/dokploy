@@ -8,12 +8,14 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useTranslation } from "next-i18next";
-import React from "react";
+import React, { useState } from "react";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
+import { Switch } from "@/components/ui/switch";
+import { Alert } from "@/components/ui/alert";
 
 interface Props {
 	className?: string;
@@ -23,6 +25,14 @@ export const WebServer = ({ className }: Props) => {
 	const { data } = api.admin.one.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+
+	const [exposeAllInterfaces, setExposeAllInterfaces] = useState(
+		process.env.EXPOSE_ALL_INTERFACES === "true"
+	);
+
+	const handleToggleChange = () => {
+		setExposeAllInterfaces(!exposeAllInterfaces);
+	};
 
 	return (
 		<Card className={cn("rounded-lg w-full bg-transparent p-0", className)}>
@@ -53,6 +63,22 @@ export const WebServer = ({ className }: Props) => {
 
 					<ToggleDockerCleanup />
 				</div>
+
+				<div className="flex items-center justify-between gap-4">
+					<span className="text-sm text-muted-foreground">
+						Expose server port
+					</span>
+					<Switch
+						checked={exposeAllInterfaces}
+						onCheckedChange={handleToggleChange}
+					/>
+				</div>
+
+				{exposeAllInterfaces && (
+					<Alert variant="warning">
+						{t("settings.server.webServer.exposeWarning")}
+					</Alert>
+				)}
 			</CardContent>
 		</Card>
 	);
