@@ -66,7 +66,7 @@ export const WebServer = ({ className }: Props) => {
 
 				<div className="flex items-center justify-between gap-4">
 					<span className="text-sm text-muted-foreground">
-						Expose 0.0.0.0:3000
+						Expose server port
 					</span>
 					<Switch
 						checked={exposeAllInterfaces}
