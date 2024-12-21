@@ -72,7 +72,9 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		results: [{ digest: string; name: string }];
 	};
 	const { results } = data;
-	const latestTagDigest = results.find((t) => t.name === "latest")?.digest;
+	const latestTagDigest = results.find(
+		(t) => t.name === getDokployImageTag(),
+	)?.digest;
 
 	if (!latestTagDigest) {
 		return DEFAULT_UPDATE_DATA;
