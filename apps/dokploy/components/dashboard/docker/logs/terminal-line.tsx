@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { escapeRegExp } from "lodash";
 import React from "react";
-import { type LogLine, getLogType } from "./utils";
+import { type LogLine, getLogType, parseAnsi } from "./utils";
 
 interface LogLineProps {
 	log: LogLine;
@@ -33,18 +33,38 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		: "--- No time found ---";
 
 	const highlightMessage = (text: string, term: string) => {
-		if (!term) return text;
-
-		const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, "gi"));
-		return parts.map((part, index) =>
-			part.toLowerCase() === term.toLowerCase() ? (
-				<span key={index} className="bg-yellow-200 dark:bg-yellow-900">
-					{part}
+		if (!term) {
+			const segments = parseAnsi(text);
+			return segments.map((segment, index) => (
+				<span key={index} className={segment.className || undefined}>
+					{segment.text}
 				</span>
-			) : (
-				part
-			),
-		);
+			));
+		}
+
+		// For search, we need to handle both ANSI and search highlighting
+		const segments = parseAnsi(text);
+		return segments.map((segment, index) => {
+			const parts = segment.text.split(
+				new RegExp(`(${escapeRegExp(term)})`, "gi"),
+			);
+			return (
+				<span key={index} className={segment.className || undefined}>
+					{parts.map((part, partIndex) =>
+						part.toLowerCase() === term.toLowerCase() ? (
+							<span
+								key={partIndex}
+								className="bg-yellow-200 dark:bg-yellow-900"
+							>
+								{part}
+							</span>
+						) : (
+							part
+						),
+					)}
+				</span>
+			);
+		});
 	};
 
 	const tooltip = (color: string, timestamp: string | null) => {
@@ -104,7 +124,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				</Badge>
 			</div>
 			<span className="dark:text-gray-200 font-mono text-foreground whitespace-pre-wrap break-all">
-				{searchTerm ? highlightMessage(message, searchTerm) : message}
+				{highlightMessage(message, searchTerm || "")}
 			</span>
 		</div>
 	);

@@ -53,7 +53,7 @@ export const buildRemoteDocker = async (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { sourceType, dockerImage, username, password } = application;
+	const { registryUrl, dockerImage, username, password } = application;
 
 	try {
 		if (!dockerImage) {
@@ -65,7 +65,7 @@ echo "Pulling ${dockerImage}" >> ${logPath};
 
 		if (username && password) {
 			command += `
-if ! docker login --username ${username} --password ${password} https://index.docker.io/v1/ >> ${logPath} 2>&1; then
+if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" >> ${logPath} 2>&1; then
 	echo "❌ Login failed" >> ${logPath};
 	exit 1;
 fi

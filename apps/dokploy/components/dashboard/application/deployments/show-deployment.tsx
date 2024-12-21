@@ -111,7 +111,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 				<div 
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#d4d4d4] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 				>					{ 
 						filteredLogs.length > 0 ? filteredLogs.map((log: LogLine, index: number) => (
 							<TerminalLine

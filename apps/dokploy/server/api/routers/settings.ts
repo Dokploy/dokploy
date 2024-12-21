@@ -12,6 +12,7 @@ import {
 } from "@/server/db/schema";
 import { removeJob, schedule } from "@/server/utils/backup";
 import {
+	DEFAULT_UPDATE_DATA,
 	IS_CLOUD,
 	canAccessToTraefikFiles,
 	cleanStoppedContainers,
@@ -25,6 +26,8 @@ import {
 	findAdminById,
 	findServerById,
 	getDokployImage,
+	getDokployImageTag,
+	getUpdateData,
 	initializeTraefik,
 	logRotationManager,
 	parseRawConfig,
@@ -267,11 +270,11 @@ export const settingsRouter = createTRPCRouter({
 						message: "You are not authorized to access this admin",
 					});
 				}
-				await updateAdmin(ctx.user.authId, {
+				const adminUpdated = await updateAdmin(ctx.user.authId, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
-				if (admin.enableDockerCleanup) {
+				if (adminUpdated?.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
@@ -342,17 +345,20 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-
-	checkAndUpdateImage: adminProcedure.mutation(async () => {
+	getUpdateData: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
-			return true;
+			return DEFAULT_UPDATE_DATA;
 		}
-		return await pullLatestRelease();
+
+		return await getUpdateData();
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
+
+		await pullLatestRelease();
+
 		await spawnAsync("docker", [
 			"service",
 			"update",
@@ -361,11 +367,15 @@ export const settingsRouter = createTRPCRouter({
 			getDokployImage(),
 			"dokploy",
 		]);
+
 		return true;
 	}),
 
 	getDokployVersion: adminProcedure.query(() => {
 		return packageInfo.version;
+	}),
+	getReleaseTag: adminProcedure.query(() => {
+		return getDokployImageTag();
 	}),
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)

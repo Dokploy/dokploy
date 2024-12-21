@@ -1136,4 +1136,19 @@ export const templates: TemplateData[] = [
 		tags: ["search", "analytics"],
 		load: () => import("./elastic-search/index").then((m) => m.generate),
 	},
+	{
+		id: "onedev",
+		name: "OneDev",
+		version: "11.6.6",
+		description:
+			"Git server with CI/CD, kanban, and packages. Seamless integration. Unparalleled experience.",
+		logo: "onedev.png",
+		links: {
+			github: "https://github.com/theonedev/onedev/",
+			website: "https://onedev.io/",
+			docs: "https://docs.onedev.io/",
+		},
+		tags: ["self-hosted", "development"],
+		load: () => import("./onedev/index").then((m) => m.generate),
+	},
 ];
