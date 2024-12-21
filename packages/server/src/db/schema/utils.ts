@@ -17,9 +17,9 @@ export const generateAppName = (type: string) => {
 
 export const cleanAppName = (appName?: string) => {
 	if (!appName) {
-		return appName;
+		return appName?.toLowerCase();
 	}
-	return appName.trim().replace(/ /g, "-");
+	return appName.trim().replace(/ /g, "-").toLowerCase();
 };
 
 export const buildAppName = (type: string, baseAppName?: string) => {

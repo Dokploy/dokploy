@@ -76,11 +76,11 @@ export const updateMySqlById = async (
 	mysqlId: string,
 	mysqlData: Partial<MySql>,
 ) => {
+	const { appName, ...rest } = mysqlData;
 	const result = await db
 		.update(mysql)
 		.set({
-			...mysqlData,
-			appName: cleanAppName(mysqlData.appName),
+			...rest,
 		})
 		.where(eq(mysql.mysqlId, mysqlId))
 		.returning();

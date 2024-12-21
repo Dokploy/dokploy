@@ -80,11 +80,11 @@ export const updateMariadbById = async (
 	mariadbId: string,
 	mariadbData: Partial<Mariadb>,
 ) => {
+	const { appName, ...rest } = mariadbData;
 	const result = await db
 		.update(mariadb)
 		.set({
-			...mariadbData,
-			appName: cleanAppName(mariadbData.appName),
+			...rest,
 		})
 		.where(eq(mariadb.mariadbId, mariadbId))
 		.returning();

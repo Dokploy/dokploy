@@ -94,11 +94,11 @@ export const updatePostgresById = async (
 	postgresId: string,
 	postgresData: Partial<Postgres>,
 ) => {
+	const { appName, ...rest } = postgresData;
 	const result = await db
 		.update(postgres)
 		.set({
-			...postgresData,
-			appName: cleanAppName(postgresData.appName),
+			...rest,
 		})
 		.where(eq(postgres.postgresId, postgresId))
 		.returning();

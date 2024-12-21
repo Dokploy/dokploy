@@ -72,11 +72,11 @@ export const updateMongoById = async (
 	mongoId: string,
 	mongoData: Partial<Mongo>,
 ) => {
+	const { appName, ...rest } = mongoData;
 	const result = await db
 		.update(mongo)
 		.set({
-			...mongoData,
-			appName: cleanAppName(mongoData.appName),
+			...rest,
 		})
 		.where(eq(mongo.mongoId, mongoId))
 		.returning();

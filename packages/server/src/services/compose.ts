@@ -184,11 +184,11 @@ export const updateCompose = async (
 	composeId: string,
 	composeData: Partial<Compose>,
 ) => {
+	const { appName, ...rest } = composeData;
 	const composeResult = await db
 		.update(compose)
 		.set({
-			...composeData,
-			appName: cleanAppName(composeData.appName),
+			...rest,
 		})
 		.where(eq(compose.composeId, composeId))
 		.returning();

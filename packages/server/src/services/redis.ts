@@ -68,11 +68,11 @@ export const updateRedisById = async (
 	redisId: string,
 	redisData: Partial<Redis>,
 ) => {
+	const { appName, ...rest } = redisData;
 	const result = await db
 		.update(redis)
 		.set({
-			...redisData,
-			appName: cleanAppName(redisData.appName),
+			...rest,
 		})
 		.where(eq(redis.redisId, redisId))
 		.returning();
