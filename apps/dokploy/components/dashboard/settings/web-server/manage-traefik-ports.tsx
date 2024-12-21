@@ -136,10 +136,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										onChange={(e) => {
 											const newPorts = [...additionalPorts];
 
-											// @ts-ignore
-											newPorts?.[index].targetPort = Number.parseInt(
-												e.target.value,
-											);
+											if (newPorts[index]) {
+												newPorts[index].targetPort = Number.parseInt(
+													e.target.value,
+												);
+											}
+
 											setAdditionalPorts(newPorts);
 										}}
 										className="w-full rounded border p-2"
@@ -155,10 +157,11 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										value={port.publishedPort}
 										onChange={(e) => {
 											const newPorts = [...additionalPorts];
-											// @ts-ignore
-											newPorts?.[index].publishedPort = Number.parseInt(
-												e.target.value,
-											);
+											if (newPorts[index]) {
+												newPorts[index].publishedPort = Number.parseInt(
+													e.target.value,
+												);
+											}
 											setAdditionalPorts(newPorts);
 										}}
 										className="w-full rounded border p-2"
@@ -172,8 +175,10 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										value={port.publishMode}
 										onValueChange={(value: "ingress" | "host") => {
 											const newPorts = [...additionalPorts];
-											// @ts-ignore
-											newPorts?.[index].publishMode = value;
+
+											if (newPorts[index]) {
+												newPorts[index].publishMode = value;
+											}
 											setAdditionalPorts(newPorts);
 										}}
 									>
