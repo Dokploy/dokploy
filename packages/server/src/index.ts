@@ -20,6 +20,7 @@ export * from "./services/mount";
 export * from "./services/certificate";
 export * from "./services/redirect";
 export * from "./services/security";
+export * from "./services/preview-deployment";
 export * from "./services/port";
 export * from "./services/redis";
 export * from "./services/compose";
@@ -40,6 +41,8 @@ export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
+export * from "./setup/server-validate";
+export * from "./setup/server-audit";
 
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
@@ -100,11 +103,6 @@ export * from "./utils/traefik/security";
 export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
 
-export * from "./wss/docker-container-logs";
-export * from "./wss/docker-container-terminal";
-export * from "./wss/docker-stats";
-export * from "./wss/listen-deployment";
-export * from "./wss/terminal";
 export * from "./wss/utils";
 
 export * from "./utils/access-log/handler";

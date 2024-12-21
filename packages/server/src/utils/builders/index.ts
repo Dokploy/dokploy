@@ -17,6 +17,7 @@ import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildStatic, getStaticCommand } from "./static";
+import { nanoid } from "nanoid";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -33,6 +34,7 @@ export type ApplicationNested = InferResultType<
 		project: true;
 	}
 >;
+
 export const buildApplication = async (
 	application: ApplicationNested,
 	logPath: string,
@@ -209,21 +211,21 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		return join(registry.imagePrefix || "", appName);
+		return join(registry.registryUrl, registry.imagePrefix || "", appName);
 	}
 
 	return `${appName}:latest`;
 };
 
 const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType } = application;
+	const { registry, username, password, sourceType, registryUrl } = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
 			return {
 				password,
 				username,
-				serveraddress: "https://index.docker.io/v1/",
+				serveraddress: registryUrl || "",
 			};
 		}
 	} else if (registry) {

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
+import { useTheme } from "next-themes";
 
 interface Props {
 	id: string;
@@ -12,7 +13,7 @@ interface Props {
 
 export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 	const termRef = useRef(null);
-
+	const { resolvedTheme } = useTheme();
 	useEffect(() => {
 		const container = document.getElementById(id);
 		if (container) {
@@ -20,13 +21,12 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		}
 		const term = new XTerm({
 			cursorBlink: true,
-			cols: 80,
-			rows: 30,
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
-				cursor: "transparent",
-				background: "#19191A",
+				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
+				background: "rgba(0, 0, 0, 0)",
+				foreground: "currentColor",
 			},
 		});
 		const addonFit = new FitAddon();
@@ -40,6 +40,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		// @ts-ignore
 		term.open(termRef.current);
+		// @ts-ignore
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
@@ -50,7 +51,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="w-full h-full bg-input rounded-lg p-2 ">
+			<div className="w-full h-full bg-transparent border rounded-lg p-2 ">
 				<div id={id} ref={termRef} className="rounded-xl" />
 			</div>
 		</div>

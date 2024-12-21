@@ -30,6 +30,9 @@ const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
+	gitlabUrl: z.string().url({
+		message: "Invalid Gitlab URL",
+	}),
 	groupName: z.string().optional(),
 });
 
@@ -40,7 +43,7 @@ interface Props {
 }
 
 export const EditGitlabProvider = ({ gitlabId }: Props) => {
-	const { data: gitlab } = api.gitlab.one.useQuery(
+	const { data: gitlab, refetch } = api.gitlab.one.useQuery(
 		{
 			gitlabId,
 		},
@@ -57,6 +60,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 		defaultValues: {
 			groupName: "",
 			name: "",
+			gitlabUrl: "https://gitlab.com",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -67,6 +71,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 		form.reset({
 			groupName: gitlab?.groupName || "",
 			name: gitlab?.gitProvider.name || "",
+			gitlabUrl: gitlab?.gitlabUrl || "",
 		});
 	}, [form, isOpen]);
 
@@ -76,11 +81,13 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			gitProviderId: gitlab?.gitProviderId || "",
 			groupName: data.groupName || "",
 			name: data.name || "",
+			gitlabUrl: data.gitlabUrl || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
 				toast.success("Gitlab updated successfully");
 				setIsOpen(false);
+				refetch();
 			})
 			.catch(() => {
 				toast.error("Error to update Gitlab");
@@ -121,6 +128,19 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 													placeholder="Random Name eg(my-personal-account)"
 													{...field}
 												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="gitlabUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Gitlab Url</FormLabel>
+											<FormControl>
+												<Input placeholder="https://gitlab.com" {...field} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>

@@ -1,5 +1,6 @@
 import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
+import { RemoveSelfAccount } from "@/components/dashboard/settings/profile/remove-self-account";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
@@ -21,10 +22,14 @@ const Page = () => {
 			enabled: !!data?.id && data?.rol === "user",
 		},
 	);
+
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ProfileForm />
 			{(user?.canAccessToAPI || data?.rol === "admin") && <GenerateToken />}
+
+			{isCloud && <RemoveSelfAccount />}
 		</div>
 	);
 };
@@ -33,7 +38,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="Profile">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);

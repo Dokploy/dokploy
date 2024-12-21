@@ -108,6 +108,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./baserow/index").then((m) => m.generate),
 	},
 	{
+		id: "budibase",
+		name: "Budibase",
+		version: "3.2.25",
+		description:
+			"Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.",
+		logo: "budibase.svg",
+		links: {
+			github: "https://github.com/Budibase/budibase",
+			website: "https://budibase.com/",
+			docs: "https://docs.budibase.com/docs/",
+		},
+		tags: ["database", "low-code", "nocode", "applications"],
+		load: () => import("./budibase/index").then((m) => m.generate),
+	},
+	{
 		id: "ghost",
 		name: "Ghost",
 		version: "5.0.0",
@@ -140,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
@@ -936,8 +951,8 @@ export const templates: TemplateData[] = [
 		logo: "ryot.png",
 		links: {
 			github: "https://github.com/IgnisDa/ryot",
-			website: "https://ryot.dev/",
-			docs: "https://ryot.dev/docs/getting-started",
+			website: "https://ryot.io/",
+			docs: "https://docs.ryot.io/",
 		},
 		tags: ["media", "tracking", "self-hosted"],
 		load: () => import("./ryot/index").then((m) => m.generate),
@@ -971,5 +986,169 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["event"],
 		load: () => import("./ontime/index").then((m) => m.generate),
+	},
+	{
+		id: "triggerdotdev",
+		name: "Trigger.dev",
+		version: "v3",
+		description:
+			"Trigger is a platform for building event-driven applications.",
+		logo: "triggerdotdev.svg",
+		links: {
+			github: "https://github.com/triggerdotdev/trigger.dev",
+			website: "https://trigger.dev/",
+			docs: "https://trigger.dev/docs",
+		},
+		tags: ["event-driven", "applications"],
+		load: () => import("./triggerdotdev/index").then((m) => m.generate),
+	},
+	{
+		id: "browserless",
+		name: "Browserless",
+		version: "2.23.0",
+		description:
+			"Browserless allows remote clients to connect and execute headless work, all inside of docker. It supports the standard, unforked Puppeteer and Playwright libraries, as well offering REST-based APIs for common actions like data collection, PDF generation and more.",
+		logo: "browserless.svg",
+		links: {
+			github: "https://github.com/browserless/browserless",
+			website: "https://www.browserless.io/",
+			docs: "https://docs.browserless.io/",
+		},
+		tags: ["browser", "automation"],
+		load: () => import("./browserless/index").then((m) => m.generate),
+	},
+	{
+		id: "drawio",
+		name: "draw.io",
+		version: "24.7.17",
+		description:
+			"draw.io is a configurable diagramming/whiteboarding visualization application.",
+		logo: "drawio.svg",
+		links: {
+			github: "https://github.com/jgraph/drawio",
+			website: "https://draw.io/",
+			docs: "https://www.drawio.com/doc/",
+		},
+		tags: ["drawing", "diagrams"],
+		load: () => import("./drawio/index").then((m) => m.generate),
+	},
+	{
+		id: "kimai",
+		name: "Kimai",
+		version: "2.26.0",
+		description:
+			"Kimai is a web-based multi-user time-tracking application. Works great for everyone: freelancers, companies, organizations - everyone can track their times, generate reports, create invoices and do so much more.",
+		logo: "kimai.svg",
+		links: {
+			github: "https://github.com/kimai/kimai",
+			website: "https://www.kimai.org",
+			docs: "https://www.kimai.org/documentation",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./kimai/index").then((m) => m.generate),
+	},
+	{
+		id: "logto",
+		name: "Logto",
+		version: "1.22.0",
+		description:
+			"Logto is an open-source Identity and Access Management (IAM) platform designed to streamline Customer Identity and Access Management (CIAM) and Workforce Identity Management.",
+		logo: "logto.png",
+		links: {
+			github: "https://github.com/logto-io/logto",
+			website: "https://logto.io/",
+			docs: "https://docs.logto.io/introduction",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./logto/index").then((m) => m.generate),
+	},
+	{
+		id: "penpot",
+		name: "Penpot",
+		version: "2.3.2",
+		description:
+			"Penpot is the web-based open-source design tool that bridges the gap between designers and developers.",
+		logo: "penpot.svg",
+		links: {
+			github: "https://github.com/penpot/penpot",
+			website: "https://penpot.app/",
+			docs: "https://docs.penpot.app/",
+		},
+		tags: ["desing", "collaboration"],
+		load: () => import("./penpot/index").then((m) => m.generate),
+	},
+	{
+		id: "huly",
+		name: "Huly",
+		version: "0.6.377",
+		description:
+			"Huly — All-in-One Project Management Platform (alternative to Linear, Jira, Slack, Notion, Motion)",
+		logo: "huly.svg",
+		links: {
+			github: "https://github.com/hcengineering/huly-selfhost",
+			website: "https://huly.io/",
+			docs: "https://docs.huly.io/",
+		},
+		tags: ["project-management", "community", "discussion"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	},
+	{
+		id: "unsend",
+		name: "Unsend",
+		version: "v1.2.4",
+		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
+		logo: "unsend.png", // we defined the name and the extension of the logo
+		links: {
+			github: "https://github.com/unsend-dev/unsend",
+			website: "https://unsend.dev/",
+			docs: "https://docs.unsend.dev/get-started/",
+		},
+		tags: ["e-mail", "marketing", "business"],
+		load: () => import("./unsend/index").then((m) => m.generate),
+	},
+	{
+		id: "langflow",
+		name: "Langflow",
+		version: "1.1.1",
+		description:
+			"Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database. ",
+		logo: "langflow.svg",
+		links: {
+			github: "https://github.com/langflow-ai/langflow/tree/main",
+			website: "https://www.langflow.org/",
+			docs: "https://docs.langflow.org/",
+		},
+		tags: ["ai"],
+		load: () => import("./langflow/index").then((m) => m.generate),
+	},
+	{
+		id: "elastic-search",
+		name: "Elasticsearch",
+		version: "8.10.2",
+		description:
+			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
+		logo: "elasticsearch.svg",
+		links: {
+			github: "https://github.com/elastic/elasticsearch",
+			website: "https://www.elastic.co/elasticsearch/",
+			docs: "https://docs.elastic.co/elasticsearch/",
+		},
+		tags: ["search", "analytics"],
+		load: () => import("./elastic-search/index").then((m) => m.generate),
+	},
+	{
+		id: "onedev",
+		name: "OneDev",
+		version: "11.6.6",
+		description:
+			"Git server with CI/CD, kanban, and packages. Seamless integration. Unparalleled experience.",
+		logo: "onedev.png",
+		links: {
+			github: "https://github.com/theonedev/onedev/",
+			website: "https://onedev.io/",
+			docs: "https://docs.onedev.io/",
+		},
+		tags: ["self-hosted", "development"],
+		load: () => import("./onedev/index").then((m) => m.generate),
 	},
 ];

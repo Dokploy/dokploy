@@ -1,0 +1,12 @@
+---
+services:
+  onedev:
+    image: 1dev/server:11.6.6
+    restart: always
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "onedev-data:/opt/onedev"
+    
+volumes:
+  onedev-data:

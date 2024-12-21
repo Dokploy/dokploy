@@ -27,6 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Languages } from "@/lib/languages";
 import useLocale from "@/utils/hooks/use-locale";
 import { useTranslation } from "next-i18next";
 import { useTheme } from "next-themes";
@@ -37,12 +38,9 @@ const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
 	}),
-	language: z.enum(
-		["en", "pl", "ru", "fr", "de", "tr", "zh-Hant", "zh-Hans", "fa", "ko", "pt-br"],
-		{
-			required_error: "Please select a language.",
-		},
-	),
+	language: z.nativeEnum(Languages, {
+		required_error: "Please select a language.",
+	}),
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
@@ -50,7 +48,7 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
 // This can come from your database or API.
 const defaultValues: Partial<AppearanceFormValues> = {
 	theme: "system",
-	language: "en",
+	language: Languages.English,
 };
 
 export function AppearanceForm() {
@@ -175,23 +173,15 @@ export function AppearanceForm() {
 												<SelectValue placeholder="No preset selected" />
 											</SelectTrigger>
 											<SelectContent>
-												{[
-													{ label: "English", value: "en" },
-													{ label: "Polski", value: "pl" },
-													{ label: "Русский", value: "ru" },
-													{ label: "Français", value: "fr" },
-													{ label: "Deutsch", value: "de" },
-													{ label: "繁體中文", value: "zh-Hant" },
-													{ label: "简体中文", value: "zh-Hans" },
-													{ label: "Türkçe", value: "tr" },
-													{ label: "Persian", value: "fa" },
-													{ label: "한국어", value: "ko" },
-													{ label: "Português", value: "pt-br" },
-												].map((preset) => (
-													<SelectItem key={preset.label} value={preset.value}>
-														{preset.label}
-													</SelectItem>
-												))}
+												{Object.keys(Languages).map((preset) => {
+													const value =
+														Languages[preset as keyof typeof Languages];
+													return (
+														<SelectItem key={value} value={value}>
+															{preset}
+														</SelectItem>
+													);
+												})}
 											</SelectContent>
 										</Select>
 									</FormItem>

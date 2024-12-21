@@ -13,6 +13,7 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
+	findPreviewDeploymentById,
 	generateTraefikMeDomain,
 	manageDomain,
 	removeDomain,
@@ -108,11 +109,32 @@ export const domainRouter = createTRPCRouter({
 						message: "You are not authorized to access this compose",
 					});
 				}
+			} else if (currentDomain.previewDeploymentId) {
+				const newPreviewDeployment = await findPreviewDeploymentById(
+					currentDomain.previewDeploymentId,
+				);
+				if (
+					newPreviewDeployment.application.project.adminId !== ctx.user.adminId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this preview deployment",
+					});
+				}
 			}
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
+				await manageDomain(application, domain);
+			} else if (domain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
 			return result;

@@ -1,7 +1,9 @@
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -49,14 +51,34 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 		},
 	);
 	const [containerId, setContainerId] = useState<string | undefined>();
+	const [mainDialogOpen, setMainDialogOpen] = useState(false);
+	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+	const handleMainDialogOpenChange = (open: boolean) => {
+		if (!open) {
+			setConfirmDialogOpen(true);
+		} else {
+			setMainDialogOpen(true);
+		}
+	};
+
+	const handleConfirm = () => {
+		setConfirmDialogOpen(false);
+		setMainDialogOpen(false);
+	};
+
+	const handleCancel = () => {
+		setConfirmDialogOpen(false);
+	};
 
 	useEffect(() => {
 		if (data && data?.length > 0) {
 			setContainerId(data[0]?.containerId);
 		}
 	}, [data]);
+
 	return (
-		<Dialog>
+		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="max-h-[85vh]    overflow-y-auto sm:max-w-7xl">
 				<DialogHeader>
@@ -96,6 +118,24 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 					id="terminal"
 					containerId={containerId || "select-a-container"}
 				/>
+				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>
+								Are you sure you want to close the terminal?
+							</DialogTitle>
+							<DialogDescription>
+								By clicking the confirm button, the terminal will be closed.
+							</DialogDescription>
+						</DialogHeader>
+						<DialogFooter>
+							<Button variant="outline" onClick={handleCancel}>
+								Cancel
+							</Button>
+							<Button onClick={handleConfirm}>Confirm</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 			</DialogContent>
 		</Dialog>
 	);

@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TrashIcon } from "lucide-react";
+import { Copy, TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -97,9 +98,26 @@ export const DeleteRedis = ({ redisId }: Props) => {
 								name="projectName"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											To confirm, type "{data?.name}/{data?.appName}" in the box
-											below
+										<FormLabel className="flex items-center gap-2">
+											<span>
+												To confirm, type{" "}
+												<Badge
+													className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer"
+													variant="outline"
+													onClick={() => {
+														if (data?.name && data?.appName) {
+															navigator.clipboard.writeText(
+																`${data.name}/${data.appName}`,
+															);
+															toast.success("Copied to clipboard. Be careful!");
+														}
+													}}
+												>
+													{data?.name}/{data?.appName}&nbsp;
+													<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
+												</Badge>{" "}
+												in the box below:
+											</span>
 										</FormLabel>
 										<FormControl>
 											<Input

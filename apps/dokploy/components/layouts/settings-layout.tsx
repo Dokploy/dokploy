@@ -77,7 +77,7 @@ export const SettingsLayout = ({ children }: Props) => {
 									{
 										title: "Registry",
 										label: "",
-										icon: ListMusic,
+										icon: GalleryVerticalEnd,
 										href: "/dashboard/settings/registry",
 									},
 
@@ -150,6 +150,7 @@ import {
 	BoxesIcon,
 	CreditCardIcon,
 	Database,
+	GalleryVerticalEnd,
 	GitBranch,
 	KeyIcon,
 	KeyRound,

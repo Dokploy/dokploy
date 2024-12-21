@@ -99,14 +99,14 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - fix/nixpacks-version
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - fix/nixpacks-version
       - combine-manifests:
           requires:
             - build-amd64
@@ -116,4 +116,4 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/build-i18n
+                - fix/nixpacks-version

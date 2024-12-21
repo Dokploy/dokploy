@@ -1,0 +1,199 @@
+services:
+  apps:
+    image: budibase.docker.scarf.sh/budibase/apps:3.2.25
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      SELF_HOSTED: 1
+      LOG_LEVEL: info
+      PORT: 4002
+      INTERNAL_API_KEY: ${BB_INTERNAL_API_KEY}
+      API_ENCRYPTION_KEY: ${BB_API_ENCRYPTION_KEY}
+      JWT_SECRET: ${BB_JWT_SECRET}
+      MINIO_ACCESS_KEY: ${BB_MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${BB_MINIO_SECRET_KEY}
+      MINIO_URL: http://minio:9000
+      REDIS_URL: redis:6379
+      REDIS_PASSWORD: ${BB_REDIS_PASSWORD}
+      WORKER_URL: http://worker:4003
+      COUCH_DB_USERNAME: budibase
+      COUCH_DB_PASSWORD: ${BB_COUCHDB_PASSWORD}
+      COUCH_DB_URL: http://budibase:${BB_COUCHDB_PASSWORD}@couchdb:5984
+      BUDIBASE_ENVIRONMENT: ${BUDIBASE_ENVIRONMENT:-PRODUCTION}
+      ENABLE_ANALYTICS: ${ENABLE_ANALYTICS:-true}
+      BB_ADMIN_USER_EMAIL: ''
+      BB_ADMIN_USER_PASSWORD: ''
+    depends_on:
+      worker:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - '--spider'
+        - '-qO-'
+        - 'http://localhost:4002/health'
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+  worker:
+    image: budibase.docker.scarf.sh/budibase/worker:3.2.25
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      SELF_HOSTED: 1
+      LOG_LEVEL: info
+      PORT: 4003
+      CLUSTER_PORT: 10000
+      INTERNAL_API_KEY: ${BB_INTERNAL_API_KEY}
+      API_ENCRYPTION_KEY: ${BB_API_ENCRYPTION_KEY}
+      JWT_SECRET: ${BB_JWT_SECRET}
+      MINIO_ACCESS_KEY: ${BB_MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${BB_MINIO_SECRET_KEY}
+      APPS_URL: http://apps:4002
+      MINIO_URL: http://minio:9000
+      REDIS_URL: redis:6379
+      REDIS_PASSWORD: ${BB_REDIS_PASSWORD}
+      COUCH_DB_USERNAME: budibase
+      COUCH_DB_PASSWORD: ${BB_COUCHDB_PASSWORD}
+      COUCH_DB_URL: http://budibase:${BB_COUCHDB_PASSWORD}@couchdb:5984
+      BUDIBASE_ENVIRONMENT: ${BUDIBASE_ENVIRONMENT:-PRODUCTION}
+      ENABLE_ANALYTICS: ${ENABLE_ANALYTICS:-true}
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - '--spider'
+        - '-qO-'
+        - 'http://localhost:4003/health'
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+  minio:
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - 'minio_data:/data'
+    environment:
+      MINIO_ROOT_USER: ${BB_MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${BB_MINIO_SECRET_KEY}
+      MINIO_BROWSER: off
+    command: 'server /data --console-address ":9001"'
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://localhost:9000/minio/health/live'
+      interval: 30s
+      timeout: 20s
+      retries: 3
+  proxy:
+    image: budibase/proxy:3.2.25
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      PROXY_RATE_LIMIT_WEBHOOKS_PER_SECOND: 10
+      PROXY_RATE_LIMIT_API_PER_SECOND: 20
+      APPS_UPSTREAM_URL: http://apps:4002
+      WORKER_UPSTREAM_URL: http://worker:4003
+      MINIO_UPSTREAM_URL: http://minio:9000
+      COUCHDB_UPSTREAM_URL: http://couchdb:5984
+      WATCHTOWER_UPSTREAM_URL: http://watchtower:8080
+      RESOLVER: 127.0.0.11
+    depends_on:
+      minio:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      apps:
+        condition: service_healthy
+      couchdb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://localhost:10000/'
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+  couchdb:
+    image: budibase/couchdb:v3.3.3
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      COUCHDB_USER: budibase
+      COUCHDB_PASSWORD: ${BB_COUCHDB_PASSWORD}
+      TARGETBUILD: docker-compose
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - 'http://localhost:5984/'
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - 'couchdb3_data:/opt/couchdb/data'
+  redis:
+    image: redis:7.2-alpine
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+    command: 'redis-server --requirepass "${BB_REDIS_PASSWORD}"'
+    volumes:
+      - 'redis_data:/data'
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - '-a'
+        - ${BB_REDIS_PASSWORD}
+        - ping
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 10s
+  watchtower:
+    restart: unless-stopped   
+    networks:
+      - dokploy-network 
+    image: containrrr/watchtower:1.7.1
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    command: '--debug --http-api-update bbapps bbworker bbproxy'
+    environment:
+      WATCHTOWER_HTTP_API: true
+      WATCHTOWER_HTTP_API_TOKEN: ${BB_WATCHTOWER_PASSWORD}
+      WATCHTOWER_CLEANUP: true
+    labels:
+      - com.centurylinklabs.watchtower.enable=false
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  minio_data:
+  couchdb3_data:
+  redis_data: 

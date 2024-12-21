@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
 	applicationId: "",
+	herokuVersion: "",
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
@@ -14,6 +15,15 @@ const baseApp: ApplicationNested = {
 	dockerBuildStage: "",
 	registryUrl: "",
 	buildArgs: null,
+	isPreviewDeploymentsActive: false,
+	previewBuildArgs: null,
+	previewCertificateType: "none",
+	previewEnv: null,
+	previewHttps: false,
+	previewPath: "/",
+	previewPort: 3000,
+	previewLimit: 0,
+	previewWildcard: "",
 	project: {
 		env: "",
 		adminId: "",
@@ -95,6 +105,7 @@ const baseDomain: Domain = {
 	composeId: "",
 	domainType: "application",
 	uniqueConfigKey: 1,
+	previewDeploymentId: "",
 };
 
 const baseRedirect: Redirect = {

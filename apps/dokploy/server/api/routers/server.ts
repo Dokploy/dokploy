@@ -18,6 +18,7 @@ import {
 import {
 	IS_CLOUD,
 	createServer,
+	defaultCommand,
 	deleteServer,
 	findAdminById,
 	findServerById,
@@ -25,7 +26,9 @@ import {
 	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
+	serverAudit,
 	serverSetup,
+	serverValidate,
 	updateServerById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -67,6 +70,11 @@ export const serverRouter = createTRPCRouter({
 			}
 
 			return server;
+		}),
+	getDefaultCommand: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			return defaultCommand();
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db
@@ -116,6 +124,98 @@ export const serverRouter = createTRPCRouter({
 				return currentServer;
 			} catch (error) {
 				throw error;
+			}
+		}),
+	validate: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to validate this server",
+					});
+				}
+				const response = await serverValidate(input.serverId);
+				return response as unknown as {
+					docker: {
+						enabled: boolean;
+						version: string;
+					};
+					rclone: {
+						enabled: boolean;
+						version: string;
+					};
+					nixpacks: {
+						enabled: boolean;
+						version: string;
+					};
+					buildpacks: {
+						enabled: boolean;
+						version: string;
+					};
+					isDokployNetworkInstalled: boolean;
+					isSwarmInstalled: boolean;
+					isMainDirectoryInstalled: boolean;
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+					cause: error as Error,
+				});
+			}
+		}),
+
+	security: protectedProcedure
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to validate this server",
+					});
+				}
+				const response = await serverAudit(input.serverId);
+				return response as unknown as {
+					ufw: {
+						installed: boolean;
+						active: boolean;
+						defaultIncoming: string;
+					};
+					ssh: {
+						enabled: boolean;
+						keyAuth: boolean;
+						permitRootLogin: string;
+						passwordAuth: string;
+						usePam: string;
+					};
+					nonRootUser: {
+						hasValidSudoUser: boolean;
+					};
+					unattendedUpgrades: {
+						installed: boolean;
+						active: boolean;
+						updateEnabled: number;
+						upgradeEnabled: number;
+					};
+					fail2ban: {
+						installed: boolean;
+						enabled: boolean;
+						active: boolean;
+						sshEnabled: string;
+						sshMode: string;
+					};
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+					cause: error as Error,
+				});
 			}
 		}),
 	remove: protectedProcedure

@@ -17,7 +17,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -71,6 +71,7 @@ export const sshRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			...(IS_CLOUD && { where: eq(sshKeys.adminId, ctx.user.adminId) }),
+			orderBy: desc(sshKeys.createdAt),
 		});
 		// TODO: Remove this line when the cloud version is ready
 	}),

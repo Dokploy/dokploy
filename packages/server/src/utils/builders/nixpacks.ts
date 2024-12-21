@@ -14,7 +14,7 @@ export const buildNixpacks = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName, publishDirectory, serverId } = application;
+	const { env, appName, publishDirectory } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
