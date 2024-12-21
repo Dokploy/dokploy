@@ -6,6 +6,7 @@ import {
 import { db } from "@/server/db";
 import {
 	apiCreateApplication,
+	apiDeleteApplication,
 	apiFindMonitoringStats,
 	apiFindOneApplication,
 	apiReloadApplication,
@@ -142,7 +143,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
-		.input(apiFindOneApplication)
+		.input(apiDeleteApplication)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(
@@ -178,7 +179,11 @@ export const applicationRouter = createTRPCRouter({
 				async () =>
 					await removeTraefikConfig(application.appName, application.serverId),
 				async () =>
-					await removeService(application?.appName, application.serverId),
+					await removeService(
+						application?.appName,
+						application.serverId,
+						input.deleteVolumes,
+					),
 			];
 
 			for (const operation of cleanupOperations) {
