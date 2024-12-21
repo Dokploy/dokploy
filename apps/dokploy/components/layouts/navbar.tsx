@@ -18,7 +18,7 @@ import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
 
-const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 5;
+const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const Navbar = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
