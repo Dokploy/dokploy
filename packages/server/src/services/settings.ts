@@ -7,6 +7,16 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 // import packageInfo from "../../../package.json";
 
+export interface IUpdateData {
+	latestVersion: string | null;
+	updateAvailable: boolean;
+}
+
+export const DEFAULT_UPDATE_DATA: IUpdateData = {
+	latestVersion: null,
+	updateAvailable: false,
+};
+
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
@@ -30,17 +40,27 @@ export const getServiceImageDigest = async () => {
 	const { stdout } = await execAsync(
 		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
 	);
+
 	const currentDigest = stdout.trim().split("@")[1];
+
+	if (!currentDigest) {
+		throw new Error("Could not get current service image digest");
+	}
 
 	return currentDigest;
 };
 
 /** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
-export const getUpdateData = async (): Promise<{
-	latestVersion: string | null;
-	updateAvailable: boolean;
-}> => {
-	const currentDigest = await getServiceImageDigest();
+export const getUpdateData = async (): Promise<IUpdateData> => {
+	let currentDigest: string;
+	try {
+		currentDigest = await getServiceImageDigest();
+	} catch {
+		// Docker service might not exist locally
+		// You can run the # Installation command for docker service create mentioned in the below docs to test it locally:
+		// https://docs.dokploy.com/docs/core/manual-installation
+		return DEFAULT_UPDATE_DATA;
+	}
 
 	const url = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 	const response = await fetch(url, {
@@ -55,7 +75,7 @@ export const getUpdateData = async (): Promise<{
 	const latestTagDigest = results.find((t) => t.name === "latest")?.digest;
 
 	if (!latestTagDigest) {
-		return { latestVersion: null, updateAvailable: false };
+		return DEFAULT_UPDATE_DATA;
 	}
 
 	const versionedTag = results.find(
@@ -63,7 +83,7 @@ export const getUpdateData = async (): Promise<{
 	);
 
 	if (!versionedTag) {
-		return { latestVersion: null, updateAvailable: false };
+		return DEFAULT_UPDATE_DATA;
 	}
 
 	const { name: latestVersion, digest } = versionedTag;

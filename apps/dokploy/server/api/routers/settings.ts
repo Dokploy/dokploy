@@ -52,6 +52,7 @@ import {
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
+	DEFAULT_UPDATE_DATA,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
@@ -345,7 +346,7 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	getUpdateData: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
-			return { latestVersion: null, updateAvailable: false };
+			return DEFAULT_UPDATE_DATA;
 		}
 
 		return await getUpdateData();
