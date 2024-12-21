@@ -3,10 +3,10 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
 	applications,
+	buildAppName,
+	cleanAppName,
 } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
-import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildApplication,
 	getBuildCommand,
@@ -46,34 +46,31 @@ import {
 	createDeploymentPreview,
 	updateDeploymentStatus,
 } from "./deployment";
-import { validUniqueServerAppName } from "./project";
-import {
-	findPreviewDeploymentById,
-	updatePreviewDeployment,
-} from "./preview-deployment";
+import { type Domain, getDomainHost } from "./domain";
 import {
 	createPreviewDeploymentComment,
 	getIssueComment,
 	issueCommentExists,
 	updateIssueComment,
 } from "./github";
-import { type Domain, getDomainHost } from "./domain";
+import {
+	findPreviewDeploymentById,
+	updatePreviewDeployment,
+} from "./preview-deployment";
+import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
 ) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("app");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("app", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Application with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Application with this 'AppName' already exists",
+		});
 	}
 
 	return await db.transaction(async (tx) => {
@@ -81,6 +78,7 @@ export const createApplication = async (
 			.insert(applications)
 			.values({
 				...input,
+				appName,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -140,10 +138,11 @@ export const updateApplication = async (
 	applicationId: string,
 	applicationData: Partial<Application>,
 ) => {
+	const { appName, ...rest } = applicationData;
 	const application = await db
 		.update(applications)
 		.set({
-			...applicationData,
+			...rest,
 		})
 		.where(eq(applications.applicationId, applicationId))
 		.returning();

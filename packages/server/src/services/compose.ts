@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildCompose,
@@ -52,17 +52,14 @@ import { validUniqueServerAppName } from "./project";
 export type Compose = typeof compose.$inferSelect;
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("compose");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("compose", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newDestination = await db
@@ -70,6 +67,7 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 		.values({
 			...input,
 			composeFile: "",
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -87,8 +85,9 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 export const createComposeByTemplate = async (
 	input: typeof compose.$inferInsert,
 ) => {
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = cleanAppName(input.appName);
+	if (appName) {
+		const valid = await validUniqueServerAppName(appName);
 
 		if (!valid) {
 			throw new TRPCError({
@@ -101,6 +100,7 @@ export const createComposeByTemplate = async (
 		.insert(compose)
 		.values({
 			...input,
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -184,10 +184,11 @@ export const updateCompose = async (
 	composeId: string,
 	composeData: Partial<Compose>,
 ) => {
+	const { appName, ...rest } = composeData;
 	const composeResult = await db
 		.update(compose)
 		.set({
-			...composeData,
+			...rest,
 		})
 		.where(eq(compose.composeId, composeId))
 		.returning();

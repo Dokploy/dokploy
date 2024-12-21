@@ -1,3 +1,4 @@
+import { generatePassword } from "@dokploy/server/templates/utils";
 import { faker } from "@faker-js/faker";
 import { customAlphabet } from "nanoid";
 
@@ -12,4 +13,18 @@ export const generateAppName = (type: string) => {
 	const randomFakerElement = `${verb}-${adjective}-${noun}`;
 	const nanoidPart = customNanoid();
 	return `${type}-${randomFakerElement}-${nanoidPart}`;
+};
+
+export const cleanAppName = (appName?: string) => {
+	if (!appName) {
+		return appName?.toLowerCase();
+	}
+	return appName.trim().replace(/ /g, "-").toLowerCase();
+};
+
+export const buildAppName = (type: string, baseAppName?: string) => {
+	if (baseAppName) {
+		return `${cleanAppName(baseAppName)}-${generatePassword(6)}`;
+	}
+	return generateAppName(type);
 };
