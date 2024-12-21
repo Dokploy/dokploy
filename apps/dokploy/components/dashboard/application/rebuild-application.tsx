@@ -18,7 +18,7 @@ interface Props {
 	applicationId: string;
 }
 
-export const RedbuildApplication = ({ applicationId }: Props) => {
+export const RebuildApplication = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery(
 		{
 			applicationId,
