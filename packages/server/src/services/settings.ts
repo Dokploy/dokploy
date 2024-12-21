@@ -62,17 +62,26 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		return DEFAULT_UPDATE_DATA;
 	}
 
-	const url = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
-	const response = await fetch(url, {
-		method: "GET",
-		headers: { "Content-Type": "application/json" },
-	});
+	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+	let url: string | null = `${baseUrl}?page_size=100`;
+	let allResults: { digest: string; name: string }[] = [];
 
-	const data = (await response.json()) as {
-		results: [{ digest: string; name: string }];
-	};
-	const { results } = data;
-	const latestTagDigest = results.find(
+	while (url) {
+		const response = await fetch(url, {
+			method: "GET",
+			headers: { "Content-Type": "application/json" },
+		});
+
+		const data = (await response.json()) as {
+			next: string | null;
+			results: { digest: string; name: string }[];
+		};
+
+		allResults = allResults.concat(data.results);
+		url = data?.next;
+	}
+
+	const latestTagDigest = allResults.find(
 		(t) => t.name === getDokployImageTag(),
 	)?.digest;
 
@@ -80,7 +89,7 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		return DEFAULT_UPDATE_DATA;
 	}
 
-	const versionedTag = results.find(
+	const versionedTag = allResults.find(
 		(t) => t.digest === latestTagDigest && t.name.startsWith("v"),
 	);
 
@@ -89,7 +98,6 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 	}
 
 	const { name: latestVersion, digest } = versionedTag;
-
 	const updateAvailable = digest !== currentDigest;
 
 	return { latestVersion, updateAvailable };
