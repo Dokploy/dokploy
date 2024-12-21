@@ -65,7 +65,6 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 	let url: string | null = `${baseUrl}?page_size=100`;
 	let allResults: { digest: string; name: string }[] = [];
-
 	while (url) {
 		const response = await fetch(url, {
 			method: "GET",
@@ -81,30 +80,29 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		url = data?.next;
 	}
 
-	const latestTagDigest = allResults.find(
-		(t) => t.name === getDokployImageTag(),
-	)?.digest;
+	const imageTag = getDokployImageTag();
+	const searchedDigest = allResults.find((t) => t.name === imageTag)?.digest;
 
-	if (!latestTagDigest) {
+	if (!searchedDigest) {
 		return DEFAULT_UPDATE_DATA;
 	}
 
-	const versionedTag = allResults.find(
-		(t) => t.digest === latestTagDigest && t.name.startsWith("v"),
-	);
+	if (imageTag === "latest") {
+		const versionedTag = allResults.find(
+			(t) => t.digest === searchedDigest && t.name.startsWith("v"),
+		);
 
-	if (!versionedTag) {
-		return DEFAULT_UPDATE_DATA;
+		if (!versionedTag) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
+		const { name: latestVersion, digest } = versionedTag;
+		const updateAvailable = digest !== currentDigest;
+
+		return { latestVersion, updateAvailable };
 	}
-
-	const { name: latestVersion, digest } = versionedTag;
-	const updateAvailable = digest !== currentDigest;
-
-	return { latestVersion, updateAvailable };
-};
-
-export const getDokployVersion = () => {
-	// return packageInfo.version;
+	const updateAvailable = searchedDigest !== currentDigest;
+	return { latestVersion: imageTag, updateAvailable };
 };
 
 interface TreeDataItem {
