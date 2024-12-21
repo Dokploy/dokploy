@@ -7,6 +7,12 @@ import {
 
 export function generate(schema: Schema): Template {
 	const randomDomain = generateRandomDomain(schema);
+	const envs = [
+		`OPEN_WEBUI_HOST=${randomDomain}`,
+		"OPEN_WEBUI_PORT=8080",
+		`HASH=${mainServiceHash}`,
+		"OLLAMA_DOCKER_TAG=0.5.1",
+		"WEBUI_DOCKER_TAG=0.4.8",
 
 	const domains: DomainSchema[] = [
 		{
@@ -15,7 +21,7 @@ export function generate(schema: Schema): Template {
 			serviceName: "open-webui",
 		},
 	];
-	const envs = ["OLLAMA_DOCKER_TAG=0.1.47", "WEBUI_DOCKER_TAG=0.3.7"];
+	const envs = ["OLLAMA_DOCKER_TAG=0.5.1", "WEBUI_DOCKER_TAG=0.4.8"];
 
 	return {
 		envs,
