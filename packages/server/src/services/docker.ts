@@ -224,3 +224,81 @@ export const containerRestart = async (containerId: string) => {
 		return config;
 	} catch (error) {}
 };
+
+export const getSwarmNodes = async () => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			"docker node ls --format '{{json .}}'",
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const nodes = JSON.parse(stdout);
+
+		const nodesArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+		return nodesArray;
+	} catch (error) {}
+};
+
+export const getNodeInfo = async (nodeId: string) => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker node inspect ${nodeId} --format '{{json .}}'`,
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const nodeInfo = JSON.parse(stdout);
+
+		return nodeInfo;
+	} catch (error) {}
+};
+
+export const getNodeApplications = async () => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker service ls --format '{{json .}}'`,
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const appArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return appArray;
+	} catch (error) {}
+};
+
+export const getApplicationInfo = async (appName: string) => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker service ps ${appName} --format '{{json .}}'`,
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const appArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return appArray;
+	} catch (error) {}
+};
