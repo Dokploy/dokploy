@@ -267,11 +267,11 @@ export const settingsRouter = createTRPCRouter({
 						message: "You are not authorized to access this admin",
 					});
 				}
-				await updateAdmin(ctx.user.authId, {
+				const adminUpdated = await updateAdmin(ctx.user.authId, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
-				if (admin.enableDockerCleanup) {
+				if (adminUpdated?.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
