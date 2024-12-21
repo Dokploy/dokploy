@@ -716,6 +716,83 @@ export const settingsRouter = createTRPCRouter({
 				throw new Error("Failed to check GPU status");
 			}
 		}),
+	updateTraefikPorts: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				additionalPorts: z.array(
+					z.object({
+						targetPort: z.number(),
+						publishedPort: z.number(),
+						publishMode: z.enum(["ingress", "host"]).default("host"),
+					}),
+				),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Please set a serverId to update Traefik ports",
+					});
+				}
+				await initializeTraefik({
+					serverId: input.serverId,
+					additionalPorts: input.additionalPorts,
+				});
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error to update Traefik ports",
+					cause: error,
+				});
+			}
+		}),
+	getTraefikPorts: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			const command = `docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik`;
+
+			try {
+				let stdout = "";
+				if (input?.serverId) {
+					const result = await execAsyncRemote(input.serverId, command);
+					stdout = result.stdout;
+				} else if (!IS_CLOUD) {
+					const result = await execAsync(command);
+					stdout = result.stdout;
+				}
+
+				const ports: {
+					Protocol: string;
+					TargetPort: number;
+					PublishedPort: number;
+					PublishMode: string;
+				}[] = JSON.parse(stdout.trim());
+
+				// Filter out the default ports (80, 443, and optionally 8080)
+				const additionalPorts = ports
+					.filter((port) => ![80, 443, 8080].includes(port.PublishedPort))
+					.map((port) => ({
+						targetPort: port.TargetPort,
+						publishedPort: port.PublishedPort,
+						publishMode: port.PublishMode.toLowerCase() as "host" | "ingress",
+					}));
+
+				return additionalPorts;
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to get Traefik ports",
+					cause: error,
+				});
+			}
+		}),
 });
 // {
 // 	"Parallelism": 1,

@@ -16,12 +16,18 @@ interface TraefikOptions {
 	enableDashboard?: boolean;
 	env?: string[];
 	serverId?: string;
+	additionalPorts?: {
+		targetPort: number;
+		publishedPort: number;
+		publishMode?: "ingress" | "host";
+	}[];
 }
 
 export const initializeTraefik = async ({
 	enableDashboard = false,
 	env,
 	serverId,
+	additionalPorts = [],
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = "traefik:v3.1.2";
@@ -84,6 +90,11 @@ export const initializeTraefik = async ({
 							},
 						]
 					: []),
+				...additionalPorts.map((port) => ({
+					TargetPort: port.targetPort,
+					PublishedPort: port.publishedPort,
+					PublishMode: port.publishMode || ("host" as const),
+				})),
 			],
 		},
 	};
