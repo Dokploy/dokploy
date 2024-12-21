@@ -13,6 +13,7 @@ import {
 	Info,
 	RefreshCcw,
 	Server,
+	ServerCrash,
 	Sparkles,
 	Stars,
 } from "lucide-react";
@@ -34,12 +35,15 @@ export const UpdateServer = () => {
 	const handleCheckUpdates = async () => {
 		try {
 			const updateData = await getUpdateData();
+			const versionToUpdate = updateData.latestVersion || "";
 			setHasCheckedUpdate(true);
 			setIsUpdateAvailable(updateData.updateAvailable);
-			setLatestVersion(updateData.latestVersion || "");
+			setLatestVersion(versionToUpdate);
 
 			if (updateData.updateAvailable) {
-				toast.success(`${updateData.latestVersion || ""} update is available!`);
+				toast.success(versionToUpdate, {
+					description: "New version available!",
+				});
 			} else {
 				toast.info("No updates available");
 			}
@@ -57,19 +61,21 @@ export const UpdateServer = () => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="gap-2">
-					<RefreshCcw className="h-4 w-4" />
+					<Sparkles className="h-4 w-4" />
 					Updates
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-lg p-6">
 				<div className="flex items-center justify-between mb-8">
-					<DialogTitle className="text-2xl font-semibold text-white">
+					<DialogTitle className="text-2xl font-semibold">
 						Web Server Update
 					</DialogTitle>
 					{dokployVersion && (
-						<div className="flex items-center gap-1.5 rounded-full bg-zinc-800/80 px-3 py-1 mr-2">
-							<Server className="h-4 w-4 text-zinc-400" />
-							<span className="text-sm text-zinc-400">{dokployVersion}</span>
+						<div className="flex items-center gap-1.5 rounded-full px-3 py-1 mr-2 bg-muted">
+							<Server className="h-4 w-4 text-muted-foreground" />
+							<span className="text-sm text-muted-foreground">
+								{dokployVersion}
+							</span>
 						</div>
 					)}
 				</div>
@@ -77,7 +83,7 @@ export const UpdateServer = () => {
 				{/* Initial state */}
 				{!hasCheckedUpdate && (
 					<div className="mb-8">
-						<p className="text text-zinc-400">
+						<p className="text text-muted-foreground">
 							Check for new releases and update Dokploy.
 							<br />
 							<br />
@@ -90,14 +96,14 @@ export const UpdateServer = () => {
 				{/* Update available state */}
 				{isUpdateAvailable && latestVersion && (
 					<div className="mb-8">
-						<div className="inline-flex items-center gap-2 rounded-lg bg-emerald-950/30 px-3 py-2 border border-emerald-900 mb-4 w-full items-center">
+						<div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-emerald-900 bg-emerald-900 dark:bg-emerald-900/40 mb-4 w-full">
 							<div className="flex items-center gap-1.5">
 								<span className="flex h-2 w-2">
-									<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-									<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+									<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
+									<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
 								</span>
 								<Download className="h-4 w-4 text-emerald-400" />
-								<span className="text font-medium text-emerald-400">
+								<span className="text font-medium text-emerald-400 ">
 									New version available:
 								</span>
 							</div>
@@ -106,7 +112,7 @@ export const UpdateServer = () => {
 							</span>
 						</div>
 
-						<div className="space-y-4 text-zinc-400">
+						<div className="space-y-4 text-muted-foreground">
 							<p className="text">
 								A new version of the server software is available. Consider
 								updating if you:
@@ -134,16 +140,33 @@ export const UpdateServer = () => {
 				{hasCheckedUpdate && !isUpdateAvailable && !isLoading && (
 					<div className="mb-8">
 						<div className="flex flex-col items-center gap-6 mb-6">
-							<div className="rounded-full bg-zinc-800/80 p-4">
+							<div className="rounded-full p-4 bg-emerald-400/40">
 								<Sparkles className="h-8 w-8 text-emerald-400" />
 							</div>
 							<div className="text-center space-y-2">
-								<h3 className="text-lg font-medium text-white">
+								<h3 className="text-lg font-medium">
 									You are using the latest version
 								</h3>
-								<p className="text text-zinc-400">
+								<p className="text text-muted-foreground">
 									Your server is up to date with all the latest features and
 									security improvements.
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{hasCheckedUpdate && isLoading && (
+					<div className="mb-8">
+						<div className="flex flex-col items-center gap-6 mb-6">
+							<div className="rounded-full p-4 bg-[#5B9DFF]/40 text-foreground">
+								<RefreshCcw className="h-8 w-8 animate-spin" />
+							</div>
+							<div className="text-center space-y-2">
+								<h3 className="text-lg font-medium">Checking for updates...</h3>
+								<p className="text text-muted-foreground">
+									Please wait while we pull the latest version information from
+									Docker Hub.
 								</p>
 							</div>
 						</div>
@@ -170,7 +193,7 @@ export const UpdateServer = () => {
 				)}
 
 				<div className="flex items-center justify-between pt-2">
-					<ToggleAutoCheckUpdates />
+					<ToggleAutoCheckUpdates disabled={isLoading} />
 				</div>
 
 				<div className="space-y-4 flex items-center justify-end">
@@ -189,7 +212,7 @@ export const UpdateServer = () => {
 								{isLoading ? (
 									<>
 										<RefreshCcw className="h-4 w-4 animate-spin" />
-										Checking for updates...
+										Checking for updates
 									</>
 								) : (
 									<>

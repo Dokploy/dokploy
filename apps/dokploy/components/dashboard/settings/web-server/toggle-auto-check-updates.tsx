@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 
-export const ToggleAutoCheckUpdates = () => {
+export const ToggleAutoCheckUpdates = ({ disabled }: { disabled: boolean }) => {
 	const [enabled, setEnabled] = useState<boolean>(
 		localStorage.getItem("enableAutoCheckUpdates") === "true",
 	);
@@ -18,6 +18,7 @@ export const ToggleAutoCheckUpdates = () => {
 				checked={enabled}
 				onCheckedChange={handleToggle}
 				id="autoCheckUpdatesToggle"
+				disabled={disabled}
 			/>
 			<Label className="text-primary" htmlFor="autoCheckUpdatesToggle">
 				Automatically check for new updates
