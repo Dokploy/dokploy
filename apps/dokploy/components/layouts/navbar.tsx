@@ -18,7 +18,7 @@ import { buttonVariants } from "../ui/button";
 import { useEffect, useRef, useState } from "react";
 import { UpdateWebServer } from "../dashboard/settings/web-server/update-webserver";
 
-const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 15;
+const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 5;
 
 export const Navbar = () => {
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
