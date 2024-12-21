@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { HardDriveDownload } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -21,7 +22,7 @@ export const UpdateWebServer = ({ isNavbar }: Props) => {
 	const { mutateAsync: updateServer, isLoading } =
 		api.settings.updateServer.useMutation();
 
-	const buttonLabel = isNavbar ? "Update available" : "Update server";
+	const buttonLabel = isNavbar ? "Update available" : "Update Server";
 
 	const handleConfirm = async () => {
 		try {
@@ -49,6 +50,7 @@ export const UpdateWebServer = ({ isNavbar }: Props) => {
 					variant={isNavbar ? "outline" : "secondary"}
 					isLoading={isLoading}
 				>
+					{!isLoading && <HardDriveDownload className="h-4 w-4" />}
 					{!isLoading && (
 						<span className="absolute -right-1 -top-2 flex h-3 w-3">
 							<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
