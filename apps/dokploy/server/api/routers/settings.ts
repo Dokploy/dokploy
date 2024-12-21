@@ -45,12 +45,14 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateAdmin,
+	getUpdateData,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
+	DEFAULT_UPDATE_DATA,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
@@ -342,17 +344,20 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-
-	checkAndUpdateImage: adminProcedure.mutation(async () => {
+	getUpdateData: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
-			return true;
+			return DEFAULT_UPDATE_DATA;
 		}
-		return await pullLatestRelease();
+
+		return await getUpdateData();
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
+
+		await pullLatestRelease();
+
 		await spawnAsync("docker", [
 			"service",
 			"update",
@@ -361,6 +366,7 @@ export const settingsRouter = createTRPCRouter({
 			getDokployImage(),
 			"dokploy",
 		]);
+
 		return true;
 	}),
 
