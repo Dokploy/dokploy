@@ -16,11 +16,11 @@ interface TraefikOptions {
 	enableDashboard?: boolean;
 	env?: string[];
 	serverId?: string;
-	additionalPorts?: Array<{
+	additionalPorts?: {
 		targetPort: number;
 		publishedPort: number;
 		publishMode?: "ingress" | "host";
-	}>;
+	}[];
 }
 
 export const initializeTraefik = async ({

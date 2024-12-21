@@ -721,6 +721,12 @@ export const settingsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Please set a serverId to update Traefik ports",
+					});
+				}
 				await initializeTraefik({
 					serverId: input.serverId,
 					additionalPorts: input.additionalPorts,
@@ -729,7 +735,10 @@ export const settingsRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Failed to update Traefik ports",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error to update Traefik ports",
 					cause: error,
 				});
 			}
@@ -749,12 +758,12 @@ export const settingsRouter = createTRPCRouter({
 					stdout = result.stdout;
 				}
 
-				const ports: Array<{
+				const ports: {
 					Protocol: string;
 					TargetPort: number;
 					PublishedPort: number;
 					PublishMode: string;
-				}> = JSON.parse(stdout.trim());
+				}[] = JSON.parse(stdout.trim());
 
 				// Filter out the default ports (80, 443, and optionally 8080)
 				const additionalPorts = ports
