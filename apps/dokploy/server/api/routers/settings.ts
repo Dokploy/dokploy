@@ -68,17 +68,6 @@ import {
 	publicProcedure,
 } from "../trpc";
 
-const apiUpdateTraefikPorts = z.object({
-	serverId: z.string().optional(),
-	additionalPorts: z.array(
-		z.object({
-			targetPort: z.number(),
-			publishedPort: z.number(),
-			publishMode: z.enum(["ingress", "host"]).default("host"),
-		}),
-	),
-});
-
 export const settingsRouter = createTRPCRouter({
 	reloadServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
@@ -718,7 +707,18 @@ export const settingsRouter = createTRPCRouter({
 			}
 		}),
 	updateTraefikPorts: adminProcedure
-		.input(apiUpdateTraefikPorts)
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				additionalPorts: z.array(
+					z.object({
+						targetPort: z.number(),
+						publishedPort: z.number(),
+						publishMode: z.enum(["ingress", "host"]).default("host"),
+					}),
+				),
+			}),
+		)
 		.mutation(async ({ input }) => {
 			try {
 				await initializeTraefik({
