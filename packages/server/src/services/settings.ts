@@ -1,8 +1,10 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
-import { spawnAsync } from "../utils/process/spawnAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 // import packageInfo from "../../../package.json";
 
 /** Returns current Dokploy docker image tag or `latest` by default. */
@@ -23,15 +25,12 @@ export const pullLatestRelease = async () => {
 	});
 };
 
-/** Returns current docker image digest */
-export const getCurrentImageDigest = async () => {
-	const commandResult = await spawnAsync("docker", [
-		"inspect",
-		"--format={{index .RepoDigests 0}}",
-		getDokployImage(),
-	]);
-
-	const currentDigest = commandResult.toString().trim().split("@")[1];
+/** Returns Dokploy docker service image digest */
+export const getServiceImageDigest = async () => {
+	const { stdout } = await execAsync(
+		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
+	);
+	const currentDigest = stdout.trim().split("@")[1];
 
 	return currentDigest;
 };
@@ -41,18 +40,7 @@ export const getUpdateData = async (): Promise<{
 	latestVersion: string | null;
 	updateAvailable: boolean;
 }> => {
-	let currentDigest: string | undefined;
-	try {
-		currentDigest = await getCurrentImageDigest();
-	} catch {
-		// In case image doesn't exist yet, pull latest release
-		await pullLatestRelease();
-		currentDigest = await getCurrentImageDigest();
-	}
-
-	if (!currentDigest) {
-		throw new Error("Could not get current image digest");
-	}
+	const currentDigest = await getServiceImageDigest();
 
 	const url = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 	const response = await fetch(url, {
