@@ -26,27 +26,21 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 			{ applicationId },
 			{
 				enabled: !!applicationId,
-			},
+			}
 		);
 
-
-  const handleDeletePreviewDeployment = async (previewDeploymentId: string) => {
-      deletePreviewDeployment({
-        previewDeploymentId: previewDeploymentId,
-      })
-        .then(() => {
-          refetchPreviewDeployments();
-          toast.success("Preview deployment deleted");
-        })
-        .catch((error) => {
-          toast.error(error.message);
-        });
-    };  
-
-	// const [url, setUrl] = React.useState("");
-	// useEffect(() => {
-	// 	setUrl(document.location.origin);
-	// }, []);
+	const handleDeletePreviewDeployment = async (previewDeploymentId: string) => {
+		deletePreviewDeployment({
+			previewDeploymentId: previewDeploymentId,
+		})
+			.then(() => {
+				refetchPreviewDeployments();
+				toast.success("Preview deployment deleted");
+			})
+			.catch((error) => {
+				toast.error(error.message);
+			});
+	};
 
 	return (
 		<Card className="bg-background">
@@ -62,13 +56,6 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 			<CardContent className="flex flex-col gap-4">
 				{data?.isPreviewDeploymentsActive ? (
 					<>
-						<div className="flex flex-col gap-2 text-sm">
-							<span>
-								Preview deployments are a way to test your application before it
-								is deployed to production. It will create a new deployment for
-								each pull request you create.
-							</span>
-						</div>
 						{data?.previewDeployments?.length === 0 ? (
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<RocketIcon className="size-8 text-muted-foreground" />
@@ -78,46 +65,18 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							</div>
 						) : (
 							<div className="flex flex-col gap-4">
-								{previewDeployments?.map((previewDeployment) => {
-									const { deployments, domain } = previewDeployment;
-
-                  return (
-                    <div className="flex justify-between gap-2 w-full">
-                      <div className="flex w-full flex-col gap-2">
-                        {deployments?.length === 0 ? (
-                          <div>
-                            <span className="text-sm text-muted-foreground">
-                              No deployments found
-                            </span>
-                          </div>
-                        ) : (
-                          <PreviewDeploymentCard
-                            key={previewDeployment?.previewDeploymentId || ""}
-                            appName={previewDeployment.appName}
-                            serverId={data?.serverId || ""}
-                            onDeploymentDelete={handleDeletePreviewDeployment}
-                            deploymentId={previewDeployment.previewDeploymentId}
-                            deploymentUrl={`http://${domain?.host}`}
-                            deployments={previewDeployment?.deployments || []}
-                            domainId={domain?.domainId || ""}
-                            domainHost={domain?.host || ""}
-                            pullRequestTitle={
-                              previewDeployment?.pullRequestTitle || ""
-                            }
-                            pullRequestUrl={previewDeployment?.pullRequestURL || ""}
-                            status={previewDeployment.previewStatus}
-                            branch={previewDeployment?.branch || ""}
-                            date={previewDeployment?.createdAt || ""}
-                            isLoading={isLoading}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+								{previewDeployments?.map((previewDeployment) => (
+									<PreviewDeploymentCard
+										key={previewDeployment.previewDeploymentId}
+										deploymentId={previewDeployment.previewDeploymentId}
+										serverId={data?.serverId || ""}
+										onDeploymentDelete={handleDeletePreviewDeployment}
+										isLoading={isLoading}
+									/>
+								))}
+							</div>
+						)}
+					</>
 				) : (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<RocketIcon className="size-8 text-muted-foreground" />
