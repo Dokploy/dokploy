@@ -45,22 +45,27 @@ export const generateTraefikMeDomain = async (
 ) => {
 	if (serverId) {
 		const server = await findServerById(serverId);
+		const admin = await findAdminById(adminId);
 		return generateRandomDomain({
 			serverIp: server.ipAddress,
 			projectName: appName,
+			wildcardDomain: admin?.wildcardDomain,
 		});
 	}
 
 	if (process.env.NODE_ENV === "development") {
+		const admin = await findAdminById(adminId);
 		return generateRandomDomain({
 			serverIp: "",
 			projectName: appName,
+			wildcardDomain: admin?.wildcardDomain,
 		});
 	}
 	const admin = await findAdminById(adminId);
 	return generateRandomDomain({
 		serverIp: admin?.serverIp || "",
 		projectName: appName,
+		wildcardDomain: admin?.wildcardDomain,
 	});
 };
 
