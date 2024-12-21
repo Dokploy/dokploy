@@ -12,11 +12,11 @@ import { api } from "@/utils/api";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+import { UpdateWebServer } from "../dashboard/settings/web-server/update-webserver";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
-import { useEffect, useRef, useState } from "react";
-import { UpdateWebServer } from "../dashboard/settings/web-server/update-webserver";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 5;
 

@@ -12,6 +12,7 @@ import {
 } from "@/server/db/schema";
 import { removeJob, schedule } from "@/server/utils/backup";
 import {
+	DEFAULT_UPDATE_DATA,
 	IS_CLOUD,
 	canAccessToTraefikFiles,
 	cleanStoppedContainers,
@@ -25,6 +26,7 @@ import {
 	findAdminById,
 	findServerById,
 	getDokployImage,
+	getUpdateData,
 	initializeTraefik,
 	logRotationManager,
 	parseRawConfig,
@@ -45,14 +47,12 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateAdmin,
-	getUpdateData,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
-	DEFAULT_UPDATE_DATA,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
