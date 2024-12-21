@@ -29,6 +29,7 @@ export const UpdateServer = () => {
 	const { mutateAsync: getUpdateData, isLoading } =
 		api.settings.getUpdateData.useMutation();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: releaseTag } = api.settings.getReleaseTag.useQuery();
 	const [isOpen, setIsOpen] = useState(false);
 	const [latestVersion, setLatestVersion] = useState("");
 
@@ -74,7 +75,7 @@ export const UpdateServer = () => {
 						<div className="flex items-center gap-1.5 rounded-full px-3 py-1 mr-2 bg-muted">
 							<Server className="h-4 w-4 text-muted-foreground" />
 							<span className="text-sm text-muted-foreground">
-								{dokployVersion}
+								{dokployVersion} | {releaseTag}
 							</span>
 						</div>
 					)}

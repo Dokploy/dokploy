@@ -26,6 +26,7 @@ import {
 	findAdminById,
 	findServerById,
 	getDokployImage,
+	getDokployImageTag,
 	getUpdateData,
 	initializeTraefik,
 	logRotationManager,
@@ -372,6 +373,9 @@ export const settingsRouter = createTRPCRouter({
 
 	getDokployVersion: adminProcedure.query(() => {
 		return packageInfo.version;
+	}),
+	getReleaseTag: adminProcedure.query(() => {
+		return getDokployImageTag();
 	}),
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)
