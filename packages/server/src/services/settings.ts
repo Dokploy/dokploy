@@ -10,11 +10,21 @@ export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
 };
 
-/** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
-export const getUpdateData = async (): Promise<{
-	latestVersion: string | null;
-	updateAvailable: boolean;
-}> => {
+export const getDokployImage = () => {
+	return `dokploy/dokploy:${getDokployImageTag()}`;
+};
+
+export const pullLatestRelease = async () => {
+	const stream = await docker.pull(getDokployImage());
+	await new Promise((resolve, reject) => {
+		docker.modem.followProgress(stream, (err, res) =>
+			err ? reject(err) : resolve(res),
+		);
+	});
+};
+
+/** Returns current docker image digest */
+export const getCurrentImageDigest = async () => {
 	const commandResult = await spawnAsync("docker", [
 		"inspect",
 		"--format={{index .RepoDigests 0}}",
@@ -22,6 +32,27 @@ export const getUpdateData = async (): Promise<{
 	]);
 
 	const currentDigest = commandResult.toString().trim().split("@")[1];
+
+	return currentDigest;
+};
+
+/** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
+export const getUpdateData = async (): Promise<{
+	latestVersion: string | null;
+	updateAvailable: boolean;
+}> => {
+	let currentDigest: string | undefined;
+	try {
+		currentDigest = await getCurrentImageDigest();
+	} catch {
+		// In case image doesn't exist yet, pull latest release
+		await pullLatestRelease();
+		currentDigest = await getCurrentImageDigest();
+	}
+
+	if (!currentDigest) {
+		throw new Error("Could not get current image digest");
+	}
 
 	const url = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
 	const response = await fetch(url, {
@@ -52,19 +83,6 @@ export const getUpdateData = async (): Promise<{
 	const updateAvailable = digest !== currentDigest;
 
 	return { latestVersion, updateAvailable };
-};
-
-export const getDokployImage = () => {
-	return `dokploy/dokploy:${getDokployImageTag()}`;
-};
-
-export const pullLatestRelease = async () => {
-	const stream = await docker.pull(getDokployImage());
-	await new Promise((resolve, reject) => {
-		docker.modem.followProgress(stream, (err, res) =>
-			err ? reject(err) : resolve(res),
-		);
-	});
 };
 
 export const getDokployVersion = () => {
