@@ -268,7 +268,9 @@ export const authRouter = createTRPCRouter({
 
 		return auth;
 	}),
-
+	verifyToken: protectedProcedure.mutation(async () => {
+		return true;
+	}),
 	one: adminProcedure.input(apiFindOneAuth).query(async ({ input }) => {
 		const auth = await findAuthById(input.id);
 		return auth;
