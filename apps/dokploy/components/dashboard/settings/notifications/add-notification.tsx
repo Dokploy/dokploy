@@ -734,6 +734,7 @@ export const AddNotification = () => {
 									} else if (type === "discord") {
 										await testDiscordConnection({
 											webhookUrl: form.getValues("webhookUrl"),
+											decoration: form.getValues("decoration"),
 										});
 									} else if (type === "email") {
 										await testEmailConnection({
