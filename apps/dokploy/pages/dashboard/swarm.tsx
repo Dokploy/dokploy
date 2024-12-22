@@ -15,10 +15,6 @@ const Dashboard = () => {
 			<div className="flex flex-wrap gap-4 py-4">
 				<SwarmMonitorCard />
 			</div>
-			<Separator className="my-8" />
-			<div className="flex flex-wrap gap-4 py-4">
-				<ServersOverview />
-			</div>
 		</>
 	);
 };
