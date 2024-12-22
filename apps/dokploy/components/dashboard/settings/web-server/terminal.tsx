@@ -41,12 +41,10 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const isLocalServer = serverId === "local";
-
 		const urlParams = new URLSearchParams();
 		urlParams.set("serverId", serverId);
 
-		if (isLocalServer) {
+		if (serverId === "local") {
 			const { port, username } = getLocalServerData();
 			urlParams.set("port", port.toString());
 			urlParams.set("username", username);

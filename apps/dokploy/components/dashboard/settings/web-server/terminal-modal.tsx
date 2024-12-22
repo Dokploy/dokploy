@@ -66,7 +66,7 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 				)}
 
 				<div className="flex flex-col gap-4 h-[552px]">
-					<Terminal key={terminalKey} id="terminal" serverId={serverId} />
+					<Terminal id="terminal" key={terminalKey} serverId={serverId} />
 				</div>
 			</DialogContent>
 		</Dialog>

@@ -25,7 +25,7 @@ export const getShell = () => {
 };
 
 /** Returns private SSH key for dokploy local server terminal. Uses already created SSH key or generates a new SSH key, also automatically appends the public key to `authorized_keys`, creating the file if needed. */
-export const getLocalServerPrivateKey = async () => {
+export const setupLocalServerSSHKey = async () => {
 	try {
 		if (!fs.existsSync(LOCAL_SSH_KEY_PATH)) {
 			// Generate new SSH key if it hasn't been created yet

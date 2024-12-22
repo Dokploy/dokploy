@@ -3,7 +3,7 @@ import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getLocalServerPrivateKey } from "./utils";
+import { setupLocalServerSSHKey } from "./utils";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -69,8 +69,8 @@ export const setupTerminalWebSocketServer = (
 				return;
 			}
 
-			ws.send("Getting private SSH key...\n");
-			const privateKey = await getLocalServerPrivateKey();
+			ws.send("Setting up private SSH key...\n");
+			const privateKey = await setupLocalServerSSHKey();
 
 			if (!privateKey) {
 				ws.close();
@@ -92,16 +92,16 @@ export const setupTerminalWebSocketServer = (
 				return;
 			}
 
-			const { ipAddress, port, username, sshKey, sshKeyId } = server;
+			const { ipAddress: host, port, username, sshKey, sshKeyId } = server;
 
 			if (!sshKeyId) {
 				throw new Error("No SSH key available for this server");
 			}
 
 			connectionDetails = {
-				host: ipAddress,
-				port: port,
-				username: username,
+				host,
+				port,
+				username,
 				privateKey: sshKey?.privateKey,
 			};
 		}
