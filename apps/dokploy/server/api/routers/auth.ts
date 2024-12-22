@@ -363,7 +363,7 @@ export const authRouter = createTRPCRouter({
 				<a href="${WEBSITE_URL}/reset-password?token=${token}">
 					Reset Password
 				</a>
-			
+
 			`,
 			);
 		}),
@@ -505,7 +505,7 @@ export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
 			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
 		},
 		{
-			title: " New User Registered",
+			title: "New User Registered",
 			color: 0x00ff00,
 			fields: [
 				{
