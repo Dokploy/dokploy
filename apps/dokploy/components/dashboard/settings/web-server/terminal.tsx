@@ -5,6 +5,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
+import { getLocalServerData } from "./local-server-config";
 
 interface Props {
 	id: string;
@@ -12,9 +13,16 @@ interface Props {
 }
 
 export const Terminal: React.FC<Props> = ({ id, serverId }) => {
-	const termRef = useRef(null);
+	const termRef = useRef<HTMLDivElement>(null);
+	const initialized = useRef<boolean>(false);
 	const { resolvedTheme } = useTheme();
 	useEffect(() => {
+		if (initialized.current) {
+			// Required in strict mode to avoid issues due to double wss connection
+			return;
+		}
+
+		initialized.current = true;
 		const container = document.getElementById(id);
 		if (container) {
 			container.innerHTML = "";
@@ -33,7 +41,18 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/terminal?serverId=${serverId}`;
+		const isLocalServer = serverId === "local";
+
+		const urlParams = new URLSearchParams();
+		urlParams.set("serverId", serverId);
+
+		if (isLocalServer) {
+			const { port, username } = getLocalServerData();
+			urlParams.set("port", port.toString());
+			urlParams.set("username", username);
+		}
+
+		const wsUrl = `${protocol}//${window.location.host}/terminal?${urlParams}`;
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
