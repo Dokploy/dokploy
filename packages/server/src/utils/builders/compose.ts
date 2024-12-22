@@ -48,6 +48,8 @@ Compose Type: ${composeType} ✅`;
 		writeStream.write(`\n${logBox}\n`);
 
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+
+		console.log("Command:", ...command.split(" "));
 		await spawnAsync(
 			"docker",
 			[...command.split(" ")],
@@ -144,6 +146,10 @@ const sanitizeCommand = (command: string) => {
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
 
+	if (compose.command) {
+		return `${sanitizeCommand(compose.command)}`;
+	}
+
 	const path =
 		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 	let command = "";
@@ -152,12 +158,6 @@ export const createCommand = (compose: ComposeNested) => {
 		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${path} ${appName} --prune`;
-	}
-
-	const customCommand = sanitizeCommand(compose.command);
-
-	if (customCommand) {
-		command = `${command} ${customCommand}`;
 	}
 
 	return command;
