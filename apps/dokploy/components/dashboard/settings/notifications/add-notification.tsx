@@ -64,6 +64,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("discord"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().default(true),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -195,6 +196,7 @@ export const AddNotification = () => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
+				decoration: data.decoration,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 			});
@@ -397,23 +399,47 @@ export const AddNotification = () => {
 								)}
 
 								{type === "discord" && (
-									<FormField
-										control={form.control}
-										name="webhookUrl"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Webhook URL</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-														{...field}
-													/>
-												</FormControl>
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+															{...field}
+														/>
+													</FormControl>
 
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
 								)}
 
 								{type === "email" && (

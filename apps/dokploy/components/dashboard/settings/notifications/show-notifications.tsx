@@ -40,58 +40,60 @@ export const ShowNotifications = () => {
 						</div>
 					) : (
 						<div className="flex flex-col gap-4">
-						<div className="grid lg:grid-cols-1 xl:grid-cols-2 gap-4">
-						  {data?.map((notification, index) => (
-							<div
-							  key={notification.notificationId}
-							  className="flex items-center justify-between rounded-xl p-4 transition-colors dark:bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800/50"
-							>
-							  <div className="flex items-center gap-4">
-								{notification.notificationType === "slack" && (
-								  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-500/10">
-									<SlackIcon className="h-6 w-6 text-indigo-400" />
-								  </div>
-								)}
-								{notification.notificationType === "telegram" && (
-								  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-500/10">
-									<TelegramIcon className="h-6 w-6 text-indigo-400" />
-								  </div>
-								)}
-								{notification.notificationType === "discord" && (
-								  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-500/10">
-									<DiscordIcon className="h-6 w-6 text-indigo-400" />
-								  </div>
-								)}
-								{notification.notificationType === "email" && (
-								  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-500/10">
-									<Mail className="h-6 w-6 text-indigo-400" />
-								  </div>
-								)}
-								<div className="flex flex-col">
-								  <span className="text-sm font-medium text-zinc-300">
-									{notification.name}
-								  </span>
-								  <span className="text-xs font-medium text-muted-foreground">
-								  	{notification.notificationType?.[0]?.toUpperCase() + notification.notificationType?.slice(1)} notification
-								  </span>
-								</div>
-							  </div>
-							  <div className="flex items-center gap-2">
-								<UpdateNotification
-								  notificationId={notification.notificationId}
-								/>
-								<DeleteNotification
-								  notificationId={notification.notificationId}
-								/>
-							  </div>
+							<div className="grid lg:grid-cols-1 xl:grid-cols-2 gap-4">
+								{data?.map((notification, index) => (
+									<div
+										key={notification.notificationId}
+										className="flex items-center justify-between rounded-xl p-4 transition-colors dark:bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800/50"
+									>
+										<div className="flex items-center gap-4">
+											{notification.notificationType === "slack" && (
+												<div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-500/10">
+													<SlackIcon className="h-6 w-6 text-indigo-400" />
+												</div>
+											)}
+											{notification.notificationType === "telegram" && (
+												<div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-500/10">
+													<TelegramIcon className="h-6 w-6 text-indigo-400" />
+												</div>
+											)}
+											{notification.notificationType === "discord" && (
+												<div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-500/10">
+													<DiscordIcon className="h-6 w-6 text-indigo-400" />
+												</div>
+											)}
+											{notification.notificationType === "email" && (
+												<div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-500/10">
+													<Mail className="h-6 w-6 text-indigo-400" />
+												</div>
+											)}
+											<div className="flex flex-col">
+												<span className="text-sm font-medium text-zinc-300">
+													{notification.name}
+												</span>
+												<span className="text-xs font-medium text-muted-foreground">
+													{notification.notificationType?.[0]?.toUpperCase() +
+														notification.notificationType?.slice(1)}{" "}
+													notification
+												</span>
+											</div>
+										</div>
+										<div className="flex items-center gap-2">
+											<UpdateNotification
+												notificationId={notification.notificationId}
+											/>
+											<DeleteNotification
+												notificationId={notification.notificationId}
+											/>
+										</div>
+									</div>
+								))}
 							</div>
-						  ))}
+
+							<div className="flex flex-col gap-4 justify-end w-full items-end">
+								<AddNotification />
+							</div>
 						</div>
-		  
-						<div className="flex flex-col gap-4 justify-end w-full items-end">
-						  <AddNotification />
-						</div>
-					  </div>
 					)}
 				</CardContent>
 			</Card>

@@ -172,6 +172,7 @@ export const apiCreateDiscord = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
+		decoration: z.boolean(),
 	})
 	.required();
 
@@ -183,6 +184,7 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 
 export const apiTestDiscordConnection = apiCreateDiscord.pick({
 	webhookUrl: true,
+	decoration: true,
 });
 
 export const apiCreateEmail = notificationsSchema

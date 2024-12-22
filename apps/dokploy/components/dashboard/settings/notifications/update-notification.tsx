@@ -28,7 +28,7 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Pen } from "lucide-react";
 import { useEffect, useState } from "react";
-import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
 	type NotificationSchema,
@@ -113,6 +113,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					databaseBackup: data.databaseBackup,
 					type: data.notificationType,
 					webhookUrl: data.discord?.webhookUrl,
+					decoration: data.discord?.decoration || undefined,
 					name: data.name,
 					dockerCleanup: data.dockerCleanup,
 				});
@@ -218,9 +219,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost"
-                        size="icon"
-                        className="h-9 w-9">
+				<Button variant="ghost" size="icon" className="h-9 w-9">
 					<Pen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
@@ -358,23 +357,47 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								)}
 
 								{type === "discord" && (
-									<FormField
-										control={form.control}
-										name="webhookUrl"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Webhook URL</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-														{...field}
-													/>
-												</FormControl>
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+															{...field}
+														/>
+													</FormControl>
 
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
 								)}
 								{type === "email" && (
 									<>
