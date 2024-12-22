@@ -179,6 +179,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: formData.webhookUrl,
+				decoration: formData.decoration,
 				name: formData.name,
 				notificationId: notificationId,
 				discordId: data?.discordId,
@@ -379,7 +380,6 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 										<FormField
 											control={form.control}
 											name="decoration"
-											defaultValue={true}
 											render={({ field }) => (
 												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
 													<div className="space-y-0.5">
