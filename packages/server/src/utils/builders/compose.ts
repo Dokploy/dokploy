@@ -49,7 +49,6 @@ Compose Type: ${composeType} ✅`;
 
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 
-		console.log("Command:", ...command.split(" "));
 		await spawnAsync(
 			"docker",
 			[...command.split(" ")],
