@@ -182,10 +182,13 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	adminId: z.string().optional(),
 });
 
-export const apiTestDiscordConnection = apiCreateDiscord.pick({
-	webhookUrl: true,
-	decoration: true,
-});
+export const apiTestDiscordConnection = apiCreateDiscord
+	.pick({
+		webhookUrl: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
 
 export const apiCreateEmail = notificationsSchema
 	.pick({
