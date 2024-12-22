@@ -68,6 +68,7 @@ export const discord = pgTable("discord", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
 });
 
 export const email = pgTable("email", {
