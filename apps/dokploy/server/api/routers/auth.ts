@@ -20,6 +20,8 @@ import {
 	getUserByToken,
 	lucia,
 	luciaToken,
+	removeAdminByAuthId,
+	removeUserByAuthId,
 	sendDiscordNotification,
 	sendEmailNotification,
 	updateAuthById,
@@ -59,14 +61,20 @@ export const authRouter = createTRPCRouter({
 				if (IS_CLOUD) {
 					await sendDiscordNotificationWelcome(newAdmin);
 					await sendVerificationEmail(newAdmin.id);
-					return true;
+					return {
+						status: "success",
+						type: "cloud",
+					};
 				}
 				const session = await lucia.createSession(newAdmin.id || "", {});
 				ctx.res.appendHeader(
 					"Set-Cookie",
 					lucia.createSessionCookie(session.id).serialize(),
 				);
-				return true;
+				return {
+					status: "success",
+					type: "selfhosted",
+				};
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -178,6 +186,20 @@ export const authRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateAuth)
 		.mutation(async ({ ctx, input }) => {
+			const currentAuth = await findAuthByEmail(ctx.user.email);
+
+			if (input.currentPassword || input.password) {
+				const correctPassword = bcrypt.compareSync(
+					input.currentPassword || "",
+					currentAuth?.password || "",
+				);
+				if (!correctPassword) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Current password is incorrect",
+					});
+				}
+			}
 			const auth = await updateAuthById(ctx.user.authId, {
 				...(input.email && { email: input.email.toLowerCase() }),
 				...(input.password && {
@@ -187,6 +209,47 @@ export const authRouter = createTRPCRouter({
 			});
 
 			return auth;
+		}),
+	removeSelfAccount: protectedProcedure
+		.input(
+			z.object({
+				password: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "This feature is only available in the cloud version",
+				});
+			}
+			const currentAuth = await findAuthByEmail(ctx.user.email);
+
+			const correctPassword = bcrypt.compareSync(
+				input.password,
+				currentAuth?.password || "",
+			);
+
+			if (!correctPassword) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Password is incorrect",
+				});
+			}
+			const { req, res } = ctx;
+			const { session } = await validateRequest(req, res);
+			if (!session) return false;
+
+			await lucia.invalidateSession(session.id);
+			res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+
+			if (ctx.user.rol === "admin") {
+				await removeAdminByAuthId(ctx.user.authId);
+			} else {
+				await removeUserByAuthId(ctx.user.authId);
+			}
+
+			return true;
 		}),
 
 	generateToken: protectedProcedure.mutation(async ({ ctx, input }) => {
@@ -205,7 +268,9 @@ export const authRouter = createTRPCRouter({
 
 		return auth;
 	}),
-
+	verifyToken: protectedProcedure.mutation(async () => {
+		return true;
+	}),
 	one: adminProcedure.input(apiFindOneAuth).query(async ({ input }) => {
 		const auth = await findAuthById(input.id);
 		return auth;
@@ -440,7 +505,7 @@ export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
 			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
 		},
 		{
-			title: "✅ New User Registered",
+			title: " New User Registered",
 			color: 0x00ff00,
 			fields: [
 				{

@@ -1,0 +1,76 @@
+version: '3'
+
+x-base-config: &base-config
+  image: chatwoot/chatwoot:v3.14.1
+  volumes:
+    - chatwoot-storage:/app/storage
+  networks:
+    - dokploy-network
+  environment:
+    - FRONTEND_URL=${FRONTEND_URL}
+    - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    - RAILS_ENV=${RAILS_ENV}
+    - NODE_ENV=${NODE_ENV}
+    - INSTALLATION_ENV=${INSTALLATION_ENV}
+    - RAILS_LOG_TO_STDOUT=${RAILS_LOG_TO_STDOUT}
+    - LOG_LEVEL=${LOG_LEVEL}
+    - DEFAULT_LOCALE=${DEFAULT_LOCALE}
+    - POSTGRES_HOST=${POSTGRES_HOST}
+    - POSTGRES_PORT=${POSTGRES_PORT}
+    - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+    - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    - REDIS_URL=${REDIS_URL}
+    - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP}
+    - ACTIVE_STORAGE_SERVICE=${ACTIVE_STORAGE_SERVICE}
+
+services:
+  chatwoot-rails:
+    <<: *base-config
+    depends_on:
+      chatwoot-postgres:
+        condition: service_started
+      chatwoot-redis:
+        condition: service_started
+    entrypoint: docker/entrypoints/rails.sh
+    command: ['bundle', 'exec', 'sh', '-c', 'rails db:chatwoot_prepare && rails s -p 3000 -b 0.0.0.0']
+    restart: always
+
+  chatwoot-sidekiq:
+    <<: *base-config
+    depends_on:
+      chatwoot-postgres:
+        condition: service_started
+      chatwoot-redis:
+        condition: service_started
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    restart: always
+
+  chatwoot-postgres:
+    image: postgres:12
+    restart: always
+    volumes:
+      - chatwoot-postgres-data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    environment:
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  chatwoot-redis:
+    image: redis:alpine
+    restart: always
+    volumes:
+      - chatwoot-redis-data:/data
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  chatwoot-storage:
+  chatwoot-postgres-data:
+  chatwoot-redis-data: 

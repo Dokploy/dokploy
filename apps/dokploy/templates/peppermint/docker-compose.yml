@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  peppermint-postgres:
+    image: postgres:latest
+    restart: always
+    networks:
+      - dokploy-network
+    volumes:
+      - peppermint-postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: peppermint
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: peppermint
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peppermint"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  peppermint-app:
+    image: pepperlabs/peppermint:latest
+    restart: always
+    networks:
+      - dokploy-network
+    depends_on:
+      peppermint-postgres:
+        condition: service_healthy
+    environment:
+      DB_USERNAME: "peppermint"
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: "peppermint-postgres"
+      SECRET: ${SECRET}
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  peppermint-postgres-data: 

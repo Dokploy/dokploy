@@ -26,6 +26,7 @@ export const sendDatabaseBackupNotifications = async ({
 	errorMessage?: string;
 }) => {
 	const date = new Date();
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.databaseBackup, true),
@@ -64,39 +65,47 @@ export const sendDatabaseBackupNotifications = async ({
 			await sendDiscordNotification(discord, {
 				title:
 					type === "success"
-						? "✅ Database Backup Successful"
-						: "❌ Database Backup Failed",
-				color: type === "success" ? 0x00ff00 : 0xff0000,
+						? "> `✅` Database Backup Successful"
+						: "> `❌` Database Backup Failed",
+				color: type === "success" ? 0x57f287 : 0xed4245,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️` Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️` Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔` Database",
 						value: databaseType,
 						inline: true,
 					},
 					{
-						name: "Time",
-						value: date.toLocaleString(),
+						name: "`📅` Date",
+						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "Type",
-						value: type,
+						name: "`⌚` Time",
+						value: `<t:${unixDate}:t>`,
+						inline: true,
+					},
+					{
+						name: "`❓` Type",
+						value: type
+							.replace("error", "Failed")
+							.replace("success", "Successful"),
+						inline: true,
 					},
 					...(type === "error" && errorMessage
 						? [
 								{
-									name: "Error Message",
-									value: errorMessage,
+									name: "`⚠️` Error Message",
+									value: `\`\`\`${errorMessage}\`\`\``,
 								},
 							]
 						: []),

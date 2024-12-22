@@ -6,6 +6,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useEffect, useRef, useState } from "react";
+import { TerminalLine } from "../../docker/logs/terminal-line";
+import { LogLine, parseLogs } from "../../docker/logs/utils";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
+
 
 interface Props {
 	logPath: string | null;
@@ -20,9 +25,26 @@ export const ShowDeploymentCompose = ({
 	serverId,
 }: Props) => {
 	const [data, setData] = useState("");
-	const endOfLogsRef = useRef<HTMLDivElement>(null);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
+	const [autoScroll, setAutoScroll] = useState(true);
+	const scrollRef = useRef<HTMLDivElement>(null);
 
+	const scrollToBottom = () => {
+		if (autoScroll && scrollRef.current) {
+		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	  };
+	
+	const handleScroll = () => {
+		if (!scrollRef.current) return;
+	
+		const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+		const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+		setAutoScroll(isAtBottom);
+	  };
+	
+	
 	useEffect(() => {
 		if (!open || !logPath) return;
 
@@ -54,13 +76,19 @@ export const ShowDeploymentCompose = ({
 		};
 	}, [logPath, open]);
 
-	const scrollToBottom = () => {
-		endOfLogsRef.current?.scrollIntoView({ behavior: "smooth" });
-	};
+
+	useEffect(() => {
+		const logs = parseLogs(data);
+		setFilteredLogs(logs);
+	}, [data]);
 
 	useEffect(() => {
 		scrollToBottom();
-	}, [data]);
+	
+		if (autoScroll && scrollRef.current) {
+		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	  }, [filteredLogs, autoScroll]);
 
 	return (
 		<Dialog
@@ -78,21 +106,35 @@ export const ShowDeploymentCompose = ({
 				}
 			}}
 		>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl max-h-screen"}>
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription>
-						See all the details of this deployment
+					See all the details of this deployment | <Badge variant="blank" className="text-xs">{filteredLogs.length} lines</Badge>
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem]">
-					<code>
-						<pre className="whitespace-pre-wrap break-words">
-							{data || "Loading..."}
-						</pre>
-						<div ref={endOfLogsRef} />
-					</code>
+				<div 
+					ref={scrollRef}
+					onScroll={handleScroll}
+					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+				>
+						
+						
+					{ 
+						filteredLogs.length > 0 ? filteredLogs.map((log: LogLine, index: number) => (
+							<TerminalLine
+								key={index}
+								log={log}
+								noTimestamp
+							/>
+						)) : 
+						(
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							<Loader2 className="h-6 w-6 animate-spin" />
+						</div>
+						)
+					}
 				</div>
 			</DialogContent>
 		</Dialog>

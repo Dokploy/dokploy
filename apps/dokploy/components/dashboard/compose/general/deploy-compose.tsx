@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const DeployCompose = ({ composeId }: Props) => {
+	const router = useRouter();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -48,9 +50,15 @@ export const DeployCompose = ({ composeId }: Props) => {
 							await refetch();
 							await deploy({
 								composeId,
-							}).catch(() => {
-								toast.error("Error to deploy Compose");
-							});
+							})
+								.then(async () => {
+									router.push(
+										`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`
+									);
+								})
+								.catch(() => {
+									toast.error("Error to deploy Compose");
+								});
 
 							await refetch();
 						}}

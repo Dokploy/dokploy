@@ -1,0 +1,14 @@
+services:
+  ontime:
+    image: getontime/ontime:v3.8.0
+    ports:
+      - 4001
+      - 8888
+      - 9999
+    volumes:
+      - ontime-data:/data/
+    environment:
+      - TZ
+    restart: unless-stopped
+volumes:
+  ontime-data:

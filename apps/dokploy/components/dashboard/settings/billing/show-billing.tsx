@@ -89,18 +89,14 @@ export const ShowBilling = () => {
 					<div className="pb-5">
 						<Progress value={safePercentage} className="max-w-lg" />
 					</div>
-					{admin && (
-						<>
-							{admin.serversQuantity! <= servers?.length! && (
-								<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
-									<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
-									<span className="text-sm text-yellow-600 dark:text-yellow-400">
-										You have reached the maximum number of servers you can
-										create, please upgrade your plan to add more servers.
-									</span>
-								</div>
-							)}
-						</>
+					{admin && admin.serversQuantity! <= servers?.length! && (
+						<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
+							<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
+							<span className="text-sm text-yellow-600 dark:text-yellow-400">
+								You have reached the maximum number of servers you can create,
+								please upgrade your plan to add more servers.
+							</span>
+						</div>
 					)}
 				</div>
 			)}
@@ -188,7 +184,6 @@ export const ShowBilling = () => {
 									</p>
 
 									<ul
-										role="list"
 										className={clsx(
 											" mt-4 flex flex-col gap-y-2 text-sm",
 											featured ? "text-white" : "text-slate-200",

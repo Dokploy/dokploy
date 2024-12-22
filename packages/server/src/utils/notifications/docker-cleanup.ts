@@ -15,6 +15,7 @@ export const sendDockerCleanupNotifications = async (
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.dockerCleanup, true),
@@ -45,12 +46,27 @@ export const sendDockerCleanupNotifications = async (
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Docker Cleanup",
-				color: 0x00ff00,
+				title: "> `✅` Docker Cleanup",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Message",
-						value: message,
+						name: "`📅` Date",
+						value: `<t:${unixDate}:D>`,
+						inline: true,
+					},
+					{
+						name: "`⌚` Time",
+						value: `<t:${unixDate}:t>`,
+						inline: true,
+					},
+					{
+						name: "`❓` Type",
+						value: "Successful",
+						inline: true,
+					},
+					{
+						name: "`📜` Message",
+						value: `\`\`\`${message}\`\`\``,
 					},
 				],
 				timestamp: date.toISOString(),

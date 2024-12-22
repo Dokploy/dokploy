@@ -1,18 +1,29 @@
 import { ShowProjects } from "@/components/dashboard/projects/show";
-import { ShowWelcomeDokploy } from "@/components/dashboard/settings/billing/show-welcome-dokploy";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
+import dynamic from "next/dynamic";
 import type React from "react";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 
+const ShowWelcomeDokploy = dynamic(
+	() =>
+		import("@/components/dashboard/settings/billing/show-welcome-dokploy").then(
+			(mod) => mod.ShowWelcomeDokploy,
+		),
+	{ ssr: false },
+);
+
 const Dashboard = () => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<>
-			<ShowWelcomeDokploy />
+			{isCloud && <ShowWelcomeDokploy />}
+
 			<ShowProjects />
 		</>
 	);

@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttachAddon } from "@xterm/addon-attach";
+import { useTheme } from "next-themes";
 
 interface Props {
 	id: string;
@@ -18,6 +19,7 @@ export const DockerTerminal: React.FC<Props> = ({
 }) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
+	const { resolvedTheme } = useTheme();
 	useEffect(() => {
 		const container = document.getElementById(id);
 		if (container) {
@@ -25,13 +27,12 @@ export const DockerTerminal: React.FC<Props> = ({
 		}
 		const term = new Terminal({
 			cursorBlink: true,
-			cols: 80,
-			rows: 30,
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
-				cursor: "transparent",
+				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
 				background: "rgba(0, 0, 0, 0)",
+				foreground: "currentColor",
 			},
 		});
 		const addonFit = new FitAddon();
@@ -45,6 +46,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		const addonAttach = new AttachAddon(ws);
 		// @ts-ignore
 		term.open(termRef.current);
+		// @ts-ignore
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
@@ -66,7 +68,7 @@ export const DockerTerminal: React.FC<Props> = ({
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="w-full h-full rounded-lg p-2 bg-[#19191A]">
+			<div className="w-full h-full rounded-lg p-2 bg-transparent border">
 				<div id={id} ref={termRef} />
 			</div>
 		</div>

@@ -34,7 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.0",
+		version: "v2.1.4",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -108,6 +108,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./baserow/index").then((m) => m.generate),
 	},
 	{
+		id: "budibase",
+		name: "Budibase",
+		version: "3.2.25",
+		description:
+			"Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.",
+		logo: "budibase.svg",
+		links: {
+			github: "https://github.com/Budibase/budibase",
+			website: "https://budibase.com/",
+			docs: "https://docs.budibase.com/docs/",
+		},
+		tags: ["database", "low-code", "nocode", "applications"],
+		load: () => import("./budibase/index").then((m) => m.generate),
+	},
+	{
 		id: "ghost",
 		name: "Ghost",
 		version: "5.0.0",
@@ -140,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
@@ -380,7 +395,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.12.1",
+		version: "v2.14.0",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -717,4 +732,438 @@ export const templates: TemplateData[] = [
 		load: () => import("./appwrite/index").then((m) => m.generate),
 		tags: ["database", "firebase", "nosql","BaaS"],
 	},	
+	{
+		id: "peppermint",
+		name: "Peppermint",
+		version: "latest",
+		description:
+			"Peppermint is a modern, open-source API development platform that helps you build, test and document your APIs.",
+		logo: "peppermint.svg",
+		links: {
+			github: "https://github.com/Peppermint-Lab/peppermint",
+			website: "https://peppermint.sh/",
+			docs: "https://docs.peppermint.sh/",
+		},
+		tags: ["api", "development", "documentation"],
+		load: () => import("./peppermint/index").then((m) => m.generate),
+	},
+	{
+		id: "windmill",
+		name: "Windmill",
+		version: "latest",
+		description:
+			"A developer platform to build production-grade workflows and internal apps. Open-source alternative to Airplane, Retool, and GitHub Actions.",
+		logo: "windmill.svg",
+		links: {
+			github: "https://github.com/windmill-labs/windmill",
+			website: "https://www.windmill.dev/",
+			docs: "https://docs.windmill.dev/",
+		},
+		tags: ["workflow", "automation", "development"],
+		load: () => import("./windmill/index").then((m) => m.generate),
+	},
+	{
+		id: "activepieces",
+		name: "Activepieces",
+		version: "0.35.0",
+		description:
+			"Open-source no-code business automation tool. An alternative to Zapier, Make.com, and Tray.",
+		logo: "activepieces.svg",
+		links: {
+			github: "https://github.com/activepieces/activepieces",
+			website: "https://www.activepieces.com/",
+			docs: "https://www.activepieces.com/docs",
+		},
+		tags: ["automation", "workflow", "no-code"],
+		load: () => import("./activepieces/index").then((m) => m.generate),
+	},
+	{
+		id: "invoiceshelf",
+		name: "InvoiceShelf",
+		version: "latest",
+		description:
+			"InvoiceShelf is a self-hosted open source invoicing system for freelancers and small businesses.",
+		logo: "invoiceshelf.png",
+		links: {
+			github: "https://github.com/InvoiceShelf/invoiceshelf",
+			website: "https://invoiceshelf.com",
+			docs: "https://github.com/InvoiceShelf/invoiceshelf#readme",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./invoiceshelf/index").then((m) => m.generate),
+	},
+	{
+		id: "postiz",
+		name: "Postiz",
+		version: "latest",
+		description:
+			"Postiz is a modern, open-source platform for managing and publishing content across multiple channels.",
+		logo: "postiz.png",
+		links: {
+			github: "https://github.com/gitroomhq/postiz",
+			website: "https://postiz.com",
+			docs: "https://docs.postiz.com",
+		},
+		tags: ["cms", "content-management", "publishing"],
+		load: () => import("./postiz/index").then((m) => m.generate),
+	},
+	{
+		id: "slash",
+		name: "Slash",
+		version: "latest",
+		description:
+			"Slash is a modern, self-hosted bookmarking service and link shortener that helps you organize and share your favorite links.",
+		logo: "slash.png",
+		links: {
+			github: "https://github.com/yourselfhosted/slash",
+			website: "https://github.com/yourselfhosted/slash#readme",
+			docs: "https://github.com/yourselfhosted/slash/wiki",
+		},
+		tags: ["bookmarks", "link-shortener", "self-hosted"],
+		load: () => import("./slash/index").then((m) => m.generate),
+	},
+	{
+		id: "discord-tickets",
+		name: "Discord Tickets",
+		version: "4.0.21",
+		description:
+			"An open-source Discord bot for creating and managing support ticket channels.",
+		logo: "discord-tickets.png",
+		links: {
+			github: "https://github.com/discord-tickets/bot",
+			website: "https://discordtickets.app",
+			docs: "https://discordtickets.app/self-hosting/installation/docker/",
+		},
+		tags: ["discord", "tickets", "support"],
+		load: () => import("./discord-tickets/index").then((m) => m.generate),
+	},
+	{
+		id: "nextcloud-aio",
+		name: "Nextcloud All in One",
+		version: "30.0.2",
+		description:
+			"Nextcloud (AIO) is a self-hosted file storage and sync platform with powerful collaboration capabilities. It integrates Files, Talk, Groupware, Office, Assistant and more into a single platform for remote work and data protection.",
+		logo: "nextcloud-aio.svg",
+		links: {
+			github: "https://github.com/nextcloud/docker",
+			website: "https://nextcloud.com/",
+			docs: "https://docs.nextcloud.com/",
+		},
+		tags: ["file", "sync"],
+		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
+	},
+	{
+		id: "blender",
+		name: "Blender",
+		version: "latest",
+		description:
+			"Blender is a free and open-source 3D creation suite. It supports the entire 3D pipeline—modeling, rigging, animation, simulation, rendering, compositing and motion tracking, video editing and 2D animation pipeline.",
+		logo: "blender.svg",
+		links: {
+			github: "https://github.com/linuxserver/docker-blender",
+			website: "https://www.blender.org/",
+			docs: "https://docs.blender.org/",
+		},
+		tags: ["3d", "rendering", "animation"],
+		load: () => import("./blender/index").then((m) => m.generate),
+	},
+	{
+		id: "heyform",
+		name: "HeyForm",
+		version: "latest",
+		description:
+			"Allows anyone to create engaging conversational forms for surveys, questionnaires, quizzes, and polls. No coding skills required.",
+		logo: "heyform.svg",
+		links: {
+			github: "https://github.com/heyform/heyform",
+			website: "https://heyform.net",
+			docs: "https://docs.heyform.net",
+		},
+		tags: ["form", "builder", "questionnaire", "quiz", "survey"],
+		load: () => import("./heyform/index").then((m) => m.generate),
+	},
+	{
+		id: "chatwoot",
+		name: "Chatwoot",
+		version: "v3.14.1",
+		description:
+			"Open-source customer engagement platform that provides a shared inbox for teams, live chat, and omnichannel support.",
+		logo: "chatwoot.svg",
+		links: {
+			github: "https://github.com/chatwoot/chatwoot",
+			website: "https://www.chatwoot.com",
+			docs: "https://www.chatwoot.com/docs",
+		},
+		tags: ["support", "chat", "customer-service"],
+		load: () => import("./chatwoot/index").then((m) => m.generate),
+	},
+	{
+		id: "discourse",
+		name: "Discourse",
+		version: "3.3.2",
+		description:
+			"Discourse is a modern forum software for your community. Use it as a mailing list, discussion forum, or long-form chat room.",
+		logo: "discourse.svg",
+		links: {
+			github: "https://github.com/discourse/discourse",
+			website: "https://www.discourse.org/",
+			docs: "https://meta.discourse.org/",
+		},
+		tags: ["forum", "community", "discussion"],
+		load: () => import("./discourse/index").then((m) => m.generate),
+	},
+	{
+		id: "immich",
+		name: "Immich",
+		version: "v1.121.0",
+		description:
+			"High performance self-hosted photo and video backup solution directly from your mobile phone.",
+		logo: "immich.svg",
+		links: {
+			github: "https://github.com/immich-app/immich",
+			website: "https://immich.app/",
+			docs: "https://immich.app/docs/overview/introduction",
+		},
+		tags: ["photos", "videos", "backup", "media"],
+		load: () => import("./immich/index").then((m) => m.generate),
+	},
+	{
+		id: "twenty",
+		name: "Twenty CRM",
+		version: "latest",
+		description:
+			"Twenty is a modern CRM offering a powerful spreadsheet interface and open-source alternative to Salesforce.",
+		logo: "twenty.svg",
+		links: {
+			github: "https://github.com/twentyhq/twenty",
+			website: "https://twenty.com",
+			docs: "https://docs.twenty.com",
+		},
+		tags: ["crm", "sales", "business"],
+		load: () => import("./twenty/index").then((m) => m.generate),
+	},
+	{
+		id: "yourls",
+		name: "YOURLS",
+		version: "1.9.2",
+		description:
+			"YOURLS (Your Own URL Shortener) is a set of PHP scripts that will allow you to run your own URL shortening service (a la TinyURL or Bitly).",
+		logo: "yourls.svg",
+		links: {
+			github: "https://github.com/YOURLS/YOURLS",
+			website: "https://yourls.org/",
+			docs: "https://yourls.org/#documentation",
+		},
+		tags: ["url-shortener", "php"],
+		load: () => import("./yourls/index").then((m) => m.generate),
+	},
+	{
+		id: "ryot",
+		name: "Ryot",
+		version: "v7.10",
+		description:
+			"A self-hosted platform for tracking various media types including movies, TV shows, video games, books, audiobooks, and more.",
+		logo: "ryot.png",
+		links: {
+			github: "https://github.com/IgnisDa/ryot",
+			website: "https://ryot.io/",
+			docs: "https://docs.ryot.io/",
+		},
+		tags: ["media", "tracking", "self-hosted"],
+		load: () => import("./ryot/index").then((m) => m.generate),
+	},
+	{
+		id: "photoprism",
+		name: "Photoprism",
+		version: "latest",
+		description:
+			"PhotoPrism® is an AI-Powered Photos App for the Decentralized Web. It makes use of the latest technologies to tag and find pictures automatically without getting in your way.",
+		logo: "photoprism.svg",
+		links: {
+			github: "https://github.com/photoprism/photoprism",
+			website: "https://www.photoprism.app/",
+			docs: "https://docs.photoprism.app/",
+		},
+		tags: ["media", "photos", "self-hosted"],
+		load: () => import("./photoprism/index").then((m) => m.generate),
+	},
+	{
+		id: "ontime",
+		name: "Ontime",
+		version: "v3.8.0",
+		description:
+			"Ontime is browser-based application that manages event rundowns, scheduliing and cuing",
+		logo: "ontime.png",
+		links: {
+			github: "https://github.com/cpvalente/ontime/",
+			website: "https://getontime.no",
+			docs: "https://docs.getontime.no",
+		},
+		tags: ["event"],
+		load: () => import("./ontime/index").then((m) => m.generate),
+	},
+	{
+		id: "triggerdotdev",
+		name: "Trigger.dev",
+		version: "v3",
+		description:
+			"Trigger is a platform for building event-driven applications.",
+		logo: "triggerdotdev.svg",
+		links: {
+			github: "https://github.com/triggerdotdev/trigger.dev",
+			website: "https://trigger.dev/",
+			docs: "https://trigger.dev/docs",
+		},
+		tags: ["event-driven", "applications"],
+		load: () => import("./triggerdotdev/index").then((m) => m.generate),
+	},
+	{
+		id: "browserless",
+		name: "Browserless",
+		version: "2.23.0",
+		description:
+			"Browserless allows remote clients to connect and execute headless work, all inside of docker. It supports the standard, unforked Puppeteer and Playwright libraries, as well offering REST-based APIs for common actions like data collection, PDF generation and more.",
+		logo: "browserless.svg",
+		links: {
+			github: "https://github.com/browserless/browserless",
+			website: "https://www.browserless.io/",
+			docs: "https://docs.browserless.io/",
+		},
+		tags: ["browser", "automation"],
+		load: () => import("./browserless/index").then((m) => m.generate),
+	},
+	{
+		id: "drawio",
+		name: "draw.io",
+		version: "24.7.17",
+		description:
+			"draw.io is a configurable diagramming/whiteboarding visualization application.",
+		logo: "drawio.svg",
+		links: {
+			github: "https://github.com/jgraph/drawio",
+			website: "https://draw.io/",
+			docs: "https://www.drawio.com/doc/",
+		},
+		tags: ["drawing", "diagrams"],
+		load: () => import("./drawio/index").then((m) => m.generate),
+	},
+	{
+		id: "kimai",
+		name: "Kimai",
+		version: "2.26.0",
+		description:
+			"Kimai is a web-based multi-user time-tracking application. Works great for everyone: freelancers, companies, organizations - everyone can track their times, generate reports, create invoices and do so much more.",
+		logo: "kimai.svg",
+		links: {
+			github: "https://github.com/kimai/kimai",
+			website: "https://www.kimai.org",
+			docs: "https://www.kimai.org/documentation",
+		},
+		tags: ["invoice", "business", "finance"],
+		load: () => import("./kimai/index").then((m) => m.generate),
+	},
+	{
+		id: "logto",
+		name: "Logto",
+		version: "1.22.0",
+		description:
+			"Logto is an open-source Identity and Access Management (IAM) platform designed to streamline Customer Identity and Access Management (CIAM) and Workforce Identity Management.",
+		logo: "logto.png",
+		links: {
+			github: "https://github.com/logto-io/logto",
+			website: "https://logto.io/",
+			docs: "https://docs.logto.io/introduction",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./logto/index").then((m) => m.generate),
+	},
+	{
+		id: "penpot",
+		name: "Penpot",
+		version: "2.3.2",
+		description:
+			"Penpot is the web-based open-source design tool that bridges the gap between designers and developers.",
+		logo: "penpot.svg",
+		links: {
+			github: "https://github.com/penpot/penpot",
+			website: "https://penpot.app/",
+			docs: "https://docs.penpot.app/",
+		},
+		tags: ["desing", "collaboration"],
+		load: () => import("./penpot/index").then((m) => m.generate),
+	},
+	{
+		id: "huly",
+		name: "Huly",
+		version: "0.6.377",
+		description:
+			"Huly — All-in-One Project Management Platform (alternative to Linear, Jira, Slack, Notion, Motion)",
+		logo: "huly.svg",
+		links: {
+			github: "https://github.com/hcengineering/huly-selfhost",
+			website: "https://huly.io/",
+			docs: "https://docs.huly.io/",
+		},
+		tags: ["project-management", "community", "discussion"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	},
+	{
+		id: "unsend",
+		name: "Unsend",
+		version: "v1.2.4",
+		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
+		logo: "unsend.png", // we defined the name and the extension of the logo
+		links: {
+			github: "https://github.com/unsend-dev/unsend",
+			website: "https://unsend.dev/",
+			docs: "https://docs.unsend.dev/get-started/",
+		},
+		tags: ["e-mail", "marketing", "business"],
+		load: () => import("./unsend/index").then((m) => m.generate),
+	},
+	{
+		id: "langflow",
+		name: "Langflow",
+		version: "1.1.1",
+		description:
+			"Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database. ",
+		logo: "langflow.svg",
+		links: {
+			github: "https://github.com/langflow-ai/langflow/tree/main",
+			website: "https://www.langflow.org/",
+			docs: "https://docs.langflow.org/",
+		},
+		tags: ["ai"],
+		load: () => import("./langflow/index").then((m) => m.generate),
+	},
+	{
+		id: "elastic-search",
+		name: "Elasticsearch",
+		version: "8.10.2",
+		description:
+			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
+		logo: "elasticsearch.svg",
+		links: {
+			github: "https://github.com/elastic/elasticsearch",
+			website: "https://www.elastic.co/elasticsearch/",
+			docs: "https://docs.elastic.co/elasticsearch/",
+		},
+		tags: ["search", "analytics"],
+		load: () => import("./elastic-search/index").then((m) => m.generate),
+	},
+	{
+		id: "onedev",
+		name: "OneDev",
+		version: "11.6.6",
+		description:
+			"Git server with CI/CD, kanban, and packages. Seamless integration. Unparalleled experience.",
+		logo: "onedev.png",
+		links: {
+			github: "https://github.com/theonedev/onedev/",
+			website: "https://onedev.io/",
+			docs: "https://docs.onedev.io/",
+		},
+		tags: ["self-hosted", "development"],
+		load: () => import("./onedev/index").then((m) => m.generate),
+	},
 ];

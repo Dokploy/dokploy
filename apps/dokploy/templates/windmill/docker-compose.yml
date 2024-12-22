@@ -1,0 +1,111 @@
+version: "3.8"
+
+services:
+  windmill-postgres:
+    image: postgres:16
+    shm_size: 1g
+    restart: unless-stopped
+    volumes:
+      - windmill-postgres-data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: windmill
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  windmill-server:
+    image: ghcr.io/windmill-labs/windmill:main
+    networks:
+      - dokploy-network
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - MODE=server
+      - BASE_URL=http://${WINDMILL_HOST}
+    depends_on:
+      windmill-postgres:
+        condition: service_healthy
+    volumes:
+      - windmill-worker-logs:/tmp/windmill/logs
+
+  windmill-worker:
+    image: ghcr.io/windmill-labs/windmill:main
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2048M
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - MODE=worker
+      - WORKER_GROUP=default
+    depends_on:
+      windmill-postgres:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - windmill-worker-cache:/tmp/windmill/cache
+      - windmill-worker-logs:/tmp/windmill/logs
+
+  windmill-worker-native:
+    image: ghcr.io/windmill-labs/windmill:main
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - MODE=worker
+      - WORKER_GROUP=native
+      - NUM_WORKERS=8
+      - SLEEP_QUEUE=200
+    depends_on:
+      windmill-postgres:
+        condition: service_healthy
+    volumes:
+      - windmill-worker-logs:/tmp/windmill/logs
+
+  windmill-lsp:
+    image: ghcr.io/windmill-labs/windmill-lsp:latest
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - windmill-lsp-cache:/root/.cache
+
+  windmill-caddy:
+    image: ghcr.io/windmill-labs/caddy-l4:latest
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - ../files/Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      - BASE_URL=":80"
+    depends_on:
+      - windmill-server
+      - windmill-lsp
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  windmill-postgres-data:
+  windmill-worker-cache:
+  windmill-worker-logs:
+  windmill-lsp-cache:

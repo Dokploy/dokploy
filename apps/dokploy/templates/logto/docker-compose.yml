@@ -1,0 +1,42 @@
+services:
+  app:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: svhd/logto:1.22.0
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+    ports:
+      - 3001
+      - 3002
+    networks:
+      - dokploy-network
+    environment:
+      TRUST_PROXY_HEADER: 1
+      DB_URL: postgres://logto:${LOGTO_POSTGRES_PASSWORD}@postgres:5432/logto
+      ENDPOINT: ${LOGTO_ENDPOINT}
+      ADMIN_ENDPOINT: ${LOGTO_ADMIN_ENDPOINT}
+    volumes:
+      - logto-connectors:/etc/logto/packages/core/connectors
+  postgres:
+    image: postgres:17-alpine
+    user: postgres
+    networks:
+      - dokploy-network
+    environment:
+      POSTGRES_USER: logto
+      POSTGRES_PASSWORD: ${LOGTO_POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  logto-connectors:
+  postgres-data:

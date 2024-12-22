@@ -10,6 +10,7 @@ export const gitlab = pgTable("gitlab", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
+	gitlabUrl: text("gitlabUrl").default("https://gitlab.com").notNull(),
 	applicationId: text("application_id"),
 	redirectUri: text("redirect_uri"),
 	secret: text("secret"),
@@ -39,6 +40,7 @@ export const apiCreateGitlab = createSchema.extend({
 	redirectUri: z.string().optional(),
 	authId: z.string().min(1),
 	name: z.string().min(1),
+	gitlabUrl: z.string().min(1),
 });
 
 export const apiFindOneGitlab = createSchema
@@ -67,4 +69,5 @@ export const apiUpdateGitlab = createSchema.extend({
 	redirectUri: z.string().optional(),
 	name: z.string().min(1),
 	gitlabId: z.string().min(1),
+	gitlabUrl: z.string().min(1),
 });

@@ -87,7 +87,8 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 <div style="display: flex; gap: 30px; flex-wrap: wrap;">
 <a href="https://lightspeed.run/?ref=dokploy"><img src="https://github.com/lightspeedrun.png" width="60px" alt="Lightspeed.run"/></a>
-<a href="https://cloudblast.io/?ref=dokploy "><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Lightspeed.run"/></a>
+<a href="https://cloudblast.io/?ref=dokploy "><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
+<a href="https://startupfa.me/?ref=dokploy "><img src=".github/sponsors/startupfame.png" width="65px" alt="Startupfame"/></a>
 </div>
 
 ### Community Backers 🤝
@@ -116,7 +117,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ## Video Tutorial
 
 <a href="https://youtu.be/mznYKPvhcfw">
-  <img src="https://dokploy.com/banner.webp" alt="Watch the video" width="400" style="border-radius:20px;"/>
+  <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400" style="border-radius:20px;"/>
 </a>
 
 <!-- ## Supported OS

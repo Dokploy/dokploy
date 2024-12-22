@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  tickets-postgres:
+    image: mysql:8
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - tickets-mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tickets-app:
+    image: eartharoid/discord-tickets:4.0.21
+    depends_on:
+      tickets-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    volumes:
+      - tickets-app-data:/home/container/user
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    tty: true
+    stdin_open: true
+    environment:
+      DB_CONNECTION_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tickets-postgres/${MYSQL_DATABASE}
+      DISCORD_SECRET: ${DISCORD_SECRET}
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      DB_PROVIDER: mysql
+      HTTP_EXTERNAL: https://${TICKETS_HOST}
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: 8169
+      HTTP_TRUST_PROXY: "true"
+      PUBLIC_BOT: "false"
+      PUBLISH_COMMANDS: "true"
+      SUPER: ${SUPER_USERS}
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  tickets-mysql-data:
+  tickets-app-data: 

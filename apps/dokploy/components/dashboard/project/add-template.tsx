@@ -92,7 +92,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 				template.tags.some((tag) => selectedTags.includes(tag));
 			const matchesQuery =
 				query === "" ||
-				template.name.toLowerCase().includes(query.toLowerCase());
+				template.name.toLowerCase().includes(query.toLowerCase()) ||
+				template.description.toLowerCase().includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
 		}) || [];
 
@@ -127,7 +128,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 							<PopoverTrigger asChild>
 								<Button
 									variant="outline"
-									role="combobox"
 									className={cn(
 										"md:max-w-[15rem] w-full justify-between !bg-input",
 									)}

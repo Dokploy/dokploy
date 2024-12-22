@@ -26,6 +26,7 @@ export const sendBuildSuccessNotifications = async ({
 	adminId,
 }: Props) => {
 	const date = new Date();
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appDeploy, true),
@@ -57,27 +58,42 @@ export const sendBuildSuccessNotifications = async ({
 
 		if (discord) {
 			await sendDiscordNotification(discord, {
-				title: "✅ Build Success",
-				color: 0x00ff00,
+				title: "> `✅` Build Success",
+				color: 0x57f287,
 				fields: [
 					{
-						name: "Project",
+						name: "`🛠️` Project",
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "Application",
+						name: "`⚙️` Application",
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "Type",
+						name: "`❔` Application Type",
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "Build Link",
-						value: buildLink,
+						name: "`📅` Date",
+						value: `<t:${unixDate}:D>`,
+						inline: true,
+					},
+					{
+						name: "`⌚` Time",
+						value: `<t:${unixDate}:t>`,
+						inline: true,
+					},
+					{
+						name: "`❓` Type",
+						value: "Successful",
+						inline: true,
+					},
+					{
+						name: "`🧷` Build Link",
+						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
 				timestamp: date.toISOString(),

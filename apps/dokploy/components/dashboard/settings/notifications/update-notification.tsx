@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, PenBoxIcon } from "lucide-react";
+import { Mail, Pen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -218,8 +218,10 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost">
-					<PenBoxIcon className="size-4  text-muted-foreground" />
+				<Button variant="ghost"
+                        size="icon"
+                        className="h-9 w-9">
+					<Pen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
@@ -356,25 +358,23 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								)}
 
 								{type === "discord" && (
-									<>
-										<FormField
-											control={form.control}
-											name="webhookUrl"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Webhook URL</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-															{...field}
-														/>
-													</FormControl>
+									<FormField
+										control={form.control}
+										name="webhookUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Webhook URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+														{...field}
+													/>
+												</FormControl>
 
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 								)}
 								{type === "email" && (
 									<>

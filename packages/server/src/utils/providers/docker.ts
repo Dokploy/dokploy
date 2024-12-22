@@ -5,7 +5,7 @@ import { pullImage } from "../docker/utils";
 interface RegistryAuth {
 	username: string;
 	password: string;
-	serveraddress: string;
+	registryUrl: string;
 }
 
 export const buildDocker = async (
@@ -16,6 +16,7 @@ export const buildDocker = async (
 	const authConfig: Partial<RegistryAuth> = {
 		username: username || "",
 		password: password || "",
+		registryUrl: application.registryUrl || "",
 	};
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
@@ -33,7 +34,7 @@ export const buildDocker = async (
 			dockerImage,
 			(data) => {
 				if (writeStream.writable) {
-					writeStream.write(`${data.status}\n`);
+					writeStream.write(`${data}\n`);
 				}
 			},
 			authConfig,
@@ -41,7 +42,7 @@ export const buildDocker = async (
 		await mechanizeDockerContainer(application);
 		writeStream.write("\nDocker Deployed: ✅\n");
 	} catch (error) {
-		writeStream.write(`ERROR: ${error}: ❌`);
+		writeStream.write("❌ Error");
 		throw error;
 	} finally {
 		writeStream.end();
@@ -52,7 +53,7 @@ export const buildRemoteDocker = async (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { sourceType, dockerImage, username, password } = application;
+	const { registryUrl, dockerImage, username, password } = application;
 
 	try {
 		if (!dockerImage) {
@@ -64,7 +65,7 @@ echo "Pulling ${dockerImage}" >> ${logPath};
 
 		if (username && password) {
 			command += `
-if ! docker login --username ${username} --password ${password} https://index.docker.io/v1/ >> ${logPath} 2>&1; then
+if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" >> ${logPath} 2>&1; then
 	echo "❌ Login failed" >> ${logPath};
 	exit 1;
 fi
