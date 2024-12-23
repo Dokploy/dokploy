@@ -34,8 +34,8 @@ import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
-import { ValidateServer } from "./validate-server";
 import { SecurityAudit } from "./security-audit";
+import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;

@@ -1,13 +1,13 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text } from "drizzle-orm/pg-core";
-import { nanoid } from "nanoid";
-import { applications } from "./application";
-import { domains } from "./domain";
-import { deployments } from "./deployment";
 import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
 import { z } from "zod";
-import { generateAppName } from "./utils";
+import { applications } from "./application";
+import { deployments } from "./deployment";
+import { domains } from "./domain";
 import { applicationStatus } from "./shared";
+import { generateAppName } from "./utils";
 
 export const previewDeployments = pgTable("preview_deployments", {
 	previewDeploymentId: text("previewDeploymentId")
