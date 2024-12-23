@@ -59,7 +59,10 @@ export const DockerTerminalModal = ({
 					{children}
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl">
+			<DialogContent 
+				className="max-h-screen  overflow-y-auto sm:max-w-7xl"
+				onEscapeKeyDown={(event) => event.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>Docker Terminal</DialogTitle>
 					<DialogDescription>
@@ -73,7 +76,7 @@ export const DockerTerminalModal = ({
 					serverId={serverId || ""}
 				/>
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-					<DialogContent>
+					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>
 								Are you sure you want to close the terminal?
