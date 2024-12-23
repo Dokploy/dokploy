@@ -449,8 +449,6 @@ export const removeCompose = async (
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
-		console.log("API: DELETE VOLUMES=", deleteVolumes);
-
 		if (compose.composeType === "stack") {
 			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
 
