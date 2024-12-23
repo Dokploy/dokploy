@@ -241,13 +241,7 @@ export const removeService = async (
 	deleteVolumes = false,
 ) => {
 	try {
-		let command: string;
-
-		if (deleteVolumes) {
-			command = `docker service rm --force ${appName}`;
-		} else {
-			command = `docker service rm ${appName}`;
-		}
+		const command = `docker service rm ${appName}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
