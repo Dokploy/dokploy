@@ -59,7 +59,7 @@ export const DockerTerminalModal = ({
 					{children}
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent 
+			<DialogContent
 				className="max-h-screen  overflow-y-auto sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>

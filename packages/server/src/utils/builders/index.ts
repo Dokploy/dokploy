@@ -2,6 +2,7 @@ import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { nanoid } from "nanoid";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -17,7 +18,6 @@ import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildStatic, getStaticCommand } from "./static";
-import { nanoid } from "nanoid";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory

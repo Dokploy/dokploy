@@ -23,17 +23,17 @@ import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
+import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
-import { useRouter } from "next/router";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
-import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 
 export const ShowServers = () => {
 	const router = useRouter();

@@ -206,7 +206,9 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${
+		compose.projectId
+	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -308,7 +310,9 @@ export const deployRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${
+		compose.projectId
+	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -437,13 +441,17 @@ export const rebuildRemoteCompose = async ({
 	return true;
 };
 
-export const removeCompose = async (compose: Compose) => {
+export const removeCompose = async (
+	compose: Compose,
+	deleteVolumes: boolean,
+) => {
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
 			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
@@ -453,7 +461,13 @@ export const removeCompose = async (compose: Compose) => {
 				cwd: projectPath,
 			});
 		} else {
-			const command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			let command: string;
+			if (deleteVolumes) {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down --volumes && rm -rf ${projectPath}`;
+			} else {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			}
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
@@ -477,7 +491,11 @@ export const startCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName, "code")} && docker compose -p ${compose.appName} up -d`,
+					`cd ${join(
+						COMPOSE_PATH,
+						compose.appName,
+						"code",
+					)} && docker compose -p ${compose.appName} up -d`,
 				);
 			} else {
 				await execAsync(`docker compose -p ${compose.appName} up -d`, {
@@ -507,7 +525,9 @@ export const stopCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
+					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${
+						compose.appName
+					} stop`,
 				);
 			} else {
 				await execAsync(`docker compose -p ${compose.appName} stop`, {

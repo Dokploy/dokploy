@@ -25,8 +25,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
-import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
+import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
 interface Props {
 	serverId?: string;

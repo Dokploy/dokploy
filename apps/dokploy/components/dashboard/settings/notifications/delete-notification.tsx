@@ -24,12 +24,12 @@ export const DeleteNotification = ({ notificationId }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button 
-					variant="ghost" 
-					size="icon" 
+				<Button
+					variant="ghost"
+					size="icon"
 					className="h-9 w-9 group hover:bg-red-500/10"
 					isLoading={isLoading}
-					>
+				>
 					<Trash2 className="size-4 text-muted-foreground group-hover:text-red-500" />
 				</Button>
 			</AlertDialogTrigger>

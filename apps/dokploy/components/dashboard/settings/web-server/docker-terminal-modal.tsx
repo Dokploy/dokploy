@@ -80,7 +80,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 	return (
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent 
+			<DialogContent
 				className="max-h-[85vh]    overflow-y-auto sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
