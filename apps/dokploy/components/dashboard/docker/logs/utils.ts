@@ -1,5 +1,5 @@
-export type LogType = "error"  | "warning" | "success" | "info" | "debug";
-export type LogVariant = "red" | "yellow"  | "green"   | "blue" | "orange";
+export type LogType = "error" | "warning" | "success" | "info" | "debug";
+export type LogVariant = "red" | "yellow" | "green" | "blue" | "orange";
 
 export interface LogLine {
 	rawTimestamp: string | null;
@@ -138,8 +138,12 @@ export const getLogType = (message: string): LogStyle => {
 
 	if (
 		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
-		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(lowerMessage) ||
-		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(lowerMessage)
+		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(
+			lowerMessage,
+		) ||
+		/\b(?:version|config|import|load|get|HTTP|PATCH|POST|debug)\b:?/i.test(
+			lowerMessage,
+		)
 	) {
 		return LOG_STYLES.debug;
 	}

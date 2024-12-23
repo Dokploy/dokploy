@@ -4,7 +4,7 @@ import {
 	backups,
 	postgres,
 } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -17,17 +17,14 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 export type Postgres = typeof postgres.$inferSelect;
 
 export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("postgres", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newPostgres = await db
@@ -37,6 +34,7 @@ export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
 			databasePassword: input.databasePassword
 				? input.databasePassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -96,10 +94,11 @@ export const updatePostgresById = async (
 	postgresId: string,
 	postgresData: Partial<Postgres>,
 ) => {
+	const { appName, ...rest } = postgresData;
 	const result = await db
 		.update(postgres)
 		.set({
-			...postgresData,
+			...rest,
 		})
 		.where(eq(postgres.postgresId, postgresId))
 		.returning();

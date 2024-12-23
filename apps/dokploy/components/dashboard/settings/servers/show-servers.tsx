@@ -33,6 +33,7 @@ import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
 import { useRouter } from "next/router";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 
 export const ShowServers = () => {
 	const router = useRouter();
@@ -257,6 +258,9 @@ export const ShowServers = () => {
 																	serverId={server.serverId}
 																/>
 																<ShowDockerContainersModal
+																	serverId={server.serverId}
+																/>
+																<ShowSwarmOverviewModal
 																	serverId={server.serverId}
 																/>
 															</>

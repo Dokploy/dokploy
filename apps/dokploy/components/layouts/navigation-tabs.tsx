@@ -21,7 +21,8 @@ export type TabState =
 	| "settings"
 	| "traefik"
 	| "requests"
-	| "docker";
+	| "docker"
+	| "swarm";
 
 const getTabMaps = (isCloud: boolean) => {
 	const elements: TabInfo[] = [
@@ -59,6 +60,15 @@ const getTabMaps = (isCloud: boolean) => {
 					return Boolean(rol === "admin" || user?.canAccessToDocker);
 				},
 				type: "docker",
+			},
+			{
+				label: "Swarm",
+				description: "Manage your docker swarm and Servers",
+				index: "/dashboard/swarm",
+				isShow: ({ rol, user }) => {
+					return Boolean(rol === "admin" || user?.canAccessToDocker);
+				},
+				type: "swarm",
 			},
 			{
 				label: "Requests",

@@ -211,21 +211,21 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		return join(registry.imagePrefix || "", appName);
+		return join(registry.registryUrl, registry.imagePrefix || "", appName);
 	}
 
 	return `${appName}:latest`;
 };
 
 const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType } = application;
+	const { registry, username, password, sourceType, registryUrl } = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
 			return {
 				password,
 				username,
-				serveraddress: "https://index.docker.io/v1/",
+				serveraddress: registryUrl || "",
 			};
 		}
 	} else if (registry) {
