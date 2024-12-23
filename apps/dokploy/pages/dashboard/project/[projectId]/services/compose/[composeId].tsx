@@ -8,14 +8,24 @@ import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show"
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -29,8 +39,13 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { CircuitBoard, ServerOff } from "lucide-react";
-import { HelpCircle } from "lucide-react";
+import {
+	CircuitBoard,
+	Database,
+	HelpCircle,
+	ServerOff,
+	Settings,
+} from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -38,7 +53,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, useEffect, type ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import superjson from "superjson";
 
 type TabState =
@@ -56,6 +71,7 @@ const Service = (
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
+	const databaseKeywords = ["mysql", "mariadb", "postgres", "mongodb", "redis"];
 
 	useEffect(() => {
 		if (router.query.tab) {
@@ -68,6 +84,10 @@ const Service = (
 		{
 			refetchInterval: 5000,
 		},
+	);
+
+	const hasDatabaseService = databaseKeywords.some((db) =>
+		data?.composeFile.toLowerCase().includes(db),
 	);
 
 	const { data: auth } = api.auth.get.useQuery();
@@ -102,6 +122,18 @@ const Service = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				{hasDatabaseService && (
+					<Alert>
+						<Database className="size-4" />
+						<AlertTitle>Heads up!</AlertTitle>
+						<AlertDescription>
+							It looks like this compose file contains a database service. If
+							you want to use features like data persistence, backups, and
+							security, we recommend you to create a dedicated database service.
+						</AlertDescription>
+					</Alert>
+				)}
+
 				<Head>
 					<title>
 						Compose: {data?.name} - {data?.project.name} | Dokploy
@@ -218,12 +250,35 @@ const Service = (
 							<TabsTrigger value="domains">Domains</TabsTrigger>
 							<TabsTrigger value="advanced">Advanced</TabsTrigger>
 						</TabsList>
-						<div className="flex flex-row gap-2">
-							<UpdateCompose composeId={composeId} />
-
-							{(auth?.rol === "admin" || user?.canDeleteServices) && (
-								<DeleteCompose composeId={composeId} />
-							)}
+						<div className="flex flex-row gap-4 flex-wrap">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button>
+										<Settings className="h-4 w-4" />
+										Edit
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									className="w-[200px] space-y-2"
+									align="end"
+								>
+									<DropdownMenuLabel className="text-sm font-normal ">
+										Actions
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<UpdateCompose composeId={composeId} />
+									{(auth?.rol === "admin" || user?.canDeleteServices) && (
+										<DeleteCompose composeId={composeId} />
+									)}
+									{hasDatabaseService && (
+										<AddDatabase
+											projectId={data!.projectId}
+											projectName={data!.project.name}
+											dropdownItemName="Add Database"
+										/>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 					</div>
 
