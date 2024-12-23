@@ -7,6 +7,9 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findServerById } from "@dokploy/server/services/server";
 import {
+	TRAEFIK_PORT,
+	TRAEFIK_SSL_PORT,
+	TRAEFIK_VERSION,
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";
@@ -510,7 +513,7 @@ export const createTraefikInstance = () => {
 			echo "Traefik already exists ✅"
 		else
 			# Create the dokploy-traefik service
-			TRAEFIK_VERSION=3.1.2
+			TRAEFIK_VERSION=${TRAEFIK_VERSION}
 			docker service create \
 				--name dokploy-traefik \
 				--replicas 1 \
@@ -520,8 +523,8 @@ export const createTraefikInstance = () => {
 				--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
 				--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
 				--label traefik.enable=true \
-				--publish mode=host,target=443,published=443 \
-				--publish mode=host,target=80,published=80 \
+				--publish mode=host,target=${TRAEFIK_SSL_PORT},published=${TRAEFIK_SSL_PORT} \
+				--publish mode=host,target=${TRAEFIK_PORT},published=${TRAEFIK_PORT} \
 				traefik:v$TRAEFIK_VERSION
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
