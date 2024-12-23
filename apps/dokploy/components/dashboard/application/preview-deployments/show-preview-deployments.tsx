@@ -235,5 +235,3 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
     </Card>
   );
 };
-
-export default ShowPreviewDeployments;
