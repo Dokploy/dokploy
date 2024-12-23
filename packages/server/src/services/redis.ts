@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateRedis, redis } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildRedis } from "@dokploy/server/utils/databases/redis";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -14,17 +14,14 @@ export type Redis = typeof redis.$inferSelect;
 
 // https://github.com/drizzle-team/drizzle-orm/discussions/1483#discussioncomment-7523881
 export const createRedis = async (input: typeof apiCreateRedis._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("redis");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("redis", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newRedis = await db
@@ -34,6 +31,7 @@ export const createRedis = async (input: typeof apiCreateRedis._type) => {
 			databasePassword: input.databasePassword
 				? input.databasePassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -70,10 +68,11 @@ export const updateRedisById = async (
 	redisId: string,
 	redisData: Partial<Redis>,
 ) => {
+	const { appName, ...rest } = redisData;
 	const result = await db
 		.update(redis)
 		.set({
-			...redisData,
+			...rest,
 		})
 		.where(eq(redis.redisId, redisId))
 		.returning();
