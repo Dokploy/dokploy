@@ -80,7 +80,10 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 	return (
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-h-[85vh]    overflow-y-auto sm:max-w-7xl">
+			<DialogContent 
+				className="max-h-[85vh]    overflow-y-auto sm:max-w-7xl"
+				onEscapeKeyDown={(event) => event.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>Docker Terminal</DialogTitle>
 					<DialogDescription>
@@ -119,7 +122,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 					containerId={containerId || "select-a-container"}
 				/>
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-					<DialogContent>
+					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>
 								Are you sure you want to close the terminal?
