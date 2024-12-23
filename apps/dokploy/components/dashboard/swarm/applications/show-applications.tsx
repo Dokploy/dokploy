@@ -8,13 +8,13 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { Layers, LoaderIcon } from "lucide-react";
+import { Layers, Loader2 } from "lucide-react";
 import React from "react";
 import { columns } from "./columns";
 import { DataTable } from "./data-table";
 
 interface Props {
-	nodeName: string;
+	serverId?: string;
 }
 
 interface ApplicationList {
@@ -30,10 +30,9 @@ interface ApplicationList {
 	Node: string;
 }
 
-const ShowNodeApplications = ({ nodeName }: Props) => {
-	const [loading, setLoading] = React.useState(true);
+export const ShowNodeApplications = ({ serverId }: Props) => {
 	const { data: NodeApps, isLoading: NodeAppsLoading } =
-		api.swarm.getNodeApps.useQuery();
+		api.swarm.getNodeApps.useQuery({ serverId });
 
 	let applicationList = "";
 
@@ -42,14 +41,14 @@ const ShowNodeApplications = ({ nodeName }: Props) => {
 	}
 
 	const { data: NodeAppDetails, isLoading: NodeAppDetailsLoading } =
-		api.swarm.getAppInfos.useQuery({ appName: applicationList });
+		api.swarm.getAppInfos.useQuery({ appName: applicationList, serverId });
 
 	if (NodeAppsLoading || NodeAppDetailsLoading) {
 		return (
 			<Dialog>
 				<DialogTrigger asChild>
 					<Button variant="outline" size="sm" className="w-full">
-						<LoaderIcon className="h-4 w-4 mr-2 animate-spin" />
+						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
 					</Button>
 				</DialogTrigger>
 			</Dialog>
@@ -57,7 +56,11 @@ const ShowNodeApplications = ({ nodeName }: Props) => {
 	}
 
 	if (!NodeApps || !NodeAppDetails) {
-		return <div>No data found</div>;
+		return (
+			<span className="text-sm w-full flex text-center justify-center items-center">
+				No data found
+			</span>
+		);
 	}
 
 	const combinedData: ApplicationList[] = NodeApps.flatMap((app) => {
@@ -97,19 +100,17 @@ const ShowNodeApplications = ({ nodeName }: Props) => {
 					Services
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-6xl overflow-y-auto max-h-screen"}>
 				<DialogHeader>
 					<DialogTitle>Node Applications</DialogTitle>
 					<DialogDescription>
 						See in detail the applications running on this node
 					</DialogDescription>
 				</DialogHeader>
-				<div className="max-h-[90vh]">
+				<div className="max-h-[80vh]">
 					<DataTable columns={columns} data={combinedData ?? []} />
 				</div>
 			</DialogContent>
 		</Dialog>
 	);
 };
-
-export default ShowNodeApplications;

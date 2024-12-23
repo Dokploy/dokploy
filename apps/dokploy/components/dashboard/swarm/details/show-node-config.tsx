@@ -13,10 +13,14 @@ import { Settings } from "lucide-react";
 
 interface Props {
 	nodeId: string;
+	serverId?: string;
 }
 
-export const ShowNodeConfig = ({ nodeId }: Props) => {
-	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({ nodeId });
+export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
+	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
+		nodeId,
+		serverId,
+	});
 	return (
 		<Dialog>
 			<DialogTrigger asChild>

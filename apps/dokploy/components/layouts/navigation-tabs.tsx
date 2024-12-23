@@ -62,7 +62,7 @@ const getTabMaps = (isCloud: boolean) => {
 				type: "docker",
 			},
 			{
-				label: "Swarm & Server",
+				label: "Swarm",
 				description: "Manage your docker swarm and Servers",
 				index: "/dashboard/swarm",
 				isShow: ({ rol, user }) => {

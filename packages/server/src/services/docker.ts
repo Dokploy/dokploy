@@ -225,11 +225,21 @@ export const containerRestart = async (containerId: string) => {
 	} catch (error) {}
 };
 
-export const getSwarmNodes = async () => {
+export const getSwarmNodes = async (serverId?: string) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			"docker node ls --format '{{json .}}'",
-		);
+		let stdout = "";
+		let stderr = "";
+		const command = "docker node ls --format '{{json .}}'";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
@@ -246,11 +256,20 @@ export const getSwarmNodes = async () => {
 	} catch (error) {}
 };
 
-export const getNodeInfo = async (nodeId: string) => {
+export const getNodeInfo = async (nodeId: string, serverId?: string) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker node inspect ${nodeId} --format '{{json .}}'`,
-		);
+		const command = `docker node inspect ${nodeId} --format '{{json .}}'`;
+		let stdout = "";
+		let stderr = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
@@ -263,11 +282,22 @@ export const getNodeInfo = async (nodeId: string) => {
 	} catch (error) {}
 };
 
-export const getNodeApplications = async () => {
+export const getNodeApplications = async (serverId?: string) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker service ls --format '{{json .}}'`,
-		);
+		let stdout = "";
+		let stderr = "";
+		const command = `docker service ls --format '{{json .}}'`;
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);
@@ -283,11 +313,24 @@ export const getNodeApplications = async () => {
 	} catch (error) {}
 };
 
-export const getApplicationInfo = async (appName: string) => {
+export const getApplicationInfo = async (
+	appName: string,
+	serverId?: string,
+) => {
 	try {
-		const { stdout, stderr } = await execAsync(
-			`docker service ps ${appName} --format '{{json .}}'`,
-		);
+		let stdout = "";
+		let stderr = "";
+		const command = `docker service ps ${appName} --format '{{json .}}'`;
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
 
 		if (stderr) {
 			console.error(`Error: ${stderr}`);

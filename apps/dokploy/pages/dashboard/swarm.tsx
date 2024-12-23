@@ -1,7 +1,5 @@
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
-import ServersOverview from "@/components/dashboard/swarm/servers/servers-overview";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { Separator } from "@/components/ui/separator";
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";

@@ -9,68 +9,44 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import {
-	Activity,
 	AlertCircle,
 	CheckCircle,
 	HelpCircle,
 	Loader2,
 	Server,
 } from "lucide-react";
-import Link from "next/link";
 import { NodeCard } from "./details/details-card";
 
-export interface SwarmList {
-	ID: string;
-	Hostname: string;
-	Availability: string;
-	EngineVersion: string;
-	Status: string;
-	ManagerStatus: string;
-	TLSStatus: string;
+interface Props {
+	serverId?: string;
 }
 
-interface SwarmMonitorCardProps {
-	nodes: SwarmList[];
-}
-
-export default function SwarmMonitorCard() {
-	const { data: nodes, isLoading } = api.swarm.getNodes.useQuery();
+export default function SwarmMonitorCard({ serverId }: Props) {
+	const { data: nodes, isLoading } = api.swarm.getNodes.useQuery({
+		serverId,
+	});
 
 	if (isLoading) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<Card className="mb-6">
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<Activity className="h-6 w-6" />
-							Docker Swarm Monitor
-						</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex items-center justify-center">
-							<Loader2 className="h-6 w-6 animate-spin" />
-						</div>
-					</CardContent>
-				</Card>
+				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
+					<div className="flex items-center justify-center h-full  text-muted-foreground">
+						<Loader2 className="h-6 w-6 animate-spin" />
+					</div>
+				</div>
 			</div>
 		);
 	}
 
 	if (!nodes) {
 		return (
-			<Card className="w-full max-w-md">
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<AlertCircle className="h-6 w-6" />
-						Docker Swarm Monitor
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex items-center justify-center">
+			<div className="w-full max-w-7xl mx-auto">
+				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
+					<div className="flex items-center justify-center h-full  text-destructive">
 						<span>Failed to load data</span>
 					</div>
-				</CardContent>
-			</Card>
+				</div>
+			</div>
 		);
 	}
 
@@ -105,19 +81,23 @@ export default function SwarmMonitorCard() {
 	return (
 		<div className="w-full max-w-7xl mx-auto">
 			<div className="flex justify-between items-center mb-4">
-				<h1 className="text-2xl font-bold">Docker Swarm Overview</h1>
-				<Button
-					type="button"
-					onClick={() => window.location.replace("/dashboard/settings/cluster")}
-				>
-					Manage Cluster
-				</Button>
+				<h1 className="text-xl font-bold">Docker Swarm Overview</h1>
+				{!serverId && (
+					<Button
+						type="button"
+						onClick={() =>
+							window.location.replace("/dashboard/settings/cluster")
+						}
+					>
+						Manage Cluster
+					</Button>
+				)}
 			</div>
 			<Card className="mb-6 bg-transparent">
 				<CardHeader className="flex flex-row items-center justify-between">
-					<CardTitle className="flex items-center gap-2">
-						<Server className="h-6 w-6" />
-						Docker Swarm Monitor
+					<CardTitle className="flex items-center gap-2 text-xl">
+						<Server className="size-4" />
+						Monitor
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
@@ -200,7 +180,7 @@ export default function SwarmMonitorCard() {
 			</Card>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{nodes.map((node) => (
-					<NodeCard key={node.ID} node={node} />
+					<NodeCard key={node.ID} node={node} serverId={serverId} />
 				))}
 			</div>
 		</div>
