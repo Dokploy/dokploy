@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -26,7 +27,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
 import { Enable2FA } from "./enable-2fa";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 const profileSchema = z.object({
 	email: z.string(),

@@ -26,7 +26,9 @@ export const ShowPreviewBuilds = ({ deployments, serverId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">View Builds</Button>
+				<Button className="sm:w-auto w-full" size="sm" variant="outline">
+					View Builds
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl">
 				<DialogHeader>

@@ -14,8 +14,8 @@ import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
-import { certificateType } from "./shared";
 import { previewDeployments } from "./preview-deployments";
+import { certificateType } from "./shared";
 
 export const domainType = pgEnum("domainType", [
 	"compose",

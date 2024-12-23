@@ -220,7 +220,11 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost" size="icon" className="h-9 w-9">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-9 w-9 dark:hover:bg-zinc-900/80 hover:bg-gray-200/80"
+				>
 					<Pen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>

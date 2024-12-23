@@ -5,26 +5,26 @@ import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
+	CardContent,
+	CardDescription,
 	CardHeader,
 	CardTitle,
-	CardDescription,
-	CardContent,
 } from "@/components/ui/card";
-import { RocketIcon } from "lucide-react";
-import { toast } from "sonner";
-import { EditScript } from "../edit-script";
-import { api } from "@/utils/api";
-import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
-	SelectTrigger,
-	SelectValue,
 	SelectContent,
 	SelectGroup,
 	SelectItem,
 	SelectLabel,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
+import { RocketIcon } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { EditScript } from "../edit-script";
 
 export const Setup = () => {
 	const { data: servers } = api.server.all.useQuery();
