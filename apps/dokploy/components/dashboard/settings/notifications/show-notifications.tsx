@@ -44,7 +44,7 @@ export const ShowNotifications = () => {
 						  {data?.map((notification, index) => (
 							<div
 							  key={notification.notificationId}
-							  className="flex items-center justify-between rounded-xl p-4 transition-colors dark:bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800/50"
+							  className="flex items-center justify-between rounded-xl p-4 transition-colors dark:bg-zinc-900/50 bg-gray-200/50 border border-card"
 							>
 							  <div className="flex items-center gap-4">
 								{notification.notificationType === "slack" && (
@@ -68,7 +68,7 @@ export const ShowNotifications = () => {
 								  </div>
 								)}
 								<div className="flex flex-col">
-								  <span className="text-sm font-medium text-zinc-300">
+								  <span className="text-sm font-medium dark:text-zinc-300 text-zinc-800">
 									{notification.name}
 								  </span>
 								  <span className="text-xs font-medium text-muted-foreground">
