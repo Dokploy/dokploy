@@ -4,10 +4,10 @@
 	"settings.server.domain.description": "Add a domain to your server application.",
 	"settings.server.domain.form.domain": "Domain",
 	"settings.server.domain.form.letsEncryptEmail": "Let's Encrypt Email",
-	"settings.server.domain.form.certificate.label": "Certificate",
+	"settings.server.domain.form.certificate.label": "Certificate Provider",
 	"settings.server.domain.form.certificate.placeholder": "Select a certificate",
 	"settings.server.domain.form.certificateOptions.none": "None",
-	"settings.server.domain.form.certificateOptions.letsencrypt": "Let's Encrypt (Default)",
+	"settings.server.domain.form.certificateOptions.letsencrypt": "Let's Encrypt",
 
 	"settings.server.webServer.title": "Web Server",
 	"settings.server.webServer.description": "Reload or clean the web server.",
