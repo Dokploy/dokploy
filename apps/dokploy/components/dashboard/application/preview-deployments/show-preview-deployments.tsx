@@ -92,6 +92,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							<div className="flex flex-col gap-4">
 								{previewDeployments?.map((deployment) => {
 									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
+									const status = deployment.previewStatus;
 									return (
 										<div
 											key={deployment.previewDeploymentId}
@@ -99,9 +100,11 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 										>
 											<div
 												className={`absolute left-0 top-0 w-1 h-full ${
-													deployment.previewStatus === "running"
+													status === "done"
 														? "bg-green-500"
-														: "bg-red-500"
+														: status === "running"
+															? "bg-yellow-500"
+															: "bg-red-500"
 												}`}
 											/>
 
