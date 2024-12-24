@@ -8,9 +8,11 @@ import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
 
-const TRAEFIK_SSL_PORT =
+export const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
-const TRAEFIK_PORT = Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
+export const TRAEFIK_PORT =
+	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.1.2";
 
 interface TraefikOptions {
 	enableDashboard?: boolean;
@@ -30,7 +32,7 @@ export const initializeTraefik = async ({
 	additionalPorts = [],
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
-	const imageName = "traefik:v3.1.2";
+	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
 	const settings: CreateServiceOptions = {
 		Name: containerName,
