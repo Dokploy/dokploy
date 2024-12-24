@@ -18,17 +18,26 @@ import { ShowDeployment } from "../deployments/show-deployment";
 interface Props {
 	deployments: RouterOutputs["deployment"]["all"];
 	serverId?: string;
+	trigger?: React.ReactNode;
 }
 
-export const ShowPreviewBuilds = ({ deployments, serverId }: Props) => {
+export const ShowPreviewBuilds = ({
+	deployments,
+	serverId,
+	trigger,
+}: Props) => {
 	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button className="sm:w-auto w-full" size="sm" variant="outline">
-					View Builds
-				</Button>
+				{trigger ? (
+					trigger
+				) : (
+					<Button className="sm:w-auto w-full" size="sm" variant="outline">
+						View Builds
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl">
 				<DialogHeader>

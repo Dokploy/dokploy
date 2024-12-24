@@ -1,3 +1,4 @@
+import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -10,16 +11,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import {
-	Clock,
-	GitBranch,
+	ExternalLink,
+	FileText,
 	GitPullRequest,
-	Pencil,
+	Layers,
+	PenSquare,
 	RocketIcon,
+	Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
@@ -88,136 +90,136 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							</div>
 						) : (
 							<div className="flex flex-col gap-4">
-								{previewDeployments.map((previewDeployment) => (
-									<div
-										key={previewDeployment.previewDeploymentId}
-										className="w-full border rounded-xl"
-									>
-										<div className="md:p-6 p-2 md:pb-3 flex flex-row items-center justify-between">
-											<span className="text-lg font-bold">
-												{previewDeployment.pullRequestTitle}
-											</span>
-											<Badge
-												variant="outline"
-												className="text-sm font-medium gap-x-2"
-											>
-												<StatusTooltip
-													status={previewDeployment.previewStatus}
-													className="size-2.5"
-												/>
-												{previewDeployment.previewStatus
-													?.replace("running", "Running")
-													.replace("done", "Done")
-													.replace("error", "Error")
-													.replace("idle", "Idle") || "Idle"}
-											</Badge>
-										</div>
+								{previewDeployments?.map((deployment) => {
+									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
+									const status = deployment.previewStatus;
+									return (
+										<div
+											key={deployment.previewDeploymentId}
+											className="group relative overflow-hidden border rounded-lg transition-colors"
+										>
+											<div
+												className={`absolute left-0 top-0 w-1 h-full ${
+													status === "done"
+														? "bg-green-500"
+														: status === "running"
+															? "bg-yellow-500"
+															: "bg-red-500"
+												}`}
+											/>
 
-										<div className="md:p-6 p-2 md:pt-0 space-y-4">
-											<div className="flex sm:flex-row flex-col items-center gap-2">
-												<Link
-													href={`http://${previewDeployment.domain?.host}`}
-													target="_blank"
-													className="text-sm text-blue-500/95 hover:underline gap-2 flex w-full sm:flex-row flex-col items-center justify-between rounded-lg border p-2"
-												>
-													{previewDeployment.domain?.host}
-												</Link>
-
-												<AddPreviewDomain
-													previewDeploymentId={
-														previewDeployment.previewDeploymentId
-													}
-													domainId={previewDeployment.domain?.domainId}
-												>
-													<Button
-														className="sm:w-auto w-full"
-														size="sm"
-														variant="outline"
-													>
-														<Pencil className="size-4" />
-														Edit
-													</Button>
-												</AddPreviewDomain>
-											</div>
-
-											<div className="flex sm:flex-row text-sm flex-col items-center justify-between">
-												<div className="flex items-center space-x-2">
-													<GitBranch className="size-5 text-gray-400" />
-													<span>Branch:</span>
-													<Badge className="p-2" variant="blank">
-														{previewDeployment.branch}
+											<div className="p-4">
+												<div className="flex items-start justify-between mb-3">
+													<div className="flex items-start gap-3">
+														<GitPullRequest className="size-5 text-muted-foreground mt-1 flex-shrink-0" />
+														<div>
+															<div className="font-medium text-sm">
+																{deployment.pullRequestTitle}
+															</div>
+															<div className="text-sm text-muted-foreground mt-1">
+																{deployment.branch}
+															</div>
+														</div>
+													</div>
+													<Badge variant="outline" className="gap-2">
+														<StatusTooltip
+															status={deployment.previewStatus}
+															className="size-2"
+														/>
+														<DateTooltip date={deployment.createdAt} />
 													</Badge>
 												</div>
-												<div className="flex items-center space-x-2">
-													<Clock className="size-5 text-gray-400" />
-													<span>Deployed:</span>
-													<Badge className="p-2" variant="blank">
-														<DateTooltip date={previewDeployment.createdAt} />
-													</Badge>
-												</div>
-											</div>
 
-											<Separator />
+												<div className="pl-8 space-y-3">
+													<div className="relative flex-grow">
+														<Input
+															value={deploymentUrl}
+															readOnly
+															className="pr-8 text-sm text-blue-500 hover:text-blue-600 cursor-pointer"
+															onClick={() =>
+																window.open(deploymentUrl, "_blank")
+															}
+														/>
+														<ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+													</div>
 
-											<div className="rounded-lg bg-muted p-4">
-												<h3 className="mb-2 text-sm font-medium">
-													Pull Request
-												</h3>
-												<div className="flex items-center space-x-2 text-sm text-muted-foreground">
-													<GitPullRequest className="size-5 text-gray-400" />
-													<Link
-														className="hover:text-blue-500/95 hover:underline"
-														target="_blank"
-														href={previewDeployment.pullRequestURL}
-													>
-														{previewDeployment.pullRequestTitle}
-													</Link>
+													<div className="flex gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+														<Button
+															variant="outline"
+															size="sm"
+															className="gap-2"
+															onClick={() =>
+																window.open(deployment.pullRequestURL, "_blank")
+															}
+														>
+															<GithubIcon className="size-4" />
+															Pull Request
+														</Button>
+														<ShowModalLogs
+															appName={deployment.appName}
+															serverId={data?.serverId || ""}
+														>
+															<Button
+																variant="outline"
+																size="sm"
+																className="gap-2"
+															>
+																<FileText className="size-4" />
+																Logs
+															</Button>
+														</ShowModalLogs>
+
+														<ShowPreviewBuilds
+															deployments={deployment.deployments || []}
+															serverId={data?.serverId || ""}
+															trigger={
+																<Button
+																	variant="outline"
+																	size="sm"
+																	className="gap-2"
+																>
+																	<Layers className="size-4" />
+																	Builds
+																</Button>
+															}
+														/>
+
+														<AddPreviewDomain
+															previewDeploymentId={`${deployment.previewDeploymentId}`}
+															domainId={deployment.domain?.domainId}
+														>
+															<Button
+																variant="ghost"
+																size="sm"
+																className="gap-2"
+															>
+																<PenSquare className="size-4" />
+															</Button>
+														</AddPreviewDomain>
+														<DialogAction
+															title="Delete Preview"
+															description="Are you sure you want to delete this preview?"
+															onClick={() =>
+																handleDeletePreviewDeployment(
+																	deployment.previewDeploymentId,
+																)
+															}
+														>
+															<Button
+																variant="ghost"
+																size="sm"
+																isLoading={isLoading}
+																className="text-red-600 hover:text-red-700 hover:bg-red-50"
+															>
+																<Trash2 className="size-4" />
+															</Button>
+														</DialogAction>
+													</div>
 												</div>
 											</div>
 										</div>
-
-										<div className="justify-center flex-wrap md:p-6 p-2 md:pt-0">
-											<div className="flex flex-wrap justify-end gap-2">
-												<ShowModalLogs
-													appName={previewDeployment.appName}
-													serverId={data?.serverId || ""}
-												>
-													<Button
-														className="sm:w-auto w-full"
-														variant="outline"
-														size="sm"
-													>
-														View Logs
-													</Button>
-												</ShowModalLogs>
-
-												<ShowPreviewBuilds
-													deployments={previewDeployment.deployments || []}
-													serverId={data?.serverId || ""}
-												/>
-
-												<DialogAction
-													title="Delete Preview"
-													description="Are you sure you want to delete this preview?"
-													onClick={() =>
-														handleDeletePreviewDeployment(
-															previewDeployment.previewDeploymentId,
-														)
-													}
-												>
-													<Button
-														className="sm:w-auto w-full"
-														variant="destructive"
-														isLoading={isLoading}
-														size="sm"
-													>
-														Delete Preview
-													</Button>
-												</DialogAction>
-											</div>
-										</div>
-									</div>
-								))}
+									);
+								})}
 							</div>
 						)}
 					</>

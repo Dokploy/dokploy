@@ -29,6 +29,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -116,7 +117,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		<div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
 				<DialogTrigger asChild>
-					<Button variant="outline">View Settings</Button>
+					<Button variant="outline">
+						<Settings2 className="size-4" />
+						Configure
+					</Button>
 				</DialogTrigger>
 				<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl w-full">
 					<DialogHeader>
