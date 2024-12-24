@@ -35,6 +35,7 @@ const addServerDomain = z
 		domain: z.string().min(1, { message: "URL is required" }),
 		letsEncryptEmail: z.string(),
 		certificateType: z.enum(["letsencrypt", "none"]),
+		wildcardDomain: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
@@ -60,6 +61,7 @@ export const WebDomain = () => {
 			domain: "",
 			certificateType: "none",
 			letsEncryptEmail: "",
+			wildcardDomain: "",
 		},
 		resolver: zodResolver(addServerDomain),
 	});
@@ -69,6 +71,7 @@ export const WebDomain = () => {
 				domain: user?.host || "",
 				certificateType: user?.certificateType,
 				letsEncryptEmail: user?.letsEncryptEmail || "",
+				wildcardDomain: user?.wildcardDomain || "",
 			});
 		}
 	}, [form, form.reset, user]);
@@ -78,6 +81,7 @@ export const WebDomain = () => {
 			host: data.domain,
 			letsEncryptEmail: data.letsEncryptEmail,
 			certificateType: data.certificateType,
+			wildcardDomain: data.wildcardDomain,
 		})
 			.then(async () => {
 				await refetch();
@@ -117,6 +121,30 @@ export const WebDomain = () => {
 												<Input
 													className="w-full"
 													placeholder={"dokploy.com"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+
+							<FormField
+								control={form.control}
+								name="wildcardDomain"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>
+												{t("settings.server.domain.form.wildcardDomain")}
+											</FormLabel>
+											<FormControl>
+												<Input
+													className="w-full"
+													placeholder={t(
+														"settings.server.domain.form.wildcardDomain.placeholder",
+													)}
 													{...field}
 												/>
 											</FormControl>

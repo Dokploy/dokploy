@@ -18,6 +18,7 @@ export const admins = pgTable("admin", {
 	serverIp: text("serverIp"),
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	host: text("host"),
+	wildcardDomain: text("wildcardDomain"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
@@ -51,6 +52,7 @@ const createSchema = createInsertSchema(admins, {
 	certificateType: z.enum(["letsencrypt", "none"]).default("none"),
 	serverIp: z.string().optional(),
 	letsEncryptEmail: z.string().optional(),
+	wildcardDomain: z.string().optional(),
 });
 
 export const apiUpdateAdmin = createSchema.partial();
@@ -66,10 +68,12 @@ export const apiAssignDomain = createSchema
 		host: true,
 		certificateType: true,
 		letsEncryptEmail: true,
+		wildcardDomain: true,
 	})
 	.required()
 	.partial({
 		letsEncryptEmail: true,
+		wildcardDomain: true,
 	});
 
 export const apiUpdateDockerCleanup = createSchema

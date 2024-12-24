@@ -20,6 +20,7 @@ const baseAdmin: Admin = {
 	serverIp: null,
 	certificateType: "none",
 	host: null,
+	wildcardDomain: null,
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
