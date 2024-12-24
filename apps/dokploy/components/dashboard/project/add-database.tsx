@@ -556,7 +556,6 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 														<Switch
 															checked={field.value}
 															onCheckedChange={field.onChange}
-															disabled
 															aria-readonly
 														/>
 													</FormControl>
