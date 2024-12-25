@@ -72,12 +72,14 @@ else
 	echo "Replica set already initialized."
 fi
 `
-		: "mongod --port 27017 --bind_ip_all & MONGOD_PID=$!"
+		: ""
 }
 
 ${command ?? "wait $MONGOD_PID"}`;
 
-	const defaultMongoEnv = `MONGO_INITDB_ROOT_USERNAME=${databaseUser}\nMONGO_INITDB_ROOT_PASSWORD=${databasePassword}\nMONGO_INITDB_DATABASE=admin\n${env ? `${env}` : ""}`;
+	const defaultMongoEnv = `MONGO_INITDB_ROOT_USERNAME=${databaseUser}\nMONGO_INITDB_ROOT_PASSWORD=${databasePassword}${replicaSets ? "\nMONGO_INITDB_DATABASE=admin" : ""}${
+		env ? `\n${env}` : ""
+	}`;
 
 	const resources = calculateResources({
 		memoryLimit,
@@ -103,8 +105,17 @@ ${command ?? "wait $MONGOD_PID"}`;
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				Command: ["/bin/bash"],
-				Args: ["-c", startupScript],
+				...(replicaSets
+					? {
+							Command: ["/bin/bash"],
+							Args: ["-c", startupScript],
+						}
+					: {
+							...(command && {
+								Command: ["/bin/bash"],
+								Args: ["-c", command],
+							}),
+						}),
 			},
 			Networks: [{ Target: "dokploy-network" }],
 			Resources: {

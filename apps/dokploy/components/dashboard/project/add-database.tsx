@@ -18,6 +18,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -550,13 +551,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										name="replicaSets"
 										render={({ field }) => {
 											return (
-												<FormItem>
-													<FormLabel>Use Replica Sets</FormLabel>
+												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Use Replica Sets</FormLabel>
+													</div>
 													<FormControl>
 														<Switch
 															checked={field.value}
 															onCheckedChange={field.onChange}
-															aria-readonly
 														/>
 													</FormControl>
 
