@@ -10,24 +10,11 @@ import {
 import { api } from "@/utils/api";
 import { Layers, Loader2 } from "lucide-react";
 import React from "react";
-import { columns } from "./columns";
+import { type ApplicationList, columns } from "./columns";
 import { DataTable } from "./data-table";
 
 interface Props {
 	serverId?: string;
-}
-
-interface ApplicationList {
-	ID: string;
-	Image: string;
-	Mode: string;
-	Name: string;
-	Ports: string;
-	Replicas: string;
-	CurrentState: string;
-	DesiredState: string;
-	Error: string;
-	Node: string;
 }
 
 export const ShowNodeApplications = ({ serverId }: Props) => {

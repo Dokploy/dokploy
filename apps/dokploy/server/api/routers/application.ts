@@ -555,9 +555,9 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
-			updateApplication(input.applicationId as string, {
+			await updateApplication(input.applicationId as string, {
 				sourceType: "drop",
-				dropBuildPath: input.dropBuildPath,
+				dropBuildPath: input.dropBuildPath || "",
 			});
 
 			await unzipDrop(zipFile, app);
