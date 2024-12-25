@@ -35,12 +35,12 @@ interface Props {
 	serverId?: string;
 }
 
-export const ShowDockerLogs = ({ appName, serverId }: Props) => {
-	const [containerId, setContainerId] = useState<string | undefined>();
+export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
+	const [containerId, setContainerId] = useState<string | undefined>();
 
 	const { data: services, isLoading: servicesLoading } =
-		api.docker.getServiceContainersByAppName.useQuery(
+		api.docker.getStackContainersByAppName.useQuery(
 			{
 				appName,
 				serverId,
@@ -54,6 +54,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,
+				appType: "stack",
 				serverId,
 			},
 			{
@@ -80,7 +81,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logssss</CardTitle>
+				<CardTitle className="text-xl">Logs</CardTitle>
 				<CardDescription>
 					Watch the logs of the application in real time
 				</CardDescription>
@@ -101,7 +102,6 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 						/>
 					</div>
 				</div>
-
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
