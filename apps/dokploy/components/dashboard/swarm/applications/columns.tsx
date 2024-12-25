@@ -11,11 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Badge } from "@/components/ui/badge";
-import { ShowNodeConfig } from "../details/show-node-config";
-// import { ShowContainerConfig } from "../config/show-container-config";
-// import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
-// import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
-// import type { Container } from "./show-containers";
+import { ShowDockerModalStackLogs } from "../../docker/logs/show-docker-modal-stack-logs";
 
 export interface ApplicationList {
 	ID: string;
@@ -28,6 +24,7 @@ export interface ApplicationList {
 	DesiredState: string;
 	Error: string;
 	Node: string;
+	serverId: string;
 }
 
 export const columns: ColumnDef<ApplicationList>[] = [
@@ -212,7 +209,37 @@ export const columns: ColumnDef<ApplicationList>[] = [
 			);
 		},
 		cell: ({ row }) => {
-			return <div>{row.getValue("Errors")}</div>;
+			return <div className="w-[10rem]">{row.getValue("Errors")}</div>;
+		},
+	},
+	{
+		accessorKey: "Logs",
+		accessorFn: (row) => row.Error,
+		header: ({ column }) => {
+			return <span>Logs</span>;
+		},
+		cell: ({ row }) => {
+			return (
+				<span className="w-[10rem]">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" className="h-8 w-8 p-0">
+								<span className="sr-only">Open menu</span>
+								<MoreHorizontal className="h-4 w-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<ShowDockerModalStackLogs
+								containerId={row.original.ID}
+								serverId={row.original.serverId}
+							>
+								View Logs
+							</ShowDockerModalStackLogs>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</span>
+			);
 		},
 	},
 ];

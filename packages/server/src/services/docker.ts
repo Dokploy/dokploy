@@ -425,7 +425,8 @@ export const getNodeApplications = async (serverId?: string) => {
 		const appArray = stdout
 			.trim()
 			.split("\n")
-			.map((line) => JSON.parse(line));
+			.map((line) => JSON.parse(line))
+			.filter((service) => !service.Name.startsWith('dokploy-'));
 
 		return appArray;
 	} catch (error) {}
@@ -438,7 +439,7 @@ export const getApplicationInfo = async (
 	try {
 		let stdout = "";
 		let stderr = "";
-		const command = `docker service ps ${appName} --format '{{json .}}'`;
+		const command = `docker service ps ${appName} --format '{{json .}}' --no-trunc`;
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
