@@ -5,51 +5,6 @@ on:
     branches: ["canary", "main"]
 
 jobs:
-  build-and-push-image-docs:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile.docs
-          push: true
-          tags: dokploy/docs:latest
-          platforms: linux/amd64
-
-  build-and-push-image-website:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile.website
-          push: true
-          tags: dokploy/website:latest
-          platforms: linux/amd64
-
-
   build-and-push-cloud-image:
     runs-on: ubuntu-latest
 
@@ -70,8 +25,12 @@ jobs:
           file: ./Dockerfile.cloud
           push: true
           tags: |
-            siumauricio/cloud:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
 
   build-and-push-schedule-image:
     runs-on: ubuntu-latest
@@ -93,7 +52,7 @@ jobs:
           file: ./Dockerfile.schedule
           push: true
           tags: |
-            siumauricio/schedule:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64     
 
 
@@ -117,5 +76,5 @@ jobs:
           file: ./Dockerfile.server
           push: true
           tags: |
-            siumauricio/server:${{ github.ref_name == 'main' && 'main' || 'canary' }}
+            siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64  

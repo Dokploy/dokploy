@@ -38,7 +38,10 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 					{children}
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl">
+			<DialogContent
+				className="max-h-screen  overflow-y-auto sm:max-w-7xl"
+				onEscapeKeyDown={(event) => event.preventDefault()}
+			>
 				<DialogHeader className="flex flex-col gap-1">
 					<DialogTitle>Terminal ({data?.name})</DialogTitle>
 					<DialogDescription>Easy way to access the server</DialogDescription>

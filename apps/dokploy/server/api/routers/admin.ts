@@ -4,9 +4,9 @@ import {
 	apiCreateUserInvitation,
 	apiFindOneToken,
 	apiRemoveUser,
+	apiUpdateAdmin,
 	users,
 } from "@/server/db/schema";
-
 import {
 	createInvitation,
 	findAdminById,
@@ -14,6 +14,7 @@ import {
 	findUserById,
 	getUserByToken,
 	removeUserByAuthId,
+	updateAdmin,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -27,6 +28,18 @@ export const adminRouter = createTRPCRouter({
 			...rest,
 		};
 	}),
+	update: adminProcedure
+		.input(apiUpdateAdmin)
+		.mutation(async ({ input, ctx }) => {
+			if (ctx.user.rol === "user") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this admin",
+				});
+			}
+			const { authId } = await findAdminById(ctx.user.adminId);
+			return updateAdmin(authId, input);
+		}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
 		.mutation(async ({ input, ctx }) => {

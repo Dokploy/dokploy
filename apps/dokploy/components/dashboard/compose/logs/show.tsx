@@ -96,8 +96,8 @@ export const ShowDockerLogsCompose = ({
 				</Select>
 				<DockerLogs
 					serverId={serverId || ""}
-					id="terminal"
 					containerId={containerId || "select-a-container"}
+					runType="native"
 				/>
 			</CardContent>
 		</Card>

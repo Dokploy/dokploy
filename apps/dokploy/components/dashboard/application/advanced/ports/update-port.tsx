@@ -140,7 +140,7 @@ export const UpdatePort = ({ portId }: Props) => {
 									<FormItem>
 										<FormLabel>Target Port</FormLabel>
 										<FormControl>
-											<Input placeholder="1-65535" {...field} />
+											<NumberInput placeholder="1-65535" {...field} />
 										</FormControl>
 
 										<FormMessage />

@@ -20,10 +20,8 @@ export const schedule = async (job: QueueJob) => {
 			body: JSON.stringify(job),
 		});
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };
@@ -39,10 +37,8 @@ export const removeJob = async (job: QueueJob) => {
 			body: JSON.stringify(job),
 		});
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };
@@ -58,10 +54,8 @@ export const updateJob = async (job: QueueJob) => {
 			body: JSON.stringify(job),
 		});
 		const data = await result.json();
-		console.log(data);
 		return data;
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };

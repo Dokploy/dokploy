@@ -49,8 +49,11 @@ export const columns: ColumnDef<LogEntry>[] = [
 			const log = row.original;
 			return (
 				<div className=" flex flex-col gap-2">
-					<div className="flex flex-row gap-3 ">
+					<div className="flex items-center flex-row gap-3 ">
 						{log.RequestMethod}{" "}
+						<div className="inline-flex items-center gap-2 bg-muted p-1 rounded">
+							<span>{log.RequestAddr}</span>
+						</div>
 						{log.RequestPath.length > 100
 							? `${log.RequestPath.slice(0, 82)}...`
 							: log.RequestPath}

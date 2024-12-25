@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { getUserByToken } from "@dokploy/server";
+import { IS_CLOUD, getUserByToken } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
@@ -69,9 +69,10 @@ type Register = z.infer<typeof registerSchema>;
 interface Props {
 	token: string;
 	invitation: Awaited<ReturnType<typeof getUserByToken>>;
+	isCloud: boolean;
 }
 
-const Invitation = ({ token, invitation }: Props) => {
+const Invitation = ({ token, invitation, isCloud }: Props) => {
 	const router = useRouter();
 	const { data } = api.admin.getUserByToken.useQuery(
 		{
@@ -83,7 +84,8 @@ const Invitation = ({ token, invitation }: Props) => {
 		},
 	);
 
-	const { mutateAsync, error, isError } = api.auth.createUser.useMutation();
+	const { mutateAsync, error, isError, isSuccess } =
+		api.auth.createUser.useMutation();
 
 	const form = useForm<Register>({
 		defaultValues: {
@@ -112,7 +114,9 @@ const Invitation = ({ token, invitation }: Props) => {
 		})
 			.then(() => {
 				toast.success("User registration succesfuly", {
-					duration: 2000,
+					description:
+						"Please check your inbox or spam folder to confirm your account.",
+					duration: 100000,
 				});
 				router.push("/dashboard/projects");
 			})
@@ -146,6 +150,7 @@ const Invitation = ({ token, invitation }: Props) => {
 								</span>
 							</div>
 						)}
+
 						<CardContent>
 							<Form {...form}>
 								<form
@@ -210,6 +215,25 @@ const Invitation = ({ token, invitation }: Props) => {
 											Register
 										</Button>
 									</div>
+
+									<div className="mt-4 text-sm flex flex-row justify-between gap-2 w-full">
+										{isCloud && (
+											<>
+												<Link
+													className="hover:underline text-muted-foreground"
+													href="/"
+												>
+													Login
+												</Link>
+												<Link
+													className="hover:underline text-muted-foreground"
+													href="/send-reset-password"
+												>
+													Lost your password?
+												</Link>
+											</>
+										)}
+									</div>
 								</form>
 							</Form>
 						</CardContent>
@@ -250,6 +274,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				isCloud: IS_CLOUD,
 				token: token,
 				invitation: invitation,
 			},

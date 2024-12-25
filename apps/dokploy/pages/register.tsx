@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,7 +73,8 @@ interface Props {
 
 const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
-	const { mutateAsync, error, isError } = api.auth.createAdmin.useMutation();
+	const { mutateAsync, error, isError, data } =
+		api.auth.createAdmin.useMutation();
 
 	const form = useForm<Register>({
 		defaultValues: {
@@ -89,14 +91,16 @@ const Register = ({ isCloud }: Props) => {
 
 	const onSubmit = async (values: Register) => {
 		await mutateAsync({
-			email: values.email,
+			email: values.email.toLowerCase(),
 			password: values.password,
 		})
 			.then(() => {
 				toast.success("User registration succesfuly", {
 					duration: 2000,
 				});
-				router.push("/");
+				if (!isCloud) {
+					router.push("/");
+				}
 			})
 			.catch((e) => e);
 	};
@@ -129,6 +133,14 @@ const Register = ({ isCloud }: Props) => {
 									{error?.message}
 								</span>
 							</div>
+						)}
+						{data?.type === "cloud" && (
+							<AlertBlock type="success" className="mx-4 my-2">
+								<span>
+									Registration succesfuly, Please check your inbox or spam
+									folder to confirm your account.
+								</span>
+							</AlertBlock>
 						)}
 						<CardContent>
 							<Form {...form}>

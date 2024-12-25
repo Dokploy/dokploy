@@ -187,10 +187,15 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestDiscordConnection)
 		.mutation(async ({ input }) => {
 			try {
+				const decorate = (decoration: string, text: string) =>
+					`${input.decoration ? decoration : ""} ${text}`.trim();
+
 				await sendDiscordNotification(input, {
-					title: "Test Notification",
-					description: "Hi, From Dokploy 👋",
+					title: decorate(">", "`🤚` - Test Notification"),
+					description: decorate(">", "Hi, From Dokploy 👋"),
+					color: 0xf3f7f4,
 				});
+
 				return true;
 			} catch (error) {
 				throw new TRPCError({

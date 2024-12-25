@@ -8,12 +8,13 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Toggle } from "@/components/ui/toggle";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { StartCompose } from "../start-compose";
 import { DeployCompose } from "./deploy-compose";
 import { RedbuildCompose } from "./rebuild-compose";
 import { StopCompose } from "./stop-compose";
@@ -50,28 +51,11 @@ export const ComposeActions = ({ composeId }: Props) => {
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<DeployCompose composeId={composeId} />
-			<Toggle
-				aria-label="Toggle italic"
-				pressed={data?.autoDeploy || false}
-				onPressedChange={async (enabled) => {
-					await update({
-						composeId,
-						autoDeploy: enabled,
-					})
-						.then(async () => {
-							toast.success("Auto Deploy Updated");
-							await refetch();
-						})
-						.catch(() => {
-							toast.error("Error to update Auto Deploy");
-						});
-				}}
-				className="flex flex-row gap-2 items-center"
-			>
-				Autodeploy {data?.autoDeploy && <CheckCircle2 className="size-4" />}
-			</Toggle>
 			<RedbuildCompose composeId={composeId} />
-			{data?.composeType === "docker-compose" && (
+			{data?.composeType === "docker-compose" &&
+			data?.composeStatus === "idle" ? (
+				<StartCompose composeId={composeId} />
+			) : (
 				<StopCompose composeId={composeId} />
 			)}
 
@@ -84,6 +68,27 @@ export const ComposeActions = ({ composeId }: Props) => {
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
+			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+				<span className="text-sm font-medium">Autodeploy</span>
+				<Switch
+					aria-label="Toggle italic"
+					checked={data?.autoDeploy || false}
+					onCheckedChange={async (enabled) => {
+						await update({
+							composeId,
+							autoDeploy: enabled,
+						})
+							.then(async () => {
+								toast.success("Auto Deploy Updated");
+								await refetch();
+							})
+							.catch(() => {
+								toast.error("Error to update Auto Deploy");
+							});
+					}}
+					className="flex flex-row gap-2 items-center"
+				/>
+			</div>
 			{domains.length > 0 && (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

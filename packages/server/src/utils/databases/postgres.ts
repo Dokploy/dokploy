@@ -9,7 +9,10 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 
-export type PostgresNested = InferResultType<"postgres", { mounts: true }>;
+export type PostgresNested = InferResultType<
+	"postgres",
+	{ mounts: true; project: true }
+>;
 export const buildPostgres = async (postgres: PostgresNested) => {
 	const {
 		appName,
@@ -36,7 +39,10 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		cpuLimit,
 		cpuReservation,
 	});
-	const envVariables = prepareEnvironmentVariables(defaultPostgresEnv);
+	const envVariables = prepareEnvironmentVariables(
+		defaultPostgresEnv,
+		postgres.project.env,
+	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, postgres);

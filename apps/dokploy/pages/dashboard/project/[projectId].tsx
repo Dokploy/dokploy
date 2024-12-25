@@ -2,6 +2,7 @@ import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
+import { ProjectEnviroment } from "@/components/dashboard/projects/project-enviroment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -38,6 +39,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { type ReactElement } from "react";
@@ -188,6 +190,9 @@ const Project = (
 						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
 					</BreadcrumbItem>
 				</Breadcrumb>
+				<Head>
+					<title>Project: {data?.name} | Dokploy</title>
+				</Head>
 				<header className="mb-6 flex w-full items-center justify-between flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
 						<h1 className="text-xl font-bold lg:text-3xl">{data?.name}</h1>
@@ -198,27 +203,35 @@ const Project = (
 					</div>
 
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button>
-									<PlusIcon className="h-4 w-4" />
-									Create Service
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent className="w-[200px] space-y-2" align="end">
-								<DropdownMenuLabel className="text-sm font-normal ">
-									Actions
-								</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<AddApplication
-									projectId={projectId}
-									projectName={data?.name}
-								/>
-								<AddDatabase projectId={projectId} projectName={data?.name} />
-								<AddCompose projectId={projectId} projectName={data?.name} />
-								<AddTemplate projectId={projectId} />
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<div className="flex flex-row gap-4 flex-wrap">
+							<ProjectEnviroment projectId={projectId}>
+								<Button variant="outline">Project Enviroment</Button>
+							</ProjectEnviroment>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button>
+										<PlusIcon className="h-4 w-4" />
+										Create Service
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									className="w-[200px] space-y-2"
+									align="end"
+								>
+									<DropdownMenuLabel className="text-sm font-normal ">
+										Actions
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<AddApplication
+										projectId={projectId}
+										projectName={data?.name}
+									/>
+									<AddDatabase projectId={projectId} projectName={data?.name} />
+									<AddCompose projectId={projectId} projectName={data?.name} />
+									<AddTemplate projectId={projectId} />
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					)}
 				</header>
 			</div>

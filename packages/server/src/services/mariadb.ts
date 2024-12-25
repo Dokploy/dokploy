@@ -4,7 +4,7 @@ import {
 	backups,
 	mariadb,
 } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -17,17 +17,14 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 export type Mariadb = typeof mariadb.$inferSelect;
 
 export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("mariadb");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("mariadb", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(input.appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newMariadb = await db
@@ -40,6 +37,7 @@ export const createMariadb = async (input: typeof apiCreateMariaDB._type) => {
 			databaseRootPassword: input.databaseRootPassword
 				? input.databaseRootPassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -82,10 +80,11 @@ export const updateMariadbById = async (
 	mariadbId: string,
 	mariadbData: Partial<Mariadb>,
 ) => {
+	const { appName, ...rest } = mariadbData;
 	const result = await db
 		.update(mariadb)
 		.set({
-			...mariadbData,
+			...rest,
 		})
 		.where(eq(mariadb.mariadbId, mariadbId))
 		.returning();

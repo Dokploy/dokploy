@@ -25,7 +25,6 @@ import { api } from "@/utils/api";
 import {
 	AlertTriangle,
 	BookIcon,
-	CircuitBoard,
 	ExternalLink,
 	ExternalLinkIcon,
 	FolderInput,
@@ -35,6 +34,7 @@ import {
 import Link from "next/link";
 import { Fragment } from "react";
 import { toast } from "sonner";
+import { ProjectEnviroment } from "./project-enviroment";
 import { UpdateProject } from "./update";
 
 export const ShowProjects = () => {
@@ -109,7 +109,9 @@ export const ShowProjects = () => {
 													<Link
 														className="space-x-4 text-xs cursor-pointer justify-between"
 														target="_blank"
-														href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+														href={`${domain.https ? "https" : "http"}://${
+															domain.host
+														}${domain.path}`}
 													>
 														<span>{domain.host}</span>
 														<ExternalLink className="size-4 shrink-0" />
@@ -153,7 +155,9 @@ export const ShowProjects = () => {
 											onClick={(e) => e.stopPropagation()}
 										>
 											<Link
-												href={`${flattedDomains[0].https ? "https" : "http"}://${flattedDomains[0].host}${flattedDomains[0].path}`}
+												href={`${
+													flattedDomains[0].https ? "https" : "http"
+												}://${flattedDomains[0].host}${flattedDomains[0].path}`}
 												target="_blank"
 											>
 												<ExternalLinkIcon className="size-3.5" />
@@ -190,7 +194,11 @@ export const ShowProjects = () => {
 														<DropdownMenuLabel className="font-normal">
 															Actions
 														</DropdownMenuLabel>
-
+														<div onClick={(e) => e.stopPropagation()}>
+															<ProjectEnviroment
+																projectId={project.projectId}
+															/>
+														</div>
 														<div onClick={(e) => e.stopPropagation()}>
 															<UpdateProject projectId={project.projectId} />
 														</div>

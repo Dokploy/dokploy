@@ -213,7 +213,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>AppName</FormLabel>
+									<FormLabel>App Name</FormLabel>
 									<FormControl>
 										<Input placeholder="my-app" {...field} />
 									</FormControl>

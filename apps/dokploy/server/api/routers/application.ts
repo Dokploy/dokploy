@@ -19,11 +19,8 @@ import {
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
-import {
-	type DeploymentJob,
-	cleanQueuesByApplication,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 import {
@@ -299,6 +296,7 @@ export const applicationRouter = createTRPCRouter({
 				publishDirectory: input.publishDirectory,
 				dockerContextPath: input.dockerContextPath,
 				dockerBuildStage: input.dockerBuildStage,
+				herokuVersion: input.herokuVersion,
 			});
 
 			return true;
@@ -387,6 +385,7 @@ export const applicationRouter = createTRPCRouter({
 				password: input.password,
 				sourceType: "docker",
 				applicationStatus: "idle",
+				registryUrl: input.registryUrl,
 			});
 
 			return true;
@@ -556,9 +555,9 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
-			updateApplication(input.applicationId as string, {
+			await updateApplication(input.applicationId as string, {
 				sourceType: "drop",
-				dropBuildPath: input.dropBuildPath,
+				dropBuildPath: input.dropBuildPath || "",
 			});
 
 			await unzipDrop(zipFile, app);

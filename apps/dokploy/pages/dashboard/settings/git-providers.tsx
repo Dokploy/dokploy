@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="Git Providers">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
@@ -49,7 +49,7 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-
+	await helpers.auth.get.prefetch();
 	try {
 		await helpers.project.all.prefetch();
 		await helpers.settings.isCloud.prefetch();

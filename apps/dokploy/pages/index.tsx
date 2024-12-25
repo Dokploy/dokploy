@@ -1,5 +1,6 @@
 import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +64,8 @@ export default function Home({ IS_CLOUD }: Props) {
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading } = api.auth.login.useMutation();
+	const { mutateAsync, isLoading, error, isError } =
+		api.auth.login.useMutation();
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
@@ -115,6 +117,12 @@ export default function Home({ IS_CLOUD }: Props) {
 				</CardDescription>
 				<Card className="mx-auto w-full max-w-lg bg-transparent ">
 					<div className="p-3.5" />
+					{isError && (
+						<AlertBlock type="error" className="mx-4 my-2">
+							<span>{error?.message}</span>
+						</AlertBlock>
+					)}
+
 					<CardContent>
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>
@@ -170,12 +178,14 @@ export default function Home({ IS_CLOUD }: Props) {
 
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-								<Link
-									className="hover:underline text-muted-foreground"
-									href="/register"
-								>
-									Create an account
-								</Link>
+								{IS_CLOUD && (
+									<Link
+										className="hover:underline text-muted-foreground"
+										href="/register"
+									>
+										Create an account
+									</Link>
+								)}
 							</div>
 
 							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
@@ -189,7 +199,7 @@ export default function Home({ IS_CLOUD }: Props) {
 								) : (
 									<Link
 										className="hover:underline text-muted-foreground"
-										href="https://docs.dokploy.com/docs/core/get-started/reset-password"
+										href="https://docs.dokploy.com/docs/core/reset-password"
 										target="_blank"
 									>
 										Lost your password?

@@ -21,6 +21,7 @@ import { mysqlRouter } from "./routers/mysql";
 import { notificationRouter } from "./routers/notification";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
+import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
@@ -30,6 +31,7 @@ import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
+import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
 
 /**
@@ -55,6 +57,7 @@ export const appRouter = createTRPCRouter({
 	destination: destinationRouter,
 	backup: backupRouter,
 	deployment: deploymentRouter,
+	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
 	certificates: certificateRouter,
 	settings: settingsRouter,
@@ -71,6 +74,7 @@ export const appRouter = createTRPCRouter({
 	github: githubRouter,
 	server: serverRouter,
 	stripe: stripeRouter,
+	swarm: swarmRouter,
 });
 
 // export type definition of API

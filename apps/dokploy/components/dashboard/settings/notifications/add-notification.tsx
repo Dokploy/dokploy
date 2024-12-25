@@ -64,6 +64,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("discord"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().default(true),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -195,6 +196,7 @@ export const AddNotification = () => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
+				decoration: data.decoration,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 			});
@@ -412,6 +414,28 @@ export const AddNotification = () => {
 													</FormControl>
 
 													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
 												</FormItem>
 											)}
 										/>
@@ -669,7 +693,7 @@ export const AddNotification = () => {
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when a dokploy is restarted.
+														Trigger the action when dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -710,6 +734,7 @@ export const AddNotification = () => {
 									} else if (type === "discord") {
 										await testDiscordConnection({
 											webhookUrl: form.getValues("webhookUrl"),
+											decoration: form.getValues("decoration"),
 										});
 									} else if (type === "email") {
 										await testEmailConnection({

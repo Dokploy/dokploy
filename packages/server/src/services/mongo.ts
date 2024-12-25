@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMongo, backups, mongo } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMongo } from "@dokploy/server/utils/databases/mongo";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -13,17 +13,14 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 export type Mongo = typeof mongo.$inferSelect;
 
 export const createMongo = async (input: typeof apiCreateMongo._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("mongo", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newMongo = await db
@@ -33,6 +30,7 @@ export const createMongo = async (input: typeof apiCreateMongo._type) => {
 			databasePassword: input.databasePassword
 				? input.databasePassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -72,12 +70,13 @@ export const findMongoById = async (mongoId: string) => {
 
 export const updateMongoById = async (
 	mongoId: string,
-	postgresData: Partial<Mongo>,
+	mongoData: Partial<Mongo>,
 ) => {
+	const { appName, ...rest } = mongoData;
 	const result = await db
 		.update(mongo)
 		.set({
-			...postgresData,
+			...rest,
 		})
 		.where(eq(mongo.mongoId, mongoId))
 		.returning();

@@ -1,7 +1,9 @@
 import { createWriteStream } from "node:fs";
+import { join } from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { uploadImage } from "../cluster/upload";
+import { nanoid } from "nanoid";
+import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -23,8 +25,16 @@ import { buildStatic, getStaticCommand } from "./static";
 // DOCKERFILE codeDirectory = where is the exact path of the (Dockerfile)
 export type ApplicationNested = InferResultType<
 	"applications",
-	{ mounts: true; security: true; redirects: true; ports: true; registry: true }
+	{
+		mounts: true;
+		security: true;
+		redirects: true;
+		ports: true;
+		registry: true;
+		project: true;
+	}
 >;
+
 export const buildApplication = async (
 	application: ApplicationNested,
 	logPath: string,
@@ -69,19 +79,30 @@ export const getBuildCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { buildType } = application;
+	let command = "";
+	const { buildType, registry } = application;
 	switch (buildType) {
 		case "nixpacks":
-			return getNixpacksCommand(application, logPath);
+			command = getNixpacksCommand(application, logPath);
+			break;
 		case "heroku_buildpacks":
-			return getHerokuCommand(application, logPath);
+			command = getHerokuCommand(application, logPath);
+			break;
 		case "paketo_buildpacks":
-			return getPaketoCommand(application, logPath);
+			command = getPaketoCommand(application, logPath);
+			break;
 		case "static":
-			return getStaticCommand(application, logPath);
+			command = getStaticCommand(application, logPath);
+			break;
 		case "dockerfile":
-			return getDockerCommand(application, logPath);
+			command = getDockerCommand(application, logPath);
+			break;
 	}
+	if (registry) {
+		command += uploadImageRemoteCommand(application, logPath);
+	}
+
+	return command;
 };
 
 export const mechanizeDockerContainer = async (
@@ -121,7 +142,10 @@ export const mechanizeDockerContainer = async (
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
-	const envVariables = prepareEnvironmentVariables(env);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		application.project.env,
+	);
 
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
@@ -186,22 +210,22 @@ const getImageName = (application: ApplicationNested) => {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
 	}
 
-	const registryUrl = registry?.registryUrl || "";
-	const imagePrefix = registry?.imagePrefix ? `${registry.imagePrefix}/` : "";
-	return registry
-		? `${registryUrl}/${imagePrefix}${appName}`
-		: `${appName}:latest`;
+	if (registry) {
+		return join(registry.registryUrl, registry.imagePrefix || "", appName);
+	}
+
+	return `${appName}:latest`;
 };
 
 const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType } = application;
+	const { registry, username, password, sourceType, registryUrl } = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
 			return {
 				password,
 				username,
-				serveraddress: "https://index.docker.io/v1/",
+				serveraddress: registryUrl || "",
 			};
 		}
 	} else if (registry) {

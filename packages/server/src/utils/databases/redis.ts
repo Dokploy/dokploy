@@ -9,7 +9,10 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 
-export type RedisNested = InferResultType<"redis", { mounts: true }>;
+export type RedisNested = InferResultType<
+	"redis",
+	{ mounts: true; project: true }
+>;
 export const buildRedis = async (redis: RedisNested) => {
 	const {
 		appName,
@@ -34,7 +37,10 @@ export const buildRedis = async (redis: RedisNested) => {
 		cpuLimit,
 		cpuReservation,
 	});
-	const envVariables = prepareEnvironmentVariables(defaultRedisEnv);
+	const envVariables = prepareEnvironmentVariables(
+		defaultRedisEnv,
+		redis.project.env,
+	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, redis);

@@ -31,7 +31,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 					)}
 					{status === "done" && (
 						<div
-							className={cn("size-3.5 rounded-full bg-primary", className)}
+							className={cn("size-3.5 rounded-full bg-green-500", className)}
 						/>
 					)}
 					{status === "running" && (

@@ -15,6 +15,130 @@ export const SettingsLayout = ({ children }: Props) => {
 	);
 	return (
 		<div className="flex flex-row gap-4 my-8 w-full flex-wrap md:flex-nowrap">
+			<div className="md:max-w-[18rem] w-full">
+				<Nav
+					links={[
+						...(data?.rol === "admin" && !isCloud
+							? [
+									{
+										title: "Server",
+										icon: Activity,
+										href: "/dashboard/settings/server",
+									},
+								]
+							: []),
+
+						{
+							title: "Profile",
+							icon: User2,
+							href: "/dashboard/settings/profile",
+						},
+						{
+							title: "Appearance",
+							label: "",
+							icon: Route,
+							href: "/dashboard/settings/appearance",
+						},
+
+						...(data?.rol === "admin"
+							? [
+									{
+										title: "S3 Destinations",
+										label: "",
+										icon: Database,
+										href: "/dashboard/settings/destinations",
+									},
+
+									{
+										title: "Certificates",
+										label: "",
+										icon: ShieldCheck,
+										href: "/dashboard/settings/certificates",
+									},
+									{
+										title: "SSH Keys",
+										label: "",
+										icon: KeyRound,
+										href: "/dashboard/settings/ssh-keys",
+									},
+									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+									{
+										title: "Users",
+										label: "",
+										icon: Users,
+										href: "/dashboard/settings/users",
+									},
+
+									{
+										title: "Registry",
+										label: "",
+										icon: GalleryVerticalEnd,
+										href: "/dashboard/settings/registry",
+									},
+
+									...(!isCloud
+										? [
+												{
+													title: "Cluster",
+													label: "",
+													icon: BoxesIcon,
+													href: "/dashboard/settings/cluster",
+												},
+											]
+										: []),
+									{
+										title: "Notifications",
+										label: "",
+										icon: Bell,
+										href: "/dashboard/settings/notifications",
+									},
+									{
+										title: "Servers",
+										label: "",
+										icon: Server,
+										href: "/dashboard/settings/servers",
+									},
+									...(isCloud
+										? [
+												{
+													title: "Billing",
+													label: "",
+													icon: CreditCardIcon,
+													href: "/dashboard/settings/billing",
+												},
+											]
+										: []),
+								]
+							: []),
+						...(user?.canAccessToSSHKeys
+							? [
+									{
+										title: "SSH Keys",
+										label: "",
+										icon: KeyRound,
+										href: "/dashboard/settings/ssh-keys",
+									},
+								]
+							: []),
+						...(user?.canAccessToGitProviders
+							? [
+									{
+										title: "Git",
+										label: "",
+										icon: GitBranch,
+										href: "/dashboard/settings/git-providers",
+									},
+								]
+							: []),
+					]}
+				/>
+			</div>
+
 			{children}
 		</div>
 	);
@@ -26,6 +150,7 @@ import {
 	BoxesIcon,
 	CreditCardIcon,
 	Database,
+	GalleryVerticalEnd,
 	GitBranch,
 	KeyIcon,
 	KeyRound,

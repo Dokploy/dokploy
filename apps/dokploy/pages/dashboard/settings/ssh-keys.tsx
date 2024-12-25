@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="SSH Keys">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
@@ -52,7 +52,6 @@ export async function getServerSideProps(
 
 	try {
 		await helpers.project.all.prefetch();
-
 		const auth = await helpers.auth.get.fetch();
 		await helpers.settings.isCloud.prefetch();
 

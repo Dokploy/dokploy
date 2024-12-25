@@ -1,0 +1,51 @@
+services:
+  app:
+    image: kimai/kimai2:apache-2.26.0
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: mysql://kimai:${KI_MYSQL_PASSWORD:-kimai}@db/kimai
+      TRUSTED_PROXIES: localhost
+      APP_SECRET: ${KI_APP_SECRET}
+      MAILER_FROM: ${KI_MAILER_FROM:-admin@kimai.local}
+      MAILER_URL: ${KI_MAILER_URL:-null://null}
+      ADMINMAIL: ${KI_ADMINMAIL:-admin@kimai.local}
+      ADMINPASS: ${KI_ADMINPASS}
+    volumes:
+      - kimai-data:/opt/kimai/var
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=kimai
+      - MYSQL_USER=kimai
+      - MYSQL_PASSWORD=${KI_MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${KI_MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=256M
+      - --innodb-flush-log-at-trx-commit=2
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "kimai", "-p${KI_MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  kimai-data:
+  mysql-data:

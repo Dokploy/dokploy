@@ -15,7 +15,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Deploy only the dokploy app
 
 ENV NODE_ENV=production
-RUN pnpm --filter=@dokploy/server switch:prod
 RUN pnpm --filter=@dokploy/server build
 RUN pnpm --filter=./apps/dokploy run build
 
@@ -49,6 +48,8 @@ RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm
 
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash
+
+ARG NIXPACKS_VERSION=1.29.1
 RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
     && ./install.sh \

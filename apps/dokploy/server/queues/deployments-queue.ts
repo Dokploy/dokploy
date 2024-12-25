@@ -1,39 +1,21 @@
 import {
 	deployApplication,
 	deployCompose,
+	deployPreviewApplication,
 	deployRemoteApplication,
 	deployRemoteCompose,
+	deployRemotePreviewApplication,
 	rebuildApplication,
 	rebuildCompose,
 	rebuildRemoteApplication,
 	rebuildRemoteCompose,
 	updateApplicationStatus,
 	updateCompose,
+	updatePreviewDeployment,
 } from "@dokploy/server";
 import { type Job, Worker } from "bullmq";
-import { myQueue, redisConfig } from "./queueSetup";
-
-type DeployJob =
-	| {
-			applicationId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
-			applicationType: "application";
-			serverId?: string;
-	  }
-	| {
-			composeId: string;
-			titleLog: string;
-			descriptionLog: string;
-			server?: boolean;
-			type: "deploy" | "redeploy";
-			applicationType: "compose";
-			serverId?: string;
-	  };
-
-export type DeploymentJob = DeployJob;
+import type { DeploymentJob } from "./queue-types";
+import { redisConfig } from "./redis-connection";
 
 export const deploymentWorker = new Worker(
 	"deployments",
@@ -41,6 +23,7 @@ export const deploymentWorker = new Worker(
 		try {
 			if (job.data.applicationType === "application") {
 				await updateApplicationStatus(job.data.applicationId, "running");
+
 				if (job.data.server) {
 					if (job.data.type === "redeploy") {
 						await rebuildRemoteApplication({
@@ -104,6 +87,29 @@ export const deploymentWorker = new Worker(
 						});
 					}
 				}
+			} else if (job.data.applicationType === "application-preview") {
+				await updatePreviewDeployment(job.data.previewDeploymentId, {
+					previewStatus: "running",
+				});
+				if (job.data.server) {
+					if (job.data.type === "deploy") {
+						await deployRemotePreviewApplication({
+							applicationId: job.data.applicationId,
+							titleLog: job.data.titleLog,
+							descriptionLog: job.data.descriptionLog,
+							previewDeploymentId: job.data.previewDeploymentId,
+						});
+					}
+				} else {
+					if (job.data.type === "deploy") {
+						await deployPreviewApplication({
+							applicationId: job.data.applicationId,
+							titleLog: job.data.titleLog,
+							descriptionLog: job.data.descriptionLog,
+							previewDeploymentId: job.data.previewDeploymentId,
+						});
+					}
+				}
 			}
 		} catch (error) {
 			console.log("Error", error);
@@ -114,25 +120,3 @@ export const deploymentWorker = new Worker(
 		connection: redisConfig,
 	},
 );
-
-export const cleanQueuesByApplication = async (applicationId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.applicationId === applicationId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for application ${applicationId}`);
-		}
-	}
-};
-
-export const cleanQueuesByCompose = async (composeId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.composeId === composeId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for compose ${composeId}`);
-		}
-	}
-};

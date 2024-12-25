@@ -1,9 +1,11 @@
 import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
+import { RemoveSelfAccount } from "@/components/dashboard/settings/profile/remove-self-account";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -20,10 +22,14 @@ const Page = () => {
 			enabled: !!data?.id && data?.rol === "user",
 		},
 	);
+
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ProfileForm />
 			{(user?.canAccessToAPI || data?.rol === "admin") && <GenerateToken />}
+
+			{isCloud && <RemoveSelfAccount />}
 		</div>
 	);
 };
@@ -32,7 +38,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="Profile">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
@@ -41,6 +47,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
+	const locale = getLocale(req.cookies);
 	const { user, session } = await validateRequest(req, res);
 
 	const helpers = createServerSideHelpers({
@@ -56,6 +63,13 @@ export async function getServerSideProps(
 	});
 
 	await helpers.settings.isCloud.prefetch();
+	await helpers.auth.get.prefetch();
+	if (user?.rol === "user") {
+		await helpers.user.byAuthId.prefetch({
+			authId: user.authId,
+		});
+	}
+
 	if (!user) {
 		return {
 			redirect: {
@@ -68,6 +82,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

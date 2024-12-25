@@ -58,14 +58,7 @@ export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
 	}, [data]);
 	return (
 		<Dialog>
-			<DialogTrigger asChild>
-				<DropdownMenuItem
-					className="w-full cursor-pointer space-x-3"
-					onSelect={(e) => e.preventDefault()}
-				>
-					{children}
-				</DropdownMenuItem>
-			</DialogTrigger>
+			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-7xl">
 				<DialogHeader>
 					<DialogTitle>View Logs</DialogTitle>
@@ -99,9 +92,9 @@ export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
 						</SelectContent>
 					</Select>
 					<DockerLogsId
-						id="terminal"
 						containerId={containerId || ""}
 						serverId={serverId}
+						runType="native"
 					/>
 				</div>
 			</DialogContent>

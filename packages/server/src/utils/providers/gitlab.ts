@@ -26,7 +26,7 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 		return;
 	}
 
-	const response = await fetch("https://gitlab.com/oauth/token", {
+	const response = await fetch(`${gitlabProvider.gitlabUrl}/oauth/token`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -46,8 +46,6 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	const data = await response.json();
 
 	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
-
-	console.log("Refreshed token");
 
 	await updateGitlab(gitlabProviderId, {
 		accessToken: data.access_token,
@@ -124,7 +122,7 @@ export const cloneGitlabRepository = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const repoclone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
 
 	try {
@@ -220,7 +218,7 @@ export const getGitlabCloneCommand = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const repoclone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
 
 	const cloneCommand = `
@@ -246,7 +244,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
-		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -306,7 +304,7 @@ export const getGitlabBranches = async (input: {
 	const gitlabProvider = await findGitlabById(input.gitlabId);
 
 	const branchesResponse = await fetch(
-		`https://gitlab.com/api/v4/projects/${input.id}/repository/branches`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects/${input.id}/repository/branches`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,
@@ -352,7 +350,9 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const gitlabUrl = gitlabProvider.gitlabUrl;
+	// What happen with oauth in self hosted instances?
+	const repoclone = `${gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 
 	try {
@@ -392,7 +392,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const repoclone = `gitlab.com/${gitlabPathNamespace}.git`;
+	const repoclone = `${gitlabProvider.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
 	try {
 		const command = `
@@ -419,7 +419,7 @@ export const testGitlabConnection = async (
 	const gitlabProvider = await findGitlabById(gitlabId);
 
 	const response = await fetch(
-		`https://gitlab.com/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
+		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
 			headers: {
 				Authorization: `Bearer ${gitlabProvider.accessToken}`,

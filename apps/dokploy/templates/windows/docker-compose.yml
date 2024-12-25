@@ -1,0 +1,17 @@
+services:
+  windows:
+    image: dockurr/windows:4.00
+    volumes:
+      - win-storage:/storage
+    environment:
+      - VERSION
+      - KVM
+    devices:
+      # If in .env string 'KVM=N' is not commented, you need to comment line below
+      - /dev/kvm
+    cap_add:
+      - NET_ADMIN
+    stop_grace_period: 2m
+
+volumes:
+  win-storage:

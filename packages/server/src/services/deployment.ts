@@ -5,13 +5,14 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
+	type apiCreateDeploymentPreview,
 	type apiCreateDeploymentServer,
 	deployments,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -21,6 +22,11 @@ import { type Compose, findComposeById, updateCompose } from "./compose";
 import { type Server, findServerById } from "./server";
 
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	type PreviewDeployment,
+	findPreviewDeploymentById,
+	updatePreviewDeployment,
+} from "./preview-deployment";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -49,7 +55,10 @@ export const createDeployment = async (
 	const application = await findApplicationById(deployment.applicationId);
 
 	try {
-		// await removeLastTenDeployments(deployment.applicationId);
+		await removeLastTenDeployments(
+			deployment.applicationId,
+			application.serverId,
+		);
 		const { LOGS_PATH } = paths(!!application.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
@@ -98,6 +107,74 @@ export const createDeployment = async (
 	}
 };
 
+export const createDeploymentPreview = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentPreview._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	const previewDeployment = await findPreviewDeploymentById(
+		deployment.previewDeploymentId,
+	);
+	try {
+		await removeLastTenPreviewDeploymenById(
+			deployment.previewDeploymentId,
+			previewDeployment?.application?.serverId,
+		);
+
+		const appName = `${previewDeployment.appName}`;
+		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(LOGS_PATH, appName, fileName);
+
+		if (previewDeployment?.application?.serverId) {
+			const server = await findServerById(
+				previewDeployment?.application?.serverId,
+			);
+
+			const command = `
+				mkdir -p ${LOGS_PATH}/${appName};
+            	echo "Initializing deployment" >> ${logFilePath};
+			`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+		}
+
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				title: deployment.title || "Deployment",
+				status: "running",
+				logPath: logFilePath,
+				description: deployment.description || "",
+				previewDeploymentId: deployment.previewDeploymentId,
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error to create the deployment",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		await updatePreviewDeployment(deployment.previewDeploymentId, {
+			previewStatus: "error",
+		});
+		console.log(error);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error to create the deployment",
+		});
+	}
+};
+
 export const createDeploymentCompose = async (
 	deployment: Omit<
 		typeof apiCreateDeploymentCompose._type,
@@ -106,7 +183,10 @@ export const createDeploymentCompose = async (
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	try {
-		// await removeLastTenComposeDeployments(deployment.composeId);
+		await removeLastTenComposeDeployments(
+			deployment.composeId,
+			compose.serverId,
+		);
 		const { LOGS_PATH } = paths(!!compose.serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
@@ -181,36 +261,107 @@ export const removeDeploymentsByApplicationId = async (
 		.returning();
 };
 
-const removeLastTenDeployments = async (applicationId: string) => {
+const removeLastTenDeployments = async (
+	applicationId: string,
+	serverId: string | null,
+) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments.applicationId, applicationId),
 		orderBy: desc(deployments.createdAt),
 	});
+
 	if (deploymentList.length > 10) {
 		const deploymentsToDelete = deploymentList.slice(10);
-		for (const oldDeployment of deploymentsToDelete) {
-			const logPath = path.join(oldDeployment.logPath);
-			if (existsSync(logPath)) {
-				await fsPromises.unlink(logPath);
+		if (serverId) {
+			let command = "";
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
 			}
-			await removeDeployment(oldDeployment.deploymentId);
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
 		}
 	}
 };
 
-const removeLastTenComposeDeployments = async (composeId: string) => {
+const removeLastTenComposeDeployments = async (
+	composeId: string,
+	serverId: string | null,
+) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments.composeId, composeId),
 		orderBy: desc(deployments.createdAt),
 	});
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
-		for (const oldDeployment of deploymentsToDelete) {
-			const logPath = path.join(oldDeployment.logPath);
-			if (existsSync(logPath)) {
-				await fsPromises.unlink(logPath);
+		if (serverId) {
+			let command = "";
+			const deploymentsToDelete = deploymentList.slice(10);
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
 			}
-			await removeDeployment(oldDeployment.deploymentId);
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			const deploymentsToDelete = deploymentList.slice(10);
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
+		}
+	}
+};
+
+export const removeLastTenPreviewDeploymenById = async (
+	previewDeploymentId: string,
+	serverId: string | null,
+) => {
+	const deploymentList = await db.query.deployments.findMany({
+		where: eq(deployments.previewDeploymentId, previewDeploymentId),
+		orderBy: desc(deployments.createdAt),
+	});
+
+	if (deploymentList.length > 10) {
+		const deploymentsToDelete = deploymentList.slice(10);
+		if (serverId) {
+			let command = "";
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
+			}
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
 		}
 	}
 };
@@ -225,6 +376,30 @@ export const removeDeployments = async (application: Application) => {
 		await removeDirectoryIfExistsContent(logsPath);
 	}
 	await removeDeploymentsByApplicationId(applicationId);
+};
+
+export const removeDeploymentsByPreviewDeploymentId = async (
+	previewDeployment: PreviewDeployment,
+	serverId: string | null,
+) => {
+	const { appName } = previewDeployment;
+	const { LOGS_PATH } = paths(!!serverId);
+	const logsPath = path.join(LOGS_PATH, appName);
+	if (serverId) {
+		await execAsyncRemote(serverId, `rm -rf ${logsPath}`);
+	} else {
+		await removeDirectoryIfExistsContent(logsPath);
+	}
+
+	await db
+		.delete(deployments)
+		.where(
+			eq(
+				deployments.previewDeploymentId,
+				previewDeployment.previewDeploymentId,
+			),
+		)
+		.returning();
 };
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
@@ -327,7 +502,6 @@ export const createServerDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error to create the deployment",

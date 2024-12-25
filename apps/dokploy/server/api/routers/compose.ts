@@ -3,17 +3,14 @@ import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
+	apiDeleteCompose,
 	apiFetchServices,
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiUpdateCompose,
 	compose,
 } from "@/server/db/schema";
-import {
-	type DeploymentJob,
-	cleanQueuesByCompose,
-} from "@/server/queues/deployments-queue";
-import { myQueue } from "@/server/queues/queueSetup";
+import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import {
@@ -28,6 +25,7 @@ import _ from "lodash";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
 import {
 	IS_CLOUD,
@@ -41,7 +39,6 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
-	findAdmin,
 	findAdminById,
 	findComposeById,
 	findDomainsByComposeId,
@@ -52,6 +49,7 @@ import {
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
+	startCompose,
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
@@ -83,6 +81,8 @@ export const composeRouter = createTRPCRouter({
 				if (ctx.user.rol === "user") {
 					await addNewService(ctx.user.authId, newService.composeId);
 				}
+
+				return newService;
 			} catch (error) {
 				throw error;
 			}
@@ -118,7 +118,7 @@ export const composeRouter = createTRPCRouter({
 			return updateCompose(input.composeId, input);
 		}),
 	delete: protectedProcedure
-		.input(apiFindCompose)
+		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(ctx.user.authId, input.composeId, "delete");
@@ -139,7 +139,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			const cleanupOperations = [
-				async () => await removeCompose(composeResult),
+				async () => await removeCompose(composeResult, input.deleteVolumes),
 				async () => await removeDeploymentsByComposeId(composeResult),
 				async () => await removeComposeDirectory(composeResult.appName),
 			];
@@ -313,6 +313,20 @@ export const composeRouter = createTRPCRouter({
 
 			return true;
 		}),
+	start: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to stop this compose",
+				});
+			}
+			await startCompose(input.composeId);
+
+			return true;
+		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
@@ -361,15 +375,7 @@ export const composeRouter = createTRPCRouter({
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
 			const admin = await findAdminById(ctx.user.adminId);
-			let serverIp = admin.serverIp;
-
-			if (!admin.serverIp) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message:
-						"You need to have a server IP to deploy this template in order to generate domains",
-				});
-			}
+			let serverIp = admin.serverIp || "127.0.0.1";
 
 			const project = await findProjectById(input.projectId);
 

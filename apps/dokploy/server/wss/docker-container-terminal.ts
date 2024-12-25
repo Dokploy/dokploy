@@ -62,9 +62,6 @@ export const setupDockerContainerTerminalWebSocketServer = (
 
 								stream
 									.on("close", (code: number, signal: string) => {
-										console.log(
-											`Stream :: close :: code: ${code}, signal: ${signal}`,
-										);
 										ws.send(`\nContainer closed with code: ${code}\n`);
 										conn.end();
 									})
@@ -105,21 +102,13 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						port: server.port,
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
-						timeout: 99999,
 					});
 			} else {
 				const shell = getShell();
 				const ptyProcess = spawn(
 					shell,
 					["-c", `docker exec -it ${containerId} ${activeWay}`],
-					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
-					},
+					{},
 				);
 
 				ptyProcess.onData((data) => {

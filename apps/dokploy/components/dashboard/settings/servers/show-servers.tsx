@@ -23,16 +23,21 @@ import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { AddServer } from "./add-server";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
+import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
+import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 
 export const ShowServers = () => {
+	const router = useRouter();
+	const query = router.query;
 	const { data, refetch } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
@@ -42,12 +47,26 @@ export const ShowServers = () => {
 
 	return (
 		<div className="p-6 space-y-6">
+			{query?.success && isCloud && <WelcomeSuscription />}
 			<div className="space-y-2 flex flex-row justify-between items-end">
-				<div>
-					<h1 className="text-2xl font-bold">Servers</h1>
-					<p className="text-muted-foreground">
-						Add servers to deploy your applications remotely.
-					</p>
+				<div className="flex flex-col gap-2">
+					<div>
+						<h1 className="text-2xl font-bold">Servers</h1>
+						<p className="text-muted-foreground">
+							Add servers to deploy your applications remotely.
+						</p>
+					</div>
+
+					{isCloud && (
+						<span
+							className="text-primary cursor-pointer text-sm"
+							onClick={() => {
+								router.push("/dashboard/settings/servers?success=true");
+							}}
+						>
+							Reset Onboarding
+						</span>
+					)}
 				</div>
 
 				{sshKeys && sshKeys?.length > 0 && (
@@ -98,9 +117,11 @@ export const ShowServers = () => {
 					)
 				)}
 				{data && data?.length > 0 && (
-					<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-6 overflow-auto">
 						<Table>
-							<TableCaption>See all servers</TableCaption>
+							<TableCaption>
+								<div className="flex flex-col  gap-4">See all servers</div>
+							</TableCaption>
 							<TableHeader>
 								<TableRow>
 									<TableHead className="w-[100px]">Name</TableHead>
@@ -228,21 +249,20 @@ export const ShowServers = () => {
 															</DropdownMenuItem>
 														</DialogAction>
 
-														{isActive && (
+														{isActive && server.sshKeyId && (
 															<>
-																{server.sshKeyId && (
-																	<>
-																		<DropdownMenuSeparator />
-																		<DropdownMenuLabel>Extra</DropdownMenuLabel>
+																<DropdownMenuSeparator />
+																<DropdownMenuLabel>Extra</DropdownMenuLabel>
 
-																		<ShowTraefikFileSystemModal
-																			serverId={server.serverId}
-																		/>
-																		<ShowDockerContainersModal
-																			serverId={server.serverId}
-																		/>
-																	</>
-																)}
+																<ShowTraefikFileSystemModal
+																	serverId={server.serverId}
+																/>
+																<ShowDockerContainersModal
+																	serverId={server.serverId}
+																/>
+																<ShowSwarmOverviewModal
+																	serverId={server.serverId}
+																/>
 															</>
 														)}
 													</DropdownMenuContent>

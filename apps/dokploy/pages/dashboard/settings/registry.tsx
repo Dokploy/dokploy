@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"}>
+		<DashboardLayout tab={"settings"} metaName="Registry">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
@@ -49,7 +49,7 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-
+	await helpers.auth.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
 
 	return {
