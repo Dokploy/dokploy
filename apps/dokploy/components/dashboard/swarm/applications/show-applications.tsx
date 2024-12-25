@@ -89,6 +89,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			Error: detail.Error,
 			Node: detail.Node,
 			Ports: detail.Ports || app.Ports,
+			serverId: serverId || "",
 		}));
 	});
 

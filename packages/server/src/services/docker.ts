@@ -460,8 +460,6 @@ export const getApplicationInfo = async (
 			.split("\n")
 			.map((line) => JSON.parse(line));
 
-		console.log(appArray);
-
 		return appArray;
 	} catch (error) {}
 };
