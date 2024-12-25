@@ -337,6 +337,13 @@
       "when": 1733599090582,
       "tag": "0047_wise_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1734809337308,
+      "tag": "0052_bumpy_luckman",
+      "breakpoints": true
     }
   ]
 }

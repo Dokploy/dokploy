@@ -1,11 +1,23 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -13,60 +25,48 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
-/**
- * Props for the ManageTraefikPorts component
- * @interface Props
- * @property {React.ReactNode} children - The trigger element that opens the ports management modal
- * @property {string} [serverId] - Optional ID of the server whose ports are being managed
- */
 interface Props {
 	children: React.ReactNode;
 	serverId?: string;
 }
 
-/**
- * Represents a port mapping configuration for Traefik
- * @interface AdditionalPort
- * @property {number} targetPort - The internal port that the service is listening on
- * @property {number} publishedPort - The external port that will be exposed
- * @property {"ingress" | "host"} publishMode - The Docker Swarm publish mode:
- *   - "host": Publishes the port directly on the host
- *   - "ingress": Publishes the port through the Swarm routing mesh
- */
-interface AdditionalPort {
-	targetPort: number;
-	publishedPort: number;
-	publishMode: "ingress" | "host";
-}
+const PortSchema = z.object({
+	targetPort: z.number().min(1, "Target port is required"),
+	publishedPort: z.number().min(1, "Published port is required"),
+	publishMode: z.enum(["ingress", "host"]),
+});
 
-/**
- * ManageTraefikPorts is a component that provides a modal interface for managing
- * additional port mappings for Traefik in a Docker Swarm environment.
- *
- * Features:
- * - Add, remove, and edit port mappings
- * - Configure target port, published port, and publish mode for each mapping
- * - Persist port configurations through API calls
- *
- * @component
- * @example
- * ```tsx
- * <ManageTraefikPorts serverId="server-123">
- *   <Button>Manage Ports</Button>
- * </ManageTraefikPorts>
- * ```
- */
+const TraefikPortsSchema = z.object({
+	ports: z.array(PortSchema),
+});
+
+type TraefikPortsForm = z.infer<typeof TraefikPortsSchema>;
+
 export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 	const { t } = useTranslation("settings");
 	const [open, setOpen] = useState(false);
-	const [additionalPorts, setAdditionalPorts] = useState<AdditionalPort[]>([]);
+
+	const form = useForm<TraefikPortsForm>({
+		resolver: zodResolver(TraefikPortsSchema),
+		defaultValues: {
+			ports: [],
+		},
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "ports",
+	});
 
 	const { data: currentPorts, refetch: refetchPorts } =
 		api.settings.getTraefikPorts.useQuery({
@@ -82,22 +82,19 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 
 	useEffect(() => {
 		if (currentPorts) {
-			setAdditionalPorts(currentPorts);
+			form.reset({ ports: currentPorts });
 		}
-	}, [currentPorts]);
+	}, [currentPorts, form]);
 
 	const handleAddPort = () => {
-		setAdditionalPorts([
-			...additionalPorts,
-			{ targetPort: 0, publishedPort: 0, publishMode: "host" },
-		]);
+		append({ targetPort: 0, publishedPort: 0, publishMode: "host" });
 	};
 
-	const handleUpdatePorts = async () => {
+	const onSubmit = async (data: TraefikPortsForm) => {
 		try {
 			await updatePorts({
 				serverId,
-				additionalPorts,
+				additionalPorts: data.ports,
 			});
 			toast.success(t("settings.server.webServer.traefik.portsUpdated"));
 			setOpen(false);
@@ -110,121 +107,197 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 		<>
 			<div onClick={() => setOpen(true)}>{children}</div>
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="sm:max-w-2xl">
+				<DialogContent className="sm:max-w-3xl">
 					<DialogHeader>
-						<DialogTitle>
+						<DialogTitle className="flex items-center gap-2 text-xl">
 							{t("settings.server.webServer.traefik.managePorts")}
 						</DialogTitle>
-						<DialogDescription>
-							{t("settings.server.webServer.traefik.managePortsDescription")}
+						<DialogDescription className="text-base w-full">
+							<div className="flex items-center justify-between">
+								{t("settings.server.webServer.traefik.managePortsDescription")}
+								<Button
+									onClick={handleAddPort}
+									variant="default"
+									className="gap-2"
+								>
+									<Plus className="h-4 w-4" />
+									Add Mapping
+								</Button>
+							</div>
 						</DialogDescription>
 					</DialogHeader>
-					<div className="grid gap-4 py-4">
-						{additionalPorts.map((port, index) => (
-							<div
-								key={index}
-								className="grid grid-cols-[120px_120px_minmax(120px,1fr)_80px] gap-4 items-end"
-							>
-								<div className="space-y-2">
-									<Label htmlFor={`target-port-${index}`}>
-										{t("settings.server.webServer.traefik.targetPort")}
-									</Label>
-									<input
-										id={`target-port-${index}`}
-										type="number"
-										value={port.targetPort}
-										onChange={(e) => {
-											const newPorts = [...additionalPorts];
 
-											if (newPorts[index]) {
-												newPorts[index].targetPort = Number.parseInt(
-													e.target.value,
-												);
-											}
+					<Form {...form}>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+							<div className="grid gap-6 py-4">
+								{fields.length === 0 ? (
+									<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
+										<ArrowRightLeft className="size-8 text-muted-foreground" />
+										<span className="text-base text-muted-foreground text-center">
+											No port mappings configured
+										</span>
+										<p className="text-sm text-muted-foreground text-center">
+											Add one to get started
+										</p>
+									</div>
+								) : (
+									<div className="grid gap-4">
+										{fields.map((field, index) => (
+											<Card key={field.id}>
+												<CardContent className="grid grid-cols-[1fr_1fr_1.5fr_auto] gap-4 p-4 transparent">
+													<FormField
+														control={form.control}
+														name={`ports.${index}.targetPort`}
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel className="text-sm font-medium text-muted-foreground">
+																	{t(
+																		"settings.server.webServer.traefik.targetPort",
+																	)}
+																</FormLabel>
+																<FormControl>
+																	<Input
+																		type="number"
+																		{...field}
+																		onChange={(e) =>
+																			field.onChange(Number(e.target.value))
+																		}
+																		className="w-full dark:bg-black"
+																		placeholder="e.g. 8080"
+																	/>
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
 
-											setAdditionalPorts(newPorts);
-										}}
-										className="w-full rounded border p-2"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor={`published-port-${index}`}>
-										{t("settings.server.webServer.traefik.publishedPort")}
-									</Label>
-									<input
-										id={`published-port-${index}`}
-										type="number"
-										value={port.publishedPort}
-										onChange={(e) => {
-											const newPorts = [...additionalPorts];
-											if (newPorts[index]) {
-												newPorts[index].publishedPort = Number.parseInt(
-													e.target.value,
-												);
-											}
-											setAdditionalPorts(newPorts);
-										}}
-										className="w-full rounded border p-2"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor={`publish-mode-${index}`}>
-										{t("settings.server.webServer.traefik.publishMode")}
-									</Label>
-									<Select
-										value={port.publishMode}
-										onValueChange={(value: "ingress" | "host") => {
-											const newPorts = [...additionalPorts];
+													<FormField
+														control={form.control}
+														name={`ports.${index}.publishedPort`}
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel className="text-sm font-medium text-muted-foreground">
+																	{t(
+																		"settings.server.webServer.traefik.publishedPort",
+																	)}
+																</FormLabel>
+																<FormControl>
+																	<Input
+																		type="number"
+																		{...field}
+																		onChange={(e) =>
+																			field.onChange(Number(e.target.value))
+																		}
+																		className="w-full dark:bg-black"
+																		placeholder="e.g. 80"
+																	/>
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
 
-											if (newPorts[index]) {
-												newPorts[index].publishMode = value;
-											}
-											setAdditionalPorts(newPorts);
-										}}
-									>
-										<SelectTrigger
-											id={`publish-mode-${index}`}
-											className="w-full"
-										>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="host">Host</SelectItem>
-											<SelectItem value="ingress">Ingress</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-								<div>
-									<Button
-										onClick={() => {
-											const newPorts = additionalPorts.filter(
-												(_, i) => i !== index,
-											);
-											setAdditionalPorts(newPorts);
-										}}
-										variant="destructive"
-										size="sm"
-									>
-										Remove
-									</Button>
-								</div>
+													<FormField
+														control={form.control}
+														name={`ports.${index}.publishMode`}
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel className="text-sm font-medium text-muted-foreground">
+																	{t(
+																		"settings.server.webServer.traefik.publishMode",
+																	)}
+																</FormLabel>
+																<Select
+																	onValueChange={field.onChange}
+																	value={field.value}
+																>
+																	<FormControl>
+																		<SelectTrigger className="dark:bg-black">
+																			<SelectValue />
+																		</SelectTrigger>
+																	</FormControl>
+																	<SelectContent>
+																		<SelectItem value="host">
+																			Host Mode
+																		</SelectItem>
+																		<SelectItem value="ingress">
+																			Ingress Mode
+																		</SelectItem>
+																	</SelectContent>
+																</Select>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+
+													<div className="flex items-end">
+														<Button
+															onClick={() => remove(index)}
+															variant="ghost"
+															size="icon"
+															className="text-muted-foreground hover:text-destructive"
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												</CardContent>
+											</Card>
+										))}
+									</div>
+								)}
+
+								{fields.length > 0 && (
+									<AlertBlock type="info">
+										<div className="flex flex-col gap-2">
+											<span className="text-sm">
+												<strong>
+													Each port mapping defines how external traffic reaches
+													your containers.
+												</strong>
+												<ul className="pt-2">
+													<li>
+														<strong>Host Mode:</strong> Directly binds the port
+														to the host machine.
+														<ul className="p-2 list-inside list-disc">
+															<li>
+																Best for single-node deployments or when you
+																need guaranteed port availability.
+															</li>
+														</ul>
+													</li>
+													<li>
+														<strong>Ingress Mode:</strong> Routes through Docker
+														Swarm's load balancer.
+														<ul className="p-2 list-inside list-disc">
+															<li>
+																Recommended for multi-node deployments and
+																better scalability.
+															</li>
+														</ul>
+													</li>
+												</ul>
+											</span>
+										</div>
+									</AlertBlock>
+								)}
 							</div>
-						))}
-						<div className="mt-4 flex justify-between">
-							<Button onClick={handleAddPort} variant="outline" size="sm">
-								{t("settings.server.webServer.traefik.addPort")}
-							</Button>
-							<Button
-								onClick={handleUpdatePorts}
-								size="sm"
-								disabled={isLoading}
-							>
-								Save
-							</Button>
-						</div>
-					</div>
+
+							<DialogFooter>
+								<Button
+									type="submit"
+									variant="default"
+									className="text-sm"
+									isLoading={isLoading}
+								>
+									Save
+								</Button>
+							</DialogFooter>
+						</form>
+					</Form>
 				</DialogContent>
 			</Dialog>
 		</>
 	);
 };
+
+export default ManageTraefikPorts;

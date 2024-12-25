@@ -68,6 +68,7 @@ export const discord = pgTable("discord", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
 });
 
 export const email = pgTable("email", {
@@ -171,6 +172,7 @@ export const apiCreateDiscord = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
+		decoration: z.boolean(),
 	})
 	.required();
 
@@ -180,9 +182,13 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	adminId: z.string().optional(),
 });
 
-export const apiTestDiscordConnection = apiCreateDiscord.pick({
-	webhookUrl: true,
-});
+export const apiTestDiscordConnection = apiCreateDiscord
+	.pick({
+		webhookUrl: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
 
 export const apiCreateEmail = notificationsSchema
 	.pick({
