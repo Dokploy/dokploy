@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
+import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
 interface Props {
@@ -128,6 +129,14 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 										<span>Enter the terminal</span>
 									</DropdownMenuItem>
 								</DockerTerminalModal> */}
+					<ManageTraefikPorts serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							<span>{t("settings.server.webServer.traefik.managePorts")}</span>
+						</DropdownMenuItem>
+					</ManageTraefikPorts>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -7,15 +7,18 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { FancyAnsi } from "fancy-ansi";
 import { escapeRegExp } from "lodash";
 import React from "react";
-import { type LogLine, getLogType, parseAnsi } from "./utils";
+import { type LogLine, getLogType } from "./utils";
 
 interface LogLineProps {
 	log: LogLine;
 	noTimestamp?: boolean;
 	searchTerm?: string;
 }
+
+const fancyAnsi = new FancyAnsi();
 
 export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	const { timestamp, message, rawTimestamp } = log;
@@ -34,37 +37,42 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 
 	const highlightMessage = (text: string, term: string) => {
 		if (!term) {
-			const segments = parseAnsi(text);
-			return segments.map((segment, index) => (
-				<span key={index} className={segment.className || undefined}>
-					{segment.text}
-				</span>
-			));
+			return (
+				<span
+					className="transition-colors"
+					dangerouslySetInnerHTML={{
+						__html: fancyAnsi.toHtml(text),
+					}}
+				/>
+			);
 		}
 
-		// For search, we need to handle both ANSI and search highlighting
-		const segments = parseAnsi(text);
-		return segments.map((segment, index) => {
-			const parts = segment.text.split(
-				new RegExp(`(${escapeRegExp(term)})`, "gi"),
-			);
-			return (
-				<span key={index} className={segment.className || undefined}>
-					{parts.map((part, partIndex) =>
-						part.toLowerCase() === term.toLowerCase() ? (
-							<span
-								key={partIndex}
-								className="bg-yellow-200 dark:bg-yellow-900"
-							>
-								{part}
-							</span>
-						) : (
-							part
-						),
-					)}
-				</span>
-			);
-		});
+		const htmlContent = fancyAnsi.toHtml(text);
+		const modifiedContent = htmlContent.replace(
+			/<span([^>]*)>([^<]*)<\/span>/g,
+			(match, attrs, content) => {
+				const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+				if (!content.match(searchRegex)) return match;
+
+				const segments = content.split(searchRegex);
+				const wrappedSegments = segments
+					.map((segment: string) =>
+						segment.toLowerCase() === term.toLowerCase()
+							? `<span${attrs} class="bg-yellow-200/50 dark:bg-yellow-900/50">${segment}</span>`
+							: segment,
+					)
+					.join("");
+
+				return `<span${attrs}>${wrappedSegments}</span>`;
+			},
+		);
+
+		return (
+			<span
+				className="transition-colors"
+				dangerouslySetInnerHTML={{ __html: modifiedContent }}
+			/>
+		);
 	};
 
 	const tooltip = (color: string, timestamp: string | null) => {

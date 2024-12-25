@@ -264,21 +264,21 @@ export const AddDomain = ({
 										name="certificateType"
 										render={({ field }) => (
 											<FormItem className="col-span-2">
-												<FormLabel>Certificate</FormLabel>
+												<FormLabel>Certificate Provider</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value || ""}
 												>
 													<FormControl>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate" />
+															<SelectValue placeholder="Select a certificate provider" />
 														</SelectTrigger>
 													</FormControl>
 
 													<SelectContent>
 														<SelectItem value="none">None</SelectItem>
 														<SelectItem value={"letsencrypt"}>
-															Letsencrypt (Default)
+															Let's Encrypt
 														</SelectItem>
 													</SelectContent>
 												</Select>

@@ -45,6 +45,9 @@ import { z } from "zod";
 const certificateDataHolder =
 	"-----BEGIN CERTIFICATE-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n------END CERTIFICATE-----";
 
+const privateKeyDataHolder =
+	"-----BEGIN PRIVATE KEY-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n-----END PRIVATE KEY-----";
+
 const addCertificate = z.object({
 	name: z.string().min(1, "Name is required"),
 	certificateData: z.string().min(1, "Certificate data is required"),
@@ -154,7 +157,7 @@ export const AddCertificate = () => {
 									<FormControl>
 										<Textarea
 											className="h-32"
-											placeholder={certificateDataHolder}
+											placeholder={privateKeyDataHolder}
 											{...field}
 										/>
 									</FormControl>

@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildCompose,
@@ -52,17 +52,14 @@ import { validUniqueServerAppName } from "./project";
 export type Compose = typeof compose.$inferSelect;
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("compose");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("compose", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newDestination = await db
@@ -70,6 +67,7 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 		.values({
 			...input,
 			composeFile: "",
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -87,8 +85,9 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 export const createComposeByTemplate = async (
 	input: typeof compose.$inferInsert,
 ) => {
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = cleanAppName(input.appName);
+	if (appName) {
+		const valid = await validUniqueServerAppName(appName);
 
 		if (!valid) {
 			throw new TRPCError({
@@ -101,6 +100,7 @@ export const createComposeByTemplate = async (
 		.insert(compose)
 		.values({
 			...input,
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -184,10 +184,11 @@ export const updateCompose = async (
 	composeId: string,
 	composeData: Partial<Compose>,
 ) => {
+	const { appName, ...rest } = composeData;
 	const composeResult = await db
 		.update(compose)
 		.set({
-			...composeData,
+			...rest,
 		})
 		.where(eq(compose.composeId, composeId))
 		.returning();
@@ -205,7 +206,9 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${
+		compose.projectId
+	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -307,7 +310,9 @@ export const deployRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${compose.projectId}/services/compose/${compose.composeId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${
+		compose.projectId
+	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -436,13 +441,17 @@ export const rebuildRemoteCompose = async ({
 	return true;
 };
 
-export const removeCompose = async (compose: Compose) => {
+export const removeCompose = async (
+	compose: Compose,
+	deleteVolumes: boolean,
+) => {
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
 			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
@@ -452,7 +461,13 @@ export const removeCompose = async (compose: Compose) => {
 				cwd: projectPath,
 			});
 		} else {
-			const command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			let command: string;
+			if (deleteVolumes) {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down --volumes && rm -rf ${projectPath}`;
+			} else {
+				command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
+			}
+
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
 			} else {
@@ -476,7 +491,11 @@ export const startCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName, "code")} && docker compose -p ${compose.appName} up -d`,
+					`cd ${join(
+						COMPOSE_PATH,
+						compose.appName,
+						"code",
+					)} && docker compose -p ${compose.appName} up -d`,
 				);
 			} else {
 				await execAsync(`docker compose -p ${compose.appName} up -d`, {
@@ -506,7 +525,9 @@ export const stopCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${compose.appName} stop`,
+					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${
+						compose.appName
+					} stop`,
 				);
 			} else {
 				await execAsync(`docker compose -p ${compose.appName} stop`, {

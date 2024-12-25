@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -91,7 +92,7 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Run Command</CardTitle>
 					<CardDescription>
-						Append a custom command to the compose file
+						Override a custom command to the compose file
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -101,6 +102,12 @@ export const AddCommandCompose = ({ composeId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4"
 					>
+						<AlertBlock type="warning">
+							Modifying the default command may affect deployment stability,
+							impacting logs and monitoring. Proceed carefully and test
+							thoroughly. By default, the command starts with{" "}
+							<strong>docker</strong>.
+						</AlertBlock>
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}

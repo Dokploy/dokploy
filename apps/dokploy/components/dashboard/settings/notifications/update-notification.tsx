@@ -26,9 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, PenBoxIcon } from "lucide-react";
+import { Mail, Pen } from "lucide-react";
 import { useEffect, useState } from "react";
-import { FieldErrors, useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
 	type NotificationSchema,
@@ -113,6 +113,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					databaseBackup: data.databaseBackup,
 					type: data.notificationType,
 					webhookUrl: data.discord?.webhookUrl,
+					decoration: data.discord?.decoration || undefined,
 					name: data.name,
 					dockerCleanup: data.dockerCleanup,
 				});
@@ -178,6 +179,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: formData.webhookUrl,
+				decoration: formData.decoration,
 				name: formData.name,
 				notificationId: notificationId,
 				discordId: data?.discordId,
@@ -218,8 +220,12 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				<Button variant="ghost">
-					<PenBoxIcon className="size-4  text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-9 w-9 dark:hover:bg-zinc-900/80 hover:bg-gray-200/80"
+				>
+					<Pen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
@@ -356,23 +362,46 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								)}
 
 								{type === "discord" && (
-									<FormField
-										control={form.control}
-										name="webhookUrl"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Webhook URL</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-														{...field}
-													/>
-												</FormControl>
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://discord.com/api/webhooks/123456789/ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+															{...field}
+														/>
+													</FormControl>
 
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
 								)}
 								{type === "email" && (
 									<>
@@ -667,6 +696,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									} else if (type === "discord") {
 										await testDiscordConnection({
 											webhookUrl: form.getValues("webhookUrl"),
+											decoration: form.getValues("decoration"),
 										});
 									} else if (type === "email") {
 										await testEmailConnection({

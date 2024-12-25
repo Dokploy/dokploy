@@ -159,7 +159,11 @@ export const AddRegistry = () => {
 									<FormItem>
 										<FormLabel>Username</FormLabel>
 										<FormControl>
-											<Input placeholder="Username" {...field} />
+											<Input
+												placeholder="Username"
+												autoComplete="off"
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -177,6 +181,7 @@ export const AddRegistry = () => {
 										<FormControl>
 											<Input
 												placeholder="Password"
+												autoComplete="off"
 												{...field}
 												type="password"
 											/>

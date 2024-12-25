@@ -57,42 +57,45 @@ export const sendBuildSuccessNotifications = async ({
 		}
 
 		if (discord) {
+			const decorate = (decoration: string, text: string) =>
+				`${discord.decoration ? decoration : ""} ${text}`.trim();
+
 			await sendDiscordNotification(discord, {
 				title: "> `✅` Build Success",
 				color: 0x57f287,
 				fields: [
 					{
-						name: "`🛠️` Project",
+						name: decorate("`🛠️`", "Project"),
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "`⚙️` Application",
+						name: decorate("`⚙️`", "Application"),
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "`❔` Application Type",
+						name: decorate("`❔`", "Type"),
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "`📅` Date",
+						name: decorate("`📅`", "Date"),
 						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "`⌚` Time",
+						name: decorate("`⌚`", "Time"),
 						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
-						name: "`❓` Type",
+						name: decorate("`❓`", "Type"),
 						value: "Successful",
 						inline: true,
 					},
 					{
-						name: "`🧷` Build Link",
+						name: decorate("`🧷`", "Build Link"),
 						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
@@ -108,12 +111,12 @@ export const sendBuildSuccessNotifications = async ({
 				telegram,
 				`
 				<b>✅ Build Success</b>
-				
+
 				<b>Project:</b> ${projectName}
 				<b>Application:</b> ${applicationName}
 				<b>Type:</b> ${applicationType}
 				<b>Time:</b> ${date.toLocaleString()}
-				
+
 				<b>Build Details:</b> ${buildLink}
 				`,
 			);

@@ -412,7 +412,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>AppName</FormLabel>
+											<FormLabel>App Name</FormLabel>
 											<FormControl>
 												<Input placeholder="my-app" {...field} />
 											</FormControl>
@@ -471,6 +471,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormControl>
 													<Input
 														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+														autoComplete="off"
 														{...field}
 													/>
 												</FormControl>
@@ -491,6 +492,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
+													autoComplete="off"
 													{...field}
 												/>
 											</FormControl>

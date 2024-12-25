@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
 import {
 	Card,
+	CardContent,
+	CardDescription,
 	CardHeader,
 	CardTitle,
-	CardDescription,
-	CardContent,
 } from "@/components/ui/card";
-import { Loader2, PcCase, RefreshCw } from "lucide-react";
-import { api } from "@/utils/api";
-import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import { api } from "@/utils/api";
+import { Loader2, PcCase, RefreshCw } from "lucide-react";
+import { useState } from "react";
 
+import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	Select,
-	SelectTrigger,
-	SelectValue,
 	SelectContent,
 	SelectGroup,
 	SelectItem,
 	SelectLabel,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui/select";
 import { StatusRow } from "../gpu-support";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 export const Verify = () => {
 	const { data: servers } = api.server.all.useQuery();

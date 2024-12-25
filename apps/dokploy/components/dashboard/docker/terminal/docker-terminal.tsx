@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttachAddon } from "@xterm/addon-attach";
+import { useTheme } from "next-themes";
 
 interface Props {
 	id: string;
@@ -18,6 +19,7 @@ export const DockerTerminal: React.FC<Props> = ({
 }) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
+	const { resolvedTheme } = useTheme();
 	useEffect(() => {
 		const container = document.getElementById(id);
 		if (container) {
@@ -28,8 +30,9 @@ export const DockerTerminal: React.FC<Props> = ({
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
-				cursor: "transparent",
+				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
 				background: "rgba(0, 0, 0, 0)",
+				foreground: "currentColor",
 			},
 		});
 		const addonFit = new FitAddon();
