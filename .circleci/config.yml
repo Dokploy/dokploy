@@ -99,14 +99,14 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - 804-services-deployed-via-dokploy-inaccessible-after-customizing-traefik-ports-via-environment-variables
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - 804-services-deployed-via-dokploy-inaccessible-after-customizing-traefik-ports-via-environment-variables
       - combine-manifests:
           requires:
             - build-amd64
@@ -116,4 +116,4 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - 804-services-deployed-via-dokploy-inaccessible-after-customizing-traefik-ports-via-environment-variables
