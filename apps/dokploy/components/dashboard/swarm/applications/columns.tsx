@@ -1,21 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
 import { Badge } from "@/components/ui/badge";
-import { ShowNodeConfig } from "../details/show-node-config";
-// import { ShowContainerConfig } from "../config/show-container-config";
-// import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
-// import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
-// import type { Container } from "./show-containers";
 
 export interface ApplicationList {
 	ID: string;
@@ -212,7 +200,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 			);
 		},
 		cell: ({ row }) => {
-			return <div>{row.getValue("Errors")}</div>;
+			return <div className="w-[10rem]">{row.getValue("Errors")}</div>;
 		},
 	},
 ];

@@ -438,7 +438,7 @@ export const getApplicationInfo = async (
 	try {
 		let stdout = "";
 		let stderr = "";
-		const command = `docker service ps ${appName} --format '{{json .}}'`;
+		const command = `docker service ps ${appName} --format '{{json .}}' --no-trunc`;
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
@@ -459,6 +459,8 @@ export const getApplicationInfo = async (
 			.trim()
 			.split("\n")
 			.map((line) => JSON.parse(line));
+
+		console.log(appArray);
 
 		return appArray;
 	} catch (error) {}
