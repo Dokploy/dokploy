@@ -68,18 +68,18 @@ export const initializeTraefik = async ({
         Replicas: 1,
       },
     },
-    Labels: {
-      "traefik.enable": "true",
-    },
+    // Labels: {
+    //   "traefik.enable": "true",
+    // },
     EndpointSpec: {
       Ports: [
         {
-          TargetPort: TRAEFIK_SSL_PORT,
+          TargetPort: 443,
           PublishedPort: TRAEFIK_SSL_PORT,
           PublishMode: "host",
         },
         {
-          TargetPort: TRAEFIK_PORT,
+          TargetPort: 80,
           PublishedPort: TRAEFIK_PORT,
           PublishMode: "host",
         },
