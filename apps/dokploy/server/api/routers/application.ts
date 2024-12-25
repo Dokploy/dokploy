@@ -621,4 +621,37 @@ export const applicationRouter = createTRPCRouter({
 
 			return stats;
 		}),
+	rollback: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (application.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to roll back this application",
+				});
+			}
+			const jobData: DeploymentJob = {
+				applicationId: input.applicationId,
+				titleLog: "Rollback deployment",
+				descriptionLog: "",
+				type: "rollback",
+				applicationType: "application",
+				server: !!application.serverId,
+			};
+
+			if (IS_CLOUD && application.serverId) {
+				jobData.serverId = application.serverId;
+				await deploy(jobData);
+				return true;
+			}
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{
+					removeOnComplete: true,
+					removeOnFail: true,
+				},
+			);
+		}),
 });

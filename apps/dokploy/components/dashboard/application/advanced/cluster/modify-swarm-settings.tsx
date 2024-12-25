@@ -768,3 +768,150 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 		</Dialog>
 	);
 };
+
+export const RollbackDeployment = ({ applicationId }: Props) => {
+	const { data, refetch } = api.application.one.useQuery(
+		{
+			applicationId,
+		},
+		{
+			enabled: !!applicationId,
+		},
+	);
+
+	const { mutateAsync, isError, error, isLoading } =
+		api.application.rollback.useMutation();
+
+	const form = useForm<AddSwarmSettings>({
+		defaultValues: {
+			rollbackConfigSwarm: null,
+		},
+		resolver: zodResolver(addSwarmSettings),
+	});
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				rollbackConfigSwarm: data.rollbackConfigSwarm
+					? JSON.stringify(data.rollbackConfigSwarm, null, 2)
+					: null,
+			});
+		}
+	}, [form, form.reset, data]);
+
+	const onSubmit = async (data: AddSwarmSettings) => {
+		await mutateAsync({
+			applicationId,
+			rollbackConfigSwarm: data.rollbackConfigSwarm,
+		})
+			.then(async () => {
+				toast.success("Rollback settings updated");
+				refetch();
+			})
+			.catch(() => {
+				toast.error("Error to update the rollback settings");
+			});
+	};
+
+	return (
+		<Dialog>
+			<DialogTrigger asChild>
+				<Button variant="secondary" className="cursor-pointer w-fit">
+					<Settings className="size-4 text-muted-foreground" />
+					Rollback Deployment
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
+				<DialogHeader className="p-6">
+					<DialogTitle>Rollback Deployment</DialogTitle>
+					<DialogDescription>
+						Update rollback settings using a json object.
+					</DialogDescription>
+				</DialogHeader>
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<div className="px-4">
+					<AlertBlock type="info">
+						Changing rollback settings may cause the logs/monitoring to be
+						unavailable.
+					</AlertBlock>
+				</div>
+
+				<Form {...form}>
+					<form
+						id="hook-form-rollback-deployment"
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
+					>
+						<FormField
+							control={form.control}
+							name="rollbackConfigSwarm"
+							render={({ field }) => (
+								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
+									<FormLabel>Rollback Config</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Parallelism?: number;
+	Delay?: number | undefined;
+	FailureAction?: string | undefined;
+	Monitor?: number | undefined;
+	MaxFailureRatio?: number | undefined;
+	Order: string;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
+									<FormControl>
+										<CodeEditor
+											language="json"
+											placeholder={`{
+	"Parallelism" : 1,
+	"Delay" : 10000,
+	"FailureAction" : "continue",
+	"Monitor" : 10000,
+	"MaxFailureRatio" : 10,
+	"Order" : "start-first"
+}`}
+											className="h-[17rem] font-mono"
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+
+						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
+							<Button
+								isLoading={isLoading}
+								form="hook-form-rollback-deployment"
+								type="submit"
+							>
+								Update
+							</Button>
+						</DialogFooter>
+					</form>
+				</Form>
+			</DialogContent>
+		</Dialog>
+	);
+};
