@@ -54,7 +54,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const client = new Client();
 				client
 					.once("ready", () => {
-						const baseCommand = `docker ${runType==="swarm"?"service":"container"} logs --timestamps --tail ${tail} ${
+						const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps --tail ${tail} ${
 							since === "all" ? "" : `--since ${since}`
 						} --follow ${containerId}`;
 						const escapedSearch = search ? search.replace(/'/g, "'\\''") : "";
@@ -98,7 +98,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				});
 			} else {
 				const shell = getShell();
-				const baseCommand = `docker ${runType==="swarm"?"service":"container"} logs --timestamps --tail ${tail} ${
+				const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps --tail ${tail} ${
 					since === "all" ? "" : `--since ${since}`
 				} --follow ${containerId}`;
 				const command = search
