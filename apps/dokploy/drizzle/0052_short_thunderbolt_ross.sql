@@ -1,1 +1,0 @@
-ALTER TABLE "mongo" ADD COLUMN "replicaSets" boolean DEFAULT false;
