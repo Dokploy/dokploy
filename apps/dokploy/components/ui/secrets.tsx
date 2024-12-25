@@ -62,6 +62,7 @@ export const Secrets = (props: Props) => {
 									}
 									language="properties"
 									disabled={isVisible}
+									lineWrapping
 									placeholder={props.placeholder}
 									className="h-96 font-mono"
 									{...field}

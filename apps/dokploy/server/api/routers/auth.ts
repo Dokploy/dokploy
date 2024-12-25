@@ -188,9 +188,9 @@ export const authRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const currentAuth = await findAuthByEmail(ctx.user.email);
 
-			if (input.password) {
+			if (input.currentPassword || input.password) {
 				const correctPassword = bcrypt.compareSync(
-					input.password,
+					input.currentPassword || "",
 					currentAuth?.password || "",
 				);
 				if (!correctPassword) {
@@ -268,7 +268,9 @@ export const authRouter = createTRPCRouter({
 
 		return auth;
 	}),
-
+	verifyToken: protectedProcedure.mutation(async () => {
+		return true;
+	}),
 	one: adminProcedure.input(apiFindOneAuth).query(async ({ input }) => {
 		const auth = await findAuthById(input.id);
 		return auth;
@@ -361,7 +363,7 @@ export const authRouter = createTRPCRouter({
 				<a href="${WEBSITE_URL}/reset-password?token=${token}">
 					Reset Password
 				</a>
-			
+
 			`,
 			);
 		}),
@@ -503,7 +505,7 @@ export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
 			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
 		},
 		{
-			title: " New User Registered",
+			title: "New User Registered",
 			color: 0x00ff00,
 			fields: [
 				{

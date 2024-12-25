@@ -157,6 +157,124 @@ export const getContainersByAppNameMatch = async (
 	return [];
 };
 
+export const getStackContainersByAppName = async (
+	appName: string,
+	serverId?: string,
+) => {
+	try {
+		let result: string[] = [];
+
+		const command = `docker stack ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
+		if (serverId) {
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
+		}
+
+		const containers = result.map((line) => {
+			const parts = line.split(" | ");
+			const containerId = parts[0]
+				? parts[0].replace("CONTAINER ID : ", "").trim()
+				: "No container id";
+			const name = parts[1]
+				? parts[1].replace("Name: ", "").trim()
+				: "No container name";
+
+			const state = parts[2]
+				? parts[2].replace("State: ", "").trim()
+				: "No state";
+			const node = parts[3]
+				? parts[3].replace("Node: ", "").trim()
+				: "No specific node";
+			return {
+				containerId,
+				name,
+				state,
+				node,
+			};
+		});
+
+		return containers || [];
+	} catch (error) {}
+
+	return [];
+};
+
+export const getServiceContainersByAppName = async (
+	appName: string,
+	serverId?: string,
+) => {
+	try {
+		let result: string[] = [];
+
+		const command = `docker service ps ${appName} --format 'CONTAINER ID : {{.ID}} | Name: {{.Name}} | State: {{.DesiredState}} | Node: {{.Node}}'`;
+
+		if (serverId) {
+			const { stdout, stderr } = await execAsyncRemote(serverId, command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+			result = stdout.trim().split("\n");
+		} else {
+			const { stdout, stderr } = await execAsync(command);
+
+			if (stderr) {
+				return [];
+			}
+
+			if (!stdout) return [];
+
+			result = stdout.trim().split("\n");
+		}
+
+		const containers = result.map((line) => {
+			const parts = line.split(" | ");
+			const containerId = parts[0]
+				? parts[0].replace("CONTAINER ID : ", "").trim()
+				: "No container id";
+			const name = parts[1]
+				? parts[1].replace("Name: ", "").trim()
+				: "No container name";
+
+			const state = parts[2]
+				? parts[2].replace("State: ", "").trim()
+				: "No state";
+
+			const node = parts[3]
+				? parts[3].replace("Node: ", "").trim()
+				: "No specific node";
+			return {
+				containerId,
+				name,
+				state,
+				node,
+			};
+		});
+
+		return containers || [];
+	} catch (error) {}
+
+	return [];
+};
+
 export const getContainersByAppLabel = async (
 	appName: string,
 	serverId?: string,
@@ -222,5 +340,126 @@ export const containerRestart = async (containerId: string) => {
 		const config = JSON.parse(stdout);
 
 		return config;
+	} catch (error) {}
+};
+
+export const getSwarmNodes = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		let stderr = "";
+		const command = "docker node ls --format '{{json .}}'";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const nodes = JSON.parse(stdout);
+
+		const nodesArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+		return nodesArray;
+	} catch (error) {}
+};
+
+export const getNodeInfo = async (nodeId: string, serverId?: string) => {
+	try {
+		const command = `docker node inspect ${nodeId} --format '{{json .}}'`;
+		let stdout = "";
+		let stderr = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const nodeInfo = JSON.parse(stdout);
+
+		return nodeInfo;
+	} catch (error) {}
+};
+
+export const getNodeApplications = async (serverId?: string) => {
+	try {
+		let stdout = "";
+		let stderr = "";
+		const command = `docker service ls --format '{{json .}}'`;
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const appArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return appArray;
+	} catch (error) {}
+};
+
+export const getApplicationInfo = async (
+	appName: string,
+	serverId?: string,
+) => {
+	try {
+		let stdout = "";
+		let stderr = "";
+		const command = `docker service ps ${appName} --format '{{json .}}'`;
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+			stderr = result.stderr;
+		}
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const appArray = stdout
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
+
+		return appArray;
 	} catch (error) {}
 };

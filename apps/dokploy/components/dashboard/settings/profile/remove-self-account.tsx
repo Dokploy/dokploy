@@ -1,3 +1,5 @@
+import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -18,13 +20,11 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "next-i18next";
+import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { useRouter } from "next/router";
 
 const profileSchema = z.object({
 	password: z.string().min(1, {

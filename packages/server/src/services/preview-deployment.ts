@@ -7,20 +7,20 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { slugify } from "../setup/server-setup";
-import { findApplicationById } from "./application";
-import { createDomain } from "./domain";
 import { generatePassword, generateRandomDomain } from "../templates/utils";
+import { removeService } from "../utils/docker/utils";
+import { removeDirectoryCode } from "../utils/filesystem/directory";
+import { authGithub } from "../utils/providers/github";
+import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
+import { findAdminById } from "./admin";
+import { findApplicationById } from "./application";
 import {
 	removeDeployments,
 	removeDeploymentsByPreviewDeploymentId,
 } from "./deployment";
-import { removeDirectoryCode } from "../utils/filesystem/directory";
-import { removeTraefikConfig } from "../utils/traefik/application";
-import { removeService } from "../utils/docker/utils";
-import { authGithub } from "../utils/providers/github";
-import { getIssueComment, type Github } from "./github";
-import { findAdminById } from "./admin";
+import { createDomain } from "./domain";
+import { type Github, getIssueComment } from "./github";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 

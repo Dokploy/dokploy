@@ -7,6 +7,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { FancyAnsi } from "fancy-ansi";
 import { escapeRegExp } from "lodash";
 import React from "react";
 import { type LogLine, getLogType } from "./utils";
@@ -16,6 +17,8 @@ interface LogLineProps {
 	noTimestamp?: boolean;
 	searchTerm?: string;
 }
+
+const fancyAnsi = new FancyAnsi();
 
 export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	const { timestamp, message, rawTimestamp } = log;
@@ -33,17 +36,42 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		: "--- No time found ---";
 
 	const highlightMessage = (text: string, term: string) => {
-		if (!term) return text;
+		if (!term) {
+			return (
+				<span
+					className="transition-colors"
+					dangerouslySetInnerHTML={{
+						__html: fancyAnsi.toHtml(text),
+					}}
+				/>
+			);
+		}
 
-		const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, "gi"));
-		return parts.map((part, index) =>
-			part.toLowerCase() === term.toLowerCase() ? (
-				<span key={index} className="bg-yellow-200 dark:bg-yellow-900">
-					{part}
-				</span>
-			) : (
-				part
-			),
+		const htmlContent = fancyAnsi.toHtml(text);
+		const modifiedContent = htmlContent.replace(
+			/<span([^>]*)>([^<]*)<\/span>/g,
+			(match, attrs, content) => {
+				const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+				if (!content.match(searchRegex)) return match;
+
+				const segments = content.split(searchRegex);
+				const wrappedSegments = segments
+					.map((segment: string) =>
+						segment.toLowerCase() === term.toLowerCase()
+							? `<span${attrs} class="bg-yellow-200/50 dark:bg-yellow-900/50">${segment}</span>`
+							: segment,
+					)
+					.join("");
+
+				return `<span${attrs}>${wrappedSegments}</span>`;
+			},
+		);
+
+		return (
+			<span
+				className="transition-colors"
+				dangerouslySetInnerHTML={{ __html: modifiedContent }}
+			/>
 		);
 	};
 
@@ -104,7 +132,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				</Badge>
 			</div>
 			<span className="dark:text-gray-200 font-mono text-foreground whitespace-pre-wrap break-all">
-				{searchTerm ? highlightMessage(message, searchTerm) : message}
+				{highlightMessage(message, searchTerm || "")}
 			</span>
 		</div>
 	);

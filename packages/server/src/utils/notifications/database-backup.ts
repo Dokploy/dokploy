@@ -26,7 +26,7 @@ export const sendDatabaseBackupNotifications = async ({
 	errorMessage?: string;
 }) => {
 	const date = new Date();
-	const unixDate = ~~((Number(date)) / 1000);
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.databaseBackup, true),
@@ -62,40 +62,43 @@ export const sendDatabaseBackupNotifications = async ({
 		}
 
 		if (discord) {
+			const decorate = (decoration: string, text: string) =>
+				`${discord.decoration ? decoration : ""} ${text}`.trim();
+
 			await sendDiscordNotification(discord, {
 				title:
 					type === "success"
-						? "> `✅` - Database Backup Successful"
-						: "> `❌` - Database Backup Failed",
+						? decorate(">", "`✅` Database Backup Successful")
+						: decorate(">", "`❌` Database Backup Failed"),
 				color: type === "success" ? 0x57f287 : 0xed4245,
 				fields: [
 					{
-						name: "`🛠️`・Project",
+						name: decorate("`🛠️`", "Project"),
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "`⚙️`・Application",
+						name: decorate("`⚙️`", "Application"),
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "`❔`・Database",
+						name: decorate("`❔`", "Database"),
 						value: databaseType,
 						inline: true,
 					},
 					{
-						name: "`📅`・Date",
+						name: decorate("`📅`", "Date"),
 						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "`⌚`・Time",
+						name: decorate("`⌚`", "Time"),
 						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
-						name: "`❓`・Type",
+						name: decorate("`❓`", "Type"),
 						value: type
 							.replace("error", "Failed")
 							.replace("success", "Successful"),
@@ -104,7 +107,7 @@ export const sendDatabaseBackupNotifications = async ({
 					...(type === "error" && errorMessage
 						? [
 								{
-									name: "`⚠️`・Error Message",
+									name: decorate("`⚠️`", "Error Message"),
 									value: `\`\`\`${errorMessage}\`\`\``,
 								},
 							]
@@ -121,12 +124,12 @@ export const sendDatabaseBackupNotifications = async ({
 			const statusEmoji = type === "success" ? "✅" : "❌";
 			const messageText = `
 				<b>${statusEmoji} Database Backup ${type === "success" ? "Successful" : "Failed"}</b>
-			
+
 			<b>Project:</b> ${projectName}
 			<b>Application:</b> ${applicationName}
 			<b>Type:</b> ${databaseType}
 			<b>Time:</b> ${date.toLocaleString()}
-			
+
 			<b>Status:</b> ${type === "success" ? "Successful" : "Failed"}
 			${type === "error" && errorMessage ? `<b>Error:</b> ${errorMessage}` : ""}
 			`;

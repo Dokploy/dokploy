@@ -3,19 +3,19 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { generateRandomDomain } from "@/templates/utils";
 import {
-	createPreviewDeployment,
 	type Domain,
+	IS_CLOUD,
+	createPreviewDeployment,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
-	IS_CLOUD,
 	removePreviewDeployment,
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
-import { generateRandomDomain } from "@/templates/utils";
 
 export default async function handler(
 	req: NextApiRequest,
