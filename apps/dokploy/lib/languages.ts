@@ -17,3 +17,5 @@ export const Languages = {
 };
 
 export type Language = keyof typeof Languages;
+export type LanguageCode = (typeof Languages)[keyof typeof Languages]["code"];
+
