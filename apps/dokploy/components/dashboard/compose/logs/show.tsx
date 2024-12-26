@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -34,6 +35,21 @@ interface Props {
 	serverId?: string;
 	appType: "stack" | "docker-compose";
 }
+
+const badgeStateColor = (state: string) => {
+	switch (state) {
+		case "running":
+			return "green";
+		case "exited":
+		case "shutdown":
+			return "red";
+		case "accepted":
+		case "created":
+			return "blue";
+		default:
+			return "default";
+	}
+};
 
 export const ShowDockerLogsCompose = ({
 	appName,
@@ -87,7 +103,10 @@ export const ShowDockerLogsCompose = ({
 									key={container.containerId}
 									value={container.containerId}
 								>
-									{container.name} ({container.containerId}) {container.state}
+									{container.name} ({container.containerId}){" "}
+									<Badge variant={badgeStateColor(container.state)}>
+										{container.state}
+									</Badge>
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>

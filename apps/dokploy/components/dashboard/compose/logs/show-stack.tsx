@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -34,6 +35,21 @@ interface Props {
 	appName: string;
 	serverId?: string;
 }
+
+const badgeStateColor = (state: string) => {
+	switch (state) {
+		case "running":
+			return "green";
+		case "exited":
+		case "shutdown":
+			return "red";
+		case "accepted":
+		case "created":
+			return "blue";
+		default:
+			return "default";
+	}
+};
 
 export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
@@ -123,7 +139,9 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											value={container.containerId}
 										>
 											{container.name} ({container.containerId}){" "}
-											{container.state}
+											<Badge variant={badgeStateColor(container.state)}>
+												{container.state}
+											</Badge>
 										</SelectItem>
 									))}
 								</div>
@@ -135,7 +153,10 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 											value={container.containerId}
 										>
 											{container.name} ({container.containerId}@{container.node}
-											) {container.state}
+											)
+											<Badge variant={badgeStateColor(container.state)}>
+												{container.state}
+											</Badge>
 										</SelectItem>
 									))}
 								</>
