@@ -318,7 +318,7 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider>
-			<Sidebar collapsible="icon" variant="inset">
+			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
