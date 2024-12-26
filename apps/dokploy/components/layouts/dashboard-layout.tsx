@@ -32,7 +32,7 @@ export function AppSidebar() {
 
 export const DashboardLayout = ({ children, tab }: Props) => {
 	return (
-		<div>
+		<>
 			<Page>{children}</Page>
 			{/* <SidebarProvider>
 				<AppSidebar />
@@ -52,7 +52,7 @@ export const DashboardLayout = ({ children, tab }: Props) => {
 					</div>
 				</main>
 			</div> */}
-		</div>
+		</>
 	);
 };
 

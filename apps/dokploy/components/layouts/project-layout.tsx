@@ -7,7 +7,7 @@ interface Props {
 
 export const ProjectLayout = ({ children }: Props) => {
 	return (
-		<div className="px-4">
+		<div>
 			<Page>{children}</Page>
 		</div>
 	);
