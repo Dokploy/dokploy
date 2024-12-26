@@ -366,10 +366,10 @@ export const getSwarmNodes = async (serverId?: string) => {
 
 		const nodes = JSON.parse(stdout);
 
-		const nodesArray = stdout
+		const nodesArray = nodes
 			.trim()
 			.split("\n")
-			.map((line) => JSON.parse(line));
+			.map((line: string) => JSON.parse(line));
 		return nodesArray;
 	} catch (error) {}
 };
