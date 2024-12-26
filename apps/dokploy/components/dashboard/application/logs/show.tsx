@@ -80,7 +80,7 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logssss</CardTitle>
+				<CardTitle className="text-xl">Logs</CardTitle>
 				<CardDescription>
 					Watch the logs of the application in real time
 				</CardDescription>
