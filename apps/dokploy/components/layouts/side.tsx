@@ -114,42 +114,34 @@ const data = {
 	],
 	home: [
 		{
-			title: "Home",
-			url: "#",
-			icon: House,
-			isActive: true,
-			items: [
-				{
-					title: "Projects",
-					url: "/dashboard/projects",
-					icon: Folder,
-				},
-				{
-					title: "Monitoring",
-					url: "/dashboard/monitoring",
-					icon: BarChartHorizontalBigIcon,
-				},
-				{
-					title: "File System",
-					url: "/dashboard/traefik",
-					icon: GalleryVerticalEnd,
-				},
-				{
-					title: "Docker",
-					url: "/dashboard/docker",
-					icon: BlocksIcon,
-				},
-				{
-					title: "Swarm",
-					url: "/dashboard/swarm",
-					icon: PieChart,
-				},
-				{
-					title: "Requests",
-					url: "/dashboard/requests",
-					icon: Forward,
-				},
-			],
+			title: "Projects",
+			url: "/dashboard/projects",
+			icon: Folder,
+		},
+		{
+			title: "Monitoring",
+			url: "/dashboard/monitoring",
+			icon: BarChartHorizontalBigIcon,
+		},
+		{
+			title: "File System",
+			url: "/dashboard/traefik",
+			icon: GalleryVerticalEnd,
+		},
+		{
+			title: "Docker",
+			url: "/dashboard/docker",
+			icon: BlocksIcon,
+		},
+		{
+			title: "Swarm",
+			url: "/dashboard/swarm",
+			icon: PieChart,
+		},
+		{
+			title: "Requests",
+			url: "/dashboard/requests",
+			icon: Forward,
 		},
 
 		// {
@@ -219,72 +211,66 @@ const data = {
 		// 	],
 		// },
 	],
-	settings: {
-		title: "Settings",
-		url: "#",
-		icon: CogIcon,
-		isActive: true,
-		items: [
-			{
-				title: "Profile",
-				url: "/dashboard/settings/profile",
-				icon: User,
-			},
-			{
-				title: "Servers",
-				url: "/dashboard/settings/servers",
-				icon: Server,
-			},
-			{
-				title: "Users",
-				icon: Users,
-				url: "/dashboard/settings/users",
-			},
-			{
-				title: "SSH Keys",
-				icon: KeyRound,
-				url: "/dashboard/settings/ssh-keys",
-			},
+	settings: [
+		{
+			title: "Profile",
+			url: "/dashboard/settings/profile",
+			icon: User,
+		},
+		{
+			title: "Servers",
+			url: "/dashboard/settings/servers",
+			icon: Server,
+		},
+		{
+			title: "Users",
+			icon: Users,
+			url: "/dashboard/settings/users",
+		},
+		{
+			title: "SSH Keys",
+			icon: KeyRound,
+			url: "/dashboard/settings/ssh-keys",
+		},
 
-			{
-				title: "Git",
-				url: "/dashboard/settings/git-providers",
-				icon: GitBranch,
-			},
-			{
-				title: "Registry",
-				url: "/dashboard/settings/registry",
-				icon: Package,
-			},
-			{
-				title: "S3 Destinations",
-				url: "/dashboard/settings/destinations",
-				icon: Database,
-			},
+		{
+			title: "Git",
+			url: "/dashboard/settings/git-providers",
+			icon: GitBranch,
+		},
+		{
+			title: "Registry",
+			url: "/dashboard/settings/registry",
+			icon: Package,
+		},
+		{
+			title: "S3 Destinations",
+			url: "/dashboard/settings/destinations",
+			icon: Database,
+		},
 
-			{
-				title: "Certificates",
-				url: "/dashboard/settings/certificates",
-				icon: ShieldCheck,
-			},
-			{
-				title: "Notifications",
-				url: "/dashboard/settings/notifications",
-				icon: Bell,
-			},
-			// {
-			// 	title: "Billing",
-			// 	url: "/dashboard/settings/billing",
-			// 	icon: CreditCard,
-			// },
+		{
+			title: "Certificates",
+			url: "/dashboard/settings/certificates",
+			icon: ShieldCheck,
+		},
+		{
+			title: "Notifications",
+			url: "/dashboard/settings/notifications",
+			icon: Bell,
+		},
+		// {
+		// 	title: "Billing",
+		// 	url: "/dashboard/settings/billing",
+		// 	icon: CreditCard,
+		// },
 
-			{
-				title: "Appearance",
-				url: "/dashboard/settings/appearance",
-				icon: Frame,
-			},
-		],
-	},
+		// {
+		// 	title: "Appearance",
+		// 	url: "/dashboard/settings/appearance",
+		// 	icon: Frame,
+		// },
+	],
 	projects: [
 		{
 			name: "Documentation",
@@ -381,6 +367,64 @@ export default function Page({ children }: Props) {
 						<SidebarGroupLabel>Home</SidebarGroupLabel>
 						<SidebarMenu>
 							{data.home.map((item) => (
+								<Collapsible
+									key={item.title}
+									asChild
+									defaultOpen={item.isActive}
+									className="group/collapsible"
+								>
+									<SidebarMenuItem>
+										{item.isSingle ? (
+											<SidebarMenuButton asChild tooltip={item.title}>
+												<Link href={item.url}>
+													<item.icon />
+													<span>{item.title}</span>
+												</Link>
+											</SidebarMenuButton>
+										) : (
+											<>
+												<CollapsibleTrigger asChild>
+													<SidebarMenuButton
+														tooltip={item.title}
+														isActive={item.isActive}
+													>
+														{item.icon && <item.icon />}
+
+														<span>{item.title}</span>
+														{item.items?.length && (
+															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+														)}
+													</SidebarMenuButton>
+												</CollapsibleTrigger>
+												<CollapsibleContent>
+													<SidebarMenuSub>
+														{item.items?.map((subItem) => (
+															<SidebarMenuSubItem key={subItem.title}>
+																<SidebarMenuSubButton asChild>
+																	<Link href={subItem.url}>
+																		{subItem.icon && (
+																			<span className="mr-2">
+																				<subItem.icon className="h-4 w-4 text-muted-foreground" />
+																			</span>
+																		)}
+																		<span>{subItem.title}</span>
+																	</Link>
+																</SidebarMenuSubButton>
+															</SidebarMenuSubItem>
+														))}
+													</SidebarMenuSub>
+												</CollapsibleContent>
+											</>
+										)}
+									</SidebarMenuItem>
+								</Collapsible>
+							))}
+						</SidebarMenu>
+					</SidebarGroup>
+					<SidebarGroup>
+						<SidebarGroupLabel>Settings</SidebarGroupLabel>
+						<SidebarMenu>
+							{data.settings.map((item) => (
 								<Collapsible
 									key={item.title}
 									asChild
