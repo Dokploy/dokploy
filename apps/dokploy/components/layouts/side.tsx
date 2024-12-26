@@ -117,31 +117,37 @@ const data = {
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
+			isSingle: true,
 		},
 		{
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
+			isSingle: true,
 		},
 		{
 			title: "File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
+			isSingle: true,
 		},
 		{
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
+			isSingle: true,
 		},
 		{
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
+			isSingle: true,
 		},
 		{
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
+			isSingle: true,
 		},
 
 		// {
@@ -216,48 +222,57 @@ const data = {
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
+			isSingle: true,
 		},
 		{
 			title: "Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
+			isSingle: true,
 		},
 		{
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
+			isSingle: true,
 		},
 		{
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
+			isSingle: true,
 		},
 
 		{
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
+			isSingle: true,
 		},
 		{
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
+			isSingle: true,
 		},
 		{
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
+			isSingle: true,
 		},
 
 		{
 			title: "Certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
+			isSingle: true,
 		},
 		{
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
+			isSingle: true,
 		},
 		// {
 		// 	title: "Billing",
@@ -303,7 +318,7 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider>
-			<Sidebar collapsible="icon">
+			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
