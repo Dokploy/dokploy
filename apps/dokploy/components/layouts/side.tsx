@@ -24,8 +24,18 @@ import {
 	Settings2,
 	ShieldCheck,
 	Sparkles,
-	SquareTerminal,
+	House,
 	Trash2,
+	User,
+	Users,
+	KeyRound,
+	GitBranch,
+	Server,
+	Package,
+	Database,
+	Settings,
+	BarChartHorizontalBigIcon,
+	Heart,
 } from "lucide-react";
 import * as React from "react";
 
@@ -74,6 +84,10 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Logo } from "../shared/logo";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { api } from "@/utils/api";
+import { useRouter } from "next/router";
 // This is sample data.
 const data = {
 	user: {
@@ -83,7 +97,7 @@ const data = {
 	},
 	teams: [
 		{
-			name: "Acme Inc",
+			name: "Dokploy",
 			logo: Logo,
 			plan: "Enterprise",
 		},
@@ -98,124 +112,189 @@ const data = {
 			plan: "Free",
 		},
 	],
-	navMain: [
+	home: [
 		{
 			title: "Home",
 			url: "#",
-			icon: SquareTerminal,
+			icon: House,
 			isActive: true,
 			items: [
 				{
 					title: "Projects",
 					url: "/dashboard/projects",
+					icon: Folder,
 				},
 				{
 					title: "Monitoring",
 					url: "/dashboard/monitoring",
+					icon: BarChartHorizontalBigIcon,
 				},
 				{
 					title: "File System",
 					url: "/dashboard/traefik",
+					icon: GalleryVerticalEnd,
 				},
 				{
 					title: "Docker",
 					url: "/dashboard/docker",
+					icon: BlocksIcon,
+				},
+				{
+					title: "Swarm",
+					url: "/dashboard/swarm",
+					icon: PieChart,
 				},
 				{
 					title: "Requests",
 					url: "/dashboard/requests",
+					icon: Forward,
 				},
 			],
 		},
-		{
-			title: "Settings",
-			url: "#",
-			icon: Settings2,
-			items: [
-				{
-					title: "Profile",
-					url: "/dashboard/settings/profile",
-				},
-				{
-					title: "Users",
-					url: "/dashboard/settings/users",
-				},
-				{
-					title: "SSH Key",
-					url: "/dashboard/settings/ssh-keys",
-				},
-				{
-					title: "Git",
-					url: "/dashboard/settings/git-providers",
-				},
-			],
-		},
-		{
-			title: "System",
-			icon: CogIcon,
-			items: [
-				{
-					title: "General",
-					url: "/dashboard/settings/server",
-				},
-				{
-					title: "Cluster",
-					url: "/dashboard/settings/cluster",
-				},
-				{
-					title: "Servers",
-					url: "/dashboard/settings/servers",
-				},
-			],
-		},
-		{
-			title: "Integrations",
-			icon: BlocksIcon,
-			items: [
-				{
-					title: "S3 Destinations",
-					url: "/dashboard/settings/destinations",
-				},
-				{
-					title: "Registry",
-					url: "/dashboard/settings/registry",
-				},
-				{
-					title: "Notifications",
-					url: "/dashboard/settings/notifications",
-				},
-			],
-		},
-		{
-			title: "Security",
-			icon: ShieldCheck,
-			items: [
-				{
-					title: "Certificates",
-					url: "/dashboard/settings/certificates",
-				},
-				{
-					title: "Billing",
-					url: "/dashboard/settings/billing",
-				},
-			],
-		},
-		{
-			title: "Appearance",
-			icon: Frame,
-			items: [
-				{
-					title: "Theme",
-					url: "/dashboard/settings/appearance",
-				},
-			],
-		},
+
+		// {
+		// 	title: "Projects",
+		// 	url: "/dashboard/projects",
+		// 	icon: Folder,
+		// 	isSingle: true,
+		// },
+		// {
+		// 	title: "Monitoring",
+		// 	icon: BarChartHorizontalBigIcon,
+		// 	url: "/dashboard/settings/monitoring",
+		// 	isSingle: true,
+		// },
+
+		// {
+		// 	title: "Settings",
+		// 	url: "#",
+		// 	icon: Settings2,
+		// 	isActive: true,
+		// 	items: [
+		// 		{
+		// 			title: "Profile",
+		// 			url: "/dashboard/settings/profile",
+		// 		},
+		// 		{
+		// 			title: "Users",
+		// 			url: "/dashboard/settings/users",
+		// 		},
+		// 		{
+		// 			title: "SSH Key",
+		// 			url: "/dashboard/settings/ssh-keys",
+		// 		},
+		// 		{
+		// 			title: "Git",
+		// 			url: "/dashboard/settings/git-providers",
+		// 		},
+		// 	],
+		// },
+
+		// {
+		// 	title: "Integrations",
+		// 	icon: BlocksIcon,
+		// 	items: [
+		// 		{
+		// 			title: "S3 Destinations",
+		// 			url: "/dashboard/settings/destinations",
+		// 		},
+		// 		{
+		// 			title: "Registry",
+		// 			url: "/dashboard/settings/registry",
+		// 		},
+		// 		{
+		// 			title: "Notifications",
+		// 			url: "/dashboard/settings/notifications",
+		// 		},
+		// 	],
+		// },
+		// {
+		// 	title: "Appearance",
+		// 	icon: Frame,
+		// 	items: [
+		// 		{
+		// 			title: "Theme",
+		// 			url: "/dashboard/settings/appearance",
+		// 		},
+		// 	],
+		// },
 	],
+	settings: {
+		title: "Settings",
+		url: "#",
+		icon: CogIcon,
+		isActive: true,
+		items: [
+			{
+				title: "Profile",
+				url: "/dashboard/settings/profile",
+				icon: User,
+			},
+			{
+				title: "Servers",
+				url: "/dashboard/settings/servers",
+				icon: Server,
+			},
+			{
+				title: "Users",
+				icon: Users,
+				url: "/dashboard/settings/users",
+			},
+			{
+				title: "SSH Keys",
+				icon: KeyRound,
+				url: "/dashboard/settings/ssh-keys",
+			},
+
+			{
+				title: "Git",
+				url: "/dashboard/settings/git-providers",
+				icon: GitBranch,
+			},
+			{
+				title: "Registry",
+				url: "/dashboard/settings/registry",
+				icon: Package,
+			},
+			{
+				title: "S3 Destinations",
+				url: "/dashboard/settings/destinations",
+				icon: Database,
+			},
+
+			{
+				title: "Certificates",
+				url: "/dashboard/settings/certificates",
+				icon: ShieldCheck,
+			},
+			{
+				title: "Notifications",
+				url: "/dashboard/settings/notifications",
+				icon: Bell,
+			},
+			// {
+			// 	title: "Billing",
+			// 	url: "/dashboard/settings/billing",
+			// 	icon: CreditCard,
+			// },
+
+			{
+				title: "Appearance",
+				url: "/dashboard/settings/appearance",
+				icon: Frame,
+			},
+		],
+	},
 	projects: [
 		{
 			name: "Documentation",
-			url: "#",
+			url: "https://docs.dokploy.com/docs/core",
 			icon: BookIcon,
+		},
+		{
+			name: "Support",
+			url: "https://opencollective.com/dokploy",
+			icon: Heart,
 		},
 		// {
 		// 	name: "Sales & Marketing",
@@ -243,26 +322,25 @@ export default function Page({ children }: Props) {
 					<SidebarMenu>
 						<SidebarMenuItem>
 							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
+								<DropdownMenuTrigger asChild className="">
 									<SidebarMenuButton
 										size="lg"
-										className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+										className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground "
 									>
-										<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+										<div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
+											<Logo />
 											{/* <activeTeam.logo className="size-4" /> */}
 										</div>
 										<div className="grid flex-1 text-left text-sm leading-tight">
 											<span className="truncate font-semibold">
 												{activeTeam?.name}
 											</span>
-											<span className="truncate text-xs">
-												{activeTeam?.plan}
-											</span>
+											<span className="truncate text-xs">v0.16.0</span>
 										</div>
-										<ChevronsUpDown className="ml-auto" />
+										{/* <ChevronsUpDown className="ml-auto" /> */}
 									</SidebarMenuButton>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent
+								{/* <DropdownMenuContent
 									className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
 									align="start"
 									side="bottom"
@@ -293,16 +371,16 @@ export default function Page({ children }: Props) {
 											Add team
 										</div>
 									</DropdownMenuItem>
-								</DropdownMenuContent>
+								</DropdownMenuContent> */}
 							</DropdownMenu>
 						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
-						<SidebarGroupLabel>Platform</SidebarGroupLabel>
+						<SidebarGroupLabel>Home</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.navMain.map((item) => (
+							{data.home.map((item) => (
 								<Collapsible
 									key={item.title}
 									asChild
@@ -310,43 +388,65 @@ export default function Page({ children }: Props) {
 									className="group/collapsible"
 								>
 									<SidebarMenuItem>
-										<CollapsibleTrigger asChild>
-											<SidebarMenuButton tooltip={item.title}>
-												{item.icon && <item.icon />}
-												<span>{item.title}</span>
-												<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+										{item.isSingle ? (
+											<SidebarMenuButton asChild tooltip={item.title}>
+												<Link href={item.url}>
+													<item.icon />
+													<span>{item.title}</span>
+												</Link>
 											</SidebarMenuButton>
-										</CollapsibleTrigger>
-										<CollapsibleContent>
-											<SidebarMenuSub>
-												{item.items?.map((subItem) => (
-													<SidebarMenuSubItem key={subItem.title}>
-														<SidebarMenuSubButton asChild>
-															<a href={subItem.url}>
-																<span>{subItem.title}</span>
-															</a>
-														</SidebarMenuSubButton>
-													</SidebarMenuSubItem>
-												))}
-											</SidebarMenuSub>
-										</CollapsibleContent>
+										) : (
+											<>
+												<CollapsibleTrigger asChild>
+													<SidebarMenuButton
+														tooltip={item.title}
+														isActive={item.isActive}
+													>
+														{item.icon && <item.icon />}
+
+														<span>{item.title}</span>
+														{item.items?.length && (
+															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+														)}
+													</SidebarMenuButton>
+												</CollapsibleTrigger>
+												<CollapsibleContent>
+													<SidebarMenuSub>
+														{item.items?.map((subItem) => (
+															<SidebarMenuSubItem key={subItem.title}>
+																<SidebarMenuSubButton asChild>
+																	<Link href={subItem.url}>
+																		{subItem.icon && (
+																			<span className="mr-2">
+																				<subItem.icon className="h-4 w-4 text-muted-foreground" />
+																			</span>
+																		)}
+																		<span>{subItem.title}</span>
+																	</Link>
+																</SidebarMenuSubButton>
+															</SidebarMenuSubItem>
+														))}
+													</SidebarMenuSub>
+												</CollapsibleContent>
+											</>
+										)}
 									</SidebarMenuItem>
 								</Collapsible>
 							))}
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Projects</SidebarGroupLabel>
+						<SidebarGroupLabel>Extra</SidebarGroupLabel>
 						<SidebarMenu>
 							{data.projects.map((item) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
-										<a href={item.url}>
+										<Link href={item.url}>
 											<item.icon />
 											<span>{item.name}</span>
-										</a>
+										</Link>
 									</SidebarMenuButton>
-									<DropdownMenu>
+									{/* <DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<SidebarMenuAction showOnHover>
 												<MoreHorizontal />
@@ -372,22 +472,23 @@ export default function Page({ children }: Props) {
 												<span>Delete Project</span>
 											</DropdownMenuItem>
 										</DropdownMenuContent>
-									</DropdownMenu>
+									</DropdownMenu> */}
 								</SidebarMenuItem>
 							))}
-							<SidebarMenuItem>
+							{/* <SidebarMenuItem>
 								<SidebarMenuButton className="text-sidebar-foreground/70">
 									<MoreHorizontal className="text-sidebar-foreground/70" />
 									<span>More</span>
 								</SidebarMenuButton>
-							</SidebarMenuItem>
+							</SidebarMenuItem> */}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<DropdownMenu>
+							<UserNav />
+							{/* <DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<SidebarMenuButton
 										size="lg"
@@ -466,7 +567,7 @@ export default function Page({ children }: Props) {
 										Log out
 									</DropdownMenuItem>
 								</DropdownMenuContent>
-							</DropdownMenu>
+							</DropdownMenu> */}
 						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarFooter>
@@ -505,3 +606,178 @@ export default function Page({ children }: Props) {
 		</SidebarProvider>
 	);
 }
+
+const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
+
+export const UserNav = () => {
+	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
+	const router = useRouter();
+	const { data } = api.auth.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: user } = api.user.byAuthId.useQuery(
+		{
+			authId: data?.id || "",
+		},
+		{
+			enabled: !!data?.id && data?.rol === "user",
+		},
+	);
+	const { mutateAsync } = api.auth.logout.useMutation();
+	const { mutateAsync: getUpdateData } =
+		api.settings.getUpdateData.useMutation();
+
+	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
+
+	useEffect(() => {
+		// Handling of automatic check for server updates
+		if (isCloud) {
+			return;
+		}
+
+		if (!localStorage.getItem("enableAutoCheckUpdates")) {
+			// Enable auto update checking by default if user didn't change it
+			localStorage.setItem("enableAutoCheckUpdates", "true");
+		}
+
+		const clearUpdatesInterval = () => {
+			if (checkUpdatesIntervalRef.current) {
+				clearInterval(checkUpdatesIntervalRef.current);
+			}
+		};
+
+		const checkUpdates = async () => {
+			try {
+				if (localStorage.getItem("enableAutoCheckUpdates") !== "true") {
+					return;
+				}
+
+				const { updateAvailable } = await getUpdateData();
+
+				if (updateAvailable) {
+					// Stop interval when update is available
+					clearUpdatesInterval();
+					setIsUpdateAvailable(true);
+				}
+			} catch (error) {
+				console.error("Error auto-checking for updates:", error);
+			}
+		};
+
+		checkUpdatesIntervalRef.current = setInterval(
+			checkUpdates,
+			AUTO_CHECK_UPDATES_INTERVAL_MINUTES * 60000,
+		);
+
+		// Also check for updates on initial page load
+		checkUpdates();
+
+		return () => {
+			clearUpdatesInterval();
+		};
+	}, []);
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<SidebarMenuButton
+					size="lg"
+					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+				>
+					<Avatar className="h-8 w-8 rounded-lg">
+						<AvatarImage src={data?.image || ""} alt={data?.image} />
+						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+					</Avatar>
+					<div className="grid flex-1 text-left text-sm leading-tight">
+						<span className="truncate font-semibold">Account</span>
+						<span className="truncate text-xs">{data?.email}</span>
+					</div>
+					<ChevronsUpDown className="ml-auto size-4" />
+				</SidebarMenuButton>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent
+				className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+				side="bottom"
+				align="end"
+				sideOffset={4}
+			>
+				<DropdownMenuLabel className="flex flex-col">
+					My Account
+					<span className="text-xs font-normal text-muted-foreground">
+						{data?.email}
+					</span>
+				</DropdownMenuLabel>
+				<DropdownMenuSeparator />
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={() => {
+							router.push("/dashboard/projects");
+						}}
+					>
+						Projects
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={() => {
+							router.push("/dashboard/monitoring");
+						}}
+					>
+						Monitoring
+					</DropdownMenuItem>
+					{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => {
+								router.push("/dashboard/traefik");
+							}}
+						>
+							Traefik
+						</DropdownMenuItem>
+					)}
+					{(data?.rol === "admin" || user?.canAccessToDocker) && (
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => {
+								router.push("/dashboard/docker", undefined, {
+									shallow: true,
+								});
+							}}
+						>
+							Docker
+						</DropdownMenuItem>
+					)}
+
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={() => {
+							router.push("/dashboard/settings/server");
+						}}
+					>
+						Settings
+					</DropdownMenuItem>
+				</DropdownMenuGroup>
+				{isCloud && data?.rol === "admin" && (
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={() => {
+							router.push("/dashboard/settings/billing");
+						}}
+					>
+						Billing
+					</DropdownMenuItem>
+				)}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					className="cursor-pointer"
+					onClick={async () => {
+						await mutateAsync().then(() => {
+							router.push("/");
+						});
+					}}
+				>
+					Log out
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+};

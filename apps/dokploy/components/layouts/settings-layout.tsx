@@ -15,7 +15,7 @@ export const SettingsLayout = ({ children }: Props) => {
 	);
 	return (
 		<div className="flex flex-row gap-4 my-8 w-full flex-wrap md:flex-nowrap">
-			<div className="md:max-w-[18rem] w-full">
+			{/* <div className="md:max-w-[18rem] w-full">
 				<Nav
 					links={[
 						...(data?.rol === "admin" && !isCloud
@@ -137,7 +137,7 @@ export const SettingsLayout = ({ children }: Props) => {
 							: []),
 					]}
 				/>
-			</div>
+			</div> */}
 
 			{children}
 		</div>

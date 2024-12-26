@@ -94,7 +94,7 @@
 		"js-yaml": "4.1.0",
 		"lodash": "4.17.21",
 		"lucia": "^3.0.1",
-		"lucide-react": "^0.453.0",
+		"lucide-react": "^0.469.0",
 		"nanoid": "3",
 		"next": "^15.0.1",
 		"next-i18next": "^15.3.1",

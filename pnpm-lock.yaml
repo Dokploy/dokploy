@@ -275,8 +275,8 @@ importers:
         specifier: ^3.0.1
         version: 3.2.0
       lucide-react:
-        specifier: ^0.453.0
-        version: 0.453.0(react@18.2.0)
+        specifier: ^0.469.0
+        version: 0.469.0(react@18.2.0)
       nanoid:
         specifier: '3'
         version: 3.3.7
@@ -5291,10 +5291,10 @@ packages:
   lucia@3.2.0:
     resolution: {integrity: sha512-eXMxXwk6hqtjRTj4W/x3EnTUtAztLPm0p2N2TEBMDEbakDLXiYnDQ9z/qahjPdPdhPguQc+vwO0/88zIWxlpuw==}
 
-  lucide-react@0.453.0:
-    resolution: {integrity: sha512-kL+RGZCcJi9BvJtzg2kshO192Ddy9hv3ij+cPrVPWSRzgCWCVazoQJxOjAwgK53NomL07HB7GPHW120FimjNhQ==}
+  lucide-react@0.469.0:
+    resolution: {integrity: sha512-28vvUnnKQ/dBwiCQtwJw7QauYnE7yd2Cyp4tTTJpvglX4EMpbflcdBgrgToX2j71B3YvugK/NH3BGUk+E/p/Fw==}
     peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   luxon@3.4.4:
     resolution: {integrity: sha512-zobTr7akeGHnv7eBOXcRgMeCP6+uyYsczwmeRCauvpvaAltgNyTbLH/+VaEAPUeWBT+1GuNmz4wC/6jtQzbbVA==}
@@ -11730,7 +11730,7 @@ snapshots:
     dependencies:
       oslo: 1.2.0
 
-  lucide-react@0.453.0(react@18.2.0):
+  lucide-react@0.469.0(react@18.2.0):
     dependencies:
       react: 18.2.0
 
