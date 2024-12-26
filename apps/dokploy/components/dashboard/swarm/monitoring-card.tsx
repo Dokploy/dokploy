@@ -15,7 +15,7 @@ import {
 	Loader2,
 	Server,
 } from "lucide-react";
-import { NodeCard } from "./details/details-card";
+import { NodeCard, type SwarmList as Node } from "./details/details-card";
 
 interface Props {
 	serverId?: string;
@@ -52,16 +52,16 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	const totalNodes = nodes.length;
 	const activeNodesCount = nodes.filter(
-		(node) => node.Status === "Ready",
+		(node: Node) => node.Status === "Ready",
 	).length;
 	const managerNodesCount = nodes.filter(
-		(node) =>
+		(node: Node) =>
 			node.ManagerStatus === "Leader" || node.ManagerStatus === "Reachable",
 	).length;
 
-	const activeNodes = nodes.filter((node) => node.Status === "Ready");
+	const activeNodes = nodes.filter((node: Node) => node.Status === "Ready");
 	const managerNodes = nodes.filter(
-		(node) =>
+		(node: Node) =>
 			node.ManagerStatus === "Leader" || node.ManagerStatus === "Reachable",
 	);
 
@@ -120,7 +120,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 									</TooltipTrigger>
 									<TooltipContent>
 										<div className="max-h-48 overflow-y-auto">
-											{activeNodes.map((node) => (
+											{activeNodes.map((node: Node) => (
 												<div key={node.ID} className="flex items-center gap-2">
 													{getStatusIcon(node.Status)}
 													{node.Hostname}
@@ -145,7 +145,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 									</TooltipTrigger>
 									<TooltipContent>
 										<div className="max-h-48 overflow-y-auto">
-											{managerNodes.map((node) => (
+											{managerNodes.map((node: Node) => (
 												<div key={node.ID} className="flex items-center gap-2">
 													{getStatusIcon(node.Status)}
 													{node.Hostname}
@@ -160,7 +160,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					<div className="border-t pt-4 mt-4">
 						<h4 className="text-sm font-semibold mb-2">Node Status:</h4>
 						<ul className="space-y-2">
-							{nodes.map((node) => (
+							{nodes.map((node: Node) => (
 								<li
 									key={node.ID}
 									className="flex justify-between items-center text-sm"
@@ -179,7 +179,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 				</CardContent>
 			</Card>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{nodes.map((node) => (
+				{nodes.map((node: Node) => (
 					<NodeCard key={node.ID} node={node} serverId={serverId} />
 				))}
 			</div>
