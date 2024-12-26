@@ -35,7 +35,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 
 
-const languageCodes = Object.values(Languages).map(lang => lang.code) as string[];
+const languageCodes = Object.values(Languages).map(lang => lang.code) as [string, ...string[]]; 
+
 const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
