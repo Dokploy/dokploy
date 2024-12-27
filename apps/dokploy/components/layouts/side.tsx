@@ -89,6 +89,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
+import { AddProject } from "@/components/dashboard/projects/add";
 // This is sample data.
 interface NavItem {
 	title: string;
@@ -359,6 +360,15 @@ export default function Page({ children }: Props) {
 	const [activeTeam, setActiveTeam] = React.useState(data.teams[0]);
 	const router = useRouter();
 	const currentPath = router.pathname;
+	const { data: auth } = api.auth.get.useQuery();
+	const { data: user } = api.user.byAuthId.useQuery(
+		{
+			authId: auth?.id || "",
+		},
+		{
+			enabled: !!auth?.id && auth?.rol === "user",
+		},
+	);
   
 	data.home = data.home.map(item => ({
 	  ...item,
@@ -369,6 +379,9 @@ export default function Page({ children }: Props) {
 	  ...item,
 	  isActive: item.url === currentPath
 	}));
+
+	const showProjectsButton = currentPath === "/dashboard/projects" && 
+		(auth?.rol === "admin" || user?.canCreateProjects);
 
 	return (
 		<SidebarProvider>
@@ -688,26 +701,29 @@ export default function Page({ children }: Props) {
 			</Sidebar>
 			<SidebarInset>
 				<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-					<div className="flex items-center gap-2 px-4">
-						<SidebarTrigger className="-ml-1" />
-						<Separator orientation="vertical" className="mr-2 h-4" />
-						<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem className="hidden md:block">
-								<BreadcrumbLink href="#">
-									{data.home.find(item => item.isActive)?.title || 
-									 data.settings.find(item => item.isActive)?.title}
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator className="hidden md:block" />
-							<BreadcrumbItem>
-								<BreadcrumbPage>
-									{data.home.find(item => item.isActive)?.title || 
-									 data.settings.find(item => item.isActive)?.title}
-								</BreadcrumbPage>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-						</Breadcrumb>
+					<div className="flex items-center justify-between w-full px-4">
+						<div className="flex items-center gap-2">
+							<SidebarTrigger className="-ml-1" />
+							<Separator orientation="vertical" className="mr-2 h-4" />
+							<Breadcrumb>
+								<BreadcrumbList>
+									<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbLink href="#">
+											{data.home.find(item => item.isActive)?.title || 
+											data.settings.find(item => item.isActive)?.title}
+										</BreadcrumbLink>
+									</BreadcrumbItem>
+									<BreadcrumbSeparator className="hidden md:block" />
+									<BreadcrumbItem>
+										<BreadcrumbPage>
+											{data.home.find(item => item.isActive)?.title || 
+											data.settings.find(item => item.isActive)?.title}
+										</BreadcrumbPage>
+									</BreadcrumbItem>
+								</BreadcrumbList>
+							</Breadcrumb>
+						</div>
+						{showProjectsButton && <AddProject />}
 					</div>
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
