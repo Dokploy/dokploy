@@ -53,7 +53,7 @@ export const DeployCompose = ({ composeId }: Props) => {
 							})
 								.then(async () => {
 									router.push(
-										`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`
+										`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`,
 									);
 								})
 								.catch(() => {

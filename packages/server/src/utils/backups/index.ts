@@ -7,12 +7,12 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 } from "../docker/utils";
+import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
+import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
-import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");

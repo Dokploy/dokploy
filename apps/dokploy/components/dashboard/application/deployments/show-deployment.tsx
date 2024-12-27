@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -5,11 +7,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../../docker/logs/terminal-line";
-import { LogLine, parseLogs } from "../../docker/logs/utils";
-import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	logPath: string | null;
@@ -19,26 +20,26 @@ interface Props {
 }
 export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 	const [data, setData] = useState("");
+	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
-
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
-		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
 		}
-	  };
-	
+	};
+
 	const handleScroll = () => {
 		if (!scrollRef.current) return;
-	
+
 		const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
 		const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
 		setAutoScroll(isAtBottom);
-	  };
-	
+	};
+
 	useEffect(() => {
 		if (!open || !logPath) return;
 
@@ -69,20 +70,34 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 		};
 	}, [logPath, open]);
 
-
 	useEffect(() => {
 		const logs = parseLogs(data);
-		setFilteredLogs(logs);
-	}, [data]);
+		let filteredLogsResult = logs;
+		if (serverId) {
+			let hideSubsequentLogs = false;
+			filteredLogsResult = logs.filter((log) => {
+				if (
+					log.message.includes(
+						"===================================EXTRA LOGS============================================",
+					)
+				) {
+					hideSubsequentLogs = true;
+					return showExtraLogs;
+				}
+				return showExtraLogs ? true : !hideSubsequentLogs;
+			});
+		}
+
+		setFilteredLogs(filteredLogsResult);
+	}, [data, showExtraLogs]);
 
 	useEffect(() => {
 		scrollToBottom();
-	
-		if (autoScroll && scrollRef.current) {
-		  scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-		}
-	  }, [filteredLogs, autoScroll]);
 
+		if (autoScroll && scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	}, [filteredLogs, autoScroll]);
 
 	return (
 		<Dialog
@@ -103,28 +118,49 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
-					<DialogDescription>
-						See all the details of this deployment | <Badge variant="blank" className="text-xs">{filteredLogs.length} lines</Badge>
+					<DialogDescription className="flex items-center gap-2">
+						<span>
+							See all the details of this deployment |{" "}
+							<Badge variant="blank" className="text-xs">
+								{filteredLogs.length} lines
+							</Badge>
+						</span>
+
+						{serverId && (
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="show-extra-logs"
+									checked={showExtraLogs}
+									onCheckedChange={(checked) =>
+										setShowExtraLogs(checked as boolean)
+									}
+								/>
+								<label
+									htmlFor="show-extra-logs"
+									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+								>
+									Show Extra Logs
+								</label>
+							</div>
+						)}
 					</DialogDescription>
 				</DialogHeader>
 
-				<div 
+				<div
 					ref={scrollRef}
 					onScroll={handleScroll}
 					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
-				>					{ 
-						filteredLogs.length > 0 ? filteredLogs.map((log: LogLine, index: number) => (
-							<TerminalLine
-								key={index}
-								log={log}
-								noTimestamp
-							/>
-						)) : 
-						(
-							<div className="flex justify-center items-center h-full text-muted-foreground">
-								<Loader2 className="h-6 w-6 animate-spin" />
-							</div>
-						)}
+				>
+					{" "}
+					{filteredLogs.length > 0 ? (
+						filteredLogs.map((log: LogLine, index: number) => (
+							<TerminalLine key={index} log={log} noTimestamp />
+						))
+					) : (
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							<Loader2 className="h-6 w-6 animate-spin" />
+						</div>
+					)}
 				</div>
 			</DialogContent>
 		</Dialog>

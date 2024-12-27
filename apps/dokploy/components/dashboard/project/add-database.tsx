@@ -18,6 +18,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -35,6 +36,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
@@ -95,6 +97,7 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("mongo"),
 			databaseUser: z.string().default("mongo"),
+			replicaSets: z.boolean().default(false),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -216,6 +219,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
+				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
@@ -412,7 +416,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>AppName</FormLabel>
+											<FormLabel>App Name</FormLabel>
 											<FormControl>
 												<Input placeholder="my-app" {...field} />
 											</FormControl>
@@ -471,6 +475,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormControl>
 													<Input
 														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+														autoComplete="off"
 														{...field}
 													/>
 												</FormControl>
@@ -491,6 +496,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
+													autoComplete="off"
 													{...field}
 												/>
 											</FormControl>
@@ -540,6 +546,30 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										);
 									}}
 								/>
+
+								{type === "mongo" && (
+									<FormField
+										control={form.control}
+										name="replicaSets"
+										render={({ field }) => {
+											return (
+												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Use Replica Sets</FormLabel>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

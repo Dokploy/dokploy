@@ -1,3 +1,5 @@
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -87,7 +89,10 @@ export const ShowDockerLogsCompose = ({
 									key={container.containerId}
 									value={container.containerId}
 								>
-									{container.name} ({container.containerId}) {container.state}
+									{container.name} ({container.containerId}){" "}
+									<Badge variant={badgeStateColor(container.state)}>
+										{container.state}
+									</Badge>
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>
@@ -97,6 +102,7 @@ export const ShowDockerLogsCompose = ({
 				<DockerLogs
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
+					runType="native"
 				/>
 			</CardContent>
 		</Card>

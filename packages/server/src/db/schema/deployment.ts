@@ -11,8 +11,8 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
-import { server } from "./server";
 import { previewDeployments } from "./preview-deployments";
+import { server } from "./server";
 
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
