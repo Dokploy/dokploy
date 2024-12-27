@@ -1,3 +1,4 @@
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -35,21 +36,6 @@ interface Props {
 	serverId?: string;
 	appType: "stack" | "docker-compose";
 }
-
-const badgeStateColor = (state: string) => {
-	switch (state) {
-		case "running":
-			return "green";
-		case "exited":
-		case "shutdown":
-			return "red";
-		case "accepted":
-		case "created":
-			return "blue";
-		default:
-			return "default";
-	}
-};
 
 export const ShowDockerLogsCompose = ({
 	appName,

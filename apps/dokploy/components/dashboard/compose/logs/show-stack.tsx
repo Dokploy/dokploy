@@ -1,3 +1,4 @@
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -36,20 +37,7 @@ interface Props {
 	serverId?: string;
 }
 
-const badgeStateColor = (state: string) => {
-	switch (state) {
-		case "running":
-			return "green";
-		case "exited":
-		case "shutdown":
-			return "red";
-		case "accepted":
-		case "created":
-			return "blue";
-		default:
-			return "default";
-	}
-};
+badgeStateColor;
 
 export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");

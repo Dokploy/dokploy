@@ -31,7 +31,7 @@ export const DockerLogs = dynamic(
 	},
 );
 
-const badgeStateColor = (state: string) => {
+export const badgeStateColor = (state: string) => {
 	switch (state) {
 		case "running":
 			return "green";
