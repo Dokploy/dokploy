@@ -27,7 +27,7 @@ export const DeleteNotification = ({ notificationId }: Props) => {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-9 w-9 group hover:bg-red-500/10"
+					className="group h-9 w-9 hover:bg-red-500/10"
 					isLoading={isLoading}
 				>
 					<Trash2 className="size-4 text-muted-foreground group-hover:text-red-500" />

@@ -88,9 +88,9 @@ export const Enable2FA = () => {
 					<DialogDescription>Add a 2FA to your account</DialogDescription>
 				</DialogHeader>
 				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg items-center bg-red-50 p-2 dark:bg-red-950">
+					<div className="flex flex-row items-center gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
+						<span className="text-red-600 text-sm dark:text-red-400">
 							{error?.message}
 						</span>
 					</div>
@@ -99,19 +99,19 @@ export const Enable2FA = () => {
 					<form
 						id="hook-form-add-2FA"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid sm:grid-cols-2 w-full gap-4"
+						className="grid w-full gap-4 sm:grid-cols-2"
 					>
-						<div className="flex flex-col gap-4 justify-center items-center">
-							<span className="text-sm text-muted-foreground">
+						<div className="flex flex-col items-center justify-center gap-4">
+							<span className="text-muted-foreground text-sm">
 								{data?.qrCodeUrl ? "Scan the QR code to add 2FA" : ""}
 							</span>
 							<img
 								src={data?.qrCodeUrl}
 								alt="qrCode"
-								className="rounded-lg w-fit"
+								className="w-fit rounded-lg"
 							/>
 							<div className="flex flex-col gap-2">
-								<span className="text-sm text-muted-foreground text-center">
+								<span className="text-center text-muted-foreground text-sm">
 									{data?.secret ? `Secret: ${data?.secret}` : ""}
 								</span>
 							</div>

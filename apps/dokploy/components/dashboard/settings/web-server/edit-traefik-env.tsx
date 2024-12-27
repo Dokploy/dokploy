@@ -78,7 +78,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update Traefik Environment</DialogTitle>
 					<DialogDescription>
@@ -91,7 +91,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 					<form
 						id="hook-form-update-server-traefik-config"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="w-full space-y-4 relative overflow-auto"
+						className="relative w-full space-y-4 overflow-auto"
 					>
 						<div className="flex flex-col">
 							<FormField
@@ -119,7 +119,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 										<pre>
 											<FormMessage />
 										</pre>
-										<div className="flex justify-end absolute z-50 right-6 top-0">
+										<div className="absolute top-0 right-6 z-50 flex justify-end">
 											<Button
 												className="shadow-sm"
 												variant="secondary"

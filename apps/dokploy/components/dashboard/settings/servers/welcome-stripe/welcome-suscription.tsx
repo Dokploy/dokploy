@@ -60,9 +60,9 @@ export const WelcomeSuscription = () => {
 
 	return (
 		<Dialog open={isOpen}>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-7xl min-h-[75vh]">
+			<DialogContent className="max-h-screen min-h-[75vh] overflow-y-auto sm:max-w-7xl">
 				{showConfetti ?? "Flaso"}
-				<div className="flex justify-center items-center w-full">
+				<div className="flex w-full items-center justify-center">
 					{showConfetti && (
 						<ConfettiExplosion
 							duration={3000}
@@ -77,10 +77,10 @@ export const WelcomeSuscription = () => {
 				</div>
 
 				<DialogHeader>
-					<DialogTitle className="text-2xl text-center">
+					<DialogTitle className="text-center text-2xl">
 						Welcome To Dokploy Cloud 🎉
 					</DialogTitle>
-					<DialogDescription className="text-center max-w-xl mx-auto">
+					<DialogDescription className="mx-auto max-w-xl text-center">
 						Thank you for choosing Dokploy Cloud! 🚀 We're excited to have you
 						onboard. Before you dive in, you'll need to configure your remote
 						server to unlock all the features we offer.
@@ -88,9 +88,9 @@ export const WelcomeSuscription = () => {
 				</DialogHeader>
 				<div className="grid gap-4">
 					<div className="flex justify-between">
-						<h2 className="text-lg font-semibold">Steps</h2>
+						<h2 className="font-semibold text-lg">Steps</h2>
 						<div className="flex items-center gap-2">
-							<span className="text-sm text-muted-foreground">
+							<span className="text-muted-foreground text-sm">
 								Step {stepper.current.index + 1} of {steps.length}
 							</span>
 							<div />
@@ -104,7 +104,7 @@ export const WelcomeSuscription = () => {
 							>
 								{stepper.all.map((step, index, array) => (
 									<React.Fragment key={step.id}>
-										<li className="flex items-center gap-4 flex-shrink-0">
+										<li className="flex flex-shrink-0 items-center gap-4">
 											<Button
 												type="button"
 												role="tab"
@@ -122,7 +122,7 @@ export const WelcomeSuscription = () => {
 											>
 												{index + 1}
 											</Button>
-											<span className="text-sm font-medium">{step.title}</span>
+											<span className="font-medium text-sm">{step.title}</span>
 										</li>
 										{index < array.length - 1 && (
 											<Separator
@@ -139,16 +139,16 @@ export const WelcomeSuscription = () => {
 						</nav>
 						{stepper.switch({
 							requisites: () => (
-								<div className="flex flex-col gap-2 border p-4 rounded-lg">
-									<span className="text-primary text-base font-bold">
+								<div className="flex flex-col gap-2 rounded-lg border p-4">
+									<span className="font-bold text-base text-primary">
 										Before getting started, please follow the steps below to
 										ensure the best experience:
 									</span>
 									<div>
-										<p className="text-primary text-sm font-medium">
+										<p className="font-medium text-primary text-sm">
 											Supported Distributions:
 										</p>
-										<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground  mt-4">
+										<ul className="mt-4 list-inside list-disc pl-4 text-muted-foreground text-sm">
 											<li>Ubuntu 24.04 LTS</li>
 											<li>Ubuntu 23.10</li>
 											<li>Ubuntu 22.04 LTS</li>
@@ -163,12 +163,12 @@ export const WelcomeSuscription = () => {
 										</ul>
 									</div>
 									<div>
-										<p className="text-primary text-sm font-medium">
+										<p className="font-medium text-primary text-sm">
 											You will need to purchase or rent a Virtual Private Server
 											(VPS) to proceed, we recommend to use one of these
 											providers since has been heavily tested.
 										</p>
-										<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
+										<ul className="mt-4 list-inside list-disc pl-4 text-muted-foreground text-sm">
 											<li>
 												<a
 													href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
@@ -280,7 +280,7 @@ export const WelcomeSuscription = () => {
 								return (
 									<div className="flex flex-col gap-6">
 										<div className="flex flex-col gap-2">
-											<h2 className="text-lg font-semibold">You're All Set!</h2>
+											<h2 className="font-semibold text-lg">You're All Set!</h2>
 											<p className=" text-muted-foreground">
 												Did you know you can deploy any number of applications
 												that your server can handle?
@@ -291,32 +291,32 @@ export const WelcomeSuscription = () => {
 											</p>
 										</div>
 
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+										<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
 											{features.map((feature, index) => (
 												<div
 													key={index}
-													className="flex flex-col items-start p-4 bg-card rounded-lg shadow-md hover:shadow-lg transition-shadow"
+													className="flex flex-col items-start rounded-lg bg-card p-4 shadow-md transition-shadow hover:shadow-lg"
 												>
-													<div className="text-3xl mb-2">{feature.icon}</div>
-													<h3 className="text-lg font-medium mb-1">
+													<div className="mb-2 text-3xl">{feature.icon}</div>
+													<h3 className="mb-1 font-medium text-lg">
 														{feature.title}
 													</h3>
-													<p className="text-sm text-muted-foreground">
+													<p className="text-muted-foreground text-sm">
 														{feature.description}
 													</p>
 												</div>
 											))}
 										</div>
 
-										<div className="flex flex-col gap-2 mt-4">
+										<div className="mt-4 flex flex-col gap-2">
 											<span className="text-base text-primary">
 												Need Help? We are here to help you.
 											</span>
-											<span className="text-sm text-muted-foreground">
+											<span className="text-muted-foreground text-sm">
 												Join to our Discord server and we will help you.
 											</span>
 											<div className="flex flex-row gap-4">
-												<Button className="rounded-full bg-[#5965F2] hover:bg-[#4A55E0] w-fit">
+												<Button className="w-fit rounded-full bg-[#5965F2] hover:bg-[#4A55E0]">
 													<Link
 														href="https://discord.gg/2tBnJ3jDJc"
 														aria-label="Dokploy on GitHub"
@@ -334,7 +334,7 @@ export const WelcomeSuscription = () => {
 														Join Discord
 													</Link>
 												</Button>
-												<Button className="rounded-full  w-fit">
+												<Button className="w-fit rounded-full">
 													<Link
 														href="https://github.com/Dokploy/dokploy"
 														aria-label="Dokploy on GitHub"
@@ -347,7 +347,7 @@ export const WelcomeSuscription = () => {
 												</Button>
 
 												<Button
-													className="rounded-full  w-fit"
+													className="w-fit rounded-full"
 													variant="outline"
 												>
 													<Link
@@ -369,7 +369,7 @@ export const WelcomeSuscription = () => {
 					</Scoped>
 				</div>
 				<DialogFooter>
-					<div className="flex items-center justify-between w-full">
+					<div className="flex w-full items-center justify-between">
 						{!stepper.isLast && (
 							<Button
 								variant="secondary"
@@ -382,7 +382,7 @@ export const WelcomeSuscription = () => {
 							</Button>
 						)}
 
-						<div className="flex items-center gap-2 w-full justify-end">
+						<div className="flex w-full items-center justify-end gap-2">
 							<Button
 								onClick={stepper.prev}
 								disabled={stepper.isFirst}

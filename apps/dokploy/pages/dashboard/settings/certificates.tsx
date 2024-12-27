@@ -9,7 +9,7 @@ import React, { type ReactElement } from "react";
 import superjson from "superjson";
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
+		<div className="flex w-full flex-col gap-4">
 			<ShowCertificates />
 		</div>
 	);

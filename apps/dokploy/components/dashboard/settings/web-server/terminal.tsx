@@ -51,7 +51,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="w-full h-full bg-transparent border rounded-lg p-2 ">
+			<div className="h-full w-full rounded-lg border bg-transparent p-2 ">
 				<div id={id} ref={termRef} className="rounded-xl" />
 			</div>
 		</div>

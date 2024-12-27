@@ -26,7 +26,7 @@ export const ShowGeneralCompose = ({ composeId }: Props) => {
 		<>
 			<Card className="bg-background">
 				<CardHeader>
-					<div className="flex flex-row gap-2 justify-between flex-wrap">
+					<div className="flex flex-row flex-wrap justify-between gap-2">
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 						<Badge>
 							{data?.composeType === "docker-compose" ? "Compose" : "Stack"}
@@ -37,7 +37,7 @@ export const ShowGeneralCompose = ({ composeId }: Props) => {
 						Create a compose file to deploy your compose
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-4 flex-wrap">
+				<CardContent className="flex flex-col flex-wrap gap-4">
 					<ComposeActions composeId={composeId} />
 				</CardContent>
 			</Card>

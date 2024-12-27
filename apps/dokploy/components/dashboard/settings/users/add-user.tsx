@@ -71,7 +71,7 @@ export const AddUser = () => {
 					<PlusIcon className="h-4 w-4" /> Add User
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add User</DialogTitle>
 					<DialogDescription>Invite a new user</DialogDescription>

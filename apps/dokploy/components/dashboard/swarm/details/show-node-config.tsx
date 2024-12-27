@@ -25,20 +25,20 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
-					<Settings className="h-4 w-4 mr-2" />
+					<Settings className="mr-2 h-4 w-4" />
 					Config
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"max-h-screen overflow-y-auto sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Config</DialogTitle>
 					<DialogDescription>
 						See in detail the metadata of this node
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto ">
+				<div className="max-h-[70vh] overflow-auto text-wrap rounded-lg border bg-card p-4 text-sm sm:max-w-[59rem] ">
 					<code>
-						<pre className="whitespace-pre-wrap break-words items-center justify-center">
+						<pre className="items-center justify-center whitespace-pre-wrap break-words">
 							{/* {JSON.stringify(data, null, 2)} */}
 							<CodeEditor
 								language="json"

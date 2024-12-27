@@ -82,7 +82,7 @@ interface Props {
 
 export const AddRedirect = ({
 	applicationId,
-	children = <PlusIcon className="w-4 h-4" />,
+	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [presetSelected, setPresetSelected] = useState("");
@@ -217,7 +217,7 @@ export const AddRedirect = ({
 								control={form.control}
 								name="permanent"
 								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
 											<FormLabel>Permanent</FormLabel>
 											<FormDescription>

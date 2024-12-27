@@ -30,8 +30,8 @@ export const SecurityAudit = ({ serverId }: Props) => {
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">
 				<Card className="bg-background">
-					<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-						<div className="flex flex-row gap-2 justify-between w-full  max-sm:flex-col">
+					<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+						<div className="flex w-full flex-row justify-between gap-2 max-sm:flex-col">
 							<div className="flex flex-col gap-1">
 								<div className="flex items-center gap-2">
 									<LockKeyhole className="size-5" />
@@ -53,7 +53,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								Refresh
 							</Button>
 						</div>
-						<div className="flex items-center gap-2 w-full">
+						<div className="flex w-full items-center gap-2">
 							{isError && (
 								<AlertBlock type="error" className="w-full">
 									{error.message}
@@ -67,15 +67,15 @@ export const SecurityAudit = ({ serverId }: Props) => {
 							Ubuntu/Debian OS support is currently supported (Experimental)
 						</AlertBlock>
 						{isLoading ? (
-							<div className="flex items-center justify-center text-muted-foreground py-4">
+							<div className="flex items-center justify-center py-4 text-muted-foreground">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								<span>Checking Server configuration</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
-								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">UFW</h3>
-									<p className="text-sm text-muted-foreground mb-4">
+								<div className="rounded-lg border p-4">
+									<h3 className="mb-1 font-semibold text-lg">UFW</h3>
+									<p className="mb-4 text-muted-foreground text-sm">
 										UFW (Uncomplicated Firewall) is a simple firewall that can
 										be used to block incoming and outgoing traffic from your
 										server.
@@ -111,9 +111,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 									</div>
 								</div>
 
-								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">SSH</h3>
-									<p className="text-sm text-muted-foreground mb-4">
+								<div className="rounded-lg border p-4">
+									<h3 className="mb-1 font-semibold text-lg">SSH</h3>
+									<p className="mb-4 text-muted-foreground text-sm">
 										SSH (Secure Shell) is a protocol that allows you to securely
 										connect to a server and execute commands on it.
 									</p>
@@ -166,9 +166,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 									</div>
 								</div>
 
-								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Fail2Ban</h3>
-									<p className="text-sm text-muted-foreground mb-4">
+								<div className="rounded-lg border p-4">
+									<h3 className="mb-1 font-semibold text-lg">Fail2Ban</h3>
+									<p className="mb-4 text-muted-foreground text-sm">
 										Fail2Ban (Fail2Ban) is a service that can be used to prevent
 										brute force attacks on your server.
 									</p>

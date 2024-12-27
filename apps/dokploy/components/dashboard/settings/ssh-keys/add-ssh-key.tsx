@@ -82,7 +82,7 @@ export const AddSSHKey = ({ children }: Props) => {
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>SSH Key</DialogTitle>
 					<DialogDescription className="space-y-4">

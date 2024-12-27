@@ -102,7 +102,7 @@ export const DeleteRedis = ({ redisId }: Props) => {
 											<span>
 												To confirm, type{" "}
 												<Badge
-													className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer"
+													className="mr-1 ml-1 rounded-md p-2 hover:cursor-pointer hover:border-primary hover:bg-primary hover:text-primary-foreground"
 													variant="outline"
 													onClick={() => {
 														if (data?.name && data?.appName) {
@@ -114,7 +114,7 @@ export const DeleteRedis = ({ redisId }: Props) => {
 													}}
 												>
 													{data?.name}/{data?.appName}&nbsp;
-													<Copy className="h-4 w-4 ml-1 text-muted-foreground" />
+													<Copy className="ml-1 h-4 w-4 text-muted-foreground" />
 												</Badge>{" "}
 												in the box below:
 											</span>

@@ -22,7 +22,7 @@ export const GPUSupportModal = () => {
 					<span>GPU Setup</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl overflow-y-auto max-h-screen">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Dokploy Server GPU Setup

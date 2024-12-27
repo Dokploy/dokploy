@@ -29,7 +29,7 @@ export const Secrets = (props: Props) => {
 
 	return (
 		<>
-			<CardHeader className="flex flex-row w-full items-center justify-between px-0">
+			<CardHeader className="flex w-full flex-row items-center justify-between px-0">
 				<div>
 					<CardTitle className="text-xl">{props.title}</CardTitle>
 					<CardDescription>{props.description}</CardDescription>

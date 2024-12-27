@@ -25,7 +25,7 @@ export const WebServer = ({ className }: Props) => {
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	return (
-		<Card className={cn("rounded-lg w-full bg-transparent p-0", className)}>
+		<Card className={cn("w-full rounded-lg bg-transparent p-0", className)}>
 			<CardHeader>
 				<CardTitle className="text-xl">
 					{t("settings.server.webServer.title")}
@@ -35,7 +35,7 @@ export const WebServer = ({ className }: Props) => {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4 ">
-				<div className="grid md:grid-cols-2 gap-4">
+				<div className="grid gap-4 md:grid-cols-2">
 					<ShowDokployActions />
 					<ShowTraefikActions />
 					<ShowStorageActions />
@@ -43,11 +43,11 @@ export const WebServer = ({ className }: Props) => {
 					<UpdateServer />
 				</div>
 
-				<div className="flex items-center flex-wrap justify-between gap-4">
-					<span className="text-sm text-muted-foreground">
+				<div className="flex flex-wrap items-center justify-between gap-4">
+					<span className="text-muted-foreground text-sm">
 						Server IP: {data?.serverIp}
 					</span>
-					<span className="text-sm text-muted-foreground">
+					<span className="text-muted-foreground text-sm">
 						Version: {dokployVersion}
 					</span>
 

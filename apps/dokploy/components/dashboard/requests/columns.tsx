@@ -49,16 +49,16 @@ export const columns: ColumnDef<LogEntry>[] = [
 			const log = row.original;
 			return (
 				<div className=" flex flex-col gap-2">
-					<div className="flex items-center flex-row gap-3 ">
+					<div className="flex flex-row items-center gap-3 ">
 						{log.RequestMethod}{" "}
-						<div className="inline-flex items-center gap-2 bg-muted p-1 rounded">
+						<div className="inline-flex items-center gap-2 rounded bg-muted p-1">
 							<span>{log.RequestAddr}</span>
 						</div>
 						{log.RequestPath.length > 100
 							? `${log.RequestPath.slice(0, 82)}...`
 							: log.RequestPath}
 					</div>
-					<div className="flex flex-row gap-3 w-full">
+					<div className="flex w-full flex-row gap-3">
 						<Badge variant={getStatusColor(log.OriginStatus)}>
 							Status: {log.OriginStatus}
 						</Badge>
@@ -88,7 +88,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 			const log = row.original;
 			return (
 				<div className=" flex flex-col gap-2">
-					<div className="flex flex-row gap-3 w-full">
+					<div className="flex w-full flex-row gap-3">
 						{format(new Date(log.StartUTC), "yyyy-MM-dd HH:mm:ss")}
 					</div>
 				</div>

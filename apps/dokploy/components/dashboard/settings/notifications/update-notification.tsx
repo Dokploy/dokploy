@@ -223,12 +223,12 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-9 w-9 dark:hover:bg-zinc-900/80 hover:bg-gray-200/80"
+					className="h-9 w-9 hover:bg-gray-200/80 dark:hover:bg-zinc-900/80"
 				>
 					<Pen className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Update Notification</DialogTitle>
 					<DialogDescription>
@@ -242,9 +242,9 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 						className="grid w-full gap-8 "
 					>
 						<div className="flex flex-col gap-4 ">
-							<div className="flex flex-row gap-2 w-full items-center">
-								<div className="flex flex-row gap-2 items-center w-full ">
-									<FormLabel className="text-lg font-semibold leading-none tracking-tight flex">
+							<div className="flex w-full flex-row items-center gap-2">
+								<div className="flex w-full flex-row items-center gap-2 ">
+									<FormLabel className="flex font-semibold text-lg leading-none tracking-tight">
 										{data?.notificationType === "slack"
 											? "Slack"
 											: data?.notificationType === "telegram"
@@ -255,18 +255,18 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									</FormLabel>
 								</div>
 								{data?.notificationType === "slack" && (
-									<SlackIcon className="text-muted-foreground size-6 flex-shrink-0" />
+									<SlackIcon className="size-6 flex-shrink-0 text-muted-foreground" />
 								)}
 								{data?.notificationType === "telegram" && (
-									<TelegramIcon className="text-muted-foreground size-8 flex-shrink-0" />
+									<TelegramIcon className="size-8 flex-shrink-0 text-muted-foreground" />
 								)}
 								{data?.notificationType === "discord" && (
-									<DiscordIcon className="text-muted-foreground size-7 flex-shrink-0" />
+									<DiscordIcon className="size-7 flex-shrink-0 text-muted-foreground" />
 								)}
 								{data?.notificationType === "email" && (
 									<Mail
 										size={29}
-										className="text-muted-foreground size-6 flex-shrink-0"
+										className="size-6 flex-shrink-0 text-muted-foreground"
 									/>
 								)}
 							</div>
@@ -405,7 +405,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 								)}
 								{type === "email" && (
 									<>
-										<div className="flex md:flex-row flex-col gap-2 w-full">
+										<div className="flex w-full flex-col gap-2 md:flex-row">
 											<FormField
 												control={form.control}
 												name="smtpServer"
@@ -448,7 +448,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 											/>
 										</div>
 
-										<div className="flex md:flex-row flex-col gap-2 w-full">
+										<div className="flex w-full flex-col gap-2 md:flex-row">
 											<FormField
 												control={form.control}
 												name="username"
@@ -503,7 +503,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 											{fields.map((field, index) => (
 												<div
 													key={field.id}
-													className="flex flex-row gap-2 w-full"
+													className="flex w-full flex-row gap-2"
 												>
 													<FormField
 														control={form.control}
@@ -535,7 +535,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 											))}
 											{type === "email" &&
 												"toAddresses" in form.formState.errors && (
-													<div className="text-sm font-medium text-destructive">
+													<div className="font-medium text-destructive text-sm">
 														{form.formState?.errors?.toAddresses?.root?.message}
 													</div>
 												)}
@@ -555,17 +555,17 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+							<FormLabel className="font-semibold text-lg leading-none tracking-tight">
 								Select the actions.
 							</FormLabel>
 
-							<div className="grid md:grid-cols-2 gap-4">
+							<div className="grid gap-4 md:grid-cols-2">
 								<FormField
 									control={form.control}
 									defaultValue={form.control._defaultValues.appDeploy}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
@@ -586,7 +586,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									defaultValue={form.control._defaultValues.appBuildError}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>App Builder Error</FormLabel>
 												<FormDescription>
@@ -608,7 +608,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									name="databaseBackup"
 									defaultValue={form.control._defaultValues.databaseBackup}
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -628,7 +628,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
@@ -651,7 +651,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 										defaultValue={form.control._defaultValues.dokployRestart}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
@@ -672,7 +672,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+					<DialogFooter className="!justify-between flex w-full flex-row gap-2">
 						<Button
 							isLoading={
 								isLoadingSlack ||

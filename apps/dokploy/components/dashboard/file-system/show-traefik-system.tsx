@@ -27,24 +27,24 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 	);
 
 	return (
-		<div className={cn("mt-6 md:grid gap-4")}>
-			<div className="flex flex-col lg:flex-row gap-4 md:gap-10 w-full">
+		<div className={cn("mt-6 gap-4 md:grid")}>
+			<div className="flex w-full flex-col gap-4 md:gap-10 lg:flex-row">
 				{isError && (
 					<AlertBlock type="error" className="w-full">
 						{error?.message}
 					</AlertBlock>
 				)}
 				{isLoading && (
-					<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-						<span className="text-muted-foreground text-lg font-medium">
+					<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+						<span className="font-medium text-lg text-muted-foreground">
 							Loading...
 						</span>
-						<Loader2 className="animate-spin size-8 text-muted-foreground" />
+						<Loader2 className="size-8 animate-spin text-muted-foreground" />
 					</div>
 				)}
 				{directories?.length === 0 && (
-					<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-						<span className="text-muted-foreground text-lg font-medium">
+					<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+						<span className="font-medium text-lg text-muted-foreground">
 							No directories or files detected in {"'/etc/dokploy/traefik'"}
 						</span>
 						<Folder className="size-8 text-muted-foreground" />
@@ -54,7 +54,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 					<>
 						<Tree
 							data={directories}
-							className="lg:max-w-[19rem] w-full lg:h-[660px] border rounded-lg"
+							className="w-full rounded-lg border lg:h-[660px] lg:max-w-[19rem]"
 							onSelectChange={(item) => setFile(item?.id || null)}
 							folderIcon={Folder}
 							itemIcon={Workflow}
@@ -63,8 +63,8 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 							{file ? (
 								<ShowTraefikFile path={file} serverId={serverId} />
 							) : (
-								<div className="h-full w-full flex-col gap-2 flex items-center justify-center">
-									<span className="text-muted-foreground text-lg font-medium">
+								<div className="flex h-full w-full flex-col items-center justify-center gap-2">
+									<span className="font-medium text-lg text-muted-foreground">
 										No file selected
 									</span>
 									<FileIcon className="size-8 text-muted-foreground" />

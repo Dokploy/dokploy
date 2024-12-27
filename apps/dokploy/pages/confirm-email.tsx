@@ -12,13 +12,13 @@ import type { ReactElement } from "react";
 
 export default function Home() {
 	return (
-		<div className="flex  h-screen w-full items-center justify-center ">
-			<div className="flex flex-col items-center gap-4 w-full">
+		<div className="flex h-screen w-full items-center justify-center ">
+			<div className="flex w-full flex-col items-center gap-4">
 				<Link href="/" className="flex flex-row items-center gap-2">
 					<Logo />
 					<span className="font-medium text-sm">Dokploy</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Email Confirmed</CardTitle>
+				<CardTitle className="font-bold text-2xl">Email Confirmed</CardTitle>
 				<CardDescription>
 					Congratulations, your email is confirmed.
 				</CardDescription>

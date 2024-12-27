@@ -55,13 +55,13 @@ export const ShowProjects = () => {
 		<>
 			{data?.length === 0 && (
 				<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
-					<FolderInput className="size-10 md:size-28 text-muted-foreground" />
+					<FolderInput className="size-10 text-muted-foreground md:size-28" />
 					<span className="text-center font-medium text-muted-foreground">
 						No projects added yet. Click on Create project.
 					</span>
 				</div>
 			)}
-			<div className="mt-6  w-full  grid sm:grid-cols-2 lg:grid-cols-3 flex-wrap gap-5 pb-10">
+			<div className="mt-6 grid w-full flex-wrap gap-5 pb-10 sm:grid-cols-2 lg:grid-cols-3">
 				{data?.map((project) => {
 					const emptyServices =
 						project?.mariadb.length === 0 &&
@@ -100,14 +100,14 @@ export const ShowProjects = () => {
 									>
 										<DropdownMenuSeparator />
 										<DropdownMenuGroup>
-											<DropdownMenuLabel className="font-normal capitalize text-xs ">
+											<DropdownMenuLabel className="font-normal text-xs capitalize ">
 												{a.name}
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
 											{a.domains.map((domain) => (
 												<DropdownMenuItem key={domain.domainId} asChild>
 													<Link
-														className="space-x-4 text-xs cursor-pointer justify-between"
+														className="cursor-pointer justify-between space-x-4 text-xs"
 														target="_blank"
 														href={`${domain.https ? "https" : "http"}://${
 															domain.host
@@ -127,12 +127,12 @@ export const ShowProjects = () => {
 					return (
 						<div key={project.projectId} className="w-full lg:max-w-md">
 							<Link href={`/dashboard/project/${project.projectId}`}>
-								<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
+								<Card className="group relative w-full bg-transparent transition-colors hover:bg-card">
 									{flattedDomains.length > 1 ? (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button
-													className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+													className="-right-3 -top-3 absolute size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
 													size="sm"
 													variant="default"
 												>
@@ -149,7 +149,7 @@ export const ShowProjects = () => {
 										</DropdownMenu>
 									) : flattedDomains[0] ? (
 										<Button
-											className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+											className="-right-3 -top-3 absolute size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
 											size="sm"
 											variant="default"
 											onClick={(e) => e.stopPropagation()}
@@ -170,16 +170,16 @@ export const ShowProjects = () => {
 											<span className="flex flex-col gap-1.5">
 												<div className="flex items-center gap-2">
 													<BookIcon className="size-4 text-muted-foreground" />
-													<span className="text-base font-medium leading-none">
+													<span className="font-medium text-base leading-none">
 														{project.name}
 													</span>
 												</div>
 
-												<span className="text-sm font-medium text-muted-foreground">
+												<span className="font-medium text-muted-foreground text-sm">
 													{project.description}
 												</span>
 											</span>
-											<div className="flex self-start space-x-1">
+											<div className="flex space-x-1 self-start">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button
@@ -209,7 +209,7 @@ export const ShowProjects = () => {
 																<AlertDialog>
 																	<AlertDialogTrigger className="w-full">
 																		<DropdownMenuItem
-																			className="w-full cursor-pointer  space-x-3"
+																			className="w-full cursor-pointer space-x-3"
 																			onSelect={(e) => e.preventDefault()}
 																		>
 																			<TrashIcon className="size-4" />
@@ -273,7 +273,7 @@ export const ShowProjects = () => {
 										</CardTitle>
 									</CardHeader>
 									<CardFooter className="pt-4">
-										<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
+										<div className="flex w-full flex-row justify-between gap-2 space-y-1 text-sm max-sm:flex-wrap sm:gap-4">
 											<DateTooltip date={project.createdAt}>
 												Created
 											</DateTooltip>

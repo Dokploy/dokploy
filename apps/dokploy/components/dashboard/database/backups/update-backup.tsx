@@ -117,10 +117,10 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="ghost">
-					<PenBoxIcon className="size-4  text-muted-foreground" />
+					<PenBoxIcon className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Update Backup</DialogTitle>
 					<DialogDescription>Update the backup</DialogDescription>
@@ -145,7 +145,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between !bg-input",
+															"!bg-input w-full justify-between",
 															!field.value && "text-muted-foreground",
 														)}
 													>

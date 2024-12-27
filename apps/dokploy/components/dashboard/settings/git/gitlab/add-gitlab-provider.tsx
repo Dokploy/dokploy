@@ -115,7 +115,7 @@ export const AddGitlabProvider = () => {
 					<span>GitLab</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						GitLab Provider <GitlabIcon className="size-5" />
@@ -135,20 +135,20 @@ export const AddGitlabProvider = () => {
 									To integrate your GitLab account, you need to create a new
 									application in your GitLab settings. Follow these steps:
 								</p>
-								<ol className="list-decimal list-inside text-sm text-muted-foreground">
-									<li className="flex flex-row gap-2 items-center">
+								<ol className="list-inside list-decimal text-muted-foreground text-sm">
+									<li className="flex flex-row items-center gap-2">
 										Go to your GitLab profile settings{" "}
 										<Link
 											href={`${gitlabUrl}/-/profile/applications`}
 											target="_blank"
 										>
-											<ExternalLink className="w-fit text-primary size-4" />
+											<ExternalLink className="size-4 w-fit text-primary" />
 										</Link>
 									</li>
 									<li>Navigate to Applications</li>
 									<li>
 										Create a new application with the following details:
-										<ul className="list-disc list-inside ml-4">
+										<ul className="ml-4 list-inside list-disc">
 											<li>Name: Dokploy</li>
 											<li>
 												Redirect URI:{" "}

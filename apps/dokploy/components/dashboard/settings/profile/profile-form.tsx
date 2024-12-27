@@ -113,7 +113,7 @@ export const ProfileForm = () => {
 
 	return (
 		<Card className="bg-transparent">
-			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
 				<div>
 					<CardTitle className="text-xl">
 						{t("settings.profile.title")}
@@ -198,7 +198,7 @@ export const ProfileForm = () => {
 											>
 												{availableAvatars.map((image) => (
 													<FormItem key={image}>
-														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
+														<FormLabel className="cursor-pointer [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:p-px">
 															<FormControl>
 																<RadioGroupItem
 																	value={image}
@@ -210,7 +210,7 @@ export const ProfileForm = () => {
 																key={image}
 																src={image}
 																alt="avatar"
-																className="h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform"
+																className="h-12 w-12 rounded-full border transition-transform hover:border-primary hover:p-px"
 															/>
 														</FormLabel>
 													</FormItem>

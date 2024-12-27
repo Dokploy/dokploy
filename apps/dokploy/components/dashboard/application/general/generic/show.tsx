@@ -38,11 +38,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
 						<span className="flex flex-col space-y-0.5">Provider</span>
-						<p className="flex items-center text-sm font-normal text-muted-foreground">
+						<p className="flex items-center font-normal text-muted-foreground text-sm">
 							Select the source of your code
 						</p>
 					</div>
-					<div className="hidden space-y-1 text-sm font-normal md:block">
+					<div className="hidden space-y-1 font-normal text-sm md:block">
 						<GitBranch className="size-6 text-muted-foreground" />
 					</div>
 				</CardTitle>
@@ -55,46 +55,46 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
-						<TabsList className="md:grid md:w-fit md:grid-cols-7 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
+					<div className="flex w-full flex-row items-center justify-between gap-4">
+						<TabsList className="justify-start overflow-y-hidden bg-transparent max-md:overflow-x-scroll md:grid md:w-fit md:grid-cols-7">
 							<TabsTrigger
 								value="github"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<GithubIcon className="size-4 text-current fill-current" />
+								<GithubIcon className="size-4 fill-current text-current" />
 								Github
 							</TabsTrigger>
 							<TabsTrigger
 								value="gitlab"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<GitlabIcon className="size-4 text-current fill-current" />
+								<GitlabIcon className="size-4 fill-current text-current" />
 								Gitlab
 							</TabsTrigger>
 							<TabsTrigger
 								value="bitbucket"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<BitbucketIcon className="size-4 text-current fill-current" />
+								<BitbucketIcon className="size-4 fill-current text-current" />
 								Bitbucket
 							</TabsTrigger>
 							<TabsTrigger
 								value="docker"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<DockerIcon className="size-5 text-current" />
 								Docker
 							</TabsTrigger>
 							<TabsTrigger
 								value="git"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GitIcon />
 								Git
 							</TabsTrigger>
 							<TabsTrigger
 								value="drop"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<UploadCloud className="size-5 text-current" />
 								Drop
@@ -106,7 +106,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						{githubProviders && githubProviders?.length > 0 ? (
 							<SaveGithubProvider applicationId={applicationId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<GithubIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using GitHub, you need to configure your account
@@ -126,7 +126,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						{gitlabProviders && gitlabProviders?.length > 0 ? (
 							<SaveGitlabProvider applicationId={applicationId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<GitlabIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using GitLab, you need to configure your account
@@ -146,7 +146,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						{bitbucketProviders && bitbucketProviders?.length > 0 ? (
 							<SaveBitbucketProvider applicationId={applicationId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using Bitbucket, you need to configure your account

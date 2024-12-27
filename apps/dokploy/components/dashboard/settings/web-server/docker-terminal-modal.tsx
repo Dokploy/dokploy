@@ -81,7 +81,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent
-				className="max-h-[85vh]    overflow-y-auto sm:max-w-7xl"
+				className="max-h-[85vh] overflow-y-auto sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
@@ -94,9 +94,9 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+							<div className="flex flex-row items-center justify-center gap-2 text-muted-foreground text-sm">
 								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+								<Loader2 className="size-4 animate-spin" />
 							</div>
 						) : (
 							<SelectValue placeholder="Select a container" />

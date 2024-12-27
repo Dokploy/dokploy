@@ -49,13 +49,13 @@ export const CodeEditor = ({
 				{...props}
 				editable={!props.disabled}
 				className={cn(
-					"w-full h-full text-sm leading-relaxed",
+					"h-full w-full text-sm leading-relaxed",
 					`cm-theme-${resolvedTheme}`,
 					className,
 				)}
 			/>
 			{props.disabled && (
-				<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)]" />
+				<div className="absolute top-0 left-0 z-[10] flex h-full w-full items-center justify-center rounded-md [background:var(--overlay)]" />
 			)}
 		</div>
 	);

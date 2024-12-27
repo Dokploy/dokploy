@@ -114,15 +114,15 @@ const Service = (
 						Application: {data?.name} - {data?.project.name} | Dokploy
 					</title>
 				</Head>
-				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
-					<div className="flex  flex-col justify-between w-fit gap-2">
-						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
-							<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
+				<header className="mb-6 flex w-full items-center justify-between gap-4 max-sm:flex-wrap">
+					<div className="flex w-fit flex-col justify-between gap-2">
+						<div className="flex flex-row flex-wrap items-center gap-2 xl:gap-4">
+							<h1 className="flex items-center gap-2 font-bold text-xl lg:text-3xl">
 								{data?.name}
 							</h1>
 							<span className="text-sm">{data?.appName}</span>
 						</div>
-						<div className="flex flex-row h-fit w-fit gap-2">
+						<div className="flex h-fit w-fit flex-row gap-2">
 							<Badge
 								variant={
 									!data?.serverId
@@ -138,7 +138,7 @@ const Service = (
 								<TooltipProvider delayDuration={0}>
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<Label className="break-all w-fit flex flex-row gap-1 items-center">
+											<Label className="flex w-fit flex-row items-center gap-1 break-all">
 												<HelpCircle className="size-4 text-muted-foreground" />
 											</Label>
 										</TooltipTrigger>
@@ -159,13 +159,13 @@ const Service = (
 						</div>
 
 						{data?.description && (
-							<p className="text-sm text-muted-foreground max-w-6xl">
+							<p className="max-w-6xl text-muted-foreground text-sm">
 								{data?.description}
 							</p>
 						)}
 					</div>
 					<div className="relative flex flex-row gap-4">
-						<div className="absolute -right-1  -top-2">
+						<div className="-right-1 -top-2 absolute">
 							<StatusTooltip status={data?.applicationStatus} />
 						</div>
 
@@ -175,9 +175,9 @@ const Service = (
 			</div>
 
 			{data?.server?.serverStatus === "inactive" ? (
-				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
-					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
-						<ServerOff className="size-10 text-muted-foreground self-center" />
+				<div className="flex h-[55vh] rounded-xl border-2 border-dashed p-4">
+					<div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 self-center">
+						<ServerOff className="size-10 self-center text-muted-foreground" />
 						<span className="text-center text-base text-muted-foreground">
 							This service is hosted on the server {data.server.name}, but this
 							server has been disabled because your current plan doesn't include
@@ -203,10 +203,10 @@ const Service = (
 						router.push(newPath);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
+					<div className="flex w-full flex-row items-center justify-between gap-4">
 						<TabsList
 							className={cn(
-								"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
+								"flex justify-start gap-8 overflow-y-hidden max-xl:overflow-x-scroll",
 								data?.serverId ? "md:grid-cols-7" : "md:grid-cols-8",
 							)}
 						>
@@ -250,7 +250,7 @@ const Service = (
 					)}
 
 					<TabsContent value="logs">
-						<div className="flex flex-col gap-4  pt-2.5">
+						<div className="flex flex-col gap-4 pt-2.5">
 							<ShowDockerLogs
 								appName={data?.appName || ""}
 								serverId={data?.serverId || ""}

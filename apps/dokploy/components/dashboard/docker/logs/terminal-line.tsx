@@ -77,7 +77,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 
 	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
-			<div className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)} />
+			<div className={cn("h-full w-2 flex-shrink-0 rounded-[3px]", color)} />
 		);
 		return timestamp ? (
 			<TooltipProvider delayDuration={0} disableHoverableContent>
@@ -86,9 +86,9 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 					<TooltipPortal>
 						<TooltipContent
 							sideOffset={5}
-							className="bg-popover border-border z-[99999]"
+							className="z-[99999] border-border bg-popover"
 						>
-							<p className="text text-xs text-muted-foreground break-all max-w-md">
+							<p className="text max-w-md break-all text-muted-foreground text-xs">
 								<pre>{timestamp}</pre>
 							</p>
 						</TooltipContent>
@@ -103,7 +103,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	return (
 		<div
 			className={cn(
-				"font-mono text-xs flex flex-row gap-3 py-2 sm:py-0.5 group",
+				"group flex flex-row gap-3 py-2 font-mono text-xs sm:py-0.5",
 				type === "error"
 					? "bg-red-500/10 hover:bg-red-500/15"
 					: type === "warning"
@@ -119,19 +119,19 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
 				{!noTimestamp && (
-					<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
+					<span className="w-full flex-shrink-0 select-none pl-2 text-muted-foreground sm:w-40">
 						{formattedTime}
 					</span>
 				)}
 
 				<Badge
 					variant={variant}
-					className="w-14 justify-center text-[10px] px-1 py-0"
+					className="w-14 justify-center px-1 py-0 text-[10px]"
 				>
 					{type}
 				</Badge>
 			</div>
-			<span className="dark:text-gray-200 font-mono text-foreground whitespace-pre-wrap break-all">
+			<span className="whitespace-pre-wrap break-all font-mono text-foreground dark:text-gray-200">
 				{highlightMessage(message, searchTerm || "")}
 			</span>
 		</div>

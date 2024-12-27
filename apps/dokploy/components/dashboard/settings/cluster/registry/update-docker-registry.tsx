@@ -132,7 +132,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 					<PenBoxIcon className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Registry</DialogTitle>
 					<DialogDescription>Update the registry information</DialogDescription>
@@ -140,7 +140,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 				{isError && (
 					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
+						<span className="text-red-600 text-sm dark:text-red-400">
 							{error?.message}
 						</span>
 					</div>
@@ -240,9 +240,9 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col">
-						<div className="flex flex-col gap-4 border p-2 rounded-lg">
-							<span className="text-sm text-muted-foreground">
+					<DialogFooter className="flex w-full flex-col flex-wrap gap-4 sm:flex-col sm:justify-between">
+						<div className="flex flex-col gap-4 rounded-lg border p-2">
+							<span className="text-muted-foreground text-sm">
 								Select a server to test the registry. If you don't have a server
 								choose the default one.
 							</span>

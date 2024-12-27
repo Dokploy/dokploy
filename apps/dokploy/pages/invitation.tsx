@@ -125,8 +125,8 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 
 	return (
 		<div>
-			<div className="flex  h-screen w-full items-center justify-center ">
-				<div className="flex flex-col items-center gap-4 w-full">
+			<div className="flex h-screen w-full items-center justify-center ">
+				<div className="flex w-full flex-col items-center gap-4">
 					<Link
 						href="https://dokploy.com"
 						target="_blank"
@@ -135,7 +135,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 						<Logo />
 						<span className="font-medium text-sm">Dokploy</span>
 					</Link>
-					<CardTitle className="text-2xl font-bold">Invitation</CardTitle>
+					<CardTitle className="font-bold text-2xl">Invitation</CardTitle>
 					<CardDescription>
 						Fill the form below to create your account
 					</CardDescription>
@@ -145,7 +145,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 						{isError && (
 							<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
-								<span className="text-sm text-red-600 dark:text-red-400">
+								<span className="text-red-600 text-sm dark:text-red-400">
 									{error?.message}
 								</span>
 							</div>
@@ -216,17 +216,17 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 										</Button>
 									</div>
 
-									<div className="mt-4 text-sm flex flex-row justify-between gap-2 w-full">
+									<div className="mt-4 flex w-full flex-row justify-between gap-2 text-sm">
 										{isCloud && (
 											<>
 												<Link
-													className="hover:underline text-muted-foreground"
+													className="text-muted-foreground hover:underline"
 													href="/"
 												>
 													Login
 												</Link>
 												<Link
-													className="hover:underline text-muted-foreground"
+													className="text-muted-foreground hover:underline"
 													href="/send-reset-password"
 												>
 													Lost your password?

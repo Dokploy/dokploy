@@ -85,11 +85,11 @@ export function StatusLogsFilter({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
+					className="h-9 w-full bg-input text-sm placeholder-gray-400 sm:w-auto"
 				>
 					{title}
 					<Separator orientation="vertical" className="mx-2 h-4" />
-					<div className="space-x-1 flex">{getSelectedBadges()}</div>
+					<div className="flex space-x-1">{getSelectedBadges()}</div>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-[200px] p-0" align="start">

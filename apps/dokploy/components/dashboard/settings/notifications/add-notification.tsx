@@ -238,7 +238,7 @@ export const AddNotification = () => {
 			<DialogTrigger className="" asChild>
 				<Button>Add Notification</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Add Notification</DialogTitle>
 					<DialogDescription>
@@ -264,7 +264,7 @@ export const AddNotification = () => {
 										<RadioGroup
 											onValueChange={field.onChange}
 											defaultValue={field.value}
-											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+											className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
 										>
 											{Object.entries(notificationsMap).map(([key, value]) => (
 												<FormItem
@@ -280,7 +280,7 @@ export const AddNotification = () => {
 															/>
 															<Label
 																htmlFor={key}
-																className="flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex cursor-pointer flex-col items-center justify-between gap-2 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
 															>
 																{value.icon}
 																{value.label}
@@ -295,7 +295,7 @@ export const AddNotification = () => {
 									{activeMutation[field.value].isError && (
 										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 											<AlertTriangle className="text-red-600 dark:text-red-400" />
-											<span className="text-sm text-red-600 dark:text-red-400">
+											<span className="text-red-600 text-sm dark:text-red-400">
 												{activeMutation[field.value].error?.message}
 											</span>
 										</div>
@@ -305,7 +305,7 @@ export const AddNotification = () => {
 						/>
 
 						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+							<FormLabel className="font-semibold text-lg leading-none tracking-tight">
 								Fill the next fields.
 							</FormLabel>
 							<div className="flex flex-col gap-2">
@@ -444,7 +444,7 @@ export const AddNotification = () => {
 
 								{type === "email" && (
 									<>
-										<div className="flex md:flex-row flex-col gap-2 w-full">
+										<div className="flex w-full flex-col gap-2 md:flex-row">
 											<FormField
 												control={form.control}
 												name="smtpServer"
@@ -488,7 +488,7 @@ export const AddNotification = () => {
 											/>
 										</div>
 
-										<div className="flex md:flex-row flex-col gap-2 w-full">
+										<div className="flex w-full flex-col gap-2 md:flex-row">
 											<FormField
 												control={form.control}
 												name="username"
@@ -543,7 +543,7 @@ export const AddNotification = () => {
 											{fields.map((field, index) => (
 												<div
 													key={field.id}
-													className="flex flex-row gap-2 w-full"
+													className="flex w-full flex-row gap-2"
 												>
 													<FormField
 														control={form.control}
@@ -575,7 +575,7 @@ export const AddNotification = () => {
 											))}
 											{type === "email" &&
 												"toAddresses" in form.formState.errors && (
-													<div className="text-sm font-medium text-destructive">
+													<div className="font-medium text-destructive text-sm">
 														{form.formState?.errors?.toAddresses?.root?.message}
 													</div>
 												)}
@@ -595,16 +595,16 @@ export const AddNotification = () => {
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+							<FormLabel className="font-semibold text-lg leading-none tracking-tight">
 								Select the actions.
 							</FormLabel>
 
-							<div className="grid md:grid-cols-2 gap-4">
+							<div className="grid gap-4 md:grid-cols-2">
 								<FormField
 									control={form.control}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
@@ -624,7 +624,7 @@ export const AddNotification = () => {
 									control={form.control}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>App Build Error</FormLabel>
 												<FormDescription>
@@ -645,7 +645,7 @@ export const AddNotification = () => {
 									control={form.control}
 									name="databaseBackup"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -666,7 +666,7 @@ export const AddNotification = () => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
@@ -689,7 +689,7 @@ export const AddNotification = () => {
 										control={form.control}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className=" flex flex-row items-center justify-between gap-2 rounded-lg border p-3 shadow-sm">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
@@ -710,7 +710,7 @@ export const AddNotification = () => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+					<DialogFooter className="!justify-between flex w-full flex-row gap-2">
 						<Button
 							isLoading={
 								isLoadingSlack ||

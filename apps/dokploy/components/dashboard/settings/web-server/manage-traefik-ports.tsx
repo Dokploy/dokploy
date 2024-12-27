@@ -112,7 +112,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 						<DialogTitle className="flex items-center gap-2 text-xl">
 							{t("settings.server.webServer.traefik.managePorts")}
 						</DialogTitle>
-						<DialogDescription className="text-base w-full">
+						<DialogDescription className="w-full text-base">
 							<div className="flex items-center justify-between">
 								{t("settings.server.webServer.traefik.managePortsDescription")}
 								<Button
@@ -133,10 +133,10 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 								{fields.length === 0 ? (
 									<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 										<ArrowRightLeft className="size-8 text-muted-foreground" />
-										<span className="text-base text-muted-foreground text-center">
+										<span className="text-center text-base text-muted-foreground">
 											No port mappings configured
 										</span>
-										<p className="text-sm text-muted-foreground text-center">
+										<p className="text-center text-muted-foreground text-sm">
 											Add one to get started
 										</p>
 									</div>
@@ -144,13 +144,13 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									<div className="grid gap-4">
 										{fields.map((field, index) => (
 											<Card key={field.id}>
-												<CardContent className="grid grid-cols-[1fr_1fr_1.5fr_auto] gap-4 p-4 transparent">
+												<CardContent className="transparent grid grid-cols-[1fr_1fr_1.5fr_auto] gap-4 p-4">
 													<FormField
 														control={form.control}
 														name={`ports.${index}.targetPort`}
 														render={({ field }) => (
 															<FormItem>
-																<FormLabel className="text-sm font-medium text-muted-foreground">
+																<FormLabel className="font-medium text-muted-foreground text-sm">
 																	{t(
 																		"settings.server.webServer.traefik.targetPort",
 																	)}
@@ -176,7 +176,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 														name={`ports.${index}.publishedPort`}
 														render={({ field }) => (
 															<FormItem>
-																<FormLabel className="text-sm font-medium text-muted-foreground">
+																<FormLabel className="font-medium text-muted-foreground text-sm">
 																	{t(
 																		"settings.server.webServer.traefik.publishedPort",
 																	)}
@@ -202,7 +202,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 														name={`ports.${index}.publishMode`}
 														render={({ field }) => (
 															<FormItem>
-																<FormLabel className="text-sm font-medium text-muted-foreground">
+																<FormLabel className="font-medium text-muted-foreground text-sm">
 																	{t(
 																		"settings.server.webServer.traefik.publishMode",
 																	)}
@@ -258,7 +258,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 													<li>
 														<strong>Host Mode:</strong> Directly binds the port
 														to the host machine.
-														<ul className="p-2 list-inside list-disc">
+														<ul className="list-inside list-disc p-2">
 															<li>
 																Best for single-node deployments or when you
 																need guaranteed port availability.
@@ -268,7 +268,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 													<li>
 														<strong>Ingress Mode:</strong> Routes through Docker
 														Swarm's load balancer.
-														<ul className="p-2 list-inside list-disc">
+														<ul className="list-inside list-disc p-2">
 															<li>
 																Recommended for multi-node deployments and
 																better scalability.

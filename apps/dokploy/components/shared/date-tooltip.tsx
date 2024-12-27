@@ -20,7 +20,7 @@ export const DateTooltip = ({ date, children, className }: Props) => {
 				<TooltipTrigger>
 					<span
 						className={cn(
-							"flex items-center text-muted-foreground text-left",
+							"flex items-center text-left text-muted-foreground",
 							className,
 						)}
 					>

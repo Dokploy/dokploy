@@ -41,7 +41,7 @@ export const ShowDestinations = () => {
 					) : (
 						<div className="space-y-8">
 							<div className="flex flex-col gap-4">
-								<div className="flex gap-4 text-xs px-3.5">
+								<div className="flex gap-4 px-3.5 text-xs">
 									<div className="col-span-2 basis-4/12">Key</div>
 									<div className="basis-3/12">Added</div>
 									<div>Last Used</div>
@@ -49,12 +49,12 @@ export const ShowDestinations = () => {
 								{data?.map((sshKey) => (
 									<div
 										key={sshKey.sshKeyId}
-										className="flex gap-4 items-center border p-3.5 rounded-lg text-sm"
+										className="flex items-center gap-4 rounded-lg border p-3.5 text-sm"
 									>
-										<div className="flex flex-col basis-4/12">
+										<div className="flex basis-4/12 flex-col">
 											<span>{sshKey.name}</span>
 											{sshKey.description && (
-												<span className="text-xs text-muted-foreground">
+												<span className="text-muted-foreground text-xs">
 													{sshKey.description}
 												</span>
 											)}

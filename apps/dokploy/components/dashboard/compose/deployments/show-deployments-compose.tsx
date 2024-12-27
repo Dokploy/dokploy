@@ -35,7 +35,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
@@ -51,7 +51,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 						If you want to re-deploy this application use this URL in the config
 						of your git provider or docker
 					</span>
-					<div className="flex flex-row items-center gap-2 flex-wrap">
+					<div className="flex flex-row flex-wrap items-center gap-2">
 						<span>Webhook URL: </span>
 						<div className="flex flex-row items-center gap-2">
 							<span className="text-muted-foreground">
@@ -76,7 +76,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 								className="flex items-center justify-between rounded-lg border p-4"
 							>
 								<div className="flex flex-col">
-									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+									<span className="flex items-center gap-4 font-medium text-foreground capitalize">
 										{deployment.status}
 
 										<StatusTooltip
@@ -84,17 +84,17 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 											className="size-2.5"
 										/>
 									</span>
-									<span className="text-sm text-muted-foreground">
+									<span className="text-muted-foreground text-sm">
 										{deployment.title}
 									</span>
 									{deployment.description && (
-										<span className="text-sm text-muted-foreground">
+										<span className="text-muted-foreground text-sm">
 											{deployment.description}
 										</span>
 									)}
 								</div>
 								<div className="flex flex-col items-end gap-2">
-									<div className="text-sm capitalize text-muted-foreground">
+									<div className="text-muted-foreground text-sm capitalize">
 										<DateTooltip date={deployment.createdAt} />
 									</div>
 

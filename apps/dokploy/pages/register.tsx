@@ -106,8 +106,8 @@ const Register = ({ isCloud }: Props) => {
 	};
 	return (
 		<div>
-			<div className="flex  h-screen w-full items-center justify-center ">
-				<div className="flex flex-col items-center gap-4 w-full">
+			<div className="flex h-screen w-full items-center justify-center ">
+				<div className="flex w-full flex-col items-center gap-4">
 					<Link
 						href="https://dokploy.com"
 						target="_blank"
@@ -117,7 +117,7 @@ const Register = ({ isCloud }: Props) => {
 						<span className="font-medium text-sm">Dokploy</span>
 					</Link>
 
-					<CardTitle className="text-2xl font-bold">
+					<CardTitle className="font-bold text-2xl">
 						{isCloud ? "Create an account" : "Setup the server"}
 					</CardTitle>
 					<CardDescription>
@@ -129,7 +129,7 @@ const Register = ({ isCloud }: Props) => {
 						{isError && (
 							<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
-								<span className="text-sm text-red-600 dark:text-red-400">
+								<span className="text-red-600 text-sm dark:text-red-400">
 									{error?.message}
 								</span>
 							</div>
@@ -208,9 +208,9 @@ const Register = ({ isCloud }: Props) => {
 									</div>
 								</form>
 							</Form>
-							<div className="flex flex-row justify-between flex-wrap">
+							<div className="flex flex-row flex-wrap justify-between">
 								{isCloud && (
-									<div className="mt-4 text-center text-sm flex gap-2">
+									<div className="mt-4 flex gap-2 text-center text-sm">
 										Already have account?
 										<Link className="underline" href="/">
 											Sign in
@@ -218,7 +218,7 @@ const Register = ({ isCloud }: Props) => {
 									</div>
 								)}
 
-								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+								<div className="mt-4 flex flex-row justify-center gap-2 text-center text-sm">
 									Need help?
 									<Link
 										className="underline"

@@ -70,7 +70,7 @@ export const RemoveSelfAccount = () => {
 
 	return (
 		<Card className="bg-transparent">
-			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
 				<div>
 					<CardTitle className="text-xl">Remove Self Account</CardTitle>
 					<CardDescription>

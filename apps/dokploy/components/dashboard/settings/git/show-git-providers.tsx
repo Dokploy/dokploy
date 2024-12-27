@@ -37,16 +37,16 @@ export const ShowGitProviders = () => {
 		return authUrl;
 	};
 	return (
-		<div className="p-6 space-y-6">
+		<div className="space-y-6 p-6">
 			<div className="space-y-2">
-				<h1 className="text-2xl font-bold">Git Providers</h1>
+				<h1 className="font-bold text-2xl">Git Providers</h1>
 				<p className="text-muted-foreground">
 					Connect your Git provider for authentication.
 				</p>
 			</div>
 			<Card className=" bg-transparent">
 				<CardContent className="p-4">
-					<div className="flex gap-4 sm:flex-row flex-col w-full">
+					<div className="flex w-full flex-col gap-4 sm:flex-row">
 						<AddGithubProvider />
 						<AddGitlabProvider />
 						<AddBitbucketProvider />
@@ -55,7 +55,7 @@ export const ShowGitProviders = () => {
 			</Card>
 			<div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1">
 				{data && data.length === 0 && (
-					<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
+					<div className="flex min-h-[25vh] flex-col items-center justify-center gap-3">
 						<GitIcon className="size-8" />
 						<span className="text-base text-muted-foreground">
 							No Git Providers found. To add a provider, create a new one such
@@ -80,16 +80,16 @@ export const ShowGitProviders = () => {
 							className="space-y-4"
 							key={`${gitProvider.gitProviderId}-${index}`}
 						>
-							<Card className="flex sm:flex-row max-sm:gap-2 flex-col justify-between items-center p-4 h-full bg-transparent">
-								<div className="flex items-center space-x-4 w-full">
+							<Card className="flex h-full flex-col items-center justify-between bg-transparent p-4 max-sm:gap-2 sm:flex-row">
+								<div className="flex w-full items-center space-x-4">
 									{gitProvider.providerType === "github" && (
-										<GithubIcon className="w-6 h-6" />
+										<GithubIcon className="h-6 w-6" />
 									)}
 									{gitProvider.providerType === "gitlab" && (
-										<GitlabIcon className="w-6 h-6" />
+										<GitlabIcon className="h-6 w-6" />
 									)}
 									{gitProvider.providerType === "bitbucket" && (
-										<BitbucketIcon className="w-6 h-6" />
+										<BitbucketIcon className="h-6 w-6" />
 									)}
 									<div className="flex flex-col gap-1">
 										<p className="font-medium">
@@ -99,11 +99,11 @@ export const ShowGitProviders = () => {
 													? "GitLab"
 													: "Bitbucket"}
 										</p>
-										<p className="text-sm text-muted-foreground">
+										<p className="text-muted-foreground text-sm">
 											{gitProvider.name}
 										</p>
 										<span>
-											<p className="text-sm text-muted-foreground">
+											<p className="text-muted-foreground text-sm">
 												Created{" "}
 												{formatDate(
 													gitProvider.createdAt,
@@ -113,9 +113,9 @@ export const ShowGitProviders = () => {
 										</span>
 									</div>
 								</div>
-								<div className="flex  sm:gap-4 sm:flex-row flex-col">
+								<div className="flex flex-col sm:flex-row sm:gap-4">
 									{!haveGithubRequirements && isGithub && (
-										<div className="flex flex-col  gap-1">
+										<div className="flex flex-col gap-1">
 											<Link
 												href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 												className={buttonVariants({ className: "w-fit" })}
@@ -126,7 +126,7 @@ export const ShowGitProviders = () => {
 									)}
 
 									{haveGithubRequirements && isGithub && (
-										<div className="flex flex-col  gap-1">
+										<div className="flex flex-col gap-1">
 											<Link
 												href={`${gitProvider?.github?.githubAppName}`}
 												target="_blank"
@@ -141,7 +141,7 @@ export const ShowGitProviders = () => {
 									)}
 
 									{!haveGitlabRequirements && isGitlab && (
-										<div className="flex flex-col  gap-1">
+										<div className="flex flex-col gap-1">
 											<Link
 												href={getGitlabUrl(
 													gitProvider.gitlab?.applicationId || "",

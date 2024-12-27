@@ -26,7 +26,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-row gap-4 flex-wrap">
+				<CardContent className="flex flex-row flex-wrap gap-4">
 					<DeployPostgres postgresId={postgresId} />
 					<ResetPostgres
 						postgresId={postgresId}

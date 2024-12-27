@@ -36,11 +36,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
 						<span className="flex flex-col space-y-0.5">Provider</span>
-						<p className="flex items-center text-sm font-normal text-muted-foreground">
+						<p className="flex items-center font-normal text-muted-foreground text-sm">
 							Select the source of your code
 						</p>
 					</div>
-					<div className="hidden space-y-1 text-sm font-normal md:flex flex-row items-center gap-2">
+					<div className="hidden flex-row items-center gap-2 space-y-1 font-normal text-sm md:flex">
 						<ShowConvertedCompose composeId={composeId} />
 						<GitBranch className="size-6 text-muted-foreground" />
 					</div>
@@ -54,40 +54,40 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
-						<TabsList className="md:grid md:w-fit md:grid-cols-5 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
+					<div className="flex w-full flex-row items-center justify-between gap-4">
+						<TabsList className="justify-start overflow-y-hidden bg-transparent max-md:overflow-x-scroll md:grid md:w-fit md:grid-cols-5">
 							<TabsTrigger
 								value="github"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<GithubIcon className="size-4 text-current fill-current" />
+								<GithubIcon className="size-4 fill-current text-current" />
 								Github
 							</TabsTrigger>
 							<TabsTrigger
 								value="gitlab"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<GitlabIcon className="size-4 text-current fill-current" />
+								<GitlabIcon className="size-4 fill-current text-current" />
 								Gitlab
 							</TabsTrigger>
 							<TabsTrigger
 								value="bitbucket"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<BitbucketIcon className="size-4 text-current fill-current" />
+								<BitbucketIcon className="size-4 fill-current text-current" />
 								Bitbucket
 							</TabsTrigger>
 
 							<TabsTrigger
 								value="git"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GitIcon />
 								Git
 							</TabsTrigger>
 							<TabsTrigger
 								value="raw"
-								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+								className="gap-2 rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<CodeIcon className="size-4 " />
 								Raw
@@ -98,7 +98,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						{githubProviders && githubProviders?.length > 0 ? (
 							<SaveGithubProviderCompose composeId={composeId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<GithubIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using GitHub, you need to configure your account
@@ -118,7 +118,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						{gitlabProviders && gitlabProviders?.length > 0 ? (
 							<SaveGitlabProviderCompose composeId={composeId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<GitlabIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using GitLab, you need to configure your account
@@ -138,7 +138,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						{bitbucketProviders && bitbucketProviders?.length > 0 ? (
 							<SaveBitbucketProviderCompose composeId={composeId} />
 						) : (
-							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+							<div className="flex min-h-[15vh] flex-col items-center justify-center gap-3">
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using Bitbucket, you need to configure your account
@@ -158,7 +158,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						<SaveGitProviderCompose composeId={composeId} />
 					</TabsContent>
 
-					<TabsContent value="raw" className="w-full p-2 flex flex-col gap-4">
+					<TabsContent value="raw" className="flex w-full flex-col gap-4 p-2">
 						<ComposeFileEditor composeId={composeId} />
 					</TabsContent>
 				</Tabs>

@@ -115,7 +115,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 				}
 			}}
 		>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"max-h-screen overflow-y-auto sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 								/>
 								<label
 									htmlFor="show-extra-logs"
-									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+									className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
 									Show Extra Logs
 								</label>
@@ -149,7 +149,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 				<div
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="custom-logs-scrollbar h-[720px] space-y-0 overflow-y-auto rounded border bg-[#fafafa] p-4 dark:bg-[#050506]"
 				>
 					{" "}
 					{filteredLogs.length > 0 ? (
@@ -157,7 +157,7 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 							<TerminalLine key={index} log={log} noTimestamp />
 						))
 					) : (
-						<div className="flex justify-center items-center h-full text-muted-foreground">
+						<div className="flex h-full items-center justify-center text-muted-foreground">
 							<Loader2 className="h-6 w-6 animate-spin" />
 						</div>
 					)}

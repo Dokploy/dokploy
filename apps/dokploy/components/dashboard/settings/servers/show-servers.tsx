@@ -46,12 +46,12 @@ export const ShowServers = () => {
 		api.stripe.canCreateMoreServers.useQuery();
 
 	return (
-		<div className="p-6 space-y-6">
+		<div className="space-y-6 p-6">
 			{query?.success && isCloud && <WelcomeSuscription />}
-			<div className="space-y-2 flex flex-row justify-between items-end">
+			<div className="flex flex-row items-end justify-between space-y-2">
 				<div className="flex flex-col gap-2">
 					<div>
-						<h1 className="text-2xl font-bold">Servers</h1>
+						<h1 className="font-bold text-2xl">Servers</h1>
 						<p className="text-muted-foreground">
 							Add servers to deploy your applications remotely.
 						</p>
@@ -59,7 +59,7 @@ export const ShowServers = () => {
 
 					{isCloud && (
 						<span
-							className="text-primary cursor-pointer text-sm"
+							className="cursor-pointer text-primary text-sm"
 							onClick={() => {
 								router.push("/dashboard/settings/servers?success=true");
 							}}
@@ -78,7 +78,7 @@ export const ShowServers = () => {
 
 			<div className="grid gap-4 sm:grid-cols-1 md:grid-cols-1">
 				{sshKeys?.length === 0 && data?.length === 0 ? (
-					<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
+					<div className="flex min-h-[25vh] flex-col items-center justify-center gap-3">
 						<KeyIcon className="size-8" />
 						<span className="text-base text-muted-foreground">
 							No SSH Keys found. Add a SSH Key to start adding servers.{" "}
@@ -93,7 +93,7 @@ export const ShowServers = () => {
 				) : (
 					data &&
 					data.length === 0 && (
-						<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
+						<div className="flex min-h-[25vh] flex-col items-center justify-center gap-3">
 							<ServerIcon className="size-8" />
 							<span className="text-base text-muted-foreground">
 								{!canCreateMoreServers ? (
@@ -120,7 +120,7 @@ export const ShowServers = () => {
 					<div className="flex flex-col gap-6 overflow-auto">
 						<Table>
 							<TableCaption>
-								<div className="flex flex-col  gap-4">See all servers</div>
+								<div className="flex flex-col gap-4">See all servers</div>
 							</TableCaption>
 							<TableHeader>
 								<TableRow>
@@ -166,17 +166,17 @@ export const ShowServers = () => {
 												{server.username}
 											</TableCell>
 											<TableCell className="text-right">
-												<span className="text-sm text-muted-foreground">
+												<span className="text-muted-foreground text-sm">
 													{server.sshKeyId ? "Yes" : "No"}
 												</span>
 											</TableCell>
 											<TableCell className="text-right">
-												<span className="text-sm text-muted-foreground">
+												<span className="text-muted-foreground text-sm">
 													{format(new Date(server.createdAt), "PPpp")}
 												</span>
 											</TableCell>
 
-											<TableCell className="text-right flex justify-end">
+											<TableCell className="flex justify-end text-right">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button variant="ghost" className="h-8 w-8 p-0">
@@ -242,7 +242,7 @@ export const ShowServers = () => {
 															}}
 														>
 															<DropdownMenuItem
-																className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																className="hover:!text-red-600 w-full cursor-pointer text-red-500"
 																onSelect={(e) => e.preventDefault()}
 															>
 																Delete Server

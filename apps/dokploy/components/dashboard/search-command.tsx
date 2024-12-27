@@ -73,7 +73,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									<BookIcon className="size-4 text-muted-foreground mr-2" />
+									<BookIcon className="mr-2 size-4 text-muted-foreground" />
 									{project.name}
 								</CommandItem>
 							))}
@@ -95,25 +95,25 @@ export const SearchCommand = () => {
 										}}
 									>
 										{application.type === "postgres" && (
-											<PostgresqlIcon className="h-6 w-6 mr-2" />
+											<PostgresqlIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "redis" && (
-											<RedisIcon className="h-6 w-6 mr-2" />
+											<RedisIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "mariadb" && (
-											<MariadbIcon className="h-6 w-6 mr-2" />
+											<MariadbIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "mongo" && (
-											<MongodbIcon className="h-6 w-6 mr-2" />
+											<MongodbIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "mysql" && (
-											<MysqlIcon className="h-6 w-6 mr-2" />
+											<MysqlIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "application" && (
-											<GlobeIcon className="h-6 w-6 mr-2" />
+											<GlobeIcon className="mr-2 h-6 w-6" />
 										)}
 										{application.type === "compose" && (
-											<CircuitBoard className="h-6 w-6 mr-2" />
+											<CircuitBoard className="mr-2 h-6 w-6" />
 										)}
 										<span className="flex-grow">
 											{project.name} / {application.name}{" "}

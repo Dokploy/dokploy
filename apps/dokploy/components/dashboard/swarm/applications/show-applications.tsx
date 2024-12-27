@@ -35,7 +35,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			<Dialog>
 				<DialogTrigger asChild>
 					<Button variant="outline" size="sm" className="w-full">
-						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+						<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 					</Button>
 				</DialogTrigger>
 			</Dialog>
@@ -44,7 +44,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 
 	if (!NodeApps || !NodeAppDetails) {
 		return (
-			<span className="text-sm w-full flex text-center justify-center items-center">
+			<span className="flex w-full items-center justify-center text-center text-sm">
 				No data found
 			</span>
 		);
@@ -84,11 +84,11 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 		<Dialog>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
-					<Layers className="h-4 w-4 mr-2" />
+					<Layers className="mr-2 h-4 w-4" />
 					Services
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-6xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"max-h-screen overflow-y-auto sm:max-w-6xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Applications</DialogTitle>
 					<DialogDescription>

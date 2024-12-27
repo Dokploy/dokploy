@@ -32,7 +32,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-row gap-4 flex-wrap">
+				<CardContent className="flex flex-row flex-wrap gap-4">
 					<DeployApplication applicationId={applicationId} />
 					<ResetApplication
 						applicationId={applicationId}
@@ -54,8 +54,8 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
-					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-						<span className="text-sm font-medium">Autodeploy</span>
+					<div className="flex flex-row items-center gap-2 rounded-md border px-4 py-2">
+						<span className="font-medium text-sm">Autodeploy</span>
 						<Switch
 							aria-label="Toggle italic"
 							checked={data?.autoDeploy || false}
@@ -72,7 +72,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										toast.error("Error to update Auto Deploy");
 									});
 							}}
-							className="flex flex-row gap-2 items-center"
+							className="flex flex-row items-center gap-2"
 						/>
 					</div>
 				</CardContent>

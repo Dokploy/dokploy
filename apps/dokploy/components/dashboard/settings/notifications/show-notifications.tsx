@@ -40,11 +40,11 @@ export const ShowNotifications = () => {
 						</div>
 					) : (
 						<div className="flex flex-col gap-4">
-							<div className="grid lg:grid-cols-1 xl:grid-cols-2 gap-4">
+							<div className="grid gap-4 lg:grid-cols-1 xl:grid-cols-2">
 								{data?.map((notification, index) => (
 									<div
 										key={notification.notificationId}
-										className="flex items-center justify-between rounded-xl p-4 transition-colors dark:bg-zinc-900/50 bg-gray-200/50 border border-card"
+										className="flex items-center justify-between rounded-xl border border-card bg-gray-200/50 p-4 transition-colors dark:bg-zinc-900/50"
 									>
 										<div className="flex items-center gap-4">
 											{notification.notificationType === "slack" && (
@@ -68,10 +68,10 @@ export const ShowNotifications = () => {
 												</div>
 											)}
 											<div className="flex flex-col">
-												<span className="text-sm font-medium dark:text-zinc-300 text-zinc-800">
+												<span className="font-medium text-sm text-zinc-800 dark:text-zinc-300">
 													{notification.name}
 												</span>
-												<span className="text-xs font-medium text-muted-foreground">
+												<span className="font-medium text-muted-foreground text-xs">
 													{notification.notificationType?.[0]?.toUpperCase() +
 														notification.notificationType?.slice(1)}{" "}
 													notification
@@ -90,7 +90,7 @@ export const ShowNotifications = () => {
 								))}
 							</div>
 
-							<div className="flex flex-col gap-4 justify-end w-full items-end">
+							<div className="flex w-full flex-col items-end justify-end gap-4">
 								<AddNotification />
 							</div>
 						</div>

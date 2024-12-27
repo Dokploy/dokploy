@@ -26,7 +26,7 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
-					<CardContent className="flex flex-row gap-4 flex-wrap">
+					<CardContent className="flex flex-row flex-wrap gap-4">
 						<DeployMongo mongoId={mongoId} />
 						<ResetMongo mongoId={mongoId} appName={data?.appName || ""} />
 						{data?.applicationStatus === "idle" ? (

@@ -97,7 +97,7 @@ export const AddDestination = () => {
 			<DialogTrigger className="" asChild>
 				<Button>Add Destination</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add Destination</DialogTitle>
 					<DialogDescription>
@@ -243,12 +243,12 @@ export const AddDestination = () => {
 					<DialogFooter
 						className={cn(
 							isCloud ? "!flex-col" : "flex-row",
-							"flex w-full  !justify-between pt-3 gap-4",
+							"!justify-between flex w-full gap-4 pt-3",
 						)}
 					>
 						{isCloud ? (
-							<div className="flex flex-col gap-4 border p-2 rounded-lg">
-								<span className="text-sm text-muted-foreground">
+							<div className="flex flex-col gap-4 rounded-lg border p-2">
+								<span className="text-muted-foreground text-sm">
 									Select a server to test the destination. If you don't have a
 									server choose the default one.
 								</span>

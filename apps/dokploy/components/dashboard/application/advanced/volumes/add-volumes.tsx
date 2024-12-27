@@ -150,7 +150,7 @@ export const AddVolumes = ({
 			<DialogTrigger className="" asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Volumes / Mounts</DialogTitle>
 				</DialogHeader>
@@ -182,7 +182,7 @@ export const AddVolumes = ({
 										<RadioGroup
 											onValueChange={field.onChange}
 											defaultValue={field.value}
-											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+											className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
 										>
 											{serviceType !== "compose" && (
 												<FormItem className="flex items-center space-x-3 space-y-0">
@@ -195,7 +195,7 @@ export const AddVolumes = ({
 															/>
 															<Label
 																htmlFor="bind"
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
 															>
 																Bind Mount
 															</Label>
@@ -215,7 +215,7 @@ export const AddVolumes = ({
 															/>
 															<Label
 																htmlFor="volume"
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
 															>
 																Volume Mount
 															</Label>
@@ -239,7 +239,7 @@ export const AddVolumes = ({
 														/>
 														<Label
 															htmlFor="file"
-															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+															className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
 														>
 															File Mount
 														</Label>
@@ -253,7 +253,7 @@ export const AddVolumes = ({
 							)}
 						/>
 						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+							<FormLabel className="font-semibold text-lg leading-none tracking-tight">
 								Fill the next fields.
 							</FormLabel>
 							<div className="flex flex-col gap-2">

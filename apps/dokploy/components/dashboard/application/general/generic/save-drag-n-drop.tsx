@@ -66,8 +66,8 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex flex-col gap-4"
 			>
-				<div className="grid md:grid-cols-2 gap-4 ">
-					<div className="md:col-span-2 space-y-4">
+				<div className="grid gap-4 md:grid-cols-2 ">
+					<div className="space-y-4 md:col-span-2">
 						<FormField
 							control={form.control}
 							name="dropBuildPath"
@@ -103,8 +103,8 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 									</FormControl>
 									<FormMessage />
 									{zip instanceof File && (
-										<div className="flex flex-row gap-4 items-center">
-											<span className="text-sm text-muted-foreground">
+										<div className="flex flex-row items-center gap-4">
+											<span className="text-muted-foreground text-sm">
 												{zip.name} ({zip.size} bytes)
 											</span>
 											<Button
@@ -115,7 +115,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 													field.onChange(null);
 												}}
 											>
-												<TrashIcon className="w-4 h-4 text-muted-foreground" />
+												<TrashIcon className="h-4 w-4 text-muted-foreground" />
 											</Button>
 										</div>
 									)}

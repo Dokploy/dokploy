@@ -78,7 +78,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex flex-col gap-4"
 			>
-				<div className="grid md:grid-cols-2 gap-4 ">
+				<div className="grid gap-4 md:grid-cols-2 ">
 					<div className="space-y-4">
 						<FormField
 							control={form.control}

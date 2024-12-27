@@ -99,7 +99,7 @@ export const EditScript = ({ serverId }: Props) => {
 					<FileTerminal className="size-4 text-muted-foreground" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl overflow-x-hidden">
+			<DialogContent className="max-h-screen overflow-y-auto overflow-x-hidden sm:max-w-5xl">
 				<DialogHeader>
 					<DialogTitle>Modify Script</DialogTitle>
 					<DialogDescription>
@@ -125,7 +125,7 @@ export const EditScript = ({ serverId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Command</FormLabel>
-										<FormControl className="max-h-[75vh] max-w-[60rem] overflow-y-scroll overflow-x-hidden">
+										<FormControl className="max-h-[75vh] max-w-[60rem] overflow-x-hidden overflow-y-scroll">
 											<CodeEditor
 												language="shell"
 												wrapperClassName="font-mono"
@@ -143,7 +143,7 @@ echo "Hello world"
 						</form>
 					</Form>
 				</div>
-				<DialogFooter className="flex justify-between w-full">
+				<DialogFooter className="flex w-full justify-between">
 					<Button
 						variant="secondary"
 						onClick={() => {

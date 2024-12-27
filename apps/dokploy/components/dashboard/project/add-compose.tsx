@@ -123,7 +123,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 					<span>Compose</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Create Compose</DialogTitle>
 					<DialogDescription>
@@ -172,7 +172,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormLabel className="flex w-fit flex-row items-center gap-1 break-all">
 													Select a Server (Optional)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>

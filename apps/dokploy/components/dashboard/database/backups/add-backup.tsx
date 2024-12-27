@@ -136,7 +136,7 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 					Create Backup
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg max-h-screen overflow-y-auto">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Create a backup</DialogTitle>
 					<DialogDescription>Add a new backup</DialogDescription>
@@ -161,7 +161,7 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between !bg-input",
+															"!bg-input w-full justify-between",
 															!field.value && "text-muted-foreground",
 														)}
 													>

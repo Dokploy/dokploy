@@ -22,7 +22,7 @@ export const AddNode = () => {
 					Add Node
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Add Node</DialogTitle>
 					<DialogDescription className="flex flex-col gap-2">
@@ -31,7 +31,7 @@ export const AddNode = () => {
 						<Link
 							href="https://docs.docker.com/engine/swarm/"
 							target="_blank"
-							className="text-primary flex flex-row gap-2 items-center"
+							className="flex flex-row items-center gap-2 text-primary"
 						>
 							Docker Swarm
 							<ExternalLink className="h-4 w-4" />
@@ -39,7 +39,7 @@ export const AddNode = () => {
 						<Link
 							href="https://docs.docker.com/engine/swarm/how-swarm-mode-works/nodes/"
 							target="_blank"
-							className="text-primary flex flex-row gap-2 items-center"
+							className="flex flex-row items-center gap-2 text-primary"
 						>
 							Architecture
 							<ExternalLink className="h-4 w-4" />

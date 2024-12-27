@@ -35,14 +35,14 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 					View Config
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className={"w-full md:w-[70vw] min-w-[70vw]"}>
+			<DialogContent className={"w-full min-w-[70vw] md:w-[70vw]"}>
 				<DialogHeader>
 					<DialogTitle>Container Config</DialogTitle>
 					<DialogDescription>
 						See in detail the config of this container
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm bg-card overflow-y-auto max-h-[80vh]">
+				<div className="max-h-[80vh] overflow-y-auto text-wrap rounded-lg border bg-card p-4 text-sm">
 					<code>
 						<pre className="whitespace-pre-wrap break-words">
 							<CodeEditor

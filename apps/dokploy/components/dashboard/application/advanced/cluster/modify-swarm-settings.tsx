@@ -265,12 +265,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="secondary" className="cursor-pointer w-fit">
+				<Button variant="secondary" className="w-fit cursor-pointer">
 					<Settings className="size-4 text-muted-foreground" />
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
+			<DialogContent className="max-h-[85vh] overflow-y-auto p-0 sm:max-w-5xl">
 				<DialogHeader className="p-6">
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
@@ -289,7 +289,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
+						className="relative grid w-full grid-cols-1 gap-4 md:grid-cols-2"
 					>
 						<FormField
 							control={form.control}
@@ -300,13 +300,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -351,18 +351,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="restartPolicySwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Restart Policy</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -405,18 +405,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="placementSwarm"
 							render={({ field }) => (
-								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Placement</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -471,18 +471,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="updateConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Update Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -529,18 +529,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Rollback Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -587,18 +587,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="modeSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Mode</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="center"
 												side="bottom"
 											>
@@ -655,13 +655,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -714,13 +714,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormDescription className="flex w-fit flex-row items-center gap-1 break-all">
 													Check the interface
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
-												className="w-full z-[999]"
+												className="z-[999] w-full"
 												align="start"
 												side="bottom"
 											>
@@ -753,7 +753,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							)}
 						/>
 
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
+						<DialogFooter className="sticky right-0 bottom-0 m-0 flex w-full flex-row justify-end border bg-muted p-2 md:col-span-2 ">
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"

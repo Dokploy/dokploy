@@ -53,7 +53,7 @@ export const AddGithubProvider = () => {
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="flex items-center space-x-1">
-					<GithubIcon className="text-current fill-current" />
+					<GithubIcon className="fill-current text-current" />
 					<span>Github</span>
 				</Button>
 			</DialogTrigger>
@@ -114,12 +114,11 @@ export const AddGithubProvider = () => {
 												? `https://github.com/organizations/${organizationName}/settings/installations`
 												: "https://github.com/settings/installations"
 										}
-										className={`text-muted-foreground text-sm hover:underline duration-300
-											 ${
-													isOrganization && !organizationName
-														? "pointer-events-none opacity-50"
-														: ""
-												}`}
+										className={`text-muted-foreground text-sm duration-300 hover:underline ${
+											isOrganization && !organizationName
+												? "pointer-events-none opacity-50"
+												: ""
+										}`}
 										target="_blank"
 										rel="noopener noreferrer"
 									>

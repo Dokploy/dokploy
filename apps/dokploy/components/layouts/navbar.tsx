@@ -88,15 +88,15 @@ export const Navbar = () => {
 	}, []);
 
 	return (
-		<nav className="border-divider sticky inset-x-0 top-0 z-40 flex h-auto w-full items-center justify-center border-b bg-background/70 backdrop-blur-lg backdrop-saturate-150 data-[menu-open=true]:border-none data-[menu-open=true]:backdrop-blur-xl">
-			<header className="relative z-40 flex w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6 h-16">
-				<div className="text-medium box-border flex flex-grow basis-0 flex-row flex-nowrap items-center justify-start whitespace-nowrap bg-transparent no-underline">
+		<nav className="sticky inset-x-0 top-0 z-40 flex h-auto w-full items-center justify-center border-divider border-b bg-background/70 backdrop-blur-lg backdrop-saturate-150 data-[menu-open=true]:border-none data-[menu-open=true]:backdrop-blur-xl">
+			<header className="relative z-40 flex h-16 w-full max-w-8xl flex-row flex-nowrap items-center justify-between gap-4 px-4 sm:px-6">
+				<div className="box-border flex flex-grow basis-0 flex-row flex-nowrap items-center justify-start whitespace-nowrap bg-transparent text-medium no-underline">
 					<Link
 						href="/dashboard/projects"
 						className={cn("flex flex-row items-center gap-2")}
 					>
 						<Logo />
-						<span className="text-sm font-semibold text-primary max-sm:hidden">
+						<span className="font-semibold text-primary text-sm max-sm:hidden">
 							Dokploy
 						</span>
 					</Link>
@@ -109,25 +109,25 @@ export const Navbar = () => {
 				<Link
 					className={buttonVariants({
 						variant: "outline",
-						className: " flex items-center gap-2 !rounded-full",
+						className: " !rounded-full flex items-center gap-2",
 					})}
 					href="https://opencollective.com/dokploy"
 					target="_blank"
 				>
-					<span className="text-sm font-semibold">Support </span>
-					<HeartIcon className="size-4 text-red-500 fill-red-600 animate-heartbeat " />
+					<span className="font-semibold text-sm">Support </span>
+					<HeartIcon className="size-4 animate-heartbeat fill-red-600 text-red-500 " />
 				</Link>
 				<ul
 					className="ml-auto flex h-12 max-w-fit flex-row flex-nowrap items-center gap-0 data-[justify=end]:flex-grow data-[justify=start]:flex-grow data-[justify=end]:basis-0 data-[justify=start]:basis-0 data-[justify=start]:justify-start data-[justify=end]:justify-end data-[justify=center]:justify-center"
 					data-justify="end"
 				>
-					<li className="text-medium mr-2 box-border hidden list-none whitespace-nowrap data-[active=true]:font-semibold data-[active=true]:text-primary lg:flex">
+					<li className="mr-2 box-border hidden list-none whitespace-nowrap text-medium data-[active=true]:font-semibold data-[active=true]:text-primary lg:flex">
 						{/* <Badge>PRO</Badge> */}
 					</li>
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Avatar className="size-10 cursor-pointer border border-border items-center">
+							<Avatar className="size-10 cursor-pointer items-center border border-border">
 								<AvatarImage src={data?.image || ""} alt="@shadcn" />
 								<AvatarFallback>
 									{data?.email
@@ -140,7 +140,7 @@ export const Navbar = () => {
 						<DropdownMenuContent className="w-56" align="end">
 							<DropdownMenuLabel className="flex flex-col">
 								My Account
-								<span className="text-xs font-normal text-muted-foreground">
+								<span className="font-normal text-muted-foreground text-xs">
 									{data?.email}
 								</span>
 							</DropdownMenuLabel>

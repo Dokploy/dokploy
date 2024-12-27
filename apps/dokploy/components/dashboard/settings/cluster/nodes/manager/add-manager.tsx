@@ -15,14 +15,14 @@ export const AddManager = () => {
 	return (
 		<>
 			<div>
-				<CardContent className="sm:max-w-4xl max-h-screen overflow-y-auto flex flex-col gap-4 px-0">
+				<CardContent className="flex max-h-screen flex-col gap-4 overflow-y-auto px-0 sm:max-w-4xl">
 					<DialogHeader>
 						<DialogTitle>Add a new manager</DialogTitle>
 						<DialogDescription>Add a new manager</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col gap-2.5 text-sm">
 						<span>1. Go to your new server and run the following command</span>
-						<span className="bg-muted rounded-lg p-2 flex justify-between">
+						<span className="flex justify-between rounded-lg bg-muted p-2">
 							curl https://get.docker.com | sh -s -- --version {data?.version}
 							<button
 								type="button"
@@ -44,7 +44,7 @@ export const AddManager = () => {
 							2. Run the following command to add the node(manager) to your
 							cluster
 						</span>
-						<span className="bg-muted rounded-lg p-2  flex">
+						<span className="flex rounded-lg bg-muted p-2">
 							{data?.command}
 							<button
 								type="button"

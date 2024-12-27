@@ -124,12 +124,12 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 
 	return (
 		<div className="gap-12">
-			<header className="mb-6 flex w-full items-center gap-2 justify-between flex-wrap">
+			<header className="mb-6 flex w-full flex-wrap items-center justify-between gap-2">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-xl font-bold lg:text-3xl">
+					<h1 className="font-bold text-xl lg:text-3xl">
 						{activeTabInfo?.label}
 					</h1>
-					<p className="lg:text-medium text-muted-foreground">
+					<p className="text-muted-foreground lg:text-medium">
 						{activeTabInfo?.description}
 					</p>
 				</div>
@@ -146,8 +146,8 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 						router.push(tab?.index || "");
 					}}
 				>
-					<div className="flex flex-row items-center justify-between w-full gap-4 max-sm:overflow-x-auto overflow-y-hidden border-b border-b-divider pb-1">
-						<TabsList className="bg-transparent relative px-0">
+					<div className="flex w-full flex-row items-center justify-between gap-4 overflow-y-hidden border-b border-b-divider pb-1 max-sm:overflow-x-auto">
+						<TabsList className="relative bg-transparent px-0">
 							{tabMap.map((tab, index) => {
 								if (tab?.isShow && !tab?.isShow?.({ rol: data?.rol, user })) {
 									return null;
@@ -156,14 +156,14 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 									<TabsTrigger
 										key={tab.type}
 										value={tab.type}
-										className="relative py-2.5 md:px-5 data-[state=active]:shadow-none data-[state=active]:bg-transparent rounded-md hover:bg-zinc-100 hover:dark:bg-zinc-800 data-[state=active]:hover:bg-zinc-100 data-[state=active]:hover:dark:bg-zinc-800"
+										className="relative rounded-md py-2.5 hover:bg-zinc-100 data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:hover:bg-zinc-100 md:px-5 hover:dark:bg-zinc-800 data-[state=active]:hover:dark:bg-zinc-800"
 									>
 										<span className="relative z-[1] w-full">
 											{tab?.tabLabel || tab?.label}
 										</span>
 										{tab.type === activeTab && (
-											<div className="absolute -bottom-[5.5px] w-full">
-												<div className="h-0.5 bg-foreground rounded-t-md" />
+											<div className="-bottom-[5.5px] absolute w-full">
+												<div className="h-0.5 rounded-t-md bg-foreground" />
 											</div>
 										)}
 									</TabsTrigger>

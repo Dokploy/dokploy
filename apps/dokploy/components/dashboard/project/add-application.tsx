@@ -119,7 +119,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					<span>Application</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Create</DialogTitle>
 					<DialogDescription>
@@ -165,7 +165,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormLabel className="flex w-fit flex-row items-center gap-1 break-all">
 													Select a Server (Optional)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>

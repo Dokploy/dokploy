@@ -27,7 +27,7 @@ export const ShowTraefikFileSystemModal = ({ serverId }: Props) => {
 					Show Traefik File System
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-7xl ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">

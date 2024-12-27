@@ -285,7 +285,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					<span>Database</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl md:max-h-[90vh]">
 				<DialogHeader>
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>
@@ -309,7 +309,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										<RadioGroup
 											onValueChange={field.onChange}
 											defaultValue={field.value}
-											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+											className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
 										>
 											{Object.entries(databasesMap).map(([key, value]) => (
 												<FormItem
@@ -325,7 +325,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
 															>
 																{value.icon}
 																{value.label}
@@ -340,7 +340,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									{activeMutation[field.value].isError && (
 										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 											<AlertTriangle className="text-red-600 dark:text-red-400" />
-											<span className="text-sm text-red-600 dark:text-red-400">
+											<span className="text-red-600 text-sm dark:text-red-400">
 												{activeMutation[field.value].error?.message}
 											</span>
 										</div>
@@ -349,7 +349,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 							)}
 						/>
 						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+							<FormLabel className="font-semibold text-lg leading-none tracking-tight">
 								Fill the next fields.
 							</FormLabel>
 							<div className="flex flex-col gap-2">
@@ -553,7 +553,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										name="replicaSets"
 										render={({ field }) => {
 											return (
-												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+												<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 													<div className="space-y-0.5">
 														<FormLabel>Use Replica Sets</FormLabel>
 													</div>

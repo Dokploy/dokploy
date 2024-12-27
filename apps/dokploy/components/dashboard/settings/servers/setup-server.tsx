@@ -72,7 +72,7 @@ export const SetupServer = ({ serverId }: Props) => {
 					Setup Server
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export const SetupServer = ({ serverId }: Props) => {
 					</div>
 				</DialogHeader>
 				{!server?.sshKeyId ? (
-					<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+					<div className="flex flex-col gap-2 pt-3 text-muted-foreground text-sm">
 						<AlertBlock type="warning">
 							Please add a SSH Key to your server before setting up the server.
 							you can assign a SSH Key to your server in Edit Server.
@@ -98,7 +98,7 @@ export const SetupServer = ({ serverId }: Props) => {
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-5 w-[700px]">
+							<TabsList className="grid w-[700px] grid-cols-5">
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
@@ -109,8 +109,8 @@ export const SetupServer = ({ serverId }: Props) => {
 								value="ssh-keys"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<p className="text-primary text-base font-semibold">
+								<div className="flex flex-col gap-2 pt-3 text-muted-foreground text-sm">
+									<p className="font-semibold text-base text-primary">
 										You have two options to add SSH Keys to your server:
 									</p>
 
@@ -122,13 +122,13 @@ export const SetupServer = ({ serverId }: Props) => {
 										</li>
 										<li>2. Add The SSH Key to Server Manually</li>
 									</ul>
-									<div className="flex flex-col gap-4 w-full overflow-auto">
-										<div className="flex relative flex-col gap-2 overflow-y-auto">
-											<div className="text-sm text-primary flex flex-row gap-2 items-center">
+									<div className="flex w-full flex-col gap-4 overflow-auto">
+										<div className="relative flex flex-col gap-2 overflow-y-auto">
+											<div className="flex flex-row items-center gap-2 text-primary text-sm">
 												Copy Public Key ({server?.sshKey?.name})
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className=" top-8 right-2"
 													onClick={() => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",
@@ -142,26 +142,26 @@ export const SetupServer = ({ serverId }: Props) => {
 										</div>
 									</div>
 
-									<div className="flex flex-col gap-2 w-full mt-2 border rounded-lg p-4">
-										<span className="text-base font-semibold text-primary">
+									<div className="mt-2 flex w-full flex-col gap-2 rounded-lg border p-4">
+										<span className="font-semibold text-base text-primary">
 											Automatic process
 										</span>
 										<Link
 											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 											target="_blank"
-											className="text-primary flex flex-row gap-2"
+											className="flex flex-row gap-2 text-primary"
 										>
 											View Tutorial <ExternalLinkIcon className="size-4" />
 										</Link>
 									</div>
-									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
-										<span className="text-base font-semibold text-primary">
+									<div className="flex w-full flex-col gap-2 rounded-lg border p-4">
+										<span className="font-semibold text-base text-primary">
 											Manual process
 										</span>
 										<ul>
-											<li className="items-center flex gap-1">
+											<li className="flex items-center gap-1">
 												1. Login to your server{" "}
-												<span className="text-primary bg-secondary p-1 rounded-lg">
+												<span className="rounded-lg bg-secondary p-1 text-primary">
 													ssh {server?.username}@{server?.ipAddress}
 												</span>
 												<button
@@ -178,7 +178,7 @@ export const SetupServer = ({ serverId }: Props) => {
 											</li>
 											<li>
 												2. When you are logged in run the following command
-												<div className="flex  relative flex-col gap-4 w-full mt-2">
+												<div className="relative mt-2 flex w-full flex-col gap-4">
 													<CodeEditor
 														lineWrapping
 														language="properties"
@@ -188,7 +188,7 @@ export const SetupServer = ({ serverId }: Props) => {
 													/>
 													<button
 														type="button"
-														className="absolute right-2 top-2"
+														className="absolute top-2 right-2"
 														onClick={() => {
 															copy(
 																`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
@@ -206,8 +206,8 @@ export const SetupServer = ({ serverId }: Props) => {
 											</li>
 										</ul>
 									</div>
-									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
-										<span className="text-base font-semibold text-primary">
+									<div className="flex w-full flex-col gap-2 rounded-lg border p-4">
+										<span className="font-semibold text-base text-primary">
 											Supported Distros:
 										</span>
 										<p>
@@ -234,8 +234,8 @@ export const SetupServer = ({ serverId }: Props) => {
 								<CardContent className="p-0">
 									<div className="flex flex-col gap-4">
 										<Card className="bg-background">
-											<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
+											<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+												<div className="flex w-full flex-row justify-between gap-2 max-sm:flex-col">
 													<div className="flex flex-col gap-1">
 														<CardTitle className="text-xl">
 															Deployments
@@ -282,10 +282,10 @@ export const SetupServer = ({ serverId }: Props) => {
 														{deployments?.map((deployment) => (
 															<div
 																key={deployment.deploymentId}
-																className="flex items-center justify-between rounded-lg border p-4 gap-2"
+																className="flex items-center justify-between gap-2 rounded-lg border p-4"
 															>
 																<div className="flex flex-col">
-																	<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+																	<span className="flex items-center gap-4 font-medium text-foreground capitalize">
 																		{deployment.status}
 
 																		<StatusTooltip
@@ -293,17 +293,17 @@ export const SetupServer = ({ serverId }: Props) => {
 																			className="size-2.5"
 																		/>
 																	</span>
-																	<span className="text-sm text-muted-foreground">
+																	<span className="text-muted-foreground text-sm">
 																		{deployment.title}
 																	</span>
 																	{deployment.description && (
-																		<span className="break-all text-sm text-muted-foreground">
+																		<span className="break-all text-muted-foreground text-sm">
 																			{deployment.description}
 																		</span>
 																	)}
 																</div>
 																<div className="flex flex-col items-end gap-2">
-																	<div className="text-sm capitalize text-muted-foreground">
+																	<div className="text-muted-foreground text-sm capitalize">
 																		<DateTooltip date={deployment.createdAt} />
 																	</div>
 
@@ -334,7 +334,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								value="validate"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+								<div className="flex flex-col gap-2 pt-3 text-muted-foreground text-sm">
 									<ValidateServer serverId={serverId} />
 								</div>
 							</TabsContent>
@@ -342,7 +342,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								value="audit"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+								<div className="flex flex-col gap-2 pt-3 text-muted-foreground text-sm">
 									<SecurityAudit serverId={serverId} />
 								</div>
 							</TabsContent>
@@ -350,7 +350,7 @@ export const SetupServer = ({ serverId }: Props) => {
 								value="gpu-setup"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+								<div className="flex flex-col gap-2 pt-3 text-muted-foreground text-sm">
 									<GPUSupport serverId={serverId} />
 								</div>
 							</TabsContent>

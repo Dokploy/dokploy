@@ -25,7 +25,7 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
+			<CardHeader className="flex flex-row flex-wrap justify-between gap-4">
 				<div>
 					<CardTitle className="text-xl">Security</CardTitle>
 					<CardDescription>Add basic auth to your application</CardDescription>
@@ -51,17 +51,17 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 						<div className="flex flex-col gap-6 ">
 							{data?.security.map((security) => (
 								<div key={security.securityId}>
-									<div className="flex w-full flex-col sm:flex-row justify-between sm:items-center gap-4 sm:gap-10 border rounded-lg p-4">
-										<div className="grid grid-cols-1 sm:grid-cols-2 flex-col gap-4 sm:gap-8">
+									<div className="flex w-full flex-col justify-between gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:gap-10">
+										<div className="grid grid-cols-1 flex-col gap-4 sm:grid-cols-2 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Username</span>
-												<span className="text-sm text-muted-foreground">
+												<span className="text-muted-foreground text-sm">
 													{security.username}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Password</span>
-												<span className="text-sm text-muted-foreground">
+												<span className="text-muted-foreground text-sm">
 													{security.password}
 												</span>
 											</div>

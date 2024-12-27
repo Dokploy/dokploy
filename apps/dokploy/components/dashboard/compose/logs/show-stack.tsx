@@ -92,10 +92,10 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
-				<div className="flex flex-row justify-between items-center gap-2">
+				<div className="flex flex-row items-center justify-between gap-2">
 					<Label>Select a container to view logs</Label>
-					<div className="flex flex-row gap-2 items-center">
-						<span className="text-sm text-muted-foreground">
+					<div className="flex flex-row items-center gap-2">
+						<span className="text-muted-foreground text-sm">
 							{option === "native" ? "Native" : "Swarm"}
 						</span>
 						<Switch
@@ -109,9 +109,9 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
+							<div className="flex flex-row items-center justify-center gap-2 text-muted-foreground text-sm">
 								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+								<Loader2 className="size-4 animate-spin" />
 							</div>
 						) : (
 							<SelectValue placeholder="Select a container" />

@@ -21,29 +21,29 @@ export const GenerateToken = () => {
 
 	return (
 		<Card className="bg-transparent">
-			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
 				<div>
 					<CardTitle className="text-xl">API/CLI</CardTitle>
 					<CardDescription>
 						Generate a token to access the API/CLI
 					</CardDescription>
 				</div>
-				<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
-					<span className="text-sm font-medium text-muted-foreground">
+				<div className="flex flex-row items-end gap-2 max-sm:flex-wrap">
+					<span className="font-medium text-muted-foreground text-sm">
 						Swagger API:
 					</span>
 					<Link
 						href="/swagger"
 						target="_blank"
-						className="flex flex-row gap-2 items-center"
+						className="flex flex-row items-center gap-2"
 					>
-						<span className="text-sm font-medium">View</span>
+						<span className="font-medium text-sm">View</span>
 						<ExternalLinkIcon className="size-4" />
 					</Link>
 				</div>
 			</CardHeader>
 			<CardContent className="space-y-2">
-				<div className="flex flex-row gap-2 max-sm:flex-wrap justify-end items-end">
+				<div className="flex flex-row items-end justify-end gap-2 max-sm:flex-wrap">
 					<div className="grid w-full gap-8">
 						<div className="flex flex-col gap-2">
 							<Label>Token</Label>

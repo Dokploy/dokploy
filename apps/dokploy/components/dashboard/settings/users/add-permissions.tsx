@@ -123,7 +123,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 					Add Permissions
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Permissions</DialogTitle>
 					<DialogDescription>Add or remove permissions</DialogDescription>
@@ -134,7 +134,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4"
+						className="grid w-full grid-cols-1 gap-4 md:grid-cols-2"
 					>
 						<FormField
 							control={form.control}
@@ -328,11 +328,11 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										</FormDescription>
 									</div>
 									{projects?.length === 0 && (
-										<p className="text-sm text-muted-foreground">
+										<p className="text-muted-foreground text-sm">
 											No projects found
 										</p>
 									)}
-									<div className="grid md:grid-cols-2  gap-4">
+									<div className="grid gap-4 md:grid-cols-2">
 										{projects?.map((item, index) => {
 											const applications = extractServices(item);
 											return (
@@ -344,7 +344,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 														return (
 															<FormItem
 																key={item.projectId}
-																className="flex flex-col items-start space-x-4 rounded-lg p-4 border"
+																className="flex flex-col items-start space-x-4 rounded-lg border p-4"
 															>
 																<div className="flex flex-row gap-4">
 																	<FormControl>
@@ -367,12 +367,12 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																			}}
 																		/>
 																	</FormControl>
-																	<FormLabel className="text-sm font-medium text-primary">
+																	<FormLabel className="font-medium text-primary text-sm">
 																		{item.name}
 																	</FormLabel>
 																</div>
 																{applications.length === 0 && (
-																	<p className="text-sm text-muted-foreground">
+																	<p className="text-muted-foreground text-sm">
 																		No services found
 																	</p>
 																)}
@@ -407,7 +407,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																							}}
 																						/>
 																					</FormControl>
-																					<FormLabel className="text-sm text-muted-foreground">
+																					<FormLabel className="text-muted-foreground text-sm">
 																						{item.name}
 																					</FormLabel>
 																				</FormItem>

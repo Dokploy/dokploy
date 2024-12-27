@@ -14,8 +14,8 @@ export const SettingsLayout = ({ children }: Props) => {
 		},
 	);
 	return (
-		<div className="flex flex-row gap-4 my-8 w-full flex-wrap md:flex-nowrap">
-			<div className="md:max-w-[18rem] w-full">
+		<div className="my-8 flex w-full flex-row flex-wrap gap-4 md:flex-nowrap">
+			<div className="w-full md:max-w-[18rem]">
 				<Nav
 					links={[
 						...(data?.rol === "admin" && !isCloud
@@ -181,7 +181,7 @@ interface NavProps {
 export const Nav = ({ links }: NavProps) => {
 	const router = useRouter();
 	return (
-		<div className="group flex  flex-col gap-4 py-2 data-[collapsed=true]:py-2 ">
+		<div className="group flex flex-col gap-4 py-2 data-[collapsed=true]:py-2 ">
 			<nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
 				{links.map((link, index) => {
 					const isActive = router.pathname === link.href;
@@ -192,7 +192,7 @@ export const Nav = ({ links }: NavProps) => {
 							className={cn(
 								buttonVariants({ variant: "ghost", size: "sm" }),
 								isActive &&
-									"dark:bg-muted dark:text-white dark:hover:bg-muted dark:hover:text-white bg-muted",
+									"bg-muted dark:bg-muted dark:text-white dark:hover:bg-muted dark:hover:text-white",
 								"justify-start",
 							)}
 						>

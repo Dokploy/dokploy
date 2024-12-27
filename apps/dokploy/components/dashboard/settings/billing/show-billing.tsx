@@ -67,7 +67,7 @@ export const ShowBilling = () => {
 	const safePercentage = Math.min(percentage, 100);
 
 	return (
-		<div className="flex flex-col gap-4 w-full">
+		<div className="flex w-full flex-col gap-4">
 			<Tabs
 				defaultValue="monthly"
 				value={isAnnual ? "annual" : "monthly"}
@@ -81,8 +81,8 @@ export const ShowBilling = () => {
 			</Tabs>
 			{admin?.stripeSubscriptionId && (
 				<div className="space-y-2">
-					<h3 className="text-lg font-medium">Servers Plan</h3>
-					<p className="text-sm text-muted-foreground">
+					<h3 className="font-medium text-lg">Servers Plan</h3>
+					<p className="text-muted-foreground text-sm">
 						You have {servers?.length} server on your plan of{" "}
 						{admin?.serversQuantity} servers
 					</p>
@@ -90,7 +90,7 @@ export const ShowBilling = () => {
 						<Progress value={safePercentage} className="max-w-lg" />
 					</div>
 					{admin && admin.serversQuantity! <= servers?.length! && (
-						<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
+						<div className="flex flex-row items-center gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 							<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 							<span className="text-sm text-yellow-600 dark:text-yellow-400">
 								You have reached the maximum number of servers you can create,
@@ -100,14 +100,14 @@ export const ShowBilling = () => {
 					)}
 				</div>
 			)}
-			<div className="flex flex-col gap-1.5 mt-4">
+			<div className="mt-4 flex flex-col gap-1.5">
 				<span className="text-base text-primary">
 					Need Help? We are here to help you.
 				</span>
-				<span className="text-sm text-muted-foreground">
+				<span className="text-muted-foreground text-sm">
 					Join to our Discord server and we will help you.
 				</span>
-				<Button className="rounded-full bg-[#5965F2] hover:bg-[#4A55E0] w-fit">
+				<Button className="w-fit rounded-full bg-[#5965F2] hover:bg-[#4A55E0]">
 					<Link
 						href="https://discord.gg/2tBnJ3jDJc"
 						aria-label="Dokploy on GitHub"
@@ -127,7 +127,7 @@ export const ShowBilling = () => {
 				</Button>
 			</div>
 			{isLoading ? (
-				<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
+				<span className="flex min-h-[10vh] flex-row items-center justify-center gap-3 text-base text-muted-foreground">
 					Loading...
 					<Loader2 className="animate-spin" />
 				</span>
@@ -139,9 +139,9 @@ export const ShowBilling = () => {
 							<div key={product.id}>
 								<section
 									className={clsx(
-										"flex flex-col rounded-3xl  border-dashed border-2 px-4 max-w-sm",
+										"flex max-w-sm flex-col rounded-3xl border-2 border-dashed px-4",
 										featured
-											? "order-first  border py-8 lg:order-none"
+											? "order-first border py-8 lg:order-none"
 											: "lg:py-8",
 									)}
 								>
@@ -151,13 +151,13 @@ export const ShowBilling = () => {
 										</div>
 									)}
 									{isAnnual ? (
-										<div className="flex flex-row gap-2 items-center">
-											<p className=" text-2xl font-semibold tracking-tight text-primary ">
+										<div className="flex flex-row items-center gap-2">
+											<p className=" font-semibold text-2xl text-primary tracking-tight ">
 												$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)}{" "}
 												USD
 											</p>
 											|
-											<p className=" text-base font-semibold tracking-tight text-muted-foreground">
+											<p className=" font-semibold text-base text-muted-foreground tracking-tight">
 												${" "}
 												{(
 													calculatePrice(serverQuantity, isAnnual) / 12
@@ -166,7 +166,7 @@ export const ShowBilling = () => {
 											</p>
 										</div>
 									) : (
-										<p className=" text-2xl font-semibold tracking-tight text-primary ">
+										<p className=" font-semibold text-2xl text-primary tracking-tight ">
 											$ {calculatePrice(serverQuantity, isAnnual).toFixed(2)}{" "}
 											USD
 										</p>
@@ -204,9 +204,9 @@ export const ShowBilling = () => {
 											</li>
 										))}
 									</ul>
-									<div className="flex flex-col gap-2 mt-4">
-										<div className="flex items-center gap-2 justify-center">
-											<span className="text-sm text-muted-foreground">
+									<div className="mt-4 flex flex-col gap-2">
+										<div className="flex items-center justify-center gap-2">
+											<span className="text-muted-foreground text-sm">
 												{serverQuantity} Servers
 											</span>
 										</div>
@@ -246,7 +246,7 @@ export const ShowBilling = () => {
 												data?.subscriptions && data?.subscriptions?.length > 0
 													? "justify-between"
 													: "justify-end",
-												"flex flex-row  items-center gap-2 mt-4",
+												"mt-4 flex flex-row items-center gap-2",
 											)}
 										>
 											{admin?.stripeCustomerId && (
@@ -264,7 +264,7 @@ export const ShowBilling = () => {
 											)}
 
 											{data?.subscriptions?.length === 0 && (
-												<div className="justify-end w-full">
+												<div className="w-full justify-end">
 													<Button
 														className="w-full"
 														onClick={async () => {

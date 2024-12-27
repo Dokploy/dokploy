@@ -77,7 +77,7 @@ export const ShowRedisEnvironment = ({ redisId }: Props) => {
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
-				<CardHeader className="flex flex-row w-full items-center justify-between">
+				<CardHeader className="flex w-full flex-row items-center justify-between">
 					<div>
 						<CardTitle className="text-xl">Environment Settings</CardTitle>
 						<CardDescription>

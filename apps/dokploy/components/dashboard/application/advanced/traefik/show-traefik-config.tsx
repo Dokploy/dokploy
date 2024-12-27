@@ -36,7 +36,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{isLoading ? (
-					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
+					<span className="flex min-h-[10vh] flex-row items-center justify-center gap-3 text-base text-muted-foreground">
 						Loading...
 						<Loader2 className="animate-spin" />
 					</span>
@@ -48,15 +48,15 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 						</span>
 					</div>
 				) : (
-					<div className="flex flex-col pt-2 relative">
-						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem] overflow-y-auto">
+					<div className="relative flex flex-col pt-2">
+						<div className="flex max-h-[35rem] min-h-[10rem] flex-col gap-6 overflow-y-auto">
 							<CodeEditor
 								lineWrapping
 								value={data || "Empty"}
 								disabled
 								className="font-mono"
 							/>
-							<div className="flex justify-end absolute z-50 right-6 top-6">
+							<div className="absolute top-6 right-6 z-50 flex justify-end">
 								<UpdateTraefikConfig applicationId={applicationId} />
 							</div>
 						</div>

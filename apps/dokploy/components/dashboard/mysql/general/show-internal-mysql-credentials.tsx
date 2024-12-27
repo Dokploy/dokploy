@@ -18,7 +18,7 @@ export const ShowInternalMysqlCredentials = ({ mysqlId }: Props) => {
 						<CardTitle className="text-xl">Internal Credentials</CardTitle>
 					</CardHeader>
 					<CardContent className="flex w-full flex-row gap-4">
-						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
+						<div className="grid w-full gap-4 md:grid-cols-2 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
 								<Input disabled value={data?.databaseUser} />

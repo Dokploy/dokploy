@@ -49,7 +49,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 	const domains = extractDomains(data?.env || "");
 
 	return (
-		<div className="flex flex-row gap-4 w-full flex-wrap ">
+		<div className="flex w-full flex-row flex-wrap gap-4 ">
 			<DeployCompose composeId={composeId} />
 			<RedbuildCompose composeId={composeId} />
 			{data?.composeType === "docker-compose" &&
@@ -68,8 +68,8 @@ export const ComposeActions = ({ composeId }: Props) => {
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
-			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-				<span className="text-sm font-medium">Autodeploy</span>
+			<div className="flex flex-row items-center gap-2 rounded-md border px-4 py-2">
+				<span className="font-medium text-sm">Autodeploy</span>
 				<Switch
 					aria-label="Toggle italic"
 					checked={data?.autoDeploy || false}
@@ -86,7 +86,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 								toast.error("Error to update Auto Deploy");
 							});
 					}}
-					className="flex flex-row gap-2 items-center"
+					className="flex flex-row items-center gap-2"
 				/>
 			</div>
 			{domains.length > 0 && (
@@ -94,7 +94,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 					<DropdownMenuTrigger asChild>
 						<Button variant="outline">
 							Domains
-							<Globe className="text-xs size-4 text-muted-foreground" />
+							<Globe className="size-4 text-muted-foreground text-xs" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent className="w-56">
@@ -115,7 +115,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 									>
 										<Link href={url} target="_blank">
 											{host}
-											<ExternalLink className="ml-2 text-xs text-muted-foreground" />
+											<ExternalLink className="ml-2 text-muted-foreground text-xs" />
 										</Link>
 									</DropdownMenuItem>
 								);

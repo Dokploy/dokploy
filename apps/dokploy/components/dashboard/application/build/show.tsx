@@ -136,11 +136,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
 						<span className="flex flex-col space-y-0.5">Build Type</span>
-						<p className="flex items-center text-sm font-normal text-muted-foreground">
+						<p className="flex items-center font-normal text-muted-foreground text-sm">
 							Select the way of building your code
 						</p>
 					</div>
-					<div className="hidden space-y-1 text-sm font-normal md:block">
+					<div className="hidden space-y-1 font-normal text-sm md:block">
 						<Cog className="size-6 text-muted-foreground" />
 					</div>
 				</CardTitle>

@@ -100,11 +100,11 @@ export function LineCountFilter({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
+					className="h-9 w-full bg-input text-sm placeholder-gray-400 sm:w-auto"
 				>
 					{title}
 					<Separator orientation="vertical" className="mx-2 h-4" />
-					<div className="space-x-1 flex">
+					<div className="flex space-x-1">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
 							{displayValue}
 						</Badge>
@@ -146,11 +146,11 @@ export function LineCountFilter({
 									<CommandPrimitive.Item
 										key={option.value}
 										onSelect={() => handleSelect(option.label)}
-										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
+										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
 									>
 										<div
 											className={cn(
-												"flex h-4 w-4 items-center justify-center rounded-sm border border-primary mr-2",
+												"mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
 												isSelected
 													? "bg-primary text-primary-foreground"
 													: "opacity-50 [&_svg]:invisible",

@@ -99,7 +99,7 @@ export const AddCertificate = () => {
 			<DialogTrigger className="" asChild>
 				<Button>Add Certificate</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add Certificate</DialogTitle>
 					<DialogDescription>Add a new certificate</DialogDescription>
@@ -173,7 +173,7 @@ export const AddCertificate = () => {
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+												<FormLabel className="flex w-fit flex-row items-center gap-1 break-all">
 													Select a Server (Optional)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
@@ -208,7 +208,7 @@ export const AddCertificate = () => {
 						/>
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+					<DialogFooter className="!justify-between flex w-full flex-row pt-3">
 						<Button
 							isLoading={isLoading}
 							form="hook-form-add-certificate"

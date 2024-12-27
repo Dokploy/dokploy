@@ -101,8 +101,8 @@ export default function Home({ IS_CLOUD }: Props) {
 			});
 	};
 	return (
-		<div className="flex  h-screen w-full items-center justify-center ">
-			<div className="flex flex-col items-center gap-4 w-full">
+		<div className="flex h-screen w-full items-center justify-center ">
+			<div className="flex w-full flex-col items-center gap-4">
 				<Link
 					href="https://dokploy.com"
 					target="_blank"
@@ -111,7 +111,7 @@ export default function Home({ IS_CLOUD }: Props) {
 					<Logo />
 					<span className="font-medium text-sm">Dokploy</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+				<CardTitle className="font-bold text-2xl">Sign in</CardTitle>
 				<CardDescription>
 					Enter your credentials to access your account
 				</CardDescription>
@@ -176,11 +176,11 @@ export default function Home({ IS_CLOUD }: Props) {
 							<Login2FA authId={temp.authId} />
 						)}
 
-						<div className="flex flex-row justify-between flex-wrap">
-							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+						<div className="flex flex-row flex-wrap justify-between">
+							<div className="mt-4 flex flex-row justify-center gap-2 text-center text-sm">
 								{IS_CLOUD && (
 									<Link
-										className="hover:underline text-muted-foreground"
+										className="text-muted-foreground hover:underline"
 										href="/register"
 									>
 										Create an account
@@ -188,17 +188,17 @@ export default function Home({ IS_CLOUD }: Props) {
 								)}
 							</div>
 
-							<div className="mt-4 text-sm flex flex-row justify-center gap-2">
+							<div className="mt-4 flex flex-row justify-center gap-2 text-sm">
 								{IS_CLOUD ? (
 									<Link
-										className="hover:underline text-muted-foreground"
+										className="text-muted-foreground hover:underline"
 										href="/send-reset-password"
 									>
 										Lost your password?
 									</Link>
 								) : (
 									<Link
-										className="hover:underline text-muted-foreground"
+										className="text-muted-foreground hover:underline"
 										href="https://docs.dokploy.com/docs/core/reset-password"
 										target="_blank"
 									>

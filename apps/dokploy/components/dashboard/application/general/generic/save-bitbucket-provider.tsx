@@ -151,12 +151,12 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 					{error && (
 						<AlertBlock type="error">Repositories: {error.message}</AlertBlock>
 					)}
-					<div className="grid md:grid-cols-2 gap-4">
+					<div className="grid gap-4 md:grid-cols-2">
 						<FormField
 							control={form.control}
 							name="bitbucketId"
 							render={({ field }) => (
-								<FormItem className="md:col-span-2 flex flex-col">
+								<FormItem className="flex flex-col md:col-span-2">
 									<FormLabel>Bitbucket Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
@@ -195,7 +195,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="repository"
 							render={({ field }) => (
-								<FormItem className="md:col-span-2 flex flex-col">
+								<FormItem className="flex flex-col md:col-span-2">
 									<FormLabel>Repository</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
@@ -203,7 +203,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"!bg-input w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -262,7 +262,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										</PopoverContent>
 									</Popover>
 									{form.formState.errors.repository && (
-										<p className={cn("text-sm font-medium text-destructive")}>
+										<p className={cn("font-medium text-destructive text-sm")}>
 											Repository is required
 										</p>
 									)}
@@ -281,7 +281,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" !bg-input w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -303,12 +303,12 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
-													<span className="py-6 text-center text-sm text-muted-foreground">
+													<span className="py-6 text-center text-muted-foreground text-sm">
 														Loading Branches....
 													</span>
 												)}
 												{!repository?.owner && (
-													<span className="py-6 text-center text-sm text-muted-foreground">
+													<span className="py-6 text-center text-muted-foreground text-sm">
 														Select a repository
 													</span>
 												)}

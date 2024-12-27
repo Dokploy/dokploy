@@ -67,14 +67,14 @@ export const UpdateServer = () => {
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-lg p-6">
-				<div className="flex items-center justify-between mb-8">
-					<DialogTitle className="text-2xl font-semibold">
+				<div className="mb-8 flex items-center justify-between">
+					<DialogTitle className="font-semibold text-2xl">
 						Web Server Update
 					</DialogTitle>
 					{dokployVersion && (
-						<div className="flex items-center gap-1.5 rounded-full px-3 py-1 mr-2 bg-muted">
+						<div className="mr-2 flex items-center gap-1.5 rounded-full bg-muted px-3 py-1">
 							<Server className="h-4 w-4 text-muted-foreground" />
-							<span className="text-sm text-muted-foreground">
+							<span className="text-muted-foreground text-sm">
 								{dokployVersion} | {releaseTag}
 							</span>
 						</div>
@@ -97,11 +97,11 @@ export const UpdateServer = () => {
 				{/* Update available state */}
 				{isUpdateAvailable && latestVersion && (
 					<div className="mb-8">
-						<div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-emerald-900 bg-emerald-900 dark:bg-emerald-900/40 mb-4 w-full">
+						<div className="mb-4 inline-flex w-full items-center gap-2 rounded-lg border border-emerald-900 bg-emerald-900 px-3 py-2 dark:bg-emerald-900/40">
 							<div className="flex items-center gap-1.5">
 								<span className="flex h-2 w-2">
-									<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
-									<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+									<span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-emerald-400 opacity-75" />
+									<span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
 								</span>
 								<Download className="h-4 w-4 text-emerald-400" />
 								<span className="text font-medium text-emerald-400 ">
@@ -120,13 +120,13 @@ export const UpdateServer = () => {
 							</p>
 							<ul className="space-y-3">
 								<li className="flex items-start gap-2">
-									<Stars className="h-5 w-5 mt-0.5 text-[#5B9DFF]" />
+									<Stars className="mt-0.5 h-5 w-5 text-[#5B9DFF]" />
 									<span className="text">
 										Want to access the latest features and improvements
 									</span>
 								</li>
 								<li className="flex items-start gap-2">
-									<Bug className="h-5 w-5 mt-0.5 text-[#5B9DFF]" />
+									<Bug className="mt-0.5 h-5 w-5 text-[#5B9DFF]" />
 									<span className="text">
 										Are experiencing issues that may be resolved in the new
 										version
@@ -140,12 +140,12 @@ export const UpdateServer = () => {
 				{/* Up to date state */}
 				{hasCheckedUpdate && !isUpdateAvailable && !isLoading && (
 					<div className="mb-8">
-						<div className="flex flex-col items-center gap-6 mb-6">
-							<div className="rounded-full p-4 bg-emerald-400/40">
+						<div className="mb-6 flex flex-col items-center gap-6">
+							<div className="rounded-full bg-emerald-400/40 p-4">
 								<Sparkles className="h-8 w-8 text-emerald-400" />
 							</div>
-							<div className="text-center space-y-2">
-								<h3 className="text-lg font-medium">
+							<div className="space-y-2 text-center">
+								<h3 className="font-medium text-lg">
 									You are using the latest version
 								</h3>
 								<p className="text text-muted-foreground">
@@ -159,12 +159,12 @@ export const UpdateServer = () => {
 
 				{hasCheckedUpdate && isLoading && (
 					<div className="mb-8">
-						<div className="flex flex-col items-center gap-6 mb-6">
-							<div className="rounded-full p-4 bg-[#5B9DFF]/40 text-foreground">
+						<div className="mb-6 flex flex-col items-center gap-6">
+							<div className="rounded-full bg-[#5B9DFF]/40 p-4 text-foreground">
 								<RefreshCcw className="h-8 w-8 animate-spin" />
 							</div>
-							<div className="text-center space-y-2">
-								<h3 className="text-lg font-medium">Checking for updates...</h3>
+							<div className="space-y-2 text-center">
+								<h3 className="font-medium text-lg">Checking for updates...</h3>
 								<p className="text text-muted-foreground">
 									Please wait while we pull the latest version information from
 									Docker Hub.
@@ -175,7 +175,7 @@ export const UpdateServer = () => {
 				)}
 
 				{isUpdateAvailable && (
-					<div className="rounded-lg bg-[#16254D] p-4 mb-8">
+					<div className="mb-8 rounded-lg bg-[#16254D] p-4">
 						<div className="flex gap-2">
 							<Info className="h-5 w-5 flex-shrink-0 text-[#5B9DFF]" />
 							<div className="text-[#5B9DFF]">
@@ -197,7 +197,7 @@ export const UpdateServer = () => {
 					<ToggleAutoCheckUpdates disabled={isLoading} />
 				</div>
 
-				<div className="space-y-4 flex items-center justify-end">
+				<div className="flex items-center justify-end space-y-4">
 					<div className="flex items-center gap-2">
 						<Button variant="outline" onClick={() => setIsOpen(false)}>
 							Cancel

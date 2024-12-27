@@ -68,7 +68,7 @@ export const DockerTerminal: React.FC<Props> = ({
 					</TabsList>
 				</Tabs>
 			</div>
-			<div className="w-full h-full rounded-lg p-2 bg-transparent border">
+			<div className="h-full w-full rounded-lg border bg-transparent p-2">
 				<div id={id} ref={termRef} />
 			</div>
 		</div>

@@ -8,7 +8,7 @@ export const ProjectLayout = ({ children }: Props) => {
 	return (
 		<div>
 			<div
-				className="bg-radial relative flex flex-col bg-background"
+				className="relative flex flex-col bg-background bg-radial"
 				id="app-container"
 			>
 				<div className="flex items-center justify-center">

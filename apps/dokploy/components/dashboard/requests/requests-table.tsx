@@ -154,9 +154,9 @@ export const RequestsTable = () => {
 
 	return (
 		<>
-			<div className="flex flex-col gap-6 w-full ">
-				<div className="mt-6 grid gap-4 pb-20 w-full">
-					<div className="flex flex-col gap-4  w-full overflow-auto">
+			<div className="flex w-full flex-col gap-6 ">
+				<div className="mt-6 grid w-full gap-4 pb-20">
+					<div className="flex w-full flex-col gap-4 overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
 								placeholder="Filter by name..."
@@ -174,7 +174,7 @@ export const RequestsTable = () => {
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="outline"
-										className="sm:ml-auto max-sm:w-full"
+										className="max-sm:w-full sm:ml-auto"
 									>
 										Columns <ChevronDown className="ml-2 h-4 w-4" />
 									</Button>
@@ -248,8 +248,8 @@ export const RequestsTable = () => {
 												className="h-24 text-center"
 											>
 												{statsLogs?.data.length === 0 && (
-													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-														<span className="text-muted-foreground text-lg font-medium">
+													<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+														<span className="font-medium text-lg text-muted-foreground">
 															No results.
 														</span>
 													</div>
@@ -276,7 +276,7 @@ export const RequestsTable = () => {
 									of {statsLogs.totalCount} entries
 								</span>
 							)}
-							<div className="space-x-2 flex flex-wrap">
+							<div className="flex flex-wrap space-x-2">
 								<Button
 									variant="outline"
 									size="sm"
@@ -302,30 +302,30 @@ export const RequestsTable = () => {
 				open={!!selectedRow}
 				onOpenChange={(open) => setSelectedRow(undefined)}
 			>
-				<SheetContent className="sm:max-w-[740px]  flex flex-col">
+				<SheetContent className="flex flex-col sm:max-w-[740px]">
 					<SheetHeader>
 						<SheetTitle>Request log</SheetTitle>
 						<SheetDescription>
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="flex-grow mt-4 pr-4">
-						<div className="border rounded-md">
+					<ScrollArea className="mt-4 flex-grow pr-4">
+						<div className="rounded-md border">
 							<Table>
 								<TableBody>
 									{Object.entries(selectedRow || {}).map(([key, value]) => (
 										<TableRow key={key}>
 											<TableCell className="font-medium">{key}</TableCell>
-											<TableCell className="truncate break-words break-before-all whitespace-pre-wrap">
+											<TableCell className="break-before-all truncate whitespace-pre-wrap break-words">
 												{key === "RequestAddr" ? (
-													<div className="flex items-center gap-2 bg-muted p-1 rounded">
+													<div className="flex items-center gap-2 rounded bg-muted p-1">
 														<span>{value}</span>
 														<Copy
 															onClick={() => {
 																copy(value);
 																toast.success("Copied to clipboard");
 															}}
-															className="h-4 w-4 text-muted-foreground cursor-pointer"
+															className="h-4 w-4 cursor-pointer text-muted-foreground"
 														/>
 													</div>
 												) : (
@@ -338,7 +338,7 @@ export const RequestsTable = () => {
 							</Table>
 						</div>
 					</ScrollArea>
-					<div className="mt-4 pt-4 border-t">
+					<div className="mt-4 border-t pt-4">
 						<Button
 							variant="outline"
 							className="w-full gap-2"

@@ -71,8 +71,8 @@ export const ShowContainers = ({ serverId }: Props) => {
 	});
 
 	return (
-		<div className="mt-6 grid gap-4 pb-20 w-full">
-			<div className="flex flex-col gap-4  w-full overflow-auto">
+		<div className="mt-6 grid w-full gap-4 pb-20">
+			<div className="flex w-full flex-col gap-4 overflow-auto">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
 						placeholder="Filter by name..."
@@ -84,7 +84,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 					/>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="outline" className="sm:ml-auto max-sm:w-full">
+							<Button variant="outline" className="max-sm:w-full sm:ml-auto">
 								Columns <ChevronDown className="ml-2 h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
@@ -111,14 +111,14 @@ export const ShowContainers = ({ serverId }: Props) => {
 				</div>
 				<div className="rounded-md border">
 					{isLoading ? (
-						<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-							<span className="text-muted-foreground text-lg font-medium">
+						<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+							<span className="font-medium text-lg text-muted-foreground">
 								Loading...
 							</span>
 						</div>
 					) : data?.length === 0 ? (
-						<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
-							<span className="text-muted-foreground text-lg font-medium">
+						<div className="flex h-[55vh] flex-col items-center justify-center gap-2">
+							<span className="font-medium text-lg text-muted-foreground">
 								No results.
 							</span>
 						</div>
@@ -166,8 +166,8 @@ export const ShowContainers = ({ serverId }: Props) => {
 											className="h-24 text-center"
 										>
 											{isLoading ? (
-												<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-													<span className="text-muted-foreground text-lg font-medium">
+												<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+													<span className="font-medium text-lg text-muted-foreground">
 														Loading...
 													</span>
 												</div>
@@ -183,7 +183,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 				</div>
 				{data && data?.length > 0 && (
 					<div className="flex items-center justify-end space-x-2 py-4">
-						<div className="space-x-2 flex flex-wrap">
+						<div className="flex flex-wrap space-x-2">
 							<Button
 								variant="outline"
 								size="sm"

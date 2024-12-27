@@ -96,15 +96,15 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="w-full relative z-[5]"
+					className="relative z-[5] w-full"
 				>
 					<div className="flex flex-col overflow-auto">
 						{isLoadingFile ? (
-							<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-								<span className="text-muted-foreground text-lg font-medium">
+							<div className="flex h-[55vh] w-full flex-col items-center justify-center gap-2">
+								<span className="font-medium text-lg text-muted-foreground">
 									Loading...
 								</span>
-								<Loader2 className="animate-spin size-8 text-muted-foreground" />
+								<Loader2 className="size-8 animate-spin text-muted-foreground" />
 							</div>
 						) : (
 							<FormField
@@ -137,7 +137,7 @@ routers:
 										<pre>
 											<FormMessage />
 										</pre>
-										<div className="flex justify-end absolute z-50 right-6 top-8">
+										<div className="absolute top-8 right-6 z-50 flex justify-end">
 											<Button
 												className="shadow-sm"
 												variant="secondary"

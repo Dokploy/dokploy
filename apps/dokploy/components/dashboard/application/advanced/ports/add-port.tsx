@@ -95,7 +95,7 @@ export const AddPort = ({
 			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Ports</DialogTitle>
 					<DialogDescription>

@@ -82,12 +82,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	};
 	return (
 		<>
-			<div className="w-full flex flex-col gap-4 ">
+			<div className="flex w-full flex-col gap-4 ">
 				<Form {...form}>
 					<form
 						id="hook-form-save-compose-file"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="w-full relative space-y-4"
+						className="relative w-full space-y-4"
 					>
 						<FormField
 							control={form.control}
@@ -95,7 +95,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="overflow-auto">
 									<FormControl className="">
-										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
+										<div className="flex w-full flex-col gap-4 overflow-auto outline-none focus:outline-none">
 											<CodeEditor
 												// disabled
 												value={field.value}
@@ -123,15 +123,15 @@ services:
 						/>
 					</form>
 				</Form>
-				<div className="flex justify-between flex-col lg:flex-row gap-2">
-					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
+				<div className="flex flex-col justify-between gap-2 lg:flex-row">
+					<div className="flex w-full flex-col items-end gap-4 lg:flex-row">
 						<RandomizeCompose composeId={composeId} />
 					</div>
 					<Button
 						type="submit"
 						form="hook-form-save-compose-file"
 						isLoading={isLoading}
-						className="lg:w-fit w-full"
+						className="w-full lg:w-fit"
 					>
 						Save
 					</Button>

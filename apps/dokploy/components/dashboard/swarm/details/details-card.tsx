@@ -130,7 +130,7 @@ export function NodeCard({ node, serverId }: Props) {
 						<span>{node.TLSStatus}</span>
 					</div>
 				</div>
-				<div className="flex gap-2 mt-4">
+				<div className="mt-4 flex gap-2">
 					<ShowNodeConfig nodeId={node.ID} serverId={serverId} />
 					<ShowNodeApplications serverId={serverId} />
 				</div>

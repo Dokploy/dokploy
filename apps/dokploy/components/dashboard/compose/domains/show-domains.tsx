@@ -30,7 +30,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
-				<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
+				<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
 					<div className="flex flex-col gap-1">
 						<CardTitle className="text-xl">Domains</CardTitle>
 						<CardDescription>
@@ -38,7 +38,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 						</CardDescription>
 					</div>
 
-					<div className="flex flex-row gap-4 flex-wrap">
+					<div className="flex flex-row flex-wrap gap-4">
 						{data && data?.length > 0 && (
 							<AddDomainCompose composeId={composeId}>
 								<Button>
@@ -56,7 +56,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 								To access to the application it is required to set at least 1
 								domain
 							</span>
-							<div className="flex flex-row gap-4 flex-wrap">
+							<div className="flex flex-row flex-wrap gap-4">
 								<AddDomainCompose composeId={composeId}>
 									<Button>
 										<GlobeIcon className="size-4" /> Add Domain
@@ -70,7 +70,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 								return (
 									<div
 										key={item.domainId}
-										className="flex w-full items-center gap-4 max-sm:flex-wrap border p-4 rounded-lg"
+										className="flex w-full items-center gap-4 rounded-lg border p-4 max-sm:flex-wrap"
 									>
 										<Link target="_blank" href={`http://${item.host}`}>
 											<ExternalLink className="size-5" />

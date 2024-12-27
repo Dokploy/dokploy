@@ -117,7 +117,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 					Randomize Compose
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-6xl max-h-[50rem] overflow-y-auto">
+			<DialogContent className="max-h-[50rem] overflow-y-auto sm:max-w-6xl">
 				<DialogHeader>
 					<DialogTitle>Randomize Compose (Experimental)</DialogTitle>
 					<DialogDescription>
@@ -125,12 +125,12 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 						have conflicts with some property like volumes, networks, etc.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-sm text-muted-foreground flex flex-col gap-2">
+				<div className="flex flex-col gap-2 text-muted-foreground text-sm">
 					<span>
 						This will randomize the compose file and will add a suffix to the
 						property to avoid conflicts
 					</span>
-					<ul className="list-disc list-inside">
+					<ul className="list-inside list-disc">
 						<li>volumes</li>
 						<li>networks</li>
 						<li>services</li>
@@ -151,21 +151,21 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 						className="grid w-full gap-4"
 					>
 						{isError && (
-							<div className="flex flex-row gap-4 rounded-lg items-center bg-red-50 p-2 dark:bg-red-950">
+							<div className="flex flex-row items-center gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
-								<span className="text-sm text-red-600 dark:text-red-400">
+								<span className="text-red-600 text-sm dark:text-red-400">
 									{error?.message}
 								</span>
 							</div>
 						)}
 
-						<div className="flex flex-col lg:flex-col  gap-4 w-full ">
+						<div className="flex w-full flex-col gap-4 lg:flex-col ">
 							<div>
 								<FormField
 									control={form.control}
 									name="suffix"
 									render={({ field }) => (
-										<FormItem className="flex flex-col justify-center max-sm:items-center w-full">
+										<FormItem className="flex w-full flex-col justify-center max-sm:items-center">
 											<FormLabel>Suffix</FormLabel>
 											<FormControl>
 												<Input
@@ -199,7 +199,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 								/>
 							</div>
 
-							<div className="flex flex-col lg:flex-row  gap-4 w-full items-end justify-end">
+							<div className="flex w-full flex-col items-end justify-end gap-4 lg:flex-row">
 								<Button
 									form="hook-form-add-project"
 									type="submit"

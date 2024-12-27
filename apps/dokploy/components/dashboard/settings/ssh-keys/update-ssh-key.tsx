@@ -81,7 +81,7 @@ export const UpdateSSHKey = ({ children, sshKeyId = "" }: Props) => {
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>SSH Key</DialogTitle>
 					<DialogDescription>
@@ -142,7 +142,7 @@ export const UpdateSSHKey = ({ children, sshKeyId = "" }: Props) => {
 									/>
 									<button
 										type="button"
-										className="absolute right-2 top-2"
+										className="absolute top-2 right-2"
 										onClick={() => {
 											copy(data?.publicKey || "Generate a SSH Key");
 											toast.success("SSH Copied to clipboard");

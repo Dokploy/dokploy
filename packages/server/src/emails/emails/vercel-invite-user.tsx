@@ -49,24 +49,24 @@ export const VercelInviteUserEmail = ({
 			<Head />
 			<Preview>{previewText}</Preview>
 			<Tailwind>
-				<Body className="bg-white my-auto mx-auto font-sans px-2">
-					<Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
+				<Body className="mx-auto my-auto bg-white px-2 font-sans">
+					<Container className="mx-auto my-[40px] max-w-[465px] rounded border border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
 							<Img
 								src={`${baseUrl}/static/vercel-logo.png`}
 								width="40"
 								height="37"
 								alt="Vercel"
-								className="my-0 mx-auto"
+								className="mx-auto my-0"
 							/>
 						</Section>
-						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
+						<Heading className="mx-0 my-[30px] p-0 text-center font-normal text-[24px] text-black">
 							Join <strong>{teamName}</strong> on <strong>Vercel</strong>
 						</Heading>
-						<Text className="text-black text-[14px] leading-[24px]">
+						<Text className="text-[14px] text-black leading-[24px]">
 							Hello {username},
 						</Text>
-						<Text className="text-black text-[14px] leading-[24px]">
+						<Text className="text-[14px] text-black leading-[24px]">
 							<strong>{invitedByUsername}</strong> (
 							<Link
 								href={`mailto:${invitedByEmail}`}
@@ -105,21 +105,21 @@ export const VercelInviteUserEmail = ({
 								</Column>
 							</Row>
 						</Section>
-						<Section className="text-center mt-[32px] mb-[32px]">
+						<Section className="mt-[32px] mb-[32px] text-center">
 							<Button
-								className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
+								className="rounded bg-[#000000] px-5 py-3 text-center font-semibold text-[12px] text-white no-underline"
 								href={inviteLink}
 							>
 								Join the team
 							</Button>
 						</Section>
-						<Text className="text-black text-[14px] leading-[24px]">
+						<Text className="text-[14px] text-black leading-[24px]">
 							or copy and paste this URL into your browser:{" "}
 							<Link href={inviteLink} className="text-blue-600 no-underline">
 								{inviteLink}
 							</Link>
 						</Text>
-						<Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
+						<Hr className="mx-0 my-[26px] w-full border border-[#eaeaea] border-solid" />
 						<Text className="text-[#666666] text-[12px] leading-[24px]">
 							This invitation was intended for{" "}
 							<span className="text-black">{username}</span>. This invite was

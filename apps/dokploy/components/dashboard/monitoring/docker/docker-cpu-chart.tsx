@@ -23,7 +23,7 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 		};
 	});
 	return (
-		<div className="mt-6 w-full h-[10rem]">
+		<div className="mt-6 h-[10rem] w-full">
 			<ResponsiveContainer>
 				<AreaChart
 					data={transformedData}
@@ -74,7 +74,7 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	if (active && payload && payload.length && payload[0]) {
 		return (
-			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
+			<div className="custom-tooltip rounded-md border bg-background p-2 text-primary shadow-lg">
 				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
 				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
 			</div>

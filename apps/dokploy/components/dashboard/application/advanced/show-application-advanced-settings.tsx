@@ -95,7 +95,7 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-8 "
 					>
-						<div className="grid w-full md:grid-cols-2 gap-4">
+						<div className="grid w-full gap-4 md:grid-cols-2">
 							<FormField
 								control={form.control}
 								name="memoryReservation"

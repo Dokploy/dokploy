@@ -93,8 +93,8 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex flex-col gap-4"
 			>
-				<div className="grid md:grid-cols-2 gap-4 ">
-					<div className="flex items-end col-span-2 gap-4">
+				<div className="grid gap-4 md:grid-cols-2 ">
+					<div className="col-span-2 flex items-end gap-4">
 						<div className="grow">
 							<FormField
 								control={form.control}
@@ -118,7 +118,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 								name="sshKey"
 								render={({ field }) => (
 									<FormItem className="basis-40">
-										<FormLabel className="w-full inline-flex justify-between">
+										<FormLabel className="inline-flex w-full justify-between">
 											SSH Key
 											<LockIcon className="size-4 text-muted-foreground" />
 										</FormLabel>

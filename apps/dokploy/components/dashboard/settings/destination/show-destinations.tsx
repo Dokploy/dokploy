@@ -38,9 +38,9 @@ export const ShowDestinations = () => {
 							{data?.map((destination, index) => (
 								<div
 									key={destination.destinationId}
-									className="flex items-center justify-between border p-3.5 rounded-lg"
+									className="flex items-center justify-between rounded-lg border p-3.5"
 								>
-									<span className="text-sm text-muted-foreground">
+									<span className="text-muted-foreground text-sm">
 										{index + 1}. {destination.name}
 									</span>
 									<div className="flex flex-row gap-1">

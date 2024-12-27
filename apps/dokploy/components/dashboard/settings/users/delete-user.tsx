@@ -26,7 +26,7 @@ export const DeleteUser = ({ authId }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<DropdownMenuItem
-					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+					className="hover:!text-red-600 w-full cursor-pointer text-red-500"
 					onSelect={(e) => e.preventDefault()}
 				>
 					Delete User

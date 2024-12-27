@@ -226,9 +226,9 @@ export const DockerLogsId: React.FC<Props> = ({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="rounded-lg overflow-hidden">
+			<div className="overflow-hidden rounded-lg">
 				<div className="space-y-4">
-					<div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
+					<div className="flex flex-wrap items-start justify-between gap-4 sm:items-center">
 						<div className="flex flex-wrap gap-4">
 							<LineCountFilter value={lines} onValueChange={handleLines} />
 
@@ -251,14 +251,14 @@ export const DockerLogsId: React.FC<Props> = ({
 								placeholder="Search logs..."
 								value={search}
 								onChange={handleSearch}
-								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
+								className="inline-flex h-9 w-full text-sm placeholder-gray-400 sm:w-auto"
 							/>
 						</div>
 
 						<Button
 							variant="outline"
 							size="sm"
-							className="h-9 sm:w-auto w-full"
+							className="h-9 w-full sm:w-auto"
 							onClick={handleDownload}
 							disabled={filteredLogs.length === 0 || !data?.Name}
 						>
@@ -269,7 +269,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					<div
 						ref={scrollRef}
 						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+						className="custom-logs-scrollbar h-[720px] space-y-0 overflow-y-auto rounded border bg-[#fafafa] p-4 dark:bg-[#050506]"
 					>
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (
@@ -281,11 +281,11 @@ export const DockerLogsId: React.FC<Props> = ({
 								/>
 							))
 						) : isLoading ? (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
+							<div className="flex h-full items-center justify-center text-muted-foreground">
 								<Loader2 className="h-6 w-6 animate-spin" />
 							</div>
 						) : (
-							<div className="flex justify-center items-center h-full text-muted-foreground">
+							<div className="flex h-full items-center justify-center text-muted-foreground">
 								No logs found
 							</div>
 						)}

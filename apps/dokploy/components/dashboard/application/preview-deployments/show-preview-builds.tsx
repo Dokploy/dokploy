@@ -34,7 +34,7 @@ export const ShowPreviewBuilds = ({
 				{trigger ? (
 					trigger
 				) : (
-					<Button className="sm:w-auto w-full" size="sm" variant="outline">
+					<Button className="w-full sm:w-auto" size="sm" variant="outline">
 						View Builds
 					</Button>
 				)}
@@ -50,10 +50,10 @@ export const ShowPreviewBuilds = ({
 					{deployments?.map((deployment) => (
 						<div
 							key={deployment.deploymentId}
-							className="flex items-center justify-between rounded-lg border p-4 gap-2"
+							className="flex items-center justify-between gap-2 rounded-lg border p-4"
 						>
 							<div className="flex flex-col">
-								<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+								<span className="flex items-center gap-4 font-medium text-foreground capitalize">
 									{deployment.status}
 
 									<StatusTooltip
@@ -61,17 +61,17 @@ export const ShowPreviewBuilds = ({
 										className="size-2.5"
 									/>
 								</span>
-								<span className="text-sm text-muted-foreground">
+								<span className="text-muted-foreground text-sm">
 									{deployment.title}
 								</span>
 								{deployment.description && (
-									<span className="break-all text-sm text-muted-foreground">
+									<span className="break-all text-muted-foreground text-sm">
 										{deployment.description}
 									</span>
 								)}
 							</div>
 							<div className="flex flex-col items-end gap-2">
-								<div className="text-sm capitalize text-muted-foreground">
+								<div className="text-muted-foreground text-sm capitalize">
 									<DateTooltip date={deployment.createdAt} />
 								</div>
 

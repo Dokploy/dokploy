@@ -25,7 +25,7 @@ const Page = () => {
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
-		<div className="flex flex-col gap-4 w-full">
+		<div className="flex w-full flex-col gap-4">
 			<ProfileForm />
 			{(user?.canAccessToAPI || data?.rol === "admin") && <GenerateToken />}
 

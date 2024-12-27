@@ -146,14 +146,14 @@ export const ShowCertificates = () => {
 
 	return (
 		<div className="h-full">
-			<Card className="bg-transparent h-full">
+			<Card className="h-full bg-transparent">
 				<CardHeader>
 					<CardTitle className="text-xl">Certificates</CardTitle>
 					<CardDescription>
 						Add custom certificates to your application.
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="space-y-2 pt-4 h-full">
+				<CardContent className="h-full space-y-2 pt-4">
 					{!data?.length ? (
 						<div className="flex flex-col items-center gap-3">
 							<ShieldCheck className="size-8 self-center text-muted-foreground" />
@@ -165,7 +165,7 @@ export const ShowCertificates = () => {
 						</div>
 					) : (
 						<div className="flex flex-col gap-6">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							<div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
 								{data.map((certificate, index) => {
 									const expiration = getExpirationStatus(
 										certificate.certificateData,
@@ -176,17 +176,17 @@ export const ShowCertificates = () => {
 									return (
 										<div
 											key={certificate.certificateId}
-											className="flex flex-col border p-4 rounded-lg space-y-2"
+											className="flex flex-col space-y-2 rounded-lg border p-4"
 										>
 											<div className="flex items-center justify-between">
 												<div className="flex items-center gap-2">
-													<span className="text-sm font-medium">
+													<span className="font-medium text-sm">
 														{index + 1}. {certificate.name}
 													</span>
 													{chainInfo.isChain && (
-														<div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
+														<div className="flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5">
 															<Link className="size-3 text-muted-foreground" />
-															<span className="text-xs text-muted-foreground">
+															<span className="text-muted-foreground text-xs">
 																Chain ({chainInfo.count})
 															</span>
 														</div>
@@ -197,7 +197,7 @@ export const ShowCertificates = () => {
 												/>
 											</div>
 											<div
-												className={`text-xs flex items-center gap-1.5 ${expiration.className}`}
+												className={`flex items-center gap-1.5 text-xs ${expiration.className}`}
 											>
 												{expiration.status !== "valid" && (
 													<AlertCircle className="size-3" />
@@ -205,7 +205,7 @@ export const ShowCertificates = () => {
 												{expiration.message}
 												{certificate.autoRenew &&
 													expiration.status !== "valid" && (
-														<span className="text-xs text-emerald-500 ml-1">
+														<span className="ml-1 text-emerald-500 text-xs">
 															(Auto-renewal enabled)
 														</span>
 													)}

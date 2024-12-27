@@ -82,13 +82,13 @@ export default function Home() {
 			});
 	};
 	return (
-		<div className="flex  h-screen w-full items-center justify-center ">
-			<div className="flex flex-col items-center gap-4 w-full">
+		<div className="flex h-screen w-full items-center justify-center ">
+			<div className="flex w-full flex-col items-center gap-4">
 				<Link href="/" className="flex flex-row items-center gap-2">
 					<Logo />
 					<span className="font-medium text-sm">Dokploy</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+				<CardTitle className="font-bold text-2xl">Reset Password</CardTitle>
 				<CardDescription>
 					Enter your email to reset your password
 				</CardDescription>
@@ -136,10 +136,10 @@ export default function Home() {
 							<Login2FA authId={temp.authId} />
 						)}
 
-						<div className="flex flex-row justify-between flex-wrap">
-							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+						<div className="flex flex-row flex-wrap justify-between">
+							<div className="mt-4 flex flex-row justify-center gap-2 text-center text-sm">
 								<Link
-									className="hover:underline text-muted-foreground"
+									className="text-muted-foreground hover:underline"
 									href="/"
 								>
 									Login

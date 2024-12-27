@@ -71,11 +71,11 @@ export function SinceLogsFilter({
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
+					className="h-9 w-full bg-input text-sm placeholder-gray-400 sm:w-auto"
 				>
 					{title}
 					<Separator orientation="vertical" className="mx-2 h-4" />
-					<div className="space-x-1 flex">
+					<div className="flex space-x-1">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
 							{selectedLabel}
 						</Badge>
@@ -115,7 +115,7 @@ export function SinceLogsFilter({
 					</CommandList>
 				</Command>
 				<Separator className="my-2" />
-				<div className="p-2 flex items-center justify-between">
+				<div className="flex items-center justify-between p-2">
 					<span className="text-sm">Show timestamps</span>
 					<Switch checked={showTimestamp} onCheckedChange={onTimestampChange} />
 				</div>

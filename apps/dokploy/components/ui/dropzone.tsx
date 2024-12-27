@@ -51,13 +51,13 @@ export const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
 				)}
 			>
 				<CardContent
-					className="flex flex-col items-center justify-center space-y-2 px-2 py-4 text-xs h-96"
+					className="flex h-96 flex-col items-center justify-center space-y-2 px-2 py-4 text-xs"
 					onDragOver={handleDragOver}
 					onDrop={handleDrop}
 					onClick={handleButtonClick}
 				>
 					<div className="flex items-center justify-center text-muted-foreground">
-						<span className="font-medium text-xl flex items-center gap-2">
+						<span className="flex items-center gap-2 font-medium text-xl">
 							<FolderIcon className="size-6 text-muted-foreground" />
 							{dropMessage}
 						</span>

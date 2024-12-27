@@ -102,14 +102,14 @@ export function AppearanceForm() {
 											onValueChange={field.onChange}
 											defaultValue={field.value}
 											value={field.value}
-											className="grid max-w-md md:max-w-lg grid-cols-1 sm:grid-cols-3 gap-8 pt-2"
+											className="grid max-w-md grid-cols-1 gap-8 pt-2 sm:grid-cols-3 md:max-w-lg"
 										>
 											<FormItem>
 												<FormLabel className="[&:has([data-state=checked])>div]:border-primary">
 													<FormControl>
 														<RadioGroupItem value="light" className="sr-only" />
 													</FormControl>
-													<div className="items-center rounded-md border-2 border-muted p-1 hover:bg-accent transition-colors cursor-pointer">
+													<div className="cursor-pointer items-center rounded-md border-2 border-muted p-1 transition-colors hover:bg-accent">
 														<img src="/images/theme-light.svg" alt="light" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
@@ -122,7 +122,7 @@ export function AppearanceForm() {
 													<FormControl>
 														<RadioGroupItem value="dark" className="sr-only" />
 													</FormControl>
-													<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
+													<div className="cursor-pointer items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground">
 														<img src="/images/theme-dark.svg" alt="dark" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">
@@ -138,7 +138,7 @@ export function AppearanceForm() {
 															className="sr-only"
 														/>
 													</FormControl>
-													<div className="items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer">
+													<div className="cursor-pointer items-center rounded-md border-2 border-muted bg-popover p-1 transition-colors hover:bg-accent hover:text-accent-foreground">
 														<img src="/images/theme-system.svg" alt="system" />
 													</div>
 													<span className="block w-full p-2 text-center font-normal">

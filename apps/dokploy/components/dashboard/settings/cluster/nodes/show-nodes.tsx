@@ -42,8 +42,8 @@ export const ShowNodes = () => {
 
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (
-		<Card className="bg-transparent h-full">
-			<CardHeader className="flex flex-row gap-2 justify-between w-full items-center flex-wrap">
+		<Card className="h-full bg-transparent">
+			<CardHeader className="flex w-full flex-row flex-wrap items-center justify-between gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Cluster</CardTitle>
 					<CardDescription>Add nodes to your cluster</CardDescription>
@@ -56,7 +56,7 @@ export const ShowNodes = () => {
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{haveAtLeastOneRegistry ? (
-					<div className="grid md:grid-cols-1 gap-4">
+					<div className="grid gap-4 md:grid-cols-1">
 						{isLoading && <div>Loading...</div>}
 						<Table>
 							<TableCaption>A list of your managers / workers.</TableCaption>
@@ -101,7 +101,7 @@ export const ShowNodes = () => {
 													Created{" "}
 												</DateTooltip>
 											</TableCell>
-											<TableCell className="text-right flex justify-end">
+											<TableCell className="flex justify-end text-right">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button variant="ghost" className="h-8 w-8 p-0">
@@ -144,7 +144,7 @@ export const ShowNodes = () => {
 							</TooltipProvider>
 						</div>
 
-						<ul className="list-disc list-inside text-sm text-muted-foreground border p-4 rounded-lg flex flex-col gap-1.5 mt-2.5">
+						<ul className="mt-2.5 flex list-inside list-disc flex-col gap-1.5 rounded-lg border p-4 text-muted-foreground text-sm">
 							<li>
 								<strong>Docker Registry:</strong> Use custom registries like
 								Docker Hub, DigitalOcean Registry, etc.

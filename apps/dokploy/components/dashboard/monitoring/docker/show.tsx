@@ -196,18 +196,18 @@ export const DockerMonitoring = ({
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<div className="flex w-full gap-8 ">
-						<div className=" flex-row gap-8 grid md:grid-cols-2 w-full">
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">CPU</span>
-								<span className="text-sm text-muted-foreground">
+						<div className=" grid w-full flex-row gap-8 md:grid-cols-2">
+							<div className="flex w-full flex-col gap-2 ">
+								<span className="font-medium text-base">CPU</span>
+								<span className="text-muted-foreground text-sm">
 									Used: {currentData.cpu.value.toFixed(2)}%
 								</span>
 								<Progress value={currentData.cpu.value} className="w-[100%]" />
 								<DockerCpuChart acummulativeData={acummulativeData.cpu} />
 							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Memory</span>
-								<span className="text-sm text-muted-foreground">
+							<div className="flex w-full flex-col gap-2 ">
+								<span className="font-medium text-base">Memory</span>
+								<span className="text-muted-foreground text-sm">
 									{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
 								</span>
 								<Progress
@@ -220,9 +220,9 @@ export const DockerMonitoring = ({
 								/>
 							</div>
 							{appName === "dokploy" && (
-								<div className="flex flex-col gap-2  w-full ">
-									<span className="text-base font-medium">Space</span>
-									<span className="text-sm text-muted-foreground">
+								<div className="flex w-full flex-col gap-2 ">
+									<span className="font-medium text-base">Space</span>
+									<span className="text-muted-foreground text-sm">
 										{`Used:  ${currentData.disk.value.diskUsage} GB / Limit: ${currentData.disk.value.diskTotal} GB`}
 									</span>
 									<Progress
@@ -235,9 +235,9 @@ export const DockerMonitoring = ({
 									/>
 								</div>
 							)}
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Block I/O</span>
-								<span className="text-sm text-muted-foreground">
+							<div className="flex w-full flex-col gap-2 ">
+								<span className="font-medium text-base">Block I/O</span>
+								<span className="text-muted-foreground text-sm">
 									{`Read:  ${currentData.block.value.readMb.toFixed(
 										2,
 									)} MB / Write: ${currentData.block.value.writeMb.toFixed(
@@ -246,9 +246,9 @@ export const DockerMonitoring = ({
 								</span>
 								<DockerBlockChart acummulativeData={acummulativeData.block} />
 							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Network</span>
-								<span className="text-sm text-muted-foreground">
+							<div className="flex w-full flex-col gap-2 ">
+								<span className="font-medium text-base">Network</span>
+								<span className="text-muted-foreground text-sm">
 									{`In MB: ${currentData.network.value.inputMb.toFixed(
 										2,
 									)} MB / Out MB: ${currentData.network.value.outputMb.toFixed(

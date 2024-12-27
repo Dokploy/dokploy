@@ -28,9 +28,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (isLoading) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
-					<div className="flex items-center justify-center h-full  text-muted-foreground">
+			<div className="mx-auto w-full max-w-7xl">
+				<div className="mb-6 h-full min-h-[55vh] rounded-lg border">
+					<div className="flex h-full items-center justify-center text-muted-foreground">
 						<Loader2 className="h-6 w-6 animate-spin" />
 					</div>
 				</div>
@@ -40,9 +40,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (!nodes) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
-					<div className="flex items-center justify-center h-full  text-destructive">
+			<div className="mx-auto w-full max-w-7xl">
+				<div className="mb-6 h-full min-h-[55vh] rounded-lg border">
+					<div className="flex h-full items-center justify-center text-destructive">
 						<span>Failed to load data</span>
 					</div>
 				</div>
@@ -79,9 +79,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	};
 
 	return (
-		<div className="w-full max-w-7xl mx-auto">
-			<div className="flex justify-between items-center mb-4">
-				<h1 className="text-xl font-bold">Docker Swarm Overview</h1>
+		<div className="mx-auto w-full max-w-7xl">
+			<div className="mb-4 flex items-center justify-between">
+				<h1 className="font-bold text-xl">Docker Swarm Overview</h1>
 				{!serverId && (
 					<Button
 						type="button"
@@ -102,18 +102,18 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 				</CardHeader>
 				<CardContent>
 					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-						<div className="flex justify-between items-center">
-							<span className="text-sm font-medium">Total Nodes:</span>
+						<div className="flex items-center justify-between">
+							<span className="font-medium text-sm">Total Nodes:</span>
 							<Badge variant="secondary">{totalNodes}</Badge>
 						</div>
-						<div className="flex justify-between items-center">
-							<span className="text-sm font-medium">Active Nodes:</span>
+						<div className="flex items-center justify-between">
+							<span className="font-medium text-sm">Active Nodes:</span>
 							<TooltipProvider>
 								<Tooltip>
 									<TooltipTrigger>
 										<Badge
 											variant="secondary"
-											className="bg-green-100 dark:bg-green-400 text-black"
+											className="bg-green-100 text-black dark:bg-green-400"
 										>
 											{activeNodesCount} / {totalNodes}
 										</Badge>
@@ -131,14 +131,14 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 								</Tooltip>
 							</TooltipProvider>
 						</div>
-						<div className="flex justify-between items-center">
-							<span className="text-sm font-medium">Manager Nodes:</span>
+						<div className="flex items-center justify-between">
+							<span className="font-medium text-sm">Manager Nodes:</span>
 							<TooltipProvider>
 								<Tooltip>
 									<TooltipTrigger>
 										<Badge
 											variant="secondary"
-											className="bg-blue-100 dark:bg-blue-400 text-black"
+											className="bg-blue-100 text-black dark:bg-blue-400"
 										>
 											{managerNodesCount} / {totalNodes}
 										</Badge>
@@ -157,13 +157,13 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 							</TooltipProvider>
 						</div>
 					</div>
-					<div className="border-t pt-4 mt-4">
-						<h4 className="text-sm font-semibold mb-2">Node Status:</h4>
+					<div className="mt-4 border-t pt-4">
+						<h4 className="mb-2 font-semibold text-sm">Node Status:</h4>
 						<ul className="space-y-2">
 							{nodes.map((node) => (
 								<li
 									key={node.ID}
-									className="flex justify-between items-center text-sm"
+									className="flex items-center justify-between text-sm"
 								>
 									<span className="flex items-center gap-2">
 										{getStatusIcon(node.Status)}
@@ -178,7 +178,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					</div>
 				</CardContent>
 			</Card>
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 				{nodes.map((node) => (
 					<NodeCard key={node.ID} node={node} serverId={serverId} />
 				))}

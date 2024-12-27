@@ -26,7 +26,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
-					<CardContent className="flex flex-row gap-4 flex-wrap">
+					<CardContent className="flex flex-row flex-wrap gap-4">
 						<DeployMysql mysqlId={mysqlId} />
 						<ResetMysql mysqlId={mysqlId} appName={data?.appName || ""} />
 						{data?.applicationStatus === "idle" ? (

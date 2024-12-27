@@ -39,13 +39,13 @@ export function AlertBlock({
 		<div
 			{...props}
 			className={cn(
-				"flex items-center flex-row gap-4 rounded-lg p-2",
+				"flex flex-row items-center gap-4 rounded-lg p-2",
 				iconClassName,
 				className,
 			)}
 		>
 			{icon || <Icon className="text-current" />}
-			<span className="text-sm text-current">{children}</span>
+			<span className="text-current text-sm">{children}</span>
 		</div>
 	);
 }

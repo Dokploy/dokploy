@@ -62,7 +62,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+			<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Preview Deployments</CardTitle>
 					<CardDescription>See all the preview deployments</CardDescription>
@@ -96,10 +96,10 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 									return (
 										<div
 											key={deployment.previewDeploymentId}
-											className="group relative overflow-hidden border rounded-lg transition-colors"
+											className="group relative overflow-hidden rounded-lg border transition-colors"
 										>
 											<div
-												className={`absolute left-0 top-0 w-1 h-full ${
+												className={`absolute top-0 left-0 h-full w-1 ${
 													status === "done"
 														? "bg-green-500"
 														: status === "running"
@@ -109,14 +109,14 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 											/>
 
 											<div className="p-4">
-												<div className="flex items-start justify-between mb-3">
+												<div className="mb-3 flex items-start justify-between">
 													<div className="flex items-start gap-3">
-														<GitPullRequest className="size-5 text-muted-foreground mt-1 flex-shrink-0" />
+														<GitPullRequest className="mt-1 size-5 flex-shrink-0 text-muted-foreground" />
 														<div>
 															<div className="font-medium text-sm">
 																{deployment.pullRequestTitle}
 															</div>
-															<div className="text-sm text-muted-foreground mt-1">
+															<div className="mt-1 text-muted-foreground text-sm">
 																{deployment.branch}
 															</div>
 														</div>
@@ -130,20 +130,20 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 													</Badge>
 												</div>
 
-												<div className="pl-8 space-y-3">
+												<div className="space-y-3 pl-8">
 													<div className="relative flex-grow">
 														<Input
 															value={deploymentUrl}
 															readOnly
-															className="pr-8 text-sm text-blue-500 hover:text-blue-600 cursor-pointer"
+															className="cursor-pointer pr-8 text-blue-500 text-sm hover:text-blue-600"
 															onClick={() =>
 																window.open(deploymentUrl, "_blank")
 															}
 														/>
-														<ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+														<ExternalLink className="-translate-y-1/2 absolute top-1/2 right-3 size-4 text-gray-400" />
 													</div>
 
-													<div className="flex gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+													<div className="flex gap-2 opacity-80 transition-opacity group-hover:opacity-100">
 														<Button
 															variant="outline"
 															size="sm"
@@ -209,7 +209,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																variant="ghost"
 																size="sm"
 																isLoading={isLoading}
-																className="text-red-600 hover:text-red-700 hover:bg-red-50"
+																className="text-red-600 hover:bg-red-50 hover:text-red-700"
 															>
 																<Trash2 className="size-4" />
 															</Button>

@@ -122,7 +122,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						Configure
 					</Button>
 				</DialogTrigger>
-				<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl w-full">
+				<DialogContent className="max-h-screen w-full overflow-y-auto sm:max-w-5xl">
 					<DialogHeader>
 						<DialogTitle>Preview Deployment Settings</DialogTitle>
 						<DialogDescription>
@@ -199,7 +199,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewHttps"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 												<div className="space-y-0.5">
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
@@ -247,7 +247,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									)}
 								</div>
 								<div className="grid gap-4 lg:grid-cols-2">
-									<div className="flex flex-row items-center justify-between rounded-lg border p-4 col-span-2">
+									<div className="col-span-2 flex flex-row items-center justify-between rounded-lg border p-4">
 										<div className="space-y-0.5">
 											<FormLabel className="text-base">
 												Enable preview deployments

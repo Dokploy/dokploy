@@ -53,8 +53,8 @@ export const Setup = () => {
 	return (
 		<div className="flex flex-col gap-4">
 			<Card className="bg-background">
-				<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-					<div className="flex flex-col gap-2 w-full">
+				<CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+					<div className="flex w-full flex-col gap-2">
 						<Label>Select the server and click on setup server</Label>
 						<Select onValueChange={setServerId} defaultValue={serverId}>
 							<SelectTrigger>
@@ -72,7 +72,7 @@ export const Setup = () => {
 							</SelectContent>
 						</Select>
 					</div>
-					<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
+					<div className="flex w-full flex-row justify-between gap-2 max-sm:flex-col">
 						<div className="flex flex-col gap-1">
 							<CardTitle className="text-xl">Deployments</CardTitle>
 							<CardDescription>See all the 5 Server Setup</CardDescription>
@@ -100,7 +100,7 @@ export const Setup = () => {
 						</div>
 					</div>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-4 min-h-[30vh]">
+				<CardContent className="flex min-h-[30vh] flex-col gap-4">
 					{server?.deployments?.length === 0 ? (
 						<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 							<RocketIcon className="size-8 text-muted-foreground" />
@@ -113,10 +113,10 @@ export const Setup = () => {
 							{deployments?.map((deployment) => (
 								<div
 									key={deployment.deploymentId}
-									className="flex items-center justify-between rounded-lg border p-4 gap-2"
+									className="flex items-center justify-between gap-2 rounded-lg border p-4"
 								>
 									<div className="flex flex-col">
-										<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+										<span className="flex items-center gap-4 font-medium text-foreground capitalize">
 											{deployment.status}
 
 											<StatusTooltip
@@ -124,17 +124,17 @@ export const Setup = () => {
 												className="size-2.5"
 											/>
 										</span>
-										<span className="text-sm text-muted-foreground">
+										<span className="text-muted-foreground text-sm">
 											{deployment.title}
 										</span>
 										{deployment.description && (
-											<span className="break-all text-sm text-muted-foreground">
+											<span className="break-all text-muted-foreground text-sm">
 												{deployment.description}
 											</span>
 										)}
 									</div>
 									<div className="flex flex-col items-end gap-2">
-										<div className="text-sm capitalize text-muted-foreground">
+										<div className="text-muted-foreground text-sm capitalize">
 											<DateTooltip date={deployment.createdAt} />
 										</div>
 

@@ -12,8 +12,8 @@ export default function Custom404({ statusCode, error }: Props) {
 	const displayStatusCode = statusCode || 400;
 	return (
 		<div className="h-screen">
-			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
-				<header className="mb-auto flex justify-center z-50 w-full py-4">
+			<div className="mx-auto flex size-full max-w-[50rem] flex-col">
+				<header className="z-50 mb-auto flex w-full justify-center py-4">
 					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
 						<Link
 							href="https://dokploy.com"
@@ -26,8 +26,8 @@ export default function Custom404({ statusCode, error }: Props) {
 					</nav>
 				</header>
 				<main id="content">
-					<div className="text-center py-10 px-4 sm:px-6 lg:px-8">
-						<h1 className="block text-7xl font-bold text-primary sm:text-9xl">
+					<div className="px-4 py-10 text-center sm:px-6 lg:px-8">
+						<h1 className="block font-bold text-7xl text-primary sm:text-9xl">
 							{displayStatusCode}
 						</h1>
 						{/* <AlertBlock className="max-w-xs mx-auto">
@@ -49,7 +49,7 @@ export default function Custom404({ statusCode, error }: Props) {
 							</div>
 						)}
 
-						<div className="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3">
+						<div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
 							<Link
 								href="/dashboard/projects"
 								className={buttonVariants({
@@ -58,7 +58,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								})}
 							>
 								<svg
-									className="flex-shrink-0 size-4"
+									className="size-4 flex-shrink-0"
 									xmlns="http://www.w3.org/2000/svg"
 									width="24"
 									height="24"
@@ -77,9 +77,9 @@ export default function Custom404({ statusCode, error }: Props) {
 					</div>
 				</main>
 
-				<footer className="mt-auto text-center py-5">
-					<div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8">
-						<p className="text-sm text-gray-500">
+				<footer className="mt-auto py-5 text-center">
+					<div className="mx-auto max-w-[85rem] px-4 sm:px-6 lg:px-8">
+						<p className="text-gray-500 text-sm">
 							Submit Log in issue on Github
 						</p>
 					</div>

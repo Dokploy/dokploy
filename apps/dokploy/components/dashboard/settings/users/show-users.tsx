@@ -42,22 +42,22 @@ export const ShowUsers = () => {
 
 	return (
 		<div className=" col-span-2">
-			<Card className="bg-transparent  ">
-				<CardHeader className="flex flex-row gap-2 justify-between w-full flex-wrap">
+			<Card className="bg-transparent ">
+				<CardHeader className="flex w-full flex-row flex-wrap justify-between gap-2">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl">Users</CardTitle>
 						<CardDescription>Add, manage and delete users.</CardDescription>
 					</div>
 
 					{data && data.length > 0 && (
-						<div className="flex flex-col gap-3 items-end">
+						<div className="flex flex-col items-end gap-3">
 							<AddUser />
 						</div>
 					)}
 				</CardHeader>
 				<CardContent className="space-y-2">
 					{data?.length === 0 ? (
-						<div className="flex flex-col items-center gap-3 h-full">
+						<div className="flex h-full flex-col items-center gap-3">
 							<Users className="size-8 self-center text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
 								To create a user, you need to add:
@@ -101,12 +101,12 @@ export const ShowUsers = () => {
 														: "2FA Not Enabled"}
 												</TableCell>
 												<TableCell className="text-right">
-													<span className="text-sm text-muted-foreground">
+													<span className="text-muted-foreground text-sm">
 														{format(new Date(user.expirationDate), "PPpp")}
 													</span>
 												</TableCell>
 
-												<TableCell className="text-right flex justify-end">
+												<TableCell className="flex justify-end text-right">
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
 															<Button variant="ghost" className="h-8 w-8 p-0">

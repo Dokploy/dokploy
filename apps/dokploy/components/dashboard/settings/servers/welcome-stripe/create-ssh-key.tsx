@@ -51,7 +51,7 @@ export const CreateSSHKey = () => {
 			<CardContent>
 				<div className="grid w-full gap-4 pt-4">
 					{isLoading || !cloudSSHKey ? (
-						<div className="min-h-[25vh] justify-center flex items-center gap-4">
+						<div className="flex min-h-[25vh] items-center justify-center gap-4">
 							<Loader2
 								className="animate-spin text-muted-foreground"
 								size={32}
@@ -59,8 +59,8 @@ export const CreateSSHKey = () => {
 						</div>
 					) : (
 						<>
-							<div className="flex flex-col gap-2 text-sm text-muted-foreground">
-								<p className="text-primary text-base font-semibold">
+							<div className="flex flex-col gap-2 text-muted-foreground text-sm">
+								<p className="font-semibold text-base text-primary">
 									You have two options to add SSH Keys to your server:
 								</p>
 
@@ -73,17 +73,17 @@ export const CreateSSHKey = () => {
 									</li>
 								</ul>
 
-								<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
-									<span className="text-base font-semibold text-primary">
+								<div className="flex w-full flex-col gap-2 rounded-lg border p-4">
+									<span className="font-semibold text-base text-primary">
 										Option 1
 									</span>
 									<ul>
-										<li className="items-center flex gap-1">
+										<li className="flex items-center gap-1">
 											1. Login to your server{" "}
 										</li>
 										<li>
 											2. When you are logged in run the following command
-											<div className="flex  relative flex-col gap-4 w-full mt-2">
+											<div className="relative mt-2 flex w-full flex-col gap-4">
 												<CodeEditor
 													lineWrapping
 													language="properties"
@@ -93,7 +93,7 @@ export const CreateSSHKey = () => {
 												/>
 												<button
 													type="button"
-													className="absolute right-2 top-2"
+													className="absolute top-2 right-2"
 													onClick={() => {
 														copy(
 															`echo "${cloudSSHKey?.publicKey}" >> ~/.ssh/authorized_keys`,
@@ -111,17 +111,17 @@ export const CreateSSHKey = () => {
 										</li>
 									</ul>
 								</div>
-								<div className="flex flex-col gap-2 w-full mt-2 border rounded-lg p-4">
-									<span className="text-base font-semibold text-primary">
+								<div className="mt-2 flex w-full flex-col gap-2 rounded-lg border p-4">
+									<span className="font-semibold text-base text-primary">
 										Option 2
 									</span>
-									<div className="flex flex-col gap-4 w-full overflow-auto">
-										<div className="flex relative flex-col gap-2 overflow-y-auto">
-											<div className="text-sm text-primary flex flex-row gap-2 items-center">
+									<div className="flex w-full flex-col gap-4 overflow-auto">
+										<div className="relative flex flex-col gap-2 overflow-y-auto">
+											<div className="flex flex-row items-center gap-2 text-primary text-sm">
 												Copy Public Key
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className=" top-8 right-2"
 													onClick={() => {
 														copy(
 															cloudSSHKey?.publicKey || "Generate a SSH Key",
@@ -137,7 +137,7 @@ export const CreateSSHKey = () => {
 									<Link
 										href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 										target="_blank"
-										className="text-primary flex flex-row gap-2"
+										className="flex flex-row gap-2 text-primary"
 									>
 										View Tutorial <ExternalLinkIcon className="size-4" />
 									</Link>

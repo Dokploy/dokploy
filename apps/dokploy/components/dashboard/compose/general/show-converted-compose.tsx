@@ -52,7 +52,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					Preview Compose
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-6xl max-h-[50rem] overflow-y-auto">
+			<DialogContent className="max-h-[50rem] overflow-y-auto sm:max-w-6xl">
 				<DialogHeader>
 					<DialogTitle>Converted Compose</DialogTitle>
 					<DialogDescription>
@@ -62,7 +62,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				<div className="flex flex-row gap-2 justify-end">
+				<div className="flex flex-row justify-end gap-2">
 					<Button
 						variant="secondary"
 						isLoading={isLoading}

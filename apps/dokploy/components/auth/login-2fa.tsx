@@ -80,14 +80,14 @@ export const Login2FA = ({ authId }: Props) => {
 				className="grid w-full gap-4"
 			>
 				{isError && (
-					<div className="flex flex-row gap-4 rounded-lg items-center bg-red-50 p-2 dark:bg-red-950">
+					<div className="flex flex-row items-center gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
-						<span className="text-sm text-red-600 dark:text-red-400">
+						<span className="text-red-600 text-sm dark:text-red-400">
 							{error?.message}
 						</span>
 					</div>
 				)}
-				<CardTitle className="text-xl font-bold">2FA Login</CardTitle>
+				<CardTitle className="font-bold text-xl">2FA Login</CardTitle>
 
 				<FormField
 					control={form.control}

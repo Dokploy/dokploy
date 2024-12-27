@@ -193,17 +193,17 @@ const Project = (
 				<Head>
 					<title>Project: {data?.name} | Dokploy</title>
 				</Head>
-				<header className="mb-6 flex w-full items-center justify-between flex-wrap gap-2">
+				<header className="mb-6 flex w-full flex-wrap items-center justify-between gap-2">
 					<div className="flex flex-col gap-2">
-						<h1 className="text-xl font-bold lg:text-3xl">{data?.name}</h1>
+						<h1 className="font-bold text-xl lg:text-3xl">{data?.name}</h1>
 
-						<p className="lg:text-medium text-muted-foreground">
+						<p className="text-muted-foreground lg:text-medium">
 							{data?.description}
 						</p>
 					</div>
 
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
-						<div className="flex flex-row gap-4 flex-wrap">
+						<div className="flex flex-row flex-wrap gap-4">
 							<ProjectEnviroment projectId={projectId}>
 								<Button variant="outline">Project Enviroment</Button>
 							</ProjectEnviroment>
@@ -218,7 +218,7 @@ const Project = (
 									className="w-[200px] space-y-2"
 									align="end"
 								>
-									<DropdownMenuLabel className="text-sm font-normal ">
+									<DropdownMenuLabel className="font-normal text-sm ">
 										Actions
 									</DropdownMenuLabel>
 									<DropdownMenuSeparator />
@@ -239,8 +239,8 @@ const Project = (
 			<div className="flex w-full gap-8">
 				{emptyServices ? (
 					<div className="flex h-[70vh] w-full flex-col items-center justify-center">
-						<FolderInput className="size-10 md:size-28 text-muted" />
-						<span className="text-center font-medium  text-muted-foreground">
+						<FolderInput className="size-10 text-muted md:size-28" />
+						<span className="text-center font-medium text-muted-foreground">
 							No services added yet. Click on Create Service.
 						</span>
 					</div>
@@ -255,27 +255,27 @@ const Project = (
 											`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
 										);
 									}}
-									className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card"
+									className="group relative flex cursor-pointer flex-col bg-transparent transition-colors hover:bg-card"
 								>
-									<div className="absolute -right-1 -top-2">
+									<div className="-right-1 -top-2 absolute">
 										<StatusTooltip status={service.status} />
 									</div>
 
 									<CardHeader>
 										<CardTitle className="flex items-center justify-between">
-											<div className="flex flex-row items-center gap-2 justify-between w-full">
+											<div className="flex w-full flex-row items-center justify-between gap-2">
 												<div className="flex flex-col gap-2">
-													<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+													<span className="flex flex-wrap items-center gap-2 font-medium text-base leading-none">
 														{service.name}
 													</span>
 													{service.description && (
-														<span className="text-sm font-medium text-muted-foreground">
+														<span className="font-medium text-muted-foreground text-sm">
 															{service.description}
 														</span>
 													)}
 												</div>
 
-												<span className="text-sm font-medium text-muted-foreground self-start">
+												<span className="self-start font-medium text-muted-foreground text-sm">
 													{service.type === "postgres" && (
 														<PostgresqlIcon className="h-7 w-7" />
 													)}

@@ -101,7 +101,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 					<Edit className="size-4" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Update GitLab Provider <GitlabIcon className="size-5" />
@@ -164,7 +164,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									)}
 								/>
 
-								<div className="flex w-full justify-end gap-4 mt-4">
+								<div className="mt-4 flex w-full justify-end gap-4">
 									<Button
 										type="button"
 										variant={"secondary"}

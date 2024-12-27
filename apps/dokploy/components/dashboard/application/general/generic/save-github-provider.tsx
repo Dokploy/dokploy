@@ -142,12 +142,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid w-full gap-4 py-3"
 				>
-					<div className="grid md:grid-cols-2 gap-4">
+					<div className="grid gap-4 md:grid-cols-2">
 						<FormField
 							control={form.control}
 							name="githubId"
 							render={({ field }) => (
-								<FormItem className="md:col-span-2 flex flex-col">
+								<FormItem className="flex flex-col md:col-span-2">
 									<FormLabel>Github Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
@@ -186,7 +186,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="repository"
 							render={({ field }) => (
-								<FormItem className="md:col-span-2 flex flex-col">
+								<FormItem className="flex flex-col md:col-span-2">
 									<FormLabel>Repository</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
@@ -194,7 +194,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"!bg-input w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -253,7 +253,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</PopoverContent>
 									</Popover>
 									{form.formState.errors.repository && (
-										<p className={cn("text-sm font-medium text-destructive")}>
+										<p className={cn("font-medium text-destructive text-sm")}>
 											Repository is required
 										</p>
 									)}
@@ -272,7 +272,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" !bg-input w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -294,12 +294,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
-													<span className="py-6 text-center text-sm text-muted-foreground">
+													<span className="py-6 text-center text-muted-foreground text-sm">
 														Loading Branches....
 													</span>
 												)}
 												{!repository?.owner && (
-													<span className="py-6 text-center text-sm text-muted-foreground">
+													<span className="py-6 text-center text-muted-foreground text-sm">
 														Select a repository
 													</span>
 												)}

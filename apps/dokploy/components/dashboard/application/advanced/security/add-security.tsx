@@ -84,7 +84,7 @@ export const AddSecurity = ({
 			<DialogTrigger asChild>
 				<Button>{children}</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Security</DialogTitle>
 					<DialogDescription>

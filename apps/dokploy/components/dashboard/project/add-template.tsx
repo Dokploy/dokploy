@@ -108,8 +108,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 					<span>Template</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-7xl p-0">
-				<div className="sticky top-0 z-10 flex flex-col gap-4 bg-background p-6 border-b">
+			<DialogContent className="max-h-screen overflow-y-auto p-0 sm:max-w-7xl">
+				<div className="sticky top-0 z-10 flex flex-col gap-4 border-b bg-background p-6">
 					<DialogHeader>
 						<DialogTitle>Create from Template</DialogTitle>
 						<DialogDescription>
@@ -117,7 +117,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-					<div className="flex flex-col md:flex-row gap-2">
+					<div className="flex flex-col gap-2 md:flex-row">
 						<Input
 							placeholder="Search Template"
 							onChange={(e) => setQuery(e.target.value)}
@@ -129,7 +129,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 								<Button
 									variant="outline"
 									className={cn(
-										"md:max-w-[15rem] w-full justify-between !bg-input",
+										"!bg-input w-full justify-between md:max-w-[15rem]",
 									)}
 								>
 									{isLoadingTags
@@ -138,7 +138,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 											? `Selected ${selectedTags.length} tags`
 											: "Select tag"}
 
-									<ChevronsUpDown className="ml-2 h-4 w-4  opacity-50" />
+									<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="p-0" align="start">
@@ -186,21 +186,21 @@ export const AddTemplate = ({ projectId }: Props) => {
 						</Popover>
 					</div>
 				</div>
-				<div className="p-6 w-full">
+				<div className="w-full p-6">
 					{templates.length === 0 ? (
-						<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
-							<SearchIcon className="text-muted-foreground size-6" />
-							<div className="text-xl font-medium text-muted-foreground">
+						<div className="flex min-h-[50vh] w-full items-center justify-center gap-2">
+							<SearchIcon className="size-6 text-muted-foreground" />
+							<div className="font-medium text-muted-foreground text-xl">
 								No templates found
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 w-full gap-4">
+						<div className="grid w-full grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
 							{templates?.map((template, index) => (
 								<div key={`template-${index}`}>
 									<div
 										key={template.id}
-										className="flex flex-col gap-4 border p-6 rounded-lg h-full"
+										className="flex h-full flex-col gap-4 rounded-lg border p-6"
 									>
 										<div className="flex flex-col gap-4">
 											<div className="flex flex-col items-center gap-2">
@@ -212,10 +212,10 @@ export const AddTemplate = ({ projectId }: Props) => {
 											</div>
 
 											<div className="flex flex-col gap-2">
-												<div className="flex flex-col gap-2 justify-center items-center">
-													<div className="flex flex-col gap-2 items-center justify-center">
-														<div className="flex flex-row gap-2 flex-wrap">
-															<span className="text-sm font-medium">
+												<div className="flex flex-col items-center justify-center gap-2">
+													<div className="flex flex-col items-center justify-center gap-2">
+														<div className="flex flex-row flex-wrap gap-2">
+															<span className="font-medium text-sm">
 																{template.name}
 															</span>
 															<Badge>{template.version}</Badge>
@@ -226,7 +226,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																href={template.links.github}
 																target="_blank"
 																className={
-																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																	"flex items-center rounded-full p-3 text-muted-foreground text-sm transition-colors hover:bg-border"
 																}
 															>
 																<Github className="size-4 text-muted-foreground" />
@@ -236,7 +236,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	href={template.links.website}
 																	target="_blank"
 																	className={
-																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																		"flex items-center rounded-full p-3 text-muted-foreground text-sm transition-colors hover:bg-border"
 																	}
 																>
 																	<Globe className="size-4 text-muted-foreground" />
@@ -247,7 +247,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	href={template.links.docs}
 																	target="_blank"
 																	className={
-																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																		"flex items-center rounded-full p-3 text-muted-foreground text-sm transition-colors hover:bg-border"
 																	}
 																>
 																	<BookText className="size-4 text-muted-foreground" />
@@ -257,13 +257,13 @@ export const AddTemplate = ({ projectId }: Props) => {
 																href={`https://github.com/Dokploy/dokploy/tree/canary/apps/dokploy/templates/${template.id}`}
 																target="_blank"
 																className={
-																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																	"flex items-center rounded-full p-3 text-muted-foreground text-sm transition-colors hover:bg-border"
 																}
 															>
 																<Code className="size-4 text-muted-foreground" />
 															</Link>
 														</div>
-														<div className="flex flex-row gap-2 flex-wrap justify-center">
+														<div className="flex flex-row flex-wrap justify-center gap-2">
 															{template.tags.map((tag) => (
 																<Badge variant="secondary" key={tag}>
 																	{tag}
@@ -293,7 +293,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	<TooltipProvider delayDuration={0}>
 																		<Tooltip>
 																			<TooltipTrigger asChild>
-																				<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
+																				<Label className="flex w-fit flex-row items-center gap-1 break-all pt-3.5 pb-2">
 																					Select a Server (Optional)
 																					<HelpCircle className="size-4 text-muted-foreground" />
 																				</Label>
@@ -370,7 +370,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 													</AlertDialog>
 												</div>
 
-												<p className="text-sm text-muted-foreground line-clamp-3">
+												<p className="line-clamp-3 text-muted-foreground text-sm">
 													{template.description}
 												</p>
 											</div>

@@ -41,7 +41,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
+			<CardHeader className="flex flex-row flex-wrap justify-between gap-4">
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl">Backups</CardTitle>
 					<CardDescription>
@@ -93,35 +93,35 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 								<div className="flex flex-col gap-6">
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
-											<div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4 md:gap-10 border rounded-lg p-4">
-												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 flex-col gap-8">
+											<div className="flex w-full flex-col justify-between gap-4 rounded-lg border p-4 md:flex-row md:items-center md:gap-10">
+												<div className="grid grid-cols-1 flex-col gap-8 md:grid-cols-3 xl:grid-cols-5">
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Destination</span>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-muted-foreground text-sm">
 															{backup.destination.name}
 														</span>
 													</div>
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Database</span>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-muted-foreground text-sm">
 															{backup.database}
 														</span>
 													</div>
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Scheduled</span>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-muted-foreground text-sm">
 															{backup.schedule}
 														</span>
 													</div>
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Prefix Storage</span>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-muted-foreground text-sm">
 															{backup.prefix}
 														</span>
 													</div>
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Enabled</span>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-muted-foreground text-sm">
 															{backup.enabled ? "Yes" : "No"}
 														</span>
 													</div>
@@ -150,7 +150,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 																			});
 																	}}
 																>
-																	<Play className="size-5  text-muted-foreground" />
+																	<Play className="size-5 text-muted-foreground" />
 																</Button>
 															</TooltipTrigger>
 															<TooltipContent>Run Manual Backup</TooltipContent>
