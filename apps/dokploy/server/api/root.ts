@@ -1,6 +1,7 @@
 import { authRouter } from "@/server/api/routers/auth";
 import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
+import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
@@ -75,6 +76,7 @@ export const appRouter = createTRPCRouter({
 	server: serverRouter,
 	stripe: stripeRouter,
 	swarm: swarmRouter,
+	ai: aiRouter,
 });
 
 // export type definition of API

@@ -103,6 +103,12 @@ export const SettingsLayout = ({ children }: Props) => {
 										icon: Server,
 										href: "/dashboard/settings/servers",
 									},
+									{
+										title: "AI",
+										label: "",
+										icon: Sparkles,
+										href: "/dashboard/settings/ai",
+									},
 									...(isCloud
 										? [
 												{
@@ -152,13 +158,12 @@ import {
 	Database,
 	GalleryVerticalEnd,
 	GitBranch,
-	KeyIcon,
 	KeyRound,
-	ListMusic,
 	type LucideIcon,
 	Route,
 	Server,
 	ShieldCheck,
+	Sparkles,
 	User2,
 	Users,
 } from "lucide-react";
