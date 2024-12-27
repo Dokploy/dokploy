@@ -24,7 +24,6 @@ import {
 	Settings2,
 	ShieldCheck,
 	Sparkles,
-	House,
 	Trash2,
 	User,
 	Users,
@@ -36,6 +35,8 @@ import {
 	Settings,
 	BarChartHorizontalBigIcon,
 	Heart,
+	LucideIcon,
+	Activity,
 } from "lucide-react";
 import * as React from "react";
 
@@ -89,6 +90,25 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
 // This is sample data.
+interface NavItem {
+	title: string;
+	url: string;
+	icon: LucideIcon;
+	isSingle: boolean;
+	isActive: boolean;
+	items?: {
+	  title: string;
+	  url: string;
+	  icon?: LucideIcon;
+	}[];
+  }
+
+interface ExternalLink {
+  name: string;
+  url: string;
+  icon: LucideIcon;
+}
+
 const data = {
 	user: {
 		name: "shadcn",
@@ -118,36 +138,42 @@ const data = {
 			url: "/dashboard/projects",
 			icon: Folder,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			isSingle: true,
+			isActive: false      
 		},
 		{
 			title: "File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
 			isSingle: true,
+			isActive: false
 		},
 
 		// {
@@ -216,31 +242,42 @@ const data = {
 		// 		},
 		// 	],
 		// },
-	],
+	] as NavItem[],
 	settings: [
+		{
+			title: "Server",
+			url: "/dashboard/settings/server",
+			icon: Activity,
+			isSingle: true,
+			isActive: false
+		},
 		{
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			isSingle: true,
+			isActive: false
 		},
 
 		{
@@ -248,18 +285,21 @@ const data = {
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			isSingle: true,
+			isActive: false
 		},
 
 		{
@@ -267,12 +307,14 @@ const data = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			isSingle: true,
+			isActive: false
 		},
 		{
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			isSingle: true,
+			isActive: false
 		},
 		// {
 		// 	title: "Billing",
@@ -285,7 +327,7 @@ const data = {
 		// 	url: "/dashboard/settings/appearance",
 		// 	icon: Frame,
 		// },
-	],
+	] as NavItem[],
 	projects: [
 		{
 			name: "Documentation",
@@ -307,7 +349,7 @@ const data = {
 		// 	url: "#",
 		// 	icon: Map,
 		// },
-	],
+	] as ExternalLink[],
 };
 
 interface Props {
@@ -315,6 +357,18 @@ interface Props {
 }
 export default function Page({ children }: Props) {
 	const [activeTeam, setActiveTeam] = React.useState(data.teams[0]);
+	const router = useRouter();
+	const currentPath = router.pathname;
+  
+	data.home = data.home.map(item => ({
+	  ...item,
+	  isActive: item.url === currentPath
+	}));
+  
+	data.settings = data.settings.map(item => ({
+	  ...item,
+	  isActive: item.url === currentPath
+	}));
 
 	return (
 		<SidebarProvider>
@@ -638,17 +692,21 @@ export default function Page({ children }: Props) {
 						<SidebarTrigger className="-ml-1" />
 						<Separator orientation="vertical" className="mr-2 h-4" />
 						<Breadcrumb>
-							<BreadcrumbList>
-								<BreadcrumbItem className="hidden md:block">
-									<BreadcrumbLink href="#">
-										Building Your Application
-									</BreadcrumbLink>
-								</BreadcrumbItem>
-								<BreadcrumbSeparator className="hidden md:block" />
-								<BreadcrumbItem>
-									<BreadcrumbPage>Data Fetching</BreadcrumbPage>
-								</BreadcrumbItem>
-							</BreadcrumbList>
+						<BreadcrumbList>
+							<BreadcrumbItem className="hidden md:block">
+								<BreadcrumbLink href="#">
+									{data.home.find(item => item.isActive)?.title || 
+									 data.settings.find(item => item.isActive)?.title}
+								</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator className="hidden md:block" />
+							<BreadcrumbItem>
+								<BreadcrumbPage>
+									{data.home.find(item => item.isActive)?.title || 
+									 data.settings.find(item => item.isActive)?.title}
+								</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
 						</Breadcrumb>
 					</div>
 				</header>
@@ -743,7 +801,7 @@ export const UserNav = () => {
 					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage src={data?.image || ""} alt={data?.image} />
+						<AvatarImage src={data?.image || ""} alt={data?.image || ""} />
 						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
