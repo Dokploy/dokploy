@@ -20,6 +20,7 @@ import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-contai
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
+import { setupMonitoringWebSocketServer } from "./wss/monitoring";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -33,6 +34,7 @@ void app.prepare().then(async () => {
 		});
 
 		// WEBSOCKET
+		setupMonitoringWebSocketServer(server);
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);

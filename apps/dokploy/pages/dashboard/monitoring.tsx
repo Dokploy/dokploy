@@ -5,7 +5,25 @@ import type { GetServerSidePropsContext } from "next";
 import React, { type ReactElement } from "react";
 
 const Dashboard = () => {
-	return <ShowMonitoring />;
+	const [data, setData] = React.useState(null);
+	const ws = new WebSocket("ws://localhost:3000/listen-monitoring");
+
+	React.useEffect(() => {
+		ws.onopen = () => {
+			console.log("WebSocket conectado");
+		};
+		ws.onmessage = (event) => {
+			console.log(event.data);
+			setData(JSON.parse(event.data));
+		};
+
+		ws.onerror = (e) => {
+			console.log("WebSocket error", e);
+		};
+	});
+
+	return <div>{JSON.stringify(data)}</div>;
+	// return <ShowMonitoring />;
 };
 
 export default Dashboard;

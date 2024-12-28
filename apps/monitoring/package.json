@@ -1,0 +1,26 @@
+{
+  "name": "monitoring",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.json",
+		"start": "node --experimental-specifier-resolution=node dist/socket.js",
+    "ws":"tsx watch src/socket.ts"
+  },
+  "dependencies": {
+    "dotenv":"^16.4.5",
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.6.14",
+    "ws":"8.18.0",
+    "dockerode":"^4.0.2",
+    "systeminformation":"^5.23.23"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1",
+    "@types/ws": "^8.5.13",
+    "@types/dockerode": "^3.3.32"
+  
+  }
+}
