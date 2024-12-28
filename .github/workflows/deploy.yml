@@ -98,5 +98,5 @@ jobs:
           file: ./Dockerfile.monitoring
           push: true
           tags: |
-            siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+            siumauricio/monitoring:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
