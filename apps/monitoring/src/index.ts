@@ -4,17 +4,22 @@ import { cors } from "hono/cors";
 import { logServerMetrics, logContainerMetrics } from "./socket.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { config } from "dotenv";
+config();
 
 const TOKEN = process.env.TOKEN || "default-token";
 const app = new Hono();
 
-const origin = [];
+const origin =
+	process.env.NODE_ENV === "production"
+		? "https://dokploy.com"
+		: "http://localhost:3000";
 
 // Configurar CORS
 app.use(
 	"*",
 	cors({
-		origin: ["http://localhost:3000", "http://localhost:3001"],
+		origin: [origin],
 		credentials: true,
 	}),
 );
@@ -71,7 +76,7 @@ serve({
 });
 
 logServerMetrics();
-logContainerMetrics();
+// logContainerMetrics();
 
 function parseLog(logContent: string) {
 	const lines = logContent.trim().split("\n");

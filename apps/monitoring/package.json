@@ -7,9 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc --project tsconfig.json",
-    "start": "node --experimental-specifier-resolution=node dist/socket.js",
-    "ws": "tsx watch src/socket.ts",
-    "proto": "grpc_tools_node_protoc --js_out=import_style=commonjs,binary:./src/proto --grpc_out=grpc_js:./src/proto --ts_out=./src/proto ./proto/*.proto"
+    "start": "node --experimental-specifier-resolution=node dist/index.js",
+    "ws": "tsx watch src/socket.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -17,9 +16,7 @@
     "hono": "^4.6.14",
     "ws": "8.18.0",
     "dockerode": "^4.0.2",
-    "systeminformation": "^5.23.23",
-    "@grpc/grpc-js": "^1.9.0",
-    "@grpc/proto-loader": "^0.7.0"
+    "systeminformation": "^5.23.23"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
@@ -27,7 +24,6 @@
     "tsx": "^4.7.1",
     "@types/ws": "^8.5.13",
     "@types/dockerode": "^3.3.32",
-    "grpc-tools": "^1.12.0",
     "ts-node": "^10.9.0"
   }
 }
