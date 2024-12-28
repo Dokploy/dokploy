@@ -99,12 +99,12 @@ async function logContainerMetrics() {
 
 console.log("Initializing...");
 // === Inicializar los procesos en paralelo ===
-ws.on("open", () => {
-	console.log("Conectado al servidor central");
-	logServerMetrics();
-	// logContainerMetrics();
-});
+// ws.on("open", () => {
+console.log("Conectado al servidor central");
+logServerMetrics();
+// logContainerMetrics();
+// });
 
-ws.on("close", () => {
-	console.log("Conexión perdida con el servidor central");
-});
+// ws.on("close", () => {
+// console.log("Conexión perdida con el servidor central");
+// });/
