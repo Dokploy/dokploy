@@ -20,17 +20,13 @@ interface NetworkChartProps {
 }
 
 const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-	memory: {
-		label: "Memoria",
-		color: "hsl(var(--chart-2))",
-	},
-	network: {
-		label: "Red",
+	networkIn: {
+		label: "Network In",
 		color: "hsl(var(--chart-3))",
+	},
+	networkOut: {
+		label: "Network Out",
+		color: "hsl(var(--chart-4))",
 	},
 } satisfies ChartConfig;
 
@@ -40,9 +36,9 @@ export function NetworkChart({ data }: NetworkChartProps) {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Red</CardTitle>
+				<CardTitle>Network</CardTitle>
 				<CardDescription>
-					Tráfico de red: ↑ {latestData.networkOut} KB/s ↓{" "}
+					Network Traffic: ↑ {latestData.networkOut} KB/s ↓{" "}
 					{latestData.networkIn} KB/s
 				</CardDescription>
 			</CardHeader>
@@ -98,7 +94,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Tiempo
+														Time
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -106,7 +102,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Red
+														Network
 													</span>
 													<span className="font-bold">
 														↑ {data.networkOut} KB/s
@@ -121,7 +117,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							}}
 						/>
 						<Area
-							name="Red Entrada"
+							name="Network In"
 							dataKey="networkIn"
 							type="monotone"
 							fill="url(#fillNetworkIn)"
@@ -129,14 +125,18 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							strokeWidth={2}
 						/>
 						<Area
-							name="Red Salida"
+							name="Network Out"
 							dataKey="networkOut"
 							type="monotone"
 							fill="url(#fillNetworkOut)"
 							stroke="hsl(var(--chart-4))"
 							strokeWidth={2}
 						/>
-						<ChartLegend content={<ChartLegendContent />} />
+						<ChartLegend
+							content={<ChartLegendContent />}
+							verticalAlign="bottom"
+							align="center"
+						/>
 					</AreaChart>
 				</ChartContainer>
 			</CardContent>

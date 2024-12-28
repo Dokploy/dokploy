@@ -24,14 +24,6 @@ const chartConfig = {
 		label: "CPU",
 		color: "hsl(var(--chart-1))",
 	},
-	memory: {
-		label: "Memoria",
-		color: "hsl(var(--chart-2))",
-	},
-	network: {
-		label: "Red",
-		color: "hsl(var(--chart-3))",
-	},
 } satisfies ChartConfig;
 
 export function CPUChart({ data }: CPUChartProps) {
@@ -41,7 +33,7 @@ export function CPUChart({ data }: CPUChartProps) {
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
 				<CardTitle>CPU</CardTitle>
-				<CardDescription>Uso de CPU: {latestData.cpu}%</CardDescription>
+				<CardDescription>CPU Usage: {latestData.cpu}%</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
@@ -83,7 +75,7 @@ export function CPUChart({ data }: CPUChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Tiempo
+														Time
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -110,7 +102,11 @@ export function CPUChart({ data }: CPUChartProps) {
 							stroke="hsl(var(--chart-1))"
 							strokeWidth={2}
 						/>
-						<ChartLegend content={<ChartLegendContent />} />
+						<ChartLegend
+							content={<ChartLegendContent />}
+							verticalAlign="bottom"
+							align="center"
+						/>
 					</AreaChart>
 				</ChartContainer>
 			</CardContent>

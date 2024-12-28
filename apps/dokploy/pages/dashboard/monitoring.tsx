@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { CPUChart } from "@/components/metrics/cpu-chart";
 import { MemoryChart } from "@/components/metrics/memory-chart";
 import { NetworkChart } from "@/components/metrics/network-chart";
-import { DiskRadialChart } from "@/components/metrics/radial-chart";
+import { DiskChart } from "@/components/metrics/disk-chart";
 
 const REFRESH_INTERVAL = 3000;
 const METRICS_URL =
@@ -75,7 +75,7 @@ const Dashboard = () => {
 		<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 pt-5 pb-10">
 			<CPUChart data={historicalData} />
 			<MemoryChart data={historicalData} />
-			<DiskRadialChart data={metrics} />
+			<DiskChart data={metrics} />
 			<NetworkChart data={historicalData} />
 		</div>
 	);

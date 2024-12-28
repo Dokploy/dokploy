@@ -20,17 +20,9 @@ interface MemoryChartProps {
 }
 
 const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-	memory: {
-		label: "Memoria",
+	Memory: {
+		label: "Memory",
 		color: "hsl(var(--chart-2))",
-	},
-	network: {
-		label: "Red",
-		color: "hsl(var(--chart-3))",
 	},
 } satisfies ChartConfig;
 
@@ -40,10 +32,10 @@ export function MemoryChart({ data }: MemoryChartProps) {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Memoria</CardTitle>
+				<CardTitle>Memory</CardTitle>
 				<CardDescription>
-					Uso de memoria: {latestData.memUsedGB} GB de {latestData.memTotal} GB
-					({latestData.memUsed}%)
+					Memory Usage: {latestData.memUsedGB} GB of {latestData.memTotal} GB (
+					{latestData.memUsed}%)
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -97,7 +89,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Tiempo
+														Time
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -105,7 +97,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Memoria
+														Memory
 													</span>
 													<span className="font-bold">
 														{data.memUsed}% ({data.memUsedGB} GB)
@@ -120,14 +112,13 @@ export function MemoryChart({ data }: MemoryChartProps) {
 						/>
 						<Area
 							yAxisId="left"
-							name="Memoria Usada"
 							dataKey="memUsed"
 							type="monotone"
 							fill="url(#fillMemory)"
 							stroke="hsl(var(--chart-2))"
 							strokeWidth={2}
+							name="Memory"
 						/>
-						<ChartLegend content={<ChartLegendContent />} />
 					</AreaChart>
 				</ChartContainer>
 			</CardContent>
