@@ -1,90 +1,122 @@
-import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
-import { Client } from "ssh2";
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
+
+interface MonitoringState {
+	activeClients: Set<WebSocket>;
+	agent: WebSocket | null;
+	isCollecting: boolean;
+}
+
+const state: MonitoringState = {
+	activeClients: new Set(),
+	agent: null,
+	isCollecting: false,
+};
 
 export const setupMonitoringWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
 ) => {
-	const wssTerm = new WebSocketServer({
+	const wss = new WebSocketServer({
 		noServer: true,
-		path: "/listen-monitoring",
+		path: "/agent",
 	});
+
+	const startMetricsCollection = () => {
+		if (!state.agent || state.isCollecting) return;
+		state.isCollecting = true;
+		console.log(" Iniciando recolección de métricas");
+		state.agent.send(JSON.stringify({ type: "start" }));
+	};
+
+	const stopMetricsCollection = () => {
+		if (!state.agent || !state.isCollecting) return;
+		state.isCollecting = false;
+		console.log(" Deteniendo recolección de métricas");
+		state.agent.send(JSON.stringify({ type: "stop" }));
+	};
 
 	server.on("upgrade", (req, socket, head) => {
 		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		console.log(" Solicitud de upgrade para:", pathname);
 
-		if (pathname === "/_next/webpack-hmr") {
-			return;
-		}
-		if (pathname === "/listen-monitoring") {
-			wssTerm.handleUpgrade(req, socket, head, function done(ws) {
-				wssTerm.emit("connection", ws, req);
+		if (pathname === "/_next/webpack-hmr") return;
+		if (pathname === "/agent") {
+			wss.handleUpgrade(req, socket, head, (ws) => {
+				wss.emit("connection", ws, req);
 			});
 		}
 	});
 
-	wssTerm.on("connection", async (ws, req) => {
-		console.log("Nuevo agente conectado desde:", req.socket.remoteAddress);
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
-		// const logPath = url.searchParams.get("logPath");
-		// const serverId = url.searchParams.get("serverId");
-		// const { user, session } = await validateWebSocketRequest(req);
-
-		// if (!logPath) {
-		// 	console.log("logPath no provided");
-		// 	ws.close(4000, "logPath no provided");
-		// 	return;
-		// }
+	wss.on("connection", (ws: WebSocket, req) => {
+		console.log(" Nueva conexión desde:", req.socket.remoteAddress);
 
 		ws.on("message", (data) => {
 			try {
 				const message = JSON.parse(data.toString());
-				// console.log(message);
-				// const message = {
-				// 	type: "server",
-				// 	data: {
-				// 		cpu: 0,
-				// 		mem: 0,
-				// 	},
-				// };
-				// console.log(message);
-				const timestamp = new Date().toISOString();
+				console.log(" Mensaje recibido:", message);
 
-				if (message.type === "server") {
-					console.log(`[${timestamp}] [Servidor Remoto] -`, message.data);
-				}
+				switch (message.type) {
+					case "register":
+						if (message.data?.role === "agent") {
+							console.log(" Agente registrado");
+							state.agent = ws;
+							// Si hay clientes esperando, iniciar métricas
+							if (state.activeClients.size > 0) {
+								startMetricsCollection();
+							}
+						} else if (message.data?.role === "client") {
+							console.log(" Cliente conectado");
+							state.activeClients.add(ws);
+							// Si es el primer cliente y tenemos un agente, iniciar métricas
+							if (state.activeClients.size === 1 && state.agent) {
+								startMetricsCollection();
+							}
+						}
+						break;
 
-				if (message.type === "container") {
-					console.log(`[${timestamp}] [Contenedor] - `, message.data);
+					case "metrics":
+						console.log(
+							" Métricas recibidas, reenviando a",
+							state.activeClients.size,
+							"clientes",
+						);
+						// Reenviar métricas a todos los clientes activos
+						state.activeClients.forEach((client) => {
+							if (client.readyState === WebSocket.OPEN) {
+								client.send(data.toString());
+							}
+						});
+						break;
 				}
-				ws.send(JSON.stringify(message));
-				// Reenviar mensaje a todos los clientes (frontend)
-				// clients.forEach((client) => {
-				// 	if (client.readyState === WebSocket.OPEN) {
-				// 		client.send(JSON.stringify(message));
-				// 	}
-				// });
 			} catch (error) {
-				console.error("Error procesando mensaje:", error);
+				console.error(" Error procesando mensaje:", error);
 			}
 		});
 
 		ws.on("close", () => {
-			console.log("Agente desconectado");
+			// Si era un cliente
+			if (state.activeClients.has(ws)) {
+				state.activeClients.delete(ws);
+				console.log(
+					" Cliente desconectado. Clientes restantes:",
+					state.activeClients.size,
+				);
+
+				// Si no quedan clientes, detener métricas
+				if (state.activeClients.size === 0) {
+					stopMetricsCollection();
+				}
+			}
+			// Si era el agente
+			else if (ws === state.agent) {
+				state.agent = null;
+				state.isCollecting = false;
+				console.log(" Agente desconectado");
+			}
 		});
 
-		// if (!user || !session) {
-		// 	ws.close();
-		// 	return;
-		// }
-
-		try {
-		} catch (error) {
-			// @ts-ignore
-			// const errorMessage = error?.message as unknown as string;
-			// ws.send(errorMessage);
-		}
+		ws.on("error", (error) => {
+			console.error(" Error en la conexión:", error);
+		});
 	});
 };
