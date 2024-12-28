@@ -19,9 +19,9 @@ const containerLogFile = path.join(
 	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
 	"containers_metrics.log",
 );
-const ws = new WebSocket(
-	process.env.WS_URL || "ws://localhost:3000/listen-monitoring",
-);
+// const ws = new WebSocket(
+// 	process.env.WS_URL || "ws://localhost:3000/listen-monitoring",
+// );
 
 async function getServerMetrics() {
 	const [cpu, mem, load, fsSize, network] = await Promise.all([
@@ -57,7 +57,7 @@ function logServerMetrics() {
 			if (err) console.error("Error al escribir en el archivo:", err);
 		});
 
-		ws.send(JSON.stringify({ type: "server", data: metrics }));
+		// ws.send(JSON.stringify({ type: "server", data: metrics }));
 	}, 5000);
 }
 
@@ -77,15 +77,15 @@ async function logContainerMetrics() {
 				});
 
 				// (Opcional) Enviar al WebSocket
-				ws.send(
-					JSON.stringify({
-						type: "container",
-						data: {
-							name: container.Names[0],
-							state: container.State,
-						},
-					}),
-				);
+				// ws.send(
+				// 	JSON.stringify({
+				// 		type: "container",
+				// 		data: {
+				// 			name: container.Names[0],
+				// 			state: container.State,
+				// 		},
+				// 	}),
+				// );
 			}
 
 			// containers.forEach((container) => {
