@@ -6,10 +6,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
-	ChartConfig,
+	type ChartConfig,
 	ChartContainer,
-	ChartLegend,
-	ChartLegendContent,
 	ChartTooltip,
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -77,7 +75,10 @@ export function MemoryChart({ data }: MemoryChartProps) {
 							yAxisId="right"
 							orientation="right"
 							tickFormatter={(value) => `${value.toFixed(1)} GB`}
-							domain={[0, Math.ceil(parseFloat(latestData.memTotal || "0"))]}
+							domain={[
+								0,
+								Math.ceil(Number.parseFloat(latestData.memTotal || "0")),
+							]}
 						/>
 						<ChartTooltip
 							cursor={false}

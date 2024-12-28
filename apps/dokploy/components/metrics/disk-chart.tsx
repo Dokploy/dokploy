@@ -22,8 +22,8 @@ interface RadialChartProps {
 }
 
 export function DiskChart({ data }: RadialChartProps) {
-	const diskUsed = parseFloat(data.diskUsed || 0);
-	const totalDiskGB = parseFloat(data.totalDisk || 0);
+	const diskUsed = Number.parseFloat(data.diskUsed || 0);
+	const totalDiskGB = Number.parseFloat(data.totalDisk || 0);
 	const usedDiskGB = (totalDiskGB * diskUsed) / 100;
 
 	const chartData = [

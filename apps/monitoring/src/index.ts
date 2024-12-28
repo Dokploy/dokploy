@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { cors } from 'hono/cors'
+import { cors } from "hono/cors";
 import { logServerMetrics, logContainerMetrics } from "./socket.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -8,11 +8,16 @@ import path from "node:path";
 const TOKEN = process.env.TOKEN || "default-token";
 const app = new Hono();
 
+const origin = [];
+
 // Configurar CORS
-app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true,
-}));
+app.use(
+	"*",
+	cors({
+		origin: ["http://localhost:3000", "http://localhost:3001"],
+		credentials: true,
+	}),
+);
 
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
@@ -83,7 +88,10 @@ function parseLog(logContent: string) {
 function filterByTimestamp(metrics: any[], start?: string, end?: string) {
 	// Si no hay filtros, devolver todo
 	if (!start && !end) {
-		return metrics.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+		return metrics.sort(
+			(a, b) =>
+				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+		);
 	}
 
 	// Convertir a timestamp (si existen)
@@ -105,5 +113,8 @@ function filterByTimestamp(metrics: any[], start?: string, end?: string) {
 			}
 			return true;
 		})
-		.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+		.sort(
+			(a, b) =>
+				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+		);
 }
