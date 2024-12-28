@@ -10,15 +10,15 @@ config();
 
 console.log(process.env.WS_URL);
 
-const docker = new Docker();
-const serverLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"server_metrics.log",
-);
-const containerLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"containers_metrics.log",
-);
+// const docker = new Docker();
+// const serverLogFile = path.join(
+// 	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
+// 	"server_metrics.log",
+// );
+// const containerLogFile = path.join(
+// 	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
+// 	"containers_metrics.log",
+// );
 // const ws = new WebSocket(
 // 	process.env.WS_URL || "ws://localhost:3000/listen-monitoring",
 // );
@@ -53,9 +53,9 @@ function logServerMetrics() {
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
 
-		fs.appendFile(serverLogFile, logLine, (err) => {
-			if (err) console.error("Error al escribir en el archivo:", err);
-		});
+		// fs.appendFile(serverLogFile, logLine, (err) => {
+		// 	if (err) console.error("Error al escribir en el archivo:", err);
+		// });
 
 		// ws.send(JSON.stringify({ type: "server", data: metrics }));
 	}, 5000);
@@ -63,38 +63,33 @@ function logServerMetrics() {
 
 // === 2. Métricas de Contenedores ===
 async function logContainerMetrics() {
-	setInterval(async () => {
-		try {
-			const containers = await docker.listContainers({ all: true });
-			const timestamp = new Date().toISOString();
-
-			for (const container of containers) {
-				const logLine = `${container.Names[0]} - Estado: ${container.State}\n`;
-
-				// Escribir log local
-				fs.appendFile(containerLogFile, logLine, (err) => {
-					if (err) console.error("Error al escribir log de contenedores:", err);
-				});
-
-				// (Opcional) Enviar al WebSocket
-				// ws.send(
-				// 	JSON.stringify({
-				// 		type: "container",
-				// 		data: {
-				// 			name: container.Names[0],
-				// 			state: container.State,
-				// 		},
-				// 	}),
-				// );
-			}
-
-			// containers.forEach((container) => {
-
-			// });
-		} catch (error) {
-			console.error("Error obteniendo contenedores:", error);
-		}
-	}, 10000); // Cada 10 segundos
+	// setInterval(async () => {
+	// 	try {
+	// 		const containers = await docker.listContainers({ all: true });
+	// 		const timestamp = new Date().toISOString();
+	// 		for (const container of containers) {
+	// 			const logLine = `${container.Names[0]} - Estado: ${container.State}\n`;
+	// 			// Escribir log local
+	// 			// fs.appendFile(containerLogFile, logLine, (err) => {
+	// 			// 	if (err) console.error("Error al escribir log de contenedores:", err);
+	// 			// });
+	// 			// (Opcional) Enviar al WebSocket
+	// 			// ws.send(
+	// 			// 	JSON.stringify({
+	// 			// 		type: "container",
+	// 			// 		data: {
+	// 			// 			name: container.Names[0],
+	// 			// 			state: container.State,
+	// 			// 		},
+	// 			// 	}),
+	// 			// );
+	// 		}
+	// 		// containers.forEach((container) => {
+	// 		// });
+	// 	} catch (error) {
+	// 		console.error("Error obteniendo contenedores:", error);
+	// 	}
+	// }, 10000); // Cada 10 segundos
 }
 
 console.log("Initializing...");
