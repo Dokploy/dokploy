@@ -9,17 +9,15 @@ config();
 
 const TOKEN = process.env.TOKEN || "default-token";
 const app = new Hono();
-
 const origin =
 	process.env.NODE_ENV === "production"
 		? "https://dokploy.com"
 		: "http://localhost:3000";
-
 // Configurar CORS
 app.use(
 	"*",
 	cors({
-		origin: [origin],
+		origin: "*",
 		credentials: true,
 	}),
 );
