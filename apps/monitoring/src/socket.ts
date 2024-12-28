@@ -3,17 +3,11 @@ import path from "node:path";
 import Docker from "dockerode";
 import si from "systeminformation";
 import { config } from "dotenv";
+import { containerLogFile, serverLogFile } from "./constants.js";
 config();
 
 const docker = new Docker();
-const serverLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"server_metrics.log",
-);
-const containerLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"containers_metrics.log",
-);
+
 const getServerMetrics = async () => {
 	const [cpu, mem, load, fsSize, network, osInfo] = await Promise.all([
 		si.cpu(),

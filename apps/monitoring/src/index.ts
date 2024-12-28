@@ -1,10 +1,10 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logServerMetrics, logContainerMetrics } from "./socket.js";
+import { logServerMetrics } from "./socket.js";
 import fs from "node:fs/promises";
-import path from "node:path";
 import { config } from "dotenv";
+import { serverLogFile } from "./constants.js";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
@@ -38,14 +38,6 @@ app.use(async (c, next) => {
 app.get("/", (c) => {
 	return c.text("Hello Hono!");
 });
-const serverLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"server_metrics.log",
-);
-const containerLogFile = path.join(
-	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"containers_metrics.log",
-);
 
 app.get("/metrics", async (c) => {
 	try {
