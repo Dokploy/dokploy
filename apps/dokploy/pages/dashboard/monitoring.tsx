@@ -14,9 +14,30 @@ const METRICS_URL =
 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
 const MAX_DATA_POINTS = 30;
 
+interface SystemMetrics {
+	cpu: string;
+	cpuModel: string;
+	cpuCores: number;
+	cpuPhysicalCores: number;
+	cpuSpeed: number;
+	os: string;
+	distro: string;
+	kernel: string;
+	arch: string;
+	memUsed: string;
+	memUsedGB: string;
+	memTotal: string;
+	uptime: number;
+	diskUsed: string;
+	totalDisk: string;
+	networkIn: string;
+	networkOut: string;
+	timestamp: string;
+}
+
 const Dashboard = () => {
-	const [historicalData, setHistoricalData] = useState<any[]>([]);
-	const [metrics, setMetrics] = useState<any>({});
+	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
+	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +54,17 @@ const Dashboard = () => {
 				throw new Error("No hay datos disponibles");
 			}
 
-			const formattedData = data.map((metric) => ({
+			const formattedData = data.map((metric: SystemMetrics) => ({
 				timestamp: metric.timestamp,
 				cpu: Number.parseFloat(metric.cpu),
+				cpuModel: metric.cpuModel,
+				cpuCores: metric.cpuCores,
+				cpuPhysicalCores: metric.cpuPhysicalCores,
+				cpuSpeed: metric.cpuSpeed,
+				os: metric.os,
+				distro: metric.distro,
+				kernel: metric.kernel,
+				arch: metric.arch,
 				memUsed: Number.parseFloat(metric.memUsed),
 				memUsedGB: Number.parseFloat(metric.memUsedGB),
 				memTotal: Number.parseFloat(metric.memTotal),
@@ -43,7 +72,7 @@ const Dashboard = () => {
 				networkOut: Number.parseFloat(metric.networkOut),
 				diskUsed: Number.parseFloat(metric.diskUsed),
 				totalDisk: Number.parseFloat(metric.totalDisk),
-				uptime: Number.parseFloat(metric.uptime),
+				uptime: metric.uptime,
 			}));
 
 			setHistoricalData(formattedData);
@@ -112,7 +141,7 @@ const Dashboard = () => {
 						<Cpu className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">CPU Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.cpu?.toFixed(1)}%</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.cpu}%</p>
 				</div>
 
 				<div className="rounded-lg border text-card-foreground bg-transparent shadow-sm p-6">
@@ -121,7 +150,7 @@ const Dashboard = () => {
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
-						{metrics.memUsedGB?.toFixed(1)} GB / {metrics.memTotal} GB
+						{metrics.memUsedGB} GB / {metrics.memTotal} GB
 					</p>
 				</div>
 
@@ -130,9 +159,31 @@ const Dashboard = () => {
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Disk Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">
-						{metrics.diskUsed?.toFixed(1)}%
-					</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.diskUsed}%</p>
+				</div>
+			</div>
+
+			{/* System Information */}
+			<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+				<h3 className="text-lg font-medium mb-4">System Information</h3>
+				<div className="grid gap-4 md:grid-cols-2">
+					<div>
+						<h4 className="text-sm font-medium text-muted-foreground">CPU</h4>
+						<p className="mt-1">{metrics.cpuModel}</p>
+						<p className="text-sm text-muted-foreground mt-1">
+							{metrics.cpuPhysicalCores} Physical Cores ({metrics.cpuCores}{" "}
+							Threads) @ {metrics.cpuSpeed}GHz
+						</p>
+					</div>
+					<div>
+						<h4 className="text-sm font-medium text-muted-foreground">
+							Operating System
+						</h4>
+						<p className="mt-1">{metrics.distro}</p>
+						<p className="text-sm text-muted-foreground mt-1">
+							Kernel: {metrics.kernel} ({metrics.arch})
+						</p>
+					</div>
 				</div>
 			</div>
 

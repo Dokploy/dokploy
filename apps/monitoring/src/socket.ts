@@ -15,12 +15,13 @@ const containerLogFile = path.join(
 	"containers_metrics.log",
 );
 const getServerMetrics = async () => {
-	const [cpu, mem, load, fsSize, network] = await Promise.all([
+	const [cpu, mem, load, fsSize, network, osInfo] = await Promise.all([
 		si.cpu(),
 		si.mem(),
 		si.currentLoad(),
 		si.fsSize(),
 		si.networkStats(),
+		si.osInfo(),
 	]);
 
 	// Calcular memoria usada en GB
@@ -29,10 +30,22 @@ const getServerMetrics = async () => {
 	const memUsedPercent = (memUsedGB / memTotalGB) * 100;
 
 	return {
+		// CPU info
 		cpu: load.currentLoad.toFixed(2),
+		cpuModel: `${cpu.manufacturer} ${cpu.brand}`,
+		cpuCores: cpu.cores,
+		cpuPhysicalCores: cpu.physicalCores,
+		cpuSpeed: cpu.speed,
+		// System info
+		os: osInfo.platform,
+		distro: osInfo.distro,
+		kernel: osInfo.kernel,
+		arch: osInfo.arch,
+		// Memory
 		memUsed: memUsedPercent.toFixed(2),
 		memUsedGB: memUsedGB.toFixed(2),
 		memTotal: memTotalGB.toFixed(2),
+		// Other metrics
 		uptime: si.time().uptime,
 		diskUsed: fsSize[0].use.toFixed(2),
 		totalDisk: (fsSize[0].size / 1024 / 1024 / 1024).toFixed(2),
