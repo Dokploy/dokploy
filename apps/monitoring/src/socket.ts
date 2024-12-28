@@ -5,6 +5,10 @@ import fs from "node:fs";
 import path from "node:path";
 import Docker from "dockerode";
 import si from "systeminformation";
+import { config } from "dotenv";
+config();
+
+console.log(process.env.WS_URL);
 
 const docker = new Docker();
 const serverLogFile = path.join(
@@ -15,7 +19,9 @@ const containerLogFile = path.join(
 	"/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
 	"containers_metrics.log",
 );
-const ws = new WebSocket("ws://localhost:3000/listen-monitoring");
+const ws = new WebSocket(
+	process.env.WS_URL || "ws://localhost:3000/listen-monitoring",
+);
 
 async function getServerMetrics() {
 	const [cpu, mem, load, fsSize, network] = await Promise.all([
