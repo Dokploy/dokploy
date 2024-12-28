@@ -16,7 +16,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=./apps/monitorin
 
 ENV NODE_ENV=production
 RUN pnpm --filter=./apps/monitoring build
-RUN pnpm --filter=./apps/monitoring run build
 
 RUN pnpm --filter=./apps/monitoring --prod deploy /prod/monitoring
 
