@@ -71,7 +71,7 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to Update the resources");
+				toast.error("Error updating the resources");
 			});
 	};
 	return (

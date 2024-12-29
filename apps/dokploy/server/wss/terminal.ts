@@ -11,7 +11,7 @@ export const getPublicIpWithFallback = async () => {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
-			"Error to obtain public IPv4 address, falling back to IPv6",
+			"Error obtaining public IPv4 address, falling back to IPv6",
 			// @ts-ignore
 			error.message,
 		);
@@ -19,7 +19,7 @@ export const getPublicIpWithFallback = async () => {
 			ip = await publicIpv6();
 		} catch (error) {
 			// @ts-ignore
-			console.error("Error to obtain public IPv6 address", error.message);
+			console.error("Error obtaining public IPv6 address", error.message);
 			ip = null;
 		}
 	}

@@ -73,7 +73,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 									toast.success("Fetched source type");
 								})
 								.catch((err) => {
-									toast.error("Error to fetch source type", {
+									toast.error("Error fetching source type", {
 										description: err.message,
 									});
 								});

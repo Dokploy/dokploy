@@ -198,7 +198,7 @@ export const composeRouter = createTRPCRouter({
 			} catch (err) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to fetch source type",
+					message: "Error fetching source type",
 					cause: err,
 				});
 			}

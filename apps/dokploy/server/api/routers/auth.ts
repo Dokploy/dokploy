@@ -79,7 +79,7 @@ export const authRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					// @ts-ignore
-					message: `Error: ${error?.code === "23505" ? "Email already exists" : "Error to create admin"}`,
+					message: `Error: ${error?.code === "23505" ? "Email already exists" : "Error creating admin"}`,
 					cause: error,
 				});
 			}
@@ -111,7 +111,7 @@ export const authRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the user",
+					message: "Error creating the user",
 					cause: error,
 				});
 			}
@@ -162,7 +162,7 @@ export const authRouter = createTRPCRouter({
 		} catch (error) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: `Error: ${error instanceof Error ? error.message : "Error to login"}`,
+				message: `Error: ${error instanceof Error ? error.message : "Login error"}`,
 				cause: error,
 			});
 		}

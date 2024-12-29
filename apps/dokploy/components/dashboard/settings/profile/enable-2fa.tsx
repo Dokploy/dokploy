@@ -71,7 +71,7 @@ export const Enable2FA = () => {
 				utils.auth.get.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to verify the 2FA");
+				toast.error("Error verifying the 2FA");
 			});
 	};
 	return (

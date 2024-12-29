@@ -31,7 +31,7 @@ export const sshRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the ssh key",
+					message: "Error creating the SSH key",
 					cause: error,
 				});
 			}
@@ -45,7 +45,7 @@ export const sshRouter = createTRPCRouter({
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this ssh key",
+						message: "You are not allowed to delete this SSH key",
 					});
 				}
 
@@ -63,7 +63,7 @@ export const sshRouter = createTRPCRouter({
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this ssh key",
+					message: "You are not allowed to access this SSH key",
 				});
 			}
 			return sshKey;
@@ -89,14 +89,14 @@ export const sshRouter = createTRPCRouter({
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to update this ssh key",
+						message: "You are not allowed to update this SSH key",
 					});
 				}
 				return await updateSSHKeyById(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update this ssh key",
+					message: "Error updating this SSH key",
 					cause: error,
 				});
 			}

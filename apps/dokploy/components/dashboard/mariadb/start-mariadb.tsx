@@ -49,10 +49,10 @@ export const StartMariadb = ({ mariadbId }: Props) => {
 									await utils.mariadb.one.invalidate({
 										mariadbId,
 									});
-									toast.success("Database started succesfully");
+									toast.success("Database started successfully");
 								})
 								.catch(() => {
-									toast.error("Error to start the Database");
+									toast.error("Error starting the Database");
 								});
 						}}
 					>

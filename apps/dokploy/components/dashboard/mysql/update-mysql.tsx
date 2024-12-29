@@ -75,13 +75,13 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MySQL updated succesfully");
+				toast.success("MySQL updated successfully");
 				utils.mysql.one.invalidate({
 					mysqlId: mysqlId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the MySQL");
+				toast.error("Error updating MySQL");
 			})
 			.finally(() => {});
 	};

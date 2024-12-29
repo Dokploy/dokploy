@@ -45,10 +45,10 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 							})
 								.then(() => {
 									utils.destination.all.invalidate();
-									toast.success("Destination delete succesfully");
+									toast.success("Destination deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete destination");
+									toast.error("Error deleting Destination");
 								});
 						}}
 					>

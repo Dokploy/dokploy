@@ -144,7 +144,7 @@ export const ShowBackupMySql = ({ mysqlId }: Props) => {
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error to Create the manual backup",
+																					"Error creating the manual backup",
 																				);
 																			});
 																	}}

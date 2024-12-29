@@ -49,10 +49,10 @@ export const StopMysql = ({ mysqlId }: Props) => {
 									await utils.mysql.one.invalidate({
 										mysqlId,
 									});
-									toast.success("Application stopped succesfully");
+									toast.success("MySQL stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the Application");
+									toast.error("Error stopping MySQL");
 								});
 						}}
 					>

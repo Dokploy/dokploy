@@ -54,7 +54,7 @@ export const registryRouter = createTRPCRouter({
 			if (!application) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update registry",
+					message: "Error updating registry",
 				});
 			}
 

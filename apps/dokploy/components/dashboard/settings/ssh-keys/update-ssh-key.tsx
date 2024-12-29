@@ -73,7 +73,7 @@ export const UpdateSSHKey = ({ children, sshKeyId = "" }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the SSH key");
+				toast.error("Error updating the SSH key");
 			});
 	};
 	return (

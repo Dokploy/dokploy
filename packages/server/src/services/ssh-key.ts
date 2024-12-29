@@ -21,7 +21,7 @@ export const createSshKey = async (input: typeof apiCreateSshKey._type) => {
 		if (!sshKey) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the ssh key",
+				message: "Error creating the SSH Key",
 			});
 		}
 		return sshKey;

@@ -50,10 +50,10 @@ export const DeleteNotification = ({ notificationId }: Props) => {
 							})
 								.then(() => {
 									utils.notification.all.invalidate();
-									toast.success("Notification delete succesfully");
+									toast.success("Notification deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete notification");
+									toast.error("Error deleting notification");
 								});
 						}}
 					>

@@ -68,7 +68,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the Docker provider");
+				toast.error("Error saving the Docker provider");
 			});
 	};
 

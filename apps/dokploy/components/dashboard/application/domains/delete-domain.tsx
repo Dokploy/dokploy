@@ -57,10 +57,10 @@ export const DeleteDomain = ({ domainId }: Props) => {
 										});
 									}
 
-									toast.success("Domain delete succesfully");
+									toast.success("Domain delete successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete Domain");
+									toast.error("Error deleting the Domain");
 								});
 						}}
 					>

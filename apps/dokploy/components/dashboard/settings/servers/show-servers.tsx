@@ -233,7 +233,7 @@ export const ShowServers = () => {
 																	.then(() => {
 																		refetch();
 																		toast.success(
-																			`Server ${server.name} deleted succesfully`,
+																			`Server ${server.name} deleted successfully`,
 																		);
 																	})
 																	.catch((err) => {
