@@ -78,12 +78,17 @@ export function filterByTimestamp(
 async function readLastNLines(filePath: string, limit: number) {
 	const { size } = statSync(filePath);
 	const chunkSize = Math.min(size, limit * 200); // Estimate 200 bytes per line
-	const buffer = Buffer.alloc(chunkSize);
+	const buffer = new Uint8Array(chunkSize);
 
 	const fd = await fs.open(filePath, "r");
 	try {
-		await fd.read(buffer, 0, chunkSize, size - chunkSize);
-		const content = buffer.toString("utf8");
+		await fd.read({
+			buffer,
+			length: chunkSize,
+			position: size - chunkSize,
+			offset: 0
+		});
+		const content = Buffer.from(buffer).toString("utf8");
 		const lines = content.split("\n").filter((line) => line.trim());
 		const lastLines = lines.slice(-limit);
 
