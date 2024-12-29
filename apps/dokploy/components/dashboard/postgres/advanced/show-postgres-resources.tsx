@@ -21,6 +21,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import {
+	TooltipProvider,
+	TooltipTrigger,
+	TooltipContent,
+	Tooltip,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 import { z } from "zod";
 
 const addResourcesPostgres = z.object({
@@ -100,10 +107,25 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 								name="memoryReservation"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Memory Reservation</FormLabel>
+										<div className="flex items-center gap-2">
+											<FormLabel>Memory Reservation</FormLabel>
+											<TooltipProvider>
+												<Tooltip delayDuration={0}>
+													<TooltipTrigger>
+														<InfoIcon className="h-4 w-4 text-muted-foreground" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Memory soft limit in bytes. Example: 256MB =
+															268435456 bytes
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
 										<FormControl>
 											<Input
-												placeholder="256 MB"
+												placeholder="268435456 (256MB in bytes)"
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -119,7 +141,6 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 												}}
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
@@ -131,10 +152,25 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Memory Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>Memory Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p className="text-muted-foreground">
+																Memory hard limit in bytes. Example: 1GB =
+																1073741824 bytes
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1024 MB"}
+													placeholder="1073741824 (1GB in bytes)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
@@ -162,10 +198,25 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p className="text-muted-foreground">
+																CPU quota in units of 10^-9 CPUs. Example: 2
+																CPUs = 2000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"2"}
+													placeholder="2000000000 (2 CPUs)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
@@ -192,10 +243,25 @@ export const ShowPostgresResources = ({ postgresId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Reservation</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Reservation</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p className="text-muted-foreground">
+																CPU shares (relative weight). Example: 1 CPU =
+																1000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1"}
+													placeholder="1000000000 (1 CPU)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
