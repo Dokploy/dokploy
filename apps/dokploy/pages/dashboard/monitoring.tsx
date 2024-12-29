@@ -17,15 +17,15 @@ import {
 } from "@/components/ui/select";
 
 const REFRESH_INTERVAL = 4500;
-const METRICS_URL =
+const BASE_URL =
 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
 
 const DATA_POINTS_OPTIONS = {
-	"50": "50 puntos",
-	"200": "200 puntos",
-	"500": "500 puntos",
-	"800": "800 puntos",
-	all: "Todos los puntos",
+	"50": "50 points",
+	"200": "200 points",
+	"500": "500 points",
+	"800": "800 points",
+	all: "All points",
 } as const;
 
 interface SystemMetrics {
@@ -59,9 +59,7 @@ const Dashboard = () => {
 
 	const fetchMetrics = async () => {
 		try {
-			const baseUrl =
-				process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
-			const url = new URL(baseUrl);
+			const url = new URL(BASE_URL);
 
 			// Solo añadir el parámetro limit si no es "all"
 			if (dataPoints !== "all") {
@@ -154,7 +152,7 @@ const Dashboard = () => {
 				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
 				<div className="flex items-center gap-2">
 					<span className="text-sm text-muted-foreground">
-						Puntos de datos:
+						Data points:
 					</span>
 					<Select
 						value={dataPoints}
@@ -163,7 +161,7 @@ const Dashboard = () => {
 						}
 					>
 						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Seleccionar puntos" />
+							<SelectValue placeholder="Select points" />
 						</SelectTrigger>
 						<SelectContent>
 							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
