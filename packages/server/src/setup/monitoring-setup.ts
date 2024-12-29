@@ -50,21 +50,18 @@ export const setupMonitoring = async (serverId: string) => {
 		const container = docker.getContainer(containerName);
 		try {
 			await container.inspect();
-			// If container exists, remove it
 			await container.remove({ force: true });
 			console.log("Removed existing container");
 		} catch (error) {
 			// Container doesn't exist, continue
 		}
 
-		// Create and start new container
 		await docker.createContainer(settings);
 		const newContainer = docker.getContainer(containerName);
 		await newContainer.start();
 
 		console.log("Monitoring Started ");
 	} catch (error) {
-		// await docker.createService(settings);
 		console.log("Monitoring Not Found: Starting ");
 	}
 };

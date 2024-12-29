@@ -12181,7 +12181,7 @@ snapshots:
 
   node-abi@3.68.0:
     dependencies:
-      semver: 7.6.2
+      semver: 7.6.3
     optional: true
 
   node-abort-controller@3.1.1: {}

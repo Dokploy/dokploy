@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import Docker from "dockerode";
 import si from "systeminformation";
-import { containerLogFile, serverLogFile } from "./constants.js";
+import { serverLogFile } from "../constants.js";
 
 const docker = new Docker();
 
@@ -47,33 +47,40 @@ const getServerMetrics = async () => {
 };
 
 const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 5000);
+const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB por defecto
+
 export const logServerMetrics = () => {
 	setInterval(async () => {
 		const metrics = await getServerMetrics();
 
-		console.log("Metrics:", metrics);
+		// console.log("Metrics:", metrics);
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
 
+		// Verificar si el archivo existe y su tamaño
+		if (fs.existsSync(serverLogFile)) {
+			const stats = fs.statSync(serverLogFile);
+			const fileSizeInMB = stats.size / (1024 * 1024);
+			// console.log(
+			// 	"File size:",
+			// 	fileSizeInMB.toFixed(2),
+			// 	"MB (max:",
+			// 	MAX_FILE_SIZE_MB,
+			// 	"MB)",
+			// );
+
+			if (fileSizeInMB >= MAX_FILE_SIZE_MB) {
+				const fileContent = fs.readFileSync(serverLogFile, "utf-8");
+				const lines = fileContent.split("\n").filter((line) => line.trim());
+
+				const linesToKeep = Math.floor(lines.length / 2);
+				const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
+				fs.writeFileSync(serverLogFile, newContent);
+			}
+		}
+
 		fs.appendFile(serverLogFile, logLine, (err) => {
-			if (err) console.error("Error al escribir en el archivo:", err);
+			if (err) console.error("Error to write server metrics:", err);
 		});
 	}, REFRESH_RATE_SERVER);
-};
-
-export const logContainerMetrics = () => {
-	setInterval(async () => {
-		try {
-			const containers = await docker.listContainers({ all: true });
-			const timestamp = new Date().toISOString();
-			for (const container of containers) {
-				const logLine = `${container.Names[0]} - Estado: ${container.State}\n`;
-				fs.appendFile(containerLogFile, logLine, (err) => {
-					if (err) console.error("Error al escribir log de contenedores:", err);
-				});
-			}
-		} catch (error) {
-			console.error("Error obteniendo contenedores:", error);
-		}
-	}, 10000);
 };

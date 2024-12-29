@@ -106,8 +106,8 @@ export const apiUpdateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
-		refreshRateMetrics: true,
-		defaultPortMetrics: true,
+		// refreshRateMetrics: true,
+		// defaultPortMetrics: true,
 	})
 	.required()
 	.extend({

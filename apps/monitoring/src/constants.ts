@@ -9,6 +9,5 @@ export const serverLogFile = path.join(
 export const containerLogFile = path.join(
 	process.env.NODE_ENV === "production"
 		? "/etc"
-		: "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker",
-	"containers_metrics.log",
+		: "/Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/monitoring",
 );

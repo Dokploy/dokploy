@@ -1,5 +1,4 @@
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -28,7 +27,7 @@ const DATA_POINTS_OPTIONS = {
 	"1200": "1200 points",
 	"1600": "1600 points",
 	"2000": "2000 points",
-	all: "All points",
+	all: "All points (Slow)",
 } as const;
 
 interface SystemMetrics {
@@ -77,7 +76,7 @@ const Dashboard = () => {
 
 			const data = await response.json();
 			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error("No hay datos disponibles");
+				throw new Error("No data available");
 			}
 
 			const formattedData = data.map((metric: SystemMetrics) => ({

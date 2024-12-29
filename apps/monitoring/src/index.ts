@@ -1,10 +1,11 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logServerMetrics } from "./socket.js";
+import { logServerMetrics } from "./monitoring/server.js";
 import { config } from "dotenv";
 import { serverLogFile } from "./constants.js";
 import { processMetricsFromFile } from "./utils.js";
+import { logContainerMetrics } from "./monitoring/containers.js";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
@@ -62,6 +63,21 @@ app.get("/metrics", async (c) => {
 	}
 });
 
+// app.get("/metrics/containers", async (c) => {
+// 	try {
+// 		const metrics = await processMetricsFromFile(containerLogFile, {
+// 			start: c.req.query("start"),
+// 			end: c.req.query("end"),
+// 			limit: Number(c.req.query("limit")) || undefined,
+// 		});
+
+// 		return c.json(metrics);
+// 	} catch (error) {
+// 		console.error("Error reading metrics:", error);
+// 		return c.json({ error: "Error reading metrics" }, 500);
+// 	}
+// });
+
 app.get("/health", (c) => {
 	return c.text("OK");
 });
@@ -75,3 +91,4 @@ serve({
 });
 
 logServerMetrics();
+logContainerMetrics();
