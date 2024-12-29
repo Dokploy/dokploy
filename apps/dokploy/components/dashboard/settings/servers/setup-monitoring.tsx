@@ -59,7 +59,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			refreshRateMetrics: data.refreshRate * 1000,
+			refreshRateMetrics: data.refreshRate,
 			defaultPortMetrics: data.port,
 			serverId,
 		})
