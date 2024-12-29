@@ -91,7 +91,7 @@ export const AddCertificate = () => {
 				await utils.certificates.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to create the Certificate");
+				toast.error("Error creating the Certificate");
 			});
 	};
 	return (

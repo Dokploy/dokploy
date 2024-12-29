@@ -104,7 +104,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 				});
 			})
 			.catch((e) => {
-				toast.error("Error to create the service");
+				toast.error("Error creating the service");
 			});
 	};
 
@@ -176,7 +176,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 												side="top"
 											>
 												<span>
-													If not server is selected, the application will be
+													If no server is selected, the application will be
 													deployed on the server where the user is logged in.
 												</span>
 											</TooltipContent>
@@ -229,7 +229,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 									<FormLabel>Description</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your service..."
+											placeholder="Description of your service..."
 											className="resize-none"
 											{...field}
 										/>

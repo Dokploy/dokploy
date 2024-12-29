@@ -15,7 +15,7 @@ const clearDb = async (): Promise<void> => {
 		console.log(tables);
 		await pg.end();
 	} catch (error) {
-		console.error("Error to clean database", error);
+		console.error("Error cleaning database", error);
 	} finally {
 	}
 };

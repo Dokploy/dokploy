@@ -105,7 +105,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error to update the traefik config");
+				toast.error("Error updating the Traefik config");
 			});
 	};
 

@@ -40,7 +40,7 @@ export const Disable2FA = () => {
 									toast.success("2FA Disabled");
 								})
 								.catch(() => {
-									toast.error("Error to disable 2FA");
+									toast.error("Error disabling 2FA");
 								});
 						}}
 					>

@@ -57,7 +57,7 @@ export const DeployCompose = ({ composeId }: Props) => {
 									);
 								})
 								.catch(() => {
-									toast.error("Error to deploy Compose");
+									toast.error("Error deploying Compose");
 								});
 
 							await refetch();

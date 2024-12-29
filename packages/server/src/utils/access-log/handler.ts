@@ -111,7 +111,7 @@ class LogRotationManager {
 			);
 			console.log("USR1 Signal send to Traefik");
 		} catch (error) {
-			console.error("Error to send USR1 Signal to Traefik:", error);
+			console.error("Error sending USR1 Signal to Traefik:", error);
 		}
 	}
 	public async getStatus(): Promise<boolean> {

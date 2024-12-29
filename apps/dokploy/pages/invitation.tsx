@@ -113,7 +113,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 			token: token,
 		})
 			.then(() => {
-				toast.success("User registration succesfuly", {
+				toast.success("User registered successfuly", {
 					description:
 						"Please check your inbox or spam folder to confirm your account.",
 					duration: 100000,

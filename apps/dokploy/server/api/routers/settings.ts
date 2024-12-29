@@ -748,7 +748,7 @@ export const settingsRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error.message
-							: "Error to update Traefik ports",
+							: "Error updating Traefik ports",
 					cause: error,
 				});
 			}

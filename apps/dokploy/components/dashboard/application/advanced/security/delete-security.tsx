@@ -50,10 +50,10 @@ export const DeleteSecurity = ({ securityId }: Props) => {
 									utils.application.readTraefikConfig.invalidate({
 										applicationId: data?.applicationId,
 									});
-									toast.success("Security delete succesfully");
+									toast.success("Security delete successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the security");
+									toast.error("Error deleting the security");
 								});
 						}}
 					>

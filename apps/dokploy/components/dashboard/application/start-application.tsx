@@ -49,10 +49,10 @@ export const StartApplication = ({ applicationId }: Props) => {
 									await utils.application.one.invalidate({
 										applicationId,
 									});
-									toast.success("Application started succesfully");
+									toast.success("Application started successfully");
 								})
 								.catch(() => {
-									toast.error("Error to start the Application");
+									toast.error("Error starting the Application");
 								});
 						}}
 					>

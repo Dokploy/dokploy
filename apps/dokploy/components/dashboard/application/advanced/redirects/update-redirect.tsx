@@ -88,7 +88,7 @@ export const UpdateRedirect = ({ redirectId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the redirect");
+				toast.error("Error updating the redirect");
 			});
 	};
 

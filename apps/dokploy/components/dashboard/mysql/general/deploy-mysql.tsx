@@ -55,12 +55,12 @@ export const DeployMysql = ({ mysqlId }: Props) => {
 									await deploy({
 										mysqlId,
 									}).catch(() => {
-										toast.error("Error to deploy Database");
+										toast.error("Error deploying Database");
 									});
 									await refetch();
 								})
 								.catch((e) => {
-									toast.error(e.message || "Error to deploy Database");
+									toast.error(e.message || "Error deploying Database");
 								});
 						}}
 					>

@@ -40,7 +40,7 @@ export const createRedirect = async (
 			if (!redirect) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the redirect",
+					message: "Error creating the redirect",
 				});
 			}
 
@@ -53,7 +53,7 @@ export const createRedirect = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create this redirect",
+			message: "Error creating this redirect",
 			cause: error,
 		});
 	}
@@ -82,7 +82,7 @@ export const removeRedirectById = async (redirectId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to remove this redirect",
+			message: "Error removing this redirect",
 			cause: error,
 		});
 	}
@@ -116,7 +116,7 @@ export const updateRedirectById = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to update this redirect",
+			message: "Error updating this redirect",
 		});
 	}
 };

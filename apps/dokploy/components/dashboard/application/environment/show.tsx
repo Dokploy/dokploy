@@ -51,7 +51,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to add environment");
+				toast.error("Error adding environment");
 			});
 	};
 

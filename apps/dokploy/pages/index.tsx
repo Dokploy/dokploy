@@ -81,14 +81,14 @@ export default function Home({ IS_CLOUD }: Props) {
 
 	const onSubmit = async (values: Login) => {
 		await mutateAsync({
-			email: values.email,
+			email: values.email.toLowerCase(),
 			password: values.password,
 		})
 			.then((data) => {
 				if (data.is2FAEnabled) {
 					setTemp(data);
 				} else {
-					toast.success("Signin succesfully", {
+					toast.success("Successfully signed in", {
 						duration: 2000,
 					});
 					router.push("/dashboard/projects");
