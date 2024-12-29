@@ -44,6 +44,8 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	refreshRateMetrics: integer("refreshRateMetrics").notNull().default(5),
+	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -104,8 +106,20 @@ export const apiUpdateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
+		refreshRateMetrics: true,
+		defaultPortMetrics: true,
 	})
 	.required()
 	.extend({
 		command: z.string().optional(),
+	});
+
+export const apiUpdateServerMonitoring = createSchema
+	.pick({
+		serverId: true,
+	})
+	.required()
+	.extend({
+		refreshRateMetrics: z.number().optional(),
+		defaultPortMetrics: z.number().optional(),
 	});

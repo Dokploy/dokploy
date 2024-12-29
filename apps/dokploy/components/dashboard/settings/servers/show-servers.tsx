@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
 import { format } from "date-fns";
-import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
+import { KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
@@ -38,15 +38,23 @@ import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 export const ShowServers = () => {
 	const router = useRouter();
 	const query = router.query;
-	const { data, refetch } = api.server.all.useQuery();
+	const { data, refetch, isLoading } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();
 
+	if (isLoading) {
+		return (
+			<div className="p-6 space-y-6 border rounded-lg flex justify-center items-center min-h-[45vh]">
+				<Loader2 className="animate-spin text-muted-foreground" />
+			</div>
+		);
+	}
+
 	return (
-		<div className="p-6 space-y-6">
+		<div className="p-6 space-y-6 border rounded-lg">
 			{query?.success && isCloud && <WelcomeSuscription />}
 			<div className="space-y-2 flex flex-row justify-between items-end">
 				<div className="flex flex-col gap-2">

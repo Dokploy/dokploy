@@ -66,7 +66,7 @@ app.get("/health", (c) => {
 	return c.text("OK");
 });
 
-const port = 3001;
+const port = Number(process.env.PORT || 3001);
 console.log(`Server is running on http://localhost:${port}`);
 
 serve({

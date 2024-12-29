@@ -6,6 +6,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerMonitoring,
 	applications,
 	compose,
 	mariadb,
@@ -29,6 +30,7 @@ import {
 	serverAudit,
 	serverSetup,
 	serverValidate,
+	setupMonitoring,
 	updateServerById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -216,6 +218,27 @@ export const serverRouter = createTRPCRouter({
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
 					cause: error as Error,
 				});
+			}
+		}),
+	setupMonitoring: protectedProcedure
+		.input(apiUpdateServerMonitoring)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup this server",
+					});
+				}
+				await updateServerById(input.serverId, {
+					defaultPortMetrics: input.defaultPortMetrics,
+					refreshRateMetrics: input.refreshRateMetrics,
+				});
+				const currentServer = await setupMonitoring(input.serverId);
+				return currentServer;
+			} catch (error) {
+				throw error;
 			}
 		}),
 	remove: protectedProcedure

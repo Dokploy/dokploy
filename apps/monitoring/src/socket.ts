@@ -45,6 +45,8 @@ const getServerMetrics = async () => {
 		timestamp: new Date().toISOString(),
 	};
 };
+
+const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 5000);
 export const logServerMetrics = () => {
 	setInterval(async () => {
 		const metrics = await getServerMetrics();
@@ -56,7 +58,7 @@ export const logServerMetrics = () => {
 		fs.appendFile(serverLogFile, logLine, (err) => {
 			if (err) console.error("Error al escribir en el archivo:", err);
 		});
-	}, 5000);
+	}, REFRESH_RATE_SERVER);
 };
 
 export const logContainerMetrics = () => {

@@ -36,6 +36,7 @@ import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
 import { ValidateServer } from "./validate-server";
+import { SetupMonitoring } from "./setup-monitoring";
 
 interface Props {
 	serverId: string;
@@ -98,11 +99,12 @@ export const SetupServer = ({ serverId }: Props) => {
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-5 w-[700px]">
+							<TabsList className="grid grid-cols-6 w-[700px]">
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
 								<TabsTrigger value="audit">Security</TabsTrigger>
+								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
@@ -344,6 +346,15 @@ export const SetupServer = ({ serverId }: Props) => {
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 									<SecurityAudit serverId={serverId} />
+								</div>
+							</TabsContent>
+							<TabsContent
+								value="monitoring"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm pt-3">
+									<SetupMonitoring serverId={serverId} />
+									{/* <SecurityAudit serverId={serverId} /> */}
 								</div>
 							</TabsContent>
 							<TabsContent
