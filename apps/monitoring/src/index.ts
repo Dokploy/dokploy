@@ -1,14 +1,16 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { bearerAuth } from "hono/bearer-auth";
 import { logServerMetrics } from "./socket.js";
-import fs from "node:fs/promises";
 import { config } from "dotenv";
+import { metricsHandler } from "./handlers.js";
 import { serverLogFile } from "./constants.js";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
 const app = new Hono();
+
 const origin =
 	process.env.NODE_ENV === "production"
 		? "https://dokploy.com"
@@ -22,6 +24,13 @@ app.use(
 	}),
 );
 
+app.use("/*", cors());
+// app.use(
+// 	"/*",
+// 	bearerAuth({
+// 		token: TOKEN,
+// 	}),
+// );
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
 		return next();
@@ -39,30 +48,10 @@ app.get("/", (c) => {
 	return c.text("Hello Hono!");
 });
 
-app.get("/metrics", async (c) => {
-	try {
-		const serverMetrics = await fs.readFile(serverLogFile, "utf8");
-		const parsedServerMetrics = parseLog(serverMetrics);
-		const start = c.req.query("start");
-		const end = c.req.query("end");
-		const limit = Number(c.req.query("limit")) || undefined;
+app.get("/metrics", metricsHandler);
 
-		const filteredServerMetrics = filterByTimestamp(
-			parsedServerMetrics,
-			start,
-			end,
-		);
-
-		// Si hay un límite especificado, devolver solo los últimos N elementos
-		const limitedMetrics = limit 
-			? filteredServerMetrics.slice(-limit) 
-			: filteredServerMetrics;
-
-		return c.json(limitedMetrics);
-	} catch (error) {
-		console.error("Error leyendo métricas del servidor:", error);
-		return c.json({ error: "Failed to read server metrics" }, 500);
-	}
+app.get("/health", (c) => {
+	return c.text("OK");
 });
 
 const port = 3001;
@@ -74,49 +63,3 @@ serve({
 });
 
 logServerMetrics();
-// logContainerMetrics();
-
-function parseLog(logContent: string) {
-	const lines = logContent.trim().split("\n");
-	return lines.map((line) => {
-		try {
-			return JSON.parse(line);
-		} catch {
-			return { raw: line };
-		}
-	});
-}
-
-function filterByTimestamp(metrics: any[], start?: string, end?: string) {
-	// Si no hay filtros, devolver todo
-	if (!start && !end) {
-		return metrics.sort(
-			(a, b) =>
-				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-		);
-	}
-
-	// Convertir a timestamp (si existen)
-	const startTime = start ? new Date(start).getTime() : null;
-	const endTime = end ? new Date(end).getTime() : null;
-
-	return metrics
-		.filter((metric) => {
-			const metricTime = new Date(metric.timestamp).getTime();
-
-			if (startTime && endTime) {
-				return metricTime >= startTime && metricTime <= endTime;
-			}
-			if (startTime) {
-				return metricTime >= startTime;
-			}
-			if (endTime) {
-				return metricTime <= endTime;
-			}
-			return true;
-		})
-		.sort(
-			(a, b) =>
-				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-		);
-}

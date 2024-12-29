@@ -1,13 +1,14 @@
 {
   "name": "@dokploy/monitoring",
   "version": "1.0.0",
-  "description": "Monitoring agent for Dokploy",
-  "type": "module",
+  "description": "",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.json",
-    "start": "node --experimental-specifier-resolution=node dist/index.js",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest",
     "ws": "tsx watch src/socket.ts"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "tsx": "^4.7.1",
     "@types/ws": "^8.5.13",
     "@types/dockerode": "^3.3.32",
-    "ts-node": "^10.9.0"
+    "ts-node": "^10.9.0",
+    "vitest":"2.1.8"
   }
 }
