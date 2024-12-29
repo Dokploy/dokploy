@@ -28,7 +28,7 @@ export const setupMonitoring = async (serverId: string) => {
 				],
 			},
 			Binds: [
-				// "/var/run/docker.sock:/var/run/docker.sock:ro",
+				"/var/run/docker.sock:/var/run/docker.sock:ro",
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				// "/proc/cpuinfo:/proc/cpuinfo:ro",
