@@ -236,7 +236,7 @@ const Project = (
 				</header>
 			</div>
 
-			<div className="flex w-full gap-8 ">
+			<div className="flex w-full gap-8">
 				{emptyServices ? (
 					<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 						<FolderInput className="size-10 md:size-28 text-muted" />
@@ -255,7 +255,7 @@ const Project = (
 											`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
 										);
 									}}
-									className="group relative cursor-pointer bg-transparent transition-colors hover:bg-card h-fit"
+									className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card"
 								>
 									<div className="absolute -right-1 -top-2">
 										<StatusTooltip status={service.status} />
@@ -301,7 +301,7 @@ const Project = (
 											</div>
 										</CardTitle>
 									</CardHeader>
-									<CardFooter className="">
+									<CardFooter className="mt-auto">
 										<div className="space-y-1 text-sm">
 											<DateTooltip date={service.createdAt}>
 												Created
