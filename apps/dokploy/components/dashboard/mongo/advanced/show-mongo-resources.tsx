@@ -19,6 +19,13 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useEffect } from "react";
+import {
+	TooltipProvider,
+	TooltipTrigger,
+	TooltipContent,
+	Tooltip,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -89,10 +96,6 @@ export const ShowMongoResources = ({ mongoId }: Props) => {
 					the changes.
 				</AlertBlock>
 				<Form {...form}>
-					<AlertBlock type="info">
-						Please remember to click Redeploy after modify the resources to
-						apply the changes.
-					</AlertBlock>
 					<form
 						id="hook-form"
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -104,28 +107,40 @@ export const ShowMongoResources = ({ mongoId }: Props) => {
 								name="memoryReservation"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Memory Reservation</FormLabel>
+										<div className="flex items-center gap-2">
+											<FormLabel>Memory Reservation</FormLabel>
+											<TooltipProvider>
+												<Tooltip delayDuration={0}>
+													<TooltipTrigger>
+														<InfoIcon className="h-4 w-4 text-muted-foreground" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Memory soft limit in bytes. Example: 256MB =
+															268435456 bytes
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
 										<FormControl>
 											<Input
-												placeholder="256 MB"
+												placeholder="268435456 (256MB in bytes)"
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
 													const value = e.target.value;
 													if (value === "") {
-														// Si el campo está vacío, establece el valor como null.
 														field.onChange(null);
 													} else {
 														const number = Number.parseInt(value, 10);
 														if (!Number.isNaN(number)) {
-															// Solo actualiza el valor si se convierte a un número válido.
 															field.onChange(number);
 														}
 													}
 												}}
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
@@ -137,21 +152,34 @@ export const ShowMongoResources = ({ mongoId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Memory Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>Memory Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																Memory hard limit in bytes. Example: 1GB =
+																1073741824 bytes
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1024 MB"}
+													placeholder="1073741824 (1GB in bytes)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
 														if (value === "") {
-															// Si el campo está vacío, establece el valor como null.
 															field.onChange(null);
 														} else {
 															const number = Number.parseInt(value, 10);
 															if (!Number.isNaN(number)) {
-																// Solo actualiza el valor si se convierte a un número válido.
 																field.onChange(number);
 															}
 														}
@@ -170,21 +198,34 @@ export const ShowMongoResources = ({ mongoId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																CPU quota in units of 10^-9 CPUs. Example: 2
+																CPUs = 2000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"2"}
+													placeholder="2000000000 (2 CPUs)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
 														if (value === "") {
-															// Si el campo está vacío, establece el valor como null.
 															field.onChange(null);
 														} else {
 															const number = Number.parseInt(value, 10);
 															if (!Number.isNaN(number)) {
-																// Solo actualiza el valor si se convierte a un número válido.
 																field.onChange(number);
 															}
 														}
@@ -202,21 +243,34 @@ export const ShowMongoResources = ({ mongoId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Reservation</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Reservation</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																CPU shares (relative weight). Example: 1 CPU =
+																1000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1"}
+													placeholder="1000000000 (1 CPU)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
 														if (value === "") {
-															// Si el campo está vacío, establece el valor como null.
 															field.onChange(null);
 														} else {
 															const number = Number.parseInt(value, 10);
 															if (!Number.isNaN(number)) {
-																// Solo actualiza el valor si se convierte a un número válido.
 																field.onChange(number);
 															}
 														}

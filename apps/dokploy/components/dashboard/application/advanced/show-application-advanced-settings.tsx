@@ -22,6 +22,13 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 
 const addResourcesApplication = z.object({
 	memoryReservation: z.number().nullable().optional(),
@@ -101,10 +108,25 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 								name="memoryReservation"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Memory Reservation</FormLabel>
+										<div className="flex items-center gap-2">
+											<FormLabel>Memory Reservation</FormLabel>
+											<TooltipProvider>
+												<Tooltip delayDuration={0}>
+													<TooltipTrigger>
+														<InfoIcon className="h-4 w-4 text-muted-foreground" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Memory soft limit in bytes. Example: 256MB =
+															268435456 bytes
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
 										<FormControl>
 											<Input
-												placeholder="256 MB"
+												placeholder="268435456 (256MB in bytes)"
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -120,7 +142,6 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 												}}
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
@@ -132,10 +153,25 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Memory Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>Memory Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																Memory hard limit in bytes. Example: 1GB =
+																1073741824 bytes
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1024 MB"}
+													placeholder="1073741824 (1GB in bytes)"
 													{...field}
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
@@ -163,21 +199,36 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Limit</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Limit</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																CPU quota in units of 10^-9 CPUs. Example: 2
+																CPUs = 2000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"2"}
+													placeholder="2000000000 (2 CPUs)"
 													{...field}
-													type="number"
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
-														if (
-															value === "" ||
-															/^[0-9]*\.?[0-9]*$/.test(value)
-														) {
-															const float = Number.parseFloat(value);
-															field.onChange(float);
+														if (value === "") {
+															field.onChange(null);
+														} else {
+															const number = Number.parseInt(value, 10);
+															if (!Number.isNaN(number)) {
+																field.onChange(number);
+															}
 														}
 													}}
 												/>
@@ -193,21 +244,36 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Cpu Reservation</FormLabel>
+											<div className="flex items-center gap-2">
+												<FormLabel>CPU Reservation</FormLabel>
+												<TooltipProvider>
+													<Tooltip delayDuration={0}>
+														<TooltipTrigger>
+															<InfoIcon className="h-4 w-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																CPU shares (relative weight). Example: 1 CPU =
+																1000000000
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
 											<FormControl>
 												<Input
-													placeholder={"1"}
+													placeholder="1000000000 (1 CPU)"
 													{...field}
-													type="number"
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
-														if (
-															value === "" ||
-															/^[0-9]*\.?[0-9]*$/.test(value)
-														) {
-															const float = Number.parseFloat(value);
-															field.onChange(float);
+														if (value === "") {
+															field.onChange(null);
+														} else {
+															const number = Number.parseInt(value, 10);
+															if (!Number.isNaN(number)) {
+																field.onChange(number);
+															}
 														}
 													}}
 												/>
