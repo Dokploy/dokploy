@@ -81,7 +81,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 	const onSubmit = async (values: Login) => {
 		await mutateAsync({
-			email: values.email,
+			email: values.email.toLowerCase(),
 			password: values.password,
 		})
 			.then((data) => {
