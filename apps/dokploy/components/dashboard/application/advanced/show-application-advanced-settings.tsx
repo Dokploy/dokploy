@@ -172,12 +172,13 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
-														if (
-															value === "" ||
-															/^[0-9]*\.?[0-9]*$/.test(value)
-														) {
-															const float = Number.parseFloat(value);
-															field.onChange(float);
+														if (value === "") {
+															field.onChange(null);
+														} else {
+															const number = Number.parseInt(value, 10);
+															if (!Number.isNaN(number)) {
+																field.onChange(number);
+															}
 														}
 													}}
 												/>
@@ -202,12 +203,13 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 													value={field.value?.toString() || ""}
 													onChange={(e) => {
 														const value = e.target.value;
-														if (
-															value === "" ||
-															/^[0-9]*\.?[0-9]*$/.test(value)
-														) {
-															const float = Number.parseFloat(value);
-															field.onChange(float);
+														if (value === "") {
+															field.onChange(null);
+														} else {
+															const number = Number.parseInt(value, 10);
+															if (!Number.isNaN(number)) {
+																field.onChange(number);
+															}
 														}
 													}}
 												/>
