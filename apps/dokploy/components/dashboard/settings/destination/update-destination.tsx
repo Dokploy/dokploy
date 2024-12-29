@@ -92,6 +92,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 				name: data.name,
 				region: data.region,
 				secretAccessKey: data.secretAccessKey,
+				provider: data.provider || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -105,6 +106,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId,
+			provider: data.provider || "",
 		})
 			.then(async () => {
 				toast.success("Destination Updated");

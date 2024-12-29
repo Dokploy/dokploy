@@ -82,6 +82,7 @@ export const apiUpdateDestination = createSchema
 		endpoint: true,
 		secretAccessKey: true,
 		destinationId: true,
+		provider: true,
 	})
 	.required()
 	.extend({
