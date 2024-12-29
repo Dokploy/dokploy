@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_FILE = path.join(__dirname, "test-metrics.log");
 const ITERATIONS = 5;
 
-// Obtener un timestamp base (30 segundos atrás)
+// Get base timestamp (30 seconds ago)
 const now = new Date();
 const baseTime = new Date(now.getTime() - 30000);
 
@@ -22,34 +22,34 @@ interface Scenario {
 
 const scenarios: Scenario[] = [
 	{
-		name: "Últimas 10 líneas (caso más común)",
+		name: "Last 10 lines (most common case)",
 		options: { limit: 10 },
 	},
 	{
-		name: "Últimas 100 líneas",
+		name: "Last 100 lines",
 		options: { limit: 100 },
 	},
 	{
-		name: "Últimas 1000 líneas",
+		name: "Last 1000 lines",
 		options: { limit: 1000 },
 	},
 	{
-		name: "Últimas 10000 líneas",
+		name: "Last 10000 lines",
 		options: { limit: 10000 },
 	},
 	{
-		name: "Todo el archivo (con caché)",
+		name: "Full file (with cache)",
 		options: {},
 	},
 	{
-		name: "Filtro por fecha (últimos 15 segundos)",
+		name: "Date filter (last 15 seconds)",
 		options: {
 			start: new Date(baseTime.getTime() + 15000).toISOString(),
 			end: now.toISOString(),
 		},
 	},
 	{
-		name: "Filtro por fecha con límite",
+		name: "Date filter with limit",
 		options: {
 			start: baseTime.toISOString(),
 			end: now.toISOString(),
@@ -81,5 +81,5 @@ async function runBenchmark() {
 	}
 }
 
-// Ejecutar benchmark
+// Run benchmark
 runBenchmark();

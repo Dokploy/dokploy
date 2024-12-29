@@ -1,5 +1,16 @@
-import { describe, it, expect } from "vitest";
-import { parseLog, filterByTimestamp, processMetrics } from "../src/utils.js";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import {
+	parseLog,
+	filterByTimestamp,
+	processMetrics,
+	processMetricsFromFile,
+} from "../src/utils.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_LOG_FILE = path.join(__dirname, "test-metrics.log");
 
 describe("parseLog", () => {
 	it("should parse valid JSON log lines", () => {
@@ -44,7 +55,7 @@ describe("filterByTimestamp", () => {
 	it("should return all metrics when no filters are provided", () => {
 		const result = filterByTimestamp(testData);
 		expect(result).toHaveLength(3);
-		expect(result).toEqual(testData); // Ya están ordenados por timestamp
+		expect(result).toEqual(testData); // Already sorted by timestamp
 	});
 
 	it("should filter metrics after start date", () => {
@@ -160,5 +171,77 @@ describe("processMetrics", () => {
 		expect(result).toHaveLength(5);
 		expect(result[0].cpu).toBe("10");
 		expect(result[4].cpu).toBe("50");
+	});
+});
+
+describe("processMetricsFromFile", () => {
+	beforeEach(async () => {
+		// Create test file with sample data
+		const testData = [
+			{ timestamp: "2024-12-28T00:00:00Z", cpu: 10, memory: 50 },
+			{ timestamp: "2024-12-28T00:01:00Z", cpu: 20, memory: 60 },
+			{ timestamp: "2024-12-28T00:02:00Z", cpu: 30, memory: 70 },
+			{ timestamp: "2024-12-28T00:03:00Z", cpu: 40, memory: 80 },
+			{ timestamp: "2024-12-28T00:04:00Z", cpu: 50, memory: 90 },
+		]
+			.map((line) => JSON.stringify(line))
+			.join("\n");
+
+		await fs.writeFile(TEST_LOG_FILE, testData);
+	});
+
+	afterEach(async () => {
+		// Cleanup test file
+		await fs.unlink(TEST_LOG_FILE).catch(() => {});
+	});
+
+	it("should efficiently read last N lines (tail optimization)", async () => {
+		const result = await processMetricsFromFile(TEST_LOG_FILE, { limit: 2 });
+		expect(result).toHaveLength(2);
+		expect(result[0].cpu).toBe(40);
+		expect(result[1].cpu).toBe(50);
+	});
+
+	it("should use cache for full file reads", async () => {
+		// First read
+		const start = performance.now();
+		const result1 = await processMetricsFromFile(TEST_LOG_FILE, {});
+		const firstReadTime = performance.now() - start;
+
+		// Second read (should use cache)
+		const start2 = performance.now();
+		const result2 = await processMetricsFromFile(TEST_LOG_FILE, {});
+		const secondReadTime = performance.now() - start2;
+
+		expect(result1).toEqual(result2);
+		expect(secondReadTime).toBeLessThan(firstReadTime);
+	});
+
+	it("should use cache for date filters", async () => {
+		const result = await processMetricsFromFile(TEST_LOG_FILE, {
+			start: "2024-12-28T00:02:00Z",
+			end: "2024-12-28T00:03:00Z",
+		});
+
+		expect(result).toHaveLength(2);
+		expect(result[0].cpu).toBe(30);
+		expect(result[1].cpu).toBe(40);
+	});
+
+	it("should combine date filters with limit", async () => {
+		const result = await processMetricsFromFile(TEST_LOG_FILE, {
+			start: "2024-12-28T00:01:00Z",
+			limit: 2,
+		});
+
+		expect(result).toHaveLength(2);
+		expect(result[0].cpu).toBe(40);
+		expect(result[1].cpu).toBe(50);
+	});
+
+	it("should handle non-existent file", async () => {
+		await expect(
+			processMetricsFromFile("non-existent.log", {}),
+		).rejects.toThrow();
 	});
 });

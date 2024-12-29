@@ -7,10 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function generateTestData(numEntries: number) {
     const entries = [];
     const now = new Date();
-    const baseTime = new Date(now.getTime() - 30000); // 30 segundos atrás
+    const baseTime = new Date(now.getTime() - 30000); // 30 seconds ago
     
     for (let i = 0; i < numEntries; i++) {
-        // Distribuir las entradas en los últimos 30 segundos
+        // Distribute entries over the last 30 seconds
         const timestamp = new Date(baseTime.getTime() + (i * (30000 / numEntries)));
         entries.push(JSON.stringify({
             timestamp: timestamp.toISOString(),
@@ -29,5 +29,5 @@ async function generateTestData(numEntries: number) {
     console.log(`Generated ${numEntries} test entries over the last 30 seconds`);
 }
 
-// Generar 1 millón de entradas
+// Generate 1 million entries
 generateTestData(1_000_000);
