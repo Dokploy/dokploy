@@ -8,11 +8,25 @@ import { MemoryChart } from "@/components/metrics/memory-chart";
 import { NetworkChart } from "@/components/metrics/network-chart";
 import { DiskChart } from "@/components/metrics/disk-chart";
 import { Loader2, Clock, Cpu, MemoryStick, HardDrive } from "lucide-react";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
-const REFRESH_INTERVAL = 3000;
+const REFRESH_INTERVAL = 4500;
 const METRICS_URL =
 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
-const MAX_DATA_POINTS = 30;
+
+const DATA_POINTS_OPTIONS = {
+	"50": "50 puntos",
+	"200": "200 puntos",
+	"500": "500 puntos",
+	"800": "800 puntos",
+	all: "Todos los puntos",
+} as const;
 
 interface SystemMetrics {
 	cpu: string;
@@ -40,10 +54,21 @@ const Dashboard = () => {
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [dataPoints, setDataPoints] =
+		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 
 	const fetchMetrics = async () => {
 		try {
-			const response = await fetch(METRICS_URL);
+			const baseUrl =
+				process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
+			const url = new URL(baseUrl);
+
+			// Solo añadir el parámetro limit si no es "all"
+			if (dataPoints !== "all") {
+				url.searchParams.append("limit", dataPoints);
+			}
+
+			const response = await fetch(url.toString());
 
 			if (!response.ok) {
 				throw new Error(`Failed to fetch metrics: ${response.statusText}`);
@@ -101,7 +126,7 @@ const Dashboard = () => {
 		}, REFRESH_INTERVAL);
 
 		return () => clearInterval(interval);
-	}, []);
+	}, [dataPoints]);
 
 	if (isLoading) {
 		return (
@@ -124,6 +149,33 @@ const Dashboard = () => {
 
 	return (
 		<div className="space-y-4 pt-5 pb-10">
+			{/* Header con selector de puntos de datos */}
+			<div className="flex justify-between items-center">
+				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground">
+						Puntos de datos:
+					</span>
+					<Select
+						value={dataPoints}
+						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
+							setDataPoints(value)
+						}
+					>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Seleccionar puntos" />
+						</SelectTrigger>
+						<SelectContent>
+							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
 			{/* Stats Cards */}
 			<div className="grid gap-4 md:grid-cols-4">
 				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
@@ -205,10 +257,10 @@ Dashboard.getLayout = (page: React.ReactElement) => {
 export default Dashboard;
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	if (IS_CLOUD) {
-		const { redirect } = await validateRequest(context);
-		if (redirect) return { redirect };
-	}
+	// if (IS_CLOUD) {
+	// 	const { redirect } = await validateRequest(context);
+	// 	if (redirect) return { redirect };
+	// }
 
 	return {
 		props: {},

@@ -45,12 +45,20 @@ app.get("/metrics", async (c) => {
 		const parsedServerMetrics = parseLog(serverMetrics);
 		const start = c.req.query("start");
 		const end = c.req.query("end");
+		const limit = Number(c.req.query("limit")) || undefined;
+
 		const filteredServerMetrics = filterByTimestamp(
 			parsedServerMetrics,
 			start,
 			end,
 		);
-		return c.json(filteredServerMetrics);
+
+		// Si hay un límite especificado, devolver solo los últimos N elementos
+		const limitedMetrics = limit 
+			? filteredServerMetrics.slice(-limit) 
+			: filteredServerMetrics;
+
+		return c.json(limitedMetrics);
 	} catch (error) {
 		console.error("Error leyendo métricas del servidor:", error);
 		return c.json({ error: "Failed to read server metrics" }, 500);
@@ -70,8 +78,7 @@ logServerMetrics();
 
 function parseLog(logContent: string) {
 	const lines = logContent.trim().split("\n");
-	// Devolver solo los últimos 100 registros por defecto
-	return lines.slice(-100).map((line) => {
+	return lines.map((line) => {
 		try {
 			return JSON.parse(line);
 		} catch {
