@@ -161,7 +161,7 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p className="text-muted-foreground">
+															<p>
 																Memory hard limit in bytes. Example: 1GB =
 																1073741824 bytes
 															</p>
@@ -207,7 +207,7 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p className="text-muted-foreground">
+															<p>
 																CPU quota in units of 10^-9 CPUs. Example: 2
 																CPUs = 2000000000
 															</p>
@@ -252,7 +252,7 @@ export const ShowApplicationResources = ({ applicationId }: Props) => {
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p className="text-muted-foreground">
+															<p>
 																CPU shares (relative weight). Example: 1 CPU =
 																1000000000
 															</p>
