@@ -36,9 +36,12 @@ export const initCronJobs = async () => {
 	for (const server of servers) {
 		const { appName, serverId, enableDockerCleanup } = server;
 		if (enableDockerCleanup) {
+			console.log(
+				`Setting up server cleanup schedule for ${appName} with ID ${serverId}`,
+			);
 			scheduleJob(serverId, "0 0 * * *", async () => {
 				console.log(
-					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
+					`SERVER-CLEANUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
 				);
 				await cleanUpUnusedImages(serverId);
 				await cleanUpDockerBuilder(serverId);
@@ -65,36 +68,46 @@ export const initCronJobs = async () => {
 			},
 		},
 	});
+
 	for (const pg of pgs) {
 		for (const backup of pg.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
+				console.log(
+					`Setting up backup schedule for ${pg.name} with ID ${backupId} and schedule ${schedule}`,
+				);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`PG-SERVER[${new Date().toLocaleString()}] Starting Backup ${backupId} for database ${pg.name}`,
+					);
+					try {
+						await runPostgresBackup(pg, backup);
 						console.log(
-							`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+							`PG-SERVER[${new Date().toLocaleString()}] Backup completed successfully for ${backupId}`,
 						);
-						runPostgresBackup(pg, backup);
-					});
-
-					await sendDatabaseBackupNotifications({
-						applicationName: pg.name,
-						projectName: pg.project.name,
-						databaseType: "postgres",
-						type: "success",
-						adminId: pg.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: pg.name,
-						projectName: pg.project.name,
-						databaseType: "postgres",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: pg.project.adminId,
-					});
-				}
+						await sendDatabaseBackupNotifications({
+							applicationName: pg.name,
+							projectName: pg.project.name,
+							databaseType: "postgres",
+							type: "success",
+							adminId: pg.project.adminId,
+						});
+					} catch (error) {
+						console.error(
+							`PG-SERVER[${new Date().toLocaleString()}] Backup failed for ${backupId}:`,
+							error,
+						);
+						await sendDatabaseBackupNotifications({
+							applicationName: pg.name,
+							projectName: pg.project.name,
+							databaseType: "postgres",
+							type: "error",
+							// @ts-ignore
+							errorMessage: error?.message || "Error message not provided",
+							adminId: pg.project.adminId,
+						});
+					}
+				});
 			}
 		}
 	}
@@ -119,29 +132,46 @@ export const initCronJobs = async () => {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
 				try {
+					console.log(
+						`Setting up backup schedule for ${maria.name} with ID ${backupId} and schedule ${schedule}`,
+					);
 					scheduleJob(backupId, schedule, async () => {
 						console.log(
-							`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+							`MARIADB-SERVER[${new Date().toLocaleString()}] Starting Backup ${backupId} for database ${maria.name}`,
 						);
-						await runMariadbBackup(maria, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: maria.name,
-						projectName: maria.project.name,
-						databaseType: "mariadb",
-						type: "success",
-						adminId: maria.project.adminId,
+						try {
+							await runMariadbBackup(maria, backup);
+							console.log(
+								`MARIADB-SERVER[${new Date().toLocaleString()}] Backup completed successfully for ${backupId}`,
+							);
+							await sendDatabaseBackupNotifications({
+								applicationName: maria.name,
+								projectName: maria.project.name,
+								databaseType: "mariadb",
+								type: "success",
+								adminId: maria.project.adminId,
+							});
+						} catch (error) {
+							console.error(
+								`MARIADB-SERVER[${new Date().toLocaleString()}] Backup failed for ${backupId}:`,
+								error,
+							);
+							await sendDatabaseBackupNotifications({
+								applicationName: maria.name,
+								projectName: maria.project.name,
+								databaseType: "mariadb",
+								type: "error",
+								// @ts-ignore
+								errorMessage: error?.message || "Error message not provided",
+								adminId: maria.project.adminId,
+							});
+						}
 					});
 				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: maria.name,
-						projectName: maria.project.name,
-						databaseType: "mariadb",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: maria.project.adminId,
-					});
+					console.error(
+						`Failed to schedule backup for ${maria.name} with ID ${backupId}:`,
+						error,
+					);
 				}
 			}
 		}
@@ -166,31 +196,41 @@ export const initCronJobs = async () => {
 		for (const backup of mongo.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
+				console.log(
+					`Setting up backup schedule for ${mongo.name} with ID ${backupId} and schedule ${schedule}`,
+				);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`MONGO-SERVER[${new Date().toLocaleString()}] Starting Backup ${backupId} for database ${mongo.name}`,
+					);
+					try {
 						await runMongoBackup(mongo, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: mongo.name,
-						projectName: mongo.project.name,
-						databaseType: "mongodb",
-						type: "success",
-						adminId: mongo.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: mongo.name,
-						projectName: mongo.project.name,
-						databaseType: "mongodb",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: mongo.project.adminId,
-					});
-				}
+						console.log(
+							`MONGO-SERVER[${new Date().toLocaleString()}] Backup completed successfully for ${backupId}`,
+						);
+						await sendDatabaseBackupNotifications({
+							applicationName: mongo.name,
+							projectName: mongo.project.name,
+							databaseType: "mongodb",
+							type: "success",
+							adminId: mongo.project.adminId,
+						});
+					} catch (error) {
+						console.error(
+							`MONGO-SERVER[${new Date().toLocaleString()}] Backup failed for ${backupId}:`,
+							error,
+						);
+						await sendDatabaseBackupNotifications({
+							applicationName: mongo.name,
+							projectName: mongo.project.name,
+							databaseType: "mongodb",
+							type: "error",
+							// @ts-ignore
+							errorMessage: error?.message || "Error message not provided",
+							adminId: mongo.project.adminId,
+						});
+					}
+				});
 			}
 		}
 	}
@@ -214,31 +254,41 @@ export const initCronJobs = async () => {
 		for (const backup of mysql.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
+				console.log(
+					`Setting up backup schedule for ${mysql.name} with ID ${backupId} and schedule ${schedule}`,
+				);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`MYSQL-SERVER[${new Date().toLocaleString()}] Starting Backup ${backupId} for database ${mysql.name}`,
+					);
+					try {
 						await runMySqlBackup(mysql, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: mysql.name,
-						projectName: mysql.project.name,
-						databaseType: "mysql",
-						type: "success",
-						adminId: mysql.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: mysql.name,
-						projectName: mysql.project.name,
-						databaseType: "mysql",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: mysql.project.adminId,
-					});
-				}
+						console.log(
+							`MYSQL-SERVER[${new Date().toLocaleString()}] Backup completed successfully for ${backupId}`,
+						);
+						await sendDatabaseBackupNotifications({
+							applicationName: mysql.name,
+							projectName: mysql.project.name,
+							databaseType: "mysql",
+							type: "success",
+							adminId: mysql.project.adminId,
+						});
+					} catch (error) {
+						console.error(
+							`MYSQL-SERVER[${new Date().toLocaleString()}] Backup failed for ${backupId}:`,
+							error,
+						);
+						await sendDatabaseBackupNotifications({
+							applicationName: mysql.name,
+							projectName: mysql.project.name,
+							databaseType: "mysql",
+							type: "error",
+							// @ts-ignore
+							errorMessage: error?.message || "Error message not provided",
+							adminId: mysql.project.adminId,
+						});
+					}
+				});
 			}
 		}
 	}
