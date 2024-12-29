@@ -1,4 +1,4 @@
-import { createReadStream, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import fs from "node:fs/promises";
 
 // Cache configuration for metrics
@@ -13,7 +13,7 @@ const CACHE_TTL = 5000; // 5 seconds TTL
  */
 export function parseLog(logContent: string) {
 	if (!logContent.trim()) return [];
-	
+
 	const lines = logContent.trim().split("\n");
 	return lines.map((line) => {
 		try {
@@ -76,43 +76,46 @@ export function filterByTimestamp(
  * @returns Array of parsed metric objects
  */
 async function readLastNLines(filePath: string, limit: number) {
-    const { size } = statSync(filePath);
-    const chunkSize = Math.min(size, limit * 200); // Estimate 200 bytes per line
-    const buffer = Buffer.alloc(chunkSize);
-    
-    const fd = await fs.open(filePath, 'r');
-    try {
-        await fd.read(buffer, 0, chunkSize, size - chunkSize);
-        const content = buffer.toString('utf8');
-        const lines = content.split('\n').filter(line => line.trim());
-        const lastLines = lines.slice(-limit);
-        
-        return lastLines.map(line => {
-            try {
-                return JSON.parse(line);
-            } catch {
-                return { raw: line };
-            }
-        });
-    } finally {
-        await fd.close();
-    }
+	const { size } = statSync(filePath);
+	const chunkSize = Math.min(size, limit * 200); // Estimate 200 bytes per line
+	const buffer = Buffer.alloc(chunkSize);
+
+	const fd = await fs.open(filePath, "r");
+	try {
+		await fd.read(buffer, 0, chunkSize, size - chunkSize);
+		const content = buffer.toString("utf8");
+		const lines = content.split("\n").filter((line) => line.trim());
+		const lastLines = lines.slice(-limit);
+
+		return lastLines.map((line) => {
+			try {
+				return JSON.parse(line);
+			} catch {
+				return { raw: line };
+			}
+		});
+	} finally {
+		await fd.close();
+	}
 }
 
 /**
  * Process metrics from a file with optimized strategies:
  * - For limit-only queries: Read only required bytes from end of file
  * - For full file or date filters: Use in-memory cache with TTL
- * 
+ *
  * @param filePath Path to the metrics file
  * @param options Query options (limit, start date, end date)
  * @returns Processed metrics based on the options
  */
-export async function processMetricsFromFile(filePath: string, options: { 
-	start?: string; 
-	end?: string; 
-	limit?: number; 
-}) {
+export async function processMetricsFromFile(
+	filePath: string,
+	options: {
+		start?: string;
+		end?: string;
+		limit?: number;
+	},
+) {
 	const { start, end, limit } = options;
 
 	// For limit-only queries, use optimized tail reading
@@ -127,7 +130,7 @@ export async function processMetricsFromFile(filePath: string, options: {
 		return processMetrics(metrics, options);
 	}
 
-	const content = await fs.readFile(filePath, 'utf8');
+	const content = await fs.readFile(filePath, "utf8");
 	const metrics = parseLog(content);
 	metricsCache.set(filePath, metrics);
 	lastCacheUpdate = now;
@@ -141,11 +144,14 @@ export async function processMetricsFromFile(filePath: string, options: {
  * @param options Processing options (limit, start date, end date)
  * @returns Processed metrics based on the options
  */
-export function processMetrics(metrics: any[], options: { 
-	start?: string; 
-	end?: string; 
-	limit?: number; 
-}) {
+export function processMetrics(
+	metrics: any[],
+	options: {
+		start?: string;
+		end?: string;
+		limit?: number;
+	},
+) {
 	const { start, end, limit } = options;
 
 	// First filter by timestamp
@@ -153,7 +159,7 @@ export function processMetrics(metrics: any[], options: {
 
 	// If limit is 0, return empty array
 	if (limit === 0) return [];
-	
+
 	// If there's a limit > 0, apply it
 	return limit && limit > 0 ? filteredMetrics.slice(-limit) : filteredMetrics;
 }

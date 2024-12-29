@@ -1,10 +1,7 @@
 import fs from "node:fs";
-import path from "node:path";
 import Docker from "dockerode";
 import si from "systeminformation";
-import { config } from "dotenv";
 import { containerLogFile, serverLogFile } from "./constants.js";
-config();
 
 const docker = new Docker();
 
@@ -48,7 +45,6 @@ const getServerMetrics = async () => {
 		timestamp: new Date().toISOString(),
 	};
 };
-// /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker
 export const logServerMetrics = () => {
 	setInterval(async () => {
 		const metrics = await getServerMetrics();
@@ -63,7 +59,6 @@ export const logServerMetrics = () => {
 	}, 5000);
 };
 
-// === 2. Métricas de Contenedores ===
 export const logContainerMetrics = () => {
 	setInterval(async () => {
 		try {

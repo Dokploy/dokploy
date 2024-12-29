@@ -1,7 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { bearerAuth } from "hono/bearer-auth";
 import { logServerMetrics } from "./socket.js";
 import { config } from "dotenv";
 import { serverLogFile } from "./constants.js";
