@@ -34,6 +34,7 @@ import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { ShowMonitoringModal } from "./show-monitoring-modal";
 
 export const ShowServers = () => {
 	const router = useRouter();
@@ -270,6 +271,10 @@ export const ShowServers = () => {
 																/>
 																<ShowSwarmOverviewModal
 																	serverId={server.serverId}
+																/>
+
+																<ShowMonitoringModal
+																	url={`http://${server.ipAddress}:${server.defaultPortMetrics}/metrics`}
 																/>
 															</>
 														)}

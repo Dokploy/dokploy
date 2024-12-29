@@ -14,7 +14,7 @@ import {
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "@/components/ui/input";
+import { Input, NumberInput } from "@/components/ui/input";
 import { CardTitle } from "@/components/ui/card";
 import { AlertTriangle, BarChart, BarcodeIcon } from "lucide-react";
 import { useEffect } from "react";
@@ -35,10 +35,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
-	const { push } = useRouter();
 	const { data, refetch } = api.server.one.useQuery({ serverId });
-	// const { mutateAsync, isLoading, isError, error } =
-	// api.auth.verifyLogin2FA.useMutation();
 
 	const { mutateAsync, isLoading, isError, error } =
 		api.server.setupMonitoring.useMutation();
@@ -62,7 +59,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			refreshRateMetrics: data.refreshRate,
+			refreshRateMetrics: data.refreshRate * 1000,
 			defaultPortMetrics: data.port,
 			serverId,
 		})
@@ -103,7 +100,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								<FormItem className="flex flex-col justify-center max-sm:items-center">
 									<FormLabel>Refresh Rate</FormLabel>
 									<FormControl>
-										<Input placeholder="10" {...field} />
+										<NumberInput placeholder="10" {...field} />
 									</FormControl>
 									<FormDescription>
 										Please set the refresh rate for the metrics in seconds

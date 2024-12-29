@@ -6,7 +6,7 @@ import { getRemoteDocker } from "../utils/servers/remote-docker";
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
 
-	const containerName = "dokploy-monitoring";
+	const containerName = "mauricio-monitoring";
 	const imageName = "siumauricio/monitoring:canary";
 
 	const settings: CreateServiceOptions = {
@@ -29,6 +29,16 @@ export const setupMonitoring = async (serverId: string) => {
 					// 	Source: DYNAMIC_TRAEFIK_PATH,
 					// 	Target: "/etc/dokploy/traefik/dynamic",
 					// },
+					{
+						Type: "bind",
+						Source: "/proc",
+						Target: "/host/proc",
+					},
+					{
+						Type: "bind",
+						Source: "/sys/class/net",
+						Target: "/host/sys/class/net",
+					},
 					{
 						Type: "bind",
 						Source: "/var/run/docker.sock",
