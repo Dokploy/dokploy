@@ -1,10 +1,16 @@
 import { createReadStream, statSync } from "node:fs";
 import fs from "node:fs/promises";
 
+// Cache configuration for metrics
 const metricsCache = new Map<string, any[]>();
 let lastCacheUpdate = 0;
-const CACHE_TTL = 5000; // 5 segundos
+const CACHE_TTL = 5000; // 5 seconds TTL
 
+/**
+ * Parse a log file content into an array of metric objects
+ * @param logContent The raw log content
+ * @returns Array of parsed metric objects
+ */
 export function parseLog(logContent: string) {
 	if (!logContent.trim()) return [];
 	
@@ -18,12 +24,19 @@ export function parseLog(logContent: string) {
 	});
 }
 
+/**
+ * Filter metrics by timestamp range
+ * @param metrics Array of metric objects
+ * @param start Optional start timestamp
+ * @param end Optional end timestamp
+ * @returns Filtered and sorted metrics
+ */
 export function filterByTimestamp(
 	metrics: any[],
 	start?: string,
 	end?: string,
 ) {
-	// Si no hay filtros, devolver todo
+	// If no filters, return all sorted by timestamp
 	if (!start && !end) {
 		return metrics.sort(
 			(a, b) =>
@@ -31,7 +44,7 @@ export function filterByTimestamp(
 		);
 	}
 
-	// Convertir a timestamp (si existen)
+	// Convert to timestamps (if they exist)
 	const startTime = start ? new Date(start).getTime() : null;
 	const endTime = end ? new Date(end).getTime() : null;
 
@@ -56,9 +69,15 @@ export function filterByTimestamp(
 		);
 }
 
+/**
+ * Read only the last N lines from a file efficiently
+ * @param filePath Path to the file
+ * @param limit Number of lines to read
+ * @returns Array of parsed metric objects
+ */
 async function readLastNLines(filePath: string, limit: number) {
     const { size } = statSync(filePath);
-    const chunkSize = Math.min(size, limit * 200); // Estimamos 200 bytes por línea
+    const chunkSize = Math.min(size, limit * 200); // Estimate 200 bytes per line
     const buffer = Buffer.alloc(chunkSize);
     
     const fd = await fs.open(filePath, 'r');
@@ -80,6 +99,15 @@ async function readLastNLines(filePath: string, limit: number) {
     }
 }
 
+/**
+ * Process metrics from a file with optimized strategies:
+ * - For limit-only queries: Read only required bytes from end of file
+ * - For full file or date filters: Use in-memory cache with TTL
+ * 
+ * @param filePath Path to the metrics file
+ * @param options Query options (limit, start date, end date)
+ * @returns Processed metrics based on the options
+ */
 export async function processMetricsFromFile(filePath: string, options: { 
 	start?: string; 
 	end?: string; 
@@ -87,12 +115,12 @@ export async function processMetricsFromFile(filePath: string, options: {
 }) {
 	const { start, end, limit } = options;
 
-	// Si solo necesitamos las últimas N líneas y no hay filtros de fecha
+	// For limit-only queries, use optimized tail reading
 	if (limit && limit > 0 && !start && !end) {
 		return readLastNLines(filePath, limit);
 	}
 
-	// Si necesitamos todo o hay filtros de fecha, usar caché
+	// For full file or date filters, use cache
 	const now = Date.now();
 	if (metricsCache.has(filePath) && now - lastCacheUpdate < CACHE_TTL) {
 		const metrics = metricsCache.get(filePath)!;
@@ -107,6 +135,12 @@ export async function processMetricsFromFile(filePath: string, options: {
 	return processMetrics(metrics, options);
 }
 
+/**
+ * Process an array of metrics with filtering and limiting
+ * @param metrics Array of metric objects
+ * @param options Processing options (limit, start date, end date)
+ * @returns Processed metrics based on the options
+ */
 export function processMetrics(metrics: any[], options: { 
 	start?: string; 
 	end?: string; 
@@ -114,12 +148,12 @@ export function processMetrics(metrics: any[], options: {
 }) {
 	const { start, end, limit } = options;
 
-	// Primero filtramos por timestamp
+	// First filter by timestamp
 	const filteredMetrics = filterByTimestamp(metrics, start, end);
 
-	// Si el límite es 0, devolver array vacío
+	// If limit is 0, return empty array
 	if (limit === 0) return [];
 	
-	// Si hay límite y es mayor que 0, aplicarlo
+	// If there's a limit > 0, apply it
 	return limit && limit > 0 ? filteredMetrics.slice(-limit) : filteredMetrics;
 }

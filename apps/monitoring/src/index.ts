@@ -4,8 +4,8 @@ import { cors } from "hono/cors";
 import { bearerAuth } from "hono/bearer-auth";
 import { logServerMetrics } from "./socket.js";
 import { config } from "dotenv";
-import { metricsHandler } from "./handlers.js";
 import { serverLogFile } from "./constants.js";
+import { processMetricsFromFile } from "./utils.js";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
@@ -48,7 +48,20 @@ app.get("/", (c) => {
 	return c.text("Hello Hono!");
 });
 
-app.get("/metrics", metricsHandler);
+app.get("/metrics", async (c) => {
+	try {
+		const metrics = await processMetricsFromFile(serverLogFile, {
+			start: c.req.query("start"),
+			end: c.req.query("end"),
+			limit: Number(c.req.query("limit")) || undefined,
+		});
+
+		return c.json(metrics);
+	} catch (error) {
+		console.error("Error reading metrics:", error);
+		return c.json({ error: "Error reading metrics" }, 500);
+	}
+});
 
 app.get("/health", (c) => {
 	return c.text("OK");

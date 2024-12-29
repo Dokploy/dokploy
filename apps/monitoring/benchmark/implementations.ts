@@ -3,14 +3,14 @@ import { createReadStream, statSync } from "node:fs";
 import readline from "node:readline";
 import { parseLog, processMetrics } from "../src/utils.js";
 
-// Impl1
+// Implementation 1: Read entire file at once
 export async function currentImplementation(filePath: string, limit?: number) {
 	const content = await fs.readFile(filePath, "utf8");
 	const metrics = parseLog(content);
 	return processMetrics(metrics, { limit });
 }
 
-// Implementación usando readline - lee línea por línea
+// Implementation 2: Read line by line using readline
 export async function readlineImplementation(filePath: string, limit?: number) {
 	const fileStream = createReadStream(filePath);
 	const rl = readline.createInterface({
@@ -30,7 +30,7 @@ export async function readlineImplementation(filePath: string, limit?: number) {
 	return processMetrics(metrics, { limit });
 }
 
-// Implementación optimizada - lee solo las últimas N líneas
+// Implementation 3: Optimized tail reading for limited queries
 export async function tailImplementation(
 	filePath: string,
 	limit?: number | null,
@@ -39,25 +39,25 @@ export async function tailImplementation(
 		return currentImplementation(filePath);
 	}
 
-	// Obtener el tamaño del archivo
+	// Get file size
 	const { size } = statSync(filePath);
 
-	// Buffer para almacenar los últimos bytes leídos
-	const chunkSize = Math.min(size, limit * 200); // Estimamos 200 bytes por línea
+	// Buffer for storing last bytes
+	const chunkSize = Math.min(size, limit * 200); // Estimate 200 bytes per line
 	const buffer = Buffer.alloc(chunkSize);
 
-	// Abrir el archivo para lectura
+	// Open file for reading
 	const fd = await fs.open(filePath, "r");
 
 	try {
-		// Leer los últimos bytes del archivo
+		// Read last bytes of the file
 		await fd.read(buffer, 0, chunkSize, size - chunkSize);
 
-		// Convertir a string y dividir en líneas
+		// Convert to string and split into lines
 		const content = buffer.toString("utf8");
 		const lines = content.split("\n").filter((line) => line.trim());
 
-		// Tomar solo las últimas 'limit' líneas
+		// Take only the last 'limit' lines
 		const lastLines = lines.slice(-limit);
 
 		return lastLines.map((line) => {
@@ -72,25 +72,25 @@ export async function tailImplementation(
 	}
 }
 
-// Implementación con caché en memoria
+// Implementation 4: In-memory cache with TTL
 const metricsCache = new Map<string, any[]>();
 let lastCacheUpdate = 0;
-const CACHE_TTL = 5000; // 5 segundos
+const CACHE_TTL = 5000; // 5 seconds TTL
 
 export async function cachedImplementation(filePath: string, limit?: number) {
 	const now = Date.now();
 
-	// Si tenemos caché válida, usarla
+	// Use cache if valid
 	if (metricsCache.has(filePath) && now - lastCacheUpdate < CACHE_TTL) {
 		const metrics = metricsCache.get(filePath)!;
 		return processMetrics(metrics, { limit });
 	}
 
-	// Si no hay caché o expiró, leer el archivo
+	// If no cache or expired, read file
 	const content = await fs.readFile(filePath, "utf8");
 	const metrics = parseLog(content);
 
-	// Actualizar caché
+	// Update cache
 	metricsCache.set(filePath, metrics);
 	lastCacheUpdate = now;
 
