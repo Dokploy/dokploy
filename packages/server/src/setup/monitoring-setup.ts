@@ -1,5 +1,5 @@
 import { findServerById } from "@dokploy/server/services/server";
-import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
+import type { ContainerCreateOptions } from "dockerode";
 import { pullRemoteImage } from "../utils/docker/utils";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 

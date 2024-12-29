@@ -25,6 +25,9 @@ const DATA_POINTS_OPTIONS = {
 	"200": "200 points",
 	"500": "500 points",
 	"800": "800 points",
+	"1200": "1200 points",
+	"1600": "1600 points",
+	"2000": "2000 points",
 	all: "All points",
 } as const;
 
@@ -151,9 +154,7 @@ const Dashboard = () => {
 			<div className="flex justify-between items-center">
 				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
 				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground">
-						Data points:
-					</span>
+					<span className="text-sm text-muted-foreground">Data points:</span>
 					<Select
 						value={dataPoints}
 						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
