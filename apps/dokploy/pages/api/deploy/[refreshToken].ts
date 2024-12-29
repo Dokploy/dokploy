@@ -106,14 +106,14 @@ export default async function handler(
 				},
 			);
 		} catch (error) {
-			res.status(400).json({ message: "Error To Deploy Application", error });
+			res.status(400).json({ message: "Error deploying Application", error });
 			return;
 		}
 
-		res.status(200).json({ message: "App Deployed Succesfully" });
+		res.status(200).json({ message: "Application deployed successfully" });
 	} catch (error) {
 		console.log(error);
-		res.status(400).json({ message: "Error To Deploy Application", error });
+		res.status(400).json({ message: "Error deploying Application", error });
 	}
 }
 

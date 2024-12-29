@@ -113,7 +113,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the Destination");
+				toast.error("Error updating the Destination");
 			});
 	};
 	return (
@@ -335,7 +335,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 												toast.success("Connection Success");
 											})
 											.catch(() => {
-												toast.error("Error to connect the provider");
+												toast.error("Error connecting the provider");
 											});
 									}}
 								>
@@ -361,7 +361,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 											toast.success("Connection Success");
 										})
 										.catch(() => {
-											toast.error("Error to connect the provider");
+											toast.error("Error connecting the provider");
 										});
 								}}
 							>

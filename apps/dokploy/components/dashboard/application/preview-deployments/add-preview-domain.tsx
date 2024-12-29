@@ -105,8 +105,8 @@ export const AddPreviewDomain = ({
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
 		error: domainId
-			? "Error to update the domain"
-			: "Error to create the domain",
+			? "Error updating the domain"
+			: "Error creating the domain",
 		submit: domainId ? "Update" : "Create",
 		dialogDescription: domainId
 			? "In this section you can edit a domain"

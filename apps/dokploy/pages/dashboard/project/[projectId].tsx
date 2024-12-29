@@ -2,7 +2,7 @@ import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { ProjectEnviroment } from "@/components/dashboard/projects/project-enviroment";
+import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -204,9 +204,9 @@ const Project = (
 
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
 						<div className="flex flex-row gap-4 flex-wrap">
-							<ProjectEnviroment projectId={projectId}>
-								<Button variant="outline">Project Enviroment</Button>
-							</ProjectEnviroment>
+							<ProjectEnvironment projectId={projectId}>
+								<Button variant="outline">Project Environment</Button>
+							</ProjectEnvironment>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button>

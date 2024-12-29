@@ -41,7 +41,7 @@ export const mariadbRouter = createTRPCRouter({
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You need to use a server to create a mariadb",
+						message: "You need to use a server to create a Mariadb",
 					});
 				}
 
@@ -83,7 +83,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mariadb.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this mariadb",
+					message: "You are not authorized to access this Mariadb",
 				});
 			}
 			return mariadb;
@@ -96,7 +96,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (service.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this mariadb",
+					message: "You are not authorized to start this Mariadb",
 				});
 			}
 			if (service.serverId) {
@@ -149,7 +149,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mariadb.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this mariadb",
+					message: "You are not authorized to deploy this Mariadb",
 				});
 			}
 
@@ -162,7 +162,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this mariadb status",
+					message: "You are not authorized to change this Mariadb status",
 				});
 			}
 			await updateMariadbById(input.mariadbId, {
@@ -181,7 +181,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this mariadb",
+					message: "You are not authorized to delete this Mariadb",
 				});
 			}
 
@@ -215,7 +215,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add environment variables",
+					message: "Error adding environment variables",
 				});
 			}
 
@@ -228,7 +228,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mariadb.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this mariadb",
+					message: "You are not authorized to reload this Mariadb",
 				});
 			}
 			if (mariadb.serverId) {
@@ -258,7 +258,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (mariadb.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this mariadb",
+					message: "You are not authorized to update this Mariadb",
 				});
 			}
 			const service = await updateMariadbById(mariadbId, {
@@ -268,7 +268,7 @@ export const mariadbRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update mariadb",
+					message: "Update: Error updating Mariadb",
 				});
 			}
 

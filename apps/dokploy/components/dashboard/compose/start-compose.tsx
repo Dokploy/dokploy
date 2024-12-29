@@ -49,10 +49,10 @@ export const StartCompose = ({ composeId }: Props) => {
 									await utils.compose.one.invalidate({
 										composeId,
 									});
-									toast.success("Compose started succesfully");
+									toast.success("Compose started successfully");
 								})
 								.catch(() => {
-									toast.error("Error to start the Compose");
+									toast.error("Error starting the Compose");
 								});
 						}}
 					>

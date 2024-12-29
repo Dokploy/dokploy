@@ -75,7 +75,7 @@ export const AddSecurity = ({
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the security");
+				toast.error("Error creating security");
 			});
 	};
 

@@ -38,11 +38,11 @@ export const RemoveSSHPrivateKey = () => {
 						onClick={async () => {
 							await mutateAsync()
 								.then(() => {
-									toast.success("SSH private key deleted succesfully");
+									toast.success("SSH private key deleted successfully");
 									utils.auth.get.invalidate();
 								})
 								.catch(() => {
-									toast.error("Error  to delete the ssh private key");
+									toast.error("Error deleting the SSH private key");
 								});
 						}}
 					>

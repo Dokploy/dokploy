@@ -49,10 +49,10 @@ export const StartMongo = ({ mongoId }: Props) => {
 									await utils.mongo.one.invalidate({
 										mongoId,
 									});
-									toast.success("Database started succesfully");
+									toast.success("Database started successfully");
 								})
 								.catch(() => {
-									toast.error("Error to start the Database");
+									toast.error("Error starting the Database");
 								});
 						}}
 					>

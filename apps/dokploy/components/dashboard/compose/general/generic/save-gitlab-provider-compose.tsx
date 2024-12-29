@@ -146,7 +146,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the gitlab provider");
+				toast.error("Error saving the Gitlab provider");
 			});
 	};
 

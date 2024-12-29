@@ -38,7 +38,7 @@ interface Props {
 	children?: React.ReactNode;
 }
 
-export const ProjectEnviroment = ({ projectId, children }: Props) => {
+export const ProjectEnvironment = ({ projectId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
@@ -72,11 +72,11 @@ export const ProjectEnviroment = ({ projectId, children }: Props) => {
 			projectId: projectId,
 		})
 			.then(() => {
-				toast.success("Project env updated succesfully");
+				toast.success("Project env updated successfully");
 				utils.project.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to update the env");
+				toast.error("Error updating the env");
 			})
 			.finally(() => {});
 	};
@@ -90,13 +90,13 @@ export const ProjectEnviroment = ({ projectId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileIcon className="size-4" />
-						<span>Project Enviroment</span>
+						<span>Project Environment</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Project Enviroment</DialogTitle>
+					<DialogTitle>Project Environment</DialogTitle>
 					<DialogDescription>
 						Update the env Environment variables that are accessible to all
 						services of this project. Use this syntax to reference project-level
@@ -120,7 +120,7 @@ export const ProjectEnviroment = ({ projectId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Enviroment variables</FormLabel>
+											<FormLabel>Environment variables</FormLabel>
 											<FormControl>
 												<CodeEditor
 													lineWrapping

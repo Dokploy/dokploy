@@ -83,13 +83,13 @@ export default function Home({ token }: Props) {
 			password: values.password,
 		})
 			.then((data) => {
-				toast.success("Password reset succesfully", {
+				toast.success("Password reset successfully", {
 					duration: 2000,
 				});
 				router.push("/");
 			})
 			.catch(() => {
-				toast.error("Error to reset password", {
+				toast.error("Error resetting password", {
 					duration: 2000,
 				});
 			});

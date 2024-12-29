@@ -48,7 +48,7 @@ export const DeleteSSHKey = ({ sshKeyId }: Props) => {
 									toast.success("SSH Key delete successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete SSH key");
+									toast.error("Error deleting SSH key");
 								});
 						}}
 					>

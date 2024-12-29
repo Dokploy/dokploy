@@ -90,7 +90,7 @@ export const applicationRouter = createTRPCRouter({
 				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the application",
+					message: "Error creating the application",
 					cause: error,
 				});
 			}
@@ -441,7 +441,7 @@ export const applicationRouter = createTRPCRouter({
 			if (!updateApp) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update application",
+					message: "Error updating application",
 				});
 			}
 

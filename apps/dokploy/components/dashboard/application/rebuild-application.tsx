@@ -63,7 +63,7 @@ export const RedbuildApplication = ({ applicationId }: Props) => {
 									});
 								})
 								.catch(() => {
-									toast.error("Error to rebuild the application");
+									toast.error("Error rebuilding the application");
 								});
 						}}
 					>

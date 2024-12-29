@@ -30,7 +30,7 @@ export const createInvitation = async (
 		if (!result) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the user",
+				message: "Error creating the user",
 			});
 		}
 		const expiresIn24Hours = new Date();

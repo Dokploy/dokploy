@@ -111,7 +111,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update a server");
+				toast.error("Error updating a server");
 			});
 	};
 

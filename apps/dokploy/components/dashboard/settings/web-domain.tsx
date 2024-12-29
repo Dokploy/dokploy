@@ -84,7 +84,7 @@ export const WebDomain = () => {
 				toast.success("Domain Assigned");
 			})
 			.catch(() => {
-				toast.error("Error to assign the domain");
+				toast.error("Error assigning the domain");
 			});
 	};
 	return (

@@ -105,7 +105,7 @@ export const AddServer = () => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create a server");
+				toast.error("Error creating a server");
 			});
 	};
 
