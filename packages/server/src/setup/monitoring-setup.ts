@@ -17,9 +17,9 @@ export const setupMonitoring = async (serverId: string) => {
 		],
 		Image: imageName,
 		HostConfig: {
-			PidMode: "host",
-			CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
-			Privileged: true,
+			// PidMode: "host",
+			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
+			// Privileged: true,
 			PortBindings: {
 				[`${server.defaultPortMetrics}/tcp`]: [
 					{
@@ -28,74 +28,17 @@ export const setupMonitoring = async (serverId: string) => {
 				],
 			},
 			Binds: [
-				// "/proc:/host/proc",
-				// "/sys/class/net:/host/sys/class/net:ro",
-				"/var/run/docker.sock:/var/run/docker.sock:ro",
+				// "/var/run/docker.sock:/var/run/docker.sock:ro",
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
-				// "/sys/devices/system/cpu:/sys/devices/system/cpu:ro",
-				// "/sys/class/dmi/id:/sys/class/dmi/id:ro",
-				// "/etc/machine-id:/etc/machine-id:ro",
+				// "/proc/cpuinfo:/proc/cpuinfo:ro",
+				// "/proc/cpuinfo:/host/proc/cpuinfo:ro",
 			],
 			NetworkMode: "host",
 		},
 		ExposedPorts: {
 			[`${server.defaultPortMetrics}/tcp`]: {},
 		},
-
-		// TaskTemplate: {
-		// 	ContainerSpec: {
-		// 		Env: [
-		// 			`REFRESH_RATE_SERVER=${server.refreshRateMetrics}`,
-		// 			`PORT=${server.defaultPortMetrics}`,
-		// 		],
-		// 		Mounts: [
-		// 			// {
-		// 			// 	Type: "bind",
-		// 			// 	// Source: `${MAIN_TRAEFIK_PATH}/traefik.yml`,
-		// 			// 	Target: "/etc/traefik/traefik.yml",
-		// 			// },
-		// 			// {
-		// 			// 	Type: "bind",
-		// 			// 	Source: DYNAMIC_TRAEFIK_PATH,
-		// 			// 	Target: "/etc/dokploy/traefik/dynamic",
-		// 			// },
-		// 			{
-		// 				Type: "bind",
-		// 				Source: "/proc",
-		// 				Target: "/host/proc",
-		// 			},
-		// 			{
-		// 				Type: "bind",
-		// 				Source: "/sys/class/net",
-		// 				Target: "/host/sys/class/net",
-		// 			},
-		// 			{
-		// 				Type: "bind",
-		// 				Source: "/var/run/docker.sock",
-		// 				Target: "/var/run/docker.sock",
-		// 			},
-		// 		],
-		// 	},
-		// 	Networks: [{ Target: "dokploy-network" }],
-		// 	Placement: {
-		// 		Constraints: ["node.role==manager"],
-		// 	},
-		// },
-		// Mode: {
-		// 	Replicated: {
-		// 		Replicas: 1,
-		// 	},
-		// },
-		// EndpointSpec: {
-		// 	Ports: [
-		// 		{
-		// 			TargetPort: server.defaultPortMetrics,
-		// 			PublishedPort: server.defaultPortMetrics,
-		// 			PublishMode: "host",
-		// 		},
-		// 	],
-		// },
 	};
 	const docker = await getRemoteDocker(serverId);
 	try {
