@@ -27,6 +27,8 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
+RUN apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh 
 
 # Copy only the necessary files
