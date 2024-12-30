@@ -76,14 +76,14 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Application updated succesfully");
+				toast.success("Application updated successfully");
 				utils.application.one.invalidate({
 					applicationId: applicationId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the application");
+				toast.error("Error updating the Application");
 			})
 			.finally(() => {});
 	};

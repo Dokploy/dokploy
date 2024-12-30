@@ -109,7 +109,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the backup");
+				toast.error("Error updating the Backup");
 			});
 	};
 

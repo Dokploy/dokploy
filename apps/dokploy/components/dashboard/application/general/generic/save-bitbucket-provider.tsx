@@ -137,7 +137,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the Bitbucket provider");
+				toast.error("Error saving the Bitbucket provider");
 			});
 	};
 

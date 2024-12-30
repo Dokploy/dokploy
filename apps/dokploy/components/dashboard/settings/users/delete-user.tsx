@@ -48,10 +48,10 @@ export const DeleteUser = ({ authId }: Props) => {
 							})
 								.then(async () => {
 									utils.user.all.invalidate();
-									toast.success("User delete succesfully");
+									toast.success("User deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the user");
+									toast.error("Error deleting User");
 								});
 						}}
 					>

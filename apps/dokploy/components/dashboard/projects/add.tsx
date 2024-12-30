@@ -70,7 +70,7 @@ export const AddProject = () => {
 				router.push(`/dashboard/project/${data.projectId}`);
 			})
 			.catch(() => {
-				toast.error("Error to create a project");
+				toast.error("Error creating a project");
 			});
 	};
 

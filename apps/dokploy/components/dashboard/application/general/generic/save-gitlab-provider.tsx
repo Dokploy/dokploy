@@ -144,7 +144,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the gitlab provider");
+				toast.error("Error saving the gitlab provider");
 			});
 	};
 

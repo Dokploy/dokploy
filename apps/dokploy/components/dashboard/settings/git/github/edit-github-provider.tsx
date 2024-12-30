@@ -77,7 +77,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update Github");
+				toast.error("Error updating Github");
 			});
 	};
 

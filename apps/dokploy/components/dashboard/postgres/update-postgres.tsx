@@ -76,14 +76,14 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Postgres updated succesfully");
+				toast.success("Postgres updated successfully");
 				utils.postgres.one.invalidate({
 					postgresId: postgresId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the postgres");
+				toast.error("Error updating Postgres");
 			})
 			.finally(() => {});
 	};

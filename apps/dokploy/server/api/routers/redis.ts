@@ -42,7 +42,7 @@ export const redisRouter = createTRPCRouter({
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You need to use a server to create a redis",
+						message: "You need to use a server to create a Redis",
 					});
 				}
 
@@ -82,7 +82,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this redis",
+					message: "You are not authorized to access this Redis",
 				});
 			}
 			return redis;
@@ -95,7 +95,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this redis",
+					message: "You are not authorized to start this Redis",
 				});
 			}
 
@@ -117,7 +117,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this redis",
+					message: "You are not authorized to reload this Redis",
 				});
 			}
 			if (redis.serverId) {
@@ -147,7 +147,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this redis",
+					message: "You are not authorized to stop this Redis",
 				});
 			}
 			if (redis.serverId) {
@@ -184,7 +184,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this redis",
+					message: "You are not authorized to deploy this Redis",
 				});
 			}
 			return deployRedis(input.redisId);
@@ -196,7 +196,7 @@ export const redisRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this redis status",
+					message: "You are not authorized to change this Redis status",
 				});
 			}
 			await updateRedisById(input.redisId, {
@@ -216,7 +216,7 @@ export const redisRouter = createTRPCRouter({
 			if (redis.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this redis",
+					message: "You are not authorized to delete this Redis",
 				});
 			}
 
@@ -250,7 +250,7 @@ export const redisRouter = createTRPCRouter({
 			if (!updatedRedis) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add environment variables",
+					message: "Error adding environment variables",
 				});
 			}
 
@@ -267,7 +267,7 @@ export const redisRouter = createTRPCRouter({
 			if (!redis) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update redis",
+					message: "Error updating Redis",
 				});
 			}
 

@@ -1,5 +1,6 @@
 {
 	"settings.common.save": "Zapisz",
+	"settings.common.enterTerminal":  "Otwórz terminal",
 	"settings.server.domain.title": "Domena",
 	"settings.server.domain.description": "Dodaj domenę do aplikacji",
 	"settings.server.domain.form.domain": "Domena",
@@ -40,5 +41,10 @@
 	"settings.appearance.themes.dark": "Ciemny",
 	"settings.appearance.themes.system": "System",
 	"settings.appearance.language": "Język",
-	"settings.appearance.languageDescription": "Wybierz język swojego pulpitu"
+	"settings.appearance.languageDescription": "Wybierz język swojego pulpitu",
+
+	"settings.terminal.connectionSettings": "Ustawienia połączenia",
+	"settings.terminal.ipAddress": "Adres IP",
+	"settings.terminal.port": "Port",
+	"settings.terminal.username": "Nazwa użytkownika"
 }

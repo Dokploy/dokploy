@@ -112,7 +112,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to delete this preview deployment",
+			message: "Error deleting this preview deployment",
 		});
 	}
 };
@@ -189,7 +189,7 @@ export const createPreviewDeployment = async (
 	if (!previewDeployment) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the preview deployment",
+			message: "Error creating the preview deployment",
 		});
 	}
 

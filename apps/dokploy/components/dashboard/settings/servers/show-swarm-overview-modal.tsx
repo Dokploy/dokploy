@@ -39,11 +39,8 @@ export const ShowSwarmOverviewModal = ({ serverId }: Props) => {
 						</p>
 					</div>
 				</DialogHeader>
-
 				<div className="grid w-full gap-1">
-					<div className="flex flex-wrap gap-4 py-4">
-						<SwarmMonitorCard serverId={serverId} />
-					</div>
+					<SwarmMonitorCard serverId={serverId} />
 				</div>
 			</DialogContent>
 		</Dialog>

@@ -107,7 +107,7 @@ export const AddVolumes = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to create the Bind mount");
+					toast.error("Error creating the Bind mount");
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -122,7 +122,7 @@ export const AddVolumes = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to create the Volume mount");
+					toast.error("Error creating the Volume mount");
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -138,7 +138,7 @@ export const AddVolumes = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to create the File mount");
+					toast.error("Error creating the File mount");
 				});
 		}
 

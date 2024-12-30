@@ -68,7 +68,7 @@ export default api.withTRPC(
 	appWithTranslation(MyApp, {
 		i18n: {
 			defaultLocale: "en",
-			locales: Object.values(Languages),
+			locales: Object.values(Languages).map(language => language.code),
 			localeDetection: false,
 		},
 		fallbackLng: "en",

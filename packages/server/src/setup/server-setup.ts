@@ -270,20 +270,49 @@ export const setupSwarm = () => `
 		else
 			# Get IP address
 			get_ip() {
-				# Try to get IPv4
-				local ipv4=\$(curl -4s https://ifconfig.io 2>/dev/null)
+				local ip=""
+				
+				# Try IPv4 with multiple services
+				# First attempt: ifconfig.io
+				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+				
+				# Second attempt: icanhazip.com
+				if [ -z "\$ip" ]; then
+					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+				fi
+				
+				# Third attempt: ipecho.net
+				if [ -z "\$ip" ]; then
+					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
+				fi
 
-				if [ -n "\$ipv4" ]; then
-					echo "\$ipv4"
-				else
-					# Try to get IPv6
-					local ipv6=\$(curl -6s https://ifconfig.io 2>/dev/null)
-					if [ -n "\$ipv6" ]; then
-						echo "\$ipv6"
+				# If no IPv4, try IPv6 with multiple services
+				if [ -z "\$ip" ]; then
+					# Try IPv6 with ifconfig.io
+					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+					
+					# Try IPv6 with icanhazip.com
+					if [ -z "\$ip" ]; then
+						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+					fi
+					
+					# Try IPv6 with ipecho.net
+					if [ -z "\$ip" ]; then
+						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
 					fi
 				fi
+
+				if [ -z "\$ip" ]; then
+					echo "Error: Could not determine server IP address automatically (neither IPv4 nor IPv6)." >&2
+					echo "Please set the ADVERTISE_ADDR environment variable manually." >&2
+					echo "Example: export ADVERTISE_ADDR=<your-server-ip>" >&2
+					exit 1
+				fi
+
+				echo "\$ip"
 			}
 			advertise_addr=\$(get_ip)
+			echo "Advertise address: \$advertise_addr"
 
 			# Initialize Docker Swarm
 			docker swarm init --advertise-addr \$advertise_addr

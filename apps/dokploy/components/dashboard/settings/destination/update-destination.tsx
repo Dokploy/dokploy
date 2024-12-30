@@ -92,6 +92,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 				name: data.name,
 				region: data.region,
 				secretAccessKey: data.secretAccessKey,
+				provider: data.provider || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -105,6 +106,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId,
+			provider: data.provider || "",
 		})
 			.then(async () => {
 				toast.success("Destination Updated");
@@ -113,7 +115,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the Destination");
+				toast.error("Error updating the Destination");
 			});
 	};
 	return (
@@ -335,7 +337,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 												toast.success("Connection Success");
 											})
 											.catch(() => {
-												toast.error("Error to connect the provider");
+												toast.error("Error connecting the provider");
 											});
 									}}
 								>
@@ -361,7 +363,7 @@ export const UpdateDestination = ({ destinationId }: Props) => {
 											toast.success("Connection Success");
 										})
 										.catch(() => {
-											toast.error("Error to connect the provider");
+											toast.error("Error connecting the provider");
 										});
 								}}
 							>

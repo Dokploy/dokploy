@@ -304,7 +304,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				side="top"
 																			>
 																				<span>
-																					If not server is selected, the
+																					If ot server is selected, the
 																					application will be deployed on the
 																					server where the user is logged in.
 																				</span>
@@ -355,10 +355,10 @@ export const AddTemplate = ({ projectId }: Props) => {
 																					projectId,
 																				});
 																				setOpen(false);
-																				return `${template.name} template created succesfully`;
+																				return `${template.name} template created successfully`;
 																			},
 																			error: (err) => {
-																				return `Ocurred an error deploying ${template.name} template`;
+																				return `An error ocurred deploying ${template.name} template`;
 																			},
 																		});
 																	}}
