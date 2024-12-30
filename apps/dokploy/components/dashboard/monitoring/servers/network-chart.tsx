@@ -88,7 +88,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload[0].payload;
+									const data = payload?.[0]?.payload;
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">

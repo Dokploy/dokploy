@@ -2,10 +2,10 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import type { GetServerSidePropsContext } from "next";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { CPUChart } from "@/components/metrics/cpu-chart";
-import { MemoryChart } from "@/components/metrics/memory-chart";
-import { NetworkChart } from "@/components/metrics/network-chart";
-import { DiskChart } from "@/components/metrics/disk-chart";
+import { CPUChart } from "@/components/dashboard/monitoring/servers/cpu-chart";
+import { MemoryChart } from "@/components/dashboard/monitoring/servers/memory-chart";
+import { NetworkChart } from "@/components/dashboard/monitoring/servers/network-chart";
+import { DiskChart } from "@/components/dashboard/monitoring/servers/disk-chart";
 import { Loader2, Clock, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import {
 	Select,

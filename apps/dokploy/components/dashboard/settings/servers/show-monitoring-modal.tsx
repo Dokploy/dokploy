@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
-import { ShowMonitoring } from "../../monitoring/show-monitoring";
+import { ShowMonitoring } from "../../monitoring/servers/show-monitoring";
 
 interface Props {
 	url: string;
