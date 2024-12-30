@@ -1,5 +1,9 @@
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import {
+	findServerById,
+	IS_CLOUD,
+	validateWebSocketRequest,
+} from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -60,7 +64,7 @@ export const setupTerminalWebSocketServer = (
 
 		const isLocalServer = serverId === "local";
 
-		if (isLocalServer) {
+		if (isLocalServer && !IS_CLOUD) {
 			const port = Number(url.searchParams.get("port"));
 			const username = url.searchParams.get("username");
 
