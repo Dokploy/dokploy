@@ -12,7 +12,7 @@ export const getPublicIpWithFallback = async () => {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
-			"Error obtaining public IPv4 address, falling back to IPv6",
+			"Error to obtain public IPv4 address, falling back to IPv6",
 			// @ts-ignore
 			error.message,
 		);
@@ -20,7 +20,7 @@ export const getPublicIpWithFallback = async () => {
 			ip = await publicIpv6();
 		} catch (error) {
 			// @ts-ignore
-			console.error("Error obtaining public IPv6 address", error.message);
+			console.error("Error to obtain public IPv6 address", error.message);
 			ip = null;
 		}
 	}
@@ -84,7 +84,6 @@ export const setupTerminalWebSocketServer = (
 				privateKey,
 			};
 		} else {
-			ws.send("Getting server data...\n");
 			const server = await findServerById(serverId);
 
 			if (!server) {
@@ -162,7 +161,7 @@ export const setupTerminalWebSocketServer = (
 						`Authentication failed: Unauthorized ${isLocalServer ? "" : "private SSH key or "}username.\n❌  Error: ${err.message} ${err.level}`,
 					);
 				} else {
-					ws.send(`SSH connection error: ${err.message}`);
+					ws.send(`SSH connection error: ${err.message} ❌ `);
 				}
 				conn.end();
 			})
