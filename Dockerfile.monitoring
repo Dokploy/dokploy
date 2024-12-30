@@ -27,6 +27,8 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh 
+
 # Copy only the necessary files
 COPY --from=build /prod/monitoring/dist ./dist
 COPY --from=build /prod/monitoring/package.json ./package.json
