@@ -31,8 +31,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,6 +56,8 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const AddServer = () => {
+	const { t } = useTranslation("settings");
+
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
@@ -212,7 +214,7 @@ export const AddServer = () => {
 								name="ipAddress"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>IP Address</FormLabel>
+										<FormLabel>{t("settings.terminal.ipAddress")}</FormLabel>
 										<FormControl>
 											<Input placeholder="192.168.1.100" {...field} />
 										</FormControl>
@@ -226,7 +228,7 @@ export const AddServer = () => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Port</FormLabel>
+										<FormLabel>{t("settings.terminal.port")}</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="22"
@@ -256,7 +258,7 @@ export const AddServer = () => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>{t("settings.terminal.username")}</FormLabel>
 									<FormControl>
 										<Input placeholder="root" {...field} />
 									</FormControl>

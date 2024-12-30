@@ -1,5 +1,6 @@
 {
 	"settings.common.save": "Save",
+	"settings.common.enterTerminal": "Enter the terminal",
 	"settings.server.domain.title": "Server Domain",
 	"settings.server.domain.description": "Add a domain to your server application.",
 	"settings.server.domain.form.domain": "Domain",
@@ -48,5 +49,10 @@
 	"settings.appearance.themes.dark": "Dark",
 	"settings.appearance.themes.system": "System",
 	"settings.appearance.language": "Language",
-	"settings.appearance.languageDescription": "Select a language for your dashboard"
+	"settings.appearance.languageDescription": "Select a language for your dashboard",
+
+	"settings.terminal.connectionSettings": "Connection settings",
+	"settings.terminal.ipAddress": "IP Address",
+	"settings.terminal.port": "Port",
+	"settings.terminal.username": "Username"
 }
