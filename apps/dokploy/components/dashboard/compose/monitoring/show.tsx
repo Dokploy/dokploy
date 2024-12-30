@@ -20,7 +20,7 @@ import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { DockerMonitoring } from "../../monitoring/docker/show";
+import { ContainerMonitoring } from "../../monitoring/container/show";
 
 interface Props {
 	appName: string;
@@ -118,9 +118,9 @@ export const ShowMonitoringCompose = ({
 							Restart
 						</Button>
 					</div>
-					<DockerMonitoring
+					<ContainerMonitoring
 						appName={containerAppName || ""}
-						appType={appType}
+						BASE_URL={"http://localhost:3001"}
 					/>
 				</CardContent>
 			</Card>
