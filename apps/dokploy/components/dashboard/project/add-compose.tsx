@@ -108,7 +108,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to create the compose");
+				toast.error("Error creating the compose");
 			});
 	};
 
@@ -183,7 +183,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												side="top"
 											>
 												<span>
-													If not server is selected, the application will be
+													If no server is selected, the application will be
 													deployed on the server where the user is logged in.
 												</span>
 											</TooltipContent>
@@ -262,7 +262,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 									<FormLabel>Description</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your service..."
+											placeholder="Description of your service..."
 											className="resize-none"
 											{...field}
 										/>

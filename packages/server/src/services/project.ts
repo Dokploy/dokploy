@@ -30,7 +30,7 @@ export const createProject = async (
 	if (!newProject) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the project",
+			message: "Error creating the project",
 		});
 	}
 

@@ -76,7 +76,7 @@ export default function Home() {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to send email", {
+				toast.error("Error sending email", {
 					duration: 2000,
 				});
 			});

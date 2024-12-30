@@ -46,10 +46,10 @@ export const DeleteWorker = ({ nodeId }: Props) => {
 							})
 								.then(async () => {
 									utils.cluster.getNodes.invalidate();
-									toast.success("Worker deleted succesfully");
+									toast.success("Worker deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the worker");
+									toast.error("Error deleting Worker");
 								});
 						}}
 					>

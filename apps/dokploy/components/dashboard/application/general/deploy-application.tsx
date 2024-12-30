@@ -51,7 +51,7 @@ export const DeployApplication = ({ applicationId }: Props) => {
 								applicationId,
 							})
 								.then(async () => {
-									toast.success("Application deployed succesfully");
+									toast.success("Application deployed successfully");
 									await refetch();
 									router.push(
 										`/dashboard/project/${data?.projectId}/services/application/${applicationId}?tab=deployments`,
@@ -59,7 +59,7 @@ export const DeployApplication = ({ applicationId }: Props) => {
 								})
 
 								.catch(() => {
-									toast.error("Error to deploy Application");
+									toast.error("Error deploying the Application");
 								});
 
 							await refetch();

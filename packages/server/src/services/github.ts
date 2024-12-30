@@ -28,7 +28,7 @@ export const createGithub = async (
 		if (!newGitProvider) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the git provider",
+				message: "Error creating the Git provider",
 			});
 		}
 

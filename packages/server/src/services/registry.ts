@@ -71,7 +71,7 @@ export const removeRegistry = async (registryId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to remove this registry",
+			message: "Error removing this registry",
 			cause: error,
 		});
 	}
@@ -114,7 +114,7 @@ export const updateRegistry = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to update this registry",
+			message: "Error updating this registry",
 		});
 	}
 };

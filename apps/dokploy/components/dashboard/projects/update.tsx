@@ -76,12 +76,12 @@ export const UpdateProject = ({ projectId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Project updated succesfully");
+				toast.success("Project updated successfully");
 				utils.project.all.invalidate();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the project");
+				toast.error("Error updating the Project");
 			})
 			.finally(() => {});
 	};
@@ -136,7 +136,7 @@ export const UpdateProject = ({ projectId }: Props) => {
 											<FormLabel>Description</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder="Description of your project..."
 													className="resize-none"
 													{...field}
 												/>

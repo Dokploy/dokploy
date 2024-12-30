@@ -90,7 +90,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 				toast.success("Compose updated");
 			})
 			.catch(() => {
-				toast.error("Error to randomize the compose");
+				toast.error("Error randomizing the compose");
 			});
 	};
 
@@ -105,7 +105,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 				toast.success("Compose randomized");
 			})
 			.catch(() => {
-				toast.error("Error to randomize the compose");
+				toast.error("Error randomizing the compose");
 			});
 	};
 

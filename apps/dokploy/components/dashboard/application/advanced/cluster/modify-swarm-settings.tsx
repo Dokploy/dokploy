@@ -259,7 +259,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error to update the swarm settings");
+				toast.error("Error updating the swarm settings");
 			});
 	};
 	return (

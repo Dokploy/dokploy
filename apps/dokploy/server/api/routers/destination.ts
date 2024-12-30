@@ -32,7 +32,7 @@ export const destinationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the destination",
+					message: "Error creating the destination",
 					cause: error,
 				});
 			}
@@ -75,7 +75,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error to connect to bucket",
+							: "Error connecting to bucket",
 					cause: error,
 				});
 			}

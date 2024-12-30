@@ -69,7 +69,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the Backup",
+					message: "Error creating the Backup",
 					cause: error,
 				});
 			}
@@ -113,7 +113,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update this Backup",
+					message: "Error updating this Backup",
 				});
 			}
 		}),
@@ -135,7 +135,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to delete this Backup",
+					message: "Error deleting this Backup",
 					cause: error,
 				});
 			}
@@ -152,7 +152,7 @@ export const backupRouter = createTRPCRouter({
 				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to run manual postgres backup ",
+					message: "Error running manual Postgres backup ",
 					cause: error,
 				});
 			}
@@ -169,7 +169,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to run manual mysql backup ",
+					message: "Error running manual MySQL backup ",
 					cause: error,
 				});
 			}
@@ -185,7 +185,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to run manual mariadb backup ",
+					message: "Error running manual Mariadb backup ",
 					cause: error,
 				});
 			}
@@ -201,7 +201,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to run manual mongo backup ",
+					message: "Error running manual Mongo backup ",
 					cause: error,
 				});
 			}

@@ -35,8 +35,10 @@ import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
+import { useTranslation } from "next-i18next";
 
 export const ShowServers = () => {
+	const { t } = useTranslation("settings");
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isLoading } = api.server.all.useQuery();
@@ -200,7 +202,9 @@ export const ShowServers = () => {
 															<>
 																{server.sshKeyId && (
 																	<TerminalModal serverId={server.serverId}>
-																		<span>Enter the terminal</span>
+																		<span>
+																			{t("settings.common.enterTerminal")}
+																		</span>
 																	</TerminalModal>
 																)}
 																<SetupServer serverId={server.serverId} />
@@ -242,7 +246,7 @@ export const ShowServers = () => {
 																	.then(() => {
 																		refetch();
 																		toast.success(
-																			`Server ${server.name} deleted succesfully`,
+																			`Server ${server.name} deleted successfully`,
 																		);
 																	})
 																	.catch((err) => {

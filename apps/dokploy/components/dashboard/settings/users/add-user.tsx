@@ -61,7 +61,7 @@ export const AddUser = () => {
 				await utils.user.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to create the invitation");
+				toast.error("Error creating the invitation");
 			});
 	};
 	return (

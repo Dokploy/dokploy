@@ -86,7 +86,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error to update the traefik config");
+				toast.error("Error updating the Traefik config");
 			});
 	};
 

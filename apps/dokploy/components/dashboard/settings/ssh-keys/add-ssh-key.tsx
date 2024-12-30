@@ -61,7 +61,7 @@ export const AddSSHKey = ({ children }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the SSH key");
+				toast.error("Error creating the SSH key");
 			});
 	};
 
@@ -74,7 +74,7 @@ export const AddSSHKey = ({ children }: Props) => {
 				form.setValue("publicKey", data.publicKey);
 			})
 			.catch(() => {
-				toast.error("Error to generate the SSH Key");
+				toast.error("Error generating the SSH Key");
 			});
 
 	return (

@@ -145,7 +145,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error to Create the manual backup",
+																					"Error creating the manual backup",
 																				);
 																			});
 																	}}

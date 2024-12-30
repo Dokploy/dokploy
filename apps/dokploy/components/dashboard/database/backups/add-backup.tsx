@@ -125,7 +125,7 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error to create a backup");
+				toast.error("Error creating a backup");
 			});
 	};
 	return (

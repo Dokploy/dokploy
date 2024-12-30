@@ -76,14 +76,14 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Compose updated succesfully");
+				toast.success("Compose updated successfully");
 				utils.compose.one.invalidate({
 					composeId: composeId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the Compose");
+				toast.error("Error updating the Compose");
 			})
 			.finally(() => {});
 	};

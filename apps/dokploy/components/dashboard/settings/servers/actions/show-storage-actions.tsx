@@ -85,7 +85,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									toast.success("Cleaned images");
 								})
 								.catch(() => {
-									toast.error("Error to clean images");
+									toast.error("Error cleaning images");
 								});
 						}}
 					>
@@ -103,7 +103,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									toast.success("Cleaned volumes");
 								})
 								.catch(() => {
-									toast.error("Error to clean volumes");
+									toast.error("Error cleaning volumes");
 								});
 						}}
 					>
@@ -122,7 +122,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									toast.success("Stopped containers cleaned");
 								})
 								.catch(() => {
-									toast.error("Error to clean stopped containers");
+									toast.error("Error cleaning stopped containers");
 								});
 						}}
 					>
@@ -141,7 +141,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									toast.success("Cleaned Docker Builder");
 								})
 								.catch(() => {
-									toast.error("Error to clean Docker Builder");
+									toast.error("Error cleaning Docker Builder");
 								});
 						}}
 					>
@@ -158,7 +158,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 										toast.success("Cleaned Monitoring");
 									})
 									.catch(() => {
-										toast.error("Error to clean Monitoring");
+										toast.error("Error cleaning Monitoring");
 									});
 							}}
 						>
@@ -178,7 +178,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 									toast.success("Cleaned all");
 								})
 								.catch(() => {
-									toast.error("Error to clean all");
+									toast.error("Error cleaning all");
 								});
 						}}
 					>

@@ -82,13 +82,13 @@ export default async function handler(
 				},
 			);
 		} catch (error) {
-			res.status(400).json({ message: "Error To Deploy Compose", error });
+			res.status(400).json({ message: "Error deploying Compose", error });
 			return;
 		}
 
-		res.status(200).json({ message: "Compose Deployed Succesfully" });
+		res.status(200).json({ message: "Compose deployed successfully" });
 	} catch (error) {
 		console.log(error);
-		res.status(400).json({ message: "Error To Deploy Compose", error });
+		res.status(400).json({ message: "Error deploying Compose", error });
 	}
 }

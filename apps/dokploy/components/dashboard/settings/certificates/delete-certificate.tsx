@@ -46,10 +46,10 @@ export const DeleteCertificate = ({ certificateId }: Props) => {
 								.then(async () => {
 									utils.certificates.all.invalidate();
 									utils.auth.get.invalidate();
-									toast.success("Certificate delete succesfully");
+									toast.success("Certificate deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the Certificate");
+									toast.error("Error deleting Certificate");
 								});
 						}}
 					>

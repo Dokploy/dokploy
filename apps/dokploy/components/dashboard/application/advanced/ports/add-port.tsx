@@ -86,7 +86,7 @@ export const AddPort = ({
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the port");
+				toast.error("Error creating the port");
 			});
 	};
 
