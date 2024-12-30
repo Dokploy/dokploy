@@ -94,7 +94,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the command");
+				toast.error("Error updating the command");
 			});
 	};
 

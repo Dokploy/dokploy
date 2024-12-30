@@ -34,7 +34,7 @@ import {
 import Link from "next/link";
 import { Fragment } from "react";
 import { toast } from "sonner";
-import { ProjectEnviroment } from "./project-enviroment";
+import { ProjectEnvironment } from "./project-environment";
 import { UpdateProject } from "./update";
 
 export const ShowProjects = () => {
@@ -199,7 +199,7 @@ export const ShowProjects = () => {
 															Actions
 														</DropdownMenuLabel>
 														<div onClick={(e) => e.stopPropagation()}>
-															<ProjectEnviroment
+															<ProjectEnvironment
 																projectId={project.projectId}
 															/>
 														</div>
@@ -251,12 +251,12 @@ export const ShowProjects = () => {
 																					})
 																						.then(() => {
 																							toast.success(
-																								"Project delete succesfully",
+																								"Project deleted successfully",
 																							);
 																						})
 																						.catch(() => {
 																							toast.error(
-																								"Error to delete this project",
+																								"Error deleting this project",
 																							);
 																						})
 																						.finally(() => {

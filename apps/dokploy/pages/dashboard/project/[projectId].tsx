@@ -253,7 +253,7 @@ const Project = (
 									href={`/dashboard/project/${projectId}/services/${service.type}/${service.id}`}
 									className="focus-visible:outline-none ring-ring focus-visible:ring-offset-2 focus-visible:ring-1 block rounded-lg"
 								>
-									<Card className="group relative cursor-pointer bg-transparent transition-colors hover:bg-card h-fit">
+									<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card">
 										<div className="absolute -right-1 -top-2">
 											<StatusTooltip status={service.status} />
 										</div>
@@ -298,7 +298,7 @@ const Project = (
 												</div>
 											</CardTitle>
 										</CardHeader>
-										<CardFooter className="">
+										<CardFooter className="mt-auto">
 											<div className="space-y-1 text-sm">
 												<DateTooltip date={service.createdAt}>
 													Created

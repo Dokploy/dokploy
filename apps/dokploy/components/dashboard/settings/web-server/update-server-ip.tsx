@@ -85,7 +85,7 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the IP of the server");
+				toast.error("Error updating the IP of the server");
 			});
 	};
 

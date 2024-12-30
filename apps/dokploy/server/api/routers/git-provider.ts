@@ -32,14 +32,14 @@ export const gitProviderRouter = createTRPCRouter({
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this git provider",
+						message: "You are not allowed to delete this Git provider",
 					});
 				}
 				return await removeGitProvider(input.gitProviderId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to delete this git provider",
+					message: "Error deleting this Git provider",
 				});
 			}
 		}),

@@ -122,7 +122,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 				await utils.registry.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to update the registry");
+				toast.error("Error updating the registry");
 			});
 	};
 	return (
@@ -303,7 +303,7 @@ export const UpdateDockerRegistry = ({ registryId }: Props) => {
 											}
 										})
 										.catch(() => {
-											toast.error("Error to test the registry");
+											toast.error("Error testing the registry");
 										});
 								}}
 							>

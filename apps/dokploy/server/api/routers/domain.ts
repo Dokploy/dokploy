@@ -49,7 +49,7 @@ export const domainRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the domain",
+					message: "Error creating the domain",
 					cause: error,
 				});
 			}

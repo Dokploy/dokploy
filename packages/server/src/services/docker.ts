@@ -196,7 +196,7 @@ export const getStackContainersByAppName = async (
 				: "No container name";
 
 			const state = parts[2]
-				? parts[2].replace("State: ", "").trim()
+				? parts[2].replace("State: ", "").trim().toLowerCase()
 				: "No state";
 			const node = parts[3]
 				? parts[3].replace("Node: ", "").trim()
@@ -255,7 +255,7 @@ export const getServiceContainersByAppName = async (
 				: "No container name";
 
 			const state = parts[2]
-				? parts[2].replace("State: ", "").trim()
+				? parts[2].replace("State: ", "").trim().toLowerCase()
 				: "No state";
 
 			const node = parts[3]
@@ -363,8 +363,6 @@ export const getSwarmNodes = async (serverId?: string) => {
 			console.error(`Error: ${stderr}`);
 			return;
 		}
-
-		const nodes = JSON.parse(stdout);
 
 		const nodesArray = stdout
 			.trim()

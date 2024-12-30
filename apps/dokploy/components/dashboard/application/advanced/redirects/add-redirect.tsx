@@ -124,7 +124,7 @@ export const AddRedirect = ({
 				onDialogToggle(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the redirect");
+				toast.error("Error creating the redirect");
 			});
 	};
 

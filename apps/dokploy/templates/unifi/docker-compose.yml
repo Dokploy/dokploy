@@ -1,0 +1,48 @@
+services:
+  unifi-network-application:
+    image: lscr.io/linuxserver/unifi-network-application:latest
+    environment:
+      - PUID=1000 # User ID
+      - PGID=1000 # Group ID
+      - TZ=Etc/UTC # Timezone
+      - MONGO_HOST=unifi-db
+      - MONGO_USER=unifi
+      - MONGO_PASS=unifi_password
+      - MONGO_PORT=27017
+      - MONGO_DBNAME=unifi
+      - MEM_LIMIT=1024
+      - MEM_STARTUP=1024
+      - MONGO_TLS= #optional  # MongoDB TLS setting
+      - MONGO_AUTHSOURCE= #optional  # MongoDB authentication source
+    volumes: # Volumes to mount in the container
+      - ../files/config:/config # Map host directory to container directory
+    ports:
+      - 8443:8443 # HTTPS portal
+      # - 3478:3478/udp # STUN service
+      # - 10001:10001/udp # UniFi AP discovery
+      # - 8080:8080 # HTTP portal
+      # - 1900:1900/udp #optional  # For DLNA
+      # - 8843:8843 #optional  # HTTPS guest portal
+      # - 8880:8880 #optional  # HTTP guest portal
+      # - 6789:6789 #optional  # Mobile speed test port
+      # - 5514:5514/udp #optional  # Remote syslog port
+    restart: unless-stopped
+    depends_on:
+      - unifi-db
+    networks:
+      - dokploy-network
+
+  unifi-db:
+    image: mongo:4.4
+    volumes:
+      - ../files/db/data:/data/db
+      - ../files/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    ports:
+      - 27017
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

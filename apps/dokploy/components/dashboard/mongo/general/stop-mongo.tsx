@@ -49,10 +49,10 @@ export const StopMongo = ({ mongoId }: Props) => {
 									await utils.mongo.one.invalidate({
 										mongoId,
 									});
-									toast.success("Application stopped succesfully");
+									toast.success("Application stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the Application");
+									toast.error("Error stopping the Application");
 								});
 						}}
 					>

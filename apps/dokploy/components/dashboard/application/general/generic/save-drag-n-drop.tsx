@@ -56,7 +56,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the deployment");
+				toast.error("Error saving the deployment");
 			});
 	};
 

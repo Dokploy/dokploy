@@ -84,7 +84,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the Git provider");
+				toast.error("Error saving the Git provider");
 			});
 	};
 

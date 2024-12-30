@@ -159,7 +159,7 @@ export default async function handler(
 			}
 			res.status(200).json({ message: `Deployed ${totalApps} apps` });
 		} catch (error) {
-			res.status(400).json({ message: "Error To Deploy Application", error });
+			res.status(400).json({ message: "Error deploying Application", error });
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;

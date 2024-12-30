@@ -90,6 +90,10 @@
 	}
 }
 
+html {
+	scrollbar-gutter: stable both-edges;
+}
+
 .xterm-viewport {
 	border-radius: 0.75rem /* 12px */ !important;
 }

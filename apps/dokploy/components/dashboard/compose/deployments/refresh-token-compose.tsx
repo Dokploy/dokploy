@@ -47,7 +47,7 @@ export const RefreshTokenCompose = ({ composeId }: Props) => {
 									toast.success("Refresh Token updated");
 								})
 								.catch(() => {
-									toast.error("Error to update the refresh token");
+									toast.error("Error updating the refresh token");
 								});
 						}}
 					>

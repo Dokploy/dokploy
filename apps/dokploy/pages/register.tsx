@@ -95,7 +95,7 @@ const Register = ({ isCloud }: Props) => {
 			password: values.password,
 		})
 			.then(() => {
-				toast.success("User registration succesfuly", {
+				toast.success("User registered successfuly", {
 					duration: 2000,
 				});
 				if (!isCloud) {
@@ -137,7 +137,7 @@ const Register = ({ isCloud }: Props) => {
 						{data?.type === "cloud" && (
 							<AlertBlock type="success" className="mx-4 my-2">
 								<span>
-									Registration succesfuly, Please check your inbox or spam
+									Registered successfully, please check your inbox or spam
 									folder to confirm your account.
 								</span>
 							</AlertBlock>

@@ -213,7 +213,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update a notification");
+					toast.error("Error updating a notification");
 				});
 		}
 	};
@@ -710,7 +710,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 									}
 									toast.success("Connection Success");
 								} catch (err) {
-									toast.error("Error to test the provider");
+									toast.error("Error testing the provider");
 								}
 							}}
 						>

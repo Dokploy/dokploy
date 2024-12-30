@@ -83,7 +83,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 								await refetch();
 							})
 							.catch(() => {
-								toast.error("Error to update Auto Deploy");
+								toast.error("Error updating Auto Deploy");
 							});
 					}}
 					className="flex flex-row gap-2 items-center"

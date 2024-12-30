@@ -34,7 +34,7 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 		if (!newAuth) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the user",
+				message: "Error creating the user",
 			});
 		}
 
@@ -68,7 +68,7 @@ export const createUser = async (input: typeof apiCreateUser._type) => {
 		if (!res) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the user",
+				message: "Error creating the user",
 			});
 		}
 

@@ -103,7 +103,7 @@ export const AddRegistry = () => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to add a registry");
+				toast.error("Error adding a registry");
 			});
 	};
 
@@ -290,7 +290,7 @@ export const AddRegistry = () => {
 												}
 											})
 											.catch(() => {
-												toast.error("Error to test the registry");
+												toast.error("Error testing the registry");
 											});
 									}}
 								>

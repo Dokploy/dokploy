@@ -93,7 +93,7 @@ export const UpdatePort = ({ portId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the port");
+				toast.error("Error updating the port");
 			});
 	};
 

@@ -35,7 +35,7 @@ export const clusterRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Error to remove the node",
+					message: "Error removing the node",
 					cause: error,
 				});
 			}
