@@ -16,6 +16,8 @@ import {
   Server,
 } from "lucide-react";
 import { NodeCard } from "./details/details-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 interface Props {
   serverId?: string;
@@ -28,13 +30,68 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 	if (isLoading) {
 		return (
-			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						<Loader2 className="h-6 w-6 animate-spin" />
-					</div>
+    <div className="min-h-screen">
+			<div className="w-full max-w-7xl mx-auto space-y-6 py-4">
+				<div className="space-y-4">
+					<Skeleton className="h-8 w-1/3" />
+					<Skeleton className="h-5 w-2/5" />
 				</div>
+
+				<div className="grid gap-6 md:grid-cols-3">
+					{Array.from({ length: 3 }).map((_, i) => (
+						<div key={i} className="p-4 border rounded-md">
+							<div className="flex flex-row items-center justify-between mb-4">
+								<Skeleton className="h-4 w-1/4" />
+								<Skeleton className="h-8 w-8 rounded-md" />
+							</div>
+							<Skeleton className="h-6 w-1/2" />
+						</div>
+					))}
+				</div>
+
+        <Card className="w-full bg-background">
+      <CardHeader>
+        <CardTitle className="text-lg">
+          <Skeleton className="h-6 w-32" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between">
+            <div className="flex items-center space-x-4 p-2 rounded-xl border">
+              <Skeleton className="h-2.5 w-2.5 rounded-full" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <div className="flex flex-wrap items-center space-x-4">
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-32 rounded-full" />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2 flex flex-col items-center text-center">
+                <div className="flex items-center text-sm">
+                  <Skeleton className="mr-2 h-4 w-4" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end w-full space-x-4">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
 			</div>
+		</div>
 		);
 	}
 

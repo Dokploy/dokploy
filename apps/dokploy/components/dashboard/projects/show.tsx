@@ -36,10 +36,11 @@ import { Fragment } from "react";
 import { toast } from "sonner";
 import { ProjectEnvironment } from "./project-environment";
 import { UpdateProject } from "./update";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
-	const { data } = api.project.all.useQuery();
+	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
@@ -51,6 +52,38 @@ export const ShowProjects = () => {
 	);
 	const { mutateAsync } = api.project.remove.useMutation();
 
+	if (isLoading) {
+		return (
+			<div className="mt-6 w-full grid sm:grid-cols-2 lg:grid-cols-3 flex-wrap gap-5 pb-10">
+					{Array.from({ length: 12 }).map((_, i) => (
+						<div key={i} className="w-full lg:max-w-md">
+						<Card className="group relative w-full bg-transparent">
+							<CardHeader>
+								<CardTitle className="flex items-center justify-between gap-2">
+									<span className="flex flex-col gap-1.5">
+										<div className="flex items-center gap-2">
+											<Skeleton className="size-4" />
+											<Skeleton className="h-5 w-32" />
+										</div>
+										<Skeleton className="h-4 w-48" />
+									</span>
+									<Skeleton className="size-8 rounded-md" />
+								</CardTitle>
+							</CardHeader>
+							<CardFooter className="pt-4">
+								<div className="space-y-1 text-sm flex flex-row justify-between w-full gap-4">
+									<Skeleton className="h-4 w-20" />
+									<Skeleton className="h-4 w-24" />
+								</div>
+							</CardFooter>
+						</Card>
+					</div>
+				))}
+			</div>
+		);
+	
+	}
+
 	return (
 		<>
 			{data?.length === 0 && (
@@ -61,7 +94,7 @@ export const ShowProjects = () => {
 					</span>
 				</div>
 			)}
-			<div className="mt-6  w-full  grid sm:grid-cols-2 lg:grid-cols-3 flex-wrap gap-5 pb-10">
+			<div className="mt-6 w-full  grid sm:grid-cols-2 lg:grid-cols-3 flex-wrap gap-5 pb-10">
 				{data?.map((project) => {
 					const emptyServices =
 						project?.mariadb.length === 0 &&
