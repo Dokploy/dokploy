@@ -25,15 +25,28 @@ const DATA_POINTS_OPTIONS = {
 
 interface ContainerMetric {
 	timestamp: string;
-	BlockIO: string;
-	CPUPerc: string;
+	CPU: number;
+	Memory: {
+		percentage: number;
+		used: number;
+		total: number;
+		unit: string;
+	};
+	Network: {
+		input: number;
+		output: number;
+		inputUnit: string;
+		outputUnit: string;
+	};
+	BlockIO: {
+		read: number;
+		write: number;
+		readUnit: string;
+		writeUnit: string;
+	};
 	Container: string;
 	ID: string;
-	MemPerc: string;
-	MemUsage: string;
 	Name: string;
-	NetIO: string;
-	PIDs: string;
 }
 
 interface Props {
@@ -69,7 +82,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 
 			const data = await response.json();
 			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error("No hay datos disponibles");
+				throw new Error("No data available");
 			}
 
 			setHistoricalData(data);
@@ -147,7 +160,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<Cpu className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">CPU Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.CPUPerc}</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.CPU}%</p>
 				</Card>
 
 				<Card className="p-6 bg-transparent">
@@ -155,9 +168,9 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.MemPerc}</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.Memory.percentage}%</p>
 					<p className="mt-1 text-sm text-muted-foreground">
-						{metrics.MemUsage}
+						{metrics.Memory.used} {metrics.Memory.unit} / {metrics.Memory.total} {metrics.Memory.unit}
 					</p>
 				</Card>
 
@@ -166,7 +179,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<Network className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Network I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.NetIO}</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.Network.input} {metrics.Network.inputUnit} / {metrics.Network.output} {metrics.Network.outputUnit}</p>
 				</Card>
 
 				<Card className="p-6 bg-transparent">
@@ -174,7 +187,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Block I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.BlockIO}</p>
+					<p className="mt-2 text-2xl font-bold">{metrics.BlockIO.read} {metrics.BlockIO.readUnit} / {metrics.BlockIO.write} {metrics.BlockIO.writeUnit}</p>
 				</Card>
 			</div>
 
@@ -191,10 +204,6 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 					<div>
 						<h4 className="text-sm font-medium text-muted-foreground">Name</h4>
 						<p className="mt-1">{metrics.Name}</p>
-					</div>
-					<div>
-						<h4 className="text-sm font-medium text-muted-foreground">PIDs</h4>
-						<p className="mt-1">{metrics.PIDs}</p>
 					</div>
 				</div>
 			</Card>

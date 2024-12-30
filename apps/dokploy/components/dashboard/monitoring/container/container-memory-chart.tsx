@@ -17,8 +17,12 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface ContainerMetric {
 	timestamp: string;
-	MemPerc: string;
-	MemUsage: string;
+	Memory: {
+		percentage: number;
+		used: number;
+		total: number;
+		unit: string;
+	};
 }
 
 interface Props {
@@ -35,11 +39,15 @@ const chartConfig = {
 export const ContainerMemoryChart = ({ data }: Props) => {
 	const formattedData = data.map((metric) => ({
 		timestamp: metric.timestamp,
-		memory: parseFloat(metric.MemPerc.replace("%", "")),
-		usage: metric.MemUsage,
+		memory: metric.Memory.percentage,
+		usage: `${metric.Memory.used} / ${metric.Memory.total} ${metric.Memory.unit}`,
 	}));
 
-	const latestData = formattedData[formattedData.length - 1] || {};
+	const latestData = formattedData[formattedData.length - 1] || {
+		timestamp: "",
+		memory: 0,
+		usage: "0 / 0 B",
+	};
 
 	return (
 		<Card className="bg-transparent">
@@ -81,7 +89,7 @@ export const ContainerMemoryChart = ({ data }: Props) => {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload[0].payload;
+									const data = payload?.[0]?.payload;
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">

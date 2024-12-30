@@ -17,11 +17,24 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface ContainerMetric {
 	timestamp: string;
-	BlockIO: string;
+	BlockIO: {
+		read: number;
+		write: number;
+		readUnit: string;
+		writeUnit: string;
+	};
 }
 
 interface Props {
 	data: ContainerMetric[];
+}
+
+interface FormattedMetric {
+	timestamp: string;
+	read: number;
+	write: number;
+	readUnit: string;
+	writeUnit: string;
 }
 
 const chartConfig = {
@@ -35,29 +48,22 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
-const parseBlockIO = (blockIO: string) => {
-	const [read, write] = blockIO.split(" / ");
-	return {
-		read: Number.parseFloat(read),
-		write: parseFloat(write),
-		readUnit: read?.replace(/[\d.]/g, ""),
-		writeUnit: write?.replace(/[\d.]/g, ""),
-	};
-};
-
 export const ContainerBlockChart = ({ data }: Props) => {
-	const formattedData = data.map((metric) => {
-		const { read, write, readUnit, writeUnit } = parseBlockIO(metric.BlockIO);
-		return {
-			timestamp: metric.timestamp,
-			read,
-			write,
-			readUnit,
-			writeUnit,
-		};
-	});
+	const formattedData = data.map((metric) => ({
+		timestamp: metric.timestamp,
+		read: metric.BlockIO.read,
+		write: metric.BlockIO.write,
+		readUnit: metric.BlockIO.readUnit,
+		writeUnit: metric.BlockIO.writeUnit,
+	}));
 
-	const latestData = formattedData[formattedData.length - 1] || {};
+	const latestData = formattedData[formattedData.length - 1] || {
+		timestamp: "",
+		read: 0,
+		write: 0,
+		readUnit: "B",
+		writeUnit: "B",
+	};
 
 	return (
 		<Card className="bg-transparent">
@@ -115,7 +121,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload[0].payload;
+									const data = payload?.[0]?.payload;
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">

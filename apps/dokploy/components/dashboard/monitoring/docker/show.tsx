@@ -71,7 +71,7 @@ export const DockerMonitoring = ({ appName, BASE_URL }: Props) => {
 
 			const data = await response.json();
 			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error("No hay datos disponibles");
+				throw new Error("No data available");
 			}
 
 			const formattedData = data.map((metric: SystemMetrics) => ({

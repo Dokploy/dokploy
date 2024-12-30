@@ -17,11 +17,24 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface ContainerMetric {
 	timestamp: string;
-	NetIO: string;
+	Network: {
+		input: number;
+		output: number;
+		inputUnit: string;
+		outputUnit: string;
+	};
 }
 
 interface Props {
 	data: ContainerMetric[];
+}
+
+interface FormattedMetric {
+	timestamp: string;
+	input: number;
+	output: number;
+	inputUnit: string;
+	outputUnit: string;
 }
 
 const chartConfig = {
@@ -35,31 +48,21 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
-const parseNetworkIO = (netIO: string) => {
-	const [input, output] = netIO.split(" / ");
-	return {
-		input: parseFloat(input),
-		output: parseFloat(output),
-		inputUnit: input.replace(/[\d.]/g, ""),
-		outputUnit: output.replace(/[\d.]/g, ""),
-	};
-};
-
 export const ContainerNetworkChart = ({ data }: Props) => {
-	const formattedData = data.map((metric) => {
-		const { input, output, inputUnit, outputUnit } = parseNetworkIO(
-			metric.NetIO,
-		);
-		return {
-			timestamp: metric.timestamp,
-			input,
-			output,
-			inputUnit,
-			outputUnit,
-		};
-	});
+	const formattedData: FormattedMetric[] = data.map((metric) => ({
+		timestamp: metric.timestamp,
+		input: metric.Network.input,
+		output: metric.Network.output,
+		inputUnit: metric.Network.inputUnit,
+		outputUnit: metric.Network.outputUnit,
+	}));
 
-	const latestData = formattedData[formattedData.length - 1] || {};
+	const latestData = formattedData[formattedData.length - 1] || {
+		input: 0,
+		output: 0,
+		inputUnit: "B",
+		outputUnit: "B",
+	};
 
 	return (
 		<Card className="bg-transparent">
@@ -117,7 +120,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							cursor={false}
 							content={({ active, payload, label }) => {
 								if (active && payload && payload.length) {
-									const data = payload[0].payload;
+									const data = payload?.[0]?.payload;
 									return (
 										<div className="rounded-lg border bg-background p-2 shadow-sm">
 											<div className="grid grid-cols-2 gap-2">
