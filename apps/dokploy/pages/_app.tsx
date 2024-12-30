@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 
+import { TeamProvider } from "@/components/dashboard/settings/teams/team-context";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
 import { Languages } from "@/lib/languages";
@@ -32,7 +33,7 @@ const MyApp = ({
 	const getLayout = Component.getLayout ?? ((page) => page);
 
 	return (
-		<>
+		<TeamProvider>
 			<style jsx global>{`
         :root {
           --font-inter: ${inter.style.fontFamily};
@@ -60,7 +61,7 @@ const MyApp = ({
 				<SearchCommand />
 				{getLayout(<Component {...pageProps} />)}
 			</ThemeProvider>
-		</>
+		</TeamProvider>
 	);
 };
 
