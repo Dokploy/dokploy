@@ -1,140 +1,127 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { api } from "@/utils/api";
 import {
-	AlertCircle,
-	CheckCircle,
-	HelpCircle,
-	Loader2,
-	LoaderIcon,
+  Box,
+  Cpu,
+  Database,
+  HardDrive,
+  Loader2,
 } from "lucide-react";
 import { ShowNodeApplications } from "../applications/show-applications";
 import { ShowNodeConfig } from "./show-node-config";
 
 export interface SwarmList {
-	ID: string;
-	Hostname: string;
-	Availability: string;
-	EngineVersion: string;
-	Status: string;
-	ManagerStatus: string;
-	TLSStatus: string;
+  ID: string;
+  Hostname: string;
+  Availability: string;
+  EngineVersion: string;
+  Status: string;
+  ManagerStatus: string;
+  TLSStatus: string;
 }
 
 interface Props {
-	node: SwarmList;
-	serverId?: string;
+  node: SwarmList;
+  serverId?: string;
 }
 
 export function NodeCard({ node, serverId }: Props) {
-	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
-		nodeId: node.ID,
-		serverId,
-	});
+  const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
+    nodeId: node.ID,
+    serverId,
+  });
 
-	const getStatusIcon = (status: string) => {
-		switch (status) {
-			case "Ready":
-				return <CheckCircle className="h-4 w-4 text-green-500" />;
-			case "Down":
-				return <AlertCircle className="h-4 w-4 text-red-500" />;
-			default:
-				return <HelpCircle className="h-4 w-4 text-yellow-500" />;
-		}
-	};
 
-	if (isLoading) {
-		return (
-			<Card className="w-full bg-transparent">
-				<CardHeader>
-					<CardTitle className="flex items-center justify-between text-lg">
-						<span className="flex items-center gap-2">
-							{getStatusIcon(node.Status)}
-							{node.Hostname}
-						</span>
-						<Badge variant="outline" className="text-xs">
-							{node.ManagerStatus || "Worker"}
-						</Badge>
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className="flex items-center justify-center">
-						<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-					</div>
-				</CardContent>
-			</Card>
-		);
-	}
+  if (isLoading) {
+    return (
+      <Card className="w-full bg-background">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-lg">
+            <span className="flex items-center gap-2">  
+              {node.Hostname}
+            </span>
+            <Badge variant="green">
+              {node.ManagerStatus || "Worker"}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-	return (
-		<Card className="w-full bg-transparent">
-			<CardHeader>
-				<CardTitle className="flex items-center justify-between">
-					<span className="flex items-center gap-2 text-lg">
-						{getStatusIcon(node.Status)}
-						{node.Hostname}
-					</span>
-					<Badge variant="outline" className="text-xs">
-						{node.ManagerStatus || "Worker"}
-					</Badge>
-				</CardTitle>
-			</CardHeader>
-			<CardContent>
-				<div className="grid gap-2 text-sm">
-					<div className="flex justify-between">
-						<span className="font-medium">Status:</span>
-						<span>{node.Status}</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">IP Address:</span>
-						{isLoading ? (
-							<LoaderIcon className="animate-spin" />
-						) : (
-							<span>{data?.Status?.Addr}</span>
-						)}
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">Availability:</span>
-						<span>{node.Availability}</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">Engine Version:</span>
-						<span>{node.EngineVersion}</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">CPU:</span>
-						{isLoading ? (
-							<LoaderIcon className="animate-spin" />
-						) : (
-							<span>
-								{(data?.Description?.Resources?.NanoCPUs / 1e9).toFixed(2)} GHz
-							</span>
-						)}
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">Memory:</span>
-						{isLoading ? (
-							<LoaderIcon className="animate-spin" />
-						) : (
-							<span>
-								{(
-									data?.Description?.Resources?.MemoryBytes /
-									1024 ** 3
-								).toFixed(2)}{" "}
-								GB
-							</span>
-						)}
-					</div>
-					<div className="flex justify-between">
-						<span className="font-medium">TLS Status:</span>
-						<span>{node.TLSStatus}</span>
-					</div>
-				</div>
-				<div className="flex gap-2 mt-4">
-					<ShowNodeConfig nodeId={node.ID} serverId={serverId} />
-					<ShowNodeApplications serverId={serverId} />
-				</div>
-			</CardContent>
-		</Card>
-	);
+  return (
+    <Card className="w-full bg-background">
+      <CardHeader>
+        <CardTitle className="text-lg">Node Status</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between">
+            <div className="flex items-center space-x-4 p-2 rounded-xl border">
+              <div className={`h-2.5 w-2.5 rounded-full ${node.Status === "Ready" ? "bg-green-500" : "bg-red-500"}`} />
+              <div className="font-medium">{node.Hostname}</div>
+              <Badge variant="green">
+                {node.ManagerStatus || "Worker"}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center space-x-4">
+              <Badge variant="green" >
+                TLS Status: {node.TLSStatus}
+              </Badge>
+              <Badge variant="blue">
+                Availability: {node.Availability}
+              </Badge>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2 flex flex-col items-center text-center">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <HardDrive className="mr-2 h-4 w-4" />
+                Engine Version
+              </div>
+              <div>{node.EngineVersion}</div>
+            </div>
+            <div className="space-y-2 flex flex-col items-center text-center">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Cpu className="mr-2 h-4 w-4" />
+                CPU
+              </div>
+              <div>{data && (data.Description?.Resources?.NanoCPUs / 1e9).toFixed(2)} Core(s)</div>
+            </div>
+            <div className="space-y-2 flex flex-col items-center text-center">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Database className="mr-2 h-4 w-4" />
+                Memory
+              </div>
+              <div>
+                {data && (data.Description?.Resources?.MemoryBytes / 1024 ** 3).toFixed(2)} GB
+              </div>
+            </div>
+            <div className="space-y-2 flex flex-col items-center text-center">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Box className="mr-2 h-4 w-4" />
+                IP Address
+              </div>
+              <div>{data?.Status?.Addr}</div>
+            </div>
+          </div>
+
+          <div className="flex justify-end w-full space-x-4">
+		  	<ShowNodeConfig nodeId={node.ID} serverId={serverId} />
+            <ShowNodeApplications serverId={serverId} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

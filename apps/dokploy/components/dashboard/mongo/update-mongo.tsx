@@ -76,14 +76,14 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Mongo updated succesfully");
+				toast.success("Mongo updated successfully");
 				utils.mongo.one.invalidate({
 					mongoId: mongoId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update mongo database");
+				toast.error("Error updating mongo database");
 			})
 			.finally(() => {});
 	};

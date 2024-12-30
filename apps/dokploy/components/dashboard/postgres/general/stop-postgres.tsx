@@ -49,10 +49,10 @@ export const StopPostgres = ({ postgresId }: Props) => {
 									await utils.postgres.one.invalidate({
 										postgresId,
 									});
-									toast.success("Application stopped succesfully");
+									toast.success("Postgres stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the Application");
+									toast.error("Error stopping Postgres");
 								});
 						}}
 					>

@@ -110,7 +110,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error to update the permissions");
+				toast.error("Error updating the permissions");
 			});
 	};
 	return (

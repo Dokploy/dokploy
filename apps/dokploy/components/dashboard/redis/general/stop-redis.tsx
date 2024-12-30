@@ -49,10 +49,10 @@ export const StopRedis = ({ redisId }: Props) => {
 									await utils.redis.one.invalidate({
 										redisId,
 									});
-									toast.success("Application stopped succesfully");
+									toast.success("Redis stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the Application");
+									toast.error("Error stopping Redis");
 								});
 						}}
 					>

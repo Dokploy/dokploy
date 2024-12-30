@@ -31,8 +31,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
-import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -60,6 +59,8 @@ interface Props {
 }
 
 export const UpdateServer = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
+
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data, isLoading } = api.server.one.useQuery(
@@ -111,7 +112,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update a server");
+				toast.error("Error updating a server");
 			});
 	};
 
@@ -212,7 +213,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 								name="ipAddress"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>IP Address</FormLabel>
+										<FormLabel>{t("settings.terminal.ipAddress")}</FormLabel>
 										<FormControl>
 											<Input placeholder="192.168.1.100" {...field} />
 										</FormControl>
@@ -226,7 +227,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Port</FormLabel>
+										<FormLabel>{t("settings.terminal.port")}</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="22"
@@ -256,7 +257,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>{t("settings.terminal.username")}</FormLabel>
 									<FormControl>
 										<Input placeholder="root" {...field} />
 									</FormControl>
@@ -273,7 +274,7 @@ export const UpdateServer = ({ serverId }: Props) => {
 							form="hook-form-update-server"
 							type="submit"
 						>
-							Update
+							{t("settings.common.save")}
 						</Button>
 					</DialogFooter>
 				</Form>

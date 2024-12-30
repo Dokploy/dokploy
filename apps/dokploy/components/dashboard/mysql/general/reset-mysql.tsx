@@ -55,7 +55,7 @@ export const ResetMysql = ({ mysqlId, appName }: Props) => {
 									toast.success("Service Reloaded");
 								})
 								.catch(() => {
-									toast.error("Error to reload the service");
+									toast.error("Error reloading the service");
 								});
 							await refetch();
 						}}

@@ -16,6 +16,7 @@ import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { GPUSupportModal } from "../gpu-support-modal";
+import { TerminalModal } from "../../web-server/terminal-modal";
 
 export const ShowDokployActions = () => {
 	const { t } = useTranslation("settings");
@@ -49,6 +50,9 @@ export const ShowDokployActions = () => {
 					>
 						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
+					<TerminalModal serverId="local">
+						<span>{t("settings.common.enterTerminal")}</span>
+					</TerminalModal>
 					<ShowModalLogs appName="dokploy">
 						<DropdownMenuItem
 							className="cursor-pointer"

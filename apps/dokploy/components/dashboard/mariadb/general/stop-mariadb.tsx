@@ -49,10 +49,10 @@ export const StopMariadb = ({ mariadbId }: Props) => {
 									await utils.mariadb.one.invalidate({
 										mariadbId,
 									});
-									toast.success("Application stopped succesfully");
+									toast.success("Application stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the Application");
+									toast.error("Error stopping the Application");
 								});
 						}}
 					>

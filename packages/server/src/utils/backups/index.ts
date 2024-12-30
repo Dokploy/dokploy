@@ -7,7 +7,6 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 } from "../docker/utils";
-import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
@@ -34,18 +33,18 @@ export const initCronJobs = async () => {
 	const servers = await getAllServers();
 
 	for (const server of servers) {
-		const { appName, serverId, enableDockerCleanup } = server;
+		const { serverId, enableDockerCleanup, name } = server;
 		if (enableDockerCleanup) {
 			scheduleJob(serverId, "0 0 * * *", async () => {
 				console.log(
-					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
+					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
 				await cleanUpUnusedImages(serverId);
 				await cleanUpDockerBuilder(serverId);
 				await cleanUpSystemPrune(serverId);
 				await sendDockerCleanupNotifications(
 					admin.adminId,
-					`Docker cleanup for Server ${appName}`,
+					`Docker cleanup for Server ${name} (${serverId})`,
 				);
 			});
 		}
@@ -53,7 +52,6 @@ export const initCronJobs = async () => {
 
 	const pgs = await db.query.postgres.findMany({
 		with: {
-			project: true,
 			backups: {
 				with: {
 					destination: true,
@@ -67,41 +65,23 @@ export const initCronJobs = async () => {
 	});
 	for (const pg of pgs) {
 		for (const backup of pg.backups) {
-			const { schedule, backupId, enabled } = backup;
+			const { schedule, backupId, enabled, database } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
-						runPostgresBackup(pg, backup);
-					});
-
-					await sendDatabaseBackupNotifications({
-						applicationName: pg.name,
-						projectName: pg.project.name,
-						databaseType: "postgres",
-						type: "success",
-						adminId: pg.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: pg.name,
-						projectName: pg.project.name,
-						databaseType: "postgres",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: pg.project.adminId,
-					});
-				}
+				console.log(
+					`[Backup] Postgres DB ${pg.name} for ${database} Activated`,
+				);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+					);
+					runPostgresBackup(pg, backup);
+				});
 			}
 		}
 	}
 
 	const mariadbs = await db.query.mariadb.findMany({
 		with: {
-			project: true,
 			backups: {
 				with: {
 					destination: true,
@@ -116,40 +96,23 @@ export const initCronJobs = async () => {
 
 	for (const maria of mariadbs) {
 		for (const backup of maria.backups) {
-			const { schedule, backupId, enabled } = backup;
+			const { schedule, backupId, enabled, database } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
-						await runMariadbBackup(maria, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: maria.name,
-						projectName: maria.project.name,
-						databaseType: "mariadb",
-						type: "success",
-						adminId: maria.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: maria.name,
-						projectName: maria.project.name,
-						databaseType: "mariadb",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: maria.project.adminId,
-					});
-				}
+				console.log(
+					`[Backup] MariaDB DB ${maria.name} for ${database} Activated`,
+				);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+					);
+					await runMariadbBackup(maria, backup);
+				});
 			}
 		}
 	}
 
 	const mongodbs = await db.query.mongo.findMany({
 		with: {
-			project: true,
 			backups: {
 				with: {
 					destination: true,
@@ -166,38 +129,19 @@ export const initCronJobs = async () => {
 		for (const backup of mongo.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
-						await runMongoBackup(mongo, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: mongo.name,
-						projectName: mongo.project.name,
-						databaseType: "mongodb",
-						type: "success",
-						adminId: mongo.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: mongo.name,
-						projectName: mongo.project.name,
-						databaseType: "mongodb",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: mongo.project.adminId,
-					});
-				}
+				console.log(`[Backup] MongoDB DB ${mongo.name} Activated`);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+					);
+					await runMongoBackup(mongo, backup);
+				});
 			}
 		}
 	}
 
 	const mysqls = await db.query.mysql.findMany({
 		with: {
-			project: true,
 			backups: {
 				with: {
 					destination: true,
@@ -214,31 +158,13 @@ export const initCronJobs = async () => {
 		for (const backup of mysql.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
-				try {
-					scheduleJob(backupId, schedule, async () => {
-						console.log(
-							`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-						);
-						await runMySqlBackup(mysql, backup);
-					});
-					await sendDatabaseBackupNotifications({
-						applicationName: mysql.name,
-						projectName: mysql.project.name,
-						databaseType: "mysql",
-						type: "success",
-						adminId: mysql.project.adminId,
-					});
-				} catch (error) {
-					await sendDatabaseBackupNotifications({
-						applicationName: mysql.name,
-						projectName: mysql.project.name,
-						databaseType: "mysql",
-						type: "error",
-						// @ts-ignore
-						errorMessage: error?.message || "Error message not provided",
-						adminId: mysql.project.adminId,
-					});
-				}
+				console.log(`[Backup] MySQL DB ${mysql.name} Activated`);
+				scheduleJob(backupId, schedule, async () => {
+					console.log(
+						`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
+					);
+					await runMySqlBackup(mysql, backup);
+				});
 			}
 		}
 	}

@@ -74,7 +74,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the external port");
+				toast.error("Error saving the external port");
 			});
 	};
 

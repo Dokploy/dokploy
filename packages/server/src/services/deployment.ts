@@ -93,7 +93,7 @@ export const createDeployment = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
@@ -102,7 +102,7 @@ export const createDeployment = async (
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -159,7 +159,7 @@ export const createDeploymentPreview = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
@@ -170,7 +170,7 @@ export const createDeploymentPreview = async (
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -221,7 +221,7 @@ echo "Initializing deployment" >> ${logFilePath};
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
@@ -232,7 +232,7 @@ echo "Initializing deployment" >> ${logFilePath};
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -247,7 +247,7 @@ export const removeDeployment = async (deploymentId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to delete this deployment",
+			message: "Error deleting this deployment",
 		});
 	}
 };
@@ -497,14 +497,14 @@ export const createServerDeployment = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };

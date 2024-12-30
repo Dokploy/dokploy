@@ -47,10 +47,10 @@ export const DeletePort = ({ portId }: Props) => {
 										applicationId: data?.applicationId,
 									});
 
-									toast.success("Port delete succesfully");
+									toast.success("Port delete successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the port");
+									toast.error("Error deleting the port");
 								});
 						}}
 					>

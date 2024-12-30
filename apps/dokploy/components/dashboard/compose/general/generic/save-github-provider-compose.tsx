@@ -133,7 +133,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the github provider");
+				toast.error("Error saving the Github provider");
 			});
 	};
 

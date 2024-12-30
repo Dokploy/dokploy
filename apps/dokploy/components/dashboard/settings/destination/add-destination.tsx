@@ -89,7 +89,7 @@ export const AddDestination = () => {
 				await utils.destination.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error to create the Destination");
+				toast.error("Error creating the Destination");
 			});
 	};
 	return (
@@ -306,7 +306,7 @@ export const AddDestination = () => {
 												toast.success("Connection Success");
 											})
 											.catch((e) => {
-												toast.error("Error to connect the provider", {
+												toast.error("Error connecting the provider", {
 													description: e.message,
 												});
 											});
@@ -334,7 +334,7 @@ export const AddDestination = () => {
 											toast.success("Connection Success");
 										})
 										.catch(() => {
-											toast.error("Error to connect the provider");
+											toast.error("Error connecting the provider");
 										});
 								}}
 							>
