@@ -200,7 +200,7 @@ const Service = (
 						<TabsList
 							className={cn(
 								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-								data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+								data?.serverId ? "md:grid-cols-7" : "md:grid-cols-7",
 								data?.composeType === "docker-compose" ? "" : "md:grid-cols-6",
 								data?.serverId && data?.composeType === "stack"
 									? "md:grid-cols-5"
@@ -211,9 +211,9 @@ const Service = (
 							{data?.composeType === "docker-compose" && (
 								<TabsTrigger value="environment">Environment</TabsTrigger>
 							)}
-							{!data?.serverId && (
-								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-							)}
+							{/* {!data?.serverId && ( */}
+							<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+							{/* )} */}
 							<TabsTrigger value="logs">Logs</TabsTrigger>
 							<TabsTrigger value="deployments">Deployments</TabsTrigger>
 							<TabsTrigger value="domains">Domains</TabsTrigger>
@@ -238,17 +238,18 @@ const Service = (
 							<ShowEnvironmentCompose composeId={composeId} />
 						</div>
 					</TabsContent>
-					{!data?.serverId && (
-						<TabsContent value="monitoring">
-							<div className="flex flex-col gap-4 pt-2.5">
-								<ShowMonitoringCompose
-									serverId={data?.serverId || ""}
-									appName={data?.appName || ""}
-									appType={data?.composeType || "docker-compose"}
-								/>
-							</div>
-						</TabsContent>
-					)}
+					{/* {!data?.serverId && ( */}
+					<TabsContent value="monitoring">
+						<div className="flex flex-col gap-4 pt-2.5">
+							<ShowMonitoringCompose
+								serverId={data?.serverId || ""}
+								url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:3001"}`}
+								appName={data?.appName || ""}
+								appType={data?.composeType || "docker-compose"}
+							/>
+						</div>
+					</TabsContent>
+					{/* )} */}
 
 					<TabsContent value="logs">
 						<div className="flex flex-col gap-4 pt-2.5">

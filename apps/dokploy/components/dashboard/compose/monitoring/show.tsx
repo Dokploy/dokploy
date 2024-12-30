@@ -26,12 +26,14 @@ interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
+	url: string;
 }
 
 export const ShowMonitoringCompose = ({
 	appName,
 	appType = "stack",
 	serverId,
+	url,
 }: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
@@ -120,7 +122,7 @@ export const ShowMonitoringCompose = ({
 					</div>
 					<ContainerMonitoring
 						appName={containerAppName || ""}
-						BASE_URL={"http://localhost:3001"}
+						BASE_URL={url}
 					/>
 				</CardContent>
 			</Card>
