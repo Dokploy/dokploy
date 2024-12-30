@@ -52,9 +52,6 @@ export const DeleteTeam = ({ teamId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter>
-					<Button variant="outline" type="button">
-						Cancel
-					</Button>
 					<Button
 						variant="destructive"
 						onClick={handleDelete}

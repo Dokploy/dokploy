@@ -140,6 +140,8 @@ export const TeamManagement = ({ teamId }: Props) => {
 		api.team.users.delete.useMutation({
 			onSuccess: () => {
 				utils.team.byId.invalidate({ teamId });
+				utils.team.all.invalidate();
+				refetch();
 				toast.success("User deleted successfully");
 			},
 			onError: (error) => {
@@ -238,6 +240,10 @@ export const TeamManagement = ({ teamId }: Props) => {
 	const handleDeleteUser = async (userId: string) => {
 		try {
 			await deleteUser({ userId });
+			// Force an immediate refetch after deletion
+			await utils.team.byId.invalidate({ teamId });
+			await utils.team.all.invalidate();
+			await refetch();
 			setShowDeleteUserDialog(false);
 			setUserToDelete(null);
 		} catch (error) {
@@ -424,7 +430,7 @@ export const TeamManagement = ({ teamId }: Props) => {
 												No team members
 											</TableCell>
 										</TableRow>
-									)}
+										)}
 								</TableBody>
 							</Table>
 						</TabsContent>
