@@ -1,5 +1,5 @@
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
 import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
 import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
 import { DeletePostgres } from "@/components/dashboard/postgres/delete-postgres";
@@ -216,7 +216,10 @@ const Postgresql = (
 					{!data?.serverId && (
 						<TabsContent value="monitoring">
 							<div className="flex flex-col gap-4 pt-2.5">
-								<DockerMonitoring appName={data?.appName || ""} />
+								<ContainerMonitoring
+									appName={data?.appName || ""}
+									BASE_URL={"http://localhost:3001"}
+								/>
 							</div>
 						</TabsContent>
 					)}

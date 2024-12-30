@@ -7,7 +7,7 @@ import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/g
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
 import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -214,7 +214,10 @@ const Mariadb = (
 					{!data?.serverId && (
 						<TabsContent value="monitoring">
 							<div className="flex flex-col gap-4 pt-2.5">
-								<DockerMonitoring appName={data?.appName || ""} />
+								<ContainerMonitoring
+									appName={data?.appName || ""}
+									BASE_URL={"http://localhost:3001"}
+								/>
 							</div>
 						</TabsContent>
 					)}

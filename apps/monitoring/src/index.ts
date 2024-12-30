@@ -6,7 +6,7 @@ import { config } from "dotenv";
 import { serverLogFile, containerLogFile } from "./constants.js";
 import { processMetricsFromFile } from "./utils.js";
 import { logContainerMetrics } from "./monitoring/containers.js";
-import { existsSync } from "fs";
+import { existsSync } from "node:fs";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";

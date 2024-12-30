@@ -1,5 +1,5 @@
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
 import { ShowAdvancedMysql } from "@/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
 import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
 import { DeleteMysql } from "@/components/dashboard/mysql/delete-mysql";
@@ -215,7 +215,11 @@ const MySql = (
 					{!data?.serverId && (
 						<TabsContent value="monitoring">
 							<div className="flex flex-col gap-4 pt-2.5">
-								<DockerMonitoring appName={data?.appName || ""} />
+								<ContainerMonitoring
+									appName={data?.appName || ""}
+									BASE_URL={"http://localhost:3001"}
+								/>
+								{/* <DockerMonitoring appName={data?.appName || ""} /> */}
 							</div>
 						</TabsContent>
 					)}

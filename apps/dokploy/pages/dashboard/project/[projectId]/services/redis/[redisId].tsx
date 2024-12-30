@@ -1,5 +1,5 @@
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
 import { ShowAdvancedRedis } from "@/components/dashboard/redis/advanced/show-redis-advanced-settings";
 import { DeleteRedis } from "@/components/dashboard/redis/delete-redis";
 import { ShowRedisEnvironment } from "@/components/dashboard/redis/environment/show-redis-environment";
@@ -214,7 +214,11 @@ const Redis = (
 					{!data?.serverId && (
 						<TabsContent value="monitoring">
 							<div className="flex flex-col gap-4 pt-2.5">
-								<DockerMonitoring appName={data?.appName || ""} />
+								<ContainerMonitoring
+									appName={data?.appName || ""}
+									BASE_URL={"http://localhost:3001"}
+								/>
+								{/* <DockerMonitoring appName={data?.appName || ""} /> */}
 							</div>
 						</TabsContent>
 					)}

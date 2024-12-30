@@ -20,8 +20,8 @@ export function parseLog(logContent: string) {
 			try {
 				return JSON.parse(line);
 			} catch (error) {
-				console.error(`Error parsing log line: ${error}`);
-				console.error(`Problematic line: ${line}`);
+				// console.error(`Error parsing log line: ${error}`);
+				// console.error(`Problematic line: ${line}`);
 				return null;
 			}
 		})
@@ -90,7 +90,7 @@ async function readLastNLines(filePath: string, limit: number) {
 			buffer,
 			length: chunkSize,
 			position: size - chunkSize,
-			offset: 0
+			offset: 0,
 		});
 		const content = Buffer.from(buffer).toString("utf8");
 		const lines = content.split("\n").filter((line) => line.trim());
@@ -101,8 +101,8 @@ async function readLastNLines(filePath: string, limit: number) {
 				try {
 					return JSON.parse(line);
 				} catch (error) {
-					console.error(`Error parsing log line: ${error}`);
-					console.error(`Problematic line: ${line}`);
+					// console.error(`Error parsing log line: ${error}`);
+					// console.error(`Problematic line: ${line}`);
 					return null;
 				}
 			})
