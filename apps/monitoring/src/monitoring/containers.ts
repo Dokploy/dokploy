@@ -38,6 +38,21 @@ function getServiceName(containerName: string): string {
 
 export const logContainerMetrics = () => {
 	console.log("Initialized container metrics");
+
+	// Mantener un handle del archivo abierto para cada contenedor
+	const fileHandles = new Map<string, fs.promises.FileHandle>();
+
+	const cleanup = async () => {
+		for (const [_, handle] of fileHandles) {
+			await handle.close();
+		}
+		fileHandles.clear();
+	};
+
+	// Asegurar que cerramos los archivos al terminar
+	process.on("SIGTERM", cleanup);
+	process.on("SIGINT", cleanup);
+
 	setInterval(async () => {
 		try {
 			const { stdout } = await execAsync(
@@ -52,20 +67,34 @@ export const logContainerMetrics = () => {
 			}
 
 			for (const container of containers) {
-				const serviceName = getServiceName(container.Name);
-				const logLine = `${JSON.stringify({
-					timestamp: new Date().toISOString(),
-					...container,
-				})}\n`;
+				try {
+					const serviceName = getServiceName(container.Name);
+					const containerPath = join(containerLogFile, `${serviceName}.log`);
 
-				const containerPath = join(containerLogFile, `${serviceName}.log`);
+					// Obtener o crear el handle del archivo
+					let fileHandle = fileHandles.get(serviceName);
+					if (!fileHandle) {
+						fileHandle = await fs.promises.open(containerPath, "a");
+						fileHandles.set(serviceName, fileHandle);
+					}
 
-				fs.appendFile(containerPath, logLine, (err) => {
-					if (err) console.error("Error writing container metrics:", err);
-				});
+					const logLine = `${JSON.stringify({
+						timestamp: new Date().toISOString(),
+						...container,
+					})}\n`;
+
+					await fileHandle.write(logLine);
+				} catch (error) {
+					console.error(
+						`Error writing metrics for container ${container.Name}:`,
+						error,
+					);
+				}
 			}
 		} catch (error) {
 			console.error("Error getting containers:", error);
 		}
 	}, REFRESH_RATE_CONTAINER);
+
+	return cleanup;
 };

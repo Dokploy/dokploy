@@ -3,9 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logServerMetrics } from "./monitoring/server.js";
 import { config } from "dotenv";
-import { serverLogFile } from "./constants.js";
+import { serverLogFile, containerLogFile } from "./constants.js";
 import { processMetricsFromFile } from "./utils.js";
 import { logContainerMetrics } from "./monitoring/containers.js";
+import { existsSync } from "fs";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
@@ -63,20 +64,30 @@ app.get("/metrics", async (c) => {
 	}
 });
 
-// app.get("/metrics/containers", async (c) => {
-// 	try {
-// 		const metrics = await processMetricsFromFile(containerLogFile, {
-// 			start: c.req.query("start"),
-// 			end: c.req.query("end"),
-// 			limit: Number(c.req.query("limit")) || undefined,
-// 		});
+app.get("/metrics/containers", async (c) => {
+	try {
+		const appName = c.req.query("appName");
+		if (!appName) {
+			return c.json({ error: "No appName provided" }, 400);
+		}
 
-// 		return c.json(metrics);
-// 	} catch (error) {
-// 		console.error("Error reading metrics:", error);
-// 		return c.json({ error: "Error reading metrics" }, 500);
-// 	}
-// });
+		const logPath = `${containerLogFile}/${appName}.log`;
+
+		if (existsSync(logPath) === false) {
+			return c.json([]);
+		}
+		const metrics = await processMetricsFromFile(logPath, {
+			start: c.req.query("start"),
+			end: c.req.query("end"),
+			limit: Number(c.req.query("limit")) || undefined,
+		});
+
+		return c.json(metrics);
+	} catch (error) {
+		console.error("Error reading metrics:", error);
+		return c.json({ error: "Error reading metrics" }, 500);
+	}
+});
 
 app.get("/health", (c) => {
 	return c.text("OK");

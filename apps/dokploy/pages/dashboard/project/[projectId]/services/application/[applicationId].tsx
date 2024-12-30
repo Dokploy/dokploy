@@ -14,6 +14,7 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -244,7 +245,10 @@ const Service = (
 					{!data?.serverId && (
 						<TabsContent value="monitoring">
 							<div className="flex flex-col gap-4 pt-2.5">
-								<DockerMonitoring appName={data?.appName || ""} />
+								<ContainerMonitoring
+									appName={data?.appName || ""}
+									BASE_URL={"http://localhost:3001"}
+								/>
 							</div>
 						</TabsContent>
 					)}

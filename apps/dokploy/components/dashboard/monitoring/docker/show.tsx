@@ -13,256 +13,232 @@ import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
 import { DockerMemoryChart } from "./docker-memory-chart";
 import { DockerNetworkChart } from "./docker-network-chart";
+import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { CPUChart } from "@/components/metrics/cpu-chart";
+import { DiskChart } from "@/components/metrics/disk-chart";
+import { MemoryChart } from "@/components/metrics/memory-chart";
+import { NetworkChart } from "@/components/metrics/network-chart";
 
-const defaultData = {
-	cpu: {
-		value: 0,
-		time: "",
-	},
-	memory: {
-		value: {
-			used: 0,
-			free: 0,
-			usedPercentage: 0,
-			total: 0,
-		},
-		time: "",
-	},
-	block: {
-		value: {
-			readMb: 0,
-			writeMb: 0,
-		},
-		time: "",
-	},
-	network: {
-		value: {
-			inputMb: 0,
-			outputMb: 0,
-		},
-		time: "",
-	},
-	disk: {
-		value: { diskTotal: 0, diskUsage: 0, diskUsedPercentage: 0, diskFree: 0 },
-		time: "",
-	},
-};
+const REFRESH_INTERVAL = 4500;
+// const BASE_URL =
+// 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
 
+const DATA_POINTS_OPTIONS = {
+	"50": "50 points",
+	"200": "200 points",
+	"500": "500 points",
+	"800": "800 points",
+	all: "All points",
+} as const;
 interface Props {
 	appName: string;
-	appType?: "application" | "stack" | "docker-compose";
-}
-export interface DockerStats {
-	cpu: {
-		value: number;
-		time: string;
-	};
-	memory: {
-		value: {
-			used: number;
-			free: number;
-			usedPercentage: number;
-			total: number;
-		};
-		time: string;
-	};
-	block: {
-		value: {
-			readMb: number;
-			writeMb: number;
-		};
-		time: string;
-	};
-	network: {
-		value: {
-			inputMb: number;
-			outputMb: number;
-		};
-		time: string;
-	};
-	disk: {
-		value: {
-			diskTotal: number;
-			diskUsage: number;
-			diskUsedPercentage: number;
-			diskFree: number;
-		};
-
-		time: string;
-	};
+	BASE_URL: string;
 }
 
-export type DockerStatsJSON = {
-	cpu: DockerStats["cpu"][];
-	memory: DockerStats["memory"][];
-	block: DockerStats["block"][];
-	network: DockerStats["network"][];
-	disk: DockerStats["disk"][];
-};
+export const DockerMonitoring = ({ appName, BASE_URL }: Props) => {
+	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
+	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [dataPoints, setDataPoints] =
+		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 
-export const DockerMonitoring = ({
-	appName,
-	appType = "application",
-}: Props) => {
-	const { data } = api.application.readAppMonitoring.useQuery(
-		{ appName },
-		{
-			refetchOnWindowFocus: false,
-		},
-	);
-	const [acummulativeData, setAcummulativeData] = useState<DockerStatsJSON>({
-		cpu: [],
-		memory: [],
-		block: [],
-		network: [],
-		disk: [],
-	});
-	const [currentData, setCurrentData] = useState<DockerStats>(defaultData);
+	const fetchMetrics = async () => {
+		try {
+			const url = new URL("http://localhost:3001/metrics/containers");
 
-	useEffect(() => {
-		setCurrentData(defaultData);
+			// Solo añadir el parámetro limit si no es "all"
+			if (dataPoints !== "all") {
+				url.searchParams.append("limit", dataPoints);
+			}
 
-		setAcummulativeData({
-			cpu: [],
-			memory: [],
-			block: [],
-			network: [],
-			disk: [],
-		});
-	}, [appName]);
+			url.searchParams.append("appName", appName);
 
-	useEffect(() => {
-		if (!data) return;
+			console.log("url", url.toString());
 
-		setCurrentData({
-			cpu: data.cpu[data.cpu.length - 1] ?? currentData.cpu,
-			memory: data.memory[data.memory.length - 1] ?? currentData.memory,
-			block: data.block[data.block.length - 1] ?? currentData.block,
-			network: data.network[data.network.length - 1] ?? currentData.network,
-			disk: data.disk[data.disk.length - 1] ?? currentData.disk,
-		});
-		setAcummulativeData({
-			block: data?.block || [],
-			cpu: data?.cpu || [],
-			disk: data?.disk || [],
-			memory: data?.memory || [],
-			network: data?.network || [],
-		});
-	}, [data]);
+			const response = await fetch(url.toString());
 
-	useEffect(() => {
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
-		const ws = new WebSocket(wsUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+			}
 
-		ws.onmessage = (e) => {
-			const value = JSON.parse(e.data);
-			if (!value) return;
+			const data = await response.json();
+			if (!Array.isArray(data) || data.length === 0) {
+				throw new Error("No hay datos disponibles");
+			}
 
-			const data = {
-				cpu: value.data.cpu ?? currentData.cpu,
-				memory: value.data.memory ?? currentData.memory,
-				block: value.data.block ?? currentData.block,
-				disk: value.data.disk ?? currentData.disk,
-				network: value.data.network ?? currentData.network,
-			};
-
-			setCurrentData(data);
-
-			setAcummulativeData((prevData) => ({
-				cpu: [...prevData.cpu, data.cpu],
-				memory: [...prevData.memory, data.memory],
-				block: [...prevData.block, data.block],
-				network: [...prevData.network, data.network],
-				disk: [...prevData.disk, data.disk],
+			const formattedData = data.map((metric: SystemMetrics) => ({
+				timestamp: metric.timestamp,
+				cpu: Number.parseFloat(metric.cpu),
+				cpuModel: metric.cpuModel,
+				cpuCores: metric.cpuCores,
+				cpuPhysicalCores: metric.cpuPhysicalCores,
+				cpuSpeed: metric.cpuSpeed,
+				os: metric.os,
+				distro: metric.distro,
+				kernel: metric.kernel,
+				arch: metric.arch,
+				memUsed: Number.parseFloat(metric.memUsed),
+				memUsedGB: Number.parseFloat(metric.memUsedGB),
+				memTotal: Number.parseFloat(metric.memTotal),
+				networkIn: Number.parseFloat(metric.networkIn),
+				networkOut: Number.parseFloat(metric.networkOut),
+				diskUsed: Number.parseFloat(metric.diskUsed),
+				totalDisk: Number.parseFloat(metric.totalDisk),
+				uptime: metric.uptime,
 			}));
-		};
 
-		ws.onclose = (e) => {
-			console.log(e.reason);
-		};
+			setHistoricalData(formattedData);
+			setMetrics(formattedData[formattedData.length - 1] || {});
+			setError(null);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Failed to fetch metrics");
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-		return () => ws.close();
-	}, [appName]);
+	const formatUptime = (seconds: number): string => {
+		const days = Math.floor(seconds / (24 * 60 * 60));
+		const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+		const minutes = Math.floor((seconds % (60 * 60)) / 60);
+
+		return `${days}d ${hours}h ${minutes}m`;
+	};
+
+	useEffect(() => {
+		fetchMetrics();
+
+		const interval = setInterval(() => {
+			fetchMetrics();
+		}, REFRESH_INTERVAL);
+
+		return () => clearInterval(interval);
+	}, [dataPoints]);
+
+	if (isLoading) {
+		return (
+			<div className="flex h-[400px] w-full items-center justify-center">
+				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="mt-5 border p-4 rounded-lg min-h-[55vh] flex items-center justify-center w-full">
+				<span className="text-base font-medium leading-none text-muted-foreground">
+					Error fetching metrics to: {BASE_URL}
+					<strong className="font-semibold text-destructive">{error}</strong>
+				</span>
+			</div>
+		);
+	}
 
 	return (
-		<div>
-			<Card className="bg-background">
-				<CardHeader>
-					<CardTitle className="text-xl">Monitoring</CardTitle>
-					<CardDescription>
-						Watch the usage of your server in the current app.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<div className="flex w-full gap-8 ">
-						<div className=" flex-row gap-8 grid md:grid-cols-2 w-full">
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">CPU</span>
-								<span className="text-sm text-muted-foreground">
-									Used: {currentData.cpu.value.toFixed(2)}%
-								</span>
-								<Progress value={currentData.cpu.value} className="w-[100%]" />
-								<DockerCpuChart acummulativeData={acummulativeData.cpu} />
-							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Memory</span>
-								<span className="text-sm text-muted-foreground">
-									{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
-								</span>
-								<Progress
-									value={currentData.memory.value.usedPercentage}
-									className="w-[100%]"
-								/>
-								<DockerMemoryChart
-									acummulativeData={acummulativeData.memory}
-									memoryLimitGB={currentData.memory.value.total / 1024 ** 3}
-								/>
-							</div>
-							{appName === "dokploy" && (
-								<div className="flex flex-col gap-2  w-full ">
-									<span className="text-base font-medium">Space</span>
-									<span className="text-sm text-muted-foreground">
-										{`Used:  ${currentData.disk.value.diskUsage} GB / Limit: ${currentData.disk.value.diskTotal} GB`}
-									</span>
-									<Progress
-										value={currentData.disk.value.diskUsedPercentage}
-										className="w-[100%]"
-									/>
-									<DockerDiskChart
-										acummulativeData={acummulativeData.disk}
-										diskTotal={currentData.disk.value.diskTotal}
-									/>
-								</div>
-							)}
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Block I/O</span>
-								<span className="text-sm text-muted-foreground">
-									{`Read:  ${currentData.block.value.readMb.toFixed(
-										2,
-									)} MB / Write: ${currentData.block.value.writeMb.toFixed(
-										3,
-									)} MB`}
-								</span>
-								<DockerBlockChart acummulativeData={acummulativeData.block} />
-							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Network</span>
-								<span className="text-sm text-muted-foreground">
-									{`In MB: ${currentData.network.value.inputMb.toFixed(
-										2,
-									)} MB / Out MB: ${currentData.network.value.outputMb.toFixed(
-										2,
-									)} MB`}
-								</span>
-								<DockerNetworkChart
-									acummulativeData={acummulativeData.network}
-								/>
-							</div>
-						</div>
+		<div className="space-y-4 pt-5 pb-10 w-full">
+			{/* Header con selector de puntos de datos */}
+			<div className="flex justify-between items-center">
+				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground">Data points:</span>
+					<Select
+						value={dataPoints}
+						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
+							setDataPoints(value)
+						}
+					>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Select points" />
+						</SelectTrigger>
+						<SelectContent>
+							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
+			{/* Stats Cards */}
+			<div className="grid gap-4 md:grid-cols-4">
+				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+					<div className="flex items-center gap-2">
+						<Clock className="h-4 w-4 text-muted-foreground" />
+						<h3 className="text-sm font-medium">Uptime</h3>
 					</div>
-				</CardContent>
-			</Card>
+					<p className="mt-2 text-2xl font-bold">
+						{formatUptime(metrics.uptime || 0)}
+					</p>
+				</div>
+
+				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+					<div className="flex items-center gap-2">
+						<Cpu className="h-4 w-4 text-muted-foreground" />
+						<h3 className="text-sm font-medium">CPU Usage</h3>
+					</div>
+					<p className="mt-2 text-2xl font-bold">{metrics.cpu}%</p>
+				</div>
+
+				<div className="rounded-lg border text-card-foreground bg-transparent shadow-sm p-6">
+					<div className="flex items-center gap-2">
+						<MemoryStick className="h-4 w-4 text-muted-foreground" />
+						<h3 className="text-sm font-medium">Memory Usage</h3>
+					</div>
+					<p className="mt-2 text-2xl font-bold">
+						{metrics.memUsedGB} GB / {metrics.memTotal} GB
+					</p>
+				</div>
+
+				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+					<div className="flex items-center gap-2">
+						<HardDrive className="h-4 w-4 text-muted-foreground" />
+						<h3 className="text-sm font-medium">Disk Usage</h3>
+					</div>
+					<p className="mt-2 text-2xl font-bold">{metrics.diskUsed}%</p>
+				</div>
+			</div>
+
+			{/* System Information */}
+			<div className="rounded-lg border text-card-foreground shadow-sm p-6">
+				<h3 className="text-lg font-medium mb-4">System Information</h3>
+				<div className="grid gap-4 md:grid-cols-2">
+					<div>
+						<h4 className="text-sm font-medium text-muted-foreground">CPU</h4>
+						<p className="mt-1">{metrics.cpuModel}</p>
+						<p className="text-sm text-muted-foreground mt-1">
+							{metrics.cpuPhysicalCores} Physical Cores ({metrics.cpuCores}{" "}
+							Threads) @ {metrics.cpuSpeed}GHz
+						</p>
+					</div>
+					<div>
+						<h4 className="text-sm font-medium text-muted-foreground">
+							Operating System
+						</h4>
+						<p className="mt-1">{metrics.distro}</p>
+						<p className="text-sm text-muted-foreground mt-1">
+							Kernel: {metrics.kernel} ({metrics.arch})
+						</p>
+					</div>
+				</div>
+			</div>
+
+			{/* Charts Grid */}
+			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+				<CPUChart data={historicalData} />
+				<MemoryChart data={historicalData} />
+				<DiskChart data={metrics} />
+				<NetworkChart data={historicalData} />
+			</div>
 		</div>
 	);
 };

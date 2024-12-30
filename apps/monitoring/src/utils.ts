@@ -15,13 +15,17 @@ export function parseLog(logContent: string) {
 	if (!logContent.trim()) return [];
 
 	const lines = logContent.trim().split("\n");
-	return lines.map((line) => {
-		try {
-			return JSON.parse(line);
-		} catch {
-			return { raw: line };
-		}
-	});
+	return lines
+		.map((line) => {
+			try {
+				return JSON.parse(line);
+			} catch (error) {
+				console.error(`Error parsing log line: ${error}`);
+				console.error(`Problematic line: ${line}`);
+				return null;
+			}
+		})
+		.filter((entry): entry is Record<string, any> => entry !== null);
 }
 
 /**
@@ -92,13 +96,17 @@ async function readLastNLines(filePath: string, limit: number) {
 		const lines = content.split("\n").filter((line) => line.trim());
 		const lastLines = lines.slice(-limit);
 
-		return lastLines.map((line) => {
-			try {
-				return JSON.parse(line);
-			} catch {
-				return { raw: line };
-			}
-		});
+		return lastLines
+			.map((line) => {
+				try {
+					return JSON.parse(line);
+				} catch (error) {
+					console.error(`Error parsing log line: ${error}`);
+					console.error(`Problematic line: ${line}`);
+					return null;
+				}
+			})
+			.filter((entry): entry is Record<string, any> => entry !== null);
 	} finally {
 		await fd.close();
 	}
