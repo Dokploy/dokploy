@@ -1,8 +1,8 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
+import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { ProjectEnviroment } from "@/components/dashboard/projects/project-enviroment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -10,7 +10,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -204,9 +203,9 @@ const Project = (
 
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
 						<div className="flex flex-row gap-4 flex-wrap">
-							<ProjectEnviroment projectId={projectId}>
+							<ProjectEnvironment projectId={projectId}>
 								<Button variant="outline">Project Enviroment</Button>
-							</ProjectEnviroment>
+							</ProjectEnvironment>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button>
