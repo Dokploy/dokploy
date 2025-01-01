@@ -14,7 +14,6 @@ const getServerMetrics = async () => {
 
 	// Calcular memoria usada en GB
 
-	console.log("Memory:", mem);
 	const memTotalGB = mem.total / 1024 / 1024 / 1024;
 	const memUsedGB = (mem.total - mem.available) / 1024 / 1024 / 1024;
 	// const memUsedGB = (mem.total - mem.free - mem.buffcache) / 1024 / 1024 / 1024;
@@ -54,8 +53,6 @@ const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB po
 export const logServerMetrics = () => {
 	setInterval(async () => {
 		const metrics = await getServerMetrics();
-
-		console.log("Metrics:", metrics);
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
 
