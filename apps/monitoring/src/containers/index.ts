@@ -22,18 +22,37 @@ export const logContainerMetrics = () => {
 	console.log("Initialized container metrics");
 	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
 
+	// Logging de memoria inicial
+	const formatMemoryUsage = (data: number) => `${Math.round(data / 1024 / 1024 * 100) / 100} MB`;
+	const memoryData = process.memoryUsage();
+	console.log({
+		rss: `${formatMemoryUsage(memoryData.rss)} -> Resident Set Size - total memory allocated`,
+		heapTotal: `${formatMemoryUsage(memoryData.heapTotal)} -> Total Size of the Heap`,
+		heapUsed: `${formatMemoryUsage(memoryData.heapUsed)} -> Actual Memory Used`,
+		external: `${formatMemoryUsage(memoryData.external)} -> External Memory`
+	});
+
 	const cleanup = () => {
 		console.log("Cleaning up container metrics");
 	};
 
 	setInterval(async () => {
 		try {
+			// Log memoria antes de la operación
+			console.log("Memory before docker stats:", formatMemoryUsage(process.memoryUsage().heapUsed));
+
 			const { stdout } = await execAsync(
 				'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'',
 			);
 
+			// Log memoria después de docker stats
+			console.log("Memory after docker stats:", formatMemoryUsage(process.memoryUsage().heapUsed));
+
 			const jsonString = `[${stdout.trim().split("\n").join(",")}]`;
 			const containers: Container[] = JSON.parse(jsonString);
+
+			// Log memoria después de parsear JSON
+			console.log("Memory after JSON parse:", formatMemoryUsage(process.memoryUsage().heapUsed));
 
 			if (containers.length === 0) {
 				return;
@@ -51,6 +70,7 @@ export const logContainerMetrics = () => {
 			});
 
 			console.log(`Writing metrics for ${filteredContainer.length} containers`);
+			console.log("Memory before file operations:", formatMemoryUsage(process.memoryUsage().heapUsed));
 
 			for (const container of filteredContainer) {
 				try {
@@ -66,14 +86,22 @@ export const logContainerMetrics = () => {
 						const stats = await fs.promises.stat(containerPath);
 						const fileSizeInMB = stats.size / (1024 * 1024);
 						if (fileSizeInMB >= maxFileSizeMB) {
+							console.log(`File size exceeded for ${serviceName}: ${fileSizeInMB}MB`);
+							console.log("Memory before file read:", formatMemoryUsage(process.memoryUsage().heapUsed));
+							
 							const fileContent = fs.readFileSync(containerPath, "utf-8");
 							const lines = fileContent
 								.split("\n")
 								.filter((line) => line.trim());
 
+							console.log("Memory after file read:", formatMemoryUsage(process.memoryUsage().heapUsed));
+
 							const linesToKeep = Math.floor(lines.length / 2);
 							const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
 							fs.writeFileSync(containerPath, newContent);
+							// await fs.promises.truncate(containerPath, 0);
+							
+							console.log("Memory after file write:", formatMemoryUsage(process.memoryUsage().heapUsed));
 						}
 					}
 
@@ -85,10 +113,15 @@ export const logContainerMetrics = () => {
 					);
 				}
 			}
+
+			// Log memoria final
+			console.log("Final memory usage:", formatMemoryUsage(process.memoryUsage().heapUsed));
+			global.gc?.(); // Forzar garbage collection si está disponible
 		} catch (error) {
-			console.error("Error getting containers:", error);
+			console.error("Error getting container metrics:", error);
 		}
 	}, REFRESH_RATE_CONTAINER);
 
-	return cleanup;
+	process.on("SIGTERM", cleanup);
+	process.on("SIGINT", cleanup);
 };
