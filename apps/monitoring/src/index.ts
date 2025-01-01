@@ -26,7 +26,7 @@ app.use(
 );
 
 logServerMetrics();
-logContainerMetrics();
+// logContainerMetrics();
 
 app.use("/*", cors());
 // app.use(
