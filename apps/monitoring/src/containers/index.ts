@@ -19,17 +19,6 @@ const REFRESH_RATE_CONTAINER = Number(
 	process.env.CONTAINER_REFRESH_RATE || 10000,
 );
 
-// Mantener un handle de los archivos abiertos
-const fileHandles = new Map<string, fs.promises.FileHandle>();
-
-async function getFileHandle(path: string): Promise<fs.promises.FileHandle> {
-	if (!fileHandles.has(path)) {
-		const handle = await fs.promises.open(path, "a");
-		fileHandles.set(path, handle);
-	}
-	return fileHandles.get(path)!;
-}
-
 export const logContainerMetrics = () => {
 	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
 
@@ -40,16 +29,6 @@ export const logContainerMetrics = () => {
 		if (job) {
 			job.cancel();
 		}
-
-		for (const [path, handle] of fileHandles.entries()) {
-			try {
-				await handle.close();
-				console.log(`Closed file handle for ${path}`);
-			} catch (error) {
-				console.error(`Error closing file handle for ${path}:`, error);
-			}
-		}
-		fileHandles.clear();
 	};
 
 	const runMetricsCollection = async () => {
@@ -102,21 +81,24 @@ export const logContainerMetrics = () => {
 					const processedData = processContainerData(container);
 					const logLine = `${JSON.stringify(processedData)}\n`;
 
-					const handle = await getFileHandle(containerPath);
-					const stats = await fs.promises.stat(containerPath);
-					const fileSizeInMB = stats.size / (1024 * 1024);
-					const containerConfig = getContainerConfig(container.Name);
-					const { maxFileSizeMB = 10 } = containerConfig;
+					// Verificar el tamaño del archivo y truncarlo si es necesario
+					if (fs.existsSync(containerPath)) {
+						const stats = fs.statSync(containerPath);
+						const fileSizeInMB = stats.size / (1024 * 1024);
+						const containerConfig = getContainerConfig(container.Name);
+						const { maxFileSizeMB = 10 } = containerConfig;
 
-					if (fileSizeInMB >= maxFileSizeMB) {
-						console.log(
-							`File size exceeded for ${serviceName}: ${fileSizeInMB}MB`,
-						);
-						await handle.truncate(0);
+						if (fileSizeInMB >= maxFileSizeMB) {
+							console.log(
+								`File size exceeded for ${serviceName}: ${fileSizeInMB}MB`,
+							);
+							await fs.promises.truncate(containerPath, 0);
+						}
 					}
 
-					await handle.write(logLine);
-					await handle.sync();
+					// Escribir la nueva línea
+					await fs.promises.appendFile(containerPath, logLine);
+
 				} catch (error) {
 					console.error(
 						`Error writing metrics for container ${container.Name}:`,
