@@ -47,7 +47,7 @@ export const RefreshToken = ({ applicationId }: Props) => {
 									toast.success("Refresh updated");
 								})
 								.catch(() => {
-									toast.error("Error to update the refresh token");
+									toast.error("Error updating the refresh token");
 								});
 						}}
 					>

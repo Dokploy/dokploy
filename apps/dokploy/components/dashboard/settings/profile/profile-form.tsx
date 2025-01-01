@@ -107,7 +107,7 @@ export const ProfileForm = () => {
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error to Update the profile");
+				toast.error("Error updating the profile");
 			});
 	};
 

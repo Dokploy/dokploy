@@ -83,7 +83,7 @@ export const UpdateSecurity = ({ securityId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the security");
+				toast.error("Error updating the security");
 			});
 	};
 

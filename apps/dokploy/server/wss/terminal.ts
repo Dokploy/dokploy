@@ -1,8 +1,13 @@
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import {
+	findServerById,
+	IS_CLOUD,
+	validateWebSocketRequest,
+} from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
-import { Client } from "ssh2";
+import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
+import { setupLocalServerSSHKey } from "./utils";
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -55,21 +60,66 @@ export const setupTerminalWebSocketServer = (
 			return;
 		}
 
-		const server = await findServerById(serverId);
+		let connectionDetails: ConnectConfig = {};
 
-		if (!server) {
-			ws.close();
-			return;
+		const isLocalServer = serverId === "local";
+
+		if (isLocalServer && !IS_CLOUD) {
+			const port = Number(url.searchParams.get("port"));
+			const username = url.searchParams.get("username");
+
+			if (!port || !username) {
+				ws.close();
+				return;
+			}
+
+			ws.send("Setting up private SSH key...\n");
+			const privateKey = await setupLocalServerSSHKey();
+
+			if (!privateKey) {
+				ws.close();
+				return;
+			}
+
+			connectionDetails = {
+				host: "localhost",
+				port,
+				username,
+				privateKey,
+			};
+		} else {
+			const server = await findServerById(serverId);
+
+			if (!server) {
+				ws.close();
+				return;
+			}
+
+			const { ipAddress: host, port, username, sshKey, sshKeyId } = server;
+
+			if (!sshKeyId) {
+				throw new Error("No SSH key available for this server");
+			}
+
+			connectionDetails = {
+				host,
+				port,
+				username,
+				privateKey: sshKey?.privateKey,
+			};
 		}
-
-		if (!server.sshKeyId)
-			throw new Error("No SSH key available for this server");
 
 		const conn = new Client();
 		let stdout = "";
 		let stderr = "";
+
+		ws.send("Connecting...\n");
+
 		conn
 			.once("ready", () => {
+				// Clear terminal content once connected
+				ws.send("\x1bc");
+
 				conn.shell({}, (err, stream) => {
 					if (err) throw err;
 
@@ -112,18 +162,13 @@ export const setupTerminalWebSocketServer = (
 			.on("error", (err) => {
 				if (err.level === "client-authentication") {
 					ws.send(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+						`Authentication failed: Unauthorized ${isLocalServer ? "" : "private SSH key or "}username.\n❌  Error: ${err.message} ${err.level}`,
 					);
 				} else {
-					ws.send(`SSH connection error: ${err.message}`);
+					ws.send(`SSH connection error: ${err.message} ❌ `);
 				}
 				conn.end();
 			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: server.sshKey?.privateKey,
-			});
+			.connect(connectionDetails);
 	});
 };

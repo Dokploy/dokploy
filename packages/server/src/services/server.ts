@@ -21,7 +21,7 @@ export const createServer = async (
 	if (!newServer) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the server",
+			message: "Error creating the server",
 		});
 	}
 

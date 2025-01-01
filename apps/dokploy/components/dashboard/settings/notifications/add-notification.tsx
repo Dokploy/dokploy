@@ -229,7 +229,7 @@ export const AddNotification = () => {
 					await utils.notification.all.invalidate();
 				})
 				.catch(() => {
-					toast.error("Error to create a notification");
+					toast.error("Error creating a notification");
 				});
 		}
 	};
@@ -748,7 +748,7 @@ export const AddNotification = () => {
 									}
 									toast.success("Connection Success");
 								} catch (err) {
-									toast.error("Error to test the provider");
+									toast.error("Error testing the provider");
 								}
 							}}
 						>

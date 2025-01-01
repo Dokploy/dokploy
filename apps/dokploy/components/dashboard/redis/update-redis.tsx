@@ -75,13 +75,13 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Redis updated succesfully");
+				toast.success("Redis updated successfully");
 				utils.redis.one.invalidate({
 					redisId: redisId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the redis");
+				toast.error("Error updating Redis");
 			})
 			.finally(() => {});
 	};

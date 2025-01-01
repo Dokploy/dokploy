@@ -58,7 +58,7 @@ export const portRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to updating port",
+					message: "Error updating the port",
 				});
 			}
 		}),

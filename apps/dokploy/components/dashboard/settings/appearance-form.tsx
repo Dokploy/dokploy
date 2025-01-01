@@ -34,13 +34,17 @@ import { useTheme } from "next-themes";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+
+const languageCodes = Object.values(Languages).map(lang => lang.code) as [string, ...string[]]; 
+
 const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
 		required_error: "Please select a theme.",
 	}),
-	language: z.nativeEnum(Languages, {
+
+	language: z.enum(languageCodes, {
 		required_error: "Please select a language.",
-	}),
+	})
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
@@ -48,7 +52,7 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
 // This can come from your database or API.
 const defaultValues: Partial<AppearanceFormValues> = {
 	theme: "system",
-	language: Languages.English,
+	language: Languages.english.code,
 };
 
 export function AppearanceForm() {
@@ -173,15 +177,11 @@ export function AppearanceForm() {
 												<SelectValue placeholder="No preset selected" />
 											</SelectTrigger>
 											<SelectContent>
-												{Object.keys(Languages).map((preset) => {
-													const value =
-														Languages[preset as keyof typeof Languages];
-													return (
-														<SelectItem key={value} value={value}>
-															{preset}
-														</SelectItem>
-													);
-												})}
+											{Object.values(Languages).map((language) => (
+												<SelectItem key={language.code} value={language.code}>
+													{language.name}
+												</SelectItem>
+											))}
 											</SelectContent>
 										</Select>
 									</FormItem>

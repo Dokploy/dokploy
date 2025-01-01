@@ -254,7 +254,7 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: error?.message || "Error building",
 			buildLink,
 			adminId: compose.project.adminId,
 		});
@@ -387,7 +387,7 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: error?.message || "Error building",
 			buildLink,
 			adminId: compose.project.adminId,
 		});

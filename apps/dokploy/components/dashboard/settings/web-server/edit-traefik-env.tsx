@@ -71,7 +71,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				toast.success("Traefik Env Updated");
 			})
 			.catch(() => {
-				toast.error("Error to update the traefik env");
+				toast.error("Error updating the Traefik env");
 			});
 	};
 

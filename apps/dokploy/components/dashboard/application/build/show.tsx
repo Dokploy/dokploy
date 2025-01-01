@@ -126,7 +126,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the build type");
+				toast.error("Error saving the build type");
 			});
 	};
 

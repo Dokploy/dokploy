@@ -53,10 +53,10 @@ export const StopCompose = ({ composeId }: Props) => {
 									await utils.compose.one.invalidate({
 										composeId,
 									});
-									toast.success("Compose stopped succesfully");
+									toast.success("Compose stopped successfully");
 								})
 								.catch(() => {
-									toast.error("Error to stop the compose");
+									toast.error("Error stopping the compose");
 								});
 						}}
 					>
