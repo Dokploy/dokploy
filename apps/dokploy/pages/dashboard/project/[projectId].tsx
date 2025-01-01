@@ -47,6 +47,7 @@ import superjson from "superjson";
 
 export type Services = {
 	appName: string;
+	serverId?: string | null;
 	name: string;
 	type:
 		| "mariadb"
@@ -74,6 +75,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mariadb: Services[] =
@@ -85,6 +87,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const postgres: Services[] =
@@ -96,6 +99,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mongo: Services[] =
@@ -107,6 +111,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const redis: Services[] =
@@ -118,6 +123,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mysql: Services[] =
@@ -129,6 +135,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const compose: Services[] =
@@ -140,6 +147,7 @@ export const extractServices = (data: Project | undefined) => {
 			createdAt: item.createdAt,
 			status: item.composeStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	applications.push(

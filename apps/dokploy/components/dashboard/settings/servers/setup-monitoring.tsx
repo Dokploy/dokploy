@@ -62,24 +62,26 @@ const Schema = z.object({
 
 type Schema = z.infer<typeof Schema>;
 
-const extractServicesFromProjects = (projects: any[] | undefined) => {
-	if (!projects) return [];
-
-	const allServices = projects.flatMap((project) => {
-		const services = extractServices(project);
-		return services.map((service) => service.appName);
-	});
-
-	// Remove duplicates
-	return [...new Set(allServices)];
-};
-
 export const SetupMonitoring = ({ serverId }: Props) => {
 	const { data, isLoading } = api.server.one.useQuery({
 		serverId,
 	});
 
 	const { data: projects } = api.project.all.useQuery();
+
+	const extractServicesFromProjects = (projects: any[] | undefined) => {
+		if (!projects) return [];
+
+		const allServices = projects.flatMap((project) => {
+			const services = extractServices(project);
+			return services
+				.filter((service) => service.serverId === serverId)
+				.map((service) => service.appName);
+		});
+
+		// Remove duplicates
+		return [...new Set(allServices)];
+	};
 
 	const services = extractServicesFromProjects(projects);
 
@@ -245,7 +247,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														/>
 														<CommandEmpty>No service found.</CommandEmpty>
 														<CommandGroup className="max-h-[200px] overflow-hidden">
-															<ScrollArea className="h-[200px]" onWheel={(e) => e.stopPropagation()}>
+															<ScrollArea
+																className="h-[200px]"
+																onWheel={(e) => e.stopPropagation()}
+															>
 																{availableServices?.map((service) => (
 																	<CommandItem
 																		key={service}
@@ -333,7 +338,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														/>
 														<CommandEmpty>No service found.</CommandEmpty>
 														<CommandGroup className="max-h-[200px] overflow-hidden">
-															<ScrollArea className="h-[200px]" onWheel={(e) => e.stopPropagation()}>
+															<ScrollArea
+																className="h-[200px]"
+																onWheel={(e) => e.stopPropagation()}
+															>
 																{availableServicesToExclude.map((service) => (
 																	<CommandItem
 																		key={service}
