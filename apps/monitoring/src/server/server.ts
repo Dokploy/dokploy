@@ -50,7 +50,7 @@ export const logServerMetrics = () => {
 	setInterval(async () => {
 		const metrics = await getServerMetrics();
 
-		// console.log("Metrics:", metrics);
+		console.log("Metrics:", metrics);
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
 
