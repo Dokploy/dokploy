@@ -5,7 +5,7 @@ import { logServerMetrics } from "./server/server.js";
 import { config } from "dotenv";
 import { serverLogFile, containerLogFile } from "./constants.js";
 import { processMetricsFromFile } from "./utils.js";
-import { logContainerMetrics } from "./containers/index.js";
+// import { logContainerMetrics } from "./containers/index.js";
 import { existsSync } from "node:fs";
 config();
 
@@ -24,7 +24,6 @@ app.use(
 		credentials: true,
 	}),
 );
-
 logServerMetrics();
 // logContainerMetrics();
 
