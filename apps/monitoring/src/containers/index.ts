@@ -61,17 +61,19 @@ export const logContainerMetrics = () => {
 
 					const { maxFileSizeMB = 10 } = containerConfig;
 
-					const stats = await fs.promises.stat(containerPath);
-					const fileSizeInMB = stats.size / (1024 * 1024);
+					if (fs.existsSync(containerPath)) {
+						const stats = await fs.promises.stat(containerPath);
+						const fileSizeInMB = stats.size / (1024 * 1024);
+						if (fileSizeInMB >= maxFileSizeMB) {
+							const fileContent = fs.readFileSync(containerPath, "utf-8");
+							const lines = fileContent
+								.split("\n")
+								.filter((line) => line.trim());
 
-					console.log(fileSizeInMB);
-					if (fileSizeInMB >= maxFileSizeMB) {
-						const fileContent = fs.readFileSync(containerPath, "utf-8");
-						const lines = fileContent.split("\n").filter((line) => line.trim());
-
-						const linesToKeep = Math.floor(lines.length / 2);
-						const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
-						fs.writeFileSync(containerPath, newContent);
+							const linesToKeep = Math.floor(lines.length / 2);
+							const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
+							fs.writeFileSync(containerPath, newContent);
+						}
 					}
 
 					await fs.promises.appendFile(containerPath, logLine);

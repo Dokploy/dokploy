@@ -134,11 +134,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 		...(!form.watch("excludedServices")?.includes("*") ? ["*"] : []),
 	];
 
-	const { mutateAsync } = api.server.setupMonitoring.useMutation({
-		onSuccess: () => {
-			toast.success("Server updated successfully");
-		},
-	});
+	const { mutateAsync } = api.server.setupMonitoring.useMutation();
 
 	const onSubmit = async (values: Schema) => {
 		await mutateAsync({
