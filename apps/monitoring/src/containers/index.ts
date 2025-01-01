@@ -3,6 +3,7 @@ import fs from "node:fs";
 import util from "node:util";
 import { join } from "node:path";
 import console from "node:console";
+import schedule from "node-schedule";
 import { containerLogFile } from "../constants.js";
 import type { Container } from "./types.js";
 import {
@@ -21,19 +22,6 @@ const REFRESH_RATE_CONTAINER = Number(
 // Mantener un handle de los archivos abiertos
 const fileHandles = new Map<string, fs.promises.FileHandle>();
 
-// const formatMemoryUsage = (data: number) =>
-// 	`${Math.round((data / 1024 / 1024) * 100) / 100} MB`;
-
-// export function logMemoryUsage(label: string) {
-// 	const memoryData = process.memoryUsage();
-// 	console.log(`[Memory ${label}]`, {
-// 		heapUsed: `${formatMemoryUsage(memoryData.heapUsed)} -> Actual Memory Used`,
-// 		heapTotal: `${formatMemoryUsage(memoryData.heapTotal)} -> Total Size of the Heap`,
-// 		rss: `${formatMemoryUsage(memoryData.rss)} -> Resident Set Size`,
-// 		external: `${formatMemoryUsage(memoryData.external)} -> External Memory`,
-// 	});
-// }
-
 async function getFileHandle(path: string): Promise<fs.promises.FileHandle> {
 	if (!fileHandles.has(path)) {
 		const handle = await fs.promises.open(path, "a");
@@ -43,15 +31,15 @@ async function getFileHandle(path: string): Promise<fs.promises.FileHandle> {
 }
 
 export const logContainerMetrics = () => {
-	// console.log("Initialized container metrics");
 	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
-	// logMemoryUsage("Initial");
 
-	let interval: NodeJS.Timeout;
 	let isRunning = false;
+	let job: schedule.Job;
 
 	const cleanup = async () => {
-		clearInterval(interval);
+		if (job) {
+			job.cancel();
+		}
 
 		for (const [path, handle] of fileHandles.entries()) {
 			try {
@@ -124,9 +112,7 @@ export const logContainerMetrics = () => {
 						console.log(
 							`File size exceeded for ${serviceName}: ${fileSizeInMB}MB`,
 						);
-						// logMemoryUsage("Before File Truncate");
 						await handle.truncate(0);
-						// logMemoryUsage("After File Truncate");
 					}
 
 					await handle.write(logLine);
@@ -145,7 +131,16 @@ export const logContainerMetrics = () => {
 		}
 	};
 
-	interval = setInterval(runMetricsCollection, REFRESH_RATE_CONTAINER);
+	// Programar la tarea para que se ejecute cada X milisegundos
+	const rule = new schedule.RecurrenceRule();
+	rule.second = new schedule.Range(
+		0,
+		59,
+		Math.floor(REFRESH_RATE_CONTAINER / 1000),
+	);
+
+	console.log(rule);
+	job = schedule.scheduleJob(rule, runMetricsCollection);
 
 	process.on("SIGTERM", cleanup);
 	process.on("SIGINT", cleanup);

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import si from "systeminformation";
+import schedule from "node-schedule";
 import { serverLogFile } from "../constants.js";
 
 const getServerMetrics = async () => {
@@ -51,7 +52,15 @@ const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 10000);
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB por defecto
 
 export const logServerMetrics = () => {
-	setInterval(async () => {
+	const rule = new schedule.RecurrenceRule();
+	rule.second = new schedule.Range(
+		0,
+		59,
+		Math.floor(REFRESH_RATE_SERVER / 1000),
+	);
+	console.log("Server metrics refresh rate:", REFRESH_RATE_SERVER, "ms");
+
+	const job = schedule.scheduleJob(rule, async () => {
 		const metrics = await getServerMetrics();
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
@@ -81,5 +90,12 @@ export const logServerMetrics = () => {
 		fs.appendFile(serverLogFile, logLine, (err) => {
 			if (err) console.error("Error to write server metrics:", err);
 		});
-	}, REFRESH_RATE_SERVER);
+	});
+
+	// Cleanup function
+	return () => {
+		if (job) {
+			job.cancel();
+		}
+	};
 };
