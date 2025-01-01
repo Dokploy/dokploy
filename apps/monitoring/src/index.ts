@@ -1,11 +1,11 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logServerMetrics } from "./monitoring/server.js";
+import { logServerMetrics } from "./server/server.js";
 import { config } from "dotenv";
 import { serverLogFile, containerLogFile } from "./constants.js";
 import { processMetricsFromFile } from "./utils.js";
-import { logContainerMetrics } from "./monitoring/containers.js";
+import { logContainerMetrics } from "./containers/index.js";
 import { existsSync } from "node:fs";
 config();
 
