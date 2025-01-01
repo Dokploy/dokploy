@@ -16,7 +16,7 @@ const getServerMetrics = async () => {
 
 	console.log("Memory:", mem);
 	const memTotalGB = mem.total / 1024 / 1024 / 1024;
-	const memUsedGB = (mem.total - mem.available) / 1024 / 1024 / 1024;
+	const memUsedGB = (mem.total - mem.free - mem.buffcache) / 1024 / 1024 / 1024;
 	const memUsedPercent = (memUsedGB / memTotalGB) * 100;
 
 	return {
