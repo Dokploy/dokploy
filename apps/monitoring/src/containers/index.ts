@@ -6,7 +6,6 @@ import console from "node:console";
 import { containerLogFile } from "../constants.js";
 import type { Container } from "./types.js";
 import {
-	loadConfig,
 	shouldMonitorContainer,
 	getContainerConfig,
 	getServiceName,
@@ -15,9 +14,6 @@ import { processContainerData } from "./utils.js";
 
 export const execAsync = util.promisify(exec);
 
-const config = loadConfig();
-
-console.log(config);
 const REFRESH_RATE_CONTAINER = Number(
 	process.env.CONTAINER_REFRESH_RATE || 10000,
 );
@@ -43,15 +39,18 @@ export const logContainerMetrics = () => {
 				return;
 			}
 
+			const seenServices = new Set<string>();
 			const filteredContainer = containers.filter((container) => {
-				const shouldMonitor = shouldMonitorContainer(container.Name, config);
-				console.log(
-					`Service ${getServiceName(container.Name)} (${container.Name}): ${shouldMonitor ? "monitored" : "filtered out"}`,
-				);
-				return shouldMonitor;
+				if (!shouldMonitorContainer(container.Name)) return false;
+
+				const serviceName = getServiceName(container.Name);
+				if (seenServices.has(serviceName)) return false;
+
+				seenServices.add(serviceName);
+				return true;
 			});
 
-			console.log(`Monitoring ${filteredContainer.length} containers`);
+			console.log(`Writing metrics for ${filteredContainer.length} containers`);
 
 			for (const container of filteredContainer) {
 				try {
@@ -59,7 +58,7 @@ export const logContainerMetrics = () => {
 					const containerPath = join(containerLogFile, `${serviceName}.log`);
 					const processedData = processContainerData(container);
 					const logLine = `${JSON.stringify(processedData)}\n`;
-					const containerConfig = getContainerConfig(container.Name, config);
+					const containerConfig = getContainerConfig(container.Name);
 
 					const { maxFileSizeMB = 10 } = containerConfig;
 

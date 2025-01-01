@@ -35,8 +35,16 @@ invalid json line
 {"timestamp": "2024-12-28T00:01:00Z", "value": 2}`;
 
 		const result = parseLog(logContent);
-		expect(result).toHaveLength(3);
-		expect(result[1]).toEqual({ raw: "invalid json line" });
+		expect(result).toHaveLength(2);
+
+		expect(result[0]).toEqual({
+			timestamp: "2024-12-28T00:00:00Z",
+			value: 1,
+		});
+		expect(result[1]).toEqual({
+			timestamp: "2024-12-28T00:01:00Z",
+			value: 2,
+		});
 	});
 
 	it("should handle empty log content", () => {
