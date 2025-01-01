@@ -21,18 +21,18 @@ const REFRESH_RATE_CONTAINER = Number(
 // Mantener un handle de los archivos abiertos
 const fileHandles = new Map<string, fs.promises.FileHandle>();
 
-const formatMemoryUsage = (data: number) =>
-	`${Math.round((data / 1024 / 1024) * 100) / 100} MB`;
+// const formatMemoryUsage = (data: number) =>
+// 	`${Math.round((data / 1024 / 1024) * 100) / 100} MB`;
 
-function logMemoryUsage(label: string) {
-	const memoryData = process.memoryUsage();
-	console.log(`[Memory ${label}]`, {
-		heapUsed: `${formatMemoryUsage(memoryData.heapUsed)} -> Actual Memory Used`,
-		heapTotal: `${formatMemoryUsage(memoryData.heapTotal)} -> Total Size of the Heap`,
-		rss: `${formatMemoryUsage(memoryData.rss)} -> Resident Set Size`,
-		external: `${formatMemoryUsage(memoryData.external)} -> External Memory`,
-	});
-}
+// export function logMemoryUsage(label: string) {
+// 	const memoryData = process.memoryUsage();
+// 	console.log(`[Memory ${label}]`, {
+// 		heapUsed: `${formatMemoryUsage(memoryData.heapUsed)} -> Actual Memory Used`,
+// 		heapTotal: `${formatMemoryUsage(memoryData.heapTotal)} -> Total Size of the Heap`,
+// 		rss: `${formatMemoryUsage(memoryData.rss)} -> Resident Set Size`,
+// 		external: `${formatMemoryUsage(memoryData.external)} -> External Memory`,
+// 	});
+// }
 
 async function getFileHandle(path: string): Promise<fs.promises.FileHandle> {
 	if (!fileHandles.has(path)) {
@@ -43,20 +43,16 @@ async function getFileHandle(path: string): Promise<fs.promises.FileHandle> {
 }
 
 export const logContainerMetrics = () => {
-	console.log("Initialized container metrics");
+	// console.log("Initialized container metrics");
 	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
-	logMemoryUsage("Initial");
+	// logMemoryUsage("Initial");
 
 	let interval: NodeJS.Timeout;
 	let isRunning = false;
 
 	const cleanup = async () => {
-		console.log("Cleaning up container metrics");
 		clearInterval(interval);
 
-		logMemoryUsage("Before Cleanup");
-
-		// Cerrar todos los file handles
 		for (const [path, handle] of fileHandles.entries()) {
 			try {
 				await handle.close();
@@ -66,8 +62,6 @@ export const logContainerMetrics = () => {
 			}
 		}
 		fileHandles.clear();
-
-		logMemoryUsage("After Cleanup");
 	};
 
 	const runMetricsCollection = async () => {
@@ -78,9 +72,6 @@ export const logContainerMetrics = () => {
 
 		isRunning = true;
 		try {
-			logMemoryUsage("Before Docker Stats");
-
-			// Ejecutar docker stats con timeout
 			const { stdout, stderr } = (await Promise.race([
 				execAsync(
 					'docker stats --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'',
@@ -95,12 +86,9 @@ export const logContainerMetrics = () => {
 				return;
 			}
 
-			logMemoryUsage("After Docker Stats");
-
 			const containers: Container[] = JSON.parse(
 				`[${stdout.trim().split("\n").join(",")}]`,
 			);
-			logMemoryUsage("After JSON Parse");
 
 			if (containers.length === 0) {
 				return;
@@ -118,7 +106,6 @@ export const logContainerMetrics = () => {
 			});
 
 			console.log(`Processing ${filteredContainer.length} containers`);
-			logMemoryUsage("Before File Operations");
 
 			for (const container of filteredContainer) {
 				try {
@@ -137,9 +124,9 @@ export const logContainerMetrics = () => {
 						console.log(
 							`File size exceeded for ${serviceName}: ${fileSizeInMB}MB`,
 						);
-						logMemoryUsage("Before File Truncate");
+						// logMemoryUsage("Before File Truncate");
 						await handle.truncate(0);
-						logMemoryUsage("After File Truncate");
+						// logMemoryUsage("After File Truncate");
 					}
 
 					await handle.write(logLine);
@@ -151,8 +138,6 @@ export const logContainerMetrics = () => {
 					);
 				}
 			}
-
-			logMemoryUsage("After All Operations");
 		} catch (error) {
 			console.error("Error getting container metrics:", error);
 		} finally {
@@ -160,10 +145,8 @@ export const logContainerMetrics = () => {
 		}
 	};
 
-	// Iniciar la recolección de métricas
 	interval = setInterval(runMetricsCollection, REFRESH_RATE_CONTAINER);
 
-	// Manejar la limpieza en señales de terminación
 	process.on("SIGTERM", cleanup);
 	process.on("SIGINT", cleanup);
 	process.on("exit", cleanup);
