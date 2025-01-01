@@ -18,6 +18,8 @@ export const loadConfig = (): MonitoringConfig => {
 	try {
 		const configJson = process.env.CONTAINER_MONITORING_CONFIG;
 
+		console.log(configJson);
+
 		if (!configJson) {
 			return DEFAULT_CONFIG;
 		}

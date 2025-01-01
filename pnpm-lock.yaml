@@ -437,9 +437,6 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.13.7(hono@4.6.14)
-      dockerode:
-        specifier: ^4.0.2
-        version: 4.0.2
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
@@ -453,9 +450,6 @@ importers:
         specifier: 8.18.0
         version: 8.18.0
     devDependencies:
-      '@types/dockerode':
-        specifier: ^3.3.32
-        version: 3.3.32
       '@types/node':
         specifier: ^20.11.17
         version: 20.14.10
@@ -3296,9 +3290,6 @@ packages:
 
   '@types/dockerode@3.3.23':
     resolution: {integrity: sha512-Lz5J+NFgZS4cEVhquwjIGH4oQwlVn2h7LXD3boitujBnzOE5o7s9H8hchEjoDK2SlRsJTogdKnQeiJgPPKLIEw==}
-
-  '@types/dockerode@3.3.32':
-    resolution: {integrity: sha512-xxcG0g5AWKtNyh7I7wswLdFvym4Mlqks5ZlKzxEUrGHS0r0PUOfxm2T0mspwu10mHQqu3Ck3MI3V2HqvLWE1fg==}
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -9761,12 +9752,6 @@ snapshots:
     dependencies:
       '@types/docker-modem': 3.0.6
       '@types/node': 20.14.10
-
-  '@types/dockerode@3.3.32':
-    dependencies:
-      '@types/docker-modem': 3.0.6
-      '@types/node': 20.14.10
-      '@types/ssh2': 1.15.1
 
   '@types/eslint-scope@3.7.7':
     dependencies:

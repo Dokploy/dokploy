@@ -16,6 +16,8 @@ import { processContainerData } from "./utils.js";
 export const execAsync = util.promisify(exec);
 
 const config = loadConfig();
+
+console.log(config);
 const REFRESH_RATE_CONTAINER = Number(
 	process.env.CONTAINER_REFRESH_RATE || 10000,
 );

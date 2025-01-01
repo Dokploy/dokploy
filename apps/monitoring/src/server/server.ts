@@ -1,9 +1,6 @@
 import fs from "node:fs";
-import Docker from "dockerode";
 import si from "systeminformation";
 import { serverLogFile } from "../constants.js";
-
-const docker = new Docker();
 
 const getServerMetrics = async () => {
 	const [cpu, mem, load, fsSize, network, osInfo] = await Promise.all([
