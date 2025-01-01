@@ -1,15 +1,55 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import util from "node:util";
-export const execAsync = util.promisify(exec);
-import { containerLogFile } from "../constants.js";
 import { join } from "node:path";
+import console from "node:console";
+import { config as dotenvConfig } from "dotenv";
+import { containerLogFile } from "../constants.js";
 
+dotenvConfig();
+
+export const execAsync = util.promisify(exec);
+
+interface MonitoringConfig {
+	includeServices: {
+		[key: string]: {
+			maxFileSizeMB: number;
+		};
+	};
+	excludeServices: string[];
+}
+
+// Configuración por defecto
+const DEFAULT_CONFIG: MonitoringConfig = {
+	includeServices: {
+		"*": {
+			maxFileSizeMB: 10,
+		},
+	},
+	excludeServices: [],
+};
+
+// Cargar la configuración desde la variable de entorno
+const loadConfig = (): MonitoringConfig => {
+	try {
+		const configJson = process.env.MONITORING_CONFIG;
+
+		if (!configJson) {
+			return DEFAULT_CONFIG;
+		}
+
+		const parsedConfig = JSON.parse(configJson);
+		return parsedConfig;
+	} catch (error) {
+		console.error("Error loading config:", error);
+		return DEFAULT_CONFIG;
+	}
+};
+
+const config = loadConfig();
 const REFRESH_RATE_CONTAINER = Number(
-	process.env.REFRESH_RATE_CONTAINER || 4000,
+	process.env.CONTAINER_REFRESH_RATE || 8000,
 );
-
-const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 
 interface Container {
 	BlockIO: string;
@@ -47,6 +87,37 @@ interface ProcessedContainer {
 		outputUnit: string;
 	};
 }
+
+const shouldMonitorContainer = (containerName: string): boolean => {
+	const { includeServices, excludeServices } = config;
+	const serviceName = getServiceName(containerName);
+
+	// Si está específicamente incluido, siempre monitorear
+	if (serviceName in includeServices) {
+		return true;
+	}
+
+	// Si hay wildcard en includeServices y no está específicamente excluido
+	if ("*" in includeServices && !excludeServices.includes(serviceName)) {
+		return true;
+	}
+
+	// En cualquier otro caso, no monitorear
+	return false;
+};
+
+const getContainerConfig = (containerName: string) => {
+	const serviceName = getServiceName(containerName);
+	const { includeServices } = config;
+
+	// Si tiene configuración específica, usarla
+	if (serviceName in includeServices) {
+		return includeServices[serviceName];
+	}
+
+	// Si no, usar la configuración por defecto (wildcard)
+	return includeServices["*"] || { maxFileSizeMB: 10 };
+};
 
 function getServiceName(containerName: string): string {
 	const match = containerName.match(
@@ -109,20 +180,11 @@ function processContainerData(container: Container): ProcessedContainer {
 
 export const logContainerMetrics = () => {
 	console.log("Initialized container metrics");
+	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
 
-	// Mantener un handle del archivo abierto para cada contenedor
-	const fileHandles = new Map<string, fs.promises.FileHandle>();
-
-	const cleanup = async () => {
-		for (const [_, handle] of fileHandles) {
-			await handle.close();
-		}
-		fileHandles.clear();
+	const cleanup = () => {
+		console.log("Cleaning up container metrics");
 	};
-
-	// Asegurar que cerramos los archivos al terminar
-	process.on("SIGTERM", cleanup);
-	process.on("SIGINT", cleanup);
 
 	setInterval(async () => {
 		try {
@@ -137,21 +199,40 @@ export const logContainerMetrics = () => {
 				return;
 			}
 
-			for (const container of containers) {
+			const filteredContainer = containers.filter((container) => {
+				const shouldMonitor = shouldMonitorContainer(container.Name);
+				console.log(
+					`Service ${getServiceName(container.Name)} (${container.Name}): ${shouldMonitor ? "monitored" : "filtered out"}`,
+				);
+				return shouldMonitor;
+			});
+
+			console.log(`Monitoring ${filteredContainer.length} containers`);
+
+			for (const container of filteredContainer) {
 				try {
 					const serviceName = getServiceName(container.Name);
 					const containerPath = join(containerLogFile, `${serviceName}.log`);
-
-					let fileHandle = fileHandles.get(serviceName);
-					if (!fileHandle) {
-						fileHandle = await fs.promises.open(containerPath, "a");
-						fileHandles.set(serviceName, fileHandle);
-					}
-
 					const processedData = processContainerData(container);
 					const logLine = `${JSON.stringify(processedData)}\n`;
+					const config = getContainerConfig(container.Name);
 
-					await fileHandle.write(logLine);
+					const { maxFileSizeMB = 10 } = config;
+
+					const stats = await fs.promises.stat(containerPath);
+					const fileSizeInMB = stats.size / (1024 * 1024);
+
+					console.log(fileSizeInMB);
+					if (fileSizeInMB >= maxFileSizeMB) {
+						const fileContent = fs.readFileSync(containerPath, "utf-8");
+						const lines = fileContent.split("\n").filter((line) => line.trim());
+
+						const linesToKeep = Math.floor(lines.length / 2);
+						const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
+						fs.writeFileSync(containerPath, newContent);
+					}
+
+					await fs.promises.appendFile(containerPath, logLine);
 				} catch (error) {
 					console.error(
 						`Error writing metrics for container ${container.Name}:`,
