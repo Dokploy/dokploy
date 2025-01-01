@@ -12,7 +12,11 @@ export const setupMonitoring = async (serverId: string) => {
 	const settings: ContainerCreateOptions = {
 		name: containerName,
 		Env: [
-			`REFRESH_RATE_SERVER=${server.refreshRateMetrics * 1000}`,
+			`REFRESH_RATE_SERVER=${server.serverRefreshRateMetrics * 1000}`,
+			`CONTAINER_REFRESH_RATE=${server.containerRefreshRateMetrics * 1000}`,
+			`CONTAINER_MONITORING_CONFIG=${JSON.stringify(
+				server?.containersMetricsDefinition,
+			)}`,
 			`PORT=${server.defaultPortMetrics}`,
 		],
 		Image: imageName,
@@ -31,6 +35,7 @@ export const setupMonitoring = async (serverId: string) => {
 				"/var/run/docker.sock:/var/run/docker.sock:ro",
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
+				"/etc/dokploy/monitoring:/etc/dokploy/monitoring",
 				// "/proc/cpuinfo:/proc/cpuinfo:ro",
 				// "/proc/cpuinfo:/host/proc/cpuinfo:ro",
 			],

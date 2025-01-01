@@ -25,6 +25,9 @@ app.use(
 	}),
 );
 
+logServerMetrics();
+logContainerMetrics();
+
 app.use("/*", cors());
 // app.use(
 // 	"/*",
@@ -100,6 +103,3 @@ serve({
 	fetch: app.fetch,
 	port,
 });
-
-logServerMetrics();
-logContainerMetrics();

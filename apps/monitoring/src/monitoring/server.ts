@@ -46,7 +46,7 @@ const getServerMetrics = async () => {
 	};
 };
 
-const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 5000);
+const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 10000);
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB por defecto
 
 export const logServerMetrics = () => {

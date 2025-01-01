@@ -238,14 +238,14 @@ export const serverRouter = createTRPCRouter({
 					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
 					serverRefreshRateMetrics: input.serverRefreshRateMetrics,
 					containersMetricsDefinition: {
-						includeServices: input.containersMetricsDefinition.includeServices,
+						includeServices:
+							input?.containersMetricsDefinition?.includeServices ?? [],
 						excludedServices:
-							input.containersMetricsDefinition.excludedServices,
+							input?.containersMetricsDefinition?.excludedServices ?? [],
 					},
 				});
-				// const currentServer = await setupMonitoring(input.serverId);
-				// return currentServer;
-				return true;
+				const currentServer = await setupMonitoring(input.serverId);
+				return currentServer;
 			} catch (error) {
 				throw error;
 			}

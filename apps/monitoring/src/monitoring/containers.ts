@@ -34,7 +34,7 @@ const DEFAULT_CONFIG: MonitoringConfig = {
 // Cargar la configuración desde la variable de entorno
 const loadConfig = (): MonitoringConfig => {
 	try {
-		const configJson = process.env.MONITORING_CONFIG;
+		const configJson = process.env.CONTAINER_MONITORING_CONFIG;
 
 		if (!configJson) {
 			return DEFAULT_CONFIG;
@@ -50,7 +50,7 @@ const loadConfig = (): MonitoringConfig => {
 
 const config = loadConfig();
 const REFRESH_RATE_CONTAINER = Number(
-	process.env.CONTAINER_REFRESH_RATE || 8000,
+	process.env.CONTAINER_REFRESH_RATE || 10000,
 );
 
 interface Container {

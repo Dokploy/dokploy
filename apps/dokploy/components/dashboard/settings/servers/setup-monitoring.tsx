@@ -244,8 +244,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															onValueChange={setSearch}
 														/>
 														<CommandEmpty>No service found.</CommandEmpty>
-														<CommandGroup>
-															<ScrollArea className="h-[200px]">
+														<CommandGroup className="max-h-[200px] overflow-hidden">
+															<ScrollArea className="h-[200px]" onWheel={(e) => e.stopPropagation()}>
 																{availableServices?.map((service) => (
 																	<CommandItem
 																		key={service}
@@ -332,8 +332,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															onValueChange={setSearchExclude}
 														/>
 														<CommandEmpty>No service found.</CommandEmpty>
-														<CommandGroup>
-															<ScrollArea className="h-[200px]">
+														<CommandGroup className="max-h-[200px] overflow-hidden">
+															<ScrollArea className="h-[200px]" onWheel={(e) => e.stopPropagation()}>
 																{availableServicesToExclude.map((service) => (
 																	<CommandItem
 																		key={service}
