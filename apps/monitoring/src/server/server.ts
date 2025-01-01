@@ -46,40 +46,30 @@ const getServerMetrics = async () => {
 const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 10000);
 const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB por defecto
 
-const formatMemoryUsage = (data: number) =>
-	`${Math.round((data / 1024 / 1024) * 100) / 100} MB`;
-export function logMemoryUsage(label: string) {
-	const memoryData = process.memoryUsage();
-	console.log(`[Memory ${label}]`, {
-		heapUsed: `${formatMemoryUsage(memoryData.heapUsed)} -> Actual Memory Used`,
-		heapTotal: `${formatMemoryUsage(memoryData.heapTotal)} -> Total Size of the Heap`,
-		rss: `${formatMemoryUsage(memoryData.rss)} -> Resident Set Size`,
-		external: `${formatMemoryUsage(memoryData.external)} -> External Memory`,
-	});
-}
-
-logMemoryUsage("Initial");
-
 export const logServerMetrics = () => {
-	logMemoryUsage("Before Server Metrics");
-
-	const executeMetrics = async () => {
-		logMemoryUsage("After Server Metrics");
+	setInterval(async () => {
 		const metrics = await getServerMetrics();
 
-		logMemoryUsage("Before Logging");
+		// console.log("Metrics:", metrics);
 
 		const logLine = `${JSON.stringify(metrics)}\n`;
 
-		logMemoryUsage("After Logging");
-
+		// Verificar si el archivo existe y su tamaño
 		if (fs.existsSync(serverLogFile)) {
 			const stats = fs.statSync(serverLogFile);
 			const fileSizeInMB = stats.size / (1024 * 1024);
+			// console.log(
+			// 	"File size:",
+			// 	fileSizeInMB.toFixed(2),
+			// 	"MB (max:",
+			// 	MAX_FILE_SIZE_MB,
+			// 	"MB)",
+			// );
 
 			if (fileSizeInMB >= MAX_FILE_SIZE_MB) {
 				const fileContent = fs.readFileSync(serverLogFile, "utf-8");
 				const lines = fileContent.split("\n").filter((line) => line.trim());
+
 				const linesToKeep = Math.floor(lines.length / 2);
 				const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
 				fs.writeFileSync(serverLogFile, newContent);
@@ -87,13 +77,7 @@ export const logServerMetrics = () => {
 		}
 
 		fs.appendFile(serverLogFile, logLine, (err) => {
-			if (err) console.error("Error writing server metrics:", err);
+			if (err) console.error("Error to write server metrics:", err);
 		});
-		logMemoryUsage("After Writing");
-
-		// Llama recursivamente después del tiempo establecido
-		setTimeout(executeMetrics, REFRESH_RATE_SERVER);
-	};
-
-	executeMetrics();
+	}, REFRESH_RATE_SERVER);
 };
