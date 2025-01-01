@@ -232,7 +232,6 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 
-				console.log(JSON.stringify(input, null, 2));
 				await updateServerById(input.serverId, {
 					defaultPortMetrics: input.defaultPortMetrics,
 					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
