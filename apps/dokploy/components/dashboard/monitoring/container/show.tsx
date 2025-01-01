@@ -20,6 +20,9 @@ const DATA_POINTS_OPTIONS = {
 	"200": "200 points",
 	"500": "500 points",
 	"800": "800 points",
+	"1200": "1200 points",
+	"1600": "1600 points",
+	"2000": "2000 points",
 	all: "All points",
 } as const;
 
@@ -168,9 +171,12 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<MemoryStick className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.Memory.percentage}%</p>
+					<p className="mt-2 text-2xl font-bold">
+						{metrics.Memory.percentage}%
+					</p>
 					<p className="mt-1 text-sm text-muted-foreground">
-						{metrics.Memory.used} {metrics.Memory.unit} / {metrics.Memory.total} {metrics.Memory.unit}
+						{metrics.Memory.used} {metrics.Memory.unit} / {metrics.Memory.total}{" "}
+						{metrics.Memory.unit}
 					</p>
 				</Card>
 
@@ -179,7 +185,10 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<Network className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Network I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.Network.input} {metrics.Network.inputUnit} / {metrics.Network.output} {metrics.Network.outputUnit}</p>
+					<p className="mt-2 text-2xl font-bold">
+						{metrics.Network.input} {metrics.Network.inputUnit} /{" "}
+						{metrics.Network.output} {metrics.Network.outputUnit}
+					</p>
 				</Card>
 
 				<Card className="p-6 bg-transparent">
@@ -187,7 +196,10 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 						<HardDrive className="h-4 w-4 text-muted-foreground" />
 						<h3 className="text-sm font-medium">Block I/O</h3>
 					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.BlockIO.read} {metrics.BlockIO.readUnit} / {metrics.BlockIO.write} {metrics.BlockIO.writeUnit}</p>
+					<p className="mt-2 text-2xl font-bold">
+						{metrics.BlockIO.read} {metrics.BlockIO.readUnit} /{" "}
+						{metrics.BlockIO.write} {metrics.BlockIO.writeUnit}
+					</p>
 				</Card>
 			</div>
 

@@ -231,12 +231,21 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to setup this server",
 					});
 				}
+
+				console.log(JSON.stringify(input, null, 2));
 				await updateServerById(input.serverId, {
 					defaultPortMetrics: input.defaultPortMetrics,
-					refreshRateMetrics: input.refreshRateMetrics,
+					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
+					serverRefreshRateMetrics: input.serverRefreshRateMetrics,
+					containersMetricsDefinition: {
+						includeServices: input.containersMetricsDefinition.includeServices,
+						excludedServices:
+							input.containersMetricsDefinition.excludedServices,
+					},
 				});
-				const currentServer = await setupMonitoring(input.serverId);
-				return currentServer;
+				// const currentServer = await setupMonitoring(input.serverId);
+				// return currentServer;
+				return true;
 			} catch (error) {
 				throw error;
 			}

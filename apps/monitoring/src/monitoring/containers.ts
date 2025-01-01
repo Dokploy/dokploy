@@ -10,22 +10,24 @@ dotenvConfig();
 
 export const execAsync = util.promisify(exec);
 
+interface ServiceConfig {
+	appName: string;
+	maxFileSizeMB: number;
+}
+
 interface MonitoringConfig {
-	includeServices: {
-		[key: string]: {
-			maxFileSizeMB: number;
-		};
-	};
+	includeServices: ServiceConfig[];
 	excludeServices: string[];
 }
 
 // Configuración por defecto
 const DEFAULT_CONFIG: MonitoringConfig = {
-	includeServices: {
-		"*": {
+	includeServices: [
+		{
+			appName: "*",
 			maxFileSizeMB: 10,
 		},
-	},
+	],
 	excludeServices: [],
 };
 
@@ -93,12 +95,15 @@ const shouldMonitorContainer = (containerName: string): boolean => {
 	const serviceName = getServiceName(containerName);
 
 	// Si está específicamente incluido, siempre monitorear
-	if (serviceName in includeServices) {
+	if (includeServices.some((service) => service.appName === serviceName)) {
 		return true;
 	}
 
 	// Si hay wildcard en includeServices y no está específicamente excluido
-	if ("*" in includeServices && !excludeServices.includes(serviceName)) {
+	if (
+		includeServices.some((service) => service.appName === "*") &&
+		!excludeServices.includes(serviceName)
+	) {
 		return true;
 	}
 
@@ -106,17 +111,23 @@ const shouldMonitorContainer = (containerName: string): boolean => {
 	return false;
 };
 
-const getContainerConfig = (containerName: string) => {
+const getContainerConfig = (containerName: string): ServiceConfig => {
 	const serviceName = getServiceName(containerName);
 	const { includeServices } = config;
 
 	// Si tiene configuración específica, usarla
-	if (serviceName in includeServices) {
-		return includeServices[serviceName];
+	const specificConfig = includeServices.find(
+		(service) => service.appName === serviceName,
+	);
+	if (specificConfig) {
+		return specificConfig;
 	}
 
 	// Si no, usar la configuración por defecto (wildcard)
-	return includeServices["*"] || { maxFileSizeMB: 10 };
+	const wildcardConfig = includeServices.find(
+		(service) => service.appName === "*",
+	);
+	return wildcardConfig || { appName: "*", maxFileSizeMB: 10 };
 };
 
 function getServiceName(containerName: string): string {

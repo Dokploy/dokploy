@@ -46,6 +46,7 @@ import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 export type Services = {
+	appName: string;
 	name: string;
 	type:
 		| "mariadb"
@@ -66,6 +67,7 @@ type Project = Awaited<ReturnType<typeof findProjectById>>;
 export const extractServices = (data: Project | undefined) => {
 	const applications: Services[] =
 		data?.applications.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "application",
 			id: item.applicationId,
@@ -76,6 +78,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const mariadb: Services[] =
 		data?.mariadb.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mariadb",
 			id: item.mariadbId,
@@ -86,6 +89,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const postgres: Services[] =
 		data?.postgres.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "postgres",
 			id: item.postgresId,
@@ -96,6 +100,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const mongo: Services[] =
 		data?.mongo.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mongo",
 			id: item.mongoId,
@@ -106,6 +111,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const redis: Services[] =
 		data?.redis.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "redis",
 			id: item.redisId,
@@ -116,6 +122,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const mysql: Services[] =
 		data?.mysql.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mysql",
 			id: item.mysqlId,
@@ -126,6 +133,7 @@ export const extractServices = (data: Project | undefined) => {
 
 	const compose: Services[] =
 		data?.compose.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "compose",
 			id: item.composeId,

@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	json,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -44,7 +51,19 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
-	refreshRateMetrics: integer("refreshRateMetrics").notNull().default(5),
+	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
+		.notNull()
+		.default(5),
+	containerRefreshRateMetrics: integer("containerRefreshRateMetrics")
+		.notNull()
+		.default(5),
+	containersMetricsDefinition: json("containersMetricsDefinition").$type<{
+		includeServices: {
+			appName: string;
+			maxFileSizeMB: number;
+		}[];
+		excludedServices: string[];
+	}>(),
 	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
 });
 
@@ -120,6 +139,20 @@ export const apiUpdateServerMonitoring = createSchema
 	})
 	.required()
 	.extend({
-		refreshRateMetrics: z.number().optional(),
+		serverRefreshRateMetrics: z.number().optional(),
+		containerRefreshRateMetrics: z.number().optional(),
+		containersMetricsDefinition: z
+			.object({
+				includeServices: z
+					.array(
+						z.object({
+							appName: z.string().min(1),
+							maxFileSizeMB: z.number().min(1),
+						}),
+					)
+					.optional(),
+				excludedServices: z.string().array().optional(),
+			})
+			.optional(),
 		defaultPortMetrics: z.number().optional(),
 	});
