@@ -385,8 +385,13 @@ export default function Page({ children }: Props) {
 		(auth?.rol === "admin" || user?.canCreateProjects);
 
 	return (
-		<SidebarProvider>
-			<Sidebar collapsible="icon" variant="floating" className="w-[320px]">
+		<SidebarProvider
+			style={{
+				"--sidebar-width": "19.5rem",
+				"--sidebar-width-mobile": "19.5rem",
+			}}
+		>
+			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
@@ -459,9 +464,9 @@ export default function Page({ children }: Props) {
 									<SidebarMenuItem>
 										{item.isSingle ? (
 											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url} className="flex gap-4">
+												<Link href={item.url}>
 													<item.icon />
-													<span className="text-base">{item.title}</span>
+													<span>{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
 										) : (
@@ -517,9 +522,9 @@ export default function Page({ children }: Props) {
 									<SidebarMenuItem>
 										{item.isSingle ? (
 											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url} className="flex gap-4">
+												<Link href={item.url}>
 													<item.icon />
-													<span className="text-base">{item.title}</span>
+													<span>{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
 										) : (
