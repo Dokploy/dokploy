@@ -6,14 +6,15 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { FolderUp, Database, Loader2 } from "lucide-react";
-import { AddDestination } from "./add-destination";
-import { DeleteDestination } from "./delete-destination";
-import { UpdateDestination } from "./update-destination";
+import { FolderUp, Database, Loader2, Trash2 } from "lucide-react";
+import { HandleDestinations } from "./handle-destinations";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const ShowDestinations = () => {
-	const { data, isLoading } = api.destination.all.useQuery();
-
+	const { data, isLoading, refetch } = api.destination.all.useQuery();
+	const { mutateAsync } = api.destination.remove.useMutation();
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar w-[55rem] p-2.5 rounded-xl  max-w-7xl mx-auto">
@@ -43,7 +44,7 @@ export const ShowDestinations = () => {
 											To create a backup it is required to set at least 1
 											provider.
 										</span>
-										<AddDestination />
+										<HandleDestinations />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 ">
@@ -58,12 +59,37 @@ export const ShowDestinations = () => {
 															{index + 1}. {destination.name}
 														</span>
 														<div className="flex flex-row gap-1">
-															<UpdateDestination
+															<HandleDestinations
 																destinationId={destination.destinationId}
 															/>
-															<DeleteDestination
-																destinationId={destination.destinationId}
-															/>
+															<DialogAction
+																title="Delete Destination"
+																description="Are you sure you want to delete this destination?"
+																type="destructive"
+																onClick={async () => {
+																	await mutateAsync({
+																		destinationId: destination.destinationId,
+																	})
+																		.then(() => {
+																			toast.success(
+																				"Destination deleted successfully",
+																			);
+																			refetch();
+																		})
+																		.catch(() => {
+																			toast.error("Error deleting destination");
+																		});
+																}}
+															>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="group hover:bg-red-500/10 "
+																	isLoading={isLoading}
+																>
+																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																</Button>
+															</DialogAction>
 														</div>
 													</div>
 												</div>
@@ -71,7 +97,7 @@ export const ShowDestinations = () => {
 										</div>
 
 										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddDestination />
+											<HandleDestinations />
 										</div>
 									</div>
 								)}

@@ -30,11 +30,12 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { S3_PROVIDERS } from "./constants";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -49,15 +50,31 @@ const addDestination = z.object({
 
 type AddDestination = z.infer<typeof addDestination>;
 
-export const AddDestination = () => {
+interface Props {
+	destinationId?: string;
+}
+
+export const HandleDestinations = ({ destinationId }: Props) => {
+	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.destination.create.useMutation();
+	const { mutateAsync, isError, error, isLoading } = destinationId
+		? api.destination.update.useMutation()
+		: api.destination.create.useMutation();
+
+	const { data: destination } = api.destination.one.useQuery(
+		{
+			destinationId: destinationId || "",
+		},
+		{
+			enabled: !!destinationId,
+		},
+	);
 	const { mutateAsync: testConnection, isLoading: isLoadingConnection } =
 		api.destination.testConnection.useMutation();
+
 	const form = useForm<AddDestination>({
 		defaultValues: {
 			provider: "",
@@ -71,8 +88,20 @@ export const AddDestination = () => {
 		resolver: zodResolver(addDestination),
 	});
 	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (destination) {
+			form.reset({
+				name: destination.name,
+				provider: destination.provider || "",
+				accessKeyId: destination.accessKey,
+				secretAccessKey: destination.secretAccessKey,
+				bucket: destination.bucket,
+				region: destination.region,
+				endpoint: destination.endpoint,
+			});
+		} else {
+			form.reset();
+		}
+	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
@@ -83,25 +112,47 @@ export const AddDestination = () => {
 			name: data.name,
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
+			destinationId: destinationId || "",
 		})
 			.then(async () => {
-				toast.success("Destination Created");
+				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
 				await utils.destination.all.invalidate();
+				setOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error creating the Destination");
+				toast.error(
+					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+				);
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
-				<Button>Add Destination</Button>
+				{destinationId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button className="cursor-pointer space-x-3">
+						<PlusIcon className="h-4 w-4" />
+						Add Destination
+					</Button>
+				)}
+				{/* <Button>Add Destination</Button> */}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Destination</DialogTitle>
+					<DialogTitle>
+						{destinationId ? "Update" : "Add"} Destination
+					</DialogTitle>
 					<DialogDescription>
-						In this section you can add destinations for your backups.
+						In this section, you can configure and add new destinations for your
+						backups. Please ensure that you provide the correct information to
+						guarantee secure and efficient storage.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -138,6 +189,7 @@ export const AddDestination = () => {
 											<Select
 												onValueChange={field.onChange}
 												defaultValue={field.value}
+												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
@@ -347,7 +399,7 @@ export const AddDestination = () => {
 							form="hook-form-destination-add"
 							type="submit"
 						>
-							Create
+							{destinationId ? "Update" : "Create"}
 						</Button>
 					</DialogFooter>
 				</Form>
