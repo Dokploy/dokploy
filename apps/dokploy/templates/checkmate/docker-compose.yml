@@ -39,7 +39,7 @@ services:
     image: bluewaveuptime/uptime_database_mongo:latest
     restart: always
     volumes:
-      - ./mongo/data:/data/db
+      - ../files/mongo/data:/data/db
     command: ["mongod", "--quiet"]
     ports:
       - 27017
