@@ -94,18 +94,18 @@ export const ShowRequests = () => {
 					</div>
 				</CardHeader>
 				<CardContent>
-				{
-						isActive ? (
-							<RequestDistributionChart />
-						) : (
-							<div className="flex items-center justify-center">
-								<span className="text-muted-foreground py-6">You need to activate requests</span>
-							</div>
-						) 
-					}
+					{isActive ? (
+						<RequestDistributionChart />
+					) : (
+						<div className="flex items-center justify-center min-h-[25vh]">
+							<span className="text-muted-foreground py-6">
+								You need to activate requests
+							</span>
+						</div>
+					)}
 				</CardContent>
 			</Card>
-			<RequestsTable />
+			{isActive && <RequestsTable />}
 		</>
 	);
 };
