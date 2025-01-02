@@ -32,7 +32,7 @@ services:
     ports:
       - 6379
     volumes:
-      - ./redis/data:/data
+      - ../files/redis/data:/data
     networks:
       - dokploy-network
   mongodb:
