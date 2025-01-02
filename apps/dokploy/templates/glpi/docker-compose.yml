@@ -1,6 +1,6 @@
 services:
   glpi-mysql:
-    image: elestio/mysql:9.1.0
+    image: mysql:9.1.0
     restart: always
     volumes:
       - glpi-mysql-data:/var/lib/mysql
