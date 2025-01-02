@@ -257,7 +257,7 @@ export const mongoRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add environment variables",
+					message: "Error adding environment variables",
 				});
 			}
 
@@ -281,7 +281,7 @@ export const mongoRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update mongo",
+					message: "Update: Error updating Mongo",
 				});
 			}
 

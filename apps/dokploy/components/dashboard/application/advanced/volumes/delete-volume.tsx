@@ -45,10 +45,10 @@ export const DeleteVolume = ({ mountId, refetch }: Props) => {
 							})
 								.then(() => {
 									refetch();
-									toast.success("Mount deleted succesfully");
+									toast.success("Mount deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the mount");
+									toast.error("Error deleting the mount");
 								});
 						}}
 					>

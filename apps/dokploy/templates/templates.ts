@@ -1151,4 +1151,34 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "development"],
 		load: () => import("./onedev/index").then((m) => m.generate),
 	},
+	{
+		id: "unifi",
+		name: "Unifi Network",
+		version: "11.6.6",
+		description:
+			"Unifi Network is an open-source enterprise network management platform for wireless networks.",
+		logo: "unifi.webp",
+		links: {
+			github: "https://github.com/ubiquiti",
+			website: "https://www.ui.com/",
+			docs: "https://help.ui.com/hc/en-us/articles/360012282453-Self-Hosting-a-UniFi-Network-Server",
+		},
+		tags: ["self-hosted", "networking"],
+		load: () => import("./unifi/index").then((m) => m.generate),
+	},
+	{
+		id: "checkmate",
+		name: "Checkmate",
+		version: "2.0.1",
+		description:
+			"Checkmate is an open-source, self-hosted tool designed to track and monitor server hardware, uptime, response times, and incidents in real-time with beautiful visualizations.",
+		logo: "checkmate.png",
+		links: {
+			github: "https://github.com/bluewave-labs/checkmate",
+			website: "https://bluewavelabs.ca",
+			docs: "https://bluewavelabs.gitbook.io/checkmate",
+		},
+		tags: ["self-hosted", "monitoring", "uptime"],
+		load: () => import("./checkmate/index").then((m) => m.generate),
+	},
 ];

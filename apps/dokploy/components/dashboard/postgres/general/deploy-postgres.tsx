@@ -55,12 +55,12 @@ export const DeployPostgres = ({ postgresId }: Props) => {
 									await deploy({
 										postgresId,
 									}).catch(() => {
-										toast.error("Error to deploy Database");
+										toast.error("Error deploying Database");
 									});
 									await refetch();
 								})
 								.catch((e) => {
-									toast.error(e.message || "Error to deploy Database");
+									toast.error(e.message || "Error deploying Database");
 								});
 						}}
 					>

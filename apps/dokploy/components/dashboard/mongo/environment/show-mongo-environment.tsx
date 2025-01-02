@@ -70,7 +70,7 @@ export const ShowMongoEnvironment = ({ mongoId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to add environment");
+				toast.error("Error adding environment");
 			});
 	};
 

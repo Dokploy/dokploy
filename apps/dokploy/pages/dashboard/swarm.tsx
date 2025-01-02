@@ -10,9 +10,7 @@ import superjson from "superjson";
 const Dashboard = () => {
 	return (
 		<>
-			<div className="flex flex-wrap gap-4 py-4">
-				<SwarmMonitorCard />
-			</div>
+			<SwarmMonitorCard />
 		</>
 	);
 };

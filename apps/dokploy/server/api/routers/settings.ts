@@ -359,7 +359,9 @@ export const settingsRouter = createTRPCRouter({
 
 		await pullLatestRelease();
 
-		await spawnAsync("docker", [
+		// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
+		// Status after restart is checked via frontend /api/health endpoint
+		void spawnAsync("docker", [
 			"service",
 			"update",
 			"--force",
@@ -748,7 +750,7 @@ export const settingsRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error.message
-							: "Error to update Traefik ports",
+							: "Error updating Traefik ports",
 					cause: error,
 				});
 			}

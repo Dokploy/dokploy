@@ -49,7 +49,7 @@ export const adminRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
-						"Error to create this user\ncheck if the email is not registered",
+						"Error creating this user\ncheck if the email is not registered",
 					cause: error,
 				});
 			}
@@ -70,7 +70,7 @@ export const adminRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to delete this user",
+					message: "Error deleting this user",
 					cause: error,
 				});
 			}

@@ -86,7 +86,7 @@ export const createApplication = async (
 		if (!newApplication) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the application",
+				message: "Error creating the application",
 			});
 		}
 
@@ -222,7 +222,7 @@ export const deployApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: error?.message || "Error building",
 			buildLink,
 			adminId: application.project.adminId,
 		});
@@ -352,7 +352,7 @@ export const deployRemoteApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: error?.message || "Error building",
 			buildLink,
 			adminId: application.project.adminId,
 		});

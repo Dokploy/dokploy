@@ -75,13 +75,13 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MariaDB updated succesfully");
+				toast.success("MariaDB updated successfully");
 				utils.mariadb.one.invalidate({
 					mariadbId: mariadbId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the Mariadb");
+				toast.error("Error updating the Mariadb");
 			})
 			.finally(() => {});
 	};

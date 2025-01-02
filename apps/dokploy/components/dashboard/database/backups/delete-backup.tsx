@@ -46,10 +46,10 @@ export const DeleteBackup = ({ backupId, refetch }: Props) => {
 								.then(() => {
 									refetch();
 
-									toast.success("Backup delete succesfully");
+									toast.success("Backup deleted successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the backup");
+									toast.error("Error deleting the backup");
 								});
 						}}
 					>

@@ -19,7 +19,7 @@ export const createBackup = async (input: typeof apiCreateBackup._type) => {
 	if (!newBackup) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the Backup",
+			message: "Error creating the Backup",
 		});
 	}
 

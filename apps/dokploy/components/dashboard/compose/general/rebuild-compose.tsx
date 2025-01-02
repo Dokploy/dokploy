@@ -62,7 +62,7 @@ export const RedbuildCompose = ({ composeId }: Props) => {
 									});
 								})
 								.catch(() => {
-									toast.error("Error to rebuild the compose");
+									toast.error("Error rebuilding the compose");
 								});
 						}}
 					>

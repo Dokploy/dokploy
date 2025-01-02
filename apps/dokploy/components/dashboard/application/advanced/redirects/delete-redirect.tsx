@@ -50,10 +50,10 @@ export const DeleteRedirect = ({ redirectId }: Props) => {
 									utils.application.readTraefikConfig.invalidate({
 										applicationId: data?.applicationId,
 									});
-									toast.success("Redirect delete succesfully");
+									toast.success("Redirect delete successfully");
 								})
 								.catch(() => {
-									toast.error("Error to delete the redirect");
+									toast.error("Error deleting the redirect");
 								});
 						}}
 					>

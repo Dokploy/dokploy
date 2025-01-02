@@ -1,0 +1,47 @@
+services:
+  client:
+    image: bluewaveuptime/uptime_client:latest
+    restart: always
+    environment:
+      UPTIME_APP_API_BASE_URL: "http://${DOMAIN}/api/v1"
+    ports:
+      - 80
+      - 443
+    depends_on:
+      - server
+    networks:
+      - dokploy-network
+  server:
+    image: bluewaveuptime/uptime_server:latest
+    restart: always
+    ports:
+      - 5000
+    depends_on:
+      - redis
+      - mongodb
+    environment:
+      - DB_CONNECTION_STRING=mongodb://mongodb:27017/uptime_db
+      - REDIS_HOST=redis
+    networks:
+      - dokploy-network
+    # volumes:
+    # - /var/run/docker.sock:/var/run/docker.sock:ro
+  redis:
+    image: bluewaveuptime/uptime_redis:latest
+    restart: always
+    ports:
+      - 6379
+    volumes:
+      - ../files/redis/data:/data
+    networks:
+      - dokploy-network
+  mongodb:
+    image: bluewaveuptime/uptime_database_mongo:latest
+    restart: always
+    volumes:
+      - ../files/mongo/data:/data/db
+    command: ["mongod", "--quiet"]
+    ports:
+      - 27017
+    networks:
+      - dokploy-network

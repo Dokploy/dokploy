@@ -89,7 +89,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update Bitbucket");
+				toast.error("Error updating Bitbucket");
 			});
 	};
 

@@ -13,15 +13,19 @@ import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-import { UpdateWebServer } from "../dashboard/settings/web-server/update-webserver";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
+import UpdateServer from "../dashboard/settings/web-server/update-server";
+import type { IUpdateData } from "@dokploy/server/index";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const Navbar = () => {
-	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
+	const [updateData, setUpdateData] = useState<IUpdateData>({
+		latestVersion: null,
+		updateAvailable: false,
+	});
 	const router = useRouter();
 	const { data } = api.auth.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -62,12 +66,12 @@ export const Navbar = () => {
 					return;
 				}
 
-				const { updateAvailable } = await getUpdateData();
+				const fetchedUpdateData = await getUpdateData();
 
-				if (updateAvailable) {
+				if (fetchedUpdateData?.updateAvailable) {
 					// Stop interval when update is available
 					clearUpdatesInterval();
-					setIsUpdateAvailable(true);
+					setUpdateData(fetchedUpdateData);
 				}
 			} catch (error) {
 				console.error("Error auto-checking for updates:", error);
@@ -101,9 +105,9 @@ export const Navbar = () => {
 						</span>
 					</Link>
 				</div>
-				{isUpdateAvailable && (
+				{updateData.updateAvailable && (
 					<div>
-						<UpdateWebServer isNavbar />
+						<UpdateServer updateData={updateData} />
 					</div>
 				)}
 				<Link

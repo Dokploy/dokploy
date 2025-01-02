@@ -270,7 +270,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					});
 				})
 				.catch(() => {
-					toast.error("Error to create a database");
+					toast.error("Error creating a database");
 				});
 		}
 	};

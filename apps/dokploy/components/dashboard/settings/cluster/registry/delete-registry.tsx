@@ -48,7 +48,7 @@ export const DeleteRegistry = ({ registryId }: Props) => {
 									toast.success("Registry deleted");
 								})
 								.catch(() => {
-									toast.error("Error to delete the registry");
+									toast.error("Error deleting the registry");
 								});
 						}}
 					>

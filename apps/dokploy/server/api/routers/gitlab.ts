@@ -30,7 +30,7 @@ export const gitlabRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create this gitlab provider",
+					message: "Error creating this Gitlab provider",
 					cause: error,
 				});
 			}
@@ -43,7 +43,7 @@ export const gitlabRouter = createTRPCRouter({
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this gitlab provider",
+					message: "You are not allowed to access this Gitlab provider",
 				});
 			}
 			return gitlabProvider;
@@ -82,7 +82,7 @@ export const gitlabRouter = createTRPCRouter({
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this gitlab provider",
+					message: "You are not allowed to access this Gitlab provider",
 				});
 			}
 			return await getGitlabRepositories(input.gitlabId);
@@ -96,7 +96,7 @@ export const gitlabRouter = createTRPCRouter({
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this gitlab provider",
+					message: "You are not allowed to access this Gitlab provider",
 				});
 			}
 			return await getGitlabBranches(input);
@@ -113,7 +113,7 @@ export const gitlabRouter = createTRPCRouter({
 					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to access this gitlab provider",
+						message: "You are not allowed to access this Gitlab provider",
 					});
 				}
 				const result = await testGitlabConnection(input);
@@ -134,7 +134,7 @@ export const gitlabRouter = createTRPCRouter({
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this gitlab provider",
+					message: "You are not allowed to access this Gitlab provider",
 				});
 			}
 			if (input.name) {

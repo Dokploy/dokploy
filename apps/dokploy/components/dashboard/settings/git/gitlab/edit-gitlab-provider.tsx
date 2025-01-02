@@ -90,7 +90,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error to update Gitlab");
+				toast.error("Error updating Gitlab");
 			});
 	};
 

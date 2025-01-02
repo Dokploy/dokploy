@@ -70,10 +70,10 @@ export const RemoveGitProvider = ({
 							})
 								.then(async () => {
 									utils.gitProvider.getAll.invalidate();
-									toast.success("Git Provider deleted succesfully.");
+									toast.success("Git Provider deleted successfully.");
 								})
 								.catch(() => {
-									toast.error("Error to delete your git provider.");
+									toast.error("Error deleting Git provider.");
 								});
 						}}
 					>
