@@ -19,6 +19,7 @@ const REFRESH_RATE_CONTAINER = Number(
 	process.env.CONTAINER_REFRESH_RATE || 10000,
 );
 
+const logStreams = new Map<string, fs.WriteStream>();
 export const logContainerMetrics = () => {
 	console.log("Refresh rate:", REFRESH_RATE_CONTAINER);
 
@@ -28,6 +29,11 @@ export const logContainerMetrics = () => {
 	const cleanup = async () => {
 		if (job) {
 			job.cancel();
+
+			for (const stream of logStreams.values()) {
+				stream.end();
+			}
+			// logStreams.forEach((stream) => stream.end());
 		}
 	};
 
@@ -96,9 +102,23 @@ export const logContainerMetrics = () => {
 						}
 					}
 
-					// Escribir la nueva línea
-					await fs.promises.appendFile(containerPath, logLine);
+					if (!logStreams.has(serviceName)) {
+						console.log(logStreams.size);
+						logStreams.set(
+							serviceName,
+							fs.createWriteStream(containerPath, { flags: "a" }),
+						);
+					}
 
+					const stream = logStreams.get(serviceName);
+					if (stream) {
+						if (!stream.write(logLine)) {
+							stream.once("drain", () => stream.write(logLine));
+						}
+					}
+
+					// Escribir la nueva línea
+					// await fs.promises.appendFile(containerPath, logLine);
 				} catch (error) {
 					console.error(
 						`Error writing metrics for container ${container.Name}:`,
@@ -121,7 +141,6 @@ export const logContainerMetrics = () => {
 		Math.floor(REFRESH_RATE_CONTAINER / 1000),
 	);
 
-	console.log(rule);
 	job = schedule.scheduleJob(rule, runMetricsCollection);
 
 	process.on("SIGTERM", cleanup);

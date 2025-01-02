@@ -34,7 +34,6 @@ void app.prepare().then(async () => {
 		});
 
 		// WEBSOCKET
-		setupMonitoringWebSocketServer(server);
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);

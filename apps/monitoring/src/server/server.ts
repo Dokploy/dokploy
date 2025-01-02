@@ -49,7 +49,10 @@ const getServerMetrics = async () => {
 };
 
 const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 10000);
-const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10); // 10 MB por defecto
+const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
+
+// Crear el WriteStream (mantener abierto para reutilizarlo)
+const logStream = fs.createWriteStream(serverLogFile, { flags: "a" });
 
 export const logServerMetrics = () => {
 	const rule = new schedule.RecurrenceRule();
@@ -87,9 +90,12 @@ export const logServerMetrics = () => {
 			}
 		}
 
-		fs.appendFile(serverLogFile, logLine, (err) => {
-			if (err) console.error("Error to write server metrics:", err);
-		});
+		if (!logStream.write(logLine)) {
+			console.log("Escribiendo....");
+			logStream.once("drain", () => {
+				logStream.write(logLine);
+			});
+		}
 	});
 
 	// Cleanup function
