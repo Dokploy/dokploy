@@ -98,16 +98,16 @@ interface NavItem {
 	isSingle: boolean;
 	isActive: boolean;
 	items?: {
-	  title: string;
-	  url: string;
-	  icon?: LucideIcon;
+		title: string;
+		url: string;
+		icon?: LucideIcon;
 	}[];
-  }
+}
 
 interface ExternalLink {
-  name: string;
-  url: string;
-  icon: LucideIcon;
+	name: string;
+	url: string;
+	icon: LucideIcon;
 }
 
 const data = {
@@ -139,43 +139,43 @@ const data = {
 			url: "/dashboard/projects",
 			icon: Folder,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
-		{
-			title: "Monitoring",
-			url: "/dashboard/monitoring",
-			icon: BarChartHorizontalBigIcon,
-			isSingle: true,
-			isActive: false      
-		},
-		{
-			title: "File System",
-			url: "/dashboard/traefik",
-			icon: GalleryVerticalEnd,
-			isSingle: true,
-			isActive: false
-		},
-		{
-			title: "Docker",
-			url: "/dashboard/docker",
-			icon: BlocksIcon,
-			isSingle: true,
-			isActive: false
-		},
-		{
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			isSingle: true,
-			isActive: false
-		},
-		{
-			title: "Requests",
-			url: "/dashboard/requests",
-			icon: Forward,
-			isSingle: true,
-			isActive: false
-		},
+		// {
+		// 	title: "Monitoring",
+		// 	url: "/dashboard/monitoring",
+		// 	icon: BarChartHorizontalBigIcon,
+		// 	isSingle: true,
+		// 	isActive: false
+		// },
+		// {
+		// 	title: "File System",
+		// 	url: "/dashboard/traefik",
+		// 	icon: GalleryVerticalEnd,
+		// 	isSingle: true,
+		// 	isActive: false
+		// },
+		// {
+		// 	title: "Docker",
+		// 	url: "/dashboard/docker",
+		// 	icon: BlocksIcon,
+		// 	isSingle: true,
+		// 	isActive: false
+		// },
+		// {
+		// 	title: "Swarm",
+		// 	url: "/dashboard/swarm",
+		// 	icon: PieChart,
+		// 	isSingle: true,
+		// 	isActive: false
+		// },
+		// {
+		// 	title: "Requests",
+		// 	url: "/dashboard/requests",
+		// 	icon: Forward,
+		// 	isSingle: true,
+		// 	isActive: false
+		// },
 
 		// {
 		// 	title: "Projects",
@@ -250,35 +250,35 @@ const data = {
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 
 		{
@@ -286,21 +286,21 @@ const data = {
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 
 		{
@@ -308,14 +308,14 @@ const data = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		{
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			isSingle: true,
-			isActive: false
+			isActive: false,
 		},
 		// {
 		// 	title: "Billing",
@@ -369,23 +369,24 @@ export default function Page({ children }: Props) {
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
-  
-	data.home = data.home.map(item => ({
-	  ...item,
-	  isActive: item.url === currentPath
-	}));
-  
-	data.settings = data.settings.map(item => ({
-	  ...item,
-	  isActive: item.url === currentPath
+
+	data.home = data.home.map((item) => ({
+		...item,
+		isActive: item.url === currentPath,
 	}));
 
-	const showProjectsButton = currentPath === "/dashboard/projects" && 
+	data.settings = data.settings.map((item) => ({
+		...item,
+		isActive: item.url === currentPath,
+	}));
+
+	const showProjectsButton =
+		currentPath === "/dashboard/projects" &&
 		(auth?.rol === "admin" || user?.canCreateProjects);
 
 	return (
 		<SidebarProvider>
-			<Sidebar collapsible="icon" variant="floating">
+			<Sidebar collapsible="icon" variant="floating" className="w-[320px]">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
@@ -395,7 +396,7 @@ export default function Page({ children }: Props) {
 										size="lg"
 										className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground "
 									>
-										<div className="flex aspect-square size-8 items-center justify-center rounded-lg ">
+										<div className="flex aspect-square size-12 items-center justify-center rounded-lg ">
 											<Logo />
 											{/* <activeTeam.logo className="size-4" /> */}
 										</div>
@@ -458,9 +459,9 @@ export default function Page({ children }: Props) {
 									<SidebarMenuItem>
 										{item.isSingle ? (
 											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url}>
+												<Link href={item.url} className="flex gap-4">
 													<item.icon />
-													<span>{item.title}</span>
+													<span className="text-base">{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
 										) : (
@@ -505,7 +506,7 @@ export default function Page({ children }: Props) {
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
-						<SidebarMenu>
+						<SidebarMenu className="gap-2">
 							{data.settings.map((item) => (
 								<Collapsible
 									key={item.title}
@@ -516,9 +517,9 @@ export default function Page({ children }: Props) {
 									<SidebarMenuItem>
 										{item.isSingle ? (
 											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url}>
+												<Link href={item.url} className="flex gap-4">
 													<item.icon />
-													<span>{item.title}</span>
+													<span className="text-base">{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
 										) : (
@@ -709,15 +710,15 @@ export default function Page({ children }: Props) {
 								<BreadcrumbList>
 									<BreadcrumbItem className="hidden md:block">
 										<BreadcrumbLink href="#">
-											{data.home.find(item => item.isActive)?.title || 
-											data.settings.find(item => item.isActive)?.title}
+											{data.home.find((item) => item.isActive)?.title ||
+												data.settings.find((item) => item.isActive)?.title}
 										</BreadcrumbLink>
 									</BreadcrumbItem>
 									<BreadcrumbSeparator className="hidden md:block" />
 									<BreadcrumbItem>
 										<BreadcrumbPage>
-											{data.home.find(item => item.isActive)?.title || 
-											data.settings.find(item => item.isActive)?.title}
+											{data.home.find((item) => item.isActive)?.title ||
+												data.settings.find((item) => item.isActive)?.title}
 										</BreadcrumbPage>
 									</BreadcrumbItem>
 								</BreadcrumbList>

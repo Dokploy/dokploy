@@ -5,7 +5,7 @@ export const Logo = () => {
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 559 446"
-			className="h-10 w-10"
+			className="h-14 w-14"
 		>
 			<path
 				className="fill-primary stroke-primary"

@@ -33,7 +33,9 @@ export function AppSidebar() {
 export const DashboardLayout = ({ children, tab }: Props) => {
 	return (
 		<>
-			<Page>{children}</Page>
+			<Page>
+				<div className="max-w-7xl mx-auto">{children}</div>
+			</Page>
 			{/* <SidebarProvider>
 				<AppSidebar />
 				<main>

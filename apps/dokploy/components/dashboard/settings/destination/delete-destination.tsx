@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
-import { TrashIcon } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -24,9 +24,17 @@ export const DeleteDestination = ({ destinationId }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<TrashIcon className="size-4  text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-red-500/10 "
+					isLoading={isLoading}
+				>
+					<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 				</Button>
+				{/* <Button variant="ghost" isLoading={isLoading}>
+					<TrashIcon className="size-4  text-red-500" />
+				</Button> */}
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
