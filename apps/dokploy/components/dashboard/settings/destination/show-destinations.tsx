@@ -14,7 +14,8 @@ import { toast } from "sonner";
 
 export const ShowDestinations = () => {
 	const { data, isLoading, refetch } = api.destination.all.useQuery();
-	const { mutateAsync } = api.destination.remove.useMutation();
+	const { mutateAsync, isLoading: isRemoving } =
+		api.destination.remove.useMutation();
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar w-[55rem] p-2.5 rounded-xl  max-w-7xl mx-auto">
@@ -85,7 +86,7 @@ export const ShowDestinations = () => {
 																	variant="ghost"
 																	size="icon"
 																	className="group hover:bg-red-500/10 "
-																	isLoading={isLoading}
+																	isLoading={isRemoving}
 																>
 																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 																</Button>
