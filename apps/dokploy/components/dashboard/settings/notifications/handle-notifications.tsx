@@ -305,7 +305,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		if (promise) {
 			await promise
 				.then(async () => {
-					toast.success("Notification Created");
+					toast.success(
+						notificationId ? "Notification Updated" : "Notification Created",
+					);
 					form.reset({
 						type: "slack",
 						webhookUrl: "",
@@ -314,7 +316,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					await utils.notification.all.invalidate();
 				})
 				.catch(() => {
-					toast.error("Error creating a notification");
+					toast.error(
+						notificationId
+							? "Error updating a notification"
+							: "Error creating a notification",
+					);
 				});
 		}
 	};

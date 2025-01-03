@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Container } from "lucide-react";
+import { AlertTriangle, Container, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,10 +51,26 @@ const AddRegistrySchema = z.object({
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
 
-export const AddRegistry = () => {
+interface Props {
+	registryId?: string;
+}
+
+export const HandleRegistry = ({ registryId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { mutateAsync, error, isError } = api.registry.create.useMutation();
+
+	const { data, refetch } = api.registry.one.useQuery(
+		{
+			registryId: registryId || "",
+		},
+		{
+			enabled: !!registryId,
+		},
+	);
+
+	const { mutateAsync, error, isError } = registryId
+		? api.registry.update.useMutation()
+		: api.registry.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync: testRegistry, isLoading } =
 		api.registry.testRegistry.useMutation();
@@ -96,26 +112,39 @@ export const AddRegistry = () => {
 			registryType: "cloud",
 			imagePrefix: data.imagePrefix,
 			serverId: data.serverId,
+			registryId: registryId || "",
 		})
 			.then(async (data) => {
 				await utils.registry.all.invalidate();
-				toast.success("Registry added");
+				toast.success(registryId ? "Registry updated" : "Registry added");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error adding a registry");
+				toast.error(
+					registryId ? "Error updating a registry" : "Error adding a registry",
+				);
 			});
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button className="max-sm:w-full">
-					<Container className="h-4 w-4" />
-					Create Registry
-				</Button>
+				{registryId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button className="cursor-pointer space-x-3">
+						<PlusIcon className="h-4 w-4" />
+						Add Registry
+					</Button>
+				)}
 			</DialogTrigger>
-			<DialogContent className="sm:m:max-w-lg ">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add a external registry</DialogTitle>
 					<DialogDescription>
@@ -133,7 +162,7 @@ export const AddRegistry = () => {
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+						className="grid grid-cols-2 w-full gap-4"
 					>
 						<div className="flex flex-col gap-4">
 							<FormField
@@ -208,7 +237,7 @@ export const AddRegistry = () => {
 								)}
 							/>
 						</div>
-						<div className="flex flex-col gap-4">
+						<div className="flex flex-col gap-4  col-span-2">
 							<FormField
 								control={form.control}
 								name="registryUrl"
@@ -227,7 +256,7 @@ export const AddRegistry = () => {
 								)}
 							/>
 						</div>
-						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col">
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2">
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
 									Select a server to test the registry. If you don't have a
@@ -299,7 +328,7 @@ export const AddRegistry = () => {
 							</div>
 
 							<Button isLoading={form.formState.isSubmitting} type="submit">
-								Create
+								{registryId ? "Update" : "Add"}
 							</Button>
 						</DialogFooter>
 					</form>
