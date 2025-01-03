@@ -27,7 +27,10 @@ export const ShowDestinations = () => {
 							<KeyRound className="size-6 text-muted-foreground self-center" />
 							SSH Keys
 						</CardTitle>
-						<CardDescription>Manage your SSH Keys</CardDescription>
+						<CardDescription>
+							Create and manage SSH Keys, you can use them to access your
+							servers, git private repositories, and more.
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
@@ -37,11 +40,11 @@ export const ShowDestinations = () => {
 							</div>
 						) : (
 							<>
-								{data?.length === 0 ? (
+								{data?.length === 1 ? (
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<KeyRound className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any registry configurations
+											You don't have any SSH keys
 										</span>
 										<HandleSSHKeys />
 										{/* <HandleRegistry /> */}

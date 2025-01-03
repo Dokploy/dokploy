@@ -24,7 +24,6 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { flushSync } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
@@ -57,7 +56,24 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 
 	const form = useForm<SSHKey>({
 		resolver: zodResolver(sshKeyCreate),
+		defaultValues: {
+			name: "",
+			description: "",
+			publicKey: "",
+			privateKey: "",
+		},
 	});
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				...data,
+				description: data.description || undefined,
+			});
+		} else {
+			form.reset();
+		}
+	}, [data, form, form.reset]);
 
 	const onSubmit = async (data: SSHKey) => {
 		await mutateAsync({
@@ -71,7 +87,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 						: "SSH key created successfully",
 				);
 				await utils.sshKey.all.invalidate();
-
+				form.reset();
 				setIsOpen(false);
 			})
 			.catch(() => {
@@ -82,18 +98,6 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 				);
 			});
 	};
-
-	useEffect(() => {
-		if (data) {
-			form.reset({
-				...data,
-				/* Convert null to undefined */
-				description: data.description || undefined,
-			});
-		} else {
-			form.reset({});
-		}
-	}, [data, form, form.reset]);
 
 	const onGenerateSSHKey = (type: z.infer<typeof sshKeyType>) =>
 		generateMutation
