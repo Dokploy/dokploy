@@ -12,9 +12,11 @@ import superjson from "superjson";
 
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<WebDomain />
-			<WebServer />
+		<div className="w-full">
+			<div className="h-full  p-2.5 rounded-xl  max-w-4xl mx-auto flex flex-col gap-4">
+				<WebDomain />
+				<WebServer />
+			</div>
 		</div>
 	);
 };

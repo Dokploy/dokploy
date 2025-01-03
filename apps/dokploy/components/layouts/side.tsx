@@ -35,7 +35,7 @@ import {
 	Settings,
 	BarChartHorizontalBigIcon,
 	Heart,
-	LucideIcon,
+	type LucideIcon,
 	Activity,
 } from "lucide-react";
 import * as React from "react";
@@ -141,41 +141,41 @@ const data = {
 			isSingle: true,
 			isActive: false,
 		},
-		// {
-		// 	title: "Monitoring",
-		// 	url: "/dashboard/monitoring",
-		// 	icon: BarChartHorizontalBigIcon,
-		// 	isSingle: true,
-		// 	isActive: false
-		// },
-		// {
-		// 	title: "File System",
-		// 	url: "/dashboard/traefik",
-		// 	icon: GalleryVerticalEnd,
-		// 	isSingle: true,
-		// 	isActive: false
-		// },
-		// {
-		// 	title: "Docker",
-		// 	url: "/dashboard/docker",
-		// 	icon: BlocksIcon,
-		// 	isSingle: true,
-		// 	isActive: false
-		// },
-		// {
-		// 	title: "Swarm",
-		// 	url: "/dashboard/swarm",
-		// 	icon: PieChart,
-		// 	isSingle: true,
-		// 	isActive: false
-		// },
-		// {
-		// 	title: "Requests",
-		// 	url: "/dashboard/requests",
-		// 	icon: Forward,
-		// 	isSingle: true,
-		// 	isActive: false
-		// },
+		{
+			title: "Monitoring",
+			url: "/dashboard/monitoring",
+			icon: BarChartHorizontalBigIcon,
+			isSingle: true,
+			isActive: false,
+		},
+		{
+			title: "File System",
+			url: "/dashboard/traefik",
+			icon: GalleryVerticalEnd,
+			isSingle: true,
+			isActive: false,
+		},
+		{
+			title: "Docker",
+			url: "/dashboard/docker",
+			icon: BlocksIcon,
+			isSingle: true,
+			isActive: false,
+		},
+		{
+			title: "Swarm",
+			url: "/dashboard/swarm",
+			icon: PieChart,
+			isSingle: true,
+			isActive: false,
+		},
+		{
+			title: "Requests",
+			url: "/dashboard/requests",
+			icon: Forward,
+			isSingle: true,
+			isActive: false,
+		},
 
 		// {
 		// 	title: "Projects",

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { GlobeIcon, ServerIcon, User } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -87,114 +88,120 @@ export const WebDomain = () => {
 				toast.error("Error assigning the domain");
 			});
 	};
+
 	return (
 		<div className="w-full">
-			<Card className="bg-transparent">
-				<CardHeader>
-					<CardTitle className="text-xl">
-						{t("settings.server.domain.title")}
-					</CardTitle>
-					<CardDescription>
-						{t("settings.server.domain.description")}
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex w-full flex-col gap-4">
-					<Form {...form}>
-						<form
-							onSubmit={form.handleSubmit(onSubmit)}
-							className="grid w-full gap-4 md:grid-cols-2"
-						>
-							<FormField
-								control={form.control}
-								name="domain"
-								render={({ field }) => {
-									return (
-										<FormItem>
-											<FormLabel>
-												{t("settings.server.domain.form.domain")}
-											</FormLabel>
-											<FormControl>
-												<Input
-													className="w-full"
-													placeholder={"dokploy.com"}
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
-
-							<FormField
-								control={form.control}
-								name="letsEncryptEmail"
-								render={({ field }) => {
-									return (
-										<FormItem>
-											<FormLabel>
-												{t("settings.server.domain.form.letsEncryptEmail")}
-											</FormLabel>
-											<FormControl>
-												<Input
-													className="w-full"
-													placeholder={"Dp4kz@example.com"}
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
-							<FormField
-								control={form.control}
-								name="certificateType"
-								render={({ field }) => {
-									return (
-										<FormItem className="md:col-span-2">
-											<FormLabel>
-												{t("settings.server.domain.form.certificate.label")}
-											</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												value={field.value}
-											>
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-4xl mx-auto">
+				<div className="rounded-xl bg-background shadow-md ">
+					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+						<div className="flex flex-col gap-1">
+							<CardTitle className="text-xl flex flex-row gap-2">
+								<GlobeIcon className="size-6 text-muted-foreground self-center" />
+								{t("settings.server.domain.title")}
+							</CardTitle>
+							<CardDescription>
+								{t("settings.server.domain.description")}
+							</CardDescription>
+						</div>
+					</CardHeader>
+					<CardContent className="space-y-2 py-6 border-t">
+						<Form {...form}>
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="grid w-full gap-4 md:grid-cols-2"
+							>
+								<FormField
+									control={form.control}
+									name="domain"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>
+													{t("settings.server.domain.form.domain")}
+												</FormLabel>
 												<FormControl>
-													<SelectTrigger>
-														<SelectValue
-															placeholder={t(
-																"settings.server.domain.form.certificate.placeholder",
-															)}
-														/>
-													</SelectTrigger>
+													<Input
+														className="w-full"
+														placeholder={"dokploy.com"}
+														{...field}
+													/>
 												</FormControl>
-												<SelectContent>
-													<SelectItem value={"none"}>
-														{t(
-															"settings.server.domain.form.certificateOptions.none",
-														)}
-													</SelectItem>
-													<SelectItem value={"letsencrypt"}>
-														{t(
-															"settings.server.domain.form.certificateOptions.letsencrypt",
-														)}
-													</SelectItem>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
-							<div>
-								<Button isLoading={isLoading} type="submit">
-									{t("settings.common.save")}
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</CardContent>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="letsEncryptEmail"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>
+													{t("settings.server.domain.form.letsEncryptEmail")}
+												</FormLabel>
+												<FormControl>
+													<Input
+														className="w-full"
+														placeholder={"Dp4kz@example.com"}
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="certificateType"
+									render={({ field }) => {
+										return (
+											<FormItem className="md:col-span-2">
+												<FormLabel>
+													{t("settings.server.domain.form.certificate.label")}
+												</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													value={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue
+																placeholder={t(
+																	"settings.server.domain.form.certificate.placeholder",
+																)}
+															/>
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														<SelectItem value={"none"}>
+															{t(
+																"settings.server.domain.form.certificateOptions.none",
+															)}
+														</SelectItem>
+														<SelectItem value={"letsencrypt"}>
+															{t(
+																"settings.server.domain.form.certificateOptions.letsencrypt",
+															)}
+														</SelectItem>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<div className="flex w-full justify-end col-span-2">
+									<Button isLoading={isLoading} type="submit">
+										{t("settings.common.save")}
+									</Button>
+								</div>
+							</form>
+						</Form>
+					</CardContent>
+				</div>
 			</Card>
 		</div>
 	);
