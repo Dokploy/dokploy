@@ -72,8 +72,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			enabled: !!destinationId,
 		},
 	);
-	const { mutateAsync: testConnection, isLoading: isLoadingConnection } =
-		api.destination.testConnection.useMutation();
+	const {
+		mutateAsync: testConnection,
+		isLoading: isLoadingConnection,
+		error: connectionError,
+		isError: isErrorConnection,
+	} = api.destination.testConnection.useMutation();
 
 	const form = useForm<AddDestination>({
 		defaultValues: {
@@ -142,7 +146,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						Add Destination
 					</Button>
 				)}
-				{/* <Button>Add Destination</Button> */}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
@@ -155,7 +158,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						guarantee secure and efficient storage.
 					</DialogDescription>
 				</DialogHeader>
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{(isError || isErrorConnection) && (
+					<AlertBlock type="error" className="break-words">
+						{connectionError?.message || error?.message}
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
