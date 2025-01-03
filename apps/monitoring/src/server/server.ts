@@ -158,6 +158,7 @@ export const getLatestMetrics = (): Promise<ServerMetric | undefined> => {
 			"SELECT * FROM server_metrics ORDER BY timestamp DESC LIMIT 1",
 			(err, row) => {
 				if (err) reject(err);
+				// @ts-ignore
 				resolve(row);
 			},
 		);
@@ -178,6 +179,7 @@ export const getLastNMetrics = (limit: number): Promise<ServerMetric[]> => {
 			[limit],
 			(err, rows) => {
 				if (err) reject(err);
+				// @ts-ignore
 				resolve(rows);
 			},
 		);
@@ -196,6 +198,7 @@ export const getMetricsInRange = (
 			[startTime, endTime],
 			(err, rows) => {
 				if (err) reject(err);
+				// @ts-ignore
 				resolve(rows);
 			},
 		);

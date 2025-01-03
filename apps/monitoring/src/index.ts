@@ -89,13 +89,13 @@ app.get("/metrics/containers", async (c) => {
 		if (existsSync(logPath) === false) {
 			return c.json([]);
 		}
-		const metrics = await processMetricsFromFile(logPath, {
-			start: c.req.query("start"),
-			end: c.req.query("end"),
-			limit: Number(c.req.query("limit")) || undefined,
-		});
+		// const metrics = await processMetricsFromFile(logPath, {
+		// 	start: c.req.query("start"),
+		// 	end: c.req.query("end"),
+		// 	limit: Number(c.req.query("limit")) || undefined,
+		// });
 
-		return c.json(metrics);
+		// return c.json(metrics);
 	} catch (error) {
 		console.error("Error reading metrics:", error);
 		return c.json({ error: "Error reading metrics" }, 500);
