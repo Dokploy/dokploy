@@ -17,7 +17,7 @@ export const serverSideTranslations = (
 		keySeparator: false,
 		i18n: {
 			defaultLocale: "en",
-			locales: Object.values(Languages).map(language => language.code),
+			locales: Object.values(Languages).map((language) => language.code),
 			localeDetection: false,
 		},
 	});

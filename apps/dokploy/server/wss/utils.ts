@@ -1,7 +1,7 @@
-import { execAsync } from "@dokploy/server";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import fs from "node:fs";
+import { execAsync } from "@dokploy/server";
 
 const HOME_PATH = process.env.HOME || process.env.USERPROFILE || "/";
 

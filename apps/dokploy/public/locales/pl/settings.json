@@ -1,6 +1,6 @@
 {
 	"settings.common.save": "Zapisz",
-	"settings.common.enterTerminal":  "Otwórz terminal",
+	"settings.common.enterTerminal": "Otwórz terminal",
 	"settings.server.domain.title": "Domena",
 	"settings.server.domain.description": "Dodaj domenę do aplikacji",
 	"settings.server.domain.form.domain": "Domena",

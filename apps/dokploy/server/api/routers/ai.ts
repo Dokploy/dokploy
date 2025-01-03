@@ -12,9 +12,6 @@ export const aiRouter = createTRPCRouter({
 			return await saveAiSettings(ctx.user.authId, input);
 		}),
 	get: protectedProcedure.query(async ({ ctx }) => {
-		const data = await getAiSettingsByAuthId(ctx.user.authId);
-		console.log(data);
-		console.log(ctx.user);
-		return data;
+		return await getAiSettingsByAuthId(ctx.user.authId);
 	}),
 });
