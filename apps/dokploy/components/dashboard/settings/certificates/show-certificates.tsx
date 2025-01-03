@@ -56,7 +56,7 @@ export const ShowCertificates = () => {
 										<AddCertificate />
 									</div>
 								) : (
-									<div className="flex flex-col gap-4 ">
+									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<div className="flex flex-col gap-4 rounded-lg ">
 											{data?.map((certificate, index) => {
 												const expiration = getExpirationStatus(
@@ -135,44 +135,6 @@ export const ShowCertificates = () => {
 															</div>
 														</div>
 													</div>
-													// <div className="flex items-center justify-between  p-3.5 rounded-lg bg-background border  w-full">
-													// 	<span className="text-sm">
-													// 		{index + 1}. {certificate.name}
-													// 	</span>
-													// <div className="flex flex-row gap-1">
-													// 	<DialogAction
-													// 		title="Delete Certificate"
-													// 		description="Are you sure you want to delete this certificate?"
-													// 		type="destructive"
-													// 		onClick={async () => {
-													// 			await mutateAsync({
-													// 				certificateId: certificate.certificateId,
-													// 			})
-													// 				.then(() => {
-													// 					toast.success(
-													// 						"Certificate deleted successfully",
-													// 					);
-													// 					refetch();
-													// 				})
-													// 				.catch(() => {
-													// 					toast.error(
-													// 						"Error deleting certificate",
-													// 					);
-													// 				});
-													// 		}}
-													// 	>
-													// 		<Button
-													// 			variant="ghost"
-													// 			size="icon"
-													// 			className="group hover:bg-red-500/10 "
-													// 			isLoading={isRemoving}
-													// 		>
-													// 			<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-													// 		</Button>
-													// 	</DialogAction>
-													// </div>
-													// </div>
-													// </div>
 												);
 											})}
 										</div>
@@ -190,80 +152,3 @@ export const ShowCertificates = () => {
 		</div>
 	);
 };
-// <div className="h-full">
-// 	<Card className="bg-transparent h-full">
-// 		<CardHeader>
-// 			<CardTitle className="text-xl">Certificates</CardTitle>
-// 			<CardDescription>
-// 				Add custom certificates to your application.
-// 			</CardDescription>
-// 		</CardHeader>
-// 		<CardContent className="space-y-2 pt-4 h-full">
-// 			{!data?.length ? (
-// 				<div className="flex flex-col items-center gap-3">
-// 					<ShieldCheck className="size-8 self-center text-muted-foreground" />
-// 					<span className="text-base text-muted-foreground">
-// 						To create a certificate it is required to upload an existing
-// 						certificate
-// 					</span>
-// 					<AddCertificate />
-// 				</div>
-// 			) : (
-// 				<div className="flex flex-col gap-6">
-// 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-// {data.map((certificate, index) => {
-// 	const expiration = getExpirationStatus(
-// 		certificate.certificateData,
-// 	);
-// 	const chainInfo = getCertificateChainInfo(
-// 		certificate.certificateData,
-// 	);
-// 							return (
-// 								<div
-// 									key={certificate.certificateId}
-// 									className="flex flex-col border p-4 rounded-lg space-y-2"
-// 								>
-// 	<div className="flex items-center justify-between">
-// 		<div className="flex items-center gap-2">
-// 			<span className="text-sm font-medium">
-// 				{index + 1}. {certificate.name}
-// 			</span>
-// 			{chainInfo.isChain && (
-// 				<div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
-// 					<Link className="size-3 text-muted-foreground" />
-// 					<span className="text-xs text-muted-foreground">
-// 						Chain ({chainInfo.count})
-// 					</span>
-// 				</div>
-// 			)}
-// 		</div>
-// 		<DeleteCertificate
-// 			certificateId={certificate.certificateId}
-// 		/>
-// 	</div>
-// 	<div
-// 		className={`text-xs flex items-center gap-1.5 ${expiration.className}`}
-// 	>
-// 		{expiration.status !== "valid" && (
-// 			<AlertCircle className="size-3" />
-// 		)}
-// 		{expiration.message}
-// 		{certificate.autoRenew &&
-// 			expiration.status !== "valid" && (
-// 				<span className="text-xs text-emerald-500 ml-1">
-// 					(Auto-renewal enabled)
-// 				</span>
-// 			)}
-// 	</div>
-// </div>
-// 							);
-// 						})}
-// 					</div>
-// 					<div>
-// 						<AddCertificate />
-// 					</div>
-// 				</div>
-// 			)}
-// 		</CardContent>
-// 	</Card>
-// </div>

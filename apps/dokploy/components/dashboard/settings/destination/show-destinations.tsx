@@ -48,7 +48,7 @@ export const ShowDestinations = () => {
 										<HandleDestinations />
 									</div>
 								) : (
-									<div className="flex flex-col gap-4 ">
+									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<div className="flex flex-col gap-4 rounded-lg ">
 											{data?.map((destination, index) => (
 												<div
