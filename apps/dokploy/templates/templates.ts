@@ -619,7 +619,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "vaultwarden",
 		name: "Vaultwarden",
-		version: "1.32.3",
+		version: "1.32.7",
 		description:
 			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
 		logo: "vaultwarden.svg",
