@@ -75,8 +75,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
 		? api.registry.update.useMutation()
 		: api.registry.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { mutateAsync: testRegistry, isLoading } =
-		api.registry.testRegistry.useMutation();
+	const {
+		mutateAsync: testRegistry,
+		isLoading,
+		error: testRegistryError,
+		isError: testRegistryIsError,
+	} = api.registry.testRegistry.useMutation();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
 			username: "",
@@ -157,25 +161,25 @@ export const HandleRegistry = ({ registryId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl max-h-screen overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Add a external registry</DialogTitle>
 					<DialogDescription>
 						Fill the next fields to add a external registry.
 					</DialogDescription>
 				</DialogHeader>
-				{isError && (
+				{(isError || testRegistryIsError) && (
 					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
 						<span className="text-sm text-red-600 dark:text-red-400">
-							{error?.message}
+							{testRegistryError?.message || error?.message || ""}
 						</span>
 					</div>
 				)}
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid sm:grid-cols-2 w-full gap-4"
+						className="grid grid-cols-1 sm:grid-cols-2 w-full gap-4"
 					>
 						<div className="flex flex-col gap-4">
 							<FormField
