@@ -11,7 +11,7 @@ export function generate(schema: Schema): Template {
 	const hulySecret = generateBase64(64);
 	const domains: DomainSchema[] = [
 		{
-			host: generateRandomDomain(schema),
+			host: mainDomain,
 			port: 80,
 			serviceName: "nginx",
 		},
