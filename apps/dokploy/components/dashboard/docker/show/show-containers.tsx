@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { type RouterOutputs, api } from "@/utils/api";
 import { columns } from "./colums";
+import { Skeleton } from "@/components/ui/skeleton";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -69,6 +70,47 @@ export const ShowContainers = ({ serverId }: Props) => {
 			rowSelection,
 		},
 	});
+
+	if (isLoading) {
+		return (
+			<div className="mt-6 grid gap-4 pb-20 w-full">
+			<div className="flex flex-col gap-4 w-full overflow-auto">
+			  <div className="flex items-center gap-2 max-sm:flex-wrap">
+				<Skeleton className="h-10 md:max-w-sm w-full" />
+				<Skeleton className="h-10 w-32 sm:ml-auto max-sm:w-full" />
+			  </div>
+			  <div className="rounded-md border">
+				<Table>
+				  <TableHeader>
+					<TableRow>
+					  <TableHead className="w-[40%]"><Skeleton className="h-4 w-32" /></TableHead>
+					  <TableHead className="w-[20%]"><Skeleton className="h-4 w-20" /></TableHead>
+					  <TableHead className="w-[20%]"><Skeleton className="h-4 w-24" /></TableHead>
+					  <TableHead className="w-[20%]"><Skeleton className="h-4 w-20" /></TableHead>
+					</TableRow>
+				  </TableHeader>
+				  <TableBody>
+					{Array.from({ length: 12 }).map((_, i) => (
+					  <TableRow key={i} className="h-16">
+						<TableCell><Skeleton className="h-4 w-[90%]" /></TableCell>
+						<TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-32" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-40" /></TableCell>
+					  </TableRow>
+					))}
+				  </TableBody>
+				</Table>
+			  </div>
+			  <div className="flex items-center justify-end space-x-2 py-4">
+				<div className="space-x-2 flex flex-wrap">
+				  <Skeleton className="h-9 w-20" />
+				  <Skeleton className="h-9 w-20" />
+				</div>
+			  </div>
+			</div>
+		  </div>
+		)
+	  }
 
 	return (
 		<div className="mt-6 grid gap-4 pb-20 w-full">
@@ -110,13 +152,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 					</DropdownMenu>
 				</div>
 				<div className="rounded-md border">
-					{isLoading ? (
-						<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-							<span className="text-muted-foreground text-lg font-medium">
-								Loading...
-							</span>
-						</div>
-					) : data?.length === 0 ? (
+					{data?.length === 0 ? (
 						<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
 							<span className="text-muted-foreground text-lg font-medium">
 								No results.

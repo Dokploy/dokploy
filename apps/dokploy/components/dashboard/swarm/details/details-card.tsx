@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ShowNodeApplications } from "../applications/show-applications";
 import { ShowNodeConfig } from "./show-node-config";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface SwarmList {
   ID: string;
@@ -32,29 +33,6 @@ export function NodeCard({ node, serverId }: Props) {
     nodeId: node.ID,
     serverId,
   });
-
-
-  if (isLoading) {
-    return (
-      <Card className="w-full bg-background">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-lg">
-            <span className="flex items-center gap-2">  
-              {node.Hostname}
-            </span>
-            <Badge variant="green">
-              {node.ManagerStatus || "Worker"}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="w-full bg-background">
@@ -117,7 +95,7 @@ export function NodeCard({ node, serverId }: Props) {
           </div>
 
           <div className="flex justify-end w-full space-x-4">
-		  	<ShowNodeConfig nodeId={node.ID} serverId={serverId} />
+		  	    <ShowNodeConfig nodeId={node.ID} serverId={serverId} />
             <ShowNodeApplications serverId={serverId} />
           </div>
         </div>
