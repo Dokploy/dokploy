@@ -129,11 +129,14 @@ export const ShowMonitoring = ({
 	useEffect(() => {
 		fetchMetrics();
 
-		const interval = setInterval(() => {
-			fetchMetrics();
-		}, REFRESH_INTERVAL);
+		// Solo crear el intervalo si no es "all"
+		if (dataPoints !== "all") {
+			const interval = setInterval(() => {
+				fetchMetrics();
+			}, REFRESH_INTERVAL);
 
-		return () => clearInterval(interval);
+			return () => clearInterval(interval);
+		}
 	}, [dataPoints]);
 
 	if (isLoading) {
