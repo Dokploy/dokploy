@@ -69,62 +69,70 @@ export const RemoveSelfAccount = () => {
 	};
 
 	return (
-		<Card className="bg-transparent">
-			<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
-				<div>
-					<CardTitle className="text-xl">Remove Self Account</CardTitle>
-					<CardDescription>
-						If you want to remove your account, you can do it here
-					</CardDescription>
-				</div>
-			</CardHeader>
-			<CardContent className="space-y-2">
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-
-				<Form {...form}>
-					<form
-						onSubmit={(e) => e.preventDefault()}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								e.preventDefault();
-							}
-						}}
-						className="grid gap-4"
-					>
-						<div className="space-y-4">
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>{t("settings.profile.password")}</FormLabel>
-										<FormControl>
-											<Input
-												type="password"
-												placeholder={t("settings.profile.password")}
-												{...field}
-												value={field.value || ""}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+		<div className="w-full">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-4xl mx-auto">
+				<div className="rounded-xl bg-background shadow-md ">
+					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
+						<div>
+							<CardTitle className="text-xl">Remove Self Account</CardTitle>
+							<CardDescription>
+								If you want to remove your account, you can do it here
+							</CardDescription>
 						</div>
-					</form>
-				</Form>
-				<div>
-					<DialogAction
-						title="Are you sure you want to remove your account?"
-						description="This action cannot be undone, all your projects/servers will be deleted."
-						onClick={() => form.handleSubmit(onSubmit)()}
-					>
-						<Button type="button" isLoading={isLoading} variant="destructive">
-							Remove
-						</Button>
-					</DialogAction>
+					</CardHeader>
+					<CardContent className="space-y-2">
+						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
+						<Form {...form}>
+							<form
+								onSubmit={(e) => e.preventDefault()}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+									}
+								}}
+								className="grid gap-4"
+							>
+								<div className="space-y-4">
+									<FormField
+										control={form.control}
+										name="password"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>{t("settings.profile.password")}</FormLabel>
+												<FormControl>
+													<Input
+														type="password"
+														placeholder={t("settings.profile.password")}
+														{...field}
+														value={field.value || ""}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</form>
+						</Form>
+						<div className="flex justify-end pt-2">
+							<DialogAction
+								title="Are you sure you want to remove your account?"
+								description="This action cannot be undone, all your projects/servers will be deleted."
+								onClick={() => form.handleSubmit(onSubmit)()}
+							>
+								<Button
+									type="button"
+									isLoading={isLoading}
+									variant="destructive"
+								>
+									Remove
+								</Button>
+							</DialogAction>
+						</div>
+					</CardContent>
 				</div>
-			</CardContent>
-		</Card>
+			</Card>
+		</div>
 	);
 };
