@@ -1,11 +1,14 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logServerMetrics } from "./server/server.js";
+import {
+	logServerMetrics,
+	getMetricsInRange,
+	getLastNMetrics,
+	type ServerMetric,
+} from "./server/server.js";
 import { config } from "dotenv";
-import { serverLogFile, containerLogFile } from "./constants.js";
-import { processMetricsFromFile } from "./utils.js";
-import { logContainerMetrics } from "./containers/index.js";
+import { containerLogFile } from "./constants.js";
 import { existsSync } from "node:fs";
 config();
 
@@ -25,7 +28,7 @@ app.use(
 	}),
 );
 logServerMetrics();
-logContainerMetrics();
+// logContainerMetrics();
 
 app.use("/*", cors());
 // app.use(
@@ -53,11 +56,19 @@ app.get("/", (c) => {
 
 app.get("/metrics", async (c) => {
 	try {
-		const metrics = await processMetricsFromFile(serverLogFile, {
-			start: c.req.query("start"),
-			end: c.req.query("end"),
-			limit: Number(c.req.query("limit")) || undefined,
-		});
+		const start = c.req.query("start");
+		const end = c.req.query("end");
+		const limit = Number(c.req.query("limit")) || 60; // Default a 60 registros
+
+		let metrics: ServerMetric[];
+		if (start && end) {
+			metrics = await getMetricsInRange(start, end);
+			if (limit && metrics.length > limit) {
+				metrics = metrics.slice(0, limit);
+			}
+		} else {
+			metrics = await getLastNMetrics(limit);
+		}
 
 		return c.json(metrics);
 	} catch (error) {

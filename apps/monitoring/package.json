@@ -17,7 +17,8 @@
     "hono": "^4.6.14",
     "ws": "8.18.0",
     "systeminformation": "^5.23.23",
-    "node-schedule":"^2.1.1"
+    "node-schedule":"^2.1.1",
+    "sqlite3":"^5.1.7"
   },
   "packageManager": "pnpm@9.5.0",
   "devDependencies": {

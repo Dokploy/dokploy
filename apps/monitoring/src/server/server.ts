@@ -1,9 +1,57 @@
-import fs from "node:fs";
 import si from "systeminformation";
 import schedule from "node-schedule";
-import { serverLogFile } from "../constants.js";
+import sqlite3 from "sqlite3";
+import path from "node:path";
 
-const getServerMetrics = async () => {
+export interface ServerMetric {
+	timestamp: string;
+	cpu: string;
+	cpuModel: string;
+	cpuCores: number;
+	cpuPhysicalCores: number;
+	cpuSpeed: number;
+	os: string;
+	distro: string;
+	kernel: string;
+	arch: string;
+	memUsed: string;
+	memUsedGB: string;
+	memTotal: string;
+	uptime: number;
+	diskUsed: string;
+	totalDisk: string;
+	networkIn: string;
+	networkOut: string;
+}
+
+const dbPath = path.join(process.cwd(), "monitoring.db");
+const db = new sqlite3.Database(dbPath);
+
+// Create metrics table
+db.serialize(() => {
+	db.run(`CREATE TABLE IF NOT EXISTS server_metrics (
+    timestamp TEXT,
+    cpu TEXT,
+    cpuModel TEXT,
+    cpuCores INTEGER,
+    cpuPhysicalCores INTEGER,
+    cpuSpeed REAL,
+    os TEXT,
+    distro TEXT,
+    kernel TEXT,
+    arch TEXT,
+    memUsed TEXT,
+    memUsedGB TEXT,
+    memTotal TEXT,
+    uptime INTEGER,
+    diskUsed TEXT,
+    totalDisk TEXT,
+    networkIn TEXT,
+    networkOut TEXT
+  )`);
+});
+
+const getServerMetrics = async (): Promise<ServerMetric> => {
 	const [cpu, mem, load, fsSize, network, osInfo] = await Promise.all([
 		si.cpu(),
 		si.mem(),
@@ -49,10 +97,6 @@ const getServerMetrics = async () => {
 };
 
 const REFRESH_RATE_SERVER = Number(process.env.REFRESH_RATE_SERVER || 10000);
-const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
-
-// Crear el WriteStream (mantener abierto para reutilizarlo)
-const logStream = fs.createWriteStream(serverLogFile, { flags: "a" });
 
 export const logServerMetrics = () => {
 	const rule = new schedule.RecurrenceRule();
@@ -66,36 +110,37 @@ export const logServerMetrics = () => {
 	const job = schedule.scheduleJob(rule, async () => {
 		const metrics = await getServerMetrics();
 
-		const logLine = `${JSON.stringify(metrics)}\n`;
+		// Insert metrics into SQLite
+		const stmt = db.prepare(`
+      INSERT INTO server_metrics (
+        timestamp, cpu, cpuModel, cpuCores, cpuPhysicalCores, cpuSpeed,
+        os, distro, kernel, arch, memUsed, memUsedGB, memTotal,
+        uptime, diskUsed, totalDisk, networkIn, networkOut
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-		// Verificar si el archivo existe y su tamaño
-		if (fs.existsSync(serverLogFile)) {
-			const stats = fs.statSync(serverLogFile);
-			const fileSizeInMB = stats.size / (1024 * 1024);
-			// console.log(
-			// 	"File size:",
-			// 	fileSizeInMB.toFixed(2),
-			// 	"MB (max:",
-			// 	MAX_FILE_SIZE_MB,
-			// 	"MB)",
-			// );
+		stmt.run(
+			metrics.timestamp,
+			metrics.cpu,
+			metrics.cpuModel,
+			metrics.cpuCores,
+			metrics.cpuPhysicalCores,
+			metrics.cpuSpeed,
+			metrics.os,
+			metrics.distro,
+			metrics.kernel,
+			metrics.arch,
+			metrics.memUsed,
+			metrics.memUsedGB,
+			metrics.memTotal,
+			metrics.uptime,
+			metrics.diskUsed,
+			metrics.totalDisk,
+			metrics.networkIn,
+			metrics.networkOut,
+		);
 
-			if (fileSizeInMB >= MAX_FILE_SIZE_MB) {
-				const fileContent = fs.readFileSync(serverLogFile, "utf-8");
-				const lines = fileContent.split("\n").filter((line) => line.trim());
-
-				const linesToKeep = Math.floor(lines.length / 2);
-				const newContent = `${lines.slice(-linesToKeep).join("\n")}\n`;
-				fs.writeFileSync(serverLogFile, newContent);
-			}
-		}
-
-		if (!logStream.write(logLine)) {
-			console.log("Escribiendo....");
-			logStream.once("drain", () => {
-				logStream.write(logLine);
-			});
-		}
+		stmt.finalize();
 	});
 
 	// Cleanup function
@@ -103,5 +148,70 @@ export const logServerMetrics = () => {
 		if (job) {
 			job.cancel();
 		}
+		db.close();
 	};
+};
+
+export const getLatestMetrics = (): Promise<ServerMetric | undefined> => {
+	return new Promise((resolve, reject) => {
+		db.get(
+			"SELECT * FROM server_metrics ORDER BY timestamp DESC LIMIT 1",
+			(err, row) => {
+				if (err) reject(err);
+				resolve(row);
+			},
+		);
+	});
+};
+
+export const getLastNMetrics = (limit: number): Promise<ServerMetric[]> => {
+	return new Promise((resolve, reject) => {
+		// Subconsulta para obtener los últimos N registros en orden ascendente
+		db.all(
+			`WITH last_n AS (
+				SELECT * FROM server_metrics 
+				ORDER BY timestamp DESC 
+				LIMIT ?
+			)
+			SELECT * FROM last_n 
+			ORDER BY timestamp ASC`,
+			[limit],
+			(err, rows) => {
+				if (err) reject(err);
+				resolve(rows);
+			},
+		);
+	});
+};
+
+export const getMetricsInRange = (
+	startTime: string,
+	endTime: string,
+): Promise<ServerMetric[]> => {
+	return new Promise((resolve, reject) => {
+		db.all(
+			`SELECT * FROM server_metrics 
+       WHERE timestamp BETWEEN ? AND ?
+       ORDER BY timestamp ASC`,
+			[startTime, endTime],
+			(err, rows) => {
+				if (err) reject(err);
+				resolve(rows);
+			},
+		);
+	});
+};
+
+// Function to clean old metrics (keep last 7 days by default)
+export const cleanOldMetrics = (daysToKeep = 7) => {
+	const cutoffDate = new Date();
+	cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+	db.run(
+		"DELETE FROM server_metrics WHERE timestamp < ?",
+		[cutoffDate.toISOString()],
+		(err) => {
+			if (err) console.error("Error cleaning old metrics:", err);
+		},
+	);
 };
