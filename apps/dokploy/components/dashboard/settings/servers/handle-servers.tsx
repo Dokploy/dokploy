@@ -31,7 +31,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { PlusIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -55,24 +57,30 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 interface Props {
-	serverId: string;
+	serverId?: string;
 }
 
-export const UpdateServer = ({ serverId }: Props) => {
+export const HandleServers = ({ serverId }: Props) => {
 	const { t } = useTranslation("settings");
 
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { data, isLoading } = api.server.one.useQuery(
+	const { data: canCreateMoreServers, refetch } =
+		api.stripe.canCreateMoreServers.useQuery();
+
+	const { data, refetch: refetchServer } = api.server.one.useQuery(
 		{
-			serverId,
+			serverId: serverId || "",
 		},
 		{
 			enabled: !!serverId,
 		},
 	);
+
 	const { data: sshKeys } = api.sshKey.all.useQuery();
-	const { mutateAsync, error, isError } = api.server.update.useMutation();
+	const { mutateAsync, error, isLoading, isError } = serverId
+		? api.server.update.useMutation()
+		: api.server.create.useMutation();
 	const form = useForm<Schema>({
 		defaultValues: {
 			description: "",
@@ -96,47 +104,70 @@ export const UpdateServer = ({ serverId }: Props) => {
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
-	const onSubmit = async (formData: Schema) => {
+	useEffect(() => {
+		refetch();
+	}, [isOpen]);
+
+	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			name: formData.name,
-			description: formData.description || "",
-			ipAddress: formData.ipAddress || "",
-			port: formData.port || 22,
-			username: formData.username || "root",
-			sshKeyId: formData.sshKeyId || "",
-			serverId: serverId,
+			name: data.name,
+			description: data.description || "",
+			ipAddress: data.ipAddress || "",
+			port: data.port || 22,
+			username: data.username || "root",
+			sshKeyId: data.sshKeyId || "",
+			serverId: serverId || "",
 		})
 			.then(async (data) => {
 				await utils.server.all.invalidate();
-				toast.success("Server Updated");
+				refetchServer();
+				toast.success(serverId ? "Server Updated" : "Server Created");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating a server");
+				toast.error(
+					serverId ? "Error updating a server" : "Error creating a server",
+				);
 			});
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<DropdownMenuItem
-					className="w-full cursor-pointer "
-					onSelect={(e) => e.preventDefault()}
-				>
-					Edit Server
-				</DropdownMenuItem>
+				{serverId ? (
+					<DropdownMenuItem
+						className="w-full cursor-pointer "
+						onSelect={(e) => e.preventDefault()}
+					>
+						Edit Server
+					</DropdownMenuItem>
+				) : (
+					<Button className="cursor-pointer space-x-3">
+						<PlusIcon className="h-4 w-4" />
+						Create Server
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl ">
 				<DialogHeader>
-					<DialogTitle>Update Server</DialogTitle>
+					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
 					<DialogDescription>
-						Update a server to deploy your applications remotely.
+						{serverId ? "Edit" : "Create"} a server to deploy your applications
+						remotely.
 					</DialogDescription>
 				</DialogHeader>
+				{!canCreateMoreServers && (
+					<AlertBlock type="warning">
+						You cannot create more servers,{" "}
+						<Link href="/dashboard/settings/billing" className="text-primary">
+							Please upgrade your plan
+						</Link>
+					</AlertBlock>
+				)}
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
-						id="hook-form-update-server"
+						id="hook-form-add-server"
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4"
 					>
@@ -270,11 +301,12 @@ export const UpdateServer = ({ serverId }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={form.formState.isSubmitting}
-							form="hook-form-update-server"
+							isLoading={isLoading}
+							disabled={!canCreateMoreServers && !serverId}
+							form="hook-form-add-server"
 							type="submit"
 						>
-							{t("settings.common.save")}
+							{serverId ? "Update" : "Create"}
 						</Button>
 					</DialogFooter>
 				</Form>
