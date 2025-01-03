@@ -226,7 +226,7 @@ export const DockerLogsId: React.FC<Props> = ({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="rounded-lg overflow-hidden">
+			<div className="rounded-lg">
 				<div className="space-y-4">
 					<div className="flex flex-wrap justify-between items-start sm:items-center gap-4">
 						<div className="flex flex-wrap gap-4">

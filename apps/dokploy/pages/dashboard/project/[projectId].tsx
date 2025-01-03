@@ -1,8 +1,8 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
+import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -10,7 +10,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -205,7 +204,7 @@ const Project = (
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
 						<div className="flex flex-row gap-4 flex-wrap">
 							<ProjectEnvironment projectId={projectId}>
-								<Button variant="outline">Project Environment</Button>
+								<Button variant="outline">Project Enviroment</Button>
 							</ProjectEnvironment>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -236,7 +235,7 @@ const Project = (
 				</header>
 			</div>
 
-			<div className="flex w-full gap-8">
+			<div className="flex w-full gap-8 ">
 				{emptyServices ? (
 					<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 						<FolderInput className="size-10 md:size-28 text-muted" />
@@ -248,67 +247,65 @@ const Project = (
 					<div className="flex w-full flex-col gap-4">
 						<div className="grid gap-5 pb-10 sm:grid-cols-2 lg:grid-cols-3">
 							{applications?.map((service) => (
-								<Card
+								<a
 									key={service.id}
-									onClick={() => {
-										router.push(
-											`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
-										);
-									}}
-									className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card"
+									href={`/dashboard/project/${projectId}/services/${service.type}/${service.id}`}
+									className="focus-visible:outline-none ring-ring focus-visible:ring-offset-2 focus-visible:ring-1 block rounded-lg"
 								>
-									<div className="absolute -right-1 -top-2">
-										<StatusTooltip status={service.status} />
-									</div>
-
-									<CardHeader>
-										<CardTitle className="flex items-center justify-between">
-											<div className="flex flex-row items-center gap-2 justify-between w-full">
-												<div className="flex flex-col gap-2">
-													<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
-														{service.name}
-													</span>
-													{service.description && (
-														<span className="text-sm font-medium text-muted-foreground">
-															{service.description}
-														</span>
-													)}
-												</div>
-
-												<span className="text-sm font-medium text-muted-foreground self-start">
-													{service.type === "postgres" && (
-														<PostgresqlIcon className="h-7 w-7" />
-													)}
-													{service.type === "redis" && (
-														<RedisIcon className="h-7 w-7" />
-													)}
-													{service.type === "mariadb" && (
-														<MariadbIcon className="h-7 w-7" />
-													)}
-													{service.type === "mongo" && (
-														<MongodbIcon className="h-7 w-7" />
-													)}
-													{service.type === "mysql" && (
-														<MysqlIcon className="h-7 w-7" />
-													)}
-													{service.type === "application" && (
-														<GlobeIcon className="h-6 w-6" />
-													)}
-													{service.type === "compose" && (
-														<CircuitBoard className="h-6 w-6" />
-													)}
-												</span>
-											</div>
-										</CardTitle>
-									</CardHeader>
-									<CardFooter className="mt-auto">
-										<div className="space-y-1 text-sm">
-											<DateTooltip date={service.createdAt}>
-												Created
-											</DateTooltip>
+									<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card">
+										<div className="absolute -right-1 -top-2">
+											<StatusTooltip status={service.status} />
 										</div>
-									</CardFooter>
-								</Card>
+
+										<CardHeader>
+											<CardTitle className="flex items-center justify-between">
+												<div className="flex flex-row items-center gap-2 justify-between w-full">
+													<div className="flex flex-col gap-2">
+														<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+															{service.name}
+														</span>
+														{service.description && (
+															<span className="text-sm font-medium text-muted-foreground">
+																{service.description}
+															</span>
+														)}
+													</div>
+
+													<span className="text-sm font-medium text-muted-foreground self-start">
+														{service.type === "postgres" && (
+															<PostgresqlIcon className="h-7 w-7" />
+														)}
+														{service.type === "redis" && (
+															<RedisIcon className="h-7 w-7" />
+														)}
+														{service.type === "mariadb" && (
+															<MariadbIcon className="h-7 w-7" />
+														)}
+														{service.type === "mongo" && (
+															<MongodbIcon className="h-7 w-7" />
+														)}
+														{service.type === "mysql" && (
+															<MysqlIcon className="h-7 w-7" />
+														)}
+														{service.type === "application" && (
+															<GlobeIcon className="h-6 w-6" />
+														)}
+														{service.type === "compose" && (
+															<CircuitBoard className="h-6 w-6" />
+														)}
+													</span>
+												</div>
+											</CardTitle>
+										</CardHeader>
+										<CardFooter className="mt-auto">
+											<div className="space-y-1 text-sm">
+												<DateTooltip date={service.createdAt}>
+													Created
+												</DateTooltip>
+											</div>
+										</CardFooter>
+									</Card>
+								</a>
 							))}
 						</div>
 					</div>

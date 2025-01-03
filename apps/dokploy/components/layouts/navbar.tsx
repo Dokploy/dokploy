@@ -97,7 +97,9 @@ export const Navbar = () => {
 				<div className="text-medium box-border flex flex-grow basis-0 flex-row flex-nowrap items-center justify-start whitespace-nowrap bg-transparent no-underline">
 					<Link
 						href="/dashboard/projects"
-						className={cn("flex flex-row items-center gap-2")}
+						className={cn(
+							"flex flex-row items-center gap-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
+						)}
 					>
 						<Logo />
 						<span className="text-sm font-semibold text-primary max-sm:hidden">
@@ -130,8 +132,11 @@ export const Navbar = () => {
 					</li>
 
 					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Avatar className="size-10 cursor-pointer border border-border items-center">
+						<Avatar
+							className="size-10 cursor-pointer border border-border items-center focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+							asChild
+						>
+							<DropdownMenuTrigger>
 								<AvatarImage src={data?.image || ""} alt="@shadcn" />
 								<AvatarFallback>
 									{data?.email
@@ -139,8 +144,8 @@ export const Navbar = () => {
 										.map((n) => n[0])
 										.join("")}
 								</AvatarFallback>
-							</Avatar>
-						</DropdownMenuTrigger>
+							</DropdownMenuTrigger>
+						</Avatar>
 						<DropdownMenuContent className="w-56" align="end">
 							<DropdownMenuLabel className="flex flex-col">
 								My Account

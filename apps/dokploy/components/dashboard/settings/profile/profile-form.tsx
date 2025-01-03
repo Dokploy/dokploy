@@ -194,11 +194,11 @@ export const ProfileForm = () => {
 												}}
 												defaultValue={field.value}
 												value={field.value}
-												className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
+												className="flex flex-row flex-wrap gap-2 max-xl:justify-center "
 											>
 												{availableAvatars.map((image) => (
 													<FormItem key={image}>
-														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">
+														<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:ring-ring [&:has([data-state=checked])>img]:ring-2 [&:has([data-state=checked])>img]:p-px cursor-pointer">
 															<FormControl>
 																<RadioGroupItem
 																	value={image}
