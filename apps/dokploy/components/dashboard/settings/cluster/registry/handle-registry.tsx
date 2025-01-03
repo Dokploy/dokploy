@@ -11,6 +11,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Container, PenBoxIcon, PlusIcon } from "lucide-react";
+import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -59,7 +60,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data, refetch } = api.registry.one.useQuery(
+	const { data: registry } = api.registry.one.useQuery(
 		{
 			registryId: registryId || "",
 		},
@@ -67,6 +68,8 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			enabled: !!registryId,
 		},
 	);
+
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { mutateAsync, error, isError } = registryId
 		? api.registry.update.useMutation()
@@ -94,14 +97,24 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const serverId = form.watch("serverId");
 
 	useEffect(() => {
-		form.reset({
-			username: "",
-			password: "",
-			registryUrl: "",
-			imagePrefix: "",
-			serverId: "",
-		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+		if (registry) {
+			form.reset({
+				username: registry.username,
+				password: "",
+				registryUrl: registry.registryUrl,
+				imagePrefix: registry.imagePrefix || "",
+				registryName: registry.registryName,
+			});
+		} else {
+			form.reset({
+				username: "",
+				password: "",
+				registryUrl: "",
+				imagePrefix: "",
+				serverId: "",
+			});
+		}
+	}, [form, form.reset, form.formState.isSubmitSuccessful, registry]);
 
 	const onSubmit = async (data: AddRegistry) => {
 		await mutateAsync({
@@ -162,7 +175,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid grid-cols-2 w-full gap-4"
+						className="grid sm:grid-cols-2 w-full gap-4"
 					>
 						<div className="flex flex-col gap-4">
 							<FormField
@@ -256,52 +269,75 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								)}
 							/>
 						</div>
-						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2">
-							<div className="flex flex-col gap-4 border p-2 rounded-lg">
-								<span className="text-sm text-muted-foreground">
-									Select a server to test the registry. If you don't have a
-									server choose the default one.
-								</span>
-								<FormField
-									control={form.control}
-									name="serverId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
-											<FormControl>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select a server" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
-															{servers?.map((server) => (
-																<SelectItem
-																	key={server.serverId}
-																	value={server.serverId}
-																>
-																	{server.name}
-																</SelectItem>
-															))}
-															<SelectItem value={"none"}>None</SelectItem>
-														</SelectGroup>
-													</SelectContent>
-												</Select>
-											</FormControl>
 
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+						<div className="col-span-2">
+							<FormField
+								control={form.control}
+								name="serverId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
+										<FormDescription>
+											Select a server to test the registry. this will run the
+											following command on the server
+										</FormDescription>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select a server" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectGroup>
+														<SelectLabel>Servers</SelectLabel>
+														{servers?.map((server) => (
+															<SelectItem
+																key={server.serverId}
+																value={server.serverId}
+															>
+																{server.name}
+															</SelectItem>
+														))}
+														<SelectItem value={"none"}>None</SelectItem>
+													</SelectGroup>
+												</SelectContent>
+											</Select>
+										</FormControl>
+
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2 mt-6">
+							<div className="flex flex-row gap-2 justify-between">
 								<Button
 									type="button"
 									variant={"secondary"}
 									isLoading={isLoading}
 									onClick={async () => {
+										const validationResult = AddRegistrySchema.safeParse({
+											username,
+											password,
+											registryUrl,
+											registryName: "Dokploy Registry",
+											imagePrefix,
+											serverId,
+										});
+
+										if (!validationResult.success) {
+											for (const issue of validationResult.error.issues) {
+												form.setError(issue.path[0] as any, {
+													type: "manual",
+													message: issue.message,
+												});
+											}
+											return;
+										}
+
 										await testRegistry({
 											username: username,
 											password: password,
@@ -325,11 +361,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								>
 									Test Registry
 								</Button>
+								<Button isLoading={form.formState.isSubmitting} type="submit">
+									{registryId ? "Update" : "Create"}
+								</Button>
 							</div>
-
-							<Button isLoading={form.formState.isSubmitting} type="submit">
-								{registryId ? "Update" : "Add"}
-							</Button>
 						</DialogFooter>
 					</form>
 				</Form>

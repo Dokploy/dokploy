@@ -60,9 +60,11 @@ export const ShowRegistry = () => {
 																<span className="text-sm font-medium">
 																	{index + 1}. {registry.registryName}
 																</span>
-																<div className="text-xs text-muted-foreground">
-																	{registry.registryUrl}
-																</div>
+																{registry.registryUrl && (
+																	<div className="text-xs text-muted-foreground">
+																		{registry.registryUrl}
+																	</div>
+																)}
 															</div>
 														</div>
 
