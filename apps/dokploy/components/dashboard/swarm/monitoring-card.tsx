@@ -23,10 +23,14 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (isLoading) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						<Loader2 className="h-6 w-6 animate-spin" />
+				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">
+					{/* <div className="flex items-center justify-center h-full text-muted-foreground"> */}
+
+					<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[55vh]">
+						<span>Loading...</span>
+						<Loader2 className="animate-spin size-4" />
 					</div>
+					{/* </div> */}
 				</div>
 			</div>
 		);
@@ -35,7 +39,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (!nodes) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
+				<div className="mb-6 border min-h-[55vh] flex justify-center items-center rounded-lg h-full">
 					<div className="flex items-center justify-center h-full  text-destructive">
 						<span>Failed to load data</span>
 					</div>
@@ -59,8 +63,8 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	);
 
 	return (
-		<div>
-			<div className="w-full max-w-7xl mx-auto space-y-6 py-4">
+		<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto w-full">
+			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<header className="flex items-center justify-between">
 					<div className="space-y-1">
 						<h1 className="text-2xl font-semibold tracking-tight">
@@ -170,6 +174,6 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					))}
 				</div>
 			</div>
-		</div>
+		</Card>
 	);
 }

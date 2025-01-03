@@ -91,7 +91,7 @@ export const WebDomain = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-4xl mx-auto">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 						<div className="flex flex-col gap-1">

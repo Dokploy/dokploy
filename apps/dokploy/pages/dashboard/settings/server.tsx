@@ -13,7 +13,7 @@ import superjson from "superjson";
 const Page = () => {
 	return (
 		<div className="w-full">
-			<div className="h-full  p-2.5 rounded-xl  max-w-4xl mx-auto flex flex-col gap-4">
+			<div className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
 			</div>
