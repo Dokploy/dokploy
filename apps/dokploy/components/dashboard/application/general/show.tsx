@@ -8,7 +8,7 @@ import { Terminal } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { RedbuildApplication } from "../rebuild-application";
+import { RebuildApplication } from "../rebuild-application";
 import { StartApplication } from "../start-application";
 import { StopApplication } from "../stop-application";
 import { DeployApplication } from "./deploy-application";
@@ -38,8 +38,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						applicationId={applicationId}
 						appName={data?.appName || ""}
 					/>
-
-					<RedbuildApplication applicationId={applicationId} />
+					<RebuildApplication applicationId={applicationId} />
 					{data?.applicationStatus === "idle" ? (
 						<StartApplication applicationId={applicationId} />
 					) : (

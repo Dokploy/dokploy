@@ -123,6 +123,7 @@ export const findApplicationById = async (applicationId: string) => {
 			message: "Application not found",
 		});
 	}
+
 	return application;
 };
 

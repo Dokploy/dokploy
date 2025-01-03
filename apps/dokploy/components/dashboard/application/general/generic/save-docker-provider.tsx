@@ -48,7 +48,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 		if (data) {
 			form.reset({
 				dockerImage: data.dockerImage || "",
-				password: data.password || "",
+				password: "*".repeat(data.passwordLength || 0) || "",
 				username: data.username || "",
 				registryURL: data.registryUrl || "",
 			});
