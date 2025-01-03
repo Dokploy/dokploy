@@ -22,7 +22,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { sshKeyCreate, type sshKeyType } from "@/server/db/validations";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type ReactNode, useState } from "react";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,16 +32,26 @@ import type { z } from "zod";
 type SSHKey = z.infer<typeof sshKeyCreate>;
 
 interface Props {
-	children: ReactNode;
+	sshKeyId?: string;
 }
 
-export const AddSSHKey = ({ children }: Props) => {
+export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 	const utils = api.useUtils();
 
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.sshKey.create.useMutation();
+	const { data } = api.sshKey.one.useQuery(
+		{
+			sshKeyId: sshKeyId || "",
+		},
+		{
+			enabled: !!sshKeyId,
+		},
+	);
+
+	const { mutateAsync, isError, error, isLoading } = sshKeyId
+		? api.sshKey.update.useMutation()
+		: api.sshKey.create.useMutation();
 
 	const generateMutation = api.sshKey.generate.useMutation();
 
@@ -49,21 +60,40 @@ export const AddSSHKey = ({ children }: Props) => {
 	});
 
 	const onSubmit = async (data: SSHKey) => {
-		await mutateAsync(data)
+		await mutateAsync({
+			...data,
+			sshKeyId: sshKeyId || "",
+		})
 			.then(async () => {
-				toast.success("SSH key created successfully");
+				toast.success(
+					sshKeyId
+						? "SSH key updated successfully"
+						: "SSH key created successfully",
+				);
 				await utils.sshKey.all.invalidate();
-				/*
-					Flushsync is needed for a bug witht he react-hook-form reset method
-					https://github.com/orgs/react-hook-form/discussions/7589#discussioncomment-10060621
-				*/
-				flushSync(() => form.reset());
+
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error creating the SSH key");
+				toast.error(
+					sshKeyId
+						? "Error updating the SSH key"
+						: "Error creating the SSH key",
+				);
 			});
 	};
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				...data,
+				/* Convert null to undefined */
+				description: data.description || undefined,
+			});
+		} else {
+			form.reset({});
+		}
+	}, [data, form, form.reset]);
 
 	const onGenerateSSHKey = (type: z.infer<typeof sshKeyType>) =>
 		generateMutation
@@ -80,7 +110,21 @@ export const AddSSHKey = ({ children }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				{children}
+				{sshKeyId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button className="cursor-pointer space-x-3">
+						<PlusIcon className="h-4 w-4" />
+						Add SSH Key
+					</Button>
+				)}
+				{/* {children} */}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
@@ -90,34 +134,36 @@ export const AddSSHKey = ({ children }: Props) => {
 							In this section you can add one of your keys or generate a new
 							one.
 						</div>
-						<div className="flex gap-4">
-							<Button
-								variant={"secondary"}
-								disabled={generateMutation.isLoading}
-								className="max-sm:w-full"
-								onClick={() =>
-									onGenerateSSHKey({
-										type: "rsa",
-									})
-								}
-								type="button"
-							>
-								Generate RSA SSH Key
-							</Button>
-							<Button
-								variant={"secondary"}
-								disabled={generateMutation.isLoading}
-								className="max-sm:w-full"
-								onClick={() =>
-									onGenerateSSHKey({
-										type: "ed25519",
-									})
-								}
-								type="button"
-							>
-								Generate ED25519 SSH Key
-							</Button>
-						</div>
+						{!sshKeyId && (
+							<div className="flex gap-4">
+								<Button
+									variant={"secondary"}
+									disabled={generateMutation.isLoading}
+									className="max-sm:w-full"
+									onClick={() =>
+										onGenerateSSHKey({
+											type: "rsa",
+										})
+									}
+									type="button"
+								>
+									Generate RSA SSH Key
+								</Button>
+								<Button
+									variant={"secondary"}
+									disabled={generateMutation.isLoading}
+									className="max-sm:w-full"
+									onClick={() =>
+										onGenerateSSHKey({
+											type: "ed25519",
+										})
+									}
+									type="button"
+								>
+									Generate ED25519 SSH Key
+								</Button>
+							</div>
+						)}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -197,7 +243,7 @@ export const AddSSHKey = ({ children }: Props) => {
 						/>
 						<DialogFooter>
 							<Button isLoading={isLoading} type="submit">
-								Create
+								{sshKeyId ? "Update" : "Create"}
 							</Button>
 						</DialogFooter>
 					</form>
