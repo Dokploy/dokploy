@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"time"
 
@@ -43,6 +44,26 @@ func GetServerMetrics() database.ServerMetric {
 	netInfo, _ := net.IOCounters(false)
 	hostInfo, _ := host.Info()
 
+	// 	CPU
+	// Apple M1 Pro
+
+	// 8 Physical Cores (8 Threads) @ 2.4GHz
+
+	// Operating System
+	// macOS
+
+	// Kernel: 23.4.0 (arm64)
+
+	// CPU
+	// Apple M1 Pro
+
+	// 1 Physical Cores (8 Threads) @ 3228GHz
+
+	// Operating System
+	// darwin
+
+	// Kernel: 23.4.0 (arm64)
+
 	cpuModel := ""
 	if len(cpuInfo) > 0 {
 		cpuModel = fmt.Sprintf("%s %s", cpuInfo[0].VendorID, cpuInfo[0].ModelName)
@@ -59,13 +80,13 @@ func GetServerMetrics() database.ServerMetric {
 		networkIn = float64(netInfo[0].BytesRecv) / 1024 / 1024
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
-
+	log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
 	return database.ServerMetric{
 		Timestamp:        time.Now().Unix(),
 		CPU:              c[0],
 		CPUModel:         cpuModel,
 		CPUCores:         int32(runtime.NumCPU()),
-		CPUPhysicalCores: int32(len(cpuInfo)),
+		CPUPhysicalCores: int32(runtime.NumCPU()), // En Apple Silicon, los cores físicos son iguales a los lógicos
 		CPUSpeed:         float64(cpuInfo[0].Mhz),
 		OS:               hostInfo.OS,
 		Distro:           hostInfo.Platform,
