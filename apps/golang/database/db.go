@@ -8,23 +8,23 @@ import (
 
 type ServerMetric struct {
 	Timestamp        int64   `json:"timestamp"`
-	CPU             float64 `json:"cpu"`
-	CPUModel        string  `json:"cpuModel"`
-	CPUCores        int32   `json:"cpuCores"`
+	CPU              float64 `json:"cpu"`
+	CPUModel         string  `json:"cpuModel"`
+	CPUCores         int32   `json:"cpuCores"`
 	CPUPhysicalCores int32   `json:"cpuPhysicalCores"`
-	CPUSpeed        float64 `json:"cpuSpeed"`
-	OS              string  `json:"os"`
-	Distro          string  `json:"distro"`
-	Kernel          string  `json:"kernel"`
-	Arch            string  `json:"arch"`
-	MemUsed         float64 `json:"memUsed"`
-	MemUsedGB       float64 `json:"memUsedGB"`
-	MemTotal        float64 `json:"memTotal"`
-	Uptime          uint64  `json:"uptime"`
-	DiskUsed        float64 `json:"diskUsed"`
-	TotalDisk       float64 `json:"totalDisk"`
-	NetworkIn       float64 `json:"networkIn"`
-	NetworkOut      float64 `json:"networkOut"`
+	CPUSpeed         float64 `json:"cpuSpeed"`
+	OS               string  `json:"os"`
+	Distro           string  `json:"distro"`
+	Kernel           string  `json:"kernel"`
+	Arch             string  `json:"arch"`
+	MemUsed          float64 `json:"memUsed"`
+	MemUsedGB        float64 `json:"memUsedGB"`
+	MemTotal         float64 `json:"memTotal"`
+	Uptime           uint64  `json:"uptime"`
+	DiskUsed         float64 `json:"diskUsed"`
+	TotalDisk        float64 `json:"totalDisk"`
+	NetworkIn        float64 `json:"networkIn"`
+	NetworkOut       float64 `json:"networkOut"`
 }
 
 type DB struct {
