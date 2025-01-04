@@ -1,8 +1,10 @@
 package monitoring
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os/user"
 	"runtime"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+	"github.com/zcalusic/sysinfo"
 
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 )
@@ -36,6 +39,30 @@ type SystemMetrics struct {
 	Timestamp        string  `json:"timestamp"`
 }
 
+func getRealOS() string {
+	current, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if current.Uid != "0" {
+		log.Fatal("requires superuser privilege")
+	}
+
+	var si sysinfo.SysInfo
+
+	si.GetSysInfo()
+
+	data, err := json.MarshalIndent(&si, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(data))
+
+	return si.OS.Name
+}
+
 func GetServerMetrics() database.ServerMetric {
 	v, _ := mem.VirtualMemory()
 	c, _ := cpu.Percent(0, false)
@@ -43,6 +70,8 @@ func GetServerMetrics() database.ServerMetric {
 	diskInfo, _ := disk.Usage("/")
 	netInfo, _ := net.IOCounters(false)
 	hostInfo, _ := host.Info()
+
+	log.Print("CPU: ", getRealOS())
 
 	// 	CPU
 	// Apple M1 Pro
@@ -80,14 +109,13 @@ func GetServerMetrics() database.ServerMetric {
 		networkIn = float64(netInfo[0].BytesRecv) / 1024 / 1024
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
-	log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
-	log.Printf("CPU Info: %v,", runtime.GOOS)
+	// log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
 	return database.ServerMetric{
 		Timestamp:        time.Now().Unix(),
 		CPU:              c[0],
 		CPUModel:         cpuModel,
 		CPUCores:         int32(runtime.NumCPU()),
-		CPUPhysicalCores: int32(runtime.NumCPU()), // En Apple Silicon, los cores físicos son iguales a los lógicos
+		CPUPhysicalCores: int32(len(cpuInfo)), // En Apple Silicon, los cores físicos son iguales a los lógicos
 		CPUSpeed:         float64(cpuInfo[0].Mhz),
 		OS:               hostInfo.OS,
 		Distro:           hostInfo.Platform,
