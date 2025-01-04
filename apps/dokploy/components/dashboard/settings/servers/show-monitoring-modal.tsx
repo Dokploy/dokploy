@@ -5,9 +5,10 @@ import { ShowMonitoring } from "../../monitoring/servers/show-monitoring";
 
 interface Props {
 	url: string;
+	token: string;
 }
 
-export const ShowMonitoringModal = ({ url }: Props) => {
+export const ShowMonitoringModal = ({ url, token }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -22,7 +23,7 @@ export const ShowMonitoringModal = ({ url }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
 				<div className="flex gap-4 py-4 w-full">
-					<ShowMonitoring BASE_URL={url} />
+					<ShowMonitoring BASE_URL={url} token={token} />
 				</div>
 			</DialogContent>
 		</Dialog>

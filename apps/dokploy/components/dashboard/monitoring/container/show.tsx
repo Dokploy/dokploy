@@ -34,6 +34,8 @@ interface ContainerMetric {
 		used: number;
 		total: number;
 		unit: string;
+		usedUnit: string;
+		totalUnit: string;
 	};
 	Network: {
 		input: number;
@@ -54,10 +56,11 @@ interface ContainerMetric {
 
 interface Props {
 	appName: string;
-	BASE_URL: string;
+	baseUrl: string;
+	token: string;
 }
 
-export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
+export const ContainerMonitoring = ({ appName, baseUrl, token }: Props) => {
 	const [historicalData, setHistoricalData] = useState<ContainerMetric[]>([]);
 	const [metrics, setMetrics] = useState<ContainerMetric>(
 		{} as ContainerMetric,
@@ -69,7 +72,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 
 	const fetchMetrics = async () => {
 		try {
-			const url = new URL(`${BASE_URL}/metrics/containers`);
+			const url = new URL(`${baseUrl}/metrics/containers`);
 
 			if (dataPoints !== "all") {
 				url.searchParams.append("limit", dataPoints);
@@ -77,7 +80,11 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 
 			url.searchParams.append("appName", appName);
 
-			const response = await fetch(url.toString());
+			const response = await fetch(url.toString(), {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
 
 			if (!response.ok) {
 				throw new Error(`Failed to fetch metrics: ${response.statusText}`);
@@ -120,7 +127,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 		return (
 			<div className="mt-5 flex min-h-[55vh] w-full items-center justify-center rounded-lg border p-4">
 				<span className="text-base font-medium leading-none text-muted-foreground">
-					Error fetching metrics from: {BASE_URL}{" "}
+					Error fetching metrics from: {baseUrl}{" "}
 					<strong className="font-semibold text-destructive">{error}</strong>
 				</span>
 			</div>
@@ -130,6 +137,7 @@ export const ContainerMonitoring = ({ appName, BASE_URL }: Props) => {
 	return (
 		<div className="space-y-4 pb-10 pt-5 w-full border p-4 rounded-lg">
 			{/* Header con selector de puntos de datos */}
+			{appName}
 			<div className="flex items-center justify-between">
 				<h2 className="text-2xl font-bold tracking-tight">
 					Container Monitoring

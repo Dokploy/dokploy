@@ -92,6 +92,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					channel: data.slack?.channel || "",
 					name: data.name,
 					type: data.notificationType,
+					serverThreshold: data.serverThreshold,
 				});
 			} else if (data.notificationType === "telegram") {
 				form.reset({
@@ -104,6 +105,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					type: data.notificationType,
 					name: data.name,
 					dockerCleanup: data.dockerCleanup,
+					serverThreshold: data.serverThreshold,
 				});
 			} else if (data.notificationType === "discord") {
 				form.reset({
@@ -116,6 +118,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					decoration: data.discord?.decoration || undefined,
 					name: data.name,
 					dockerCleanup: data.dockerCleanup,
+					serverThreshold: data.serverThreshold,
 				});
 			} else if (data.notificationType === "email") {
 				form.reset({
@@ -132,6 +135,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 					fromAddress: data.email?.fromAddress,
 					name: data.name,
 					dockerCleanup: data.dockerCleanup,
+					serverThreshold: data.serverThreshold,
 				});
 			}
 		}
@@ -144,6 +148,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
+			serverThreshold,
 		} = formData;
 		let promise: Promise<unknown> | null = null;
 		if (formData?.type === "slack" && data?.slackId) {
@@ -158,6 +163,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				notificationId: notificationId,
 				slackId: data?.slackId,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (formData.type === "telegram" && data?.telegramId) {
 			promise = telegramMutation.mutateAsync({
@@ -171,6 +177,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				notificationId: notificationId,
 				telegramId: data?.telegramId,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (formData.type === "discord" && data?.discordId) {
 			promise = discordMutation.mutateAsync({
@@ -184,6 +191,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				notificationId: notificationId,
 				discordId: data?.discordId,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (formData.type === "email" && data?.emailId) {
 			promise = emailMutation.mutateAsync({
@@ -201,6 +209,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 				notificationId: notificationId,
 				emailId: data?.emailId,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		}
 
@@ -668,6 +677,27 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 										)}
 									/>
 								)}
+								<FormField
+									control={form.control}
+									name="serverThreshold"
+									render={({ field }) => (
+										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Server Threshold</FormLabel>
+												<FormDescription>
+													Trigger the action when the server threshold is
+													reached.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>

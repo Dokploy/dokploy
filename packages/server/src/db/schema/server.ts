@@ -67,6 +67,7 @@ export const server = pgTable("server", {
 	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
 	metricsToken: text("metricsToken").notNull().default(""),
 	metricsUrlCallback: text("metricsUrlCallback").notNull().default(""),
+	threshold: integer("threshold").notNull().default(0),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -159,4 +160,5 @@ export const apiUpdateServerMonitoring = createSchema
 		defaultPortMetrics: z.number().optional(),
 		metricsToken: z.string().min(1),
 		metricsUrlCallback: z.string().url(),
+		threshold: z.number().optional(),
 	});

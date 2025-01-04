@@ -54,11 +54,13 @@ interface SystemMetrics {
 
 interface Props {
 	BASE_URL?: string;
+	token?: string;
 }
 
 export const ShowMonitoring = ({
 	BASE_URL = process.env.NEXT_PUBLIC_METRICS_URL ||
 		"http://localhost:3001/metrics",
+	token = process.env.NEXT_PUBLIC_METRICS_TOKEN || "my-token",
 }: Props) => {
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
@@ -76,7 +78,11 @@ export const ShowMonitoring = ({
 				url.searchParams.append("limit", dataPoints);
 			}
 
-			const response = await fetch(url.toString());
+			const response = await fetch(url.toString(), {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
 
 			if (!response.ok) {
 				throw new Error(`Failed to fetch metrics: ${response.statusText}`);

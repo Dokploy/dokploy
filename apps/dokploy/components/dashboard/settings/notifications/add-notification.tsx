@@ -43,6 +43,7 @@ const notificationBaseSchema = z.object({
 	databaseBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -165,6 +166,7 @@ export const AddNotification = () => {
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
+			serverThreshold,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -177,6 +179,7 @@ export const AddNotification = () => {
 				channel: data.channel,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -188,6 +191,7 @@ export const AddNotification = () => {
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -199,6 +203,7 @@ export const AddNotification = () => {
 				decoration: data.decoration,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -214,6 +219,7 @@ export const AddNotification = () => {
 				toAddresses: data.toAddresses,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 			});
 		}
 
@@ -706,6 +712,27 @@ export const AddNotification = () => {
 										)}
 									/>
 								)}
+								<FormField
+									control={form.control}
+									name="serverThreshold"
+									render={({ field }) => (
+										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Server Threshold</FormLabel>
+												<FormDescription>
+													Trigger the action when the server threshold is
+													reached.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>

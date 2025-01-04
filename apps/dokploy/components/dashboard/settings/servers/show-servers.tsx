@@ -279,6 +279,7 @@ export const ShowServers = () => {
 
 																<ShowMonitoringModal
 																	url={`http://${server.ipAddress}:${server.defaultPortMetrics}/metrics`}
+																	token={server.metricsToken}
 																/>
 															</>
 														)}

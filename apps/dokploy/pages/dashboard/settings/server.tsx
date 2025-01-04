@@ -1,4 +1,5 @@
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
+import { WebMonitoring } from "@/components/dashboard/settings/web-monitoring";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
@@ -15,6 +16,7 @@ const Page = () => {
 		<div className="flex flex-col gap-4 w-full">
 			<WebDomain />
 			<WebServer />
+			<WebMonitoring />
 		</div>
 	);
 };

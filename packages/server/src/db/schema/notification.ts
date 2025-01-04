@@ -23,6 +23,7 @@ export const notifications = pgTable("notification", {
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -117,6 +118,7 @@ export const apiCreateSlack = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -143,6 +145,7 @@ export const apiCreateTelegram = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		botToken: z.string().min(1),
@@ -169,6 +172,7 @@ export const apiCreateDiscord = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -198,6 +202,7 @@ export const apiCreateEmail = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		smtpServer: z.string().min(1),

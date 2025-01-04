@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, NumberInput } from "@/components/ui/input";
 import { CardTitle } from "@/components/ui/card";
 import { AlertTriangle, BarChart, BarcodeIcon } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	Command,
@@ -34,6 +35,8 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { useUrl } from "@/utils/hooks/use-url";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	serverId: string;
@@ -48,6 +51,13 @@ const Schema = z.object({
 	}),
 	port: z.number({
 		required_error: "Port is required",
+	}),
+	metricsToken: z.string().min(1, {
+		message: "Token is required",
+	}),
+	metricsUrlCallback: z.string().url(),
+	threshold: z.number().min(0, {
+		message: "Threshold must be a positive number",
 	}),
 	includeServices: z
 		.array(
@@ -67,6 +77,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 		serverId,
 	});
 
+	const url = useUrl();
+
 	const { data: projects } = api.project.all.useQuery();
 
 	const extractServicesFromProjects = (projects: any[] | undefined) => {
@@ -79,7 +91,6 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				.map((service) => service.appName);
 		});
 
-		// Remove duplicates
 		return [...new Set(allServices)];
 	};
 
@@ -91,7 +102,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			serverRefreshRateMetrics: 10,
 			containerRefreshRateMetrics: 10,
 			excludedServices: [],
+			threshold: 0,
 			includeServices: [],
+			metricsToken: "",
+			metricsUrlCallback: url,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -104,17 +118,19 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				containerRefreshRateMetrics: data.containerRefreshRateMetrics,
 				excludedServices:
 					data?.containersMetricsDefinition?.excludedServices ?? [],
+				threshold: data.threshold ?? 0,
 				includeServices:
 					data?.containersMetricsDefinition?.includeServices ?? [],
+				metricsToken: data.metricsToken || generateToken(),
+				metricsUrlCallback: data.metricsUrlCallback || url,
 			});
 		}
-	}, [data]);
+	}, [data, url]);
 
 	const [search, setSearch] = useState("");
 	const [searchExclude, setSearchExclude] = useState("");
 	const [maxFileSize, setMaxFileSize] = useState(10);
 
-	// Filtrar servicios ya incluidos
 	const availableServices = services?.filter(
 		(service) =>
 			!form.watch("includeServices")?.some((s) => s.appName === service) &&
@@ -122,7 +138,6 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			service.toLowerCase().includes(search.toLowerCase()),
 	);
 
-	// Filtrar servicios ya excluidos y servicios incluidos
 	const availableServicesToExclude = [
 		...(services?.filter(
 			(service) =>
@@ -130,11 +145,18 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				!form.watch("includeServices")?.some((s) => s.appName === service) &&
 				service.toLowerCase().includes(searchExclude.toLowerCase()),
 		) ?? []),
-		// Siempre mostrar "*" si no está ya seleccionado
 		...(!form.watch("excludedServices")?.includes("*") ? ["*"] : []),
 	];
 
 	const { mutateAsync } = api.server.setupMonitoring.useMutation();
+
+	const generateToken = () => {
+		const array = new Uint8Array(32);
+		crypto.getRandomValues(array);
+		return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+			"",
+		);
+	};
 
 	const onSubmit = async (values: Schema) => {
 		await mutateAsync({
@@ -147,6 +169,9 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				includeServices: values.includeServices ?? [],
 				excludedServices: values.excludedServices,
 			},
+			metricsToken: values.metricsToken,
+			metricsUrlCallback: values.metricsUrlCallback,
+			threshold: values.threshold,
 		})
 			.then(() => {
 				toast.success("Server updated successfully");
@@ -162,6 +187,10 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				onSubmit={form.handleSubmit(onSubmit)}
 				className="flex w-full flex-col gap-4"
 			>
+				<AlertBlock>
+					Using a lower refresh rate will make your CPU and memory usage higher,
+					we recommend 30-60 seconds
+				</AlertBlock>
 				<div className="flex flex-col gap-4">
 					<FormField
 						control={form.control}
@@ -390,6 +419,74 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								</FormControl>
 								<FormDescription>
 									Please set the port for the metrics server
+								</FormDescription>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="threshold"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Threshold</FormLabel>
+								<FormDescription>
+									Set the CPU usage threshold for notifications. A value of 0 disables threshold notifications.
+								</FormDescription>
+								<FormControl>
+									<NumberInput {...field} placeholder="Enter threshold value" />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="metricsToken"
+						render={({ field }) => (
+							<FormItem className="flex flex-col justify-center max-sm:items-center">
+								<FormLabel>Metrics Token</FormLabel>
+								<FormControl>
+									<div className="flex gap-2">
+										<Input placeholder="Enter your metrics token" {...field} />
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const newToken = generateToken();
+												form.setValue("metricsToken", newToken);
+											}}
+											title="Generate new token"
+										>
+											<RefreshCw className="h-4 w-4" />
+										</Button>
+									</div>
+								</FormControl>
+								<FormDescription>
+									Token for authenticating metrics requests
+								</FormDescription>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="metricsUrlCallback"
+						render={({ field }) => (
+							<FormItem className="flex flex-col justify-center max-sm:items-center">
+								<FormLabel>Metrics Callback URL</FormLabel>
+								<FormControl>
+									<Input
+										placeholder="https://your-callback-url.com"
+										{...field}
+									/>
+								</FormControl>
+								<FormDescription>
+									URL where metrics will be sent
 								</FormDescription>
 								<FormMessage />
 							</FormItem>

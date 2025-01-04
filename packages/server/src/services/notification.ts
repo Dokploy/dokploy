@@ -52,6 +52,7 @@ export const createSlackNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "slack",
 				adminId: adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -81,6 +82,7 @@ export const updateSlackNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				adminId: input.adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -140,6 +142,7 @@ export const createTelegramNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "telegram",
 				adminId: adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -169,6 +172,7 @@ export const updateTelegramNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				adminId: input.adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -228,6 +232,7 @@ export const createDiscordNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "discord",
 				adminId: adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -257,6 +262,7 @@ export const updateDiscordNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				adminId: input.adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -320,6 +326,7 @@ export const createEmailNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "email",
 				adminId: adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -349,6 +356,7 @@ export const updateEmailNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				adminId: input.adminId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()

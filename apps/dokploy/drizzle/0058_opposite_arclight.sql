@@ -1,0 +1,1 @@
+ALTER TABLE "server" ADD COLUMN "threshold" integer DEFAULT 0 NOT NULL;

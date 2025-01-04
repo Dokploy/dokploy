@@ -245,6 +245,7 @@ const Service = (
 								serverId={data?.serverId || ""}
 								url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:3001"}`}
 								appName={data?.appName || ""}
+								token={data?.server?.metricsToken || ""}
 								appType={data?.composeType || "docker-compose"}
 							/>
 						</div>
