@@ -35,7 +35,7 @@ COPY --from=builder /app/apps/golang/main ./main
 COPY --from=builder /app/apps/golang/main.go ./monitor.go
 
 # Copiar el archivo .env si existe
-COPY --from=builder /app/apps/golang/.env ./.env
+# COPY --from=builder /app/apps/golang/.env ./.env
 
 # Exponer el puerto
 ENV PORT=3001
