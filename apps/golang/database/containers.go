@@ -48,27 +48,11 @@ func (db *DB) SaveContainerMetric(metric *ContainerMetric) error {
 }
 
 func (db *DB) GetContainerMetrics(containerName string, limit int) ([]ContainerMetric, error) {
-	// First, let's see what container names we have
-	// debugQuery := `SELECT DISTINCT container_name FROM container_metrics`
-	// debugRows, err := db.Query(debugQuery)
-	// if err == nil {
-	// 	defer debugRows.Close()
-	// 	var names []string
-	// 	for debugRows.Next() {
-	// 		var name string
-	// 		if err := debugRows.Scan(&name); err == nil {
-	// names = append(names, name)
-	// }
-	// }
-	// }
-
-	// Transform the container name to match how it's stored
 	name := strings.TrimPrefix(containerName, "/")
 	parts := strings.Split(name, "-")
 	if len(parts) > 1 {
 		containerName = strings.Join(parts[:len(parts)-1], "-")
 	}
-	// log.Printf("Transformed container name for search: %s", containerName)
 
 	query := `
 		WITH recent_metrics AS (
@@ -80,7 +64,6 @@ func (db *DB) GetContainerMetrics(containerName string, limit int) ([]ContainerM
 		)
 		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
 	`
-	// log.Printf("Executing query with container_name=%s and limit=%d", containerName, limit)
 	rows, err := db.Query(query, containerName, limit)
 	if err != nil {
 		return nil, err

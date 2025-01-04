@@ -37,7 +37,6 @@ func (cm *ContainerMonitor) Start() error {
 		return fmt.Errorf("error loading config: %v", err)
 	}
 
-	// El refresh rate se especifica en segundos en la variable de entorno
 	refreshRateSeconds := 10 // default 10 segundos
 	if rateStr := os.Getenv("CONTAINER_REFRESH_RATE"); rateStr != "" {
 		if rate, err := strconv.Atoi(rateStr); err == nil {
@@ -45,7 +44,6 @@ func (cm *ContainerMonitor) Start() error {
 		}
 	}
 
-	// Convertir segundos a milisegundos para el ticker
 	refreshRateMs := refreshRateSeconds * 1000
 	log.Printf("Container metrics collection will run every %d seconds", refreshRateSeconds)
 

@@ -27,14 +27,12 @@ func ShouldMonitorContainer(containerName string) bool {
 		return false
 	}
 
-	// Si está en la lista de excluidos, no monitorear
 	for _, excluded := range config.ExcludeServices {
 		if strings.Contains(containerName, excluded.AppName) {
 			return false
 		}
 	}
 
-	// Si hay servicios incluidos, solo monitorear esos
 	if len(config.IncludeServices) > 0 {
 		for _, included := range config.IncludeServices {
 			if strings.Contains(containerName, included.AppName) {
@@ -62,7 +60,6 @@ func GetContainerConfig(containerName string) *ContainerConfig {
 }
 
 func GetServiceName(containerName string) string {
-	// Eliminar caracteres especiales y obtener el nombre base
 	name := strings.TrimPrefix(containerName, "/")
 	parts := strings.Split(name, "-")
 	if len(parts) > 1 {

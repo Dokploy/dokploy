@@ -17,7 +17,6 @@ import (
 func main() {
 	godotenv.Load()
 
-	// Print environment variables at startup
 	log.Printf("Environment variables:")
 	log.Printf("REFRESH_RATE_SERVER: %s", os.Getenv("REFRESH_RATE_SERVER"))
 	log.Printf("CONTAINER_REFRESH_RATE: %s", os.Getenv("CONTAINER_REFRESH_RATE"))
@@ -80,7 +79,6 @@ func main() {
 		return c.JSON(metrics)
 	})
 
-	// Iniciar el monitoreo de contenedores
 	containerMonitor, err := containers.NewContainerMonitor(db)
 	if err != nil {
 		log.Fatalf("Failed to create container monitor: %v", err)
@@ -90,7 +88,6 @@ func main() {
 	}
 	defer containerMonitor.Stop()
 
-	// Endpoint para obtener métricas de contenedores
 	app.Get("/metrics/containers", func(c *fiber.Ctx) error {
 		limit := c.Query("limit", "50")
 		appName := c.Query("appName", "")
@@ -100,7 +97,6 @@ func main() {
 			limitNum = 50
 		}
 
-		// log.Printf("Fetching container metrics for app: %s, limit: %d", appName, limitNum)
 		var metrics []database.ContainerMetric
 		if appName != "" {
 			metrics, err = db.GetContainerMetrics(appName, limitNum)
@@ -134,7 +130,6 @@ func main() {
 		ticker := time.NewTicker(duration)
 		for range ticker.C {
 			metrics := monitoring.GetServerMetrics()
-			// log.Printf("Saving metrics: %v", metrics)
 			if err := db.SaveMetric(metrics); err != nil {
 				log.Printf("Error saving metrics: %v", err)
 			}

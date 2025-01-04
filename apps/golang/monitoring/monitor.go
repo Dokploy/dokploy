@@ -2,7 +2,6 @@ package monitoring
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -40,7 +39,6 @@ type SystemMetrics struct {
 }
 
 func getRealOS() string {
-	// Primero intentamos con /etc/os-release que tiene información más específica
 	if content, err := os.ReadFile("/etc/os-release"); err == nil {
 		lines := strings.Split(string(content), "\n")
 		var id, name, version string
@@ -99,7 +97,6 @@ func getRealOS() string {
 		}
 	}
 
-	// Si todo lo demás falla, usamos el OS base
 	return runtime.GOOS
 }
 
@@ -112,51 +109,26 @@ func GetServerMetrics() database.ServerMetric {
 	hostInfo, _ := host.Info()
 	distro := getRealOS()
 
-	log.Print("CPU: ", distro)
-
-	// 	CPU
-	// Apple M1 Pro
-
-	// 8 Physical Cores (8 Threads) @ 2.4GHz
-
-	// Operating System
-	// macOS
-
-	// Kernel: 23.4.0 (arm64)
-
-	// CPU
-	// Apple M1 Pro
-
-	// 1 Physical Cores (8 Threads) @ 3228GHz
-
-	// Operating System
-	// darwin
-
-	// Kernel: 23.4.0 (arm64)
-
 	cpuModel := ""
 	if len(cpuInfo) > 0 {
 		cpuModel = fmt.Sprintf("%s %s", cpuInfo[0].VendorID, cpuInfo[0].ModelName)
 	}
 
-	// Calcular memoria en GB
 	memTotalGB := float64(v.Total) / 1024 / 1024 / 1024
 	memUsedGB := float64(v.Used) / 1024 / 1024 / 1024
 	memUsedPercent := (memUsedGB / memTotalGB) * 100
 
-	// Calcular red en MB
 	var networkIn, networkOut float64
 	if len(netInfo) > 0 {
 		networkIn = float64(netInfo[0].BytesRecv) / 1024 / 1024
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
-	log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
 	return database.ServerMetric{
 		Timestamp:        time.Now().Unix(),
 		CPU:              c[0],
 		CPUModel:         cpuModel,
 		CPUCores:         int32(runtime.NumCPU()),
-		CPUPhysicalCores: int32(len(cpuInfo)), // En Apple Silicon, los cores físicos son iguales a los lógicos
+		CPUPhysicalCores: int32(len(cpuInfo)),
 		CPUSpeed:         float64(cpuInfo[0].Mhz),
 		OS:               getRealOS(),
 		Distro:           distro,
