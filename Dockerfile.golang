@@ -17,7 +17,7 @@ WORKDIR /app/apps/golang
 RUN go mod download
 
 # Compilar la aplicación
-RUN CGO_ENABLED=1 GOOS=linux go build -o monitoring main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -o main main.go
 
 # Etapa final
 FROM alpine:3.19
@@ -30,15 +30,16 @@ RUN mkdir -p /etc/dokploy/monitoring
 
 WORKDIR /app
 
-# Copiar el binario compilado desde la etapa de construcción
-COPY --from=builder /app/apps/golang/monitoring .
+# Copiar el binario compilado y el archivo monitor.go
+COPY --from=builder /app/apps/golang/main ./main
+COPY --from=builder /app/apps/golang/main.go ./monitor.go
 
 # Copiar el archivo .env si existe
-# COPY --from=builder /app/apps/golang/.env ./.env
+COPY --from=builder /app/apps/golang/.env ./.env
 
 # Exponer el puerto
 ENV PORT=3001
 EXPOSE 3001
 
 # Ejecutar la aplicación
-CMD ["./monitoring"]
+CMD ["./main"]
