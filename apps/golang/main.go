@@ -172,7 +172,18 @@ func main() {
 
 	// Start metrics collection in background
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		refreshRate := os.Getenv("REFRESH_RATE_SERVER")
+
+		log.Printf("REFRESH_RATE_SERVER: %v", refreshRate)
+		duration := 10 * time.Second // default value
+		if refreshRate != "" {
+			if seconds, err := strconv.Atoi(refreshRate); err == nil {
+				duration = time.Duration(seconds) * time.Second
+			} else {
+				log.Printf("Invalid REFRESH_RATE_SERVER value, using default: %v", err)
+			}
+		}
+		ticker := time.NewTicker(duration)
 		for range ticker.C {
 			metrics := getServerMetrics()
 			if err := db.SaveMetric(metrics); err != nil {
