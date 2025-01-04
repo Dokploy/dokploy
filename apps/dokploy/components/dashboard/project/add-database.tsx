@@ -152,9 +152,14 @@ type AddDatabase = z.infer<typeof mySchema>;
 interface Props {
 	projectId: string;
 	projectName?: string;
+	dropdownItemName?: string;
 }
 
-export const AddDatabase = ({ projectId, projectName }: Props) => {
+export const AddDatabase = ({
+	projectId,
+	projectName,
+	dropdownItemName,
+}: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -282,7 +287,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Database className="size-4 text-muted-foreground" />
-					<span>Database</span>
+					<span>{dropdownItemName ?? "Database"}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">

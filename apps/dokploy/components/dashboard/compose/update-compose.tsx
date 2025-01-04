@@ -9,6 +9,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -90,10 +91,14 @@ export const UpdateCompose = ({ composeId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Button variant="ghost">
+			<DialogTrigger className="w-full">
+				<DropdownMenuItem
+					className="w-full cursor-pointer space-x-3"
+					onSelect={(e) => e.preventDefault()}
+				>
 					<SquarePen className="size-4 text-muted-foreground" />
-				</Button>
+					<span>Edit</span>
+				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
