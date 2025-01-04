@@ -29,7 +29,6 @@ func main() {
 		log.Fatal("METRICS_TOKEN and METRICS_URL_CALLBACK environment variables are required")
 	}
 
-	// Initialize database
 	db, err := database.InitDB()
 	if err != nil {
 		log.Fatal(err)
@@ -37,20 +36,17 @@ func main() {
 
 	app := fiber.New()
 
-	// CORS configuration
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 
-	// Health check endpoint (no auth required)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status": "ok",
 		})
 	})
 
-	// Add auth middleware to all routes except /health
 	app.Use(func(c *fiber.Ctx) error {
 		if c.Path() == "/health" {
 			return c.Next()
@@ -58,13 +54,11 @@ func main() {
 		return middleware.AuthMiddleware()(c)
 	})
 
-	// Get metrics endpoint (compatible with frontend)
 	app.Get("/metrics", func(c *fiber.Ctx) error {
 		limit := c.Query("limit", "50")
 
 		var metrics []monitoring.SystemMetrics
 		if limit == "all" {
-			// Get all metrics
 			dbMetrics, err := db.GetLastNMetrics(10000)
 			if err != nil {
 				return c.Status(500).JSON(fiber.Map{
@@ -75,10 +69,9 @@ func main() {
 				metrics = append(metrics, monitoring.ConvertToSystemMetrics(m))
 			}
 		} else {
-			// Get limited metrics
 			n, err := strconv.Atoi(limit)
 			if err != nil {
-				n = 50 // default value
+				n = 50
 			}
 			dbMetrics, err := db.GetLastNMetrics(n)
 			if err != nil {
