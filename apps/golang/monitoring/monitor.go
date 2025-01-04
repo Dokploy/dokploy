@@ -1,11 +1,12 @@
 package monitoring
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"os/user"
+	"os"
+	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -13,7 +14,6 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
-	"github.com/zcalusic/sysinfo"
 
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 )
@@ -40,27 +40,67 @@ type SystemMetrics struct {
 }
 
 func getRealOS() string {
-	current, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
+	// Primero intentamos con /etc/os-release que tiene información más específica
+	if content, err := os.ReadFile("/etc/os-release"); err == nil {
+		lines := strings.Split(string(content), "\n")
+		var id, name, version string
+		for _, line := range lines {
+			if strings.HasPrefix(line, "PRETTY_NAME=") {
+				return strings.Trim(strings.TrimPrefix(line, "PRETTY_NAME="), "\"")
+			} else if strings.HasPrefix(line, "NAME=") {
+				name = strings.Trim(strings.TrimPrefix(line, "NAME="), "\"")
+			} else if strings.HasPrefix(line, "VERSION=") {
+				version = strings.Trim(strings.TrimPrefix(line, "VERSION="), "\"")
+			} else if strings.HasPrefix(line, "ID=") {
+				id = strings.Trim(strings.TrimPrefix(line, "ID="), "\"")
+			}
+		}
+		if name != "" && version != "" {
+			return fmt.Sprintf("%s %s", name, version)
+		}
+		if name != "" {
+			return name
+		}
+		if id != "" {
+			return id
+		}
 	}
 
-	if current.Uid != "0" {
-		log.Fatal("requires superuser privilege")
+	if content, err := os.ReadFile("/etc/system-release"); err == nil {
+		text := strings.ToLower(string(content))
+		switch {
+		case strings.Contains(text, "red hat"):
+			return "rhel"
+		case strings.Contains(text, "centos"):
+			return "centos"
+		case strings.Contains(text, "fedora"):
+			return "fedora"
+		}
 	}
 
-	var si sysinfo.SysInfo
-
-	si.GetSysInfo()
-
-	data, err := json.MarshalIndent(&si, "", "  ")
-	if err != nil {
-		log.Fatal(err)
+	cmd := exec.Command("uname", "-a")
+	if output, err := cmd.Output(); err == nil {
+		osInfo := strings.ToLower(string(output))
+		switch {
+		case strings.Contains(osInfo, "debian"):
+			return "debian"
+		case strings.Contains(osInfo, "ubuntu"):
+			return "ubuntu"
+		case strings.Contains(osInfo, "centos"):
+			return "centos"
+		case strings.Contains(osInfo, "fedora"):
+			return "fedora"
+		case strings.Contains(osInfo, "red hat"):
+			return "rhel"
+		case strings.Contains(osInfo, "arch"):
+			return "arch"
+		case strings.Contains(osInfo, "darwin"):
+			return "darwin"
+		}
 	}
 
-	fmt.Println(string(data))
-
-	return si.OS.Name
+	// Si todo lo demás falla, usamos el OS base
+	return runtime.GOOS
 }
 
 func GetServerMetrics() database.ServerMetric {
@@ -70,8 +110,9 @@ func GetServerMetrics() database.ServerMetric {
 	diskInfo, _ := disk.Usage("/")
 	netInfo, _ := net.IOCounters(false)
 	hostInfo, _ := host.Info()
+	distro := getRealOS()
 
-	log.Print("CPU: ", getRealOS())
+	log.Print("CPU: ", distro)
 
 	// 	CPU
 	// Apple M1 Pro
@@ -109,7 +150,7 @@ func GetServerMetrics() database.ServerMetric {
 		networkIn = float64(netInfo[0].BytesRecv) / 1024 / 1024
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
-	// log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
+	log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
 	return database.ServerMetric{
 		Timestamp:        time.Now().Unix(),
 		CPU:              c[0],
@@ -117,8 +158,8 @@ func GetServerMetrics() database.ServerMetric {
 		CPUCores:         int32(runtime.NumCPU()),
 		CPUPhysicalCores: int32(len(cpuInfo)), // En Apple Silicon, los cores físicos son iguales a los lógicos
 		CPUSpeed:         float64(cpuInfo[0].Mhz),
-		OS:               hostInfo.OS,
-		Distro:           hostInfo.Platform,
+		OS:               getRealOS(),
+		Distro:           distro,
 		Kernel:           hostInfo.KernelVersion,
 		Arch:             hostInfo.KernelArch,
 		MemUsed:          memUsedPercent,
