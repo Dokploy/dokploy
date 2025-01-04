@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/mauriciogm/dokploy/apps/golang/containers"
 	"github.com/mauriciogm/dokploy/apps/golang/database"
+	"github.com/mauriciogm/dokploy/apps/golang/middleware"
 	"github.com/mauriciogm/dokploy/apps/golang/monitoring"
 )
 
@@ -21,6 +22,12 @@ func main() {
 	log.Printf("REFRESH_RATE_SERVER: %s", os.Getenv("REFRESH_RATE_SERVER"))
 	log.Printf("CONTAINER_REFRESH_RATE: %s", os.Getenv("CONTAINER_REFRESH_RATE"))
 	log.Printf("CONTAINER_MONITORING_CONFIG: %s", os.Getenv("CONTAINER_MONITORING_CONFIG"))
+
+	token := os.Getenv("METRICS_TOKEN")
+	METRICS_URL_CALLBACK := os.Getenv("METRICS_URL_CALLBACK")
+	if token == "" || METRICS_URL_CALLBACK == "" {
+		log.Fatal("METRICS_TOKEN and METRICS_URL_CALLBACK environment variables are required")
+	}
 
 	// Initialize database
 	db, err := database.InitDB()
@@ -36,11 +43,19 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 
-	// Health check endpoint
+	// Health check endpoint (no auth required)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status": "ok",
 		})
+	})
+
+	// Add auth middleware to all routes except /health
+	app.Use(func(c *fiber.Ctx) error {
+		if c.Path() == "/health" {
+			return c.Next()
+		}
+		return middleware.AuthMiddleware()(c)
 	})
 
 	// Get metrics endpoint (compatible with frontend)
@@ -113,11 +128,9 @@ func main() {
 		return c.JSON(metrics)
 	})
 
-	// Start metrics collection in background
 	go func() {
 		refreshRate := os.Getenv("REFRESH_RATE_SERVER")
-
-		duration := 10 * time.Second // default value
+		duration := 10 * time.Second
 		if refreshRate != "" {
 			if seconds, err := strconv.Atoi(refreshRate); err == nil {
 				duration = time.Duration(seconds) * time.Second
@@ -133,6 +146,7 @@ func main() {
 			if err := db.SaveMetric(metrics); err != nil {
 				log.Printf("Error saving metrics: %v", err)
 			}
+
 		}
 	}()
 

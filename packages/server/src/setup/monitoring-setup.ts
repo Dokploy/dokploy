@@ -18,6 +18,8 @@ export const setupMonitoring = async (serverId: string) => {
 				server?.containersMetricsDefinition,
 			)}`,
 			`PORT=${server.defaultPortMetrics}`,
+			`METRICS_TOKEN=${server.metricsToken}`,
+			`METRICS_URL_CALLBACK=${server.metricsUrlCallback}`,
 		],
 		Image: imageName,
 		HostConfig: {

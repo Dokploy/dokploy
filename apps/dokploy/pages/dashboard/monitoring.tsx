@@ -52,6 +52,7 @@ interface SystemMetrics {
 }
 
 const Dashboard = () => {
+	const TOKEN = "testing";
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +69,11 @@ const Dashboard = () => {
 				url.searchParams.append("limit", dataPoints);
 			}
 
-			const response = await fetch(url.toString());
+			const response = await fetch(url.toString(), {
+				headers: {
+					Authorization: `Bearer ${TOKEN}`,
+				},
+			});
 
 			if (!response.ok) {
 				throw new Error(`Failed to fetch metrics: ${response.statusText}`);

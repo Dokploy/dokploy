@@ -65,6 +65,8 @@ export const server = pgTable("server", {
 		excludedServices: string[];
 	}>(),
 	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
+	metricsToken: text("metricsToken").notNull().default(""),
+	metricsUrlCallback: text("metricsUrlCallback").notNull().default(""),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -155,4 +157,6 @@ export const apiUpdateServerMonitoring = createSchema
 			})
 			.optional(),
 		defaultPortMetrics: z.number().optional(),
+		metricsToken: z.string().min(1),
+		metricsUrlCallback: z.string().url(),
 	});
