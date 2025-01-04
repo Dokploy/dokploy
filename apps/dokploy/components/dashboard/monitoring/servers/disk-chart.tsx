@@ -28,8 +28,7 @@ export function DiskChart({ data }: RadialChartProps) {
 
 	const chartData = [
 		{
-			name: "Used",
-			value: diskUsed,
+			disk: 25,
 			fill: "hsl(var(--chart-2))",
 		},
 	];
@@ -40,6 +39,8 @@ export function DiskChart({ data }: RadialChartProps) {
 			color: "hsl(var(--chart-2))",
 		},
 	} satisfies ChartConfig;
+
+	const endAngle = (diskUsed * 360) / 100;
 
 	return (
 		<Card className="flex flex-col bg-transparent">
@@ -54,8 +55,8 @@ export function DiskChart({ data }: RadialChartProps) {
 				>
 					<RadialBarChart
 						data={chartData}
-						startAngle={180}
-						endAngle={0}
+						startAngle={0}
+						endAngle={endAngle}
 						innerRadius={80}
 						outerRadius={110}
 					>
@@ -67,7 +68,7 @@ export function DiskChart({ data }: RadialChartProps) {
 							polarRadius={[86, 74]}
 						/>
 						<RadialBar
-							dataKey="value"
+							dataKey="disk"
 							background
 							cornerRadius={10}
 							fill="hsl(var(--chart-2))"
