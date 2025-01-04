@@ -81,6 +81,7 @@ func GetServerMetrics() database.ServerMetric {
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
 	log.Printf("Host Info: %v, Network In: %f MB, Network Out: %f MB", hostInfo, networkIn, networkOut)
+	log.Printf("CPU Info: %v,", runtime.GOOS)
 	return database.ServerMetric{
 		Timestamp:        time.Now().Unix(),
 		CPU:              c[0],
