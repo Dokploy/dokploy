@@ -37,7 +37,7 @@ export const setupMonitoring = async (serverId: string) => {
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				"/proc:/host/proc:ro",
-				"/etc/dokploy/monitoring:/etc/dokploy/monitoring",
+				"/etc/dokploy/monitoring/monitoring.db:/app/monitoring.db",
 			],
 			NetworkMode: "host",
 		},
