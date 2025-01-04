@@ -80,7 +80,7 @@ func (db *DB) GetMetricsInRange(start, end int64) ([]ServerMetric, error) {
 		SELECT timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out
 		FROM server_metrics
 		WHERE timestamp BETWEEN ? AND ?
-		ORDER BY timestamp DESC
+		ORDER BY timestamp ASC
 	`, start, end)
 	if err != nil {
 		return nil, err
@@ -101,10 +101,14 @@ func (db *DB) GetMetricsInRange(start, end int64) ([]ServerMetric, error) {
 
 func (db *DB) GetLastNMetrics(n int) ([]ServerMetric, error) {
 	rows, err := db.Query(`
-		SELECT timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out
-		FROM server_metrics
-		ORDER BY timestamp DESC
-		LIMIT ?
+		WITH recent_metrics AS (
+			SELECT timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out
+			FROM server_metrics
+			ORDER BY timestamp DESC
+			LIMIT ?
+		)
+		SELECT * FROM recent_metrics
+		ORDER BY timestamp ASC
 	`, n)
 	if err != nil {
 		return nil, err
