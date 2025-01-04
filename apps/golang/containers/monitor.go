@@ -117,7 +117,6 @@ func (cm *ContainerMonitor) collectMetrics() {
 
 		serviceName := GetServiceName(container.Name)
 
-		log.Printf("Processing container: %+v", container)
 		if seenServices[serviceName] {
 			continue
 		}
@@ -136,16 +135,13 @@ func (cm *ContainerMonitor) collectMetrics() {
 }
 
 func processContainerMetrics(container Container) *database.ContainerMetric {
-	// log.Printf("Raw container data: %+v", container)
 
 	// Procesar CPU
 	cpu, _ := strconv.ParseFloat(strings.TrimSuffix(container.CPUPerc, "%"), 64)
-	log.Printf("CPU: %v from %v", cpu, container.CPUPerc)
 
 	// Procesar Memoria
 	memPerc, _ := strconv.ParseFloat(strings.TrimSuffix(container.MemPerc, "%"), 64)
 	memParts := strings.Split(container.MemUsage, " / ")
-	// log.Printf("Memory parts: %v from %v", memParts, container.MemUsage)
 
 	var usedValue, totalValue float64
 	var usedUnit, totalUnit string
@@ -178,11 +174,8 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 		}
 	}
 
-	// log.Printf("Memory processed: used=%v%v, total=%v%v", usedValue, usedUnit, totalValue, totalUnit)
-
 	// Procesar Network I/O
 	netParts := strings.Split(container.NetIO, " / ")
-	// log.Printf("Network parts: %v from %v", netParts, container.NetIO)
 
 	var netInValue, netOutValue float64
 	var netInUnit, netOutUnit string
@@ -203,11 +196,8 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 		}
 	}
 
-	// log.Printf("Network processed: in=%v%v, out=%v%v", netInValue, netInUnit, netOutValue, netOutUnit)
-
 	// Procesar Block I/O
 	blockParts := strings.Split(container.BlockIO, " / ")
-	// log.Printf("Block IO parts: %v from %v", blockParts, container.BlockIO)
 
 	var blockReadValue, blockWriteValue float64
 	var blockReadUnit, blockWriteUnit string
@@ -227,8 +217,6 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 			blockWriteUnit = strings.TrimLeft(writeParts[0], "0123456789.")
 		}
 	}
-
-	// log.Printf("Block IO processed: read=%v%v, write=%v%v", blockReadValue, blockReadUnit, blockWriteValue, blockWriteUnit)
 
 	return &database.ContainerMetric{
 		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
