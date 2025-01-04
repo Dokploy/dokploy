@@ -7,14 +7,14 @@ RUN apk add --no-cache gcc musl-dev sqlite-dev
 # Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar los archivos de dependencias
-COPY apps/golang/go.mod apps/golang/go.sum ./
+# Copiar todo el código fuente primero
+COPY . .
+
+# Movernos al directorio de la aplicación golang
+WORKDIR /app/apps/golang
 
 # Descargar dependencias
 RUN go mod download
-
-# Copiar el código fuente
-COPY apps/golang/ ./
 
 # Compilar la aplicación
 RUN CGO_ENABLED=1 GOOS=linux go build -o monitoring main.go
@@ -23,7 +23,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o monitoring main.go
 FROM alpine:3.19
 
 # Instalar SQLite y otras dependencias necesarias
-RUN apk add --no-cache sqlite-libs
+RUN apk add --no-cache sqlite-libs docker-cli
 
 # Crear el directorio para la base de datos
 RUN mkdir -p /etc/dokploy/monitoring
@@ -31,7 +31,10 @@ RUN mkdir -p /etc/dokploy/monitoring
 WORKDIR /app
 
 # Copiar el binario compilado desde la etapa de construcción
-COPY --from=builder /app/monitoring .
+COPY --from=builder /app/apps/golang/monitoring .
+
+# Copiar el archivo .env si existe
+COPY --from=builder /app/apps/golang/.env ./.env
 
 # Exponer el puerto
 ENV PORT=3001

@@ -17,6 +17,12 @@ import (
 func main() {
 	godotenv.Load()
 
+	// Print environment variables at startup
+	log.Printf("Environment variables:")
+	log.Printf("REFRESH_RATE_SERVER: %s", os.Getenv("REFRESH_RATE_SERVER"))
+	log.Printf("CONTAINER_REFRESH_RATE: %s", os.Getenv("CONTAINER_REFRESH_RATE"))
+	log.Printf("CONTAINER_MONITORING_CONFIG: %s", os.Getenv("CONTAINER_MONITORING_CONFIG"))
+
 	// Initialize database
 	db, err := database.InitDB()
 	if err != nil {
@@ -94,7 +100,7 @@ func main() {
 			limitNum = 50
 		}
 
-		log.Printf("Fetching container metrics for app: %s, limit: %d", appName, limitNum)
+		// log.Printf("Fetching container metrics for app: %s, limit: %d", appName, limitNum)
 		var metrics []database.ContainerMetric
 		if appName != "" {
 			metrics, err = db.GetContainerMetrics(appName, limitNum)
@@ -115,7 +121,6 @@ func main() {
 	go func() {
 		refreshRate := os.Getenv("REFRESH_RATE_SERVER")
 
-		log.Printf("REFRESH_RATE_SERVER: %v", refreshRate)
 		duration := 10 * time.Second // default value
 		if refreshRate != "" {
 			if seconds, err := strconv.Atoi(refreshRate); err == nil {
@@ -124,6 +129,8 @@ func main() {
 				log.Printf("Invalid REFRESH_RATE_SERVER value, using default: %v", err)
 			}
 		}
+
+		log.Printf("Refreshing server metrics every %v", duration)
 		ticker := time.NewTicker(duration)
 		for range ticker.C {
 			metrics := monitoring.GetServerMetrics()

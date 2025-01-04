@@ -12,8 +12,8 @@ export const setupMonitoring = async (serverId: string) => {
 	const settings: ContainerCreateOptions = {
 		name: containerName,
 		Env: [
-			`REFRESH_RATE_SERVER=${server.serverRefreshRateMetrics * 1000}`,
-			`CONTAINER_REFRESH_RATE=${server.containerRefreshRateMetrics * 1000}`,
+			`REFRESH_RATE_SERVER=${server.serverRefreshRateMetrics}`,
+			`CONTAINER_REFRESH_RATE=${server.containerRefreshRateMetrics}`,
 			`CONTAINER_MONITORING_CONFIG=${JSON.stringify(
 				server?.containersMetricsDefinition,
 			)}`,

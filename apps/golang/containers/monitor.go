@@ -34,17 +34,22 @@ func NewContainerMonitor(db *database.DB) (*ContainerMonitor, error) {
 
 func (cm *ContainerMonitor) Start() error {
 	if err := LoadConfig(); err != nil {
-		return fmt.Errorf("failed to load config: %v", err)
+		return fmt.Errorf("error loading config: %v", err)
 	}
 
-	refreshRate := 10000 // default 10 seconds
+	// El refresh rate se especifica en segundos en la variable de entorno
+	refreshRateSeconds := 10 // default 10 segundos
 	if rateStr := os.Getenv("CONTAINER_REFRESH_RATE"); rateStr != "" {
 		if rate, err := strconv.Atoi(rateStr); err == nil {
-			refreshRate = rate
+			refreshRateSeconds = rate
 		}
 	}
 
-	ticker := time.NewTicker(time.Duration(refreshRate) * time.Millisecond)
+	// Convertir segundos a milisegundos para el ticker
+	refreshRateMs := refreshRateSeconds * 1000
+	log.Printf("Container metrics collection will run every %d seconds", refreshRateSeconds)
+
+	ticker := time.NewTicker(time.Duration(refreshRateMs) * time.Millisecond)
 	go func() {
 		for {
 			select {
@@ -111,15 +116,18 @@ func (cm *ContainerMonitor) collectMetrics() {
 		}
 
 		serviceName := GetServiceName(container.Name)
+
+		log.Printf("Processing container: %+v", container)
 		if seenServices[serviceName] {
 			continue
 		}
+
 		seenServices[serviceName] = true
 
 		// Procesar métricas
 		metric := processContainerMetrics(container)
 
-		log.Printf("Saving metrics for %s: %+v", serviceName, metric)
+		// log.Printf("Saving metrics for %s: %+v", serviceName, metric)
 
 		if err := cm.db.SaveContainerMetric(metric); err != nil {
 			log.Printf("Error saving metrics for %s: %v", serviceName, err)
@@ -132,7 +140,7 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 
 	// Procesar CPU
 	cpu, _ := strconv.ParseFloat(strings.TrimSuffix(container.CPUPerc, "%"), 64)
-	// log.Printf("CPU: %v from %v", cpu, container.CPUPerc)
+	log.Printf("CPU: %v from %v", cpu, container.CPUPerc)
 
 	// Procesar Memoria
 	memPerc, _ := strconv.ParseFloat(strings.TrimSuffix(container.MemPerc, "%"), 64)
