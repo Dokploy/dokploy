@@ -1,0 +1,41 @@
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+# Instalar dependencias necesarias
+RUN apk add --no-cache gcc musl-dev sqlite-dev
+
+# Establecer el directorio de trabajo
+WORKDIR /app
+
+# Copiar los archivos de dependencias
+COPY apps/golang/go.mod apps/golang/go.sum ./
+
+# Descargar dependencias
+RUN go mod download
+
+# Copiar el código fuente
+COPY apps/golang/ ./
+
+# Compilar la aplicación
+RUN CGO_ENABLED=1 GOOS=linux go build -o monitoring main.go
+
+# Etapa final
+FROM alpine:latest
+
+# Instalar SQLite y otras dependencias necesarias
+RUN apk add --no-cache sqlite-libs
+
+# Crear el directorio para la base de datos
+RUN mkdir -p /etc/dokploy/monitoring
+
+WORKDIR /app
+
+# Copiar el binario compilado desde la etapa de construcción
+COPY --from=builder /app/monitoring .
+
+# Exponer el puerto
+ENV PORT=3001
+EXPOSE 3001
+
+# Ejecutar la aplicación
+CMD ["./monitoring"]

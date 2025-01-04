@@ -95,7 +95,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile.monitoring
+          file: ./Dockerfile.golang
           push: true
           tags: |
             siumauricio/monitoring:${{ github.ref_name == 'main' && 'latest' || 'canary' }}

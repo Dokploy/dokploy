@@ -21,6 +21,7 @@ export const setupMonitoring = async (serverId: string) => {
 		],
 		Image: imageName,
 		HostConfig: {
+			// Memory: 100 * 1024 * 1024, // 100MB en bytes
 			// PidMode: "host",
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
