@@ -243,6 +243,8 @@ export const serverRouter = createTRPCRouter({
 							input?.containersMetricsDefinition?.excludedServices ?? [],
 					},
 					metricsToken: input.metricsToken,
+					thresholdCpu: input.thresholdCpu,
+					thresholdMemory: input.thresholdMemory,
 					metricsUrlCallback: input.metricsUrlCallback,
 				});
 				const currentServer = await setupMonitoring(input.serverId);

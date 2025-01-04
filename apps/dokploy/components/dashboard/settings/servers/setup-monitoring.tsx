@@ -56,7 +56,10 @@ const Schema = z.object({
 		message: "Token is required",
 	}),
 	metricsUrlCallback: z.string().url(),
-	threshold: z.number().min(0, {
+	thresholdCPU: z.number().min(0, {
+		message: "Threshold must be a positive number",
+	}),
+	thresholdMemory: z.number().min(0, {
 		message: "Threshold must be a positive number",
 	}),
 	includeServices: z
@@ -102,7 +105,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			serverRefreshRateMetrics: 10,
 			containerRefreshRateMetrics: 10,
 			excludedServices: [],
-			threshold: 0,
+			thresholdCPU: 0,
+			thresholdMemory: 0,
 			includeServices: [],
 			metricsToken: "",
 			metricsUrlCallback: url,
@@ -118,7 +122,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				containerRefreshRateMetrics: data.containerRefreshRateMetrics,
 				excludedServices:
 					data?.containersMetricsDefinition?.excludedServices ?? [],
-				threshold: data.threshold ?? 0,
+				thresholdCPU: data.thresholdCpu ?? 0,
+				thresholdMemory: data.thresholdMemory ?? 0,
 				includeServices:
 					data?.containersMetricsDefinition?.includeServices ?? [],
 				metricsToken: data.metricsToken || generateToken(),
@@ -171,7 +176,8 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 			},
 			metricsToken: values.metricsToken,
 			metricsUrlCallback: values.metricsUrlCallback,
-			threshold: values.threshold,
+			thresholdCpu: values.thresholdCPU,
+			thresholdMemory: values.thresholdMemory,
 		})
 			.then(() => {
 				toast.success("Server updated successfully");
@@ -427,12 +433,31 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 					<FormField
 						control={form.control}
-						name="threshold"
+						name="thresholdCPU"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Threshold</FormLabel>
+								<FormLabel>Threshold CPU</FormLabel>
 								<FormDescription>
-									Set the CPU usage threshold for notifications. A value of 0 disables threshold notifications.
+									Set the CPU usage threshold for notifications. A value of 0
+									disables threshold notifications.
+								</FormDescription>
+								<FormControl>
+									<NumberInput {...field} placeholder="Enter threshold value" />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="thresholdMemory"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Threshold Memory</FormLabel>
+								<FormDescription>
+									Set the memory usage threshold for notifications. A value of 0
+									disables threshold notifications.
 								</FormDescription>
 								<FormControl>
 									<NumberInput {...field} placeholder="Enter threshold value" />

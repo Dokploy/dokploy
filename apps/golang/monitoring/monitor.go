@@ -1,10 +1,14 @@
 package monitoring
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,6 +40,14 @@ type SystemMetrics struct {
 	NetworkIn        string  `json:"networkIn"`
 	NetworkOut       string  `json:"networkOut"`
 	Timestamp        string  `json:"timestamp"`
+}
+
+type AlertPayload struct {
+	Type      string  `json:"type"`
+	Value     float64 `json:"value"`
+	Threshold float64 `json:"threshold"`
+	Message   string  `json:"message"`
+	Timestamp string  `json:"timestamp"`
 }
 
 func getRealOS() string {
@@ -166,4 +178,61 @@ func ConvertToSystemMetrics(metric database.ServerMetric) SystemMetrics {
 		NetworkOut:       fmt.Sprintf("%.2f", metric.NetworkOut),
 		Timestamp:        time.Unix(metric.Timestamp, 0).Format(time.RFC3339),
 	}
+}
+
+func CheckThresholds(metrics database.ServerMetric) error {
+	cpuThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_CPU"), 64)
+	memThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_MEMORY"), 64)
+	callbackURL := os.Getenv("METRICS_URL_CALLBACK")
+
+	if cpuThreshold > 0 && metrics.CPU > cpuThreshold {
+		alert := AlertPayload{
+			Type:      "CPU",
+			Value:     metrics.CPU,
+			Threshold: cpuThreshold,
+			Message:   fmt.Sprintf("CPU usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.CPU, cpuThreshold),
+			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+		}
+		if err := sendAlert(callbackURL, alert); err != nil {
+			return fmt.Errorf("failed to send CPU alert: %v", err)
+		}
+	}
+
+	if memThreshold > 0 && metrics.MemUsed > memThreshold {
+		alert := AlertPayload{
+			Type:      "Memory",
+			Value:     metrics.MemUsed,
+			Threshold: memThreshold,
+			Message:   fmt.Sprintf("Memory usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.MemUsed, memThreshold),
+			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+		}
+		if err := sendAlert(callbackURL, alert); err != nil {
+			return fmt.Errorf("failed to send memory alert: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func sendAlert(callbackURL string, payload AlertPayload) error {
+	if callbackURL == "" {
+		return fmt.Errorf("callback URL is not set")
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal alert payload: %v", err)
+	}
+
+	resp, err := http.Post(callbackURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to send POST request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received non-OK response status: %s", resp.Status)
+	}
+
+	return nil
 }

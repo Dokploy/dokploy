@@ -140,6 +140,10 @@ func main() {
 				log.Printf("Error saving metrics: %v", err)
 			}
 
+			if err := monitoring.CheckThresholds(metrics); err != nil {
+				log.Printf("Error checking thresholds: %v", err)
+			}
+
 		}
 	}()
 
