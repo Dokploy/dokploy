@@ -40,11 +40,11 @@ interface FormattedMetric {
 const chartConfig = {
 	read: {
 		label: "Read",
-		color: "hsl(var(--chart-5))",
+		color: "hsl(217, 91%, 60%)", // Azul brillante
 	},
 	write: {
 		label: "Write",
-		color: "hsl(var(--chart-6))",
+		color: "hsl(142, 71%, 45%)", // Verde brillante
 	},
 } satisfies ChartConfig;
 
@@ -85,24 +85,24 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							<linearGradient id="fillRead" x1="0" y1="0" x2="0" y2="1">
 								<stop
 									offset="5%"
-									stopColor="hsl(var(--chart-5))"
-									stopOpacity={0.8}
+									stopColor="hsl(217, 91%, 60%)"
+									stopOpacity={0.3}
 								/>
 								<stop
 									offset="95%"
-									stopColor="hsl(var(--chart-5))"
+									stopColor="hsl(217, 91%, 60%)"
 									stopOpacity={0.1}
 								/>
 							</linearGradient>
 							<linearGradient id="fillWrite" x1="0" y1="0" x2="0" y2="1">
 								<stop
 									offset="5%"
-									stopColor="hsl(var(--chart-6))"
-									stopOpacity={0.8}
+									stopColor="hsl(142, 71%, 45%)"
+									stopOpacity={0.3}
 								/>
 								<stop
 									offset="95%"
-									stopColor="hsl(var(--chart-6))"
+									stopColor="hsl(142, 71%, 45%)"
 									stopOpacity={0.1}
 								/>
 							</linearGradient>
@@ -159,20 +159,22 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							}}
 						/>
 						<Area
-							name="Read"
-							dataKey="read"
-							type="monotone"
-							fill="url(#fillRead)"
-							stroke="hsl(var(--chart-5))"
-							strokeWidth={2}
-						/>
-						<Area
 							name="Write"
 							dataKey="write"
 							type="monotone"
 							fill="url(#fillWrite)"
-							stroke="hsl(var(--chart-6))"
+							stroke="hsl(142, 71%, 45%)"
 							strokeWidth={2}
+							fillOpacity={0.3}
+						/>
+						<Area
+							name="Read"
+							dataKey="read"
+							type="monotone"
+							fill="url(#fillRead)"
+							stroke="hsl(217, 91%, 60%)"
+							strokeWidth={2}
+							fillOpacity={0.3}
 						/>
 						<ChartLegend
 							content={<ChartLegendContent />}

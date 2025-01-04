@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
+	"github.com/mauriciogm/dokploy/apps/golang/containers"
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 	"github.com/mauriciogm/dokploy/apps/golang/monitoring"
 )
@@ -73,6 +74,43 @@ func main() {
 		return c.JSON(metrics)
 	})
 
+	// Iniciar el monitoreo de contenedores
+	containerMonitor, err := containers.NewContainerMonitor(db)
+	if err != nil {
+		log.Fatalf("Failed to create container monitor: %v", err)
+	}
+	if err := containerMonitor.Start(); err != nil {
+		log.Fatalf("Failed to start container monitor: %v", err)
+	}
+	defer containerMonitor.Stop()
+
+	// Endpoint para obtener métricas de contenedores
+	app.Get("/metrics/containers", func(c *fiber.Ctx) error {
+		limit := c.Query("limit", "50")
+		appName := c.Query("appName", "")
+
+		limitNum, err := strconv.Atoi(limit)
+		if err != nil {
+			limitNum = 50
+		}
+
+		log.Printf("Fetching container metrics for app: %s, limit: %d", appName, limitNum)
+		var metrics []database.ContainerMetric
+		if appName != "" {
+			metrics, err = db.GetContainerMetrics(appName, limitNum)
+		} else {
+			metrics, err = db.GetAllContainerMetrics(limitNum)
+		}
+
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"error": "Error getting container metrics: " + err.Error(),
+			})
+		}
+
+		return c.JSON(metrics)
+	})
+
 	// Start metrics collection in background
 	go func() {
 		refreshRate := os.Getenv("REFRESH_RATE_SERVER")
@@ -89,7 +127,7 @@ func main() {
 		ticker := time.NewTicker(duration)
 		for range ticker.C {
 			metrics := monitoring.GetServerMetrics()
-			log.Printf("Saving metrics: %v", metrics)
+			// log.Printf("Saving metrics: %v", metrics)
 			if err := db.SaveMetric(metrics); err != nil {
 				log.Printf("Error saving metrics: %v", err)
 			}

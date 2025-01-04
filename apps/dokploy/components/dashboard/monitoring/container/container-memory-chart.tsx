@@ -21,7 +21,8 @@ interface ContainerMetric {
 		percentage: number;
 		used: number;
 		total: number;
-		unit: string;
+		usedUnit: string;
+		totalUnit: string;
 	};
 }
 
@@ -36,11 +37,18 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
+const formatMemoryValue = (value: number) => {
+	return value.toLocaleString('en-US', {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 2
+	});
+};
+
 export const ContainerMemoryChart = ({ data }: Props) => {
 	const formattedData = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		memory: metric.Memory.percentage,
-		usage: `${metric.Memory.used} / ${metric.Memory.total} ${metric.Memory.unit}`,
+		usage: `${formatMemoryValue(metric.Memory.used)}${metric.Memory.usedUnit} / ${formatMemoryValue(metric.Memory.total)}${metric.Memory.totalUnit}`,
 	}));
 
 	const latestData = formattedData[formattedData.length - 1] || {
