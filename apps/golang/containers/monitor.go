@@ -37,6 +37,12 @@ func (cm *ContainerMonitor) Start() error {
 		return fmt.Errorf("error loading config: %v", err)
 	}
 
+	// Verificar si hay servicios para monitorear
+	if len(config.IncludeServices) == 0 {
+		log.Printf("No services to monitor. Skipping container metrics collection")
+		return nil
+	}
+
 	refreshRateSeconds := 10 // default 10 segundos
 	if rateStr := os.Getenv("CONTAINER_REFRESH_RATE"); rateStr != "" {
 		if rate, err := strconv.Atoi(rateStr); err == nil {
@@ -45,13 +51,19 @@ func (cm *ContainerMonitor) Start() error {
 	}
 
 	refreshRateMs := refreshRateSeconds * 1000
-	log.Printf("Container metrics collection will run every %d seconds", refreshRateSeconds)
+	log.Printf("Container metrics collection will run every %d seconds for services: %v", refreshRateSeconds, config.IncludeServices)
 
 	ticker := time.NewTicker(time.Duration(refreshRateMs) * time.Millisecond)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
+				// Verificar nuevamente por si la configuración cambió
+				if len(config.IncludeServices) == 0 {
+					log.Printf("No services to monitor. Stopping metrics collection")
+					ticker.Stop()
+					return
+				}
 				cm.collectMetrics()
 			case <-cm.stopChan:
 				ticker.Stop()
@@ -87,6 +99,8 @@ func (cm *ContainerMonitor) collectMetrics() {
 		`{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}`)
 
 	output, err := cmd.CombinedOutput()
+
+	// log.Printf("Output: %s", string(output))
 	if err != nil {
 		log.Printf("Error getting docker stats: %v", err)
 		return
@@ -120,6 +134,8 @@ func (cm *ContainerMonitor) collectMetrics() {
 		}
 
 		seenServices[serviceName] = true
+
+		// log.Printf("Container: %+v", container)
 
 		// Procesar métricas
 		metric := processContainerMetrics(container)
