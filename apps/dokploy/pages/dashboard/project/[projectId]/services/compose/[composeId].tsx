@@ -72,7 +72,7 @@ const Service = (
 	);
 
 	const { data: auth } = api.auth.get.useQuery();
-	const { data: token } = api.admin.getMetricsToken.useQuery();
+	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -244,9 +244,11 @@ const Service = (
 						<div className="flex flex-col gap-4 pt-2.5">
 							<ShowMonitoringCompose
 								serverId={data?.serverId || ""}
-								url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
 								appName={data?.appName || ""}
-								token={data?.server?.metricsToken || token || ""}
+								baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : `http://${monitoring?.serverIp}:${monitoring?.defaultPortMetrics}`}`}
+								token={
+									data?.server?.metricsToken || monitoring?.metricsToken || ""
+								}
 								appType={data?.composeType || "docker-compose"}
 							/>
 						</div>

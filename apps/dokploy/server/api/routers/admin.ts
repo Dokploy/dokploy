@@ -153,6 +153,13 @@ export const adminRouter = createTRPCRouter({
 		}),
 	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
 		const admin = await findAdminById(ctx.user.adminId);
-		return admin.metricsToken;
+		return {
+			serverIp: admin.serverIp,
+			metricsToken: admin.metricsToken,
+			metricsUrlCallback: admin.metricsUrlCallback,
+			defaultPortMetrics: admin.defaultPortMetrics,
+			containerRefreshRateMetrics: admin.containerRefreshRateMetrics,
+			serverRefreshRateMetrics: admin.serverRefreshRateMetrics,
+		};
 	}),
 });
