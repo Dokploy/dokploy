@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -43,11 +44,12 @@ type SystemMetrics struct {
 }
 
 type AlertPayload struct {
-	Type      string  `json:"type"`
-	Value     float64 `json:"value"`
-	Threshold float64 `json:"threshold"`
-	Message   string  `json:"message"`
-	Timestamp string  `json:"timestamp"`
+	Type      string  `json:"Type"`
+	Value     float64 `json:"Value"`
+	Threshold float64 `json:"Threshold"`
+	Message   string  `json:"Message"`
+	Timestamp string  `json:"Timestamp"`
+	Token     string  `json:"Token"`
 }
 
 func getRealOS() string {
@@ -184,6 +186,7 @@ func CheckThresholds(metrics database.ServerMetric) error {
 	cpuThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_CPU"), 64)
 	memThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_MEMORY"), 64)
 	callbackURL := os.Getenv("METRICS_URL_CALLBACK")
+	metricsToken := os.Getenv("METRICS_TOKEN")
 
 	if cpuThreshold > 0 && metrics.CPU > cpuThreshold {
 		alert := AlertPayload{
@@ -192,6 +195,7 @@ func CheckThresholds(metrics database.ServerMetric) error {
 			Threshold: cpuThreshold,
 			Message:   fmt.Sprintf("CPU usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.CPU, cpuThreshold),
 			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+			Token:     metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {
 			return fmt.Errorf("failed to send CPU alert: %v", err)
@@ -205,6 +209,7 @@ func CheckThresholds(metrics database.ServerMetric) error {
 			Threshold: memThreshold,
 			Message:   fmt.Sprintf("Memory usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.MemUsed, memThreshold),
 			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+			Token:     metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {
 			return fmt.Errorf("failed to send memory alert: %v", err)
@@ -219,7 +224,11 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 		return fmt.Errorf("callback URL is not set")
 	}
 
-	jsonData, err := json.Marshal(payload)
+	wrappedPayload := map[string]interface{}{
+		"json": payload,
+	}
+
+	jsonData, err := json.Marshal(wrappedPayload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal alert payload: %v", err)
 	}
@@ -231,7 +240,8 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received non-OK response status: %s", resp.Status)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("received non-OK response status: %s, body: %s", resp.Status, string(bodyBytes))
 	}
 
 	return nil
