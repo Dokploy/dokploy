@@ -77,6 +77,22 @@ export const updateAdmin = async (
 	return admin;
 };
 
+export const updateAdminById = async (
+	adminId: string,
+	adminData: Partial<Admin>,
+) => {
+	const admin = await db
+		.update(admins)
+		.set({
+			...adminData,
+		})
+		.where(eq(admins.adminId, adminId))
+		.returning()
+		.then((res) => res[0]);
+
+	return admin;
+};
+
 export const isAdminPresent = async () => {
 	const admin = await db.query.admins.findFirst();
 	if (!admin) {

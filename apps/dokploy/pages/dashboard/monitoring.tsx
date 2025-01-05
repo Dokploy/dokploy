@@ -14,10 +14,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 
 const REFRESH_INTERVAL = 4500;
 const BASE_URL =
-	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
+	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:4500/metrics";
 
 const DATA_POINTS_OPTIONS = {
 	"50": "50 points",
@@ -52,7 +53,7 @@ interface SystemMetrics {
 }
 
 const Dashboard = () => {
-	const TOKEN = "testing";
+	const { data: admin } = api.admin.one.useQuery();
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
 	const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +72,7 @@ const Dashboard = () => {
 
 			const response = await fetch(url.toString(), {
 				headers: {
-					Authorization: `Bearer ${TOKEN}`,
+					Authorization: `Bearer ${admin?.metricsToken}`,
 				},
 			});
 

@@ -138,7 +138,7 @@ export const apiReadStatsLogs = z.object({
 	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
 });
 
-export const apiUpdateWebServerMonitoring = createSchema.required().extend({
+export const apiUpdateWebServerMonitoring = z.object({
 	serverRefreshRateMetrics: z.number().optional(),
 	containerRefreshRateMetrics: z.number().optional(),
 	containersMetricsDefinition: z

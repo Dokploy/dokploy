@@ -14,9 +14,11 @@ import {
 	findUserByAuthId,
 	findUserById,
 	getUserByToken,
+	IS_CLOUD,
 	removeUserByAuthId,
 	setupWebMonitoring,
 	updateAdmin,
+	updateAdminById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -109,6 +111,12 @@ export const adminRouter = createTRPCRouter({
 		.input(apiUpdateWebServerMonitoring)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				if (IS_CLOUD) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Feature disabled on cloud",
+					});
+				}
 				const admin = await findAdminById(ctx.user.adminId);
 				if (admin.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
@@ -117,7 +125,7 @@ export const adminRouter = createTRPCRouter({
 					});
 				}
 
-				await updateAdmin(admin.adminId, {
+				await updateAdminById(admin.adminId, {
 					defaultPortMetrics: input.defaultPortMetrics,
 					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
 					serverRefreshRateMetrics: input.serverRefreshRateMetrics,

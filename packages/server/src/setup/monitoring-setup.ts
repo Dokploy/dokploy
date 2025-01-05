@@ -112,7 +112,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 				"/proc:/host/proc:ro",
 				"/etc/dokploy/monitoring/monitoring.db:/app/monitoring.db",
 			],
-			NetworkMode: "host",
+			// NetworkMode: "host",
 		},
 		ExposedPorts: {
 			[`${admin.defaultPortMetrics}/tcp`]: {},

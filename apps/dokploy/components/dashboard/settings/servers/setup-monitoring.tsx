@@ -15,7 +15,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, NumberInput } from "@/components/ui/input";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	Command,
@@ -142,6 +142,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 	const [search, setSearch] = useState("");
 	const [searchExclude, setSearchExclude] = useState("");
 	const [maxFileSize, setMaxFileSize] = useState(10);
+	const [showToken, setShowToken] = useState(false);
 
 	const availableServices = services?.filter(
 		(service) =>
@@ -160,7 +161,9 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 		...(!form.watch("excludedServices")?.includes("*") ? ["*"] : []),
 	];
 
-	const { mutateAsync } = api.server.setupMonitoring.useMutation();
+	const { mutateAsync } = serverId
+		? api.server.setupMonitoring.useMutation()
+		: api.admin.setupMonitoring.useMutation();
 
 	const generateToken = () => {
 		const array = new Uint8Array(64);
@@ -482,7 +485,27 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 								<FormLabel>Metrics Token</FormLabel>
 								<FormControl>
 									<div className="flex gap-2">
-										<Input placeholder="Enter your metrics token" {...field} />
+										<div className="relative flex-1">
+											<Input
+												type={showToken ? "text" : "password"}
+												placeholder="Enter your metrics token"
+												{...field}
+											/>
+											<Button
+												type="button"
+												variant="secondary"
+												size="icon"
+												className="absolute right-0 top-1/2 -translate-y-1/2"
+												onClick={() => setShowToken(!showToken)}
+												title={showToken ? "Hide token" : "Show token"}
+											>
+												{showToken ? (
+													<EyeOff className="h-4 w-4" />
+												) : (
+													<Eye className="h-4 w-4" />
+												)}
+											</Button>
+										</div>
 										<Button
 											type="button"
 											variant="outline"
@@ -490,6 +513,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 											onClick={() => {
 												const newToken = generateToken();
 												form.setValue("metricsToken", newToken);
+												toast.success("Token generated successfully");
 											}}
 											title="Generate new token"
 										>
