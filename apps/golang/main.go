@@ -105,6 +105,10 @@ func main() {
 			limitNum = 50
 		}
 
+		if appName == "" {
+			return c.JSON([]database.ContainerMetric{})
+		}
+
 		var metrics []database.ContainerMetric
 		if appName != "" {
 			metrics, err = db.GetContainerMetrics(appName, limitNum)
