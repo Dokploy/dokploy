@@ -246,10 +246,9 @@ const Dashboard = () => {
 
 			<ShowMonitoring
 				BASE_URL={
-					BASE_URL
-					// admin?.serverIp
-					// 	? `http://${admin.serverIp}:${admin.defaultPortMetrics}/metrics`
-					// 	: BASE_URL
+					admin?.serverIp
+						? `http://${admin.serverIp}:${admin.defaultPortMetrics}/metrics`
+						: BASE_URL
 				}
 				token={admin?.metricsToken}
 			/>
