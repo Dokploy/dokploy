@@ -22,7 +22,12 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { adminProcedure, createTRPCRouter, publicProcedure } from "../trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../trpc";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async ({ ctx }) => {
@@ -146,4 +151,8 @@ export const adminRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
+		const admin = await findAdminById(ctx.user.adminId);
+		return admin.metricsToken;
+	}),
 });

@@ -124,8 +124,8 @@ export const ShowMonitoringCompose = ({
 					</div>
 					<ContainerMonitoring
 						appName={containerAppName || ""}
-						BASE_URL={url}
-						TOKEN={token}
+						baseUrl={url}
+						token={token}
 					/>
 				</CardContent>
 			</Card>

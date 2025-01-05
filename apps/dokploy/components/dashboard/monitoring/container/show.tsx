@@ -113,7 +113,7 @@ export const ContainerMonitoring = ({ appName, baseUrl, token }: Props) => {
 		}, REFRESH_INTERVAL);
 
 		return () => clearInterval(interval);
-	}, [dataPoints, appName]);
+	}, [dataPoints, appName, token]);
 
 	if (isLoading) {
 		return (

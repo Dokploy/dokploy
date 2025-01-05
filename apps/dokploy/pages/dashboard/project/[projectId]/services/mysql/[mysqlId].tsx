@@ -52,6 +52,7 @@ const MySql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
 	const { data: auth } = api.auth.get.useQuery();
+	const { data: token } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -217,7 +218,8 @@ const MySql = (
 							<div className="flex flex-col gap-4 pt-2.5">
 								<ContainerMonitoring
 									appName={data?.appName || ""}
-									BASE_URL={"http://localhost:3001"}
+									baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+									token={data?.server?.metricsToken || token || ""}
 								/>
 								{/* <DockerMonitoring appName={data?.appName || ""} /> */}
 							</div>
