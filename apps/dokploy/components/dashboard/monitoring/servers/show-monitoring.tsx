@@ -143,7 +143,7 @@ export const ShowMonitoring = ({
 
 			return () => clearInterval(interval);
 		}
-	}, [dataPoints]);
+	}, [dataPoints, BASE_URL, token]);
 
 	if (isLoading) {
 		return (

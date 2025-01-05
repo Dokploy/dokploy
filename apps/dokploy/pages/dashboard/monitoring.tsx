@@ -15,6 +15,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { ShowMonitoring } from "@/components/dashboard/monitoring/servers/show-monitoring";
 
 const REFRESH_INTERVAL = 4500;
 const BASE_URL =
@@ -54,108 +55,108 @@ interface SystemMetrics {
 
 const Dashboard = () => {
 	const { data: admin } = api.admin.one.useQuery();
-	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
-	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [dataPoints, setDataPoints] =
-		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
+	// const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
+	// const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
+	// const [isLoading, setIsLoading] = useState(true);
+	// const [error, setError] = useState<string | null>(null);
+	// const [dataPoints, setDataPoints] =
+	// 	useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 
-	const fetchMetrics = async () => {
-		try {
-			const url = new URL(BASE_URL);
+	// const fetchMetrics = async () => {
+	// 	try {
+	// 		const url = new URL(BASE_URL);
 
-			// Solo añadir el parámetro limit si no es "all"
-			if (dataPoints !== "all") {
-				url.searchParams.append("limit", dataPoints);
-			}
+	// 		// Solo añadir el parámetro limit si no es "all"
+	// 		if (dataPoints !== "all") {
+	// 			url.searchParams.append("limit", dataPoints);
+	// 		}
 
-			const response = await fetch(url.toString(), {
-				headers: {
-					Authorization: `Bearer ${admin?.metricsToken}`,
-				},
-			});
+	// 		const response = await fetch(url.toString(), {
+	// 			headers: {
+	// 				Authorization: `Bearer ${admin?.metricsToken}`,
+	// 			},
+	// 		});
 
-			if (!response.ok) {
-				throw new Error(`Failed to fetch metrics: ${response.statusText}`);
-			}
+	// 		if (!response.ok) {
+	// 			throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+	// 		}
 
-			const data = await response.json();
-			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error("No data available");
-			}
+	// 		const data = await response.json();
+	// 		if (!Array.isArray(data) || data.length === 0) {
+	// 			throw new Error("No data available");
+	// 		}
 
-			const formattedData = data.map((metric: SystemMetrics) => ({
-				timestamp: metric.timestamp,
-				cpu: Number.parseFloat(metric.cpu),
-				cpuModel: metric.cpuModel,
-				cpuCores: metric.cpuCores,
-				cpuPhysicalCores: metric.cpuPhysicalCores,
-				cpuSpeed: metric.cpuSpeed,
-				os: metric.os,
-				distro: metric.distro,
-				kernel: metric.kernel,
-				arch: metric.arch,
-				memUsed: Number.parseFloat(metric.memUsed),
-				memUsedGB: Number.parseFloat(metric.memUsedGB),
-				memTotal: Number.parseFloat(metric.memTotal),
-				networkIn: Number.parseFloat(metric.networkIn),
-				networkOut: Number.parseFloat(metric.networkOut),
-				diskUsed: Number.parseFloat(metric.diskUsed),
-				totalDisk: Number.parseFloat(metric.totalDisk),
-				uptime: metric.uptime,
-			}));
+	// 		const formattedData = data.map((metric: SystemMetrics) => ({
+	// 			timestamp: metric.timestamp,
+	// 			cpu: Number.parseFloat(metric.cpu),
+	// 			cpuModel: metric.cpuModel,
+	// 			cpuCores: metric.cpuCores,
+	// 			cpuPhysicalCores: metric.cpuPhysicalCores,
+	// 			cpuSpeed: metric.cpuSpeed,
+	// 			os: metric.os,
+	// 			distro: metric.distro,
+	// 			kernel: metric.kernel,
+	// 			arch: metric.arch,
+	// 			memUsed: Number.parseFloat(metric.memUsed),
+	// 			memUsedGB: Number.parseFloat(metric.memUsedGB),
+	// 			memTotal: Number.parseFloat(metric.memTotal),
+	// 			networkIn: Number.parseFloat(metric.networkIn),
+	// 			networkOut: Number.parseFloat(metric.networkOut),
+	// 			diskUsed: Number.parseFloat(metric.diskUsed),
+	// 			totalDisk: Number.parseFloat(metric.totalDisk),
+	// 			uptime: metric.uptime,
+	// 		}));
 
-			setHistoricalData(formattedData);
-			setMetrics(formattedData[formattedData.length - 1] || {});
-			setError(null);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to fetch metrics");
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	// 		setHistoricalData(formattedData);
+	// 		setMetrics(formattedData[formattedData.length - 1] || {});
+	// 		setError(null);
+	// 	} catch (err) {
+	// 		setError(err instanceof Error ? err.message : "Failed to fetch metrics");
+	// 	} finally {
+	// 		setIsLoading(false);
+	// 	}
+	// };
 
-	const formatUptime = (seconds: number): string => {
-		const days = Math.floor(seconds / (24 * 60 * 60));
-		const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
-		const minutes = Math.floor((seconds % (60 * 60)) / 60);
+	// const formatUptime = (seconds: number): string => {
+	// 	const days = Math.floor(seconds / (24 * 60 * 60));
+	// 	const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+	// 	const minutes = Math.floor((seconds % (60 * 60)) / 60);
 
-		return `${days}d ${hours}h ${minutes}m`;
-	};
+	// 	return `${days}d ${hours}h ${minutes}m`;
+	// };
 
-	useEffect(() => {
-		fetchMetrics();
+	// useEffect(() => {
+	// 	fetchMetrics();
 
-		const interval = setInterval(() => {
-			fetchMetrics();
-		}, REFRESH_INTERVAL);
+	// 	const interval = setInterval(() => {
+	// 		fetchMetrics();
+	// 	}, REFRESH_INTERVAL);
 
-		return () => clearInterval(interval);
-	}, [dataPoints, admin]);
+	// 	return () => clearInterval(interval);
+	// }, [dataPoints, admin]);
 
-	if (isLoading) {
-		return (
-			<div className="flex h-[400px] w-full items-center justify-center">
-				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-			</div>
-		);
-	}
+	// if (isLoading) {
+	// 	return (
+	// 		<div className="flex h-[400px] w-full items-center justify-center">
+	// 			<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+	// 		</div>
+	// 	);
+	// }
 
-	if (error) {
-		return (
-			<div className="mt-5 border p-4 rounded-lg min-h-[55vh] flex items-center justify-center">
-				<span className="text-base font-medium leading-none text-muted-foreground">
-					Error fetching metrics:{" "}
-					<strong className="font-semibold text-destructive">{error}</strong>
-				</span>
-			</div>
-		);
-	}
+	// if (error) {
+	// 	return (
+	// 		<div className="mt-5 border p-4 rounded-lg min-h-[55vh] flex items-center justify-center">
+	// 			<span className="text-base font-medium leading-none text-muted-foreground">
+	// 				Error fetching metrics:{" "}
+	// 				<strong className="font-semibold text-destructive">{error}</strong>
+	// 			</span>
+	// 		</div>
+	// 	);
+	// }
 
 	return (
 		<div className="space-y-4 pt-5 pb-10">
-			{/* Header con selector de puntos de datos */}
+			{/* 		
 			<div className="flex justify-between items-center">
 				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
 				<div className="flex items-center gap-2">
@@ -180,7 +181,7 @@ const Dashboard = () => {
 				</div>
 			</div>
 
-			{/* Stats Cards */}
+			
 			<div className="grid gap-4 md:grid-cols-4">
 				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
 					<div className="flex items-center gap-2">
@@ -219,7 +220,7 @@ const Dashboard = () => {
 				</div>
 			</div>
 
-			{/* System Information */}
+	
 			<div className="rounded-lg border text-card-foreground shadow-sm p-6">
 				<h3 className="text-lg font-medium mb-4">System Information</h3>
 				<div className="grid gap-4 md:grid-cols-2">
@@ -241,15 +242,24 @@ const Dashboard = () => {
 						</p>
 					</div>
 				</div>
-			</div>
+			</div> */}
 
-			{/* Charts Grid */}
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+			<ShowMonitoring
+				BASE_URL={
+					BASE_URL
+					// admin?.serverIp
+					// 	? `http://${admin.serverIp}:${admin.defaultPortMetrics}/metrics`
+					// 	: BASE_URL
+				}
+				token={admin?.metricsToken}
+			/>
+
+			{/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
 				<CPUChart data={historicalData} />
 				<MemoryChart data={historicalData} />
 				<DiskChart data={metrics} />
 				<NetworkChart data={historicalData} />
-			</div>
+			</div> */}
 		</div>
 	);
 };
