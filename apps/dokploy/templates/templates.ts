@@ -1167,6 +1167,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./unifi/index").then((m) => m.generate),
 	},
 	{
+		id: "glpi",
+		name: "GLPI Project",
+		version: "10.0.16",
+		description:
+			"The most complete open source service management software",
+		logo: "glpi.webp",
+		links: {
+			github: "https://github.com/glpi-project/glpi",
+			website: "https://glpi-project.org/",
+			docs: "https://glpi-project.org/documentation/",
+		},
+		tags: ["self-hosted", "project-management", "management"],
+		load: () => import("./glpi/index").then((m) => m.generate),
+  },
+    {
 		id: "checkmate",
 		name: "Checkmate",
 		version: "2.0.1",
