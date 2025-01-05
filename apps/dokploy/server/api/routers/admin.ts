@@ -5,6 +5,7 @@ import {
 	apiFindOneToken,
 	apiRemoveUser,
 	apiUpdateAdmin,
+	apiUpdateWebServerMonitoring,
 	users,
 } from "@/server/db/schema";
 import {
@@ -14,6 +15,7 @@ import {
 	findUserById,
 	getUserByToken,
 	removeUserByAuthId,
+	setupWebMonitoring,
 	updateAdmin,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -98,6 +100,40 @@ export const adminRouter = createTRPCRouter({
 						...input,
 					})
 					.where(eq(users.userId, input.userId));
+			} catch (error) {
+				throw error;
+			}
+		}),
+
+	setupMonitoring: adminProcedure
+		.input(apiUpdateWebServerMonitoring)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const admin = await findAdminById(ctx.user.adminId);
+				if (admin.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup this server",
+					});
+				}
+
+				await updateAdmin(admin.adminId, {
+					defaultPortMetrics: input.defaultPortMetrics,
+					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
+					serverRefreshRateMetrics: input.serverRefreshRateMetrics,
+					containersMetricsDefinition: {
+						includeServices:
+							input?.containersMetricsDefinition?.includeServices ?? [],
+						excludedServices:
+							input?.containersMetricsDefinition?.excludedServices ?? [],
+					},
+					metricsToken: input.metricsToken,
+					thresholdCpu: input.thresholdCpu,
+					thresholdMemory: input.thresholdMemory,
+					metricsUrlCallback: input.metricsUrlCallback,
+				});
+				const currentServer = await setupWebMonitoring(admin.adminId);
+				return currentServer;
 			} catch (error) {
 				throw error;
 			}

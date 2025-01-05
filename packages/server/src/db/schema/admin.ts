@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -31,6 +31,26 @@ export const admins = pgTable("admin", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+
+	// Metrics
+	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
+		.notNull()
+		.default(5),
+	containerRefreshRateMetrics: integer("containerRefreshRateMetrics")
+		.notNull()
+		.default(5),
+	containersMetricsDefinition: json("containersMetricsDefinition").$type<{
+		includeServices: {
+			appName: string;
+			maxFileSizeMB: number;
+		}[];
+		excludedServices: string[];
+	}>(),
+	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
+	metricsToken: text("metricsToken").notNull().default(""),
+	metricsUrlCallback: text("metricsUrlCallback").notNull().default(""),
+	thresholdCpu: integer("thresholdCpu").notNull().default(0),
+	thresholdMemory: integer("thresholdMemory").notNull().default(0),
 });
 
 export const adminsRelations = relations(admins, ({ one, many }) => ({
@@ -116,4 +136,27 @@ export const apiReadStatsLogs = z.object({
 	status: z.string().array().optional(),
 	search: z.string().optional(),
 	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
+});
+
+export const apiUpdateWebServerMonitoring = createSchema.required().extend({
+	serverRefreshRateMetrics: z.number().optional(),
+	containerRefreshRateMetrics: z.number().optional(),
+	containersMetricsDefinition: z
+		.object({
+			includeServices: z
+				.array(
+					z.object({
+						appName: z.string().min(1),
+						maxFileSizeMB: z.number().min(1),
+					}),
+				)
+				.optional(),
+			excludedServices: z.string().array().optional(),
+		})
+		.optional(),
+	defaultPortMetrics: z.number().optional(),
+	metricsToken: z.string().min(1),
+	metricsUrlCallback: z.string().url(),
+	thresholdCpu: z.number().optional(),
+	thresholdMemory: z.number().optional(),
 });

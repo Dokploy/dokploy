@@ -2,6 +2,7 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
+	publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -19,6 +20,7 @@ import {
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
+	server,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -30,6 +32,7 @@ import {
 	removeNotificationById,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendServerThresholdNotifications,
 	sendSlackNotification,
 	sendTelegramNotification,
 	updateDiscordNotification,
@@ -39,6 +42,7 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
 
 // TODO: Uncomment the validations when is cloud ready
 export const notificationRouter = createTRPCRouter({
@@ -306,4 +310,38 @@ export const notificationRouter = createTRPCRouter({
 			// TODO: Remove this line when the cloud version is ready
 		});
 	}),
+	receiveNotification: publicProcedure
+		.input(
+			z.object({
+				Type: z.enum(["Memory", "CPU"]),
+				Value: z.number(),
+				Threshold: z.number(),
+				Message: z.string(),
+				Timestamp: z.string(),
+				Token: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const result = await db.query.server.findFirst({
+				where: eq(
+					server.metricsToken,
+					// token
+					"e50af3b5beff83a89c1d7ae2247e3a58d030af44b7df88d4535ae8871ef9006f",
+				),
+			});
+			if (!result) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Server not found",
+				});
+			}
+			const adminId = result.adminId;
+
+			await sendServerThresholdNotifications(adminId, {
+				...input,
+				ServerName: result.name,
+			});
+
+			return true;
+		}),
 });

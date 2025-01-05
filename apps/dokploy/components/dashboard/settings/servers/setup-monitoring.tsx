@@ -15,8 +15,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, NumberInput } from "@/components/ui/input";
-import { CardTitle } from "@/components/ui/card";
-import { AlertTriangle, BarChart, BarcodeIcon } from "lucide-react";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -39,7 +37,7 @@ import { useUrl } from "@/utils/hooks/use-url";
 import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
-	serverId: string;
+	serverId?: string;
 }
 
 const Schema = z.object({
@@ -76,9 +74,16 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
-	const { data, isLoading } = api.server.one.useQuery({
-		serverId,
-	});
+	const { data, isLoading } = serverId
+		? api.server.one.useQuery(
+				{
+					serverId: serverId || "",
+				},
+				{
+					enabled: !!serverId,
+				},
+			)
+		: api.admin.one.useQuery();
 
 	const url = useUrl();
 
@@ -89,9 +94,11 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 		const allServices = projects.flatMap((project) => {
 			const services = extractServices(project);
-			return services
-				.filter((service) => service.serverId === serverId)
-				.map((service) => service.appName);
+			return serverId
+				? services
+						.filter((service) => service.serverId === serverId)
+						.map((service) => service.appName)
+				: services.map((service) => service.appName);
 		});
 
 		return [...new Set(allServices)];
@@ -156,7 +163,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 	const { mutateAsync } = api.server.setupMonitoring.useMutation();
 
 	const generateToken = () => {
-		const array = new Uint8Array(32);
+		const array = new Uint8Array(64);
 		crypto.getRandomValues(array);
 		return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
 			"",
@@ -165,7 +172,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const onSubmit = async (values: Schema) => {
 		await mutateAsync({
-			serverId,
+			serverId: serverId || "",
 			...values,
 			containerRefreshRateMetrics: values.containerRefreshRateMetrics,
 			serverRefreshRateMetrics: values.serverRefreshRateMetrics,
@@ -518,9 +525,11 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 						)}
 					/>
 				</div>
-				<Button type="submit" isLoading={form.formState.isSubmitting}>
-					Save changes
-				</Button>
+				<div className="flex items-center justify-end gap-2">
+					<Button type="submit" isLoading={form.formState.isSubmitting}>
+						Save changes
+					</Button>
+				</div>
 			</form>
 		</Form>
 	);

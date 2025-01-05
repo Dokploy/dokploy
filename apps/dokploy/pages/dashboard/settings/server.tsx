@@ -1,5 +1,5 @@
+import { SetupMonitoring } from "@/components/dashboard/settings/servers/setup-monitoring";
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
-import { WebMonitoring } from "@/components/dashboard/settings/web-monitoring";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SettingsLayout } from "@/components/layouts/settings-layout";
@@ -16,7 +16,17 @@ const Page = () => {
 		<div className="flex flex-col gap-4 w-full">
 			<WebDomain />
 			<WebServer />
-			<WebMonitoring />
+			<div className="flex flex-col gap-4 w-full border rounded-lg p-5">
+				<div className="flex flex-col gap-2">
+					<span className="text-xl font-semibold text-primary">Monitoring</span>
+					<p className="text-muted-foreground text-sm">
+						Configure your server to be monitored by Dokploy. This will allow
+						you to view your server&apos;s metrics in the Dokploy dashboard.
+					</p>
+				</div>
+
+				<SetupMonitoring />
+			</div>
 		</div>
 	);
 };
