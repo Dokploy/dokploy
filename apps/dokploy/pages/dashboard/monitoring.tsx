@@ -132,7 +132,7 @@ const Dashboard = () => {
 		}, REFRESH_INTERVAL);
 
 		return () => clearInterval(interval);
-	}, [dataPoints]);
+	}, [dataPoints, admin]);
 
 	if (isLoading) {
 		return (
