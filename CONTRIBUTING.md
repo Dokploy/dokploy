@@ -169,6 +169,7 @@ Let's take the example of `plausible` template.
 ```typescript
 // EXAMPLE
 import {
+  generateBase64,
   generateHash,
   generateRandomDomain,
   type Template,
