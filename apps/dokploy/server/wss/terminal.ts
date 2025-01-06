@@ -20,6 +20,12 @@ const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 	echo "✓ Dokploy SSH key added successfully. Reopen the terminal in Dokploy to reconnect."
 # ----------------------------------------`;
 
+const COMMAND_TO_GRANT_PERMISSION_ACCESS = `
+# ----------------------------------------
+	sudo chown -R $USER:$USER /etc/dokploy/ssh
+# ----------------------------------------
+`;
+
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
 	let ip = null;
@@ -105,7 +111,17 @@ export const setupTerminalWebSocketServer = (
 				};
 			} catch (error) {
 				console.error(`Error setting up private SSH key: ${error}`);
-				ws.send(`Error setting up private SSH key: ${error}`);
+				ws.send(`Error setting up private SSH key: ${error}\n`);
+
+				if (
+					error instanceof Error &&
+					error.message.includes("Permission denied")
+				) {
+					ws.send(
+						`Please run the following command on your server to grant permission access and then reopen this window to reconnect:${COMMAND_TO_GRANT_PERMISSION_ACCESS}`,
+					);
+				}
+
 				ws.close();
 				return;
 			}

@@ -15,13 +15,6 @@ export const getShell = () => {
 };
 
 /** Returns private SSH key for dokploy local server terminal. Uses already created SSH key or generates a new SSH key.
- * 
- * In case of permission failures when running locally, run the command below:
-
-```
-sudo chown -R $USER:$USER /etc/dokploy/ssh
-```
-
 */
 export const setupLocalServerSSHKey = async () => {
 	const { SSH_PATH } = paths(true);
