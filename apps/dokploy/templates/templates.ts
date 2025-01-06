@@ -1199,7 +1199,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "gotenberg",
 		name: "Gotenberg",
-		version: "v8.15.2",
+		version: "v8.15.3",
 		description:
 			"Gotenberg is a Docker-powered stateless API for PDF files.",
 		logo: "gotenberg.png",
