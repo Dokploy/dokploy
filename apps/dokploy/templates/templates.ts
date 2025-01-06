@@ -1208,7 +1208,7 @@ export const templates: TemplateData[] = [
 			website: "https://gotenberg.dev",
 			docs: "https://gotenberg.dev/docs/getting-started/introduction",
 		},
-		tags: ["api", "backend", "pdf"],
+		tags: ["api", "backend", "pdf", "tools"],
 		load: () => import("./gotenberg/index").then((m) => m.generate),
 	}
 ];
