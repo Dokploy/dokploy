@@ -1196,4 +1196,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "monitoring", "uptime"],
 		load: () => import("./checkmate/index").then((m) => m.generate),
 	},
+	{
+		id: "gotenberg",
+		name: "Gotenberg",
+		version: "v8.15.2",
+		description:
+			"Gotenberg provides a developer-friendly API to interact with powerful tools like Chromium and LibreOffice for converting numerous document formats (HTML, Markdown, Word, Excel, etc.) into PDF files, and more!",
+		logo: "gotenberg.png",
+		links: {
+			github: "https://github.com/gotenberg/gotenberg",
+			website: "https://gotenberg.dev",
+			docs: "https://gotenberg.dev/docs/getting-started/introduction",
+		},
+		tags: ["api", "backend", "pdf"],
+		load: () => import("./gotenberg/index").then((m) => m.generate),
+	}
 ];
