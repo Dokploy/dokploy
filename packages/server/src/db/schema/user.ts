@@ -40,11 +40,11 @@ export const users = pgTable("user", {
 	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
 		.notNull()
 		.default(false),
-	accesedProjects: text("accesedProjects")
+	accessedProjects: text("accesedProjects")
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
-	accesedServices: text("accesedServices")
+	accessedServices: text("accesedServices")
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
@@ -73,8 +73,8 @@ const createSchema = createInsertSchema(users, {
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
 	adminId: z.string(),
-	accesedProjects: z.array(z.string()).optional(),
-	accesedServices: z.array(z.string()).optional(),
+	accessedProjects: z.array(z.string()).optional(),
+	accessedServices: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional(),
 	canCreateServices: z.boolean().optional(),
 	canDeleteProjects: z.boolean().optional(),
@@ -106,8 +106,8 @@ export const apiAssignPermissions = createSchema
 		canCreateServices: true,
 		canDeleteProjects: true,
 		canDeleteServices: true,
-		accesedProjects: true,
-		accesedServices: true,
+		accessedProjects: true,
+		accessedServices: true,
 		canAccessToTraefikFiles: true,
 		canAccessToDocker: true,
 		canAccessToAPI: true,
