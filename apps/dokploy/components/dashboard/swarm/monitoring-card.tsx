@@ -8,7 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Activity, Loader2, Monitor, Server, Settings } from "lucide-react";
+import { Activity, Loader2, Monitor, Settings, Server } from "lucide-react";
 import { NodeCard } from "./details/details-card";
 
 interface Props {
@@ -59,7 +59,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	);
 
 	return (
-		<div className="min-h-screen">
+		<div>
 			<div className="w-full max-w-7xl mx-auto space-y-6 py-4">
 				<header className="flex items-center justify-between">
 					<div className="space-y-1">
@@ -97,10 +97,12 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Active Nodes
+							<div className="flex items-center gap-2">
+								<CardTitle className="text-sm font-medium">
+									Active Nodes
+								</CardTitle>
 								<Badge variant="green">Online</Badge>
-							</CardTitle>
+							</div>
 							<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 								<Activity className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 							</div>
@@ -129,10 +131,12 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium">
-								Manager Nodes
+							<div className="flex items-center gap-2">
+								<CardTitle className="text-sm font-medium">
+									Manager Nodes
+								</CardTitle>
 								<Badge variant="green">Online</Badge>
-							</CardTitle>
+							</div>
 							<div className="p-2 bg-emerald-600/20 text-emerald-600 rounded-md">
 								<Monitor className="h-4 w-4 text-muted-foreground dark:text-emerald-600" />
 							</div>

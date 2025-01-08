@@ -1,6 +1,6 @@
 services:
   vaultwarden:
-    image: vaultwarden/server:1.32.3
+    image: vaultwarden/server:1.32.7
     restart: always
     environment:
       DOMAIN: ${DOMAIN}

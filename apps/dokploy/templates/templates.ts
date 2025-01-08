@@ -619,7 +619,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "vaultwarden",
 		name: "Vaultwarden",
-		version: "1.32.3",
+		version: "1.32.7",
 		description:
 			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
 		logo: "vaultwarden.svg",
@@ -1165,5 +1165,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "networking"],
 		load: () => import("./unifi/index").then((m) => m.generate),
+	},
+	{
+		id: "glpi",
+		name: "GLPI Project",
+		version: "10.0.16",
+		description:
+			"The most complete open source service management software",
+		logo: "glpi.webp",
+		links: {
+			github: "https://github.com/glpi-project/glpi",
+			website: "https://glpi-project.org/",
+			docs: "https://glpi-project.org/documentation/",
+		},
+		tags: ["self-hosted", "project-management", "management"],
+		load: () => import("./glpi/index").then((m) => m.generate),
+  },
+    {
+		id: "checkmate",
+		name: "Checkmate",
+		version: "2.0.1",
+		description:
+			"Checkmate is an open-source, self-hosted tool designed to track and monitor server hardware, uptime, response times, and incidents in real-time with beautiful visualizations.",
+		logo: "checkmate.png",
+		links: {
+			github: "https://github.com/bluewave-labs/checkmate",
+			website: "https://bluewavelabs.ca",
+			docs: "https://bluewavelabs.gitbook.io/checkmate",
+		},
+		tags: ["self-hosted", "monitoring", "uptime"],
+		load: () => import("./checkmate/index").then((m) => m.generate),
 	},
 ];
