@@ -9,26 +9,40 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { AlertCircle, Bot, Folder } from "lucide-react";
+import { AlertCircle, Bot } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { StepFour } from "./step-four";
 import { StepOne } from "./step-one";
 import { StepThree } from "./step-three";
 import { StepTwo } from "./step-two";
 
-export function TemplateGenerator() {
+const emptyState = {
+	userInput: "",
+	type: "",
+	details: {
+		id: "",
+		dockerCompose: "",
+		envVariables: [],
+		shortDescription: "",
+	},
+	name: "",
+	server: undefined,
+	description: "",
+};
+
+interface Props {
+	projectId: string;
+	projectName?: string;
+}
+
+export function TemplateGenerator({ projectId }: Props) {
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState(1);
-	// const [aiEnabled, setAiEnabled] = useState(true)
 	const { data: aiSettings } = api.ai.get.useQuery();
-	const [templateInfo, setTemplateInfo] = useState({
-		userInput: "",
-		type: "",
-		details: {},
-		name: "",
-		server: "",
-		description: "",
-	});
+	const { mutateAsync } = api.ai.deploy.useMutation();
+	const [templateInfo, setTemplateInfo] = useState(emptyState);
+	const utils = api.useUtils();
 
 	const totalSteps = 4;
 
@@ -40,14 +54,7 @@ export function TemplateGenerator() {
 		if (!newOpen) {
 			// Reset to the first step when closing the dialog
 			setStep(1);
-			setTemplateInfo({
-				userInput: "",
-				type: "",
-				details: {},
-				name: "",
-				server: "",
-				description: "",
-			});
+			setTemplateInfo(emptyState);
 		}
 	};
 
@@ -117,6 +124,31 @@ export function TemplateGenerator() {
 						<StepFour
 							prevStep={prevStep}
 							templateInfo={templateInfo}
+							setTemplateInfo={async (data: any) => {
+								console.log("Submitting template:", data);
+								setTemplateInfo(data);
+								await mutateAsync({
+									projectId,
+									id: templateInfo.details?.id,
+									name: templateInfo.name,
+									description: data.details.shortDescription,
+									dockerCompose: data.details.dockerCompose,
+									envVariables: (data.details?.envVariables || [])
+										.map((env: any) => `${env.name}=${env.value}`)
+										.join("\n"),
+									serverId: data.server,
+								})
+									.then(async () => {
+										toast.success("Compose Created");
+										setOpen(false);
+										await utils.project.one.invalidate({
+											projectId,
+										});
+									})
+									.catch(() => {
+										toast.error("Error creating the compose");
+									});
+							}}
 							setOpen={setOpen}
 						/>
 					)}

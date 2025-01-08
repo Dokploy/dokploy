@@ -9,14 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
+import { api } from "@/utils/api";
+import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 	ssr: false,
 });
+
+interface EnvVariable {
+	name: string;
+	value: string;
+}
 
 interface TemplateInfo {
 	id: string;
@@ -24,146 +31,8 @@ interface TemplateInfo {
 	shortDescription: string;
 	description: string;
 	dockerCompose: string;
-	envVariables: { name: string; value: string }[];
+	envVariables: EnvVariable[];
 }
-
-// This is a mock function to simulate AI processing
-const mockAIProcessing = (
-	userInput: string,
-): Promise<Partial<TemplateInfo>[]> => {
-	return new Promise((resolve) => {
-		setTimeout(() => {
-			const lowercaseInput = userInput.toLowerCase();
-			if (lowercaseInput.includes("blog")) {
-				resolve([
-					{
-						id: "personal-blog",
-						name: "Personal Blog Variant",
-						shortDescription:
-							"A customizable personal blog platform with modern features.",
-						description: `
-# Personal Blog Variant
-
-This variant is designed for creating a personal blog with customizable themes and layouts.
-
-## Features:
-- Customizable themes
-- Responsive layouts
-- SEO optimization
-- Comment system integration
-- Social media sharing
-
-Perfect for individuals who want to share their thoughts, experiences, or expertise with the world.
-            `,
-						dockerCompose: `version: '3'
-services:
-  blog:
-    image: personal-blog:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/blog
-      - SECRET_KEY=your_secret_key_here
-  db:
-    image: postgres:13
-    environment:
-      - POSTGRES_DB=blog
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - blog_data:/var/lib/postgresql/data
-
-volumes:
-  blog_data:`,
-						envVariables: [
-							{
-								name: "DATABASE_URL",
-								value: "postgresql://user:password@db:5432/blog",
-							},
-							{ name: "SECRET_KEY", value: "your_secret_key_here" },
-						],
-					},
-					{
-						id: "tech-blog",
-						name: "Tech Blog Variant",
-						shortDescription:
-							"A blog platform tailored for technology content creators.",
-						description:
-							"A variant designed for technology-focused blogs with code snippet support.",
-					},
-					{
-						id: "lifestyle-blog",
-						name: "Lifestyle Blog Variant",
-						shortDescription:
-							"A visually-rich blog for lifestyle and personal branding.",
-						description:
-							"A variant for lifestyle bloggers with image galleries and social media integration.",
-					},
-				]);
-			} else {
-				resolve([
-					{
-						id: "multipurpose",
-						name: "Multipurpose Variant",
-						shortDescription:
-							"A flexible, feature-rich platform adaptable to various use cases.",
-						description: `
-# Multipurpose Variant
-
-A versatile variant that can be customized for various purposes.
-
-## Key Features:
-- Modular architecture
-- Extensible plugin system
-- Multi-language support
-- Advanced user management
-- Customizable dashboard
-
-Ideal for businesses or individuals who need a flexible solution that can adapt to different use cases.
-            `,
-						dockerCompose: `version: '3'
-services:
-  app:
-    image: multipurpose:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=mongodb://db:27017/myapp
-      - REDIS_URL=redis://cache:6379
-  db:
-    image: mongo:4
-    volumes:
-      - app_data:/data/db
-  cache:
-    image: redis:6
-
-volumes:
-  app_data:`,
-						envVariables: [
-							{ name: "DATABASE_URL", value: "mongodb://db:27017/myapp" },
-							{ name: "REDIS_URL", value: "redis://cache:6379" },
-						],
-					},
-					{
-						id: "portfolio",
-						name: "Portfolio Variant",
-						shortDescription:
-							"An elegant platform to showcase your work and projects.",
-						description: "A variant for showcasing your work and projects.",
-					},
-					{
-						id: "landing-page",
-						name: "Landing Page Variant",
-						shortDescription:
-							"A high-converting template for product or service promotion.",
-						description:
-							"A variant for creating effective landing pages for products or services.",
-					},
-				]);
-			}
-		}, 1000);
-	});
-};
 
 export function StepTwo({
 	nextStep,
@@ -171,22 +40,22 @@ export function StepTwo({
 	templateInfo,
 	setTemplateInfo,
 }: any) {
-	const [suggestions, setSuggestions] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const [suggestions, setSuggestions] = useState<Array<TemplateInfo>>([]);
 	const [selectedVariant, setSelectedVariant] = useState("");
 	const [dockerCompose, setDockerCompose] = useState("");
-	const [envVariables, setEnvVariables] = useState([]);
-	const [showValues, setShowValues] = useState({});
+	const [envVariables, setEnvVariables] = useState<Array<EnvVariable>>([]);
+	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
+
+	const { mutateAsync, isLoading } = api.ai.suggest.useMutation();
 
 	useEffect(() => {
-		const fetchSuggestions = async () => {
-			setLoading(true);
-			const result = await mockAIProcessing(templateInfo.userInput);
-			setSuggestions(result);
-			setLoading(false);
-		};
-
-		fetchSuggestions();
+		mutateAsync(templateInfo.userInput)
+			.then((data) => {
+				setSuggestions(data);
+			})
+			.catch(() => {
+				toast.error("Error updating AI settings");
+			});
 	}, [templateInfo.userInput]);
 
 	useEffect(() => {
@@ -198,7 +67,7 @@ export function StepTwo({
 				setDockerCompose(selected.dockerCompose);
 				setEnvVariables(selected.envVariables);
 				setShowValues(
-					selected.envVariables.reduce((acc, env) => {
+					selected.envVariables.reduce((acc: Record<string, boolean>, env) => {
 						acc[env.name] = false;
 						return acc;
 					}, {}),
@@ -225,13 +94,19 @@ export function StepTwo({
 		nextStep();
 	};
 
-	const handleEnvVariableChange = (index, field, value) => {
+	const handleEnvVariableChange = (
+		index: number,
+		field: string,
+		value: string,
+	) => {
 		const updatedEnvVariables = [...envVariables];
-		updatedEnvVariables[index] = {
-			...updatedEnvVariables[index],
-			[field]: value,
-		};
-		setEnvVariables(updatedEnvVariables);
+		if (updatedEnvVariables[index]) {
+			updatedEnvVariables[index] = {
+				...updatedEnvVariables[index],
+				[field]: value,
+			};
+			setEnvVariables(updatedEnvVariables);
+		}
 	};
 
 	const addEnvVariable = () => {
@@ -239,7 +114,7 @@ export function StepTwo({
 		setShowValues((prev) => ({ ...prev, "": false }));
 	};
 
-	const removeEnvVariable = (index) => {
+	const removeEnvVariable = (index: number) => {
 		const updatedEnvVariables = envVariables.filter((_, i) => i !== index);
 		setEnvVariables(updatedEnvVariables);
 	};
@@ -248,8 +123,19 @@ export function StepTwo({
 		setShowValues((prev) => ({ ...prev, [name]: !prev[name] }));
 	};
 
-	if (loading) {
-		return <div>Processing your request...</div>;
+	if (isLoading) {
+		return (
+			<div className="flex flex-col items-center justify-center h-full space-y-4">
+				<Bot className="w-16 h-16 text-primary animate-pulse" />
+				<h2 className="text-2xl font-semibold animate-pulse">
+					AI is processing your request
+				</h2>
+				<p className="text-muted-foreground">
+					Generating template suggestions based on your input...
+				</p>
+				<pre>{templateInfo.userInput}</pre>
+			</div>
+		);
 	}
 
 	const selectedTemplate = suggestions.find(
@@ -323,7 +209,9 @@ export function StepTwo({
 													language="yaml"
 													theme="vs-dark"
 													value={dockerCompose}
-													onChange={(value) => setDockerCompose(value)}
+													onChange={(value) =>
+														setDockerCompose(value as string)
+													}
 													options={{
 														minimap: { enabled: false },
 														scrollBeyondLastLine: false,

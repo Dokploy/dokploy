@@ -6,10 +6,13 @@ import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { useState } from "react";
 
 export function StepThree({
@@ -20,10 +23,13 @@ export function StepThree({
 }: any) {
 	const [name, setName] = useState(templateInfo.name);
 	const [server, setServer] = useState(templateInfo.server);
+	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const handleNext = () => {
 		const updatedInfo = { ...templateInfo, name };
-		if (server.trim()) updatedInfo.server = server;
+		if (server?.trim()) {
+			updatedInfo.server = server;
+		}
 		setTemplateInfo(updatedInfo);
 		nextStep();
 	};
@@ -46,13 +52,18 @@ export function StepThree({
 					<div>
 						<Label htmlFor="server">Server Attachment (Optional)</Label>
 						<Select value={server} onValueChange={setServer}>
-							<SelectTrigger id="server" className="mt-1">
-								<SelectValue placeholder="Choose server attachment" />
+							<SelectTrigger>
+								<SelectValue placeholder="Select a Server" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="add-template-D382jSXDyBR3vb6nNMogqGht0FZ84Y.tsx">
-									add-template-D382jSXDyBR3vb6nNMogqGht0FZ84Y.tsx
-								</SelectItem>
+								<SelectGroup>
+									{servers?.map((server) => (
+										<SelectItem key={server.serverId} value={server.serverId}>
+											{server.name}
+										</SelectItem>
+									))}
+									<SelectLabel>Servers ({servers?.length})</SelectLabel>
+								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>

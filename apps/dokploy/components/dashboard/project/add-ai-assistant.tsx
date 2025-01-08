@@ -5,6 +5,6 @@ interface Props {
 	projectName?: string;
 }
 
-export const AddAiAssistant = ({ projectId, projectName }: Props) => {
-	return <TemplateGenerator />;
+export const AddAiAssistant = ({ projectId }: Props) => {
+	return <TemplateGenerator projectId={projectId} />;
 };

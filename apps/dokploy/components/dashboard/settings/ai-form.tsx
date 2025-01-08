@@ -84,7 +84,7 @@ export function AiForm() {
 
 			// Set default model to o1-mini if present
 			const defaultModel = res.data.find(
-				(model: Model) => model.id === "o1-mini",
+				(model: Model) => model.id === "gpt-4o",
 			);
 			if (defaultModel) {
 				form.setValue("model", defaultModel.id);

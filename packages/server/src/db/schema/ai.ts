@@ -25,3 +25,13 @@ export const apiAiSettingsSchema = createSchema
 		isEnabled: true,
 	})
 	.required();
+
+export const deploySuggestionSchema = z.object({
+	projectId: z.string().min(1),
+	id: z.string().min(1),
+	dockerCompose: z.string().min(1),
+	envVariables: z.string(),
+	serverId: z.string().optional(),
+	name: z.string().min(1),
+	description: z.string(),
+});
