@@ -187,81 +187,118 @@ export const DockerMonitoring = ({
 
 	return (
 		<div>
-			<Card className="bg-background">
-				<CardHeader>
-					<CardTitle className="text-xl">Monitoring</CardTitle>
-					<CardDescription>
-						Watch the usage of your server in the current app.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
-					<div className="flex w-full gap-8 ">
-						<div className=" flex-row gap-8 grid md:grid-cols-2 w-full">
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">CPU</span>
-								<span className="text-sm text-muted-foreground">
-									Used: {currentData.cpu.value.toFixed(2)}%
-								</span>
-								<Progress value={currentData.cpu.value} className="w-[100%]" />
-								<DockerCpuChart acummulativeData={acummulativeData.cpu} />
-							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Memory</span>
-								<span className="text-sm text-muted-foreground">
-									{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
-								</span>
-								<Progress
-									value={currentData.memory.value.usedPercentage}
-									className="w-[100%]"
-								/>
-								<DockerMemoryChart
-									acummulativeData={acummulativeData.memory}
-									memoryLimitGB={currentData.memory.value.total / 1024 ** 3}
-								/>
-							</div>
-							{appName === "dokploy" && (
-								<div className="flex flex-col gap-2  w-full ">
-									<span className="text-base font-medium">Space</span>
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-8xl mx-auto w-full">
+				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
+					<header className="flex items-center justify-between">
+						<div className="space-y-1">
+							<h1 className="text-2xl font-semibold tracking-tight">
+								Docker Monitoring
+							</h1>
+							<p className="text-sm text-muted-foreground">
+								Watch the usage of your server in the current app
+							</p>
+						</div>
+					</header>
+
+					<div className="grid gap-6 md:grid-cols-2">
+						<Card className="bg-background">
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex flex-col gap-2 w-full">
 									<span className="text-sm text-muted-foreground">
-										{`Used:  ${currentData.disk.value.diskUsage} GB / Limit: ${currentData.disk.value.diskTotal} GB`}
+										Used: {currentData.cpu.value.toFixed(2)}%
+									</span>
+									<Progress value={currentData.cpu.value} className="w-[100%]" />
+									<DockerCpuChart acummulativeData={acummulativeData.cpu} />
+								</div>
+							</CardContent>
+						</Card>
+
+						<Card className="bg-background">
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex flex-col gap-2 w-full">
+									<span className="text-sm text-muted-foreground">
+										{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
 									</span>
 									<Progress
-										value={currentData.disk.value.diskUsedPercentage}
+										value={currentData.memory.value.usedPercentage}
 										className="w-[100%]"
 									/>
-									<DockerDiskChart
-										acummulativeData={acummulativeData.disk}
-										diskTotal={currentData.disk.value.diskTotal}
+									<DockerMemoryChart
+										acummulativeData={acummulativeData.memory}
+										memoryLimitGB={currentData.memory.value.total / 1024 ** 3}
 									/>
 								</div>
-							)}
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Block I/O</span>
-								<span className="text-sm text-muted-foreground">
-									{`Read:  ${currentData.block.value.readMb.toFixed(
-										2,
-									)} MB / Write: ${currentData.block.value.writeMb.toFixed(
-										3,
-									)} MB`}
-								</span>
-								<DockerBlockChart acummulativeData={acummulativeData.block} />
-							</div>
-							<div className="flex flex-col gap-2  w-full ">
-								<span className="text-base font-medium">Network</span>
-								<span className="text-sm text-muted-foreground">
-									{`In MB: ${currentData.network.value.inputMb.toFixed(
-										2,
-									)} MB / Out MB: ${currentData.network.value.outputMb.toFixed(
-										2,
-									)} MB`}
-								</span>
-								<DockerNetworkChart
-									acummulativeData={acummulativeData.network}
-								/>
-							</div>
-						</div>
+							</CardContent>
+						</Card>
+
+						{appName === "dokploy" && (
+							<Card className="bg-background">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">Disk Space</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="flex flex-col gap-2 w-full">
+										<span className="text-sm text-muted-foreground">
+											{`Used:  ${currentData.disk.value.diskUsage} GB / Limit: ${currentData.disk.value.diskTotal} GB`}
+										</span>
+										<Progress
+											value={currentData.disk.value.diskUsedPercentage}
+											className="w-[100%]"
+										/>
+										<DockerDiskChart
+											acummulativeData={acummulativeData.disk}
+											diskTotal={currentData.disk.value.diskTotal}
+										/>
+									</div>
+								</CardContent>
+							</Card>
+						)}
+
+						<Card className="bg-background">
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">Block I/O</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex flex-col gap-2 w-full">
+									<span className="text-sm text-muted-foreground">
+										{`Read:  ${currentData.block.value.readMb.toFixed(
+											2,
+										)} MB / Write: ${currentData.block.value.writeMb.toFixed(
+											3,
+										)} MB`}
+									</span>
+									<DockerBlockChart acummulativeData={acummulativeData.block} />
+								</div>
+							</CardContent>
+						</Card>
+
+						<Card className="bg-background">
+							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+								<CardTitle className="text-sm font-medium">Network I/O</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex flex-col gap-2 w-full">
+									<span className="text-sm text-muted-foreground">
+										{`In MB: ${currentData.network.value.inputMb.toFixed(
+											2,
+										)} MB / Out MB: ${currentData.network.value.outputMb.toFixed(
+											2,
+										)} MB`}
+									</span>
+									<DockerNetworkChart
+										acummulativeData={acummulativeData.network}
+									/>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
-				</CardContent>
+				</div>
 			</Card>
 		</div>
 	);
