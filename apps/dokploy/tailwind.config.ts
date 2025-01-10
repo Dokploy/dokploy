@@ -87,7 +87,11 @@ const config = {
 			},
 		},
 	},
-	plugins: [require("tailwindcss-animate"), require("fancy-ansi/plugin")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("fancy-ansi/plugin"),
+		require("@tailwindcss/typography"),
+	],
 } satisfies Config;
 
 export default config;

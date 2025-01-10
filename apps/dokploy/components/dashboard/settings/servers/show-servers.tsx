@@ -22,6 +22,7 @@ import {
 import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { KeyIcon, MoreHorizontal, ServerIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
@@ -34,7 +35,6 @@ import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { UpdateServer } from "./update-server";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
-import { useTranslation } from "next-i18next";
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");
