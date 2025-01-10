@@ -23,115 +23,28 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon, MessageCircleMore } from "lucide-react";
+import { Mail, Pen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const notificationBaseSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appDeploy: z.boolean().default(false),
-	appBuildError: z.boolean().default(false),
-	databaseBackup: z.boolean().default(false),
-	dokployRestart: z.boolean().default(false),
-	dockerCleanup: z.boolean().default(false),
-});
-
-export const notificationSchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("slack"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("telegram"),
-			botToken: z.string().min(1, { message: "Bot Token is required" }),
-			chatId: z.string().min(1, { message: "Chat ID is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("discord"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("email"),
-			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
-			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z
-				.array(
-					z.string().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("gotify"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			appToken: z.string().min(1, { message: "App Token is required" }),
-			priority: z.number().min(1).max(10).default(5),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-]);
-
-export const notificationsMap = {
-	slack: {
-		icon: <SlackIcon />,
-		label: "Slack",
-	},
-	telegram: {
-		icon: <TelegramIcon />,
-		label: "Telegram",
-	},
-	discord: {
-		icon: <DiscordIcon />,
-		label: "Discord",
-	},
-	email: {
-		icon: <Mail size={29} className="text-muted-foreground" />,
-		label: "Email",
-	},
-	gotify: {
-		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
-		label: "Gotify",
-	},
-};
-
-export type NotificationSchema = z.infer<typeof notificationSchema>;
+import {
+	type NotificationSchema,
+	notificationSchema,
+} from "./add-notification";
 
 interface Props {
-	notificationId?: string;
+	notificationId: string;
 }
 
-export const HandleNotifications = ({ notificationId }: Props) => {
+export const UpdateNotification = ({ notificationId }: Props) => {
 	const utils = api.useUtils();
-	const [visible, setVisible] = useState(false);
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-
-	const { data: notification, refetch } = api.notification.one.useQuery(
+	const [isOpen, setIsOpen] = useState(false);
+	const { data, refetch } = api.notification.one.useQuery(
 		{
-			notificationId: notificationId || "",
+			notificationId,
 		},
 		{
 			enabled: !!notificationId,
@@ -139,6 +52,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	);
 	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
+
 	const { mutateAsync: testTelegramConnection, isLoading: isLoadingTelegram } =
 		api.notification.testTelegramConnection.useMutation();
 	const { mutateAsync: testDiscordConnection, isLoading: isLoadingDiscord } =
@@ -147,28 +61,17 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testEmailConnection.useMutation();
 	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
 		api.notification.testGotifyConnection.useMutation();
-	const slackMutation = notificationId
-		? api.notification.updateSlack.useMutation()
-		: api.notification.createSlack.useMutation();
-	const telegramMutation = notificationId
-		? api.notification.updateTelegram.useMutation()
-		: api.notification.createTelegram.useMutation();
-	const discordMutation = notificationId
-		? api.notification.updateDiscord.useMutation()
-		: api.notification.createDiscord.useMutation();
-	const emailMutation = notificationId
-		? api.notification.updateEmail.useMutation()
-		: api.notification.createEmail.useMutation();
-	const gotifyMutation = notificationId
-		? api.notification.updateGotify.useMutation()
-		: api.notification.createGotify.useMutation();
-
+	const slackMutation = api.notification.updateSlack.useMutation();
+	const telegramMutation = api.notification.updateTelegram.useMutation();
+	const discordMutation = api.notification.updateDiscord.useMutation();
+	const emailMutation = api.notification.updateEmail.useMutation();
+	const gotifyMutation = api.notification.updateGotify.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
 			type: "slack",
 			webhookUrl: "",
 			channel: "",
-			name: "",
 		},
 		resolver: zodResolver(notificationSchema),
 	});
@@ -180,210 +83,188 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email") {
-			append("");
-		}
-	}, [type, append]);
-
-	useEffect(() => {
-		if (notification) {
-			if (notification.notificationType === "slack") {
+		if (data) {
+			if (data.notificationType === "slack") {
 				form.reset({
-					appBuildError: notification.appBuildError,
-					appDeploy: notification.appDeploy,
-					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
-					dockerCleanup: notification.dockerCleanup,
-					webhookUrl: notification.slack?.webhookUrl,
-					channel: notification.slack?.channel || "",
-					name: notification.name,
-					type: notification.notificationType,
+					appBuildError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					dockerCleanup: data.dockerCleanup,
+					webhookUrl: data.slack?.webhookUrl,
+					channel: data.slack?.channel || "",
+					name: data.name,
+					type: data.notificationType,
 				});
-			} else if (notification.notificationType === "telegram") {
+			} else if (data.notificationType === "telegram") {
 				form.reset({
-					appBuildError: notification.appBuildError,
-					appDeploy: notification.appDeploy,
-					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
-					botToken: notification.telegram?.botToken,
-					chatId: notification.telegram?.chatId,
-					type: notification.notificationType,
-					name: notification.name,
-					dockerCleanup: notification.dockerCleanup,
+					appBuildError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					botToken: data.telegram?.botToken,
+					chatId: data.telegram?.chatId,
+					type: data.notificationType,
+					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
-			} else if (notification.notificationType === "discord") {
+			} else if (data.notificationType === "discord") {
 				form.reset({
-					appBuildError: notification.appBuildError,
-					appDeploy: notification.appDeploy,
-					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
-					type: notification.notificationType,
-					webhookUrl: notification.discord?.webhookUrl,
-					decoration: notification.discord?.decoration || undefined,
-					name: notification.name,
-					dockerCleanup: notification.dockerCleanup,
+					appBuildError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					type: data.notificationType,
+					webhookUrl: data.discord?.webhookUrl,
+					decoration: data.discord?.decoration || undefined,
+					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
-			} else if (notification.notificationType === "email") {
+			} else if (data.notificationType === "email") {
 				form.reset({
-					appBuildError: notification.appBuildError,
-					appDeploy: notification.appDeploy,
-					dokployRestart: notification.dokployRestart,
-					databaseBackup: notification.databaseBackup,
-					type: notification.notificationType,
-					smtpServer: notification.email?.smtpServer,
-					smtpPort: notification.email?.smtpPort,
-					username: notification.email?.username,
-					password: notification.email?.password,
-					toAddresses: notification.email?.toAddresses,
-					fromAddress: notification.email?.fromAddress,
-					name: notification.name,
-					dockerCleanup: notification.dockerCleanup,
+					appBuildError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					type: data.notificationType,
+					smtpServer: data.email?.smtpServer,
+					smtpPort: data.email?.smtpPort,
+					username: data.email?.username,
+					password: data.email?.password,
+					toAddresses: data.email?.toAddresses,
+					fromAddress: data.email?.fromAddress,
+					name: data.name,
+					dockerCleanup: data.dockerCleanup,
+				});
+			} else if (data.notificationType === "gotify") {
+				form.reset({
+					appBuildError: data.appBuildError,
+					appDeploy: data.appDeploy,
+					dokployRestart: data.dokployRestart,
+					databaseBackup: data.databaseBackup,
+					type: data.notificationType,
+					serverUrl: data.gotify?.serverUrl,
+					appToken: data.gotify?.appToken,
+					priority: data.gotify?.priority || 5,
+					decoration: data.gotify?.decoration || undefined,
+					name: data.name,
+					dockerCleanup: data.dockerCleanup,
 				});
 			}
-		} else {
-			form.reset();
 		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, notification]);
+	}, [form, form.reset, data]);
 
-	const activeMutation = {
-		slack: slackMutation,
-		telegram: telegramMutation,
-		discord: discordMutation,
-		email: emailMutation,
-		gotify: gotifyMutation,
-	};
-
-	const onSubmit = async (data: NotificationSchema) => {
+	const onSubmit = async (formData: NotificationSchema) => {
 		const {
 			appBuildError,
 			appDeploy,
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
-		} = data;
+		} = formData;
 		let promise: Promise<unknown> | null = null;
-		if (data.type === "slack") {
+		if (formData?.type === "slack" && data?.slackId) {
 			promise = slackMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				webhookUrl: data.webhookUrl,
-				channel: data.channel,
-				name: data.name,
+				webhookUrl: formData.webhookUrl,
+				channel: formData.channel,
+				name: formData.name,
+				notificationId: notificationId,
+				slackId: data?.slackId,
 				dockerCleanup: dockerCleanup,
-				slackId: notification?.slackId || "",
-				notificationId: notificationId || "",
 			});
-		} else if (data.type === "telegram") {
+		} else if (formData.type === "telegram" && data?.telegramId) {
 			promise = telegramMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				botToken: data.botToken,
-				chatId: data.chatId,
-				name: data.name,
+				botToken: formData.botToken,
+				chatId: formData.chatId,
+				name: formData.name,
+				notificationId: notificationId,
+				telegramId: data?.telegramId,
 				dockerCleanup: dockerCleanup,
-				notificationId: notificationId || "",
-				telegramId: notification?.telegramId || "",
 			});
-		} else if (data.type === "discord") {
+		} else if (formData.type === "discord" && data?.discordId) {
 			promise = discordMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				webhookUrl: data.webhookUrl,
-				decoration: data.decoration,
-				name: data.name,
+				webhookUrl: formData.webhookUrl,
+				decoration: formData.decoration,
+				name: formData.name,
+				notificationId: notificationId,
+				discordId: data?.discordId,
 				dockerCleanup: dockerCleanup,
-				notificationId: notificationId || "",
-				discordId: notification?.discordId || "",
 			});
-		} else if (data.type === "email") {
+		} else if (formData.type === "email" && data?.emailId) {
 			promise = emailMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				smtpServer: data.smtpServer,
-				smtpPort: data.smtpPort,
-				username: data.username,
-				password: data.password,
-				fromAddress: data.fromAddress,
-				toAddresses: data.toAddresses,
-				name: data.name,
+				smtpServer: formData.smtpServer,
+				smtpPort: formData.smtpPort,
+				username: formData.username,
+				password: formData.password,
+				fromAddress: formData.fromAddress,
+				toAddresses: formData.toAddresses,
+				name: formData.name,
+				notificationId: notificationId,
+				emailId: data?.emailId,
 				dockerCleanup: dockerCleanup,
-				notificationId: notificationId || "",
-				emailId: notification?.emailId || "",
 			});
-		} else if (data.type === "gotify") {
+		} else if (formData.type === "gotify" && data?.gotifyId) {
 			promise = gotifyMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
-				serverUrl: data.serverUrl,
-				appToken: data.appToken,
-				priority: data.priority,
-				name: data.name,
+				serverUrl: formData.serverUrl,
+				appToken: formData.appToken,
+				priority: formData.priority,
+				decoration: formData.decoration,
+				name: formData.name,
+				notificationId: notificationId,
+				gotifyId: data?.gotifyId,
 				dockerCleanup: dockerCleanup,
-				decoration: data.decoration,
-				notificationId: notificationId || "",
-				gotifyId: notification?.gotifyId || "",
 			});
 		}
 
 		if (promise) {
 			await promise
 				.then(async () => {
-					toast.success(
-						notificationId ? "Notification Updated" : "Notification Created",
-					);
-					form.reset({
-						type: "slack",
-						webhookUrl: "",
-					});
-					setVisible(false);
+					toast.success("Notification Updated");
 					await utils.notification.all.invalidate();
+					refetch();
+					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error(
-						notificationId
-							? "Error updating a notification"
-							: "Error creating a notification",
-					);
+					toast.error("Error updating a notification");
 				});
 		}
 	};
 	return (
-		<Dialog open={visible} onOpenChange={setVisible}>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
-				{notificationId ? (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="group hover:bg-blue-500/10 "
-					>
-						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
-					</Button>
-				) : (
-					<Button className="cursor-pointer space-x-3">
-						<PlusIcon className="h-4 w-4" />
-						Add Notification
-					</Button>
-				)}
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-9 w-9 dark:hover:bg-zinc-900/80 hover:bg-gray-200/80"
+				>
+					<Pen className="size-4 text-muted-foreground" />
+				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>
-						{notificationId ? "Update" : "Add"} Notification
-					</DialogTitle>
+					<DialogTitle>Update Notification</DialogTitle>
 					<DialogDescription>
-						{notificationId
-							? "Update your notification providers for multiple channels."
-							: "Create new notification providers for multiple channels."}
+						Update the current notification config
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -392,63 +273,44 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-8 "
 					>
-						<FormField
-							control={form.control}
-							defaultValue={form.control._defaultValues.type}
-							name="type"
-							render={({ field }) => (
-								<FormItem className="space-y-3">
-									<FormLabel className="text-muted-foreground">
-										Select a provider
+						<div className="flex flex-col gap-4 ">
+							<div className="flex flex-row gap-2 w-full items-center">
+								<div className="flex flex-row gap-2 items-center w-full ">
+									<FormLabel className="text-lg font-semibold leading-none tracking-tight flex">
+										{data?.notificationType === "slack"
+											? "Slack"
+											: data?.notificationType === "telegram"
+												? "Telegram"
+												: data?.notificationType === "discord"
+													? "Discord"
+													: data?.notificationType === "email"
+														? "Email"
+														: "Gotify"}
 									</FormLabel>
-									<FormControl>
-										<RadioGroup
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
-										>
-											{Object.entries(notificationsMap).map(([key, value]) => (
-												<FormItem
-													key={key}
-													className="flex w-full items-center space-x-3 space-y-0"
-												>
-													<FormControl className="w-full">
-														<div>
-															<RadioGroupItem
-																value={key}
-																id={key}
-																className="peer sr-only"
-															/>
-															<Label
-																htmlFor={key}
-																className="flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-															>
-																{value.icon}
-																{value.label}
-															</Label>
-														</div>
-													</FormControl>
-												</FormItem>
-											))}
-										</RadioGroup>
-									</FormControl>
-									<FormMessage />
-									{activeMutation[field.value].isError && (
-										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-											<AlertTriangle className="text-red-600 dark:text-red-400" />
-											<span className="text-sm text-red-600 dark:text-red-400">
-												{activeMutation[field.value].error?.message}
-											</span>
-										</div>
-									)}
-								</FormItem>
-							)}
-						/>
+								</div>
+								{data?.notificationType === "slack" && (
+									<SlackIcon className="text-muted-foreground size-6 flex-shrink-0" />
+								)}
+								{data?.notificationType === "telegram" && (
+									<TelegramIcon className="text-muted-foreground size-8 flex-shrink-0" />
+								)}
+								{data?.notificationType === "discord" && (
+									<DiscordIcon className="text-muted-foreground size-7 flex-shrink-0" />
+								)}
+								{data?.notificationType === "email" && (
+									<Mail
+										size={29}
+										className="text-muted-foreground size-6 flex-shrink-0"
+									/>
+								)}
+								{data?.notificationType === "gotify" && (
+									<Mail
+										size={29}
+										className="text-muted-foreground size-6 flex-shrink-0"
+									/>
+								)}
+							</div>
 
-						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
-							</FormLabel>
 							<div className="flex flex-col gap-2">
 								<FormField
 									control={form.control}
@@ -562,7 +424,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										<FormField
 											control={form.control}
 											name="decoration"
-											defaultValue={true}
 											render={({ field }) => (
 												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
 													<div className="space-y-0.5">
@@ -582,7 +443,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
-
 								{type === "email" && (
 									<>
 										<div className="flex md:flex-row flex-col gap-2 w-full">
@@ -619,7 +479,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																		}
 																	}
 																}}
-																type="number"
 															/>
 														</FormControl>
 
@@ -733,7 +592,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</Button>
 									</>
 								)}
-
 								{type === "gotify" && (
 									<>
 										<FormField
@@ -752,6 +610,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												</FormItem>
 											)}
 										/>
+
 										<FormField
 											control={form.control}
 											name="appToken"
@@ -760,7 +619,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormLabel>App Token</FormLabel>
 													<FormControl>
 														<Input
-															placeholder="AzxcvbnmKjhgfdsa..."
+															placeholder="AzxF2.d9KzP..."
 															{...field}
 														/>
 													</FormControl>
@@ -768,6 +627,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												</FormItem>
 											)}
 										/>
+
 										<FormField
 											control={form.control}
 											name="priority"
@@ -782,18 +642,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															onChange={(e) => {
 																const value = e.target.value;
 																if (value) {
-																	const port = Number.parseInt(value);
-																	if (port > 0 && port < 10) {
-																		field.onChange(port);
+																	const priority = Number.parseInt(value);
+																	if (priority > 0 && priority < 10) {
+																		field.onChange(priority);
 																	}
 																}
 															}}
 															type="number"
 														/>
 													</FormControl>
-													<FormDescription>
-														Message priority (1-10, default: 5)
-													</FormDescription>
 													<FormMessage />
 												</FormItem>
 											)}
@@ -801,7 +658,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										<FormField
 											control={form.control}
 											name="decoration"
-											defaultValue={true}
 											render={({ field }) => (
 												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
 													<div className="space-y-0.5">
@@ -831,10 +687,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 							<div className="grid md:grid-cols-2 gap-4">
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.appDeploy}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
-											<div className="">
+										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
 													Trigger the action when a app is deployed.
@@ -851,11 +708,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								/>
 								<FormField
 									control={form.control}
+									defaultValue={form.control._defaultValues.appBuildError}
 									name="appBuildError"
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
-												<FormLabel>App Build Error</FormLabel>
+												<FormLabel>App Builder Error</FormLabel>
 												<FormDescription>
 													Trigger the action when the build fails.
 												</FormDescription>
@@ -873,6 +731,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								<FormField
 									control={form.control}
 									name="databaseBackup"
+									defaultValue={form.control._defaultValues.databaseBackup}
 									render={({ field }) => (
 										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
@@ -890,7 +749,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</FormItem>
 									)}
 								/>
-
 								<FormField
 									control={form.control}
 									name="dockerCleanup"
@@ -912,17 +770,17 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</FormItem>
 									)}
 								/>
-
 								{!isCloud && (
 									<FormField
 										control={form.control}
+										defaultValue={form.control._defaultValues.dokployRestart}
 										name="dokployRestart"
 										render={({ field }) => (
 											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when dokploy is restarted.
+														Trigger the action when a dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -977,9 +835,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									} else if (type === "gotify") {
 										await testGotifyConnection({
+											priority: form.getValues("priority"),
 											serverUrl: form.getValues("serverUrl"),
 											appToken: form.getValues("appToken"),
-											priority: form.getValues("priority"),
 											decoration: form.getValues("decoration"),
 										});
 									}
@@ -996,7 +854,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 							form="hook-form"
 							type="submit"
 						>
-							{notificationId ? "Update" : "Create"}
+							Update
 						</Button>
 					</DialogFooter>
 				</Form>
