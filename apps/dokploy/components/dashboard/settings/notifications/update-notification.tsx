@@ -618,10 +618,7 @@ export const UpdateNotification = ({ notificationId }: Props) => {
 												<FormItem>
 													<FormLabel>App Token</FormLabel>
 													<FormControl>
-														<Input
-															placeholder="AzxF2.d9KzP..."
-															{...field}
-														/>
+														<Input placeholder="AzxF2.d9KzP..." {...field} />
 													</FormControl>
 													<FormMessage />
 												</FormItem>

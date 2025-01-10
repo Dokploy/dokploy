@@ -353,7 +353,7 @@ export const notificationRouter = createTRPCRouter({
 				await sendGotifyNotification(
 					input,
 					"Test Notification",
-					"Hi, From Dokploy 👋"
+					"Hi, From Dokploy 👋",
 				);
 				return true;
 			} catch (error) {

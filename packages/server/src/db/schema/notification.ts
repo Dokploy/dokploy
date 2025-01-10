@@ -266,13 +266,15 @@ export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	adminId: z.string().optional(),
 });
 
-export const apiTestGotifyConnection = apiCreateGotify.pick({
-	serverUrl: true,
-	appToken: true,
-	priority: true,
-}).extend({
-	decoration: z.boolean().optional(),
-});
+export const apiTestGotifyConnection = apiCreateGotify
+	.pick({
+		serverUrl: true,
+		appToken: true,
+		priority: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
 
 export const apiFindOneNotification = notificationsSchema
 	.pick({

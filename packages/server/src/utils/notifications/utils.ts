@@ -1,9 +1,9 @@
 import type {
 	discord,
 	email,
+	gotify,
 	slack,
 	telegram,
-	gotify,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
 
@@ -106,13 +106,15 @@ export const sendGotifyNotification = async (
 			priority: connection.priority,
 			extras: {
 				"client::display": {
-					"contentType": "text/plain"
-				}
-			}
+					contentType: "text/plain",
+				},
+			},
 		}),
 	});
 
 	if (!response.ok) {
-		throw new Error(`Failed to send Gotify notification: ${response.statusText}`);
+		throw new Error(
+			`Failed to send Gotify notification: ${response.statusText}`,
+		);
 	}
 };
