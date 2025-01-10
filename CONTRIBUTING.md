@@ -169,6 +169,7 @@ Let's take the example of `plausible` template.
 ```typescript
 // EXAMPLE
 import {
+  generateBase64,
   generateHash,
   generateRandomDomain,
   type Template,
@@ -200,8 +201,8 @@ export function generate(schema: Schema): Template {
 
   const mounts: Template["mounts"] = [
     {
-      mountPath: "./clickhouse/clickhouse-config.xml",
-      content: `some content......`,
+      filePath: "./clickhouse/clickhouse-config.xml",
+      content: "some content......",
     },
   ];
 

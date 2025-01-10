@@ -1196,4 +1196,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "monitoring", "uptime"],
 		load: () => import("./checkmate/index").then((m) => m.generate),
 	},
+	{
+		id: "gotenberg",
+		name: "Gotenberg",
+		version: "latest",
+		description:
+			"Gotenberg is a Docker-powered stateless API for PDF files.",
+		logo: "gotenberg.png",
+		links: {
+			github: "https://github.com/gotenberg/gotenberg",
+			website: "https://gotenberg.dev",
+			docs: "https://gotenberg.dev/docs/getting-started/introduction",
+		},
+		tags: ["api", "backend", "pdf", "tools"],
+		load: () => import("./gotenberg/index").then((m) => m.generate),
+	}
 ];
