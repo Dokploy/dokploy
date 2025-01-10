@@ -10,7 +10,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -22,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -229,6 +229,10 @@ const Project = (
 									<AddDatabase projectId={projectId} projectName={data?.name} />
 									<AddCompose projectId={projectId} projectName={data?.name} />
 									<AddTemplate projectId={projectId} />
+									<AddAiAssistant
+										projectId={projectId}
+										projectName={data?.name}
+									/>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
