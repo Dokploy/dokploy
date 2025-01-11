@@ -40,13 +40,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import {
-	GlobeIcon,
-	HelpCircle,
-	ServerOff,
-	ShieldCheck,
-	Trash2,
-} from "lucide-react";
+import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,

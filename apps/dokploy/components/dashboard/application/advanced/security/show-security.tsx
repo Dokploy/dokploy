@@ -6,22 +6,28 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole, Trash2 } from "lucide-react";
 import React from "react";
 import { AddSecurity } from "./add-security";
-import { DeleteSecurity } from "./delete-security";
 import { UpdateSecurity } from "./update-security";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
+
 interface Props {
 	applicationId: string;
 }
 
 export const ShowSecurity = ({ applicationId }: Props) => {
-	const { data } = api.application.one.useQuery(
+	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
 		},
 		{ enabled: !!applicationId },
 	);
+
+	const { mutateAsync: deleteSecurity, isLoading: isRemoving } =
+		api.security.delete.useMutation();
 
 	return (
 		<Card className="bg-background">
@@ -68,7 +74,32 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 										</div>
 										<div className="flex flex-row gap-2">
 											<UpdateSecurity securityId={security.securityId} />
-											<DeleteSecurity securityId={security.securityId} />
+											<DialogAction
+												title="Delete Security"
+												description="Are you sure you want to delete this security?"
+												type="destructive"
+												onClick={async () => {
+													await deleteSecurity({
+														securityId: security.securityId,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Security deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting security");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>

@@ -6,11 +6,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { AlertTriangle, Package } from "lucide-react";
+import { AlertTriangle, Package, Trash2 } from "lucide-react";
 import React from "react";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
-import { DeleteVolume } from "../../application/advanced/volumes/delete-volume";
 import { UpdateVolume } from "../../application/advanced/volumes/update-volume";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 interface Props {
 	redisId: string;
 }
@@ -22,7 +24,8 @@ export const ShowVolumes = ({ redisId }: Props) => {
 		},
 		{ enabled: !!redisId },
 	);
-
+	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
+		api.mounts.remove.useMutation();
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
@@ -117,7 +120,32 @@ export const ShowVolumes = ({ redisId }: Props) => {
 												refetch={refetch}
 												serviceType="redis"
 											/>
-											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
+											<DialogAction
+												title="Delete Volume"
+												description="Are you sure you want to delete this volume?"
+												type="destructive"
+												onClick={async () => {
+													await deleteVolume({
+														mountId: mount.mountId,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Volume deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting volume");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>

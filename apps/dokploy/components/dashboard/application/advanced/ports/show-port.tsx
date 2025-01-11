@@ -7,22 +7,27 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Rss } from "lucide-react";
+import { Rss, Trash2 } from "lucide-react";
 import React from "react";
 import { AddPort } from "./add-port";
-import { DeletePort } from "./delete-port";
 import { UpdatePort } from "./update-port";
+import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 interface Props {
 	applicationId: string;
 }
 
 export const ShowPorts = ({ applicationId }: Props) => {
-	const { data } = api.application.one.useQuery(
+	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
 		},
 		{ enabled: !!applicationId },
 	);
+
+	const { mutateAsync: deletePort, isLoading: isRemoving } =
+		api.port.delete.useMutation();
 
 	return (
 		<Card className="bg-background">
@@ -79,7 +84,32 @@ export const ShowPorts = ({ applicationId }: Props) => {
 										</div>
 										<div className="flex flex-row gap-4">
 											<UpdatePort portId={port.portId} />
-											<DeletePort portId={port.portId} />
+											<DialogAction
+												title="Delete Port"
+												description="Are you sure you want to delete this port?"
+												type="destructive"
+												onClick={async () => {
+													await deletePort({
+														portId: port.portId,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Port deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting port");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10 "
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>
