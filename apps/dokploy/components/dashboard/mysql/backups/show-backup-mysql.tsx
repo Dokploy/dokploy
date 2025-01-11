@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,7 +20,6 @@ import React from "react";
 import { toast } from "sonner";
 import { AddBackup } from "../../database/backups/add-backup";
 import { UpdateBackup } from "../../database/backups/update-backup";
-import { DialogAction } from "@/components/shared/dialog-action";
 
 interface Props {
 	mysqlId: string;

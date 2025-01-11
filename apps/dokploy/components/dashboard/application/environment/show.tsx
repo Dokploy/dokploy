@@ -55,7 +55,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			});
 	};
 
-    return (
+	return (
 		<Card className="bg-background px-6 pb-6">
 			<Form {...form}>
 				<form
@@ -97,5 +97,5 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				</form>
 			</Form>
 		</Card>
-    );
+	);
 };

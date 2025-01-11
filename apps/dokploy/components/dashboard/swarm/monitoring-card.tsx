@@ -12,8 +12,8 @@ import {
 	Activity,
 	Loader2,
 	Monitor,
-	Settings,
 	Server,
+	Settings,
 	WorkflowIcon,
 } from "lucide-react";
 import { NodeCard } from "./details/details-card";

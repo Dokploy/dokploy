@@ -1,3 +1,5 @@
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -5,11 +7,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Loader2, Trash2, Package } from "lucide-react";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { api } from "@/utils/api";
+import { Loader2, Package, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { HandleRegistry } from "./handle-registry";
 
 export const ShowRegistry = () => {

@@ -1,26 +1,26 @@
-import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
-	FormControl,
-	FormLabel,
-	FormField,
-	FormMessage,
-	FormItem,
 	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useTranslation } from "next-i18next";
 
 const Schema = z.object({
 	port: z.number().min(1, "Port must be higher than 0"),

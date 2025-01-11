@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -10,9 +11,8 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { ExternalLink, GlobeIcon, PenBoxIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { AddDomain } from "./add-domain";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { toast } from "sonner";
+import { AddDomain } from "./add-domain";
 
 interface Props {
 	applicationId: string;

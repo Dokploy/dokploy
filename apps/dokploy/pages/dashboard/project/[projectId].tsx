@@ -42,6 +42,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import type { findProjectById } from "@dokploy/server";
@@ -55,6 +56,7 @@ import {
 	PlusIcon,
 	Search,
 } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -63,8 +65,6 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import React, { useMemo, useState, type ReactElement } from "react";
 import superjson from "superjson";
-import { Check, ChevronsUpDown, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type Services = {
 	name: string;

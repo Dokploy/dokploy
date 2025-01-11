@@ -1,11 +1,11 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import React from "react";
 import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
-import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { DialogAction } from "@/components/shared/dialog-action";
+import React from "react";
 import { toast } from "sonner";
+import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 interface Props {
 	redisId: string;
 }

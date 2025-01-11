@@ -1,4 +1,11 @@
 import {
+	DiscordIcon,
+	SlackIcon,
+	TelegramIcon,
+} from "@/components/icons/notification-icons";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
+import {
 	Card,
 	CardContent,
 	CardDescription,
@@ -7,15 +14,8 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Bell, Loader2, Mail, Trash2 } from "lucide-react";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { HandleNotifications } from "./handle-notifications";
-import {
-	TelegramIcon,
-	DiscordIcon,
-	SlackIcon,
-} from "@/components/icons/notification-icons";
 
 export const ShowNotifications = () => {
 	const { data, isLoading, refetch } = api.notification.all.useQuery();

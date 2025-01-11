@@ -1,11 +1,11 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { Ban, CheckCircle2, Hammer, Terminal } from "lucide-react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { useRouter } from "next/router";
 
 interface Props {
 	composeId: string;

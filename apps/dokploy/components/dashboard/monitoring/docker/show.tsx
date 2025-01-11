@@ -210,7 +210,10 @@ export const DockerMonitoring = ({
 									<span className="text-sm text-muted-foreground">
 										Used: {currentData.cpu.value.toFixed(2)}%
 									</span>
-									<Progress value={currentData.cpu.value} className="w-[100%]" />
+									<Progress
+										value={currentData.cpu.value}
+										className="w-[100%]"
+									/>
 									<DockerCpuChart acummulativeData={acummulativeData.cpu} />
 								</div>
 							</CardContent>
@@ -218,7 +221,9 @@ export const DockerMonitoring = ({
 
 						<Card className="bg-background">
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+								<CardTitle className="text-sm font-medium">
+									Memory Usage
+								</CardTitle>
 							</CardHeader>
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">
@@ -240,7 +245,9 @@ export const DockerMonitoring = ({
 						{appName === "dokploy" && (
 							<Card className="bg-background">
 								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="text-sm font-medium">Disk Space</CardTitle>
+									<CardTitle className="text-sm font-medium">
+										Disk Space
+									</CardTitle>
 								</CardHeader>
 								<CardContent>
 									<div className="flex flex-col gap-2 w-full">
@@ -280,7 +287,9 @@ export const DockerMonitoring = ({
 
 						<Card className="bg-background">
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Network I/O</CardTitle>
+								<CardTitle className="text-sm font-medium">
+									Network I/O
+								</CardTitle>
 							</CardHeader>
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">

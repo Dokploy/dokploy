@@ -30,12 +30,12 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { S3_PROVIDERS } from "./constants";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),

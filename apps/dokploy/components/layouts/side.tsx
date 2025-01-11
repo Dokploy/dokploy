@@ -1,8 +1,10 @@
 "use client";
 
 import {
+	Activity,
 	AudioWaveform,
 	BadgeCheck,
+	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
 	BookIcon,
@@ -13,34 +15,33 @@ import {
 	CogIcon,
 	Command,
 	CreditCard,
+	Database,
 	Folder,
 	Forward,
 	Frame,
 	GalleryVerticalEnd,
+	GitBranch,
+	Heart,
+	KeyRound,
 	LogOut,
+	type LucideIcon,
 	MoreHorizontal,
+	Package,
 	PieChart,
 	Plus,
+	Server,
+	Settings,
 	Settings2,
 	ShieldCheck,
 	Sparkles,
 	Trash2,
 	User,
 	Users,
-	KeyRound,
-	GitBranch,
-	Server,
-	Package,
-	Database,
-	Settings,
-	BarChartHorizontalBigIcon,
-	Heart,
-	type LucideIcon,
-	Activity,
 } from "lucide-react";
-import * as React from "react";
 import { usePathname } from "next/navigation";
+import * as React from "react";
 
+import { AddProject } from "@/components/dashboard/projects/add";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Breadcrumb,
@@ -65,6 +66,14 @@ import {
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ModeToggle } from "@/components/ui/modeToggle";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
 	Sidebar,
@@ -86,24 +95,15 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Logo } from "../shared/logo";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { api } from "@/utils/api";
-import { useRouter } from "next/router";
-import { AddProject } from "@/components/dashboard/projects/add";
-import { ModeToggle } from "@/components/ui/modeToggle";
 import { Languages } from "@/lib/languages";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
 import { useTranslation } from "next-i18next";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+import { Logo } from "../shared/logo";
 // This is sample data.
 interface NavItem {
 	title: string;

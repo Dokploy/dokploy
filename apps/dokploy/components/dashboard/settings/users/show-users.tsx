@@ -32,8 +32,8 @@ import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
 import { AddUser } from "./add-user";
 
-import { Loader2 } from "lucide-react";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Loader2 } from "lucide-react";
 
 export const ShowUsers = () => {
 	const { data, isLoading, refetch } = api.user.all.useQuery();

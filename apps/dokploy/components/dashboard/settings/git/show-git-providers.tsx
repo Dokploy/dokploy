@@ -3,6 +3,7 @@ import {
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,15 +14,14 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { formatDate } from "date-fns";
+import { GitBranch, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Loader2, Trash2, GitBranch } from "lucide-react";
-import { toast } from "sonner";
 
 export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();

@@ -1,3 +1,5 @@
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -8,11 +10,9 @@ import {
 import { api } from "@/utils/api";
 import { AlertTriangle, Package, Trash2 } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
 import { AddVolumes } from "../../application/advanced/volumes/add-volumes";
 import { UpdateVolume } from "../../application/advanced/volumes/update-volume";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 interface Props {
 	redisId: string;
 }

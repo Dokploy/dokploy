@@ -1,3 +1,5 @@
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -6,11 +8,9 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { FolderUp, Database, Loader2, Trash2 } from "lucide-react";
-import { HandleDestinations } from "./handle-destinations";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
+import { Database, FolderUp, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { HandleDestinations } from "./handle-destinations";
 
 export const ShowDestinations = () => {
 	const { data, isLoading, refetch } = api.destination.all.useQuery();

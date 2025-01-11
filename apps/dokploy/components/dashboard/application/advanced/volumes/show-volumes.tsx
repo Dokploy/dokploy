@@ -1,4 +1,6 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -9,11 +11,9 @@ import {
 import { api } from "@/utils/api";
 import { Package, Trash2 } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
 import { AddVolumes } from "./add-volumes";
 import { UpdateVolume } from "./update-volume";
-import { Button } from "@/components/ui/button";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { toast } from "sonner";
 
 interface Props {
 	applicationId: string;

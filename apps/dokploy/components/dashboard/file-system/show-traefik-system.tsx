@@ -1,10 +1,4 @@
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Tree } from "@/components/ui/file-tree";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
-import { FileIcon, Folder, Link, Loader2, Workflow } from "lucide-react";
-import React from "react";
-import { ShowTraefikFile } from "./show-traefik-file";
 import {
 	Card,
 	CardContent,
@@ -12,6 +6,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Tree } from "@/components/ui/file-tree";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+import { FileIcon, Folder, Link, Loader2, Workflow } from "lucide-react";
+import React from "react";
+import { ShowTraefikFile } from "./show-traefik-file";
 
 interface Props {
 	serverId?: string;

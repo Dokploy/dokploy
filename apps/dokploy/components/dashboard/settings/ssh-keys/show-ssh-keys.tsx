@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -8,8 +9,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, KeyRound, Trash2 } from "lucide-react";
-import { DialogAction } from "@/components/shared/dialog-action";
+import { KeyRound, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleSSHKeys } from "./handle-ssh-keys";
 

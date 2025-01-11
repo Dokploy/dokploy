@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,13 +9,12 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
+import { ArrowDownUp } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
 import { RequestDistributionChart } from "./request-distribution-chart";
 import { RequestsTable } from "./requests-table";
-import { AlertBlock } from "@/components/shared/alert-block";
-import Link from "next/link";
-import { ArrowDownUp } from "lucide-react";
 
 export type LogEntry = NonNullable<
 	RouterOutputs["settings"]["readStatsLogs"]["data"]

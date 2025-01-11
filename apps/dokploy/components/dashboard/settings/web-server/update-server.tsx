@@ -7,6 +7,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import type { IUpdateData } from "@dokploy/server/index";
 import {
 	Bug,
 	Download,
@@ -22,7 +23,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
-import type { IUpdateData } from "@dokploy/server/index";
 
 interface Props {
 	updateData?: IUpdateData;

@@ -26,6 +26,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import {
 	AlertTriangle,
@@ -38,12 +39,11 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AddProject } from "./add";
 import { ProjectEnvironment } from "./project-environment";
 import { UpdateProject } from "./update";
-import { AddProject } from "./add";
-import { Input } from "@/components/ui/input";
-import { useMemo, useState } from "react";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
