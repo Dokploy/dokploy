@@ -1210,5 +1210,20 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["api", "backend", "pdf", "tools"],
 		load: () => import("./gotenberg/index").then((m) => m.generate),
-	}
+	},
+	{
+		id: "conduit",
+		name: "Conduit",
+		version: "v0.9.0",
+		description:
+			"Conduit is a simple, fast and reliable chat server powered by Matrix",
+		logo: "conduit.svg",
+		links: {
+			github: "https://gitlab.com/famedly/conduit",
+			website: "https://conduit.rs/",
+			docs: "https://docs.conduit.rs/",
+		},
+		tags: ["matrix", "communication"],
+		load: () => import("./conduit/index").then((m) => m.generate),
+	},
 ];
