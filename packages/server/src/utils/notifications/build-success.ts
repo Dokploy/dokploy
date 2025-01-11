@@ -3,6 +3,7 @@ import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
 import { renderAsync } from "@react-email/components";
 import { and, eq } from "drizzle-orm";
+import { format } from "date-fns";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
