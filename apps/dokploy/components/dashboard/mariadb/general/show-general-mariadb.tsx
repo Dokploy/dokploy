@@ -6,8 +6,6 @@ import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { StartMariadb } from "../start-mariadb";
-import { StopMariadb } from "./stop-mariadb";
 
 interface Props {
 	mariadbId: string;

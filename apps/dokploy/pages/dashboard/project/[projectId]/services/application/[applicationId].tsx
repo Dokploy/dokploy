@@ -6,7 +6,6 @@ import { ShowSecurity } from "@/components/dashboard/application/advanced/securi
 import { ShowApplicationResources } from "@/components/dashboard/application/advanced/show-application-advanced-settings";
 import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
-import { DeleteApplication } from "@/components/dashboard/application/delete-application";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";

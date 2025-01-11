@@ -1,7 +1,6 @@
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowAdvancedMariadb } from "@/components/dashboard/mariadb/advanced/show-mariadb-advanced-settings";
 import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
-import { DeleteMariadb } from "@/components/dashboard/mariadb/delete-mariadb";
 import { ShowMariadbEnvironment } from "@/components/dashboard/mariadb/environment/show-mariadb-environment";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
