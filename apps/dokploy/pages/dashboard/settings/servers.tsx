@@ -1,6 +1,6 @@
 import { ShowServers } from "@/components/dashboard/settings/servers/show-servers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";

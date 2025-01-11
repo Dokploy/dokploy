@@ -382,16 +382,13 @@ export default function Page({ children }: Props) {
 	);
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 	const isActiveRoute = (itemUrl: string) => {
-		// Normalizar las rutas para manejar el caso projects vs project
 		const normalizedItemUrl = itemUrl.replace("/projects", "/project");
 		const normalizedPathname = pathname?.replace("/projects", "/project");
 
 		if (!normalizedPathname) return false;
 
-		// Si las rutas son exactamente iguales
 		if (normalizedPathname === normalizedItemUrl) return true;
 
-		// Si la ruta actual es más larga, asegurarse que después del itemUrl viene un "/"
 		if (normalizedPathname.startsWith(normalizedItemUrl)) {
 			const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
 			return nextChar === "/";
@@ -638,11 +635,13 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							<SidebarMenuItem>
-								<SidebarMenuButton asChild>
-									<UpdateServerButton />
-								</SidebarMenuButton>
-							</SidebarMenuItem>
+							{!isCloud && (
+								<SidebarMenuItem>
+									<SidebarMenuButton asChild>
+										<UpdateServerButton />
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>

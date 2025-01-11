@@ -2,7 +2,7 @@ import { GenerateToken } from "@/components/dashboard/settings/profile/generate-
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
 import { RemoveSelfAccount } from "@/components/dashboard/settings/profile/remove-self-account";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";

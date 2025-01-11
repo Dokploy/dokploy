@@ -1,6 +1,6 @@
 import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
