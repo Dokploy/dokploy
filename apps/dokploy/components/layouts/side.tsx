@@ -39,6 +39,7 @@ import {
 	Activity,
 } from "lucide-react";
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -403,6 +404,7 @@ function SidebarLogo() {
 export default function Page({ children }: Props) {
 	const [activeTeam, setActiveTeam] = React.useState(data.teams[0]);
 	const router = useRouter();
+	const pathname = usePathname();
 	const currentPath = router.pathname;
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
@@ -413,16 +415,38 @@ export default function Page({ children }: Props) {
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
+	const isActiveRoute = (itemUrl: string) => {
+		// Normalizar las rutas para manejar el caso projects vs project
+		const normalizedItemUrl = itemUrl.replace("/projects", "/project");
+		const normalizedPathname = pathname?.replace("/projects", "/project");
+
+		if (!normalizedPathname) return false;
+
+		// Si las rutas son exactamente iguales
+		if (normalizedPathname === normalizedItemUrl) return true;
+
+		// Si la ruta actual es más larga, asegurarse que después del itemUrl viene un "/"
+		if (normalizedPathname.startsWith(normalizedItemUrl)) {
+			const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
+			return nextChar === "/";
+		}
+
+		return false;
+	};
 
 	data.home = data.home.map((item) => ({
 		...item,
-		isActive: item.url === currentPath,
+		isActive: isActiveRoute(item.url),
 	}));
 
 	data.settings = data.settings.map((item) => ({
 		...item,
-		isActive: item.url === currentPath,
+		isActive: isActiveRoute(item.url),
 	}));
+
+	const activeItem =
+		data.home.find((item) => item.isActive) ||
+		data.settings.find((item) => item.isActive);
 
 	const showProjectsButton =
 		currentPath === "/dashboard/projects" &&
@@ -444,38 +468,6 @@ export default function Page({ children }: Props) {
 					<SidebarMenu>
 						<SidebarMenuItem>
 							<LogoWrapper />
-							{/* <DropdownMenuContent
-									className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-									align="start"
-									side="bottom"
-									sideOffset={4}
-								>
-									<DropdownMenuLabel className="text-xs text-muted-foreground">
-										Teams
-									</DropdownMenuLabel>
-									{data.teams.map((team, index) => (
-										<DropdownMenuItem
-											key={team.name}
-											onClick={() => setActiveTeam(team)}
-											className="gap-2 p-2"
-										>
-											<div className="flex size-6 items-center justify-center rounded-sm border">
-												<team.logo className="size-4 shrink-0" />
-											</div>
-											{team.name}
-											<DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-										</DropdownMenuItem>
-									))}
-									<DropdownMenuSeparator />
-									<DropdownMenuItem className="gap-2 p-2">
-										<div className="flex size-6 items-center justify-center rounded-md border bg-background">
-											<Plus className="size-4" />
-										</div>
-										<div className="font-medium text-muted-foreground">
-											Add team
-										</div>
-									</DropdownMenuItem>
-								</DropdownMenuContent> */}
 						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarHeader>
@@ -492,9 +484,20 @@ export default function Page({ children }: Props) {
 								>
 									<SidebarMenuItem>
 										{item.isSingle ? (
-											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url}>
-													<item.icon />
+											<SidebarMenuButton
+												asChild
+												tooltip={item.title}
+												className={cn(isActiveRoute(item.url) && "bg-border")}
+											>
+												<Link
+													href={item.url}
+													className="flex w-full items-center gap-2"
+												>
+													<item.icon
+														className={cn(
+															isActiveRoute(item.url) && "text-primary",
+														)}
+													/>
 													<span>{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
@@ -517,11 +520,25 @@ export default function Page({ children }: Props) {
 													<SidebarMenuSub>
 														{item.items?.map((subItem) => (
 															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton asChild>
-																	<Link href={subItem.url}>
+																<SidebarMenuSubButton
+																	asChild
+																	className={cn(
+																		isActiveRoute(subItem.url) && "bg-border",
+																	)}
+																>
+																	<Link
+																		href={subItem.url}
+																		className="flex w-full items-center"
+																	>
 																		{subItem.icon && (
 																			<span className="mr-2">
-																				<subItem.icon className="h-4 w-4 text-muted-foreground" />
+																				<subItem.icon
+																					className={cn(
+																						"h-4 w-4 text-muted-foreground",
+																						isActiveRoute(subItem.url) &&
+																							"text-primary",
+																					)}
+																				/>
 																			</span>
 																		)}
 																		<span>{subItem.title}</span>
@@ -550,9 +567,20 @@ export default function Page({ children }: Props) {
 								>
 									<SidebarMenuItem>
 										{item.isSingle ? (
-											<SidebarMenuButton asChild tooltip={item.title}>
-												<Link href={item.url}>
-													<item.icon />
+											<SidebarMenuButton
+												asChild
+												tooltip={item.title}
+												className={cn(isActiveRoute(item.url) && "bg-border")}
+											>
+												<Link
+													href={item.url}
+													className="flex w-full items-center gap-2"
+												>
+													<item.icon
+														className={cn(
+															isActiveRoute(item.url) && "text-primary",
+														)}
+													/>
 													<span>{item.title}</span>
 												</Link>
 											</SidebarMenuButton>
@@ -575,11 +603,25 @@ export default function Page({ children }: Props) {
 													<SidebarMenuSub>
 														{item.items?.map((subItem) => (
 															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton asChild>
-																	<Link href={subItem.url}>
+																<SidebarMenuSubButton
+																	asChild
+																	className={cn(
+																		isActiveRoute(subItem.url) && "bg-border",
+																	)}
+																>
+																	<Link
+																		href={subItem.url}
+																		className="flex w-full items-center"
+																	>
 																		{subItem.icon && (
 																			<span className="mr-2">
-																				<subItem.icon className="h-4 w-4 text-muted-foreground" />
+																				<subItem.icon
+																					className={cn(
+																						"h-4 w-4 text-muted-foreground",
+																						isActiveRoute(subItem.url) &&
+																							"text-primary",
+																					)}
+																				/>
 																			</span>
 																		)}
 																		<span>{subItem.title}</span>
@@ -630,32 +672,25 @@ export default function Page({ children }: Props) {
 							<Breadcrumb>
 								<BreadcrumbList>
 									<BreadcrumbItem className="hidden md:block">
-										<BreadcrumbLink href="#">
-											{data.home.find((item) => item.isActive)?.title ||
-												data.settings.find((item) => item.isActive)?.title}
+										<BreadcrumbLink asChild>
+											<Link
+												href={activeItem?.url || "/"}
+												className="flex items-center gap-1.5"
+											>
+												{activeItem?.title}
+											</Link>
 										</BreadcrumbLink>
 									</BreadcrumbItem>
 									<BreadcrumbSeparator className="hidden md:block" />
 									<BreadcrumbItem>
-										<BreadcrumbPage>
-											{data.home.find((item) => item.isActive)?.title ||
-												data.settings.find((item) => item.isActive)?.title}
-										</BreadcrumbPage>
+										<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 									</BreadcrumbItem>
 								</BreadcrumbList>
 							</Breadcrumb>
 						</div>
 					</div>
 				</header>
-				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-					{/* <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-						<div className="aspect-video rounded-xl bg-muted/50" />
-						<div className="aspect-video rounded-xl bg-muted/50" />
-						<div className="aspect-video rounded-xl bg-muted/50" />
-					</div> */}
-					{children}
-					{/* <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" /> */}
-				</div>
+				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

@@ -90,23 +90,6 @@ const Service = (
 	return (
 		<div className="pb-10">
 			<div className="flex flex-col gap-4">
-				<Breadcrumb>
-					<BreadcrumbItem>
-						<BreadcrumbLink href="/dashboard/projects">Projects</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbItem>
-						<BreadcrumbLink
-							as={Link}
-							href={`/dashboard/project/${data?.project.projectId}`}
-						>
-							{data?.project.name}
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-
-					<BreadcrumbItem>
-						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
-					</BreadcrumbItem>
-				</Breadcrumb>
 				<Head>
 					<title>
 						Application: {data?.name} - {data?.project.name} | Dokploy

@@ -12,11 +12,6 @@ import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -64,25 +59,6 @@ const Mariadb = (
 	return (
 		<div className="pb-10">
 			<div className="flex flex-col gap-4">
-				<Breadcrumb>
-					<BreadcrumbItem>
-						<BreadcrumbLink as={Link} href="/dashboard/projects">
-							Projects
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbItem>
-						<BreadcrumbLink
-							as={Link}
-							href={`/dashboard/project/${data?.project.projectId}`}
-						>
-							{data?.project.name}
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-
-					<BreadcrumbItem isCurrentPage>
-						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
-					</BreadcrumbItem>
-				</Breadcrumb>
 				<Head>
 					<title>
 						Database: {data?.name} - {data?.project.name} | Dokploy
