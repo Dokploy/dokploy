@@ -118,7 +118,9 @@ export const removePostgresById = async (postgresId: string) => {
 export const deployPostgres = async (postgresId: string) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
-		const promises = [];
+		await updatePostgresById(postgresId, {
+			applicationStatus: "running",
+		});
 		if (postgres.serverId) {
 			const result = await execAsyncRemote(
 				postgres.serverId,
