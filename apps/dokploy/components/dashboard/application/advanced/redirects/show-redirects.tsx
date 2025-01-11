@@ -11,8 +11,7 @@ import { api } from "@/utils/api";
 import { Split, Trash2 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
-import { AddRedirect } from "./add-redirect";
-import { UpdateRedirect } from "./update-redirect";
+import { HandleRedirect } from "./manage-redirect";
 
 interface Props {
 	applicationId: string;
@@ -29,6 +28,8 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 	const { mutateAsync: deleteRedirect, isLoading: isRemoving } =
 		api.redirects.delete.useMutation();
 
+	const utils = api.useUtils();
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
@@ -41,7 +42,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 				</div>
 
 				{data && data?.redirects.length > 0 && (
-					<AddRedirect applicationId={applicationId}>Add Redirect</AddRedirect>
+					<HandleRedirect applicationId={applicationId}>
+						Add Redirect
+					</HandleRedirect>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -51,9 +54,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No redirects configured
 						</span>
-						<AddRedirect applicationId={applicationId}>
+						<HandleRedirect applicationId={applicationId}>
 							Add Redirect
-						</AddRedirect>
+						</HandleRedirect>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2">
@@ -82,7 +85,11 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 											</div>
 										</div>
 										<div className="flex flex-row gap-4">
-											<UpdateRedirect redirectId={redirect.redirectId} />
+											<HandleRedirect
+												redirectId={redirect.redirectId}
+												applicationId={applicationId}
+											/>
+
 											<DialogAction
 												title="Delete Redirect"
 												description="Are you sure you want to delete this redirect?"
@@ -93,6 +100,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 													})
 														.then(() => {
 															refetch();
+															utils.application.readTraefikConfig.invalidate({
+																applicationId,
+															});
 															toast.success("Redirect deleted successfully");
 														})
 														.catch(() => {

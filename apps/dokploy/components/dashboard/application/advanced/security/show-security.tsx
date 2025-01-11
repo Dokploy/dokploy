@@ -11,8 +11,7 @@ import { api } from "@/utils/api";
 import { LockKeyhole, Trash2 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
-import { AddSecurity } from "./add-security";
-import { UpdateSecurity } from "./update-security";
+import { HandleSecurity } from "./handle-security";
 
 interface Props {
 	applicationId: string;
@@ -29,6 +28,7 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 	const { mutateAsync: deleteSecurity, isLoading: isRemoving } =
 		api.security.delete.useMutation();
 
+	const utils = api.useUtils();
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
@@ -38,7 +38,9 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 				</div>
 
 				{data && data?.security.length > 0 && (
-					<AddSecurity applicationId={applicationId}>Add Security</AddSecurity>
+					<HandleSecurity applicationId={applicationId}>
+						Add Security
+					</HandleSecurity>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -48,9 +50,9 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No security configured
 						</span>
-						<AddSecurity applicationId={applicationId}>
+						<HandleSecurity applicationId={applicationId}>
 							Add Security
-						</AddSecurity>
+						</HandleSecurity>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2">
@@ -73,7 +75,10 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 											</div>
 										</div>
 										<div className="flex flex-row gap-2">
-											<UpdateSecurity securityId={security.securityId} />
+											<HandleSecurity
+												securityId={security.securityId}
+												applicationId={applicationId}
+											/>
 											<DialogAction
 												title="Delete Security"
 												description="Are you sure you want to delete this security?"
@@ -84,6 +89,9 @@ export const ShowSecurity = ({ applicationId }: Props) => {
 													})
 														.then(() => {
 															refetch();
+															utils.application.readTraefikConfig.invalidate({
+																applicationId,
+															});
 															toast.success("Security deleted successfully");
 														})
 														.catch(() => {

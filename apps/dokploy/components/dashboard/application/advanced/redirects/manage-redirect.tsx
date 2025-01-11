@@ -31,7 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -77,19 +77,32 @@ const redirectPresets = [
 
 interface Props {
 	applicationId: string;
+	redirectId?: string;
 	children?: React.ReactNode;
 }
 
-export const AddRedirect = ({
+export const HandleRedirect = ({
 	applicationId,
+	redirectId,
 	children = <PlusIcon className="w-4 h-4" />,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [presetSelected, setPresetSelected] = useState("");
+
+	const { data, refetch } = api.redirects.one.useQuery(
+		{
+			redirectId: redirectId || "",
+		},
+		{
+			enabled: !!redirectId,
+		},
+	);
+
 	const utils = api.useUtils();
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.redirects.create.useMutation();
+	const { mutateAsync, isLoading, error, isError } = redirectId
+		? api.redirects.update.useMutation()
+		: api.redirects.create.useMutation();
 
 	const form = useForm<AddRedirect>({
 		defaultValues: {
@@ -102,29 +115,35 @@ export const AddRedirect = ({
 
 	useEffect(() => {
 		form.reset({
-			permanent: false,
-			regex: "",
-			replacement: "",
+			permanent: data?.permanent || false,
+			regex: data?.regex || "",
+			replacement: data?.replacement || "",
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	const onSubmit = async (data: AddRedirect) => {
 		await mutateAsync({
 			applicationId,
 			...data,
+			redirectId: redirectId || "",
 		})
 			.then(async () => {
-				toast.success("Redirect Created");
+				toast.success(redirectId ? "Redirect Updated" : "Redirect Created");
 				await utils.application.one.invalidate({
 					applicationId,
 				});
+				refetch();
 				await utils.application.readTraefikConfig.invalidate({
 					applicationId,
 				});
 				onDialogToggle(false);
 			})
 			.catch(() => {
-				toast.error("Error creating the redirect");
+				toast.error(
+					redirectId
+						? "Error updating the redirect"
+						: "Error creating the redirect",
+				);
 			});
 	};
 
@@ -148,7 +167,17 @@ export const AddRedirect = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={onDialogToggle}>
 			<DialogTrigger asChild>
-				<Button>{children}</Button>
+				{redirectId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button>{children}</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
@@ -243,7 +272,7 @@ export const AddRedirect = ({
 							form="hook-form-add-redirect"
 							type="submit"
 						>
-							Create
+							{redirectId ? "Update" : "Create"}
 						</Button>
 					</DialogFooter>
 				</Form>
