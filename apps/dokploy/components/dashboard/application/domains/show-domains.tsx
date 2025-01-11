@@ -8,17 +8,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
+import { ExternalLink, GlobeIcon, PenBoxIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { AddDomain } from "./add-domain";
-import { DeleteDomain } from "./delete-domain";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
 
 interface Props {
 	applicationId: string;
 }
 
 export const ShowDomains = ({ applicationId }: Props) => {
-	const { data } = api.domain.byApplicationId.useQuery(
+	const { data, refetch } = api.domain.byApplicationId.useQuery(
 		{
 			applicationId,
 		},
@@ -26,6 +27,10 @@ export const ShowDomains = ({ applicationId }: Props) => {
 			enabled: !!applicationId,
 		},
 	);
+
+	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
+		api.domain.delete.useMutation();
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
@@ -97,7 +102,32 @@ export const ShowDomains = ({ applicationId }: Props) => {
 													<PenBoxIcon className="size-4 text-muted-foreground" />
 												</Button>
 											</AddDomain>
-											<DeleteDomain domainId={item.domainId} />
+											<DialogAction
+												title="Delete Domain"
+												description="Are you sure you want to delete this domain?"
+												type="destructive"
+												onClick={async () => {
+													await deleteDomain({
+														domainId: item.domainId,
+													})
+														.then((data) => {
+															refetch();
+															toast.success("Domain deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting domain");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								);

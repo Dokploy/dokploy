@@ -1,4 +1,5 @@
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -32,13 +34,16 @@ import {
 import { api } from "@/utils/api";
 import { Boxes, HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";
-import { DeleteWorker } from "./workers/delete-worker";
 
 export const ShowNodes = () => {
-	const { data, isLoading } = api.cluster.getNodes.useQuery();
+	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery();
 	const { data: registry } = api.registry.all.useQuery();
+
+	const { mutateAsync: deleteNode, isLoading: isRemoving } =
+		api.cluster.removeWorker.useMutation();
 
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (
@@ -126,8 +131,32 @@ export const ShowNodes = () => {
 															<DropdownMenuContent align="end">
 																<DropdownMenuLabel>Actions</DropdownMenuLabel>
 																<ShowNodeData data={node} />
-																{!node?.ManagerStatus?.Leader && (
-																	<DeleteWorker nodeId={node.ID} />
+																{node?.ManagerStatus?.Leader && (
+																	<DialogAction
+																		title="Delete Node"
+																		description="Are you sure you want to delete this node from the cluster?"
+																		type="destructive"
+																		onClick={async () => {
+																			await deleteNode({
+																				nodeId: node.ID,
+																			})
+																				.then(() => {
+																					refetch();
+																					toast.success(
+																						"Node deleted successfully",
+																					);
+																				})
+																				.catch(() => {
+																					toast.error("Error deleting node");
+																				});
+																		}}
+																	>
+																		<DropdownMenuItem
+																			onSelect={(e) => e.preventDefault()}
+																		>
+																			Delete
+																		</DropdownMenuItem>
+																	</DialogAction>
 																)}
 															</DropdownMenuContent>
 														</DropdownMenu>

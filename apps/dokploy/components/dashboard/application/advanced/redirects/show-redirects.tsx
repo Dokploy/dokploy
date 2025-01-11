@@ -6,22 +6,28 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Split } from "lucide-react";
+import { Split, Trash2 } from "lucide-react";
 import React from "react";
 import { AddRedirect } from "./add-redirect";
-import { DeleteRedirect } from "./delete-redirect";
 import { UpdateRedirect } from "./update-redirect";
+import { Button } from "@/components/ui/button";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
+
 interface Props {
 	applicationId: string;
 }
 
 export const ShowRedirects = ({ applicationId }: Props) => {
-	const { data } = api.application.one.useQuery(
+	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
 		},
 		{ enabled: !!applicationId },
 	);
+
+	const { mutateAsync: deleteRedirect, isLoading: isRemoving } =
+		api.redirects.delete.useMutation();
 
 	return (
 		<Card className="bg-background">
@@ -77,7 +83,32 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 										</div>
 										<div className="flex flex-row gap-4">
 											<UpdateRedirect redirectId={redirect.redirectId} />
-											<DeleteRedirect redirectId={redirect.redirectId} />
+											<DialogAction
+												title="Delete Redirect"
+												description="Are you sure you want to delete this redirect?"
+												type="destructive"
+												onClick={async () => {
+													await deleteRedirect({
+														redirectId: redirect.redirectId,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Redirect deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting redirect");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>

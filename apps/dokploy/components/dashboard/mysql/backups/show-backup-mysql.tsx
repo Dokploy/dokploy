@@ -13,13 +13,14 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { DatabaseBackup, Play } from "lucide-react";
+import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
 import { AddBackup } from "../../database/backups/add-backup";
-import { DeleteBackup } from "../../database/backups/delete-backup";
 import { UpdateBackup } from "../../database/backups/update-backup";
+import { DialogAction } from "@/components/shared/dialog-action";
+
 interface Props {
 	mysqlId: string;
 }
@@ -37,6 +38,9 @@ export const ShowBackupMySql = ({ mysqlId }: Props) => {
 
 	const { mutateAsync: manualBackup, isLoading: isManualBackup } =
 		api.backup.manualBackupMySql.useMutation();
+
+	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
+		api.backup.remove.useMutation();
 
 	return (
 		<Card className="bg-background">
@@ -159,10 +163,32 @@ export const ShowBackupMySql = ({ mysqlId }: Props) => {
 														backupId={backup.backupId}
 														refetch={refetchMySql}
 													/>
-													<DeleteBackup
-														backupId={backup.backupId}
-														refetch={refetchMySql}
-													/>
+													<DialogAction
+														title="Delete Backup"
+														description="Are you sure you want to delete this backup?"
+														type="destructive"
+														onClick={async () => {
+															await deleteBackup({
+																backupId: backup.backupId,
+															})
+																.then(() => {
+																	refetchMySql();
+																	toast.success("Backup deleted successfully");
+																})
+																.catch(() => {
+																	toast.error("Error deleting backup");
+																});
+														}}
+													>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="group hover:bg-red-500/10"
+															isLoading={isRemoving}
+														>
+															<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+														</Button>
+													</DialogAction>
 												</div>
 											</div>
 										</div>
