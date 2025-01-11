@@ -98,178 +98,101 @@ export default function Home({ IS_CLOUD }: Props) {
 	};
 	return (
 		<>
-			<div className="md:hidden">
-				<img
-					src="/examples/authentication-light.png"
-					width={1280}
-					height={843}
-					alt="Authentication"
-					className="block dark:hidden"
-				/>
-				<img
-					src="/examples/authentication-dark.png"
-					width={1280}
-					height={843}
-					alt="Authentication"
-					className="hidden dark:block"
-				/>
-			</div>
-			<div className="container relative hidden h-[900px] flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0">
-				<Link
-					href="/register"
-					className={cn(
-						buttonVariants({ variant: "ghost" }),
-						"absolute right-4 top-4 md:right-8 md:top-8",
-					)}
-				>
-					Sign Up
-				</Link>
-				<div className="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
-					<div className="absolute inset-0 bg-zinc-900" />
-					<Link
-						href="https://dokploy.com"
-						className="relative z-20 flex items-center text-lg font-medium gap-4"
-					>
-						<Logo className="size-10" />
-						Dokploy
-					</Link>
-					<div className="relative z-20 mt-auto">
-						<blockquote className="space-y-2">
-							<p className="text-lg">
-								&ldquo;The Open Source alternative to Netlify, Vercel,
-								Heroku.&rdquo;
-							</p>
-							{/* <footer className="text-sm">Sofia Davis</footer> */}
-						</blockquote>
+			{isError && (
+				<AlertBlock type="error" className="mx-4 my-2">
+					<span>{error?.message}</span>
+				</AlertBlock>
+			)}
+			<div className="flex flex-col space-y-2 text-center">
+				<h1 className="text-2xl font-semibold tracking-tight">
+					<div className="flex flex-row items-center justify-center gap-2">
+						<Logo className="size-12" />
+						Sign in
 					</div>
-				</div>
-				<div>
-					<div className="mx-auto flex w-full flex-col justify-center space-y-6 max-w-lg">
-						<div className="flex flex-col space-y-2 text-center">
-							<h1 className="text-2xl font-semibold tracking-tight">
-								<div className="flex flex-row items-center justify-center gap-2">
-									<Logo className="size-10" />
-									Sign in
-								</div>
-							</h1>
-							<p className="text-sm text-muted-foreground">
-								Enter your email below to sign in to your account
-							</p>
-						</div>
-
-						{isError && (
-							<AlertBlock type="error" className="mx-4 my-2">
-								<span>{error?.message}</span>
-							</AlertBlock>
-						)}
-
-						<CardContent>
-							{!temp.is2FAEnabled ? (
-								<Form {...form}>
-									<form
-										onSubmit={form.handleSubmit(onSubmit)}
-										className="grid gap-4"
-									>
-										<div className="space-y-4">
-											<FormField
-												control={form.control}
-												name="email"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Email</FormLabel>
-														<FormControl>
-															<Input placeholder="Email" {...field} />
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<FormField
-												control={form.control}
-												name="password"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Password</FormLabel>
-														<FormControl>
-															<Input
-																type="password"
-																placeholder="Password"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<Button
-												type="submit"
-												isLoading={isLoading}
-												className="w-full"
-											>
-												Login
-											</Button>
-										</div>
-									</form>
-								</Form>
-							) : (
-								<Login2FA authId={temp.authId} />
-							)}
-
-							<div className="flex flex-row justify-between flex-wrap">
-								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
-									{IS_CLOUD && (
-										<Link
-											className="hover:underline text-muted-foreground"
-											href="/register"
-										>
-											Create an account
-										</Link>
+				</h1>
+				<p className="text-sm text-muted-foreground">
+					Enter your email and password to sign in
+				</p>
+			</div>
+			<CardContent className="p-0">
+				{!temp.is2FAEnabled ? (
+					<Form {...form}>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+							<div className="space-y-4">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Email</FormLabel>
+											<FormControl>
+												<Input placeholder="Email" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
 									)}
-								</div>
-
-								<div className="mt-4 text-sm flex flex-row justify-center gap-2">
-									{IS_CLOUD ? (
-										<Link
-											className="hover:underline text-muted-foreground"
-											href="/send-reset-password"
-										>
-											Lost your password?
-										</Link>
-									) : (
-										<Link
-											className="hover:underline text-muted-foreground"
-											href="https://docs.dokploy.com/docs/core/reset-password"
-											target="_blank"
-										>
-											Lost your password?
-										</Link>
+								/>
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Password</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Password"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
 									)}
-								</div>
+								/>
+
+								<Button type="submit" isLoading={isLoading} className="w-full">
+									Login
+								</Button>
 							</div>
-							<div className="p-2" />
-						</CardContent>
+						</form>
+					</Form>
+				) : (
+					<Login2FA authId={temp.authId} />
+				)}
 
-						{/* <p className="px-8 text-center text-sm text-muted-foreground">
-							By clicking continue, you agree to our{" "}
+				<div className="flex flex-row justify-between flex-wrap">
+					<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+						{IS_CLOUD && (
 							<Link
-								href="/terms"
-								className="underline underline-offset-4 hover:text-primary"
+								className="hover:underline text-muted-foreground"
+								href="/register"
 							>
-								Terms of Service
-							</Link>{" "}
-							and{" "}
-							<Link
-								href="/privacy"
-								className="underline underline-offset-4 hover:text-primary"
-							>
-								Privacy Policy
+								Create an account
 							</Link>
-							.
-						</p> */}
+						)}
+					</div>
+
+					<div className="mt-4 text-sm flex flex-row justify-center gap-2">
+						{IS_CLOUD ? (
+							<Link
+								className="hover:underline text-muted-foreground"
+								href="/send-reset-password"
+							>
+								Lost your password?
+							</Link>
+						) : (
+							<Link
+								className="hover:underline text-muted-foreground"
+								href="https://docs.dokploy.com/docs/core/reset-password"
+								target="_blank"
+							>
+								Lost your password?
+							</Link>
+						)}
 					</div>
 				</div>
-			</div>
+				<div className="p-2" />
+			</CardContent>
 		</>
 	);
 }
