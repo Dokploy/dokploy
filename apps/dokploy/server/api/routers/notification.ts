@@ -190,8 +190,6 @@ export const notificationRouter = createTRPCRouter({
 				const decorate = (decoration: string, text: string) =>
 					`${input.decoration ? decoration : ""} ${text}`.trim();
 
-				console.log("hoila");
-
 				await sendDiscordNotification(input, {
 					title: decorate(">", "`🤚` - Test Notification"),
 					description: decorate(">", "Hi, From Dokploy 👋"),

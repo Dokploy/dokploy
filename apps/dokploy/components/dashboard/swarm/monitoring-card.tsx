@@ -8,7 +8,14 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Activity, Loader2, Monitor, Settings, Server } from "lucide-react";
+import {
+	Activity,
+	Loader2,
+	Monitor,
+	Settings,
+	Server,
+	WorkflowIcon,
+} from "lucide-react";
 import { NodeCard } from "./details/details-card";
 
 interface Props {
@@ -67,9 +74,10 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<header className="flex items-center justify-between">
 					<div className="space-y-1">
-						<h1 className="text-2xl font-semibold tracking-tight">
+						<CardTitle className="text-xl flex flex-row gap-2">
+							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
 							Docker Swarm Overview
-						</h1>
+						</CardTitle>
 						<p className="text-sm text-muted-foreground">
 							Monitor and manage your Docker Swarm cluster
 						</p>

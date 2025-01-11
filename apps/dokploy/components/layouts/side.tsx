@@ -83,6 +83,7 @@ import {
 	SidebarProvider,
 	SidebarRail,
 	SidebarTrigger,
+	useSidebar,
 } from "@/components/ui/sidebar";
 import { Logo } from "../shared/logo";
 import Link from "next/link";
@@ -101,6 +102,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 // This is sample data.
 interface NavItem {
 	title: string;
@@ -367,6 +369,37 @@ const data = {
 interface Props {
 	children: React.ReactNode;
 }
+
+function LogoWrapper() {
+	return <SidebarLogo />;
+}
+
+function SidebarLogo() {
+	const { state } = useSidebar();
+	return (
+		<Link
+			href="/dashboard/projects"
+			className=" flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
+		>
+			<div
+				className={cn(
+					"flex aspect-square items-center justify-center rounded-lg ",
+					state === "collapsed" ? "size-6" : "size-10",
+				)}
+			>
+				<Logo className={state === "collapsed" ? "size-6" : "size-10"} />
+			</div>
+
+			{state === "expanded" && (
+				<div className="flex flex-col gap-1 text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
+					<span className="truncate font-semibold">Dokploy</span>
+					<span className="truncate text-xs">v0.16.0</span>
+				</div>
+			)}
+		</Link>
+	);
+}
+
 export default function Page({ children }: Props) {
 	const [activeTeam, setActiveTeam] = React.useState(data.teams[0]);
 	const router = useRouter();
@@ -399,37 +432,19 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
-			style={{
-				"--sidebar-width": "19.5rem",
-				"--sidebar-width-mobile": "19.5rem",
-			} as React.CSSProperties}
+			style={
+				{
+					"--sidebar-width": "19.5rem",
+					"--sidebar-width-mobile": "19.5rem",
+				} as React.CSSProperties
+			}
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild className="">
-									<SidebarMenuButton
-										size="lg"
-										className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground "
-									>
-										<div className="flex aspect-square size-12 items-center justify-center rounded-lg ">
-											<Logo />
-											{/* <activeTeam.logo className="size-4" /> */}
-										</div>
-										<div className="grid flex-1 text-left text-sm leading-tight">
-											<span className="truncate font-semibold">
-												{activeTeam?.name}
-											</span>
-											<span className="truncate text-xs">
-												{dokployVersion}
-											</span>
-										</div>
-										{/* <ChevronsUpDown className="ml-auto" /> */}
-									</SidebarMenuButton>
-								</DropdownMenuTrigger>
-								{/* <DropdownMenuContent
+							<LogoWrapper />
+							{/* <DropdownMenuContent
 									className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
 									align="start"
 									side="bottom"
@@ -461,7 +476,6 @@ export default function Page({ children }: Props) {
 										</div>
 									</DropdownMenuItem>
 								</DropdownMenuContent> */}
-							</DropdownMenu>
 						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarHeader>
@@ -593,41 +607,8 @@ export default function Page({ children }: Props) {
 											<span>{item.name}</span>
 										</Link>
 									</SidebarMenuButton>
-									{/* <DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<SidebarMenuAction showOnHover>
-												<MoreHorizontal />
-												<span className="sr-only">More</span>
-											</SidebarMenuAction>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											className="w-48 rounded-lg"
-											side="bottom"
-											align="end"
-										>
-											<DropdownMenuItem>
-												<Folder className="text-muted-foreground" />
-												<span>View Project</span>
-											</DropdownMenuItem>
-											<DropdownMenuItem>
-												<Forward className="text-muted-foreground" />
-												<span>Share Project</span>
-											</DropdownMenuItem>
-											<DropdownMenuSeparator />
-											<DropdownMenuItem>
-												<Trash2 className="text-muted-foreground" />
-												<span>Delete Project</span>
-											</DropdownMenuItem>
-										</DropdownMenuContent>
-									</DropdownMenu> */}
 								</SidebarMenuItem>
 							))}
-							{/* <SidebarMenuItem>
-								<SidebarMenuButton className="text-sidebar-foreground/70">
-									<MoreHorizontal className="text-sidebar-foreground/70" />
-									<span>More</span>
-								</SidebarMenuButton>
-							</SidebarMenuItem> */}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
@@ -635,86 +616,6 @@ export default function Page({ children }: Props) {
 					<SidebarMenu>
 						<SidebarMenuItem>
 							<UserNav />
-							{/* <DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<SidebarMenuButton
-										size="lg"
-										className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-									>
-										<Avatar className="h-8 w-8 rounded-lg">
-											<AvatarImage
-												src={data.user.avatar}
-												alt={data.user.name}
-											/>
-											<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-										</Avatar>
-										<div className="grid flex-1 text-left text-sm leading-tight">
-											<span className="truncate font-semibold">
-												{data.user.name}
-											</span>
-											<span className="truncate text-xs">
-												{data.user.email}
-											</span>
-										</div>
-										<ChevronsUpDown className="ml-auto size-4" />
-									</SidebarMenuButton>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-									side="bottom"
-									align="end"
-									sideOffset={4}
-								>
-									<DropdownMenuLabel className="p-0 font-normal">
-										<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-											<Avatar className="h-8 w-8 rounded-lg">
-												<AvatarImage
-													src={data.user.avatar}
-													alt={data.user.name}
-												/>
-												<AvatarFallback className="rounded-lg">
-													CN
-												</AvatarFallback>
-											</Avatar>
-											<div className="grid flex-1 text-left text-sm leading-tight">
-												<span className="truncate font-semibold">
-													{data.user.name}
-												</span>
-												<span className="truncate text-xs">
-													{data.user.email}
-												</span>
-											</div>
-										</div>
-									</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									<DropdownMenuGroup>
-										<DropdownMenuItem>
-											<Sparkles />
-											Upgrade to Pro
-										</DropdownMenuItem>
-									</DropdownMenuGroup>
-									<DropdownMenuSeparator />
-									<DropdownMenuGroup>
-										<DropdownMenuItem>
-											<BadgeCheck />
-											Account
-										</DropdownMenuItem>
-										<DropdownMenuItem>
-											<CreditCard />
-											Billing
-										</DropdownMenuItem>
-										<DropdownMenuItem>
-											<Bell />
-											Notifications
-										</DropdownMenuItem>
-									</DropdownMenuGroup>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem>
-										<LogOut />
-										Log out
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu> */}
 						</SidebarMenuItem>
 					</SidebarMenu>
 				</SidebarFooter>
@@ -744,7 +645,6 @@ export default function Page({ children }: Props) {
 								</BreadcrumbList>
 							</Breadcrumb>
 						</div>
-						{showProjectsButton && <AddProject />}
 					</div>
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">

@@ -1,11 +1,15 @@
 import React from "react";
 
-export const Logo = () => {
+interface Props {
+	className?: string;
+}
+
+export const Logo = ({ className = "size-14" }: Props) => {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 559 446"
-			className="h-14 w-14"
+			className={className}
 		>
 			<path
 				className="fill-primary stroke-primary"
