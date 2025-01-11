@@ -123,6 +123,9 @@ export const findMariadbByBackupId = async (backupId: string) => {
 export const deployMariadb = async (mariadbId: string) => {
 	const mariadb = await findMariadbById(mariadbId);
 	try {
+		await updateMariadbById(mariadbId, {
+			applicationStatus: "running",
+		});
 		if (mariadb.serverId) {
 			await execAsyncRemote(
 				mariadb.serverId,
