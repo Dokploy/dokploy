@@ -90,6 +90,17 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/utils/api";
 import { useRouter } from "next/router";
 import { AddProject } from "@/components/dashboard/projects/add";
+import { ModeToggle } from "@/components/ui/modeToggle";
+import { Languages } from "@/lib/languages";
+import useLocale from "@/utils/hooks/use-locale";
+import { useTranslation } from "next-i18next";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 // This is sample data.
 interface NavItem {
 	title: string;
@@ -384,12 +395,14 @@ export default function Page({ children }: Props) {
 		currentPath === "/dashboard/projects" &&
 		(auth?.rol === "admin" || user?.canCreateProjects);
 
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+
 	return (
 		<SidebarProvider
 			style={{
 				"--sidebar-width": "19.5rem",
 				"--sidebar-width-mobile": "19.5rem",
-			}}
+			} as React.CSSProperties}
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
@@ -409,7 +422,9 @@ export default function Page({ children }: Props) {
 											<span className="truncate font-semibold">
 												{activeTeam?.name}
 											</span>
-											<span className="truncate text-xs">v0.16.0</span>
+											<span className="truncate text-xs">
+												{dokployVersion}
+											</span>
 										</div>
 										{/* <ChevronsUpDown className="ml-auto" /> */}
 									</SidebarMenuButton>
@@ -761,6 +776,8 @@ export const UserNav = () => {
 			enabled: !!data?.id && data?.rol === "user",
 		},
 	);
+	const { locale, setLocale } = useLocale();
+	const { t } = useTranslation("settings");
 	const { mutateAsync } = api.auth.logout.useMutation();
 	const { mutateAsync: getUpdateData } =
 		api.settings.getUpdateData.useMutation();
@@ -839,12 +856,15 @@ export const UserNav = () => {
 				align="end"
 				sideOffset={4}
 			>
-				<DropdownMenuLabel className="flex flex-col">
-					My Account
-					<span className="text-xs font-normal text-muted-foreground">
-						{data?.email}
-					</span>
-				</DropdownMenuLabel>
+				<div className="flex items-center justify-between px-2 py-1.5">
+					<DropdownMenuLabel className="flex flex-col">
+						My Account
+						<span className="text-xs font-normal text-muted-foreground">
+							{data?.email}
+						</span>
+					</DropdownMenuLabel>
+					<ModeToggle />
+				</div>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
 					<DropdownMenuItem
@@ -906,16 +926,36 @@ export const UserNav = () => {
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					className="cursor-pointer"
-					onClick={async () => {
-						await mutateAsync().then(() => {
-							router.push("/");
-						});
-					}}
-				>
-					Log out
-				</DropdownMenuItem>
+				<div className="flex items-center justify-between px-2 py-1.5">
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={async () => {
+							await mutateAsync().then(() => {
+								router.push("/");
+							});
+						}}
+					>
+						Log out
+					</DropdownMenuItem>
+					<div className="w-32">
+						<Select
+							onValueChange={setLocale}
+							defaultValue={locale}
+							value={locale}
+						>
+							<SelectTrigger>
+								<SelectValue placeholder="Select Language" />
+							</SelectTrigger>
+							<SelectContent>
+								{Object.values(Languages).map((language) => (
+									<SelectItem key={language.code} value={language.code}>
+										{language.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
