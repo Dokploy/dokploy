@@ -1,8 +1,8 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
+import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
 	MongodbIcon,
