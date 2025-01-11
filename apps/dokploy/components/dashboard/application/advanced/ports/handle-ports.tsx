@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -45,18 +45,29 @@ type AddPort = z.infer<typeof AddPortSchema>;
 
 interface Props {
 	applicationId: string;
+	portId?: string;
 	children?: React.ReactNode;
 }
 
-export const AddPort = ({
+export const HandlePorts = ({
 	applicationId,
+	portId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.port.create.useMutation();
+	const { data } = api.port.one.useQuery(
+		{
+			portId: portId ?? "",
+		},
+		{
+			enabled: !!portId,
+		},
+	);
+	const { mutateAsync, isLoading, error, isError } = portId
+		? api.port.update.useMutation()
+		: api.port.create.useMutation();
 
 	const form = useForm<AddPort>({
 		defaultValues: {
@@ -68,32 +79,46 @@ export const AddPort = ({
 
 	useEffect(() => {
 		form.reset({
-			publishedPort: 0,
-			targetPort: 0,
+			publishedPort: data?.publishedPort ?? 0,
+			targetPort: data?.targetPort ?? 0,
+			protocol: data?.protocol ?? "tcp",
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	const onSubmit = async (data: AddPort) => {
 		await mutateAsync({
 			applicationId,
 			...data,
+			portId: portId || "",
 		})
 			.then(async () => {
-				toast.success("Port Created");
+				toast.success(portId ? "Port Updated" : "Port Created");
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error creating the port");
+				toast.error(
+					portId ? "Error updating the port" : "Error creating the port",
+				);
 			});
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button>{children}</Button>
+				{portId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button>{children}</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
@@ -204,7 +229,7 @@ export const AddPort = ({
 							form="hook-form-add-port"
 							type="submit"
 						>
-							Create
+							{portId ? "Update" : "Create"}
 						</Button>
 					</DialogFooter>
 				</Form>

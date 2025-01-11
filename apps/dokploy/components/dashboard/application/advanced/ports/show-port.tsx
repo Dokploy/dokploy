@@ -12,8 +12,7 @@ import { api } from "@/utils/api";
 import { Rss, Trash2 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
-import { AddPort } from "./add-port";
-import { UpdatePort } from "./update-port";
+import { HandlePorts } from "./handle-ports";
 interface Props {
 	applicationId: string;
 }
@@ -40,7 +39,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
 				</div>
 
 				{data && data?.ports.length > 0 && (
-					<AddPort applicationId={applicationId}>Add Port</AddPort>
+					<HandlePorts applicationId={applicationId}>Add Port</HandlePorts>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -50,7 +49,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No ports configured
 						</span>
-						<AddPort applicationId={applicationId}>Add Port</AddPort>
+						<HandlePorts applicationId={applicationId}>Add Port</HandlePorts>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 gap-4">
@@ -83,7 +82,10 @@ export const ShowPorts = ({ applicationId }: Props) => {
 											</div>
 										</div>
 										<div className="flex flex-row gap-4">
-											<UpdatePort portId={port.portId} />
+											<HandlePorts
+												applicationId={applicationId}
+												portId={port.portId}
+											/>
 											<DialogAction
 												title="Delete Port"
 												description="Are you sure you want to delete this port?"
