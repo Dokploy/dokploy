@@ -104,6 +104,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../shared/logo";
+import { UpdateServerButton } from "./update-server";
 // This is sample data.
 interface NavItem {
 	title: string;
@@ -331,11 +332,13 @@ const data = {
 			isSingle: true,
 			isActive: false,
 		},
-		// {
-		// 	title: "Billing",
-		// 	url: "/dashboard/settings/billing",
-		// 	icon: CreditCard,
-		// },
+		{
+			title: "Billing",
+			url: "/dashboard/settings/billing",
+			icon: CreditCard,
+			isSingle: true,
+			isActive: false,
+		},
 
 		// {
 		// 	title: "Appearance",
@@ -415,6 +418,7 @@ export default function Page({ children }: Props) {
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
+	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 	const isActiveRoute = (itemUrl: string) => {
 		// Normalizar las rutas para manejar el caso projects vs project
 		const normalizedItemUrl = itemUrl.replace("/projects", "/project");
@@ -434,19 +438,38 @@ export default function Page({ children }: Props) {
 		return false;
 	};
 
-	data.home = data.home.map((item) => ({
+	let filteredHome = isCloud
+		? data.home.filter(
+				(item) =>
+					![
+						"/dashboard/monitoring",
+						"/dashboard/traefik",
+						"/dashboard/docker",
+						"/dashboard/swarm",
+						"/dashboard/requests",
+					].includes(item.url),
+			)
+		: data.home;
+
+	let filteredSettings = isCloud
+		? data.settings.filter(
+				(item) => !["/dashboard/settings/server"].includes(item.url),
+			)
+		: data.settings;
+
+	filteredHome = filteredHome.map((item) => ({
 		...item,
 		isActive: isActiveRoute(item.url),
 	}));
 
-	data.settings = data.settings.map((item) => ({
+	filteredSettings = filteredSettings.map((item) => ({
 		...item,
 		isActive: isActiveRoute(item.url),
 	}));
 
 	const activeItem =
-		data.home.find((item) => item.isActive) ||
-		data.settings.find((item) => item.isActive);
+		filteredHome.find((item) => item.isActive) ||
+		filteredSettings.find((item) => item.isActive);
 
 	const showProjectsButton =
 		currentPath === "/dashboard/projects" &&
@@ -475,7 +498,7 @@ export default function Page({ children }: Props) {
 					<SidebarGroup>
 						<SidebarGroupLabel>Home</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.home.map((item) => (
+							{filteredHome.map((item) => (
 								<Collapsible
 									key={item.title}
 									asChild
@@ -558,7 +581,7 @@ export default function Page({ children }: Props) {
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
 						<SidebarMenu className="gap-2">
-							{data.settings.map((item) => (
+							{filteredSettings.map((item) => (
 								<Collapsible
 									key={item.title}
 									asChild
@@ -651,6 +674,11 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
+							<SidebarMenuItem>
+								<SidebarMenuButton asChild>
+									<UpdateServerButton />
+								</SidebarMenuButton>
+							</SidebarMenuItem>
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
@@ -810,45 +838,70 @@ export const UserNav = () => {
 					>
 						Projects
 					</DropdownMenuItem>
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => {
-							router.push("/dashboard/monitoring");
-						}}
-					>
-						Monitoring
-					</DropdownMenuItem>
-					{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
-						<DropdownMenuItem
-							className="cursor-pointer"
-							onClick={() => {
-								router.push("/dashboard/traefik");
-							}}
-						>
-							Traefik
-						</DropdownMenuItem>
-					)}
-					{(data?.rol === "admin" || user?.canAccessToDocker) && (
-						<DropdownMenuItem
-							className="cursor-pointer"
-							onClick={() => {
-								router.push("/dashboard/docker", undefined, {
-									shallow: true,
-								});
-							}}
-						>
-							Docker
-						</DropdownMenuItem>
-					)}
+					{!isCloud ? (
+						<>
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => {
+									router.push("/dashboard/monitoring");
+								}}
+							>
+								Monitoring
+							</DropdownMenuItem>
+							{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/traefik");
+									}}
+								>
+									Traefik
+								</DropdownMenuItem>
+							)}
+							{(data?.rol === "admin" || user?.canAccessToDocker) && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/docker", undefined, {
+											shallow: true,
+										});
+									}}
+								>
+									Docker
+								</DropdownMenuItem>
+							)}
 
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => {
-							router.push("/dashboard/settings/server");
-						}}
-					>
-						Settings
-					</DropdownMenuItem>
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => {
+									router.push("/dashboard/settings/server");
+								}}
+							>
+								Settings
+							</DropdownMenuItem>
+						</>
+					) : (
+						<>
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => {
+									router.push("/dashboard/settings/profile");
+								}}
+							>
+								Profile
+							</DropdownMenuItem>
+							{data?.rol === "admin" && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/settings/servers");
+									}}
+								>
+									Servers
+								</DropdownMenuItem>
+							)}
+						</>
+					)}
 				</DropdownMenuGroup>
 				{isCloud && data?.rol === "admin" && (
 					<DropdownMenuItem

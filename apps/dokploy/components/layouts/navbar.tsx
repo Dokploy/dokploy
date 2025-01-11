@@ -158,45 +158,50 @@ export const Navbar = () => {
 								>
 									Projects
 								</DropdownMenuItem>
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/monitoring");
-									}}
-								>
-									Monitoring
-								</DropdownMenuItem>
-								{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
-									<DropdownMenuItem
-										className="cursor-pointer"
-										onClick={() => {
-											router.push("/dashboard/traefik");
-										}}
-									>
-										Traefik
-									</DropdownMenuItem>
-								)}
-								{(data?.rol === "admin" || user?.canAccessToDocker) && (
-									<DropdownMenuItem
-										className="cursor-pointer"
-										onClick={() => {
-											router.push("/dashboard/docker", undefined, {
-												shallow: true,
-											});
-										}}
-									>
-										Docker
-									</DropdownMenuItem>
-								)}
+								{!isCloud && (
+									<>
+										<DropdownMenuItem
+											className="cursor-pointer"
+											onClick={() => {
+												router.push("/dashboard/monitoring");
+											}}
+										>
+											Monitoring
+										</DropdownMenuItem>
+										{(data?.rol === "admin" ||
+											user?.canAccessToTraefikFiles) && (
+											<DropdownMenuItem
+												className="cursor-pointer"
+												onClick={() => {
+													router.push("/dashboard/traefik");
+												}}
+											>
+												Traefik
+											</DropdownMenuItem>
+										)}
+										{(data?.rol === "admin" || user?.canAccessToDocker) && (
+											<DropdownMenuItem
+												className="cursor-pointer"
+												onClick={() => {
+													router.push("/dashboard/docker", undefined, {
+														shallow: true,
+													});
+												}}
+											>
+												Docker
+											</DropdownMenuItem>
+										)}
 
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/settings/server");
-									}}
-								>
-									Settings
-								</DropdownMenuItem>
+										<DropdownMenuItem
+											className="cursor-pointer"
+											onClick={() => {
+												router.push("/dashboard/settings/server");
+											}}
+										>
+											Settings
+										</DropdownMenuItem>
+									</>
+								)}
 							</DropdownMenuGroup>
 							{isCloud && data?.rol === "admin" && (
 								<DropdownMenuItem
