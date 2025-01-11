@@ -150,7 +150,7 @@ const Service = (
 											</TooltipProvider>
 										)}
 									</div>
-									<div className="flex flex-row gap-2">
+									<div className="flex flex-row gap-2 justify-end">
 										<UpdateCompose composeId={composeId} />
 
 										{(auth?.rol === "admin" || user?.canDeleteServices) && (

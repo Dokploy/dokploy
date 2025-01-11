@@ -167,7 +167,7 @@ const Service = (
 									)}
 								</div>
 
-								<div className="flex flex-row gap-2">
+								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
 										<DialogAction

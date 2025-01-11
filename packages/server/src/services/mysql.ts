@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMySql, backups, mysql } from "@dokploy/server/db/schema";
-import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
+import { buildAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -119,6 +119,9 @@ export const removeMySqlById = async (mysqlId: string) => {
 export const deployMySql = async (mysqlId: string) => {
 	const mysql = await findMySqlById(mysqlId);
 	try {
+		await updateMySqlById(mysqlId, {
+			applicationStatus: "running",
+		});
 		if (mysql.serverId) {
 			await execAsyncRemote(mysql.serverId, `docker pull ${mysql.dockerImage}`);
 		} else {
