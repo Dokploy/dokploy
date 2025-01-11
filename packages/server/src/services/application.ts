@@ -176,6 +176,7 @@ export const deployApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const domains = application.domains.map(({ host, https }) => ({ host, https }));
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -213,6 +214,7 @@ export const deployApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
+			domains
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -285,6 +287,7 @@ export const deployRemoteApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const domains = application.domains.map(({ host, https }) => ({ host, https }));
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -332,6 +335,7 @@ export const deployRemoteApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
+			domains
 		});
 	} catch (error) {
 		// @ts-ignore

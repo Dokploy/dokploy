@@ -209,6 +209,7 @@ export const deployCompose = async ({
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
+	const domains = compose.domains.map(({ host, https }) => ({ host, https }));
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -243,6 +244,7 @@ export const deployCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -313,6 +315,7 @@ export const deployRemoteCompose = async ({
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
+	const domains = compose.domains.map(({ host, https }) => ({ host, https }));
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -366,6 +369,7 @@ export const deployRemoteCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains
 		});
 	} catch (error) {
 		// @ts-ignore
