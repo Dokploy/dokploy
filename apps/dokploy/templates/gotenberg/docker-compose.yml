@@ -1,0 +1,18 @@
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:latest
+    environment:
+      # NOTE: requires the --api-enable-basic-auth option in "command"
+      #       make sure to also change the credentials in Dokploy environment
+      GOTENBERG_API_BASIC_AUTH_USERNAME: ${GOTENBERG_API_BASIC_AUTH_USERNAME}
+      GOTENBERG_API_BASIC_AUTH_PASSWORD: ${GOTENBERG_API_BASIC_AUTH_PASSWORD}
+    command: [
+      "gotenberg",
+      # See the full list of options at https://gotenberg.dev/docs/configuration
+      
+      # Examples:
+      "--api-enable-basic-auth"
+      #"--api-timeout=60s",
+      #"--chromium-auto-start"
+    ]
+    restart: unless-stopped
