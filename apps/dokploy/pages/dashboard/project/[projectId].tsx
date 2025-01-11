@@ -200,7 +200,7 @@ const Project = (
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const serviceTypes = [
-		{ value: "application", label: "Application", icon: FolderInput },
+		{ value: "application", label: "Application", icon: GlobeIcon },
 		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
 		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
 		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },

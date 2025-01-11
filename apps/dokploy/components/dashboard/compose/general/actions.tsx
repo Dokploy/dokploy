@@ -1,28 +1,17 @@
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
-import Link from "next/link";
+import { Ban, CheckCircle2, Hammer, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { StartCompose } from "../start-compose";
-import { DeployCompose } from "./deploy-compose";
-import { RedbuildCompose } from "./rebuild-compose";
-import { StopCompose } from "./stop-compose";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { useRouter } from "next/router";
 
 interface Props {
 	composeId: string;
 }
 export const ComposeActions = ({ composeId }: Props) => {
+	const router = useRouter();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -30,33 +19,109 @@ export const ComposeActions = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 	const { mutateAsync: update } = api.compose.update.useMutation();
-
-	const extractDomains = (env: string) => {
-		const lines = env.split("\n");
-		const hostLines = lines.filter((line) => {
-			const [key, value] = line.split("=");
-			return key?.trim().endsWith("_HOST");
-		});
-
-		const hosts = hostLines.map((line) => {
-			const [key, value] = line.split("=");
-			return value ? value.trim() : "";
-		});
-
-		return hosts;
-	};
-
-	const domains = extractDomains(data?.env || "");
-
+	const { mutateAsync: deploy } = api.compose.deploy.useMutation();
+	const { mutateAsync: redeploy } = api.compose.redeploy.useMutation();
+	const { mutateAsync: start, isLoading: isStarting } =
+		api.compose.start.useMutation();
+	const { mutateAsync: stop, isLoading: isStopping } =
+		api.compose.stop.useMutation();
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
-			<DeployCompose composeId={composeId} />
-			<RedbuildCompose composeId={composeId} />
+			<DialogAction
+				title="Deploy Compose"
+				description="Are you sure you want to deploy this compose?"
+				type="default"
+				onClick={async () => {
+					await deploy({
+						composeId: composeId,
+					})
+						.then(() => {
+							toast.success("Compose deployed successfully");
+							refetch();
+							router.push(
+								`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`,
+							);
+						})
+						.catch(() => {
+							toast.error("Error deploying compose");
+						});
+				}}
+			>
+				<Button variant="default" isLoading={data?.composeStatus === "running"}>
+					Deploy
+				</Button>
+			</DialogAction>
+			<DialogAction
+				title="Rebuild Compose"
+				description="Are you sure you want to rebuild this compose?"
+				type="default"
+				onClick={async () => {
+					await redeploy({
+						composeId: composeId,
+					})
+						.then(() => {
+							toast.success("Compose rebuilt successfully");
+							refetch();
+						})
+						.catch(() => {
+							toast.error("Error rebuilding compose");
+						});
+				}}
+			>
+				<Button
+					variant="secondary"
+					isLoading={data?.composeStatus === "running"}
+				>
+					Rebuild
+					<Hammer className="size-4" />
+				</Button>
+			</DialogAction>
 			{data?.composeType === "docker-compose" &&
 			data?.composeStatus === "idle" ? (
-				<StartCompose composeId={composeId} />
+				<DialogAction
+					title="Start Compose"
+					description="Are you sure you want to start this compose?"
+					type="default"
+					onClick={async () => {
+						await start({
+							composeId: composeId,
+						})
+							.then(() => {
+								toast.success("Compose started successfully");
+								refetch();
+							})
+							.catch(() => {
+								toast.error("Error starting compose");
+							});
+					}}
+				>
+					<Button variant="secondary" isLoading={isStarting}>
+						Start
+						<CheckCircle2 className="size-4" />
+					</Button>
+				</DialogAction>
 			) : (
-				<StopCompose composeId={composeId} />
+				<DialogAction
+					title="Stop Compose"
+					description="Are you sure you want to stop this compose?"
+					onClick={async () => {
+						await stop({
+							composeId: composeId,
+						})
+							.then(() => {
+								toast.success("Compose stopped successfully");
+								refetch();
+							})
+							.catch(() => {
+								toast.error("Error stopping compose");
+							});
+					}}
+				>
+					<Button variant="destructive" isLoading={isStopping}>
+						Stop
+						<Ban className="size-4" />
+					</Button>
+				</DialogAction>
 			)}
 
 			<DockerTerminalModal
@@ -89,41 +154,6 @@ export const ComposeActions = ({ composeId }: Props) => {
 					className="flex flex-row gap-2 items-center"
 				/>
 			</div>
-			{domains.length > 0 && (
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="outline">
-							Domains
-							<Globe className="text-xs size-4 text-muted-foreground" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent className="w-56">
-						<DropdownMenuLabel>Domains detected</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							{domains.map((host, index) => {
-								const url =
-									host.startsWith("http://") || host.startsWith("https://")
-										? host
-										: `http://${host}`;
-
-								return (
-									<DropdownMenuItem
-										key={`domain-${index}`}
-										className="cursor-pointer"
-										asChild
-									>
-										<Link href={url} target="_blank">
-											{host}
-											<ExternalLink className="ml-2 text-xs text-muted-foreground" />
-										</Link>
-									</DropdownMenuItem>
-								);
-							})}
-						</DropdownMenuGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)}
 		</div>
 	);
 };
