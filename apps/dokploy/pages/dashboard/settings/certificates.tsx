@@ -19,7 +19,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"} metaName="Certificates">
+		<DashboardLayout metaName="Certificates">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);

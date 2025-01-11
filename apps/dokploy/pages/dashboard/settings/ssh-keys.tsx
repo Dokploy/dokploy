@@ -20,7 +20,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"} metaName="SSH Keys">
+		<DashboardLayout metaName="SSH Keys">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);

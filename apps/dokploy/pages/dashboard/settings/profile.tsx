@@ -40,7 +40,7 @@ export default Page;
 
 Page.getLayout = (page: ReactElement) => {
 	return (
-		<DashboardLayout tab={"settings"} metaName="Profile">
+		<DashboardLayout metaName="Profile">
 			<SettingsLayout>{page}</SettingsLayout>
 		</DashboardLayout>
 	);
