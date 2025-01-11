@@ -1,4 +1,3 @@
-import { Navbar } from "./navbar";
 import Page from "./side";
 
 interface Props {

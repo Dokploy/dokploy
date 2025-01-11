@@ -3,46 +3,31 @@
 import {
 	Activity,
 	AudioWaveform,
-	BadgeCheck,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
 	BookIcon,
-	BookOpen,
-	Bot,
 	ChevronRight,
-	ChevronsUpDown,
-	CogIcon,
 	Command,
 	CreditCard,
 	Database,
 	Folder,
 	Forward,
-	Frame,
 	GalleryVerticalEnd,
 	GitBranch,
 	Heart,
 	KeyRound,
-	LogOut,
 	type LucideIcon,
-	MoreHorizontal,
 	Package,
 	PieChart,
-	Plus,
 	Server,
-	Settings,
-	Settings2,
 	ShieldCheck,
-	Sparkles,
-	Trash2,
 	User,
 	Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import * as React from "react";
+import type * as React from "react";
 
-import { AddProject } from "@/components/dashboard/projects/add";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -56,24 +41,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ModeToggle } from "@/components/ui/modeToggle";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
 	Sidebar,
@@ -84,7 +51,6 @@ import {
 	SidebarHeader,
 	SidebarInset,
 	SidebarMenu,
-	SidebarMenuAction,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarMenuSub,
@@ -95,16 +61,13 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Languages } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import useLocale from "@/utils/hooks/use-locale";
-import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { Logo } from "../shared/logo";
 import { UpdateServerButton } from "./update-server";
+import { UserNav } from "./user-nav";
 // This is sample data.
 interface NavItem {
 	title: string;
@@ -405,7 +368,6 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
-	const [activeTeam, setActiveTeam] = React.useState(data.teams[0]);
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -455,7 +417,9 @@ export default function Page({ children }: Props) {
 		? data.settings.filter(
 				(item) => !["/dashboard/settings/server"].includes(item.url),
 			)
-		: data.settings;
+		: data.settings.filter(
+				(item) => !["/dashboard/settings/billing"].includes(item.url),
+			);
 
 	filteredHome = filteredHome.map((item) => ({
 		...item,
@@ -723,228 +687,3 @@ export default function Page({ children }: Props) {
 		</SidebarProvider>
 	);
 }
-
-const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
-
-export const UserNav = () => {
-	const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
-	const router = useRouter();
-	const { data } = api.auth.get.useQuery();
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: data?.id || "",
-		},
-		{
-			enabled: !!data?.id && data?.rol === "user",
-		},
-	);
-	const { locale, setLocale } = useLocale();
-	const { t } = useTranslation("settings");
-	const { mutateAsync } = api.auth.logout.useMutation();
-	const { mutateAsync: getUpdateData } =
-		api.settings.getUpdateData.useMutation();
-
-	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
-
-	useEffect(() => {
-		// Handling of automatic check for server updates
-		if (isCloud) {
-			return;
-		}
-
-		if (!localStorage.getItem("enableAutoCheckUpdates")) {
-			// Enable auto update checking by default if user didn't change it
-			localStorage.setItem("enableAutoCheckUpdates", "true");
-		}
-
-		const clearUpdatesInterval = () => {
-			if (checkUpdatesIntervalRef.current) {
-				clearInterval(checkUpdatesIntervalRef.current);
-			}
-		};
-
-		const checkUpdates = async () => {
-			try {
-				if (localStorage.getItem("enableAutoCheckUpdates") !== "true") {
-					return;
-				}
-
-				const { updateAvailable } = await getUpdateData();
-
-				if (updateAvailable) {
-					// Stop interval when update is available
-					clearUpdatesInterval();
-					setIsUpdateAvailable(true);
-				}
-			} catch (error) {
-				console.error("Error auto-checking for updates:", error);
-			}
-		};
-
-		checkUpdatesIntervalRef.current = setInterval(
-			checkUpdates,
-			AUTO_CHECK_UPDATES_INTERVAL_MINUTES * 60000,
-		);
-
-		// Also check for updates on initial page load
-		checkUpdates();
-
-		return () => {
-			clearUpdatesInterval();
-		};
-	}, []);
-
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<SidebarMenuButton
-					size="lg"
-					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-				>
-					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage src={data?.image || ""} alt={data?.image || ""} />
-						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-					</Avatar>
-					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">Account</span>
-						<span className="truncate text-xs">{data?.email}</span>
-					</div>
-					<ChevronsUpDown className="ml-auto size-4" />
-				</SidebarMenuButton>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent
-				className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-				side="bottom"
-				align="end"
-				sideOffset={4}
-			>
-				<div className="flex items-center justify-between px-2 py-1.5">
-					<DropdownMenuLabel className="flex flex-col">
-						My Account
-						<span className="text-xs font-normal text-muted-foreground">
-							{data?.email}
-						</span>
-					</DropdownMenuLabel>
-					<ModeToggle />
-				</div>
-				<DropdownMenuSeparator />
-				<DropdownMenuGroup>
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => {
-							router.push("/dashboard/projects");
-						}}
-					>
-						Projects
-					</DropdownMenuItem>
-					{!isCloud ? (
-						<>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/monitoring");
-								}}
-							>
-								Monitoring
-							</DropdownMenuItem>
-							{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/traefik");
-									}}
-								>
-									Traefik
-								</DropdownMenuItem>
-							)}
-							{(data?.rol === "admin" || user?.canAccessToDocker) && (
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/docker", undefined, {
-											shallow: true,
-										});
-									}}
-								>
-									Docker
-								</DropdownMenuItem>
-							)}
-
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/settings/server");
-								}}
-							>
-								Settings
-							</DropdownMenuItem>
-						</>
-					) : (
-						<>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/settings/profile");
-								}}
-							>
-								Profile
-							</DropdownMenuItem>
-							{data?.rol === "admin" && (
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/settings/servers");
-									}}
-								>
-									Servers
-								</DropdownMenuItem>
-							)}
-						</>
-					)}
-				</DropdownMenuGroup>
-				{isCloud && data?.rol === "admin" && (
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => {
-							router.push("/dashboard/settings/billing");
-						}}
-					>
-						Billing
-					</DropdownMenuItem>
-				)}
-				<DropdownMenuSeparator />
-				<div className="flex items-center justify-between px-2 py-1.5">
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={async () => {
-							await mutateAsync().then(() => {
-								router.push("/");
-							});
-						}}
-					>
-						Log out
-					</DropdownMenuItem>
-					<div className="w-32">
-						<Select
-							onValueChange={setLocale}
-							defaultValue={locale}
-							value={locale}
-						>
-							<SelectTrigger>
-								<SelectValue placeholder="Select Language" />
-							</SelectTrigger>
-							<SelectContent>
-								{Object.values(Languages).map((language) => (
-									<SelectItem key={language.code} value={language.code}>
-										{language.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				</div>
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
-};
