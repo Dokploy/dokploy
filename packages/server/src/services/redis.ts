@@ -92,6 +92,9 @@ export const removeRedisById = async (redisId: string) => {
 export const deployRedis = async (redisId: string) => {
 	const redis = await findRedisById(redisId);
 	try {
+		await updateRedisById(redisId, {
+			applicationStatus: "running",
+		});
 		if (redis.serverId) {
 			await execAsyncRemote(redis.serverId, `docker pull ${redis.dockerImage}`);
 		} else {

@@ -2,24 +2,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import React from "react";
-
-import { Terminal } from "lucide-react";
+import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { StartRedis } from "../start-redis";
-import { DeployRedis } from "./deploy-redis";
-import { ResetRedis } from "./reset-redis";
-import { StopRedis } from "./stop-redis";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
 interface Props {
 	redisId: string;
 }
 
 export const ShowGeneralRedis = ({ redisId }: Props) => {
-	const { data } = api.redis.one.useQuery(
+	const { data, refetch } = api.redis.one.useQuery(
 		{
 			redisId,
 		},
 		{ enabled: !!redisId },
 	);
+
+	const { mutateAsync: deploy } = api.redis.deploy.useMutation();
+
+	const { mutateAsync: reload, isLoading: isReloading } =
+		api.redis.reload.useMutation();
+	const { mutateAsync: start, isLoading: isStarting } =
+		api.redis.start.useMutation();
+
+	const { mutateAsync: stop, isLoading: isStopping } =
+		api.redis.stop.useMutation();
 
 	return (
 		<>
@@ -29,12 +36,100 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
-						<DeployRedis redisId={redisId} />
-						<ResetRedis redisId={redisId} appName={data?.appName || ""} />
+						{/* <DeployRedis redisId={redisId} /> */}
+						<DialogAction
+							title="Deploy Redis"
+							description="Are you sure you want to deploy this redis?"
+							type="default"
+							onClick={async () => {
+								await deploy({
+									redisId: redisId,
+								})
+									.then(() => {
+										toast.success("Redis deployed successfully");
+										refetch();
+									})
+									.catch(() => {
+										toast.error("Error deploying Redis");
+									});
+							}}
+						>
+							<Button
+								variant="default"
+								isLoading={data?.applicationStatus === "running"}
+							>
+								Deploy
+							</Button>
+						</DialogAction>
+						<DialogAction
+							title="Reload Redis"
+							description="Are you sure you want to reload this redis?"
+							type="default"
+							onClick={async () => {
+								await reload({
+									redisId: redisId,
+									appName: data?.appName || "",
+								})
+									.then(() => {
+										toast.success("Redis reloaded successfully");
+										refetch();
+									})
+									.catch(() => {
+										toast.error("Error reloading Redis");
+									});
+							}}
+						>
+							<Button variant="secondary" isLoading={isReloading}>
+								Reload
+								<RefreshCcw className="size-4" />
+							</Button>
+						</DialogAction>
+						{/* <ResetRedis redisId={redisId} appName={data?.appName || ""} /> */}
 						{data?.applicationStatus === "idle" ? (
-							<StartRedis redisId={redisId} />
+							<DialogAction
+								title="Start Redis"
+								description="Are you sure you want to start this redis?"
+								type="default"
+								onClick={async () => {
+									await start({
+										redisId: redisId,
+									})
+										.then(() => {
+											toast.success("Redis started successfully");
+											refetch();
+										})
+										.catch(() => {
+											toast.error("Error starting Redis");
+										});
+								}}
+							>
+								<Button variant="secondary" isLoading={isStarting}>
+									Start
+									<CheckCircle2 className="size-4" />
+								</Button>
+							</DialogAction>
 						) : (
-							<StopRedis redisId={redisId} />
+							<DialogAction
+								title="Stop Redis"
+								description="Are you sure you want to stop this redis?"
+								onClick={async () => {
+									await stop({
+										redisId: redisId,
+									})
+										.then(() => {
+											toast.success("Redis stopped successfully");
+											refetch();
+										})
+										.catch(() => {
+											toast.error("Error stopping Redis");
+										});
+								}}
+							>
+								<Button variant="destructive" isLoading={isStopping}>
+									Stop
+									<Ban className="size-4" />
+								</Button>
+							</DialogAction>
 						)}
 
 						<DockerTerminalModal
