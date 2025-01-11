@@ -115,6 +115,9 @@ export const removeMongoById = async (mongoId: string) => {
 export const deployMongo = async (mongoId: string) => {
 	const mongo = await findMongoById(mongoId);
 	try {
+		await updateMongoById(mongoId, {
+			applicationStatus: "running",
+		});
 		if (mongo.serverId) {
 			await execAsyncRemote(mongo.serverId, `docker pull ${mongo.dockerImage}`);
 		} else {
