@@ -68,7 +68,7 @@ export const sendDokployRestartNotifications = async () => {
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`<b>✅ Dokploy Serverd Restarted</b>\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+				`<b>✅ Dokploy Serverd Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				[]
 			);
 		}
