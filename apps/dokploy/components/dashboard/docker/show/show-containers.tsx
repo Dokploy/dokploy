@@ -72,7 +72,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 
 	return (
 		<div className="mt-6 grid gap-4 pb-20 w-full">
-			<div className="flex flex-col gap-4  w-full overflow-auto">
+			<div className="flex flex-col gap-4  w-full">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
 						placeholder="Filter by name..."

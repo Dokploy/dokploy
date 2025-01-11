@@ -1,8 +1,8 @@
 import { AddApplication } from "@/components/dashboard/project/add-application";
+import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -10,7 +10,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -205,7 +204,7 @@ const Project = (
 					{(auth?.rol === "admin" || user?.canCreateServices) && (
 						<div className="flex flex-row gap-4 flex-wrap">
 							<ProjectEnvironment projectId={projectId}>
-								<Button variant="outline">Project Environment</Button>
+								<Button variant="outline">Project Enviroment</Button>
 							</ProjectEnvironment>
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -236,7 +235,7 @@ const Project = (
 				</header>
 			</div>
 
-			<div className="flex w-full gap-8">
+			<div className="flex w-full gap-8 ">
 				{emptyServices ? (
 					<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 						<FolderInput className="size-10 md:size-28 text-muted" />

@@ -146,8 +146,8 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 						router.push(tab?.index || "");
 					}}
 				>
-					<div className="flex flex-row items-center justify-between w-full gap-4 max-sm:overflow-x-auto overflow-y-hidden border-b border-b-divider pb-1">
-						<TabsList className="bg-transparent relative px-0">
+					<div className="flex flex-row items-center justify-between w-full gap-4 max-sm:overflow-x-auto border-b border-b-divider pb-1">
+						<TabsList className="bg-transparent relative px-0 pb-[8px]">
 							{tabMap.map((tab, index) => {
 								if (tab?.isShow && !tab?.isShow?.({ rol: data?.rol, user })) {
 									return null;
@@ -172,7 +172,11 @@ export const NavigationTabs = ({ tab, children }: Props) => {
 						</TabsList>
 					</div>
 
-					<TabsContent value={activeTab} className="w-full">
+					<TabsContent
+						value={activeTab}
+						className="w-full"
+						tabIndex={undefined}
+					>
 						{children}
 					</TabsContent>
 				</Tabs>

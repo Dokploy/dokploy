@@ -226,7 +226,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																href={template.links.github}
 																target="_blank"
 																className={
-																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
 																}
 															>
 																<Github className="size-4 text-muted-foreground" />
@@ -236,7 +236,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	href={template.links.website}
 																	target="_blank"
 																	className={
-																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
 																	}
 																>
 																	<Globe className="size-4 text-muted-foreground" />
@@ -247,7 +247,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	href={template.links.docs}
 																	target="_blank"
 																	className={
-																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																		"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
 																	}
 																>
 																	<BookText className="size-4 text-muted-foreground" />
@@ -257,7 +257,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																href={`https://github.com/Dokploy/dokploy/tree/canary/apps/dokploy/templates/${template.id}`}
 																target="_blank"
 																className={
-																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors"
+																	"text-sm text-muted-foreground p-3 rounded-full hover:bg-border items-center flex transition-colors focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none"
 																}
 															>
 																<Code className="size-4 text-muted-foreground" />

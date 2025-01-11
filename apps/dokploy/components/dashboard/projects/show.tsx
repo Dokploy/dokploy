@@ -126,13 +126,16 @@ export const ShowProjects = () => {
 
 					return (
 						<div key={project.projectId} className="w-full lg:max-w-md">
-							<Link href={`/dashboard/project/${project.projectId}`}>
+							<Link
+								href={`/dashboard/project/${project.projectId}`}
+								className="focus-visible:outline-none ring-ring focus-visible:ring-offset-2 focus-visible:ring-1 block rounded-lg"
+							>
 								<Card className="group relative w-full  bg-transparent transition-colors hover:bg-card">
 									{flattedDomains.length > 1 ? (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button
-													className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+													className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
 													size="sm"
 													variant="default"
 												>
@@ -149,10 +152,11 @@ export const ShowProjects = () => {
 										</DropdownMenu>
 									) : flattedDomains[0] ? (
 										<Button
-											className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+											className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
 											size="sm"
 											variant="default"
-											onClick={(e) => e.stopPropagation()}
+											/* onClick={(e) => e.stopPropagation()} */
+											asChild
 										>
 											<Link
 												href={`${
