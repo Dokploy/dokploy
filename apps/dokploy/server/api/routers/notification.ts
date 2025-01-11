@@ -134,7 +134,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestTelegramConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendTelegramNotification(input, "Hi, From Dokploy 👋");
+				await sendTelegramNotification(input, "Hi, From Dokploy 👋", []);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
