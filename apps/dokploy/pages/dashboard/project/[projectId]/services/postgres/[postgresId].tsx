@@ -137,7 +137,7 @@ const Postgresql = (
 									)}
 								</div>
 
-								<div className="flex flex-row gap-2">
+								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
 										<DialogAction
