@@ -262,7 +262,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 												<span className="text-sm font-medium line-clamp-1">
 													{template.name}
 												</span>
-												{template.tags.length > 0 && (
+												{viewMode === "detailed" && template.tags.length > 0 && (
 													<div className="flex flex-wrap justify-center gap-1.5">
 														{template.tags.map((tag) => (
 															<Badge 
