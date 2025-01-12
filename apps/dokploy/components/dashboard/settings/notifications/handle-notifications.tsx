@@ -182,6 +182,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					channel: notification.slack?.channel || "",
 					name: notification.name,
 					type: notification.notificationType,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -194,6 +195,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					type: notification.notificationType,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -206,6 +208,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					decoration: notification.discord?.decoration || undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -222,6 +225,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			}
 		} else {
@@ -258,6 +262,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -271,6 +276,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -284,6 +290,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -301,6 +308,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				serverThreshold: serverThreshold,
 			});
 		}
 
