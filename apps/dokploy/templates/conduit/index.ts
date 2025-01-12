@@ -18,7 +18,7 @@ export function generate(schema: Schema): Template {
 	];
 
 	const envs = [
-		`MATRIX_SUBDOMAIN=https://${matrixSubdomain} # Replace by your server name`,
+		`MATRIX_SUBDOMAIN=${matrixSubdomain} # Replace by your server name`,
 	];
 
 	return {
