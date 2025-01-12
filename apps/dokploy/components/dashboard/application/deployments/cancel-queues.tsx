@@ -20,6 +20,12 @@ interface Props {
 
 export const CancelQueues = ({ applicationId }: Props) => {
 	const { mutateAsync, isLoading } = api.application.cleanQueues.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
+	if (isCloud) {
+		return null;
+	}
+
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>

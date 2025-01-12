@@ -1170,8 +1170,7 @@ export const templates: TemplateData[] = [
 		id: "glpi",
 		name: "GLPI Project",
 		version: "10.0.16",
-		description:
-			"The most complete open source service management software",
+		description: "The most complete open source service management software",
 		logo: "glpi.webp",
 		links: {
 			github: "https://github.com/glpi-project/glpi",
@@ -1180,8 +1179,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "project-management", "management"],
 		load: () => import("./glpi/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "checkmate",
 		name: "Checkmate",
 		version: "2.0.1",
@@ -1200,8 +1199,7 @@ export const templates: TemplateData[] = [
 		id: "gotenberg",
 		name: "Gotenberg",
 		version: "latest",
-		description:
-			"Gotenberg is a Docker-powered stateless API for PDF files.",
+		description: "Gotenberg is a Docker-powered stateless API for PDF files.",
 		logo: "gotenberg.png",
 		links: {
 			github: "https://github.com/gotenberg/gotenberg",

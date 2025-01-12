@@ -28,17 +28,6 @@ export const ShowSwarmOverviewModal = ({ serverId }: Props) => {
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
-				<DialogHeader>
-					<div className="flex flex-col gap-1.5">
-						<DialogTitle className="flex items-center gap-2">
-							<ContainerIcon className="size-5" />
-							Swarm Overview
-						</DialogTitle>
-						<p className="text-muted-foreground text-sm">
-							See all details of your swarm node
-						</p>
-					</div>
-				</DialogHeader>
 				<div className="grid w-full gap-1">
 					<SwarmMonitorCard serverId={serverId} />
 				</div>

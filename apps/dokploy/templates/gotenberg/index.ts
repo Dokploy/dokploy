@@ -6,8 +6,8 @@ import {
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const username = 'gotenberg';
-	const password = 'changethis';
+	const username = "gotenberg";
+	const password = "changethis";
 
 	const domains: DomainSchema[] = [
 		{
