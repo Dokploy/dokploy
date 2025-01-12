@@ -2,7 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
 import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
@@ -248,7 +248,7 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackupMariadb mariadbId={mariadbId} />
+											<ShowBackups id={mariadbId} type="mariadb" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

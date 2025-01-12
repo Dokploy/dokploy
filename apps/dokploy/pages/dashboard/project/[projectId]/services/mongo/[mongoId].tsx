@@ -2,7 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowBackupMongo } from "@/components/dashboard/mongo/backups/show-backup-mongo";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
 import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
 import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
@@ -252,7 +252,7 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackupMongo mongoId={mongoId} />
+											<ShowBackups id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

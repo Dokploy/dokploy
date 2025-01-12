@@ -18,27 +18,40 @@ import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
-import { AddBackup } from "../../database/backups/add-backup";
-import { UpdateBackup } from "../../database/backups/update-backup";
+import { AddBackup } from "./add-backup";
+import { UpdateBackup } from "./update-backup";
+import type { ServiceType } from "../../application/advanced/show-resources";
 
 interface Props {
-	postgresId: string;
+	id: string;
+	type: Exclude<ServiceType, "application" | "redis">;
 }
-
-export const ShowBackupPostgres = ({ postgresId }: Props) => {
+export const ShowBackups = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
 	const { data } = api.destination.all.useQuery();
-	const { data: postgres, refetch: refetchPostgres } =
-		api.postgres.one.useQuery(
-			{
-				postgresId,
-			},
-			{
-				enabled: !!postgresId,
-			},
-		);
+	const { data: postgres, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	const { mutateAsync: manualBackup, isLoading: isManualBackup } =
-		api.backup.manualBackupPostgres.useMutation();
+	const mutationMap = {
+		postgres: () => api.backup.manualBackupPostgres.useMutation(),
+		mysql: () => api.backup.manualBackupMySql.useMutation(),
+		mariadb: () => api.backup.manualBackupMariadb.useMutation(),
+		mongo: () => api.backup.manualBackupMongo.useMutation(),
+	};
+
+	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutationMap[
+		type
+	]
+		? mutationMap[type]()
+		: api.backup.manualBackupMongo.useMutation();
 
 	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
 		api.backup.remove.useMutation();
@@ -55,11 +68,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 				</div>
 
 				{postgres && postgres?.backups?.length > 0 && (
-					<AddBackup
-						databaseId={postgresId}
-						databaseType="postgres"
-						refetch={refetchPostgres}
-					/>
+					<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -87,9 +96,9 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 									No backups configured
 								</span>
 								<AddBackup
-									databaseId={postgresId}
-									databaseType="postgres"
-									refetch={refetchPostgres}
+									databaseId={id}
+									databaseType={type}
+									refetch={refetch}
 								/>
 							</div>
 						) : (
@@ -162,7 +171,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 													</TooltipProvider>
 													<UpdateBackup
 														backupId={backup.backupId}
-														refetch={refetchPostgres}
+														refetch={refetch}
 													/>
 													<DialogAction
 														title="Delete Backup"
@@ -173,7 +182,7 @@ export const ShowBackupPostgres = ({ postgresId }: Props) => {
 																backupId: backup.backupId,
 															})
 																.then(() => {
-																	refetchPostgres();
+																	refetch();
 																	toast.success("Backup deleted successfully");
 																})
 																.catch(() => {

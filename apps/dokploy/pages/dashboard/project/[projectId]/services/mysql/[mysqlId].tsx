@@ -2,8 +2,8 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
@@ -255,7 +255,7 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackupMySql mysqlId={mysqlId} />
+												<ShowBackups id={mysqlId} type="mysql" />
 											</div>
 										</TabsContent>
 										<TabsContent value="advanced">

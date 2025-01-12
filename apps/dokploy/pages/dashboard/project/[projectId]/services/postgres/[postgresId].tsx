@@ -4,7 +4,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
-import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
@@ -257,7 +257,7 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackupPostgres postgresId={postgresId} />
+											<ShowBackups id={postgresId} type="postgres" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
