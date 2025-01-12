@@ -15,9 +15,9 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { ShowResources } from "../../application/advanced/show-resources";
 import { ShowVolumes } from "../volumes/show-volumes";
 import { ShowMariadbResources } from "./show-mariadb-resources";
-import { ShowResources } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),

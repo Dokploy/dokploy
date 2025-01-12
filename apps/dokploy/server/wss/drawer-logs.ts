@@ -1,6 +1,6 @@
 import type http from "node:http";
-import { WebSocketServer } from "ws";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
+import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
 import { createTRPCContext } from "../api/trpc";
 

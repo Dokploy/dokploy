@@ -6,11 +6,11 @@
  */
 import type { AppRouter } from "@/server/api/root";
 import {
+	createWSClient,
 	experimental_formDataLink,
 	httpBatchLink,
 	splitLink,
 	wsLink,
-	createWSClient,
 } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";

@@ -1,9 +1,9 @@
-import type React from "react";
-import { Logo } from "../shared/logo";
-import Link from "next/link";
-import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import type React from "react";
 import { GithubIcon } from "../icons/data-tools-icons";
+import { Logo } from "../shared/logo";
+import { Button } from "../ui/button";
 
 interface Props {
 	children: React.ReactNode;

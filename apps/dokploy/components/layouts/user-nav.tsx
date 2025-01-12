@@ -1,29 +1,29 @@
-import { api } from "@/utils/api";
-import useLocale from "@/utils/hooks/use-locale";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
-	DropdownMenuTrigger,
 	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuGroup,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
 	Select,
-	SelectTrigger,
-	SelectValue,
 	SelectContent,
 	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui/select";
+import { Languages } from "@/lib/languages";
+import { api } from "@/utils/api";
+import useLocale from "@/utils/hooks/use-locale";
 import { ChevronsUpDown } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
-import { Languages } from "@/lib/languages";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 

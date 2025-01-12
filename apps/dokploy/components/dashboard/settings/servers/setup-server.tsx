@@ -1,6 +1,7 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -25,12 +26,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
 import { ValidateServer } from "./validate-server";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
 
 interface Props {
 	serverId: string;

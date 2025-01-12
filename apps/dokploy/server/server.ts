@@ -18,9 +18,9 @@ import next from "next";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
+import { setupDrawerLogsWebSocketServer } from "./wss/drawer-logs";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
-import { setupDrawerLogsWebSocketServer } from "./wss/drawer-logs";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);

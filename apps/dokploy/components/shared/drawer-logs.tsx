@@ -1,10 +1,6 @@
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { Ban, CheckCircle2, Loader2, RefreshCcw, Terminal } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
 import {
 	Sheet,
 	SheetContent,
@@ -12,8 +8,12 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
-import type { LogLine } from "../dashboard/docker/logs/utils";
+import { api } from "@/utils/api";
+import { Ban, CheckCircle2, Loader2, RefreshCcw, Terminal } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { TerminalLine } from "../dashboard/docker/logs/terminal-line";
+import type { LogLine } from "../dashboard/docker/logs/utils";
 
 interface Props {
 	isOpen: boolean;

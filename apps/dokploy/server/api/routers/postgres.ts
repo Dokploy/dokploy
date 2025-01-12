@@ -1,3 +1,4 @@
+import { EventEmitter } from "node:events";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -31,7 +32,6 @@ import {
 	updatePostgresById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { EventEmitter } from "node:events";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 
