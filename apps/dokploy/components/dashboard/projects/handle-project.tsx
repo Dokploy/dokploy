@@ -9,6 +9,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -22,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, SquarePen } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -38,10 +39,26 @@ const AddProjectSchema = z.object({
 
 type AddProject = z.infer<typeof AddProjectSchema>;
 
-export const AddProject = () => {
+interface Props {
+	projectId?: string;
+}
+
+export const HandleProject = ({ projectId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { mutateAsync, error, isError } = api.project.create.useMutation();
+
+	const { mutateAsync, error, isError } = projectId
+		? api.project.update.useMutation()
+		: api.project.create.useMutation();
+
+	const { data, refetch } = api.project.one.useQuery(
+		{
+			projectId: projectId || "",
+		},
+		{
+			enabled: !!projectId,
+		},
+	);
 	const router = useRouter();
 	const form = useForm<AddProject>({
 		defaultValues: {
@@ -53,34 +70,51 @@ export const AddProject = () => {
 
 	useEffect(() => {
 		form.reset({
-			description: "",
-			name: "",
+			description: data?.description ?? "",
+			name: data?.name ?? "",
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	const onSubmit = async (data: AddProject) => {
 		await mutateAsync({
 			name: data.name,
 			description: data.description,
+			projectId: projectId || "",
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
-				toast.success("Project Created");
+				toast.success(projectId ? "Project Updated" : "Project Created");
 				setIsOpen(false);
-				router.push(`/dashboard/project/${data.projectId}`);
+				if (!projectId) {
+					router.push(`/dashboard/project/${data?.projectId}`);
+				} else {
+					refetch();
+				}
 			})
 			.catch(() => {
-				toast.error("Error creating a project");
+				toast.error(
+					projectId ? "Error updating a project" : "Error creating a project",
+				);
 			});
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button>
-					<PlusIcon className="h-4 w-4" />
-					Create Project
-				</Button>
+				{projectId ? (
+					<DropdownMenuItem
+						className="w-full cursor-pointer space-x-3"
+						onSelect={(e) => e.preventDefault()}
+					>
+						<SquarePen className="size-4" />
+						<span>Update</span>
+					</DropdownMenuItem>
+				) : (
+					<Button>
+						<PlusIcon className="h-4 w-4" />
+						Create Project
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
@@ -137,7 +171,7 @@ export const AddProject = () => {
 							form="hook-form-add-project"
 							type="submit"
 						>
-							Create
+							{projectId ? "Update" : "Create"}
 						</Button>
 					</DialogFooter>
 				</Form>

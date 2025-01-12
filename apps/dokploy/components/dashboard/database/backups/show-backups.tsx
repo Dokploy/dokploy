@@ -18,9 +18,9 @@ import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
+import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
 import { UpdateBackup } from "./update-backup";
-import type { ServiceType } from "../../application/advanced/show-resources";
 
 interface Props {
 	id: string;

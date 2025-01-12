@@ -41,9 +41,8 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { AddProject } from "./add";
+import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
-import { UpdateProject } from "./update";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -85,7 +84,7 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 							<div className=" px-4 ">
-								<AddProject />
+								<HandleProject />
 							</div>
 						</div>
 
@@ -190,7 +189,7 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					<UpdateProject
+																					<HandleProject
 																						projectId={project.projectId}
 																					/>
 																				</div>

@@ -2,9 +2,9 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
-import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
