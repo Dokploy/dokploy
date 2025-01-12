@@ -1,12 +1,9 @@
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import type { GetServerSidePropsContext } from "next";
-import type React from "react";
-import { useEffect, useState } from "react";
 import { CPUChart } from "@/components/dashboard/monitoring/servers/cpu-chart";
+import { DiskChart } from "@/components/dashboard/monitoring/servers/disk-chart";
 import { MemoryChart } from "@/components/dashboard/monitoring/servers/memory-chart";
 import { NetworkChart } from "@/components/dashboard/monitoring/servers/network-chart";
-import { DiskChart } from "@/components/dashboard/monitoring/servers/disk-chart";
-import { Loader2, Clock, Cpu, MemoryStick, HardDrive } from "lucide-react";
+import { ShowMonitoring } from "@/components/dashboard/monitoring/servers/show-monitoring";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
 	Select,
 	SelectContent,
@@ -15,7 +12,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { ShowMonitoring } from "@/components/dashboard/monitoring/servers/show-monitoring";
+import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 const REFRESH_INTERVAL = 4500;
 const BASE_URL =

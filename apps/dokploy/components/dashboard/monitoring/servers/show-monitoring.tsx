@@ -1,13 +1,4 @@
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
-import type { GetServerSidePropsContext } from "next";
-import type React from "react";
-import { useEffect, useState } from "react";
-import { CPUChart } from "./cpu-chart";
-import { MemoryChart } from "./memory-chart";
-import { NetworkChart } from "./network-chart";
-import { DiskChart } from "./disk-chart";
-import { Loader2, Clock, Cpu, MemoryStick, HardDrive } from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +6,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { CPUChart } from "./cpu-chart";
+import { DiskChart } from "./disk-chart";
+import { MemoryChart } from "./memory-chart";
+import { NetworkChart } from "./network-chart";
 
 const REFRESH_INTERVAL = 4500;
 // const BASE_URL =

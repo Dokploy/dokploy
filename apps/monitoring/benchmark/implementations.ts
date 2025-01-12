@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
 import { createReadStream, statSync } from "node:fs";
+import fs from "node:fs/promises";
 import readline from "node:readline";
 import { parseLog, processMetrics } from "../src/utils.js";
 

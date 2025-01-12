@@ -1,13 +1,13 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import { fileURLToPath } from "node:url";
+import { processMetricsFromFile } from "../src/utils.js";
 import {
+	cachedImplementation,
 	currentImplementation,
 	readlineImplementation,
 	tailImplementation,
-	cachedImplementation,
 } from "./implementations.js";
-import { processMetricsFromFile } from "../src/utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_FILE = path.join(__dirname, "test-metrics.log");

@@ -1,7 +1,7 @@
-import si from "systeminformation";
+import path from "node:path";
 import schedule from "node-schedule";
 import sqlite3 from "sqlite3";
-import path from "node:path";
+import si from "systeminformation";
 
 export interface ServerMetric {
 	timestamp: string;

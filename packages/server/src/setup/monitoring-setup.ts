@@ -1,8 +1,8 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
+import { findAdminById } from "../services/admin";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
-import { findAdminById } from "../services/admin";
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);

@@ -35,8 +35,8 @@ import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
-import { ValidateServer } from "./validate-server";
 import { SetupMonitoring } from "./setup-monitoring";
+import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;

@@ -34,8 +34,10 @@ import { useTheme } from "next-themes";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-
-const languageCodes = Object.values(Languages).map(lang => lang.code) as [string, ...string[]]; 
+const languageCodes = Object.values(Languages).map((lang) => lang.code) as [
+	string,
+	...string[],
+];
 
 const appearanceFormSchema = z.object({
 	theme: z.enum(["light", "dark", "system"], {
@@ -44,7 +46,7 @@ const appearanceFormSchema = z.object({
 
 	language: z.enum(languageCodes, {
 		required_error: "Please select a language.",
-	})
+	}),
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceFormSchema>;
@@ -177,11 +179,11 @@ export function AppearanceForm() {
 												<SelectValue placeholder="No preset selected" />
 											</SelectTrigger>
 											<SelectContent>
-											{Object.values(Languages).map((language) => (
-												<SelectItem key={language.code} value={language.code}>
-													{language.name}
-												</SelectItem>
-											))}
+												{Object.values(Languages).map((language) => (
+													<SelectItem key={language.code} value={language.code}>
+														{language.name}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 									</FormItem>

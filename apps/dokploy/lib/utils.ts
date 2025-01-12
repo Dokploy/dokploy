@@ -16,9 +16,9 @@ export async function generateSHA256Hash(text: string) {
 export function formatTimestamp(timestamp: string | number) {
 	try {
 		// Si es un string ISO, lo parseamos directamente
-		if (typeof timestamp === 'string' && timestamp.includes('T')) {
+		if (typeof timestamp === "string" && timestamp.includes("T")) {
 			const date = new Date(timestamp);
-			if (!isNaN(date.getTime())) {
+			if (!Number.isNaN(date.getTime())) {
 				return date.toLocaleTimeString();
 			}
 		}

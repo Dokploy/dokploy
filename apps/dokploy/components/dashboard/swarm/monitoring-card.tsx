@@ -8,7 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Activity, Loader2, Monitor, Settings, Server } from "lucide-react";
+import { Activity, Loader2, Monitor, Server, Settings } from "lucide-react";
 import { NodeCard } from "./details/details-card";
 
 interface Props {

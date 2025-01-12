@@ -9,15 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import type { IUpdateData } from "@dokploy/server/index";
 import { HeartIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+import UpdateServer from "../dashboard/settings/web-server/update-server";
 import { Logo } from "../shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { buttonVariants } from "../ui/button";
-import UpdateServer from "../dashboard/settings/web-server/update-server";
-import type { IUpdateData } from "@dokploy/server/index";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 

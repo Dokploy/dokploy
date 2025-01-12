@@ -38,9 +38,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const formatMemoryValue = (value: number) => {
-	return value.toLocaleString('en-US', {
+	return value.toLocaleString("en-US", {
 		minimumFractionDigits: 1,
-		maximumFractionDigits: 2
+		maximumFractionDigits: 2,
 	});
 };
 

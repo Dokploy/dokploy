@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-	parseLog,
-	filterByTimestamp,
-	processMetrics,
-	processMetricsFromFile,
-} from "../src/utils.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+	filterByTimestamp,
+	parseLog,
+	processMetrics,
+	processMetricsFromFile,
+} from "../src/utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_LOG_FILE = path.join(__dirname, "test-metrics.log");

@@ -1,15 +1,15 @@
+import { existsSync } from "node:fs";
 import { serve } from "@hono/node-server";
+import { config } from "dotenv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import {
-	logServerMetrics,
-	getMetricsInRange,
-	getLastNMetrics,
-	type ServerMetric,
-} from "./server/server.js";
-import { config } from "dotenv";
 import { containerLogFile } from "./constants.js";
-import { existsSync } from "node:fs";
+import {
+	type ServerMetric,
+	getLastNMetrics,
+	getMetricsInRange,
+	logServerMetrics,
+} from "./server/server.js";
 config();
 
 const TOKEN = process.env.TOKEN || "default-token";
