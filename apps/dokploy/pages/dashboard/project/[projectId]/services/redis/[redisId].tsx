@@ -1,7 +1,7 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowAdvancedRedis } from "@/components/dashboard/redis/advanced/show-redis-advanced-settings";
-import { ShowRedisEnvironment } from "@/components/dashboard/redis/environment/show-redis-environment";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
 import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/general/show-internal-redis-credentials";
@@ -228,7 +228,7 @@ const Redis = (
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowRedisEnvironment redisId={redisId} />
+											<ShowEnvironment id={redisId} type="redis" />
 										</div>
 									</TabsContent>
 									{!data?.serverId && (

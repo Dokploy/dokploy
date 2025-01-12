@@ -1,8 +1,8 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowAdvancedMysql } from "@/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
 import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
-import { ShowMysqlEnvironment } from "@/components/dashboard/mysql/environment/show-mysql-environment";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
@@ -78,63 +78,6 @@ const MySql = (
 				<div className="w-full">
 					<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 						<div className="rounded-xl bg-background shadow-md ">
-							{/* <header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
-								<div className="flex  flex-col justify-between w-fit gap-2">
-									<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
-										<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
-											{data?.name}
-										</h1>
-										<span className="text-sm">{data?.appName}</span>
-									</div>
-									<div className="flex flex-row h-fit w-fit gap-2">
-										<Badge
-											variant={
-												!data?.serverId
-													? "default"
-													: data?.server?.serverStatus === "active"
-														? "default"
-														: "destructive"
-											}
-										>
-											{data?.server?.name || "Dokploy Server"}
-										</Badge>
-										{data?.server?.serverStatus === "inactive" && (
-											<TooltipProvider delayDuration={0}>
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Label className="break-all w-fit flex flex-row gap-1 items-center">
-															<HelpCircle className="size-4 text-muted-foreground" />
-														</Label>
-													</TooltipTrigger>
-													<TooltipContent
-														className="z-[999] w-[300px]"
-														align="start"
-														side="top"
-													>
-														<span>
-															You cannot, deploy this application because the
-															server is inactive, please upgrade your plan to
-															add more servers.
-														</span>
-													</TooltipContent>
-												</Tooltip>
-											</TooltipProvider>
-										)}
-									</div>
-									{data?.description && (
-										<p className="text-sm text-muted-foreground  max-w-6xl">
-											{data?.description}
-										</p>
-									)}
-								</div>
-								<div className="relative flex flex-row gap-4">
-									<div className="absolute -right-1  -top-2">
-										<StatusTooltip status={data?.applicationStatus} />
-									</div>
-
-									<MysqlIcon className="h-8 w-8 text-muted-foreground" />
-								</div>
-							</header> */}
 							<CardHeader className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
 									<CardTitle className="text-xl flex flex-row gap-2">
@@ -290,7 +233,7 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="environment" className="w-full">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowMysqlEnvironment mysqlId={mysqlId} />
+												<ShowEnvironment id={mysqlId} type="mysql" />
 											</div>
 										</TabsContent>
 										{!data?.serverId && (

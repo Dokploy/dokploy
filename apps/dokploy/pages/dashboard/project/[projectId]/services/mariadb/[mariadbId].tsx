@@ -1,7 +1,7 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowAdvancedMariadb } from "@/components/dashboard/mariadb/advanced/show-mariadb-advanced-settings";
 import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
-import { ShowMariadbEnvironment } from "@/components/dashboard/mariadb/environment/show-mariadb-environment";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
 import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
@@ -226,7 +226,7 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowMariadbEnvironment mariadbId={mariadbId} />
+											<ShowEnvironment id={mariadbId} type="mariadb" />
 										</div>
 									</TabsContent>
 									{!data?.serverId && (
@@ -258,64 +258,6 @@ const Mariadb = (
 							)}
 						</CardContent>
 					</div>
-					{/* <div className="rounded-xl bg-background shadow-md ">
-						<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
-							<div className="flex  flex-col justify-between w-fit gap-2">
-								<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
-									<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
-										{data?.name}
-									</h1>
-									<span className="text-sm">{data?.appName}</span>
-								</div>
-								<div className="flex flex-row h-fit w-fit gap-2">
-									<Badge
-										variant={
-											!data?.serverId
-												? "default"
-												: data?.server?.serverStatus === "active"
-													? "default"
-													: "destructive"
-										}
-									>
-										{data?.server?.name || "Dokploy Server"}
-									</Badge>
-									{data?.server?.serverStatus === "inactive" && (
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Label className="break-all w-fit flex flex-row gap-1 items-center">
-														<HelpCircle className="size-4 text-muted-foreground" />
-													</Label>
-												</TooltipTrigger>
-												<TooltipContent
-													className="z-[999] w-[300px]"
-													align="start"
-													side="top"
-												>
-													<span>
-														You cannot, deploy this application because the
-														server is inactive, please upgrade your plan to add
-														more servers.
-													</span>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									)}
-								</div>
-								{data?.description && (
-									<p className="text-sm text-muted-foreground  max-w-6xl">
-										{data?.description}
-									</p>
-								)}
-							</div>
-							<div className="relative flex flex-row gap-4">
-								<div className="absolute -right-1  -top-2">
-									<StatusTooltip status={data?.applicationStatus} />
-								</div>
-								<MariadbIcon className="h-8 w-8 text-muted-foreground" />
-							</div>
-						</header>
-					</div> */}{" "}
 				</Card>
 			</div>
 		</div>

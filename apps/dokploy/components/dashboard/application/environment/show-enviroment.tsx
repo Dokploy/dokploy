@@ -18,10 +18,11 @@ import { Toggle } from "@/components/ui/toggle";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { type CSSProperties, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import type { ServiceType } from "../advanced/show-resources";
 
 const addEnvironmentSchema = z.object({
 	environment: z.string(),
@@ -30,21 +31,39 @@ const addEnvironmentSchema = z.object({
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
 
 interface Props {
-	mongoId: string;
+	id: string;
+	type: Exclude<ServiceType | "compose", "application">;
 }
 
-export const ShowMongoEnvironment = ({ mongoId }: Props) => {
+export const ShowEnvironment = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 	const [isEnvVisible, setIsEnvVisible] = useState(true);
-	const { mutateAsync, isLoading } = api.mongo.saveEnvironment.useMutation();
 
-	const { data, refetch } = api.mongo.one.useQuery(
-		{
-			mongoId,
-		},
-		{
-			enabled: !!mongoId,
-		},
-	);
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+		compose: () => api.compose.update.useMutation(),
+	};
+	const { mutateAsync, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
+
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
 			environment: "",
@@ -62,8 +81,13 @@ export const ShowMongoEnvironment = ({ mongoId }: Props) => {
 
 	const onSubmit = async (data: EnvironmentSchema) => {
 		mutateAsync({
+			mongoId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
+			composeId: id || "",
 			env: data.environment,
-			mongoId,
 		})
 			.then(async () => {
 				toast.success("Environments Added");
@@ -111,6 +135,11 @@ export const ShowMongoEnvironment = ({ mongoId }: Props) => {
 									<FormItem className="w-full">
 										<FormControl>
 											<CodeEditor
+												style={
+													{
+														WebkitTextSecurity: isEnvVisible ? "disc" : null,
+													} as CSSProperties
+												}
 												language="properties"
 												disabled={isEnvVisible}
 												placeholder={`NODE_ENV=production

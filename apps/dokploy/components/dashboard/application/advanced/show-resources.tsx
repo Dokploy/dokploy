@@ -37,7 +37,7 @@ const addResourcesSchema = z.object({
 	cpuReservation: z.string().optional(),
 });
 
-type ServiceType =
+export type ServiceType =
 	| "postgres"
 	| "mongo"
 	| "redis"

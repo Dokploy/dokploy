@@ -1,7 +1,7 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowAdvancedMongo } from "@/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
 import { ShowBackupMongo } from "@/components/dashboard/mongo/backups/show-backup-mongo";
-import { ShowMongoEnvironment } from "@/components/dashboard/mongo/environment/show-mongo-environment";
 import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
 import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
 import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
@@ -230,7 +230,7 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowMongoEnvironment mongoId={mongoId} />
+											<ShowEnvironment id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 									{!data?.serverId && (

@@ -1,9 +1,9 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
 import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
-import { ShowEnvironmentCompose } from "@/components/dashboard/compose/environment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
@@ -229,7 +229,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironmentCompose composeId={composeId} />
+											<ShowEnvironment id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 									{!data?.serverId && (

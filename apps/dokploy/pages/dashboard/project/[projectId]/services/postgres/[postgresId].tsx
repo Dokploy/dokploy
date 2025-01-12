@@ -1,8 +1,8 @@
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
 import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
-import { ShowPostgresEnvironment } from "@/components/dashboard/postgres/environment/show-postgres-environment";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
@@ -235,7 +235,7 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowPostgresEnvironment postgresId={postgresId} />
+											<ShowEnvironment id={postgresId} type="postgres" />
 										</div>
 									</TabsContent>
 									{!data?.serverId && (
