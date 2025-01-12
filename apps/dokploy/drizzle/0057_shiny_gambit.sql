@@ -1,0 +1,1 @@
+ALTER TABLE "admin" ADD COLUMN "enablePaidFeatures" boolean DEFAULT false NOT NULL;

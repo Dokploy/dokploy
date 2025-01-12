@@ -1,36 +1,16 @@
-import { CPUChart } from "@/components/dashboard/monitoring/servers/cpu-chart";
-import { DiskChart } from "@/components/dashboard/monitoring/servers/disk-chart";
-import { MemoryChart } from "@/components/dashboard/monitoring/servers/memory-chart";
-import { NetworkChart } from "@/components/dashboard/monitoring/servers/network-chart";
-import { ShowMonitoring } from "@/components/dashboard/monitoring/servers/show-monitoring";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { api } from "@/utils/api";
-import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
+import { IS_CLOUD } from "@dokploy/server/constants";
+import { validateRequest } from "@dokploy/server/index";
 import type { GetServerSidePropsContext } from "next";
 import type React from "react";
-import { useEffect, useState } from "react";
+import type { ReactElement } from "react";
 
-const REFRESH_INTERVAL = 4500;
 const BASE_URL =
 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:4500/metrics";
-
-const DATA_POINTS_OPTIONS = {
-	"50": "50 points",
-	"200": "200 points",
-	"500": "500 points",
-	"800": "800 points",
-	"1200": "1200 points",
-	"1600": "1600 points",
-	"2000": "2000 points",
-	all: "All points (Slow)",
-} as const;
 
 interface SystemMetrics {
 	cpu: string;
@@ -55,216 +35,34 @@ interface SystemMetrics {
 
 const Dashboard = () => {
 	const { data: admin } = api.admin.one.useQuery();
-	// const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
-	// const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
-	// const [isLoading, setIsLoading] = useState(true);
-	// const [error, setError] = useState<string | null>(null);
-	// const [dataPoints, setDataPoints] =
-	// 	useState<keyof typeof DATA_POINTS_OPTIONS>("50");
-
-	// const fetchMetrics = async () => {
-	// 	try {
-	// 		const url = new URL(BASE_URL);
-
-	// 		// Solo añadir el parámetro limit si no es "all"
-	// 		if (dataPoints !== "all") {
-	// 			url.searchParams.append("limit", dataPoints);
-	// 		}
-
-	// 		const response = await fetch(url.toString(), {
-	// 			headers: {
-	// 				Authorization: `Bearer ${admin?.metricsToken}`,
-	// 			},
-	// 		});
-
-	// 		if (!response.ok) {
-	// 			throw new Error(`Failed to fetch metrics: ${response.statusText}`);
-	// 		}
-
-	// 		const data = await response.json();
-	// 		if (!Array.isArray(data) || data.length === 0) {
-	// 			throw new Error("No data available");
-	// 		}
-
-	// 		const formattedData = data.map((metric: SystemMetrics) => ({
-	// 			timestamp: metric.timestamp,
-	// 			cpu: Number.parseFloat(metric.cpu),
-	// 			cpuModel: metric.cpuModel,
-	// 			cpuCores: metric.cpuCores,
-	// 			cpuPhysicalCores: metric.cpuPhysicalCores,
-	// 			cpuSpeed: metric.cpuSpeed,
-	// 			os: metric.os,
-	// 			distro: metric.distro,
-	// 			kernel: metric.kernel,
-	// 			arch: metric.arch,
-	// 			memUsed: Number.parseFloat(metric.memUsed),
-	// 			memUsedGB: Number.parseFloat(metric.memUsedGB),
-	// 			memTotal: Number.parseFloat(metric.memTotal),
-	// 			networkIn: Number.parseFloat(metric.networkIn),
-	// 			networkOut: Number.parseFloat(metric.networkOut),
-	// 			diskUsed: Number.parseFloat(metric.diskUsed),
-	// 			totalDisk: Number.parseFloat(metric.totalDisk),
-	// 			uptime: metric.uptime,
-	// 		}));
-
-	// 		setHistoricalData(formattedData);
-	// 		setMetrics(formattedData[formattedData.length - 1] || {});
-	// 		setError(null);
-	// 	} catch (err) {
-	// 		setError(err instanceof Error ? err.message : "Failed to fetch metrics");
-	// 	} finally {
-	// 		setIsLoading(false);
-	// 	}
-	// };
-
-	// const formatUptime = (seconds: number): string => {
-	// 	const days = Math.floor(seconds / (24 * 60 * 60));
-	// 	const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
-	// 	const minutes = Math.floor((seconds % (60 * 60)) / 60);
-
-	// 	return `${days}d ${hours}h ${minutes}m`;
-	// };
-
-	// useEffect(() => {
-	// 	fetchMetrics();
-
-	// 	const interval = setInterval(() => {
-	// 		fetchMetrics();
-	// 	}, REFRESH_INTERVAL);
-
-	// 	return () => clearInterval(interval);
-	// }, [dataPoints, admin]);
-
-	// if (isLoading) {
-	// 	return (
-	// 		<div className="flex h-[400px] w-full items-center justify-center">
-	// 			<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-	// 		</div>
-	// 	);
-	// }
-
-	// if (error) {
-	// 	return (
-	// 		<div className="mt-5 border p-4 rounded-lg min-h-[55vh] flex items-center justify-center">
-	// 			<span className="text-base font-medium leading-none text-muted-foreground">
-	// 				Error fetching metrics:{" "}
-	// 				<strong className="font-semibold text-destructive">{error}</strong>
-	// 			</span>
-	// 		</div>
-	// 	);
-	// }
-
 	return (
 		<div className="space-y-4 pt-5 pb-10">
-			{/* 		
-			<div className="flex justify-between items-center">
-				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground">Data points:</span>
-					<Select
-						value={dataPoints}
-						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
-							setDataPoints(value)
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select points" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-			</div>
-
-			
-			<div className="grid gap-4 md:grid-cols-4">
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
-					<div className="flex items-center gap-2">
-						<Clock className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Uptime</h3>
-					</div>
-					<p className="mt-2 text-2xl font-bold">
-						{formatUptime(metrics.uptime || 0)}
-					</p>
-				</div>
-
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
-					<div className="flex items-center gap-2">
-						<Cpu className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">CPU Usage</h3>
-					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.cpu}%</p>
-				</div>
-
-				<div className="rounded-lg border text-card-foreground bg-transparent shadow-sm p-6">
-					<div className="flex items-center gap-2">
-						<MemoryStick className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Memory Usage</h3>
-					</div>
-					<p className="mt-2 text-2xl font-bold">
-						{metrics.memUsedGB} GB / {metrics.memTotal} GB
-					</p>
-				</div>
-
-				<div className="rounded-lg border text-card-foreground shadow-sm p-6">
-					<div className="flex items-center gap-2">
-						<HardDrive className="h-4 w-4 text-muted-foreground" />
-						<h3 className="text-sm font-medium">Disk Usage</h3>
-					</div>
-					<p className="mt-2 text-2xl font-bold">{metrics.diskUsed}%</p>
-				</div>
-			</div>
-
-	
-			<div className="rounded-lg border text-card-foreground shadow-sm p-6">
-				<h3 className="text-lg font-medium mb-4">System Information</h3>
-				<div className="grid gap-4 md:grid-cols-2">
-					<div>
-						<h4 className="text-sm font-medium text-muted-foreground">CPU</h4>
-						<p className="mt-1">{metrics.cpuModel}</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							{metrics.cpuPhysicalCores} Physical Cores ({metrics.cpuCores}{" "}
-							Threads) @ {metrics.cpuSpeed}GHz
-						</p>
-					</div>
-					<div>
-						<h4 className="text-sm font-medium text-muted-foreground">
-							Operating System
-						</h4>
-						<p className="mt-1">{metrics.distro}</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							Kernel: {metrics.kernel} ({metrics.arch})
-						</p>
-					</div>
-				</div>
-			</div> */}
-
-			<ShowMonitoring
-				BASE_URL={
-					admin?.serverIp
-						? `http://${admin.serverIp}:${admin.defaultPortMetrics}/metrics`
-						: BASE_URL
-				}
-				token={admin?.metricsToken}
-			/>
-
-			{/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-				<CPUChart data={historicalData} />
-				<MemoryChart data={historicalData} />
-				<DiskChart data={metrics} />
-				<NetworkChart data={historicalData} />
-			</div> */}
+			<AlertBlock>
+				You are watching the <strong>Free</strong> plan.{" "}
+				<a
+					href="https://dokploy.com#pricing"
+					target="_blank"
+					className="underline"
+					rel="noreferrer"
+				>
+					Upgrade
+				</a>{" "}
+				to get more features.
+			</AlertBlock>
+			{admin?.enablePaidFeatures ? (
+				<ShowPaidMonitoring
+					BASE_URL={
+						process.env.NODE_ENV === "production"
+							? `http://${admin?.serverIp}:${admin?.defaultPortMetrics}/metrics`
+							: BASE_URL
+					}
+					token={admin?.metricsToken}
+				/>
+			) : (
+				<ContainerFreeMonitoring appName="dokploy" />
+			)}
 		</div>
 	);
-};
-
-Dashboard.getLayout = (page: React.ReactElement) => {
-	return <DashboardLayout tab={"monitoring"}>{page}</DashboardLayout>;
 };
 
 export default Dashboard;

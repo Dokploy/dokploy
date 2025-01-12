@@ -33,6 +33,7 @@ export const admins = pgTable("admin", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 
 	// Metrics
+	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
 		.notNull()
 		.default(5),

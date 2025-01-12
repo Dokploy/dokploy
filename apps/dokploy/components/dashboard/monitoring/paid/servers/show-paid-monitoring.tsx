@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
 	Select,
 	SelectContent,
@@ -6,9 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
-import type { GetServerSidePropsContext } from "next";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { CPUChart } from "./cpu-chart";
@@ -17,8 +14,6 @@ import { MemoryChart } from "./memory-chart";
 import { NetworkChart } from "./network-chart";
 
 const REFRESH_INTERVAL = 4500;
-// const BASE_URL =
-// 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
 
 const DATA_POINTS_OPTIONS = {
 	"50": "50 points",
@@ -57,7 +52,7 @@ interface Props {
 	token?: string;
 }
 
-export const ShowMonitoring = ({
+export const ShowPaidMonitoring = ({
 	BASE_URL = process.env.NEXT_PUBLIC_METRICS_URL ||
 		"http://localhost:3001/metrics",
 	token = process.env.NEXT_PUBLIC_METRICS_TOKEN || "my-token",

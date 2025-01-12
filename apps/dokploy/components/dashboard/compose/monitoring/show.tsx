@@ -20,7 +20,7 @@ import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ContainerMonitoring } from "../../monitoring/container/show";
+import { ContainerMonitoring } from "../../monitoring/paid/container/show-paid-container-monitoring";
 
 interface Props {
 	appName: string;

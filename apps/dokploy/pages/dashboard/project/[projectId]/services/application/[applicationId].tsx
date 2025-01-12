@@ -13,7 +13,7 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
-import { ContainerMonitoring } from "@/components/dashboard/monitoring/container/show";
+import { ContainerMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 // import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";

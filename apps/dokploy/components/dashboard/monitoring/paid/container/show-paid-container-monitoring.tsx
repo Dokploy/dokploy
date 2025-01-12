@@ -60,7 +60,7 @@ interface Props {
 	token: string;
 }
 
-export const ContainerMonitoring = ({ appName, baseUrl, token }: Props) => {
+export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	const [historicalData, setHistoricalData] = useState<ContainerMetric[]>([]);
 	const [metrics, setMetrics] = useState<ContainerMetric>(
 		{} as ContainerMetric,
