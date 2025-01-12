@@ -29,6 +29,7 @@ import {
 	stopServiceRemote,
 	updateMySqlById,
 } from "@dokploy/server";
+import { observable } from "@trpc/server/observable";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -165,6 +166,31 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 			return deployMySql(input.mysqlId);
+		}),
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mysql-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployMySql)
+		.subscription(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this MySQL",
+				});
+			}
+
+			return observable<string>((emit) => {
+				deployMySql(input.mysqlId, (log) => {
+					emit.next(log);
+				});
+			});
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)

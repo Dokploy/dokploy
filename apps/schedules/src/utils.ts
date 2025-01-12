@@ -12,9 +12,9 @@ import {
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
 import { eq } from "drizzle-orm";
-import { logger } from "./logger";
-import { scheduleJob } from "./queue";
-import type { QueueJob } from "./schema";
+import { logger } from "./logger.js";
+import { scheduleJob } from "./queue.js";
+import type { QueueJob } from "./schema.js";
 
 export const runJobs = async (job: QueueJob) => {
 	try {

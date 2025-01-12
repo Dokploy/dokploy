@@ -7,7 +7,24 @@ import {
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
+import { getDockerHost } from "../utils/docker";
 import { setupLocalServerSSHKey } from "./utils";
+
+const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
+# ----------------------------------------
+mkdir -p $HOME/.ssh && \\
+chmod 700 $HOME/.ssh && \\
+touch $HOME/.ssh/authorized_keys && \\
+chmod 600 $HOME/.ssh/authorized_keys && \\
+cat /etc/dokploy/ssh/auto_generated-dokploy-local.pub >> $HOME/.ssh/authorized_keys && \\
+echo "✓ Dokploy SSH key added successfully. Reopen the terminal in Dokploy to reconnect."
+# ----------------------------------------`;
+
+const COMMAND_TO_GRANT_PERMISSION_ACCESS = `
+# ----------------------------------------
+sudo chown -R $USER:$USER /etc/dokploy/ssh
+# ----------------------------------------
+`;
 
 export const getPublicIpWithFallback = async () => {
 	// @ts-ignore
@@ -73,20 +90,41 @@ export const setupTerminalWebSocketServer = (
 				return;
 			}
 
-			ws.send("Setting up private SSH key...\n");
-			const privateKey = await setupLocalServerSSHKey();
+			try {
+				ws.send("Setting up private SSH key...\n");
+				const privateKey = await setupLocalServerSSHKey();
 
-			if (!privateKey) {
+				if (!privateKey) {
+					ws.close();
+					return;
+				}
+
+				const dockerHost = await getDockerHost();
+
+				ws.send(`Found Docker host: ${dockerHost}\n`);
+
+				connectionDetails = {
+					host: dockerHost,
+					port,
+					username,
+					privateKey,
+				};
+			} catch (error) {
+				console.error(`Error setting up private SSH key: ${error}`);
+				ws.send(`Error setting up private SSH key: ${error}\n`);
+
+				if (
+					error instanceof Error &&
+					error.message.includes("Permission denied")
+				) {
+					ws.send(
+						`Please run the following command on your server to grant permission access and then reopen this window to reconnect:${COMMAND_TO_GRANT_PERMISSION_ACCESS}`,
+					);
+				}
+
 				ws.close();
 				return;
 			}
-
-			connectionDetails = {
-				host: "localhost",
-				port,
-				username,
-				privateKey,
-			};
 		} else {
 			const server = await findServerById(serverId);
 
@@ -161,9 +199,15 @@ export const setupTerminalWebSocketServer = (
 			})
 			.on("error", (err) => {
 				if (err.level === "client-authentication") {
-					ws.send(
-						`Authentication failed: Unauthorized ${isLocalServer ? "" : "private SSH key or "}username.\n❌  Error: ${err.message} ${err.level}`,
-					);
+					if (isLocalServer) {
+						ws.send(
+							`Authentication failed: Please run the command below on your server to allow access. Make sure to run it as the same user as the one configured in connection settings:${COMMAND_TO_ALLOW_LOCAL_ACCESS}\nAfter running the command, reopen this window to reconnect. This procedure is required only once.`,
+						);
+					} else {
+						ws.send(
+							`Authentication failed: Unauthorized private SSH key or username.\n❌  Error: ${err.message} ${err.level}`,
+						);
+					}
 				} else {
 					ws.send(`SSH connection error: ${err.message} ❌ `);
 				}

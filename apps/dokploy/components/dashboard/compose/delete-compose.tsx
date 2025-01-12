@@ -13,7 +13,6 @@ import {
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -22,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Copy } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -82,8 +81,13 @@ export const DeleteCompose = ({ composeId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<TrashIcon className="size-4 text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-red-500/10 "
+					isLoading={isLoading}
+				>
+					<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">

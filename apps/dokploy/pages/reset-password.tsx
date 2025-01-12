@@ -2,12 +2,7 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -97,18 +92,18 @@ export default function Home({ token }: Props) {
 	return (
 		<div className="flex  h-screen w-full items-center justify-center ">
 			<div className="flex flex-col items-center gap-4 w-full">
-				<Link href="/" className="flex flex-row items-center gap-2">
-					<Logo />
-					<span className="font-medium text-sm">Dokploy</span>
-				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+				<CardTitle className="text-2xl font-bold flex flex-row gap-2 items-center">
+					<Link href="/" className="flex flex-row items-center gap-2">
+						<Logo className="size-12" />
+					</Link>
+					Reset Password
+				</CardTitle>
 				<CardDescription>
 					Enter your email to reset your password
 				</CardDescription>
 
-				<Card className="mx-auto w-full max-w-lg bg-transparent ">
-					<div className="p-3.5" />
-					<CardContent>
+				<div className="w-full">
+					<CardContent className="p-0">
 						{isError && (
 							<AlertBlock type="error" className="my-2">
 								{error?.message}
@@ -163,10 +158,14 @@ export default function Home({ token }: Props) {
 										Confirm
 									</Button>
 								</div>
+
+								<div className="text-center text-sm flex gap-2 text-muted-foreground">
+									<Link href="/">Sign in</Link>
+								</div>
 							</form>
 						</Form>
 					</CardContent>
-				</Card>
+				</div>
 			</div>
 		</div>
 	);

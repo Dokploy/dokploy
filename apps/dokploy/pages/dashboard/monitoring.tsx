@@ -269,11 +269,29 @@ Dashboard.getLayout = (page: React.ReactElement) => {
 
 export default Dashboard;
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-	// if (IS_CLOUD) {
-	// 	const { redirect } = await validateRequest(context);
-	// 	if (redirect) return { redirect };
-	// }
+Dashboard.getLayout = (page: ReactElement) => {
+	return <DashboardLayout>{page}</DashboardLayout>;
+};
+export async function getServerSideProps(
+	ctx: GetServerSidePropsContext<{ serviceId: string }>,
+) {
+	if (IS_CLOUD) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
+	const { user } = await validateRequest(ctx.req, ctx.res);
+	if (!user) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
+	}
 
 	return {
 		props: {},

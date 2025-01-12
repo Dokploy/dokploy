@@ -2,7 +2,7 @@ import { SetupMonitoring } from "@/components/dashboard/settings/servers/setup-m
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
@@ -13,19 +13,10 @@ import superjson from "superjson";
 
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<WebDomain />
-			<WebServer />
-			<div className="flex flex-col gap-4 w-full border rounded-lg p-5">
-				<div className="flex flex-col gap-2">
-					<span className="text-xl font-semibold text-primary">Monitoring</span>
-					<p className="text-muted-foreground text-sm">
-						Configure your server to be monitored by Dokploy. This will allow
-						you to view your server&apos;s metrics in the Dokploy dashboard.
-					</p>
-				</div>
-
-				<SetupMonitoring />
+		<div className="w-full">
+			<div className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
+				<WebDomain />
+				<WebServer />
 			</div>
 		</div>
 	);
@@ -34,11 +25,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout tab={"settings"} metaName="Server">
-			<SettingsLayout>{page}</SettingsLayout>
-		</DashboardLayout>
-	);
+	return <DashboardLayout metaName="Server">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

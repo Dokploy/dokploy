@@ -1,0 +1,31 @@
+# From Conduit's official documentation: https://docs.conduit.rs/deploying/docker.html#docker-compose
+version: '3'
+
+services:
+    homeserver:
+        image: registry.gitlab.com/famedly/conduit/matrix-conduit:v0.9.0
+        restart: unless-stopped
+        volumes:
+            - db:/var/lib/matrix-conduit/
+        networks:
+            - dokploy-network
+        environment:
+            CONDUIT_SERVER_NAME: ${MATRIX_SUBDOMAIN}
+            CONDUIT_DATABASE_PATH: /var/lib/matrix-conduit/
+            CONDUIT_DATABASE_BACKEND: rocksdb
+            CONDUIT_PORT: 6167
+            CONDUIT_MAX_REQUEST_SIZE: 20000000 # in bytes, ~20 MB
+            CONDUIT_ALLOW_REGISTRATION: 'true'
+            #CONDUIT_REGISTRATION_TOKEN: '' # require password for registration
+            CONDUIT_ALLOW_FEDERATION: 'true'
+            CONDUIT_ALLOW_CHECK_FOR_UPDATES: 'true'
+            CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
+            #CONDUIT_MAX_CONCURRENT_REQUESTS: 100
+            CONDUIT_ADDRESS: 0.0.0.0
+            CONDUIT_CONFIG: '' # Ignore this
+volumes:
+    db:
+
+networks:
+  dokploy-network:
+    external: true
