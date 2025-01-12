@@ -2,11 +2,19 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
-import React, { useState, useCallback, useEffect } from "react";
+import { Ban, CheckCircle2, Loader2, RefreshCcw, Terminal } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { TerminalLine } from "../../docker/logs/terminal-line";
 interface Props {
 	postgresId: string;
 }
@@ -18,18 +26,22 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 		},
 		{ enabled: !!postgresId },
 	);
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const [autoScroll, setAutoScroll] = useState(true);
+	const scrollToBottom = () => {
+		if (autoScroll && scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	};
 
-	const { mutateAsync: deploy, isLoading: isDeployingMutation } =
-		api.postgres.deploy.useMutation({
-			onSuccess: () => {
-				console.log("Deployment started");
-			},
-			onError: (error) => {
-				console.error("Deploy error:", error);
-				toast.error("Error starting deployment");
-			},
-		});
+	const handleScroll = () => {
+		if (!scrollRef.current) return;
 
+		const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+		const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+		setAutoScroll(isAtBottom);
+	};
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const { mutateAsync: reload, isLoading: isReloading } =
 		api.postgres.reload.useMutation();
 
@@ -39,15 +51,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 	const { mutateAsync: start, isLoading: isStarting } =
 		api.postgres.start.useMutation();
 
-	const [chunk, setChunk] = useState<string>("");
-
-	const onError = useCallback((error: any) => {
-		console.error("Error:", error);
-	}, []);
-
-	const [enabled, setEnabled] = useState(false);
-
-	const [deploymentLogs, setDeploymentLogs] = useState<string[]>([]);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
 
 	api.postgres.deploy.useSubscription(
@@ -57,8 +61,12 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 		{
 			enabled: isDeploying,
 			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
 				console.log("Received log in component:", log);
-				setDeploymentLogs((prev) => [...prev, log]);
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
 			},
 			onError(error) {
 				console.error("Deployment logs error:", error);
@@ -67,48 +75,37 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 		},
 	);
 
+	useEffect(() => {
+		scrollToBottom();
+
+		if (autoScroll && scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	}, [filteredLogs, autoScroll]);
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
 				<CardHeader className="pb-4">
 					<CardTitle>General</CardTitle>
-					{/* {!isConnected && (
-						<div className="text-sm text-yellow-500">
-							Connecting to deployment logs...
-						</div>
-					)} */}
 				</CardHeader>
-				<CardContent className="space-y-4">
+				<CardContent className="flex gap-4">
 					<DialogAction
 						title="Deploy Postgres"
 						description="Are you sure you want to deploy this postgres?"
 						type="default"
 						onClick={async () => {
 							console.log("Deploy button clicked");
-							setDeploymentLogs([]);
 							setIsDeploying(true);
-
-							// try {
-							// } catch (error) {
-							// 	console.error("Deploy error:", error);
-							// 	// setIsDeploying(false);
-							// } finally {
-							// 	// No desactivamos isDeploying aquí, lo haremos cuando termine la suscripción
-							// }
 						}}
 					>
 						<Button
 							variant="default"
-							isLoading={
-								data?.applicationStatus === "running" || isDeployingMutation
-							}
+							isLoading={data?.applicationStatus === "running"}
 						>
 							Deploy
 						</Button>
 					</DialogAction>
-					<div className="font-mono text-sm whitespace-pre-wrap max-h-60 overflow-auto">
-						{deploymentLogs.join("\n")}
-					</div>
+
 					<DialogAction
 						title="Reload Postgres"
 						description="Are you sure you want to reload this postgres?"
@@ -190,19 +187,39 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 					</DockerTerminalModal>
 				</CardContent>
 			</Card>
-			<div className="mt-4 bg-gray-900 rounded-lg p-4 max-h-96 overflow-auto">
-				{deploymentLogs.map((log, index) => (
-					<pre
-						key={index}
-						className="text-sm text-gray-300 whitespace-pre-wrap"
+			<Sheet
+				open={!!isDrawerOpen}
+				onOpenChange={(open) => {
+					setIsDrawerOpen(false);
+					setFilteredLogs([]);
+					setIsDeploying(false);
+				}}
+			>
+				<SheetContent className="sm:max-w-[740px]  flex flex-col">
+					<SheetHeader>
+						<SheetTitle>Deployment Logs</SheetTitle>
+						<SheetDescription>
+							Details of the request log entry.
+						</SheetDescription>
+					</SheetHeader>
+					<div
+						ref={scrollRef}
+						onScroll={handleScroll}
+						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 					>
-						{log}
-					</pre>
-				))}
-				{deploymentLogs.length === 0 && (
-					<p className="text-gray-500 text-sm">No deployment logs yet</p>
-				)}
-			</div>
+						{" "}
+						{filteredLogs.length > 0 ? (
+							filteredLogs.map((log: LogLine, index: number) => (
+								<TerminalLine key={index} log={log} noTimestamp />
+							))
+						) : (
+							<div className="flex justify-center items-center h-full text-muted-foreground">
+								<Loader2 className="h-6 w-6 animate-spin" />
+							</div>
+						)}
+					</div>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 };
