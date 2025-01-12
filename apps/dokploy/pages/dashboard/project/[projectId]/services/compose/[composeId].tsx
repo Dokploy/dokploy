@@ -7,8 +7,9 @@ import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
-import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
+import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -212,7 +213,7 @@ const Service = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+												"md:grid-cols-7",
 												data?.composeType === "docker-compose"
 													? ""
 													: "md:grid-cols-6",
@@ -227,9 +228,7 @@ const Service = (
 													Environment
 												</TabsTrigger>
 											)}
-											{!data?.serverId && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
@@ -247,17 +246,33 @@ const Service = (
 											<ShowEnvironment id={composeId} type="compose" />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowMonitoringCompose
-													serverId={data?.serverId || ""}
-													appName={data?.appName || ""}
-													appType={data?.composeType || "docker-compose"}
-												/>
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg ">
+												{data?.serverId ? (
+													<ComposePaidMonitoring
+														serverId={data?.serverId || ""}
+														url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														appName={data?.appName || ""}
+														token={
+															data?.server?.metricsToken ||
+															monitoring?.metricsToken ||
+															""
+														}
+														appType={data?.composeType || "docker-compose"}
+													/>
+												) : (
+													<div>
+														<ComposeFreeMonitoring
+															serverId={data?.serverId || ""}
+															appName={data?.appName || ""}
+															appType={data?.composeType || "docker-compose"}
+														/>
+													</div>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4 pt-2.5">

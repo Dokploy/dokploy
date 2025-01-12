@@ -2,7 +2,8 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
@@ -222,14 +223,12 @@ const Redis = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-4" : "md:grid-cols-5",
+												"md:grid-cols-5",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
@@ -247,13 +246,29 @@ const Redis = (
 											<ShowEnvironment id={redisId} type="redis" />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<DockerMonitoring appName={data?.appName || ""} />
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsToken ||
+															monitoring?.metricsToken ||
+															""
+														}
+													/>
+												) : (
+													<div>
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+													</div>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">
 											<ShowDockerLogs

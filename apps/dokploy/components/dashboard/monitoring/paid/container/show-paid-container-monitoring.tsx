@@ -117,7 +117,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	if (isLoading) {
 		return (
-			<div className="flex h-[400px] w-full items-center justify-center border rounded-lg">
+			<div className="flex h-[400px] w-full items-center justify-center">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
 			</div>
 		);
@@ -125,7 +125,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	if (error) {
 		return (
-			<div className="mt-5 flex min-h-[55vh] w-full items-center justify-center rounded-lg border p-4">
+			<div className="mt-5 flex min-h-[55vh] w-full items-center justify-center p-4">
 				<span className="text-base font-medium leading-none text-muted-foreground">
 					Error fetching metrics from: {baseUrl}{" "}
 					<strong className="font-semibold text-destructive">{error}</strong>
@@ -135,7 +135,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	}
 
 	return (
-		<div className="space-y-4 pb-10 pt-5 w-full border p-4 rounded-lg">
+		<>
 			{/* Header con selector de puntos de datos */}
 			{appName}
 			<div className="flex items-center justify-between">
@@ -235,6 +235,6 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				<ContainerBlockChart data={historicalData} />
 				<ContainerNetworkChart data={historicalData} />
 			</div>
-		</div>
+		</>
 	);
 };

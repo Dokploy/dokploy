@@ -67,12 +67,7 @@ export const ShowPaidMonitoring = ({
 	const fetchMetrics = async () => {
 		try {
 			const url = new URL(BASE_URL);
-
-			// Solo añadir el parámetro limit si no es "all"
-			if (dataPoints !== "all") {
-				url.searchParams.append("limit", dataPoints);
-			}
-
+			url.searchParams.append("limit", dataPoints);
 			const response = await fetch(url.toString(), {
 				headers: {
 					Authorization: `Bearer ${token}`,

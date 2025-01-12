@@ -2,6 +2,7 @@ import { SetupMonitoring } from "@/components/dashboard/settings/servers/setup-m
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Card } from "@/components/ui/card";
 
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
@@ -17,7 +18,11 @@ const Page = () => {
 			<div className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				<SetupMonitoring />
+				<Card className="h-full bg-sidebar  p-2.5 rounded-xl ">
+					<div className="rounded-xl bg-background shadow-md ">
+						<SetupMonitoring />
+					</div>
+				</Card>
 			</div>
 		</div>
 	);

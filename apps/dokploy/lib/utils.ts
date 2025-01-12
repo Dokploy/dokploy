@@ -19,7 +19,7 @@ export function formatTimestamp(timestamp: string | number) {
 		if (typeof timestamp === "string" && timestamp.includes("T")) {
 			const date = new Date(timestamp);
 			if (!Number.isNaN(date.getTime())) {
-				return date.toLocaleTimeString();
+				return date.toLocaleString();
 			}
 		}
 		return "Fecha inválida";

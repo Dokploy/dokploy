@@ -20,21 +20,21 @@ import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ContainerMonitoring } from "../../monitoring/paid/container/show-paid-container-monitoring";
+import { ContainerPaidMonitoring } from "./show-paid-container-monitoring";
 
 interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
-	baseUrl: string;
+	url: string;
 	token: string;
 }
 
-export const ShowMonitoringCompose = ({
+export const ComposePaidMonitoring = ({
 	appName,
 	appType = "stack",
 	serverId,
-	baseUrl,
+	url,
 	token,
 }: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
@@ -122,9 +122,9 @@ export const ShowMonitoringCompose = ({
 							Restart
 						</Button>
 					</div>
-					<ContainerMonitoring
+					<ContainerPaidMonitoring
 						appName={containerAppName || ""}
-						baseUrl={baseUrl}
+						baseUrl={url}
 						token={token}
 					/>
 				</CardContent>

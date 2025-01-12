@@ -11,12 +11,12 @@ import type React from "react";
 import type { ReactElement } from "react";
 
 const BASE_URL =
-	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:4500/metrics";
+	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:3001/metrics";
 
 const Dashboard = () => {
 	const { data: admin } = api.admin.one.useQuery();
 	return (
-		<div className="space-y-4 pt-5 pb-10">
+		<div className="space-y-4 pb-10">
 			<AlertBlock>
 				You are watching the <strong>Free</strong> plan.{" "}
 				<a
@@ -29,7 +29,7 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock>
-			{!admin?.enablePaidFeatures ? (
+			{admin?.enablePaidFeatures ? (
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto">
 					<div className="rounded-xl bg-background shadow-md px-4">
 						<ShowPaidMonitoring
@@ -38,12 +38,16 @@ const Dashboard = () => {
 									? `http://${admin?.serverIp}:${admin?.defaultPortMetrics}/metrics`
 									: BASE_URL
 							}
-							token={admin?.metricsToken}
+							token={"testing" || admin?.metricsToken}
 						/>
 					</div>
 				</Card>
 			) : (
-				<ContainerFreeMonitoring appName="dokploy" />
+				<Card className="h-full bg-sidebar  p-2.5 rounded-xl">
+					<div className="rounded-xl bg-background shadow-md p-6">
+						<ContainerFreeMonitoring appName="dokploy" />
+					</div>
+				</Card>
 			)}
 		</div>
 	);

@@ -84,3 +84,26 @@ func (db *DB) GetLastNMetrics(n int) ([]ServerMetric, error) {
 	}
 	return metrics, nil
 }
+
+func (db *DB) GetAllMetrics() ([]ServerMetric, error) {
+	rows, err := db.Query(`
+		SELECT timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out
+		FROM server_metrics
+		ORDER BY timestamp ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var metrics []ServerMetric
+	for rows.Next() {
+		var m ServerMetric
+		err := rows.Scan(&m.Timestamp, &m.CPU, &m.CPUModel, &m.CPUCores, &m.CPUPhysicalCores, &m.CPUSpeed, &m.OS, &m.Distro, &m.Kernel, &m.Arch, &m.MemUsed, &m.MemUsedGB, &m.MemTotal, &m.Uptime, &m.DiskUsed, &m.TotalDisk, &m.NetworkIn, &m.NetworkOut)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, m)
+	}
+	return metrics, nil
+}

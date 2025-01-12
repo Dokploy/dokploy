@@ -3,7 +3,8 @@ import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
@@ -68,6 +69,7 @@ const Postgresql = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
+	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 
 	const { mutateAsync: remove, isLoading: isRemoving } =
 		api.postgres.remove.useMutation();
@@ -223,14 +225,12 @@ const Postgresql = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
+												"md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -253,13 +253,29 @@ const Postgresql = (
 											<ShowEnvironment id={postgresId} type="postgres" />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<DockerMonitoring appName={data?.appName || ""} />
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsToken ||
+															monitoring?.metricsToken ||
+															""
+														}
+													/>
+												) : (
+													<div>
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+													</div>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">
 											<ShowDockerLogs

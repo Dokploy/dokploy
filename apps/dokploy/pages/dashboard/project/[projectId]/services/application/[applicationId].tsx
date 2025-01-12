@@ -13,8 +13,8 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
-import { ContainerMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-// import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -253,9 +253,7 @@ const Service = (
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-											)}
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="preview-deployments">
@@ -276,13 +274,29 @@ const Service = (
 											<ShowEnvironment applicationId={applicationId} />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<DockerMonitoring appName={data?.appName || ""} />
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsToken ||
+															monitoring?.metricsToken ||
+															""
+														}
+													/>
+												) : (
+													<div>
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+													</div>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">

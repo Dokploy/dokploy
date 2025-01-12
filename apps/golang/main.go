@@ -59,7 +59,7 @@ func main() {
 
 		var metrics []monitoring.SystemMetrics
 		if limit == "all" {
-			dbMetrics, err := db.GetLastNMetrics(10000)
+			dbMetrics, err := db.GetAllMetrics()
 			if err != nil {
 				return c.Status(500).JSON(fiber.Map{
 					"error": "Failed to fetch metrics",

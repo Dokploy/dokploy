@@ -316,8 +316,9 @@ export const SetupServer = ({ serverId }: Props) => {
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
 								<div className="flex flex-col gap-2 text-sm pt-3">
-									<SetupMonitoring serverId={serverId} />
-									{/* <SecurityAudit serverId={serverId} /> */}
+									<div className="rounded-xl bg-background shadow-md border">
+										<SetupMonitoring serverId={serverId} />
+									</div>
 								</div>
 							</TabsContent>
 							<TabsContent
