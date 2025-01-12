@@ -1,4 +1,9 @@
+import {
+	type LogLine,
+	parseLogs,
+} from "@/components/dashboard/docker/logs/utils";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -20,11 +25,6 @@ import {
 import { api } from "@/utils/api";
 import { useState } from "react";
 import { EditScript } from "../edit-script";
-import {
-	type LogLine,
-	parseLogs,
-} from "@/components/dashboard/docker/logs/utils";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
 
 export const Setup = () => {
 	const { data: servers } = api.server.all.useQuery();

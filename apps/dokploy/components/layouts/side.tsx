@@ -343,6 +343,8 @@ function LogoWrapper() {
 
 function SidebarLogo() {
 	const { state } = useSidebar();
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+
 	return (
 		<Link
 			href="/dashboard/projects"
@@ -360,7 +362,7 @@ function SidebarLogo() {
 			{state === "expanded" && (
 				<div className="flex flex-col gap-1 text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
 					<span className="truncate font-semibold">Dokploy</span>
-					<span className="truncate text-xs">v0.16.0</span>
+					<span className="truncate text-xs">{dokployVersion}</span>
 				</div>
 			)}
 		</Link>
@@ -380,9 +382,11 @@ export default function Page({ children }: Props) {
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
+
+	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 	const isActiveRoute = (itemUrl: string) => {
-		const normalizedItemUrl = itemUrl.replace("/projects", "/project");
+		const normalizedItemUrl = itemUrl?.replace("/projects", "/project");
 		const normalizedPathname = pathname?.replace("/projects", "/project");
 
 		if (!normalizedPathname) return false;
@@ -435,8 +439,6 @@ export default function Page({ children }: Props) {
 	const showProjectsButton =
 		currentPath === "/dashboard/projects" &&
 		(auth?.rol === "admin" || user?.canCreateProjects);
-
-	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	return (
 		<SidebarProvider
@@ -655,32 +657,35 @@ export default function Page({ children }: Props) {
 				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
-				<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-					<div className="flex items-center justify-between w-full px-4">
-						<div className="flex items-center gap-2">
-							<SidebarTrigger className="-ml-1" />
-							<Separator orientation="vertical" className="mr-2 h-4" />
-							<Breadcrumb>
-								<BreadcrumbList>
-									<BreadcrumbItem className="hidden md:block">
-										<BreadcrumbLink asChild>
-											<Link
-												href={activeItem?.url || "/"}
-												className="flex items-center gap-1.5"
-											>
-												{activeItem?.title}
-											</Link>
-										</BreadcrumbLink>
-									</BreadcrumbItem>
-									<BreadcrumbSeparator className="hidden md:block" />
-									<BreadcrumbItem>
-										<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
-									</BreadcrumbItem>
-								</BreadcrumbList>
-							</Breadcrumb>
+				{!includesProjects && (
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+						<div className="flex items-center justify-between w-full px-4">
+							<div className="flex items-center gap-2">
+								<SidebarTrigger className="-ml-1" />
+								<Separator orientation="vertical" className="mr-2 h-4" />
+								<Breadcrumb>
+									<BreadcrumbList>
+										<BreadcrumbItem className="hidden md:block">
+											<BreadcrumbLink asChild>
+												<Link
+													href={activeItem?.url || "/"}
+													className="flex items-center gap-1.5"
+												>
+													{activeItem?.title}
+												</Link>
+											</BreadcrumbLink>
+										</BreadcrumbItem>
+										<BreadcrumbSeparator className="hidden md:block" />
+										<BreadcrumbItem>
+											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
+										</BreadcrumbItem>
+									</BreadcrumbList>
+								</Breadcrumb>
+							</div>
 						</div>
-					</div>
-				</header>
+					</header>
+				)}
+
 				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>

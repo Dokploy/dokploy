@@ -11,6 +11,7 @@ import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show"
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +74,19 @@ const Mongo = (
 
 	return (
 		<div className="pb-10">
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/mongo/${mongoId}`,
+					},
+				]}
+			/>
 			<Head>
 				<title>
 					Database: {data?.name} - {data?.project.name} | Dokploy

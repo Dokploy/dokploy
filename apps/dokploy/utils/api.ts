@@ -21,10 +21,19 @@ const getBaseUrl = () => {
 	return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
+const getWsUrl = () => {
+	if (typeof window === "undefined") return null;
+
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	const host = window.location.host;
+
+	return `${protocol}${host}/drawer-logs`;
+};
+
 const wsClient =
 	typeof window !== "undefined"
 		? createWSClient({
-				url: "ws://localhost:3000/drawer-logs",
+				url: getWsUrl() || "",
 			})
 		: null;
 

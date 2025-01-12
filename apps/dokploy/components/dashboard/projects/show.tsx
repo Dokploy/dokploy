@@ -43,6 +43,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -70,7 +71,10 @@ export const ShowProjects = () => {
 
 	return (
 		<>
-			<div className="w-full pt-4">
+			<BreadcrumbSidebar
+				list={[{ name: "Projects", href: "/dashboard/projects" }]}
+			/>
+			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex justify-between gap-4 w-full items-center">

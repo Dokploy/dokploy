@@ -10,6 +10,7 @@ import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-st
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -85,6 +86,19 @@ const Service = (
 
 	return (
 		<div className="pb-10">
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/compose/${composeId}`,
+					},
+				]}
+			/>
 			<Head>
 				<title>
 					Compose: {data?.name} - {data?.project.name} | Dokploy

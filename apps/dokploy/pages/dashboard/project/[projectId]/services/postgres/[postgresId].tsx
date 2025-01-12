@@ -11,6 +11,7 @@ import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,19 @@ const Postgresql = (
 
 	return (
 		<div className="pb-10">
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/postgres/${postgresId}`,
+					},
+				]}
+			/>
 			<Head>
 				<title>
 					Database: {data?.name} - {data?.project.name} | Dokploy

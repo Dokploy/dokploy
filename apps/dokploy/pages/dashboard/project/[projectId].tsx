@@ -11,6 +11,7 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
@@ -226,10 +227,16 @@ const Project = (
 
 	return (
 		<div>
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{ name: data?.name || "", href: `/dashboard/project/${projectId}` },
+				]}
+			/>
 			<Head>
 				<title>Project: {data?.name} | Dokploy</title>
 			</Head>
-			<div className="w-full pt-4">
+			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex justify-between gap-4 w-full items-center">

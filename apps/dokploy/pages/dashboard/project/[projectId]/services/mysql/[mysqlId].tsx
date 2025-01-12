@@ -11,6 +11,7 @@ import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,19 @@ const MySql = (
 		api.mysql.remove.useMutation();
 	return (
 		<div className="pb-10">
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/mysql/${mysqlId}`,
+					},
+				]}
+			/>
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>

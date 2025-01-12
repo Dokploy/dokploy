@@ -15,6 +15,7 @@ import { ShowPreviewDeployments } from "@/components/dashboard/application/previ
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +96,19 @@ const Service = (
 
 	return (
 		<div className="pb-10">
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/application/${applicationId}`,
+					},
+				]}
+			/>
 			<Head>
 				<title>
 					Application: {data?.name} - {data?.project.name} | Dokploy
