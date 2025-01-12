@@ -164,6 +164,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 						setIsDrawerOpen(false);
 						setFilteredLogs([]);
 						setIsDeploying(false);
+						refetch();
 					}}
 					filteredLogs={filteredLogs}
 				/>

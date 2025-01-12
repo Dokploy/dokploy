@@ -60,7 +60,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
 				<CardHeader className="pb-4">
-					<CardTitle>General</CardTitle>
+					<CardTitle className="text-xl">General</CardTitle>
 				</CardHeader>
 				<CardContent className="flex gap-4">
 					<DialogAction
@@ -166,6 +166,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 					setIsDrawerOpen(false);
 					setFilteredLogs([]);
 					setIsDeploying(false);
+					refetch();
 				}}
 				filteredLogs={filteredLogs}
 			/>

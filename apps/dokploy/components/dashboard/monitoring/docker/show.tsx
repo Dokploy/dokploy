@@ -187,12 +187,12 @@ export const DockerMonitoring = ({
 
 	return (
 		<div>
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-8xl mx-auto w-full">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl  mx-auto w-full">
 				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 					<header className="flex items-center justify-between">
 						<div className="space-y-1">
 							<h1 className="text-2xl font-semibold tracking-tight">
-								Docker Monitoring
+								Monitoring
 							</h1>
 							<p className="text-sm text-muted-foreground">
 								Watch the usage of your server in the current app

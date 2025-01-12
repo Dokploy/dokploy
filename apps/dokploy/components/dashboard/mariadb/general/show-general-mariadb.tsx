@@ -166,6 +166,7 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						setIsDrawerOpen(false);
 						setFilteredLogs([]);
 						setIsDeploying(false);
+						refetch();
 					}}
 					filteredLogs={filteredLogs}
 				/>

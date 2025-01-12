@@ -166,6 +166,7 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 						setIsDrawerOpen(false);
 						setFilteredLogs([]);
 						setIsDeploying(false);
+						refetch();
 					}}
 					filteredLogs={filteredLogs}
 				/>
