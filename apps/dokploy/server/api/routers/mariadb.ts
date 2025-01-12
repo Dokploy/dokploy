@@ -157,6 +157,14 @@ export const mariadbRouter = createTRPCRouter({
 			return deployMariadb(input.mariadbId);
 		}),
 	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mariadb-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(apiDeployMariaDB)
 		.subscription(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);

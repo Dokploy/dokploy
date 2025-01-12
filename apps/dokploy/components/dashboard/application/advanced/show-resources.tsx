@@ -30,28 +30,64 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const addResourcesRedis = z.object({
-	memoryReservation: z.number().nullable().optional(),
-	cpuLimit: z.number().nullable().optional(),
-	memoryLimit: z.number().nullable().optional(),
-	cpuReservation: z.number().nullable().optional(),
+const addResourcesSchema = z.object({
+	memoryReservation: z.string().optional(),
+	cpuLimit: z.string().optional(),
+	memoryLimit: z.string().optional(),
+	cpuReservation: z.string().optional(),
 });
+
+type ServiceType =
+	| "postgres"
+	| "mongo"
+	| "redis"
+	| "mysql"
+	| "mariadb"
+	| "application";
+
 interface Props {
-	redisId: string;
+	id: string;
+	type: ServiceType | "application";
 }
 
-type AddResourcesRedis = z.infer<typeof addResourcesRedis>;
-export const ShowRedisResources = ({ redisId }: Props) => {
-	const { data, refetch } = api.redis.one.useQuery(
-		{
-			redisId,
+type AddResources = z.infer<typeof addResourcesSchema>;
+export const ShowResources = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		application: () => api.application.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+	};
+
+	const { mutateAsync, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
+
+	const form = useForm<AddResources>({
+		defaultValues: {
+			cpuLimit: "",
+			cpuReservation: "",
+			memoryLimit: "",
+			memoryReservation: "",
 		},
-		{ enabled: !!redisId },
-	);
-	const { mutateAsync, isLoading } = api.redis.update.useMutation();
-	const form = useForm<AddResourcesRedis>({
-		defaultValues: {},
-		resolver: zodResolver(addResourcesRedis),
+		resolver: zodResolver(addResourcesSchema),
 	});
 
 	useEffect(() => {
@@ -63,11 +99,16 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 				memoryReservation: data?.memoryReservation || undefined,
 			});
 		}
-	}, [data, form, form.formState.isSubmitSuccessful, form.reset]);
+	}, [data, form, form.reset]);
 
-	const onSubmit = async (formData: AddResourcesRedis) => {
+	const onSubmit = async (formData: AddResources) => {
 		await mutateAsync({
-			redisId,
+			mongoId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
+			applicationId: id || "",
 			cpuLimit: formData.cpuLimit || null,
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
@@ -81,6 +122,7 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 				toast.error("Error updating the resources");
 			});
 	};
+
 	return (
 		<Card className="bg-background">
 			<CardHeader>
@@ -127,18 +169,6 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 											<Input
 												placeholder="268435456 (256MB in bytes)"
 												{...field}
-												value={field.value?.toString() || ""}
-												onChange={(e) => {
-													const value = e.target.value;
-													if (value === "") {
-														field.onChange(null);
-													} else {
-														const number = Number.parseInt(value, 10);
-														if (!Number.isNaN(number)) {
-															field.onChange(number);
-														}
-													}
-												}}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -172,18 +202,6 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 												<Input
 													placeholder="1073741824 (1GB in bytes)"
 													{...field}
-													value={field.value?.toString() || ""}
-													onChange={(e) => {
-														const value = e.target.value;
-														if (value === "") {
-															field.onChange(null);
-														} else {
-															const number = Number.parseInt(value, 10);
-															if (!Number.isNaN(number)) {
-																field.onChange(number);
-															}
-														}
-													}}
 												/>
 											</FormControl>
 											<FormMessage />
@@ -219,17 +237,6 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 													placeholder="2000000000 (2 CPUs)"
 													{...field}
 													value={field.value?.toString() || ""}
-													onChange={(e) => {
-														const value = e.target.value;
-														if (value === "") {
-															field.onChange(null);
-														} else {
-															const number = Number.parseInt(value, 10);
-															if (!Number.isNaN(number)) {
-																field.onChange(number);
-															}
-														}
-													}}
 												/>
 											</FormControl>
 											<FormMessage />
@@ -260,22 +267,7 @@ export const ShowRedisResources = ({ redisId }: Props) => {
 												</TooltipProvider>
 											</div>
 											<FormControl>
-												<Input
-													placeholder="1000000000 (1 CPU)"
-													{...field}
-													value={field.value?.toString() || ""}
-													onChange={(e) => {
-														const value = e.target.value;
-														if (value === "") {
-															field.onChange(null);
-														} else {
-															const number = Number.parseInt(value, 10);
-															if (!Number.isNaN(number)) {
-																field.onChange(number);
-															}
-														}
-													}}
-												/>
+												<Input placeholder="1000000000 (1 CPU)" {...field} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>

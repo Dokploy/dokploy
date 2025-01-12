@@ -3,7 +3,7 @@ import { AddCommand } from "@/components/dashboard/application/advanced/general/
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
 import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
-import { ShowApplicationResources } from "@/components/dashboard/application/advanced/show-application-advanced-settings";
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
@@ -295,7 +295,8 @@ const Service = (
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommand applicationId={applicationId} />
 											<ShowClusterSettings applicationId={applicationId} />
-											<ShowApplicationResources applicationId={applicationId} />
+
+											<ShowResources id={applicationId} type="application" />
 											<ShowVolumes applicationId={applicationId} />
 											<ShowRedirects applicationId={applicationId} />
 											<ShowSecurity applicationId={applicationId} />

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ShowVolumes } from "../volumes/show-volumes";
 import { ShowMysqlResources } from "./show-mysql-resources";
+import { ShowResources } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -121,7 +122,7 @@ export const ShowAdvancedMysql = ({ mysqlId }: Props) => {
 					</CardContent>
 				</Card>
 				<ShowVolumes mysqlId={mysqlId} />
-				<ShowMysqlResources mysqlId={mysqlId} />
+				<ShowResources id={mysqlId} type="mysql" />
 			</div>
 		</>
 	);

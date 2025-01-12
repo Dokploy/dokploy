@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ShowVolumes } from "../volumes/show-volumes";
-import { ShowPostgresResources } from "./show-postgres-resources";
+import { ShowResources } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -121,7 +121,7 @@ export const ShowAdvancedPostgres = ({ postgresId }: Props) => {
 					</CardContent>
 				</Card>
 				<ShowVolumes postgresId={postgresId} />
-				<ShowPostgresResources postgresId={postgresId} />
+				<ShowResources id={postgresId} type="postgres" />
 			</div>
 		</>
 	);

@@ -168,6 +168,14 @@ export const mysqlRouter = createTRPCRouter({
 			return deployMySql(input.mysqlId);
 		}),
 	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mysql-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(apiDeployMySql)
 		.subscription(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);

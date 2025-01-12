@@ -128,6 +128,14 @@ export const serverRouter = createTRPCRouter({
 			}
 		}),
 	setupWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/server-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(apiFindOneServer)
 		.subscription(async ({ input, ctx }) => {
 			try {

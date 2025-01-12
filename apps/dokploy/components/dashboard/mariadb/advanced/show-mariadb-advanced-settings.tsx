@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ShowVolumes } from "../volumes/show-volumes";
 import { ShowMariadbResources } from "./show-mariadb-resources";
+import { ShowResources } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -122,7 +123,7 @@ export const ShowAdvancedMariadb = ({ mariadbId }: Props) => {
 					</CardContent>
 				</Card>
 				<ShowVolumes mariadbId={mariadbId} />
-				<ShowMariadbResources mariadbId={mariadbId} />
+				<ShowResources id={mariadbId} type="mariadb" />
 			</div>
 		</>
 	);

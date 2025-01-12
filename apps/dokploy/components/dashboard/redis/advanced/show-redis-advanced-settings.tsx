@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ShowVolumes } from "../volumes/show-volumes";
-import { ShowRedisResources } from "./show-redis-resources";
+import { ShowResources } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -121,7 +121,7 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 					</CardContent>
 				</Card>
 				<ShowVolumes redisId={redisId} />
-				<ShowRedisResources redisId={redisId} />
+				<ShowResources id={redisId} type="redis" />
 			</div>
 		</>
 	);

@@ -163,36 +163,6 @@ export const postgresRouter = createTRPCRouter({
 			await deployPostgres(input.postgresId);
 			return postgres;
 		}),
-	randomNumber: publicProcedure.subscription(() => {
-		let timer: NodeJS.Timeout | null = null;
-		let isActive = true;
-
-		return observable<number>((emit) => {
-			// Cleanup any existing timer
-			if (timer) {
-				clearInterval(timer);
-				timer = null;
-			}
-
-			// Solo crear el timer si la suscripción está activa
-			if (isActive) {
-				timer = setInterval(() => {
-					if (isActive) {
-						emit.next(Math.random());
-					}
-				}, 2000);
-			}
-
-			// Cleanup function
-			return () => {
-				isActive = false;
-				if (timer) {
-					clearInterval(timer);
-					timer = null;
-				}
-			};
-		});
-	}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
 		.mutation(async ({ input, ctx }) => {
@@ -207,6 +177,14 @@ export const postgresRouter = createTRPCRouter({
 		}),
 
 	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/postgres-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(apiDeployPostgres)
 		.subscription(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);

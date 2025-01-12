@@ -169,6 +169,14 @@ export const mongoRouter = createTRPCRouter({
 			return deployMongo(input.mongoId);
 		}),
 	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mongo-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(apiDeployMongo)
 		.subscription(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
