@@ -1,3 +1,4 @@
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import {
 	AlertDialog,
@@ -43,7 +44,6 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
-import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
