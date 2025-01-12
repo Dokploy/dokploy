@@ -64,7 +64,12 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 				if (!isDrawerOpen) {
 					setIsDrawerOpen(true);
 				}
+
+				if (log === "Deployment completed successfully!") {
+					setIsDeploying(false);
+				}
 				console.log("Received log in component:", log);
+
 				const parsedLogs = parseLogs(log);
 				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
 			},

@@ -128,25 +128,21 @@ export const deployPostgres = async (
 		onData?.("Starting postgres deployment...");
 
 		if (postgres.serverId) {
-			onData?.("Pulling Docker image on remote server...");
 			const result = await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
 			);
 			onData?.(result);
 		} else {
-			onData?.("Pulling Docker image locally...");
 			await pullImage(postgres.dockerImage, onData);
 		}
 
-		onData?.("Building postgres...");
 		await buildPostgres(postgres);
-		
-		onData?.("Updating status...");
+
 		await updatePostgresById(postgresId, {
 			applicationStatus: "done",
 		});
-		
+
 		onData?.("Deployment completed successfully!");
 	} catch (error) {
 		onData?.(`Error: ${error}`);
