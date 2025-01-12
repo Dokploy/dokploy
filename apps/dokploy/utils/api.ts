@@ -9,6 +9,8 @@ import {
 	experimental_formDataLink,
 	httpBatchLink,
 	splitLink,
+	wsLink,
+	createWSClient,
 } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
@@ -19,10 +21,16 @@ const getBaseUrl = () => {
 	return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
+const wsClient =
+	typeof window !== "undefined"
+		? createWSClient({
+				url: "ws://localhost:3000/prueba",
+			})
+		: null;
+
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({
 	config() {
-		const url = `${getBaseUrl()}/api/trpc`;
 		return {
 			/**
 			 * Transformer used for data de-serialization from the server.
@@ -38,12 +46,18 @@ export const api = createTRPCNext<AppRouter>({
 			 */
 			links: [
 				splitLink({
-					condition: (op) => op.input instanceof FormData,
-					true: experimental_formDataLink({
-						url,
+					condition: (op) => op.type === "subscription",
+					true: wsLink({
+						client: wsClient!,
 					}),
-					false: httpBatchLink({
-						url,
+					false: splitLink({
+						condition: (op) => op.input instanceof FormData,
+						true: experimental_formDataLink({
+							url: `${getBaseUrl()}/api/trpc`,
+						}),
+						false: httpBatchLink({
+							url: `${getBaseUrl()}/api/trpc`,
+						}),
 					}),
 				}),
 			],

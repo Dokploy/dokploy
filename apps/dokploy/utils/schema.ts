@@ -2,7 +2,7 @@ import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 if (typeof window === "undefined") {
-	const undici = require("undici");
+	const undici = await import("undici");
 	globalThis.File = undici.File as any;
 	globalThis.FileList = undici.FileList as any;
 }

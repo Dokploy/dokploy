@@ -1,4 +1,8 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -27,6 +31,11 @@ import {
 	updatePostgresById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { EventEmitter } from "node:events";
+import { observable } from "@trpc/server/observable";
+import { z } from "zod";
+
+const ee = new EventEmitter();
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -154,18 +163,72 @@ export const postgresRouter = createTRPCRouter({
 			await deployPostgres(input.postgresId);
 			return postgres;
 		}),
+	randomNumber: publicProcedure.subscription(() => {
+		let timer: NodeJS.Timeout | null = null;
+		let isActive = true;
+
+		return observable<number>((emit) => {
+			// Cleanup any existing timer
+			if (timer) {
+				clearInterval(timer);
+				timer = null;
+			}
+
+			// Solo crear el timer si la suscripción está activa
+			if (isActive) {
+				timer = setInterval(() => {
+					if (isActive) {
+						emit.next(Math.random());
+					}
+				}, 2000);
+			}
+
+			// Cleanup function
+			return () => {
+				isActive = false;
+				if (timer) {
+					clearInterval(timer);
+					timer = null;
+				}
+			};
+		});
+	}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
-		.mutation(async ({ input, ctx }) => {
+		.subscription(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
-			if (postgres.project.adminId !== ctx.user.adminId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Postgres",
+
+			return observable<string>((emit) => {
+				console.log("Starting deployment for postgresId:", input.postgresId);
+				if (postgres.project.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to deploy this Postgres",
+					});
+				}
+				const result = deployPostgres(input.postgresId, (log) => {
+					emit.next(log);
 				});
-			}
-			return deployPostgres(input.postgresId);
+			});
 		}),
+
+	deploymentLogs: protectedProcedure.subscription(() => {
+		console.log("Starting deployment logs subscription for:");
+
+		return observable<string>((emit) => {
+			const onLog = (log: string) => {
+				console.log("Received log:", log);
+				emit.next(log);
+			};
+
+			ee.on("deployment", onLog);
+
+			return () => {
+				ee.off("deployment", onLog);
+			};
+		});
+	}),
+
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)
 		.mutation(async ({ input, ctx }) => {
