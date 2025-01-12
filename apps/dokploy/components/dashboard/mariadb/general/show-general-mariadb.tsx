@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 
 interface Props {
 	mariadbId: string;
@@ -19,7 +21,6 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 		{ enabled: !!mariadbId },
 	);
 
-	const { mutateAsync: deploy } = api.mariadb.deploy.useMutation();
 	const { mutateAsync: reload, isLoading: isReloading } =
 		api.mariadb.reload.useMutation();
 
@@ -28,6 +29,33 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.mariadb.stop.useMutation();
+
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
+	const [isDeploying, setIsDeploying] = useState(false);
+	api.mariadb.deployWithLogs.useSubscription(
+		{
+			mariadbId: mariadbId,
+		},
+		{
+			enabled: isDeploying,
+			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
+
+				if (log === "Deployment completed successfully!") {
+					setIsDeploying(false);
+				}
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
+			},
+			onError(error) {
+				console.error("Deployment logs error:", error);
+				setIsDeploying(false);
+			},
+		},
+	);
 
 	return (
 		<>
@@ -42,16 +70,7 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 							description="Are you sure you want to deploy this mariadb?"
 							type="default"
 							onClick={async () => {
-								await deploy({
-									mariadbId: mariadbId,
-								})
-									.then(() => {
-										toast.success("Mariadb deployed successfully");
-										refetch();
-									})
-									.catch(() => {
-										toast.error("Error deploying Mariadb");
-									});
+								setIsDeploying(true);
 							}}
 						>
 							<Button
@@ -141,6 +160,15 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						</DockerTerminalModal>
 					</CardContent>
 				</Card>
+				<DrawerLogs
+					isOpen={isDrawerOpen}
+					onClose={() => {
+						setIsDrawerOpen(false);
+						setFilteredLogs([]);
+						setIsDeploying(false);
+					}}
+					filteredLogs={filteredLogs}
+				/>
 			</div>
 		</>
 	);

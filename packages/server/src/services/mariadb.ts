@@ -120,26 +120,33 @@ export const findMariadbByBackupId = async (backupId: string) => {
 	return result[0];
 };
 
-export const deployMariadb = async (mariadbId: string) => {
+export const deployMariadb = async (
+	mariadbId: string,
+	onData?: (data: any) => void,
+) => {
 	const mariadb = await findMariadbById(mariadbId);
 	try {
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "running",
 		});
+		onData?.("Starting mariadb deployment...");
 		if (mariadb.serverId) {
 			await execAsyncRemote(
 				mariadb.serverId,
 				`docker pull ${mariadb.dockerImage}`,
+				onData,
 			);
 		} else {
-			await pullImage(mariadb.dockerImage);
+			await pullImage(mariadb.dockerImage, onData);
 		}
 
 		await buildMariadb(mariadb);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "done",
 		});
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "error",
 		});

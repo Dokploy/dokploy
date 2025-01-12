@@ -20,10 +20,7 @@ import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-contai
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
-import { WebSocketServer } from "ws";
-import { createTRPCContext } from "@/server/api/trpc"; // Ruta a tu contexto tRPC
-import { applyWSSHandler } from "@trpc/server/adapters/ws";
-import { appRouter } from "./api/root";
+import { setupDrawerLogsWebSocketServer } from "./wss/drawer-logs";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -36,37 +33,8 @@ void app.prepare().then(async () => {
 			handle(req, res);
 		});
 
-		const wss = new WebSocketServer({ noServer: true, path: "/prueba" });
-
-		applyWSSHandler({
-			wss,
-			router: appRouter,
-			createContext: createTRPCContext,
-		});
-
-		server.on("upgrade", (req, socket, head) => {
-			const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
-			if (pathname === "/_next/webpack-hmr") {
-				return;
-			}
-			// Handle tRPC WebSocket connections
-			if (pathname === "/prueba") {
-				// wss.handleUpgrade(req, socket, head, (ws) => {
-				// 	wss.emit("connection", ws, req);
-				// });
-				wss.handleUpgrade(req, socket, head, function done(ws) {
-					wss.emit("connection", ws, req);
-				});
-			}
-		});
-
-		wss.on("connection", async (ws, req) => {
-			const url = new URL(req.url || "", `http://${req.headers.host}`);
-
-			console.log("WebSocket connected");
-		});
-
 		// WEBSOCKET
+		setupDrawerLogsWebSocketServer(server);
 		setupDeploymentLogsWebSocketServer(server);
 		setupDockerContainerLogsWebSocketServer(server);
 		setupDockerContainerTerminalWebSocketServer(server);

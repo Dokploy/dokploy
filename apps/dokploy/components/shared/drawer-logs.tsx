@@ -19,15 +19,10 @@ interface Props {
 	isOpen: boolean;
 	onClose: () => void;
 	filteredLogs: LogLine[];
-	scrollRef: React.RefObject<HTMLDivElement>;
 }
 
-export const DrawerLogs = ({
-	isOpen,
-	onClose,
-	filteredLogs,
-	scrollRef,
-}: Props) => {
+export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
+	const scrollRef = useRef<HTMLDivElement>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {

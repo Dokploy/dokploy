@@ -128,11 +128,11 @@ export const deployPostgres = async (
 		onData?.("Starting postgres deployment...");
 
 		if (postgres.serverId) {
-			const result = await execAsyncRemote(
+			await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
+				onData,
 			);
-			onData?.(result);
 		} else {
 			await pullImage(postgres.dockerImage, onData);
 		}

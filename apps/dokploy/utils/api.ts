@@ -24,7 +24,7 @@ const getBaseUrl = () => {
 const wsClient =
 	typeof window !== "undefined"
 		? createWSClient({
-				url: "ws://localhost:3000/prueba",
+				url: "ws://localhost:3000/drawer-logs",
 			})
 		: null;
 

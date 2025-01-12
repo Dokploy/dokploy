@@ -89,23 +89,34 @@ export const removeRedisById = async (redisId: string) => {
 	return result[0];
 };
 
-export const deployRedis = async (redisId: string) => {
+export const deployRedis = async (
+	redisId: string,
+	onData?: (data: any) => void,
+) => {
 	const redis = await findRedisById(redisId);
 	try {
 		await updateRedisById(redisId, {
 			applicationStatus: "running",
 		});
+
+		onData?.("Starting redis deployment...");
 		if (redis.serverId) {
-			await execAsyncRemote(redis.serverId, `docker pull ${redis.dockerImage}`);
+			await execAsyncRemote(
+				redis.serverId,
+				`docker pull ${redis.dockerImage}`,
+				onData,
+			);
 		} else {
-			await pullImage(redis.dockerImage);
+			await pullImage(redis.dockerImage, onData);
 		}
 
 		await buildRedis(redis);
 		await updateRedisById(redisId, {
 			applicationStatus: "done",
 		});
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updateRedisById(redisId, {
 			applicationStatus: "error",
 		});

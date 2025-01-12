@@ -195,39 +195,33 @@ export const postgresRouter = createTRPCRouter({
 	}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Postgres",
+				});
+			}
+			return deployPostgres(input.postgresId);
+		}),
+
+	deployWithLogs: protectedProcedure
+		.input(apiDeployPostgres)
 		.subscription(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
-
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Postgres",
+				});
+			}
 			return observable<string>((emit) => {
-				console.log("Starting deployment for postgresId:", input.postgresId);
-				if (postgres.project.adminId !== ctx.user.adminId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to deploy this Postgres",
-					});
-				}
-				const result = deployPostgres(input.postgresId, (log) => {
+				deployPostgres(input.postgresId, (log) => {
 					emit.next(log);
 				});
 			});
 		}),
-
-	deploymentLogs: protectedProcedure.subscription(() => {
-		console.log("Starting deployment logs subscription for:");
-
-		return observable<string>((emit) => {
-			const onLog = (log: string) => {
-				console.log("Received log:", log);
-				emit.next(log);
-			};
-
-			ee.on("deployment", onLog);
-
-			return () => {
-				ee.off("deployment", onLog);
-			};
-		});
-	}),
 
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)

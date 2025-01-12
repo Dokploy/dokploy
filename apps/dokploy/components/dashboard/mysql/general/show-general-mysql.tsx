@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 interface Props {
 	mysqlId: string;
 }
@@ -17,7 +19,6 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 		},
 		{ enabled: !!mysqlId },
 	);
-	const { mutateAsync: deploy } = api.mysql.deploy.useMutation();
 
 	const { mutateAsync: reload, isLoading: isReloading } =
 		api.mysql.reload.useMutation();
@@ -26,6 +27,33 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.mysql.stop.useMutation();
+
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
+	const [isDeploying, setIsDeploying] = useState(false);
+	api.mysql.deployWithLogs.useSubscription(
+		{
+			mysqlId: mysqlId,
+		},
+		{
+			enabled: isDeploying,
+			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
+
+				if (log === "Deployment completed successfully!") {
+					setIsDeploying(false);
+				}
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
+			},
+			onError(error) {
+				console.error("Deployment logs error:", error);
+				setIsDeploying(false);
+			},
+		},
+	);
 	return (
 		<>
 			<div className="flex w-full flex-col gap-5 ">
@@ -39,16 +67,7 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 							description="Are you sure you want to deploy this mysql?"
 							type="default"
 							onClick={async () => {
-								await deploy({
-									mysqlId: mysqlId,
-								})
-									.then(() => {
-										toast.success("Mysql deployed successfully");
-										refetch();
-									})
-									.catch(() => {
-										toast.error("Error deploying Mysql");
-									});
+								setIsDeploying(true);
 							}}
 						>
 							<Button
@@ -139,6 +158,15 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 						</DockerTerminalModal>
 					</CardContent>
 				</Card>
+				<DrawerLogs
+					isOpen={isDrawerOpen}
+					onClose={() => {
+						setIsDrawerOpen(false);
+						setFilteredLogs([]);
+						setIsDeploying(false);
+					}}
+					filteredLogs={filteredLogs}
+				/>
 			</div>
 		</>
 	);
