@@ -1,4 +1,5 @@
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
@@ -8,7 +9,6 @@ import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-gene
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";

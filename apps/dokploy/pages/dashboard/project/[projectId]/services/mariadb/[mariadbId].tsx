@@ -1,4 +1,5 @@
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
@@ -8,7 +9,6 @@ import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/g
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";
