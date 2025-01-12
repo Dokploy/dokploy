@@ -30,14 +30,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
-	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, HelpCircle } from "lucide-react";
-import { useEffect } from "react";
+import { HelpCircle, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -59,6 +58,7 @@ const addCertificate = z.object({
 type AddCertificate = z.infer<typeof addCertificate>;
 
 export const AddCertificate = () => {
+	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
 	const { mutateAsync, isError, error, isLoading } =
@@ -89,20 +89,27 @@ export const AddCertificate = () => {
 			.then(async () => {
 				toast.success("Certificate Created");
 				await utils.certificates.all.invalidate();
+				setOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error creating the Certificate");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
-				<Button>Add Certificate</Button>
+				<Button>
+					{" "}
+					<PlusIcon className="h-4 w-4" />
+					Add Certificate
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Certificate</DialogTitle>
-					<DialogDescription>Add a new certificate</DialogDescription>
+					<DialogTitle>Add New Certificate</DialogTitle>
+					<DialogDescription>
+						Upload or generate a certificate to secure your application
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -208,7 +215,7 @@ export const AddCertificate = () => {
 						/>
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+					<DialogFooter className="flex w-full flex-row !justify-end pt-3">
 						<Button
 							isLoading={isLoading}
 							form="hook-form-add-certificate"

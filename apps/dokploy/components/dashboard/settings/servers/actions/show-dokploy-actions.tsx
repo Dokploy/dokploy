@@ -15,8 +15,8 @@ import { api } from "@/utils/api";
 import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
-import { GPUSupportModal } from "../gpu-support-modal";
 import { TerminalModal } from "../../web-server/terminal-modal";
+import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
 	const { t } = useTranslation("settings");

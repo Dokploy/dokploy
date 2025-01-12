@@ -7,6 +7,7 @@ export const execAsync = util.promisify(exec);
 export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
+	onData?: (data: string) => void,
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -21,7 +22,10 @@ export const execAsyncRemote = async (
 		conn
 			.once("ready", () => {
 				conn.exec(command, (err, stream) => {
-					if (err) throw err;
+					if (err) {
+						onData?.(err.message);
+						throw err;
+					}
 					stream
 						.on("close", (code: number, signal: string) => {
 							conn.end();
@@ -37,21 +41,27 @@ export const execAsyncRemote = async (
 						})
 						.on("data", (data: string) => {
 							stdout += data.toString();
+							onData?.(data.toString());
 						})
 						.stderr.on("data", (data) => {
 							stderr += data.toString();
+							onData?.(data.toString());
 						});
 				});
 			})
 			.on("error", (err) => {
 				conn.end();
 				if (err.level === "client-authentication") {
+					onData?.(
+						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+					);
 					reject(
 						new Error(
 							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
 						),
 					);
 				} else {
+					onData?.(`SSH connection error: ${err.message}`);
 					reject(new Error(`SSH connection error: ${err.message}`));
 				}
 			})

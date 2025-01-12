@@ -112,20 +112,34 @@ export const removeMongoById = async (mongoId: string) => {
 	return result[0];
 };
 
-export const deployMongo = async (mongoId: string) => {
+export const deployMongo = async (
+	mongoId: string,
+	onData?: (data: any) => void,
+) => {
 	const mongo = await findMongoById(mongoId);
 	try {
+		await updateMongoById(mongoId, {
+			applicationStatus: "running",
+		});
+
+		onData?.("Starting mongo deployment...");
 		if (mongo.serverId) {
-			await execAsyncRemote(mongo.serverId, `docker pull ${mongo.dockerImage}`);
+			await execAsyncRemote(
+				mongo.serverId,
+				`docker pull ${mongo.dockerImage}`,
+				onData,
+			);
 		} else {
-			await pullImage(mongo.dockerImage);
+			await pullImage(mongo.dockerImage, onData);
 		}
 
 		await buildMongo(mongo);
 		await updateMongoById(mongoId, {
 			applicationStatus: "done",
 		});
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updateMongoById(mongoId, {
 			applicationStatus: "error",
 		});

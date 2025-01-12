@@ -64,8 +64,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 						"flex gap-2",
 					)}
 					ref={ref}
-					disabled={isLoading}
 					{...props}
+					disabled={isLoading || props.disabled}
 				>
 					{isLoading && <Loader2 className="animate-spin" />}
 					<Slottable>{children}</Slottable>

@@ -126,9 +126,7 @@ export const AddDomainCompose = ({
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
-		error: domainId
-			? "Error updating the domain"
-			: "Error creating the domain",
+		error: domainId ? "Error updating the domain" : "Error creating the domain",
 		submit: domainId ? "Update" : "Create",
 		dialogDescription: domainId
 			? "In this section you can edit a domain"

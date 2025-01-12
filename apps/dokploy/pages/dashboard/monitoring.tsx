@@ -11,7 +11,7 @@ const Dashboard = () => {
 export default Dashboard;
 
 Dashboard.getLayout = (page: ReactElement) => {
-	return <DashboardLayout tab={"monitoring"}>{page}</DashboardLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

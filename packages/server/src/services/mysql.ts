@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMySql, backups, mysql } from "@dokploy/server/db/schema";
-import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
+import { buildAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -116,20 +116,33 @@ export const removeMySqlById = async (mysqlId: string) => {
 	return result[0];
 };
 
-export const deployMySql = async (mysqlId: string) => {
+export const deployMySql = async (
+	mysqlId: string,
+	onData?: (data: any) => void,
+) => {
 	const mysql = await findMySqlById(mysqlId);
 	try {
+		await updateMySqlById(mysqlId, {
+			applicationStatus: "running",
+		});
+		onData?.("Starting mysql deployment...");
 		if (mysql.serverId) {
-			await execAsyncRemote(mysql.serverId, `docker pull ${mysql.dockerImage}`);
+			await execAsyncRemote(
+				mysql.serverId,
+				`docker pull ${mysql.dockerImage}`,
+				onData,
+			);
 		} else {
-			await pullImage(mysql.dockerImage);
+			await pullImage(mysql.dockerImage, onData);
 		}
 
 		await buildMysql(mysql);
 		await updateMySqlById(mysqlId, {
 			applicationStatus: "done",
 		});
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updateMySqlById(mysqlId, {
 			applicationStatus: "error",
 		});

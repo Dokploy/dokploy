@@ -95,10 +95,10 @@ export const Login2FA = ({ authId }: Props) => {
 					control={form.control}
 					name="pin"
 					render={({ field }) => (
-						<FormItem className="flex flex-col justify-center max-sm:items-center">
+						<FormItem className="flex flex-col  max-sm:items-center">
 							<FormLabel>Pin</FormLabel>
 							<FormControl>
-								<div className="flex justify-center">
+								<div className="flex">
 									<InputOTP
 										maxLength={6}
 										{...field}
