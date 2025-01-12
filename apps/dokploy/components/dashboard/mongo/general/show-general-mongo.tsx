@@ -70,6 +70,8 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 							type="default"
 							onClick={async () => {
 								setIsDeploying(true);
+								await new Promise((resolve) => setTimeout(resolve, 1000));
+								refetch();
 							}}
 						>
 							<Button
