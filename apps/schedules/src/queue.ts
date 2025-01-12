@@ -1,7 +1,7 @@
 import { Queue, type RepeatableJob } from "bullmq";
 import IORedis from "ioredis";
-import { logger } from "./logger";
-import type { QueueJob } from "./schema";
+import { logger } from "./logger.js";
+import type { QueueJob } from "./schema.js";
 
 export const connection = new IORedis(process.env.REDIS_URL!, {
 	maxRetriesPerRequest: null,
