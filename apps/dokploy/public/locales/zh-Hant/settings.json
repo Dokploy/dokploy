@@ -31,7 +31,7 @@
 	"settings.server.webServer.storage.cleanUnusedImages": "清理未使用的映像檔",
 	"settings.server.webServer.storage.cleanUnusedVolumes": "清理未使用的卷",
 	"settings.server.webServer.storage.cleanStoppedContainers": "清理已停止的容器",
-	"settings.server.webServer.storage.cleanDockerBuilder": "清理 Docker Builder 與系統快取",
+	"settings.server.webServer.storage.cleanDockerBuilder": "清理 Docker Builder 和系統快取",
 	"settings.server.webServer.storage.cleanMonitoring": "清理監控數據",
 	"settings.server.webServer.storage.cleanAll": "清理所有內容",
 
@@ -47,7 +47,7 @@
 	"settings.appearance.themeDescription": "選擇面板主題",
 	"settings.appearance.themes.light": "明亮",
 	"settings.appearance.themes.dark": "黑暗",
-	"settings.appearance.themes.system": "系統主題",
+	"settings.appearance.themes.system": "系統",
 	"settings.appearance.language": "語言",
 	"settings.appearance.languageDescription": "選擇面板語言",
 
