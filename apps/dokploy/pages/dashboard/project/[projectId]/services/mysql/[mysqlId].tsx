@@ -1,12 +1,14 @@
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { ShowAdvancedMysql } from "@/components/dashboard/mysql/advanced/show-mysql-advanced-settings";
 import { ShowBackupMySql } from "@/components/dashboard/mysql/backups/show-backup-mysql";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
+import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -258,7 +260,11 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="advanced">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowAdvancedMysql mysqlId={mysqlId} />
+												<div className="flex w-full flex-col gap-5">
+													<ShowCustomCommand id={mysqlId} type="mysql" />
+													<ShowVolumes id={mysqlId} type="mysql" />
+													<ShowResources id={mysqlId} type="mysql" />
+												</div>
 											</div>
 										</TabsContent>
 									</Tabs>

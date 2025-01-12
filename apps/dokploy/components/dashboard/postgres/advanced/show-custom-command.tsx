@@ -15,8 +15,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ShowResources } from "../../application/advanced/show-resources";
-import { ShowVolumes } from "../volumes/show-volumes";
+import type { ServiceType } from "../../application/advanced/show-resources";
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -24,18 +23,39 @@ const addDockerImage = z.object({
 });
 
 interface Props {
-	redisId: string;
+	id: string;
+	type: Exclude<ServiceType, "application">;
 }
 
 type AddDockerImage = z.infer<typeof addDockerImage>;
-export const ShowAdvancedRedis = ({ redisId }: Props) => {
-	const { data, refetch } = api.redis.one.useQuery(
-		{
-			redisId,
-		},
-		{ enabled: !!redisId },
-	);
-	const { mutateAsync } = api.redis.update.useMutation();
+export const ShowCustomCommand = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		application: () => api.application.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+	};
+
+	const { mutateAsync, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
 
 	const form = useForm<AddDockerImage>({
 		defaultValues: {
@@ -52,20 +72,24 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 				command: data.command || "",
 			});
 		}
-	}, [data, form, form.formState.isSubmitSuccessful, form.reset]);
+	}, [data, form, form.reset]);
 
 	const onSubmit = async (formData: AddDockerImage) => {
 		await mutateAsync({
-			redisId,
+			mongoId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
 			dockerImage: formData?.dockerImage,
 			command: formData?.command,
 		})
 			.then(async () => {
-				toast.success("Resources Updated");
+				toast.success("Custom Command Updated");
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the resources");
+				toast.error("Error updating the custom command");
 			});
 	};
 	return (
@@ -79,7 +103,7 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
-								className="grid w-full gap-8 "
+								className="grid w-full gap-4 "
 							>
 								<div className="grid w-full gap-4">
 									<FormField
@@ -89,21 +113,7 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 											<FormItem>
 												<FormLabel>Docker Image</FormLabel>
 												<FormControl>
-													<Input placeholder="redis:16" {...field} />
-												</FormControl>
-
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="command"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Command</FormLabel>
-												<FormControl>
-													<Input placeholder="Custom command" {...field} />
+													<Input placeholder="postgres:15" {...field} />
 												</FormControl>
 
 												<FormMessage />
@@ -111,6 +121,20 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 										)}
 									/>
 								</div>
+								<FormField
+									control={form.control}
+									name="command"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Command</FormLabel>
+											<FormControl>
+												<Input placeholder="Custom command" {...field} />
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 								<div className="flex w-full justify-end">
 									<Button isLoading={form.formState.isSubmitting} type="submit">
 										Save
@@ -120,8 +144,6 @@ export const ShowAdvancedRedis = ({ redisId }: Props) => {
 						</Form>
 					</CardContent>
 				</Card>
-				<ShowVolumes redisId={redisId} />
-				<ShowResources id={redisId} type="redis" />
 			</div>
 		</>
 	);

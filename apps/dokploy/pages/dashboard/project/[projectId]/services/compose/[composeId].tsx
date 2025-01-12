@@ -1,6 +1,5 @@
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
 import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
@@ -9,6 +8,7 @@ import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show"
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -275,7 +275,7 @@ const Service = (
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommandCompose composeId={composeId} />
-											<ShowVolumesCompose composeId={composeId} />
+											<ShowVolumes id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 								</Tabs>

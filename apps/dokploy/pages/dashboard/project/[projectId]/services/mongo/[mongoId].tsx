@@ -1,12 +1,14 @@
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowAdvancedMongo } from "@/components/dashboard/mongo/advanced/show-mongo-advanced-settings";
 import { ShowBackupMongo } from "@/components/dashboard/mongo/backups/show-backup-mongo";
 import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
 import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
 import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
 import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -255,7 +257,11 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowAdvancedMongo mongoId={mongoId} />
+											<div className="flex w-full flex-col gap-5 ">
+												<ShowCustomCommand id={mongoId} type="mongo" />
+												<ShowVolumes id={mongoId} type="mongo" />
+												<ShowResources id={mongoId} type="mongo" />
+											</div>
 										</div>
 									</TabsContent>
 								</Tabs>

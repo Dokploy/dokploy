@@ -1,12 +1,14 @@
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowAdvancedMariadb } from "@/components/dashboard/mariadb/advanced/show-mariadb-advanced-settings";
 import { ShowBackupMariadb } from "@/components/dashboard/mariadb/backups/show-backup-mariadb";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
 import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -251,7 +253,11 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowAdvancedMariadb mariadbId={mariadbId} />
+											<div className="flex w-full flex-col gap-5">
+												<ShowCustomCommand id={mariadbId} type="mariadb" />
+												<ShowVolumes id={mariadbId} type="mariadb" />
+												<ShowResources id={mariadbId} type="mariadb" />
+											</div>
 										</div>
 									</TabsContent>
 								</Tabs>

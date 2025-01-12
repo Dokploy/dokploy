@@ -1,12 +1,14 @@
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
-import { ShowAdvancedPostgres } from "@/components/dashboard/postgres/advanced/show-postgres-advanced-settings";
+import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowBackupPostgres } from "@/components/dashboard/postgres/backups/show-backup-postgres";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -260,7 +262,11 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowAdvancedPostgres postgresId={postgresId} />
+											<div className="flex w-full flex-col gap-5 ">
+												<ShowCustomCommand id={postgresId} type="postgres" />
+												<ShowVolumes id={postgresId} type="postgres" />
+												<ShowResources id={postgresId} type="postgres" />
+											</div>
 										</div>
 									</TabsContent>
 								</Tabs>
