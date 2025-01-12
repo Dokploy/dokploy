@@ -29,6 +29,7 @@ import {
 	stopServiceRemote,
 	updateRedisById,
 } from "@dokploy/server";
+import { observable } from "@trpc/server/observable";
 
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -188,6 +189,30 @@ export const redisRouter = createTRPCRouter({
 				});
 			}
 			return deployRedis(input.redisId);
+		}),
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/redis-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployRedis)
+		.subscription(async ({ input, ctx }) => {
+			const redis = await findRedisById(input.redisId);
+			if (redis.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Redis",
+				});
+			}
+			return observable<string>((emit) => {
+				deployRedis(input.redisId, (log) => {
+					emit.next(log);
+				});
+			});
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeRedisStatus)

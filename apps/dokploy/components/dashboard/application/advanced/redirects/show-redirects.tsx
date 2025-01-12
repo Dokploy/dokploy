@@ -1,3 +1,5 @@
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -6,22 +8,27 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Split } from "lucide-react";
+import { Split, Trash2 } from "lucide-react";
 import React from "react";
-import { AddRedirect } from "./add-redirect";
-import { DeleteRedirect } from "./delete-redirect";
-import { UpdateRedirect } from "./update-redirect";
+import { toast } from "sonner";
+import { HandleRedirect } from "./handle-redirect";
+
 interface Props {
 	applicationId: string;
 }
 
 export const ShowRedirects = ({ applicationId }: Props) => {
-	const { data } = api.application.one.useQuery(
+	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
 		},
 		{ enabled: !!applicationId },
 	);
+
+	const { mutateAsync: deleteRedirect, isLoading: isRemoving } =
+		api.redirects.delete.useMutation();
+
+	const utils = api.useUtils();
 
 	return (
 		<Card className="bg-background">
@@ -35,7 +42,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 				</div>
 
 				{data && data?.redirects.length > 0 && (
-					<AddRedirect applicationId={applicationId}>Add Redirect</AddRedirect>
+					<HandleRedirect applicationId={applicationId}>
+						Add Redirect
+					</HandleRedirect>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -45,9 +54,9 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No redirects configured
 						</span>
-						<AddRedirect applicationId={applicationId}>
+						<HandleRedirect applicationId={applicationId}>
 							Add Redirect
-						</AddRedirect>
+						</HandleRedirect>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2">
@@ -76,8 +85,40 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 											</div>
 										</div>
 										<div className="flex flex-row gap-4">
-											<UpdateRedirect redirectId={redirect.redirectId} />
-											<DeleteRedirect redirectId={redirect.redirectId} />
+											<HandleRedirect
+												redirectId={redirect.redirectId}
+												applicationId={applicationId}
+											/>
+
+											<DialogAction
+												title="Delete Redirect"
+												description="Are you sure you want to delete this redirect?"
+												type="destructive"
+												onClick={async () => {
+													await deleteRedirect({
+														redirectId: redirect.redirectId,
+													})
+														.then(() => {
+															refetch();
+															utils.application.readTraefikConfig.invalidate({
+																applicationId,
+															});
+															toast.success("Redirect deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting redirect");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>
