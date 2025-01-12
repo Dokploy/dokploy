@@ -1,4 +1,3 @@
-import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import {
@@ -32,7 +31,10 @@ export const slugify = (text: string | undefined) => {
 	});
 };
 
-export const serverSetup = async (serverId: string) => {
+export const serverSetup = async (
+	serverId: string,
+	onData?: (data: any) => void,
+) => {
 	const server = await findServerById(serverId);
 	const { LOGS_PATH } = paths();
 
@@ -48,18 +50,18 @@ export const serverSetup = async (serverId: string) => {
 		description: "Setup Server",
 	});
 
-	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 	try {
-		writeStream.write("\nInstalling Server Dependencies: ✅\n");
-		await installRequirements(serverId, deployment.logPath);
-		writeStream.close();
+		onData?.("\nInstalling Server Dependencies: ✅\n");
+		await installRequirements(serverId, onData);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
+
+		onData?.("\nSetup Server: ✅\n");
 	} catch (err) {
 		console.log(err);
+
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		writeStream.write(`${err} ❌\n`);
-		writeStream.close();
+		onData?.(`${err} ❌\n`);
 	}
 };
 
@@ -173,13 +175,14 @@ ${installBuildpacks()}
 	return bashCommand;
 };
 
-const installRequirements = async (serverId: string, logPath: string) => {
-	const writeStream = createWriteStream(logPath, { flags: "a" });
+const installRequirements = async (
+	serverId: string,
+	onData?: (data: any) => void,
+) => {
 	const client = new Client();
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) {
-		writeStream.write("❌ No SSH Key found");
-		writeStream.close();
+		onData?.("❌ No SSH Key found, please assign one to this server");
 		throw new Error("No SSH Key found");
 	}
 
@@ -189,7 +192,7 @@ const installRequirements = async (serverId: string, logPath: string) => {
 				const command = server.command || defaultCommand();
 				client.exec(command, (err, stream) => {
 					if (err) {
-						writeStream.write(err);
+						onData?.(err.message);
 						reject(err);
 						return;
 					}
@@ -199,17 +202,17 @@ const installRequirements = async (serverId: string, logPath: string) => {
 							resolve();
 						})
 						.on("data", (data: string) => {
-							writeStream.write(data.toString());
+							onData?.(data.toString());
 						})
 						.stderr.on("data", (data) => {
-							writeStream.write(data.toString());
+							onData?.(data.toString());
 						});
 				});
 			})
 			.on("error", (err) => {
 				client.end();
 				if (err.level === "client-authentication") {
-					writeStream.write(
+					onData?.(
 						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
 					);
 					reject(
@@ -218,9 +221,7 @@ const installRequirements = async (serverId: string, logPath: string) => {
 						),
 					);
 				} else {
-					writeStream.write(
-						`SSH connection error: ${err.message} ${err.level}`,
-					);
+					onData?.(`SSH connection error: ${err.message} ${err.level}`);
 					reject(new Error(`SSH connection error: ${err.message}`));
 				}
 			})

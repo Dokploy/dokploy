@@ -41,15 +41,15 @@ export const sendDiscordNotification = async (
 	connection: typeof discord.$inferInsert,
 	embed: any,
 ) => {
-	try {
-		await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ embeds: [embed] }),
-		});
-	} catch (err) {
-		console.log(err);
-	}
+	// try {
+	await fetch(connection.webhookUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ embeds: [embed] }),
+	});
+	// } catch (err) {
+	// 	console.log(err);
+	// }
 };
 
 export const sendTelegramNotification = async (

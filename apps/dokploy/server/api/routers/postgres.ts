@@ -1,4 +1,9 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { EventEmitter } from "node:events";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -27,6 +32,10 @@ import {
 	updatePostgresById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { z } from "zod";
+
+const ee = new EventEmitter();
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -166,6 +175,32 @@ export const postgresRouter = createTRPCRouter({
 			}
 			return deployPostgres(input.postgresId);
 		}),
+
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/postgres-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployPostgres)
+		.subscription(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Postgres",
+				});
+			}
+			return observable<string>((emit) => {
+				deployPostgres(input.postgresId, (log) => {
+					emit.next(log);
+				});
+			});
+		}),
+
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)
 		.mutation(async ({ input, ctx }) => {
