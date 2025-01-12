@@ -7,7 +7,7 @@ import {
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const matrixSubdomain = `matrix.${generateRandomDomain(schema)}`;
+	const matrixSubdomain = generateRandomDomain(schema);
 
 	const domains: DomainSchema[] = [
 		{
