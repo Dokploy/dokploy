@@ -1,8 +1,6 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
-import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -22,12 +20,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
-import {
-	CopyIcon,
-	ExternalLinkIcon,
-	RocketIcon,
-	ServerIcon,
-} from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +29,8 @@ import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
 import { ValidateServer } from "./validate-server";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 
 interface Props {
 	serverId: string;
@@ -53,14 +48,33 @@ export const SetupServer = ({ serverId }: Props) => {
 	);
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
-	const { data: deployments, refetch } = api.deployment.allByServer.useQuery(
-		{ serverId },
+
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
+	const [isDeploying, setIsDeploying] = useState(false);
+	api.server.setupWithLogs.useSubscription(
 		{
-			enabled: !!serverId,
+			serverId: serverId,
+		},
+		{
+			enabled: isDeploying,
+			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
+
+				if (log === "Deployment completed successfully!") {
+					setIsDeploying(false);
+				}
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
+			},
+			onError(error) {
+				console.error("Deployment logs error:", error);
+				setIsDeploying(false);
+			},
 		},
 	);
-
-	const { mutateAsync, isLoading } = api.server.setup.useMutation();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -238,87 +252,36 @@ export const SetupServer = ({ serverId }: Props) => {
 												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 													<div className="flex flex-col gap-1">
 														<CardTitle className="text-xl">
-															Deployments
+															Setup Server
 														</CardTitle>
 														<CardDescription>
-															See all the 5 Server Setup
+															To setup a server, please click on the button
+															below.
 														</CardDescription>
 													</div>
+												</div>
+											</CardHeader>
+											<CardContent className="flex flex-col gap-4 min-h-[25vh] items-center">
+												<div className="flex flex-col gap-4 items-center h-full max-w-xl mx-auto min-h-[25vh] justify-center">
+													<span className="text-sm text-muted-foreground text-center">
+														When your server is ready, you can click on the
+														button below, to directly run the script we use for
+														setup the server or directly modify the script
+													</span>
 													<div className="flex flex-row gap-2">
 														<EditScript serverId={server?.serverId || ""} />
 														<DialogAction
 															title={"Setup Server?"}
+															type="default"
 															description="This will setup the server and all associated data"
 															onClick={async () => {
-																await mutateAsync({
-																	serverId: server?.serverId || "",
-																})
-																	.then(async () => {
-																		refetch();
-																		toast.success("Server setup successfully");
-																	})
-																	.catch(() => {
-																		toast.error("Error configuring server");
-																	});
+																setIsDeploying(true);
 															}}
 														>
-															<Button isLoading={isLoading}>
-																Setup Server
-															</Button>
+															<Button>Setup Server</Button>
 														</DialogAction>
 													</div>
 												</div>
-											</CardHeader>
-											<CardContent className="flex flex-col gap-4">
-												{server?.deployments?.length === 0 ? (
-													<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
-														<RocketIcon className="size-8 text-muted-foreground" />
-														<span className="text-base text-muted-foreground">
-															No deployments found
-														</span>
-													</div>
-												) : (
-													<div className="flex flex-col gap-4">
-														{deployments?.map((deployment) => (
-															<div
-																key={deployment.deploymentId}
-																className="flex items-center justify-between rounded-lg border p-4 gap-2"
-															>
-																<div className="flex flex-col">
-																	<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-																		{deployment.status}
-
-																		<StatusTooltip
-																			status={deployment?.status}
-																			className="size-2.5"
-																		/>
-																	</span>
-																	<span className="text-sm text-muted-foreground">
-																		{deployment.title}
-																	</span>
-																	{deployment.description && (
-																		<span className="break-all text-sm text-muted-foreground">
-																			{deployment.description}
-																		</span>
-																	)}
-																</div>
-																<div className="flex flex-col items-end gap-2">
-																	<div className="text-sm capitalize text-muted-foreground">
-																		<DateTooltip date={deployment.createdAt} />
-																	</div>
-
-																	<Button
-																		onClick={() => {
-																			setActiveLog(deployment.logPath);
-																		}}
-																	>
-																		View
-																	</Button>
-																</div>
-															</div>
-														))}
-													</div>
-												)}
 
 												<ShowDeployment
 													open={activeLog !== null}
@@ -358,6 +321,15 @@ export const SetupServer = ({ serverId }: Props) => {
 					</div>
 				)}
 			</DialogContent>
+			<DrawerLogs
+				isOpen={isDrawerOpen}
+				onClose={() => {
+					setIsDrawerOpen(false);
+					setFilteredLogs([]);
+					setIsDeploying(false);
+				}}
+				filteredLogs={filteredLogs}
+			/>
 		</Dialog>
 	);
 };

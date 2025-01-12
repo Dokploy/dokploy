@@ -32,6 +32,7 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 
 export const serverRouter = createTRPCRouter({
@@ -122,6 +123,26 @@ export const serverRouter = createTRPCRouter({
 				}
 				const currentServer = await serverSetup(input.serverId);
 				return currentServer;
+			} catch (error) {
+				throw error;
+			}
+		}),
+	setupWithLogs: protectedProcedure
+		.input(apiFindOneServer)
+		.subscription(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup this server",
+					});
+				}
+				return observable<string>((emit) => {
+					serverSetup(input.serverId, (log) => {
+						emit.next(log);
+					});
+				});
 			} catch (error) {
 				throw error;
 			}
