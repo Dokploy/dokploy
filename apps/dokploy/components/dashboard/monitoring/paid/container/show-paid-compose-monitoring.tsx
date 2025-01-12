@@ -48,9 +48,9 @@ export const ComposePaidMonitoring = ({
 		},
 	);
 
-	const [containerAppName, setContainerAppName] = useState<
-		string | undefined
-	>();
+	const [containerAppName, setContainerAppName] = useState<string | undefined>(
+		"",
+	);
 
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -66,7 +66,7 @@ export const ComposePaidMonitoring = ({
 
 	return (
 		<div>
-			<Card className="bg-background">
+			<Card className="bg-background border-0">
 				<CardHeader>
 					<CardTitle className="text-xl">Monitoring</CardTitle>
 					<CardDescription>Watch the usage of your compose</CardDescription>
@@ -122,11 +122,13 @@ export const ComposePaidMonitoring = ({
 							Restart
 						</Button>
 					</div>
-					<ContainerPaidMonitoring
-						appName={containerAppName || ""}
-						baseUrl={url}
-						token={token}
-					/>
+					<div className="flex flex-col gap-4">
+						<ContainerPaidMonitoring
+							appName={containerAppName || ""}
+							baseUrl={url}
+							token={token}
+						/>
+					</div>
 				</CardContent>
 			</Card>
 		</div>

@@ -78,6 +78,10 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 				url.searchParams.append("limit", dataPoints);
 			}
 
+			if (!appName) {
+				throw new Error(`No app name provided ${appName}`);
+			}
+
 			url.searchParams.append("appName", appName);
 
 			const response = await fetch(url.toString(), {
