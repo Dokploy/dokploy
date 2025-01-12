@@ -10,6 +10,7 @@ import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/gener
 import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
 import { RedisIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -71,7 +72,19 @@ const Redis = (
 		api.redis.remove.useMutation();
 	return (
 		<div className="pb-10">
-			{" "}
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/redis/${redisId}`,
+					},
+				]}
+			/>
 			<Head>
 				<title>
 					Database: {data?.name} - {data?.project.name} | Dokploy
