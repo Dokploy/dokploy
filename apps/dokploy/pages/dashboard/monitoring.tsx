@@ -2,6 +2,7 @@ import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Card } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/index";
@@ -11,27 +12,6 @@ import type { ReactElement } from "react";
 
 const BASE_URL =
 	process.env.NEXT_PUBLIC_METRICS_URL || "http://localhost:4500/metrics";
-
-interface SystemMetrics {
-	cpu: string;
-	cpuModel: string;
-	cpuCores: number;
-	cpuPhysicalCores: number;
-	cpuSpeed: number;
-	os: string;
-	distro: string;
-	kernel: string;
-	arch: string;
-	memUsed: string;
-	memUsedGB: string;
-	memTotal: string;
-	uptime: number;
-	diskUsed: string;
-	totalDisk: string;
-	networkIn: string;
-	networkOut: string;
-	timestamp: string;
-}
 
 const Dashboard = () => {
 	const { data: admin } = api.admin.one.useQuery();
@@ -49,15 +29,19 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock>
-			{admin?.enablePaidFeatures ? (
-				<ShowPaidMonitoring
-					BASE_URL={
-						process.env.NODE_ENV === "production"
-							? `http://${admin?.serverIp}:${admin?.defaultPortMetrics}/metrics`
-							: BASE_URL
-					}
-					token={admin?.metricsToken}
-				/>
+			{!admin?.enablePaidFeatures ? (
+				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto">
+					<div className="rounded-xl bg-background shadow-md px-4">
+						<ShowPaidMonitoring
+							BASE_URL={
+								process.env.NODE_ENV === "production"
+									? `http://${admin?.serverIp}:${admin?.defaultPortMetrics}/metrics`
+									: BASE_URL
+							}
+							token={admin?.metricsToken}
+						/>
+					</div>
+				</Card>
 			) : (
 				<ContainerFreeMonitoring appName="dokploy" />
 			)}

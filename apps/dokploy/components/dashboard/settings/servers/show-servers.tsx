@@ -56,14 +56,6 @@ export const ShowServers = () => {
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();
 
-	if (isLoading) {
-		return (
-			<div className="p-6 space-y-6 border rounded-lg flex justify-center items-center min-h-[45vh]">
-				<Loader2 className="animate-spin text-muted-foreground" />
-			</div>
-		);
-	}
-
 	return (
 		<div className="w-full">
 			{query?.success && isCloud && <WelcomeSuscription />}
@@ -324,6 +316,10 @@ export const ShowServers = () => {
 																						/>
 																						<ShowDockerContainersModal
 																							serverId={server.serverId}
+																						/>
+																						<ShowMonitoringModal
+																							url={`http://${server.ipAddress}:${server.defaultPortMetrics}/metrics`}
+																							token={server.metricsToken}
 																						/>
 																						<ShowSwarmOverviewModal
 																							serverId={server.serverId}
