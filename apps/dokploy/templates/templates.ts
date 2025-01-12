@@ -1210,6 +1210,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./gotenberg/index").then((m) => m.generate),
 	},
 	{
+		id: "actualbudget",
+		name: "Actual Budget",
+		version: "latest",
+		description:
+			"A super fast and privacy-focused app for managing your finances.",
+		logo: "actualbudget.png",
+		links: {
+			github: "https://github.com/actualbudget/actual",
+			website: "https://actualbudget.org",
+			docs: "https://actualbudget.org/docs",
+		},
+		tags: ["budgeting", "finance", "money"],
+		load: () => import("./actualbudget/index").then((m) => m.generate),
+	},
+	{
 		id: "conduit",
 		name: "Conduit",
 		version: "v0.9.0",
