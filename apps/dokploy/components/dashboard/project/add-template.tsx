@@ -35,6 +35,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -50,7 +51,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import {
@@ -77,7 +77,7 @@ interface Props {
 export const AddTemplate = ({ projectId }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
-	const [viewMode, setViewMode] = useState<"detailed" | "icon">("icon");
+	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data } = api.compose.templates.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -133,9 +133,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											className={cn(
-												"w-[200px] justify-between !bg-input",
-											)}
+											className={cn("w-[200px] justify-between !bg-input")}
 										>
 											{isLoadingTags
 												? "Loading...."
@@ -148,7 +146,10 @@ export const AddTemplate = ({ projectId }: Props) => {
 									</PopoverTrigger>
 									<PopoverContent className="p-0" align="start">
 										<Command>
-											<CommandInput placeholder="Search tag..." className="h-9" />
+											<CommandInput
+												placeholder="Search tag..."
+												className="h-9"
+											/>
 											{isLoadingTags && (
 												<span className="py-6 text-center text-sm">
 													Loading Tags....
@@ -189,7 +190,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 								</Popover>
 								<Button
 									size="icon"
-									onClick={() => setViewMode(viewMode === "detailed" ? "icon" : "detailed")}
+									onClick={() =>
+										setViewMode(viewMode === "detailed" ? "icon" : "detailed")
+									}
 									className="h-9 w-9"
 								>
 									{viewMode === "detailed" ? (
@@ -203,11 +206,13 @@ export const AddTemplate = ({ projectId }: Props) => {
 						{selectedTags.length > 0 && (
 							<div className="flex flex-wrap justify-end gap-2">
 								{selectedTags.map((tag) => (
-									<Badge 
+									<Badge
 										key={tag}
 										variant="secondary"
 										className="cursor-pointer"
-										onClick={() => setSelectedTags(selectedTags.filter(t => t !== tag))}
+										onClick={() =>
+											setSelectedTags(selectedTags.filter((t) => t !== tag))
+										}
 									>
 										{tag} ×
 									</Badge>
@@ -220,7 +225,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 				<ScrollArea className="h-[calc(98vh-8rem)]">
 					<div className="p-6">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-						
+
 						{templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
 								<SearchIcon className="text-muted-foreground size-6" />
@@ -229,32 +234,38 @@ export const AddTemplate = ({ projectId }: Props) => {
 								</div>
 							</div>
 						) : (
-							<div className={cn(
-								"grid gap-6",
-								viewMode === "detailed" 
-									? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6" 
-									: "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8"
-							)}>
+							<div
+								className={cn(
+									"grid gap-6",
+									viewMode === "detailed"
+										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6"
+										: "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8",
+								)}
+							>
 								{templates?.map((template, index) => (
-									<div 
+									<div
 										key={`template-${index}`}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
-											viewMode === "detailed" && "h-[400px]"
+											viewMode === "detailed" && "h-[400px]",
 										)}
 									>
-										<Badge className="absolute top-2 right-2" variant="blue">{template.version}</Badge>
+										<Badge className="absolute top-2 right-2" variant="blue">
+											{template.version}
+										</Badge>
 										{/* Template Header */}
-										<div className={cn(
-											"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
-											viewMode === "detailed" && "border-b"
-										)}>
+										<div
+											className={cn(
+												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
+												viewMode === "detailed" && "border-b",
+											)}
+										>
 											<img
 												src={`/templates/${template.logo}`}
 												className={cn(
 													"object-contain",
-													viewMode === "detailed" ? "size-24" : "size-16"
+													viewMode === "detailed" ? "size-24" : "size-16",
 												)}
 												alt={template.name}
 											/>
@@ -262,19 +273,20 @@ export const AddTemplate = ({ projectId }: Props) => {
 												<span className="text-sm font-medium line-clamp-1">
 													{template.name}
 												</span>
-												{viewMode === "detailed" && template.tags.length > 0 && (
-													<div className="flex flex-wrap justify-center gap-1.5">
-														{template.tags.map((tag) => (
-															<Badge 
-																key={tag}
-																variant="green"
-																className="text-[10px] px-2 py-0"
-															>
-																{tag}
-															</Badge>
-														))}
-													</div>
-												)}
+												{viewMode === "detailed" &&
+													template.tags.length > 0 && (
+														<div className="flex flex-wrap justify-center gap-1.5">
+															{template.tags.map((tag) => (
+																<Badge
+																	key={tag}
+																	variant="green"
+																	className="text-[10px] px-2 py-0"
+																>
+																	{tag}
+																</Badge>
+															))}
+														</div>
+													)}
 											</div>
 										</div>
 
@@ -288,12 +300,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 										)}
 
 										{/* Create Button */}
-										<div className={cn(
-											"flex-none px-6 pb-6 pt-3 mt-auto",
-											viewMode === "detailed" 
-												? "flex items-center justify-between bg-muted/30 border-t" 
-												: "flex justify-center"
-										)}>
+										<div
+											className={cn(
+												"flex-none px-6 pb-6 pt-3 mt-auto",
+												viewMode === "detailed"
+													? "flex items-center justify-between bg-muted/30 border-t"
+													: "flex justify-center",
+											)}
+										>
 											{viewMode === "detailed" && (
 												<div className="flex gap-2">
 													<Link
@@ -325,11 +339,11 @@ export const AddTemplate = ({ projectId }: Props) => {
 											)}
 											<AlertDialog>
 												<AlertDialogTrigger asChild>
-													<Button 
-														size="sm" 
+													<Button
+														size="sm"
 														className={cn(
 															"w-auto",
-															viewMode === "detailed" && "w-auto"
+															viewMode === "detailed" && "w-auto",
 														)}
 													>
 														Create
@@ -361,9 +375,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		side="top"
 																	>
 																		<span>
-																			If ot server is selected, the
-																			application will be deployed on the
-																			server where the user is logged in.
+																			If ot server is selected, the application
+																			will be deployed on the server where the
+																			user is logged in.
 																		</span>
 																	</TooltipContent>
 																</Tooltip>
