@@ -81,7 +81,8 @@ export const AddCommand = ({ applicationId }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Run Command</CardTitle>
 					<CardDescription>
-						Run a custom command in the container
+						Run a custom command in the container after the application
+						initialized
 					</CardDescription>
 				</div>
 			</CardHeader>

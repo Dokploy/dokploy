@@ -2,7 +2,6 @@ import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { nanoid } from "nanoid";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,

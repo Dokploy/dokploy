@@ -20,6 +20,11 @@ interface Props {
 
 export const CancelQueuesCompose = ({ composeId }: Props) => {
 	const { mutateAsync, isLoading } = api.compose.cleanQueues.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
+	if (isCloud) {
+		return null;
+	}
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>

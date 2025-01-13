@@ -1,17 +1,7 @@
-import { execAsync } from "@dokploy/server";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import fs from "node:fs";
-
-const HOME_PATH = process.env.HOME || process.env.USERPROFILE || "/";
-
-const LOCAL_SSH_KEY_PATH = path.join(
-	HOME_PATH,
-	".ssh",
-	"auto_generated-dokploy-local",
-);
-
-const AUTHORIZED_KEYS_PATH = path.join(HOME_PATH, ".ssh", "authorized_keys");
+import { execAsync, paths } from "@dokploy/server";
 
 export const getShell = () => {
 	switch (os.platform()) {
@@ -24,39 +14,20 @@ export const getShell = () => {
 	}
 };
 
-/** Returns private SSH key for dokploy local server terminal. Uses already created SSH key or generates a new SSH key, also automatically appends the public key to `authorized_keys`, creating the file if needed. */
+/** Returns private SSH key for dokploy local server terminal. Uses already created SSH key or generates a new SSH key.
+ */
 export const setupLocalServerSSHKey = async () => {
-	try {
-		if (!fs.existsSync(LOCAL_SSH_KEY_PATH)) {
-			// Generate new SSH key if it hasn't been created yet
-			await execAsync(
-				`ssh-keygen -t rsa -b 4096 -f ${LOCAL_SSH_KEY_PATH} -N ""`,
-			);
-		}
+	const { SSH_PATH } = paths(true);
+	const sshKeyPath = path.join(SSH_PATH, "auto_generated-dokploy-local");
 
-		const privateKey = fs.readFileSync(LOCAL_SSH_KEY_PATH, "utf8");
-		const publicKey = fs.readFileSync(`${LOCAL_SSH_KEY_PATH}.pub`, "utf8");
-		const authKeyContent = `${publicKey}\n`;
-
-		if (!fs.existsSync(AUTHORIZED_KEYS_PATH)) {
-			// Create authorized_keys if it doesn't exist yet
-			fs.writeFileSync(AUTHORIZED_KEYS_PATH, authKeyContent, { mode: 0o600 });
-			return privateKey;
-		}
-
-		const existingAuthKeys = fs.readFileSync(AUTHORIZED_KEYS_PATH, "utf8");
-		if (existingAuthKeys.includes(publicKey)) {
-			return privateKey;
-		}
-
-		// Append the public key to authorized_keys
-		fs.appendFileSync(AUTHORIZED_KEYS_PATH, authKeyContent, {
-			mode: 0o600,
-		});
-
-		return privateKey;
-	} catch (error) {
-		console.error("Error getting private SSH key for local terminal:", error);
-		return "";
+	if (!fs.existsSync(sshKeyPath)) {
+		// Generate new SSH key if it hasn't been created yet
+		await execAsync(
+			`ssh-keygen -t rsa -b 4096 -f ${sshKeyPath} -N "" -C "dokploy-local-access"`,
+		);
 	}
+
+	const privateKey = fs.readFileSync(sshKeyPath, "utf8");
+
+	return privateKey;
 };

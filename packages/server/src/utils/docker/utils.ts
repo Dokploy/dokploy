@@ -306,10 +306,10 @@ export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 };
 
 type Resources = {
-	memoryLimit: number | null;
-	memoryReservation: number | null;
-	cpuLimit: number | null;
-	cpuReservation: number | null;
+	memoryLimit: string | null;
+	memoryReservation: string | null;
+	cpuLimit: string | null;
+	cpuReservation: string | null;
 };
 export const calculateResources = ({
 	memoryLimit,
@@ -319,12 +319,14 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ?? undefined,
-			NanoCPUs: cpuLimit ?? undefined,
+			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
+			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
 		},
 		Reservations: {
-			MemoryBytes: memoryReservation ?? undefined,
-			NanoCPUs: cpuReservation ?? undefined,
+			MemoryBytes: memoryReservation
+				? Number.parseInt(memoryReservation)
+				: undefined,
+			NanoCPUs: cpuReservation ? Number.parseInt(cpuReservation) : undefined,
 		},
 	};
 };

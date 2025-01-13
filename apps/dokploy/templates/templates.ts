@@ -619,7 +619,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "vaultwarden",
 		name: "Vaultwarden",
-		version: "1.32.3",
+		version: "1.32.7",
 		description:
 			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
 		logo: "vaultwarden.svg",
@@ -1165,5 +1165,78 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "networking"],
 		load: () => import("./unifi/index").then((m) => m.generate),
+	},
+	{
+		id: "glpi",
+		name: "GLPI Project",
+		version: "10.0.16",
+		description: "The most complete open source service management software",
+		logo: "glpi.webp",
+		links: {
+			github: "https://github.com/glpi-project/glpi",
+			website: "https://glpi-project.org/",
+			docs: "https://glpi-project.org/documentation/",
+		},
+		tags: ["self-hosted", "project-management", "management"],
+		load: () => import("./glpi/index").then((m) => m.generate),
+	},
+	{
+		id: "checkmate",
+		name: "Checkmate",
+		version: "2.0.1",
+		description:
+			"Checkmate is an open-source, self-hosted tool designed to track and monitor server hardware, uptime, response times, and incidents in real-time with beautiful visualizations.",
+		logo: "checkmate.png",
+		links: {
+			github: "https://github.com/bluewave-labs/checkmate",
+			website: "https://bluewavelabs.ca",
+			docs: "https://bluewavelabs.gitbook.io/checkmate",
+		},
+		tags: ["self-hosted", "monitoring", "uptime"],
+		load: () => import("./checkmate/index").then((m) => m.generate),
+	},
+	{
+		id: "gotenberg",
+		name: "Gotenberg",
+		version: "latest",
+		description: "Gotenberg is a Docker-powered stateless API for PDF files.",
+		logo: "gotenberg.png",
+		links: {
+			github: "https://github.com/gotenberg/gotenberg",
+			website: "https://gotenberg.dev",
+			docs: "https://gotenberg.dev/docs/getting-started/introduction",
+		},
+		tags: ["api", "backend", "pdf", "tools"],
+		load: () => import("./gotenberg/index").then((m) => m.generate),
+	},
+	{
+		id: "actualbudget",
+		name: "Actual Budget",
+		version: "latest",
+		description:
+			"A super fast and privacy-focused app for managing your finances.",
+		logo: "actualbudget.png",
+		links: {
+			github: "https://github.com/actualbudget/actual",
+			website: "https://actualbudget.org",
+			docs: "https://actualbudget.org/docs",
+		},
+		tags: ["budgeting", "finance", "money"],
+		load: () => import("./actualbudget/index").then((m) => m.generate),
+	},
+	{
+		id: "conduit",
+		name: "Conduit",
+		version: "v0.9.0",
+		description:
+			"Conduit is a simple, fast and reliable chat server powered by Matrix",
+		logo: "conduit.svg",
+		links: {
+			github: "https://gitlab.com/famedly/conduit",
+			website: "https://conduit.rs/",
+			docs: "https://docs.conduit.rs/",
+		},
+		tags: ["matrix", "communication"],
+		load: () => import("./conduit/index").then((m) => m.generate),
 	},
 ];

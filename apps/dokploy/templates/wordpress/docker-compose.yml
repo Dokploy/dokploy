@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   wordpress:
-    image: wordpress:5.8.3
+    image: wordpress:6.7.1
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: exampleuser
