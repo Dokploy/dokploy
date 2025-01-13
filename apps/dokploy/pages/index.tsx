@@ -98,11 +98,6 @@ export default function Home({ IS_CLOUD }: Props) {
 	};
 	return (
 		<>
-			{isError && (
-				<AlertBlock type="error" className="mx-4 my-2">
-					<span>{error?.message}</span>
-				</AlertBlock>
-			)}
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
 					<div className="flex flex-row items-center justify-center gap-2">
@@ -114,6 +109,11 @@ export default function Home({ IS_CLOUD }: Props) {
 					Enter your email and password to sign in
 				</p>
 			</div>
+			{isError && (
+				<AlertBlock type="error" className="my-2">
+					<span>{error?.message}</span>
+				</AlertBlock>
+			)}
 			<CardContent className="p-0">
 				{!temp.is2FAEnabled ? (
 					<Form {...form}>
