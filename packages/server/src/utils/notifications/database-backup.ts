@@ -130,7 +130,7 @@ export const sendDatabaseBackupNotifications = async ({
 			
 			const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 			
-			await sendTelegramNotification(telegram, messageText, []);
+			await sendTelegramNotification(telegram, messageText);
 		}
 
 		if (slack) {

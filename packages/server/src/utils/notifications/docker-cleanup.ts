@@ -83,8 +83,7 @@ export const sendDockerCleanupNotifications = async (
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
-				[]
+				`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`
 			);
 		}
 

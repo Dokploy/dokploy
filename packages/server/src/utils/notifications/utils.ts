@@ -55,7 +55,7 @@ export const sendDiscordNotification = async (
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
-	inlineButton: {
+	inlineButton?: {
 		text: string;
 		url: string;
 	}[][]
