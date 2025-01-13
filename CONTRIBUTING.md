@@ -14,11 +14,9 @@ We have a few guidelines to follow when contributing to this project:
 
 ## Commit Convention
 
-
 Before you create a Pull Request, please make sure your commit message follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
 
 ### Commit Message Format
-
 
 ```
 <type>[optional scope]: <description>
@@ -54,6 +52,8 @@ feat: add new feature
 
 Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
+We use Node v20.9.0
+
 ```bash
 git clone https://github.com/dokploy/dokploy.git
 cd dokploy
@@ -73,9 +73,10 @@ Run the command that will spin up all the required services and files.
 pnpm run dokploy:setup
 ```
 
-Run this script 
+Run this script
+
 ```bash
-pnpm run server:script 
+pnpm run server:script
 ```
 
 Now run the development server.
@@ -248,4 +249,3 @@ export function generate(schema: Schema): Template {
 ## Docs & Website
 
 To contribute to the Dokploy docs or website, please go to this [repository](https://github.com/Dokploy/website).
-

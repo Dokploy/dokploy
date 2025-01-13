@@ -1170,8 +1170,7 @@ export const templates: TemplateData[] = [
 		id: "glpi",
 		name: "GLPI Project",
 		version: "10.0.16",
-		description:
-			"The most complete open source service management software",
+		description: "The most complete open source service management software",
 		logo: "glpi.webp",
 		links: {
 			github: "https://github.com/glpi-project/glpi",
@@ -1180,8 +1179,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "project-management", "management"],
 		load: () => import("./glpi/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "checkmate",
 		name: "Checkmate",
 		version: "2.0.1",
@@ -1200,8 +1199,7 @@ export const templates: TemplateData[] = [
 		id: "gotenberg",
 		name: "Gotenberg",
 		version: "latest",
-		description:
-			"Gotenberg is a Docker-powered stateless API for PDF files.",
+		description: "Gotenberg is a Docker-powered stateless API for PDF files.",
 		logo: "gotenberg.png",
 		links: {
 			github: "https://github.com/gotenberg/gotenberg",
@@ -1210,5 +1208,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["api", "backend", "pdf", "tools"],
 		load: () => import("./gotenberg/index").then((m) => m.generate),
-	}
+	},
+	{
+		id: "actualbudget",
+		name: "Actual Budget",
+		version: "latest",
+		description:
+			"A super fast and privacy-focused app for managing your finances.",
+		logo: "actualbudget.png",
+		links: {
+			github: "https://github.com/actualbudget/actual",
+			website: "https://actualbudget.org",
+			docs: "https://actualbudget.org/docs",
+		},
+		tags: ["budgeting", "finance", "money"],
+		load: () => import("./actualbudget/index").then((m) => m.generate),
+	},
+	{
+		id: "conduit",
+		name: "Conduit",
+		version: "v0.9.0",
+		description:
+			"Conduit is a simple, fast and reliable chat server powered by Matrix",
+		logo: "conduit.svg",
+		links: {
+			github: "https://gitlab.com/famedly/conduit",
+			website: "https://conduit.rs/",
+			docs: "https://docs.conduit.rs/",
+		},
+		tags: ["matrix", "communication"],
+		load: () => import("./conduit/index").then((m) => m.generate),
+	},
 ];

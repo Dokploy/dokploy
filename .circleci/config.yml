@@ -53,7 +53,7 @@ jobs:
 
   combine-manifests:
     docker:
-      - image: cimg/node:18.18.0
+      - image: cimg/node:20.9.0
     steps:
       - checkout
       - setup_remote_docker
@@ -99,14 +99,14 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - feat/add-sidebar
       - build-arm64:
           filters:
             branches:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - feat/add-sidebar
       - combine-manifests:
           requires:
             - build-amd64
@@ -116,4 +116,4 @@ workflows:
               only:
                 - main
                 - canary
-                - fix/nixpacks-version
+                - feat/add-sidebar

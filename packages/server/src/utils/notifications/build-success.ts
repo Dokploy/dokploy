@@ -65,7 +65,7 @@ export const sendBuildSuccessNotifications = async ({
 				`${discord.decoration ? decoration : ""} ${text}`.trim();
 
 			await sendDiscordNotification(discord, {
-				title: "> `✅` Build Success",
+				title: decorate(">", "`✅` Build Success"),
 				color: 0x57f287,
 				fields: [
 					{

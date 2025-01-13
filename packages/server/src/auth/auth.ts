@@ -1,4 +1,3 @@
-import { webcrypto } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { findAdminByAuthId } from "@dokploy/server/services/admin";
 import { findUserByAuthId } from "@dokploy/server/services/user";
@@ -9,7 +8,6 @@ import type { Session, User } from "lucia/dist/core.js";
 import { db } from "../db";
 import { type DatabaseUser, auth, sessionTable } from "../db/schema";
 
-globalThis.crypto = webcrypto as Crypto;
 export const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable, auth);
 
 export const lucia = new Lucia(adapter, {
