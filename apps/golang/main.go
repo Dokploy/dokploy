@@ -100,20 +100,21 @@ func main() {
 		limit := c.Query("limit", "50")
 		appName := c.Query("appName", "")
 
-		limitNum, err := strconv.Atoi(limit)
-		if err != nil {
-			limitNum = 50
-		}
-
 		if appName == "" {
 			return c.JSON([]database.ContainerMetric{})
 		}
 
 		var metrics []database.ContainerMetric
-		if appName != "" {
-			metrics, err = db.GetContainerMetrics(appName, limitNum)
+		var err error
+
+		if limit == "all" {
+			metrics, err = db.GetAllMetricsContainer(appName)
 		} else {
-			metrics, err = db.GetAllContainerMetrics(limitNum)
+			limitNum, parseErr := strconv.Atoi(limit)
+			if parseErr != nil {
+				limitNum = 50
+			}
+			metrics, err = db.GetLastNContainerMetrics(appName, limitNum)
 		}
 
 		if err != nil {

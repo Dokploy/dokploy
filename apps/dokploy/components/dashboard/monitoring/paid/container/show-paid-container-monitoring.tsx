@@ -13,7 +13,12 @@ import { ContainerCPUChart } from "./container-cpu-chart";
 import { ContainerMemoryChart } from "./container-memory-chart";
 import { ContainerNetworkChart } from "./container-network-chart";
 
-const REFRESH_INTERVAL = 4500;
+const REFRESH_INTERVALS = {
+	"5000": "5 Seconds",
+	"10000": "10 Seconds",
+	"20000": "20 Seconds",
+	"30000": "30 Seconds",
+} as const;
 
 const DATA_POINTS_OPTIONS = {
 	"50": "50 points",
@@ -69,6 +74,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	const [error, setError] = useState<string | null>(null);
 	const [dataPoints, setDataPoints] =
 		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
+	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
 
 	const fetchMetrics = async () => {
 		try {
@@ -114,10 +120,10 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 		const interval = setInterval(() => {
 			fetchMetrics();
-		}, REFRESH_INTERVAL);
+		}, Number(refreshInterval));
 
 		return () => clearInterval(interval);
-	}, [dataPoints, appName, token]);
+	}, [dataPoints, appName, token, refreshInterval]);
 
 	if (isLoading) {
 		return (
@@ -140,8 +146,6 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	return (
 		<>
-			{/* Header con selector de puntos de datos */}
-			{appName}
 			<div className="flex items-center justify-between">
 				<h2 className="text-2xl font-bold tracking-tight">
 					Container Monitoring
@@ -159,6 +163,26 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						</SelectTrigger>
 						<SelectContent>
 							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<span className="text-sm text-muted-foreground">
+						Refresh interval:
+					</span>
+					<Select
+						value={refreshInterval}
+						onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
+							setRefreshInterval(value)
+						}
+					>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Select interval" />
+						</SelectTrigger>
+						<SelectContent>
+							{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
 								<SelectItem key={value} value={value}>
 									{label}
 								</SelectItem>
