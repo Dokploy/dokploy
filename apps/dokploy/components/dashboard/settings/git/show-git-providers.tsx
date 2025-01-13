@@ -13,15 +13,16 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { formatDate } from "date-fns";
 import {
-	ExternalLink,
 	ExternalLinkIcon,
 	GitBranch,
 	ImportIcon,
 	Loader2,
 	Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
@@ -29,8 +30,6 @@ import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
-import Link from "next/link";
-import { useUrl } from "@/utils/hooks/use-url";
 
 export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
