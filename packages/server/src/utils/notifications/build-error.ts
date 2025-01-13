@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -39,11 +40,12 @@ export const sendBuildErrorNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -110,6 +112,21 @@ export const sendBuildErrorNotifications = async ({
 					text: "Dokploy Build Notification",
 				},
 			});
+		}
+
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+			await sendGotifyNotification(
+				gotify,
+				decorate("⚠️", "Build Failed"),
+				`${decorate("🛠️", `Project: ${projectName}`)}
+				${decorate("⚙️", `Application: ${applicationName}`)}
+				${decorate("❔", `Type: ${applicationType}`)}
+				${decorate("🕒", `Date: ${date.toLocaleString()}`)}
+				${decorate("⚠️", `Error:\n${errorMessage}`)}
+				${decorate("🔗", `Build details:\n${buildLink}`)}`,
+			);
 		}
 
 		if (telegram) {

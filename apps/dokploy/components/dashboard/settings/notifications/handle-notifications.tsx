@@ -28,7 +28,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon, MessageCircleMore } from "lucide-react";
+import {
+	AlertTriangle,
+	Mail,
+	MessageCircleMore,
+	PenBoxIcon,
+	PlusIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -236,6 +242,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					password: notification.email?.password,
 					toAddresses: notification.email?.toAddresses,
 					fromAddress: notification.email?.fromAddress,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+				});
+			} else if (notification.notificationType === "gotify") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					appToken: notification.gotify?.appToken,
+					decoration: notification.gotify?.decoration || undefined,
+					priority: notification.gotify?.priority,
+					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 				});

@@ -1,3 +1,4 @@
+import { error } from "node:console";
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
@@ -6,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -37,11 +39,12 @@ export const sendDatabaseBackupNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -118,6 +121,24 @@ export const sendDatabaseBackupNotifications = async ({
 					text: "Dokploy Database Backup Notification",
 				},
 			});
+		}
+
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+
+			await sendGotifyNotification(
+				gotify,
+				decorate(
+					type === "success" ? "✅" : "❌",
+					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				),
+				`${decorate("🛠️", `Project: ${projectName}`)}
+				${decorate("⚙️", `Application: ${applicationName}`)}
+				${decorate("❔", `Type: ${databaseType}`)}
+				${decorate("🕒", `Date: ${date.toLocaleString()}`)}
+				${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
+			);
 		}
 
 		if (telegram) {

@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -26,11 +27,12 @@ export const sendDockerCleanupNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -77,6 +79,17 @@ export const sendDockerCleanupNotifications = async (
 					text: "Dokploy Docker Cleanup Notification",
 				},
 			});
+		}
+
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+			await sendGotifyNotification(
+				gotify,
+				decorate("✅", "Docker Cleanup"),
+				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}
+				${decorate("📜", `Message:\n${message}`)}`,
+			);
 		}
 
 		if (telegram) {
