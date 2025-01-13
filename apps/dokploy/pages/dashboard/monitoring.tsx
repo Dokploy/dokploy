@@ -29,7 +29,7 @@ const Dashboard = () => {
 				</a>{" "}
 				to get more features.
 			</AlertBlock>
-			{admin?.enablePaidFeatures ? (
+			{!admin?.enablePaidFeatures ? (
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto">
 					<div className="rounded-xl bg-background shadow-md px-4">
 						<ShowPaidMonitoring

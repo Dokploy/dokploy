@@ -95,10 +95,13 @@ func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, e
 	}
 
 	query := `
-		SELECT metrics_json
-		FROM container_metrics
-		WHERE container_name LIKE ? || '%'
-		ORDER BY timestamp DESC
+		WITH recent_metrics AS (
+			SELECT metrics_json
+			FROM container_metrics
+			WHERE container_name LIKE ? || '%'
+			ORDER BY timestamp DESC
+		)
+		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
 	`
 	rows, err := db.Query(query, containerName)
 	if err != nil {

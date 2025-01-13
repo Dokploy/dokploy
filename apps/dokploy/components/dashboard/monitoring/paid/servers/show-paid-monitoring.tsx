@@ -13,7 +13,12 @@ import { DiskChart } from "./disk-chart";
 import { MemoryChart } from "./memory-chart";
 import { NetworkChart } from "./network-chart";
 
-const REFRESH_INTERVAL = 4500;
+const REFRESH_INTERVALS = {
+	"5000": "5 Seconds",
+	"10000": "10 Seconds",
+	"20000": "20 Seconds",
+	"30000": "30 Seconds",
+} as const;
 
 const DATA_POINTS_OPTIONS = {
 	"50": "50 points",
@@ -63,6 +68,7 @@ export const ShowPaidMonitoring = ({
 	const [error, setError] = useState<string | null>(null);
 	const [dataPoints, setDataPoints] =
 		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
+	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
 
 	const fetchMetrics = async () => {
 		try {
@@ -125,15 +131,16 @@ export const ShowPaidMonitoring = ({
 	useEffect(() => {
 		fetchMetrics();
 
-		// Solo crear el intervalo si no es "all"
-		if (dataPoints !== "all") {
-			const interval = setInterval(() => {
-				fetchMetrics();
-			}, REFRESH_INTERVAL);
-
-			return () => clearInterval(interval);
+		if (dataPoints === "all") {
+			return;
 		}
-	}, [dataPoints, BASE_URL, token]);
+
+		const interval = setInterval(() => {
+			fetchMetrics();
+		}, Number(refreshInterval));
+
+		return () => clearInterval(interval);
+	}, [dataPoints, token, refreshInterval]);
 
 	if (isLoading) {
 		return (
@@ -172,6 +179,26 @@ export const ShowPaidMonitoring = ({
 						</SelectTrigger>
 						<SelectContent>
 							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<span className="text-sm text-muted-foreground">
+						Refresh interval:
+					</span>
+					<Select
+						value={refreshInterval}
+						onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
+							setRefreshInterval(value)
+						}
+					>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Select interval" />
+						</SelectTrigger>
+						<SelectContent>
+							{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
 								<SelectItem key={value} value={value}>
 									{label}
 								</SelectItem>

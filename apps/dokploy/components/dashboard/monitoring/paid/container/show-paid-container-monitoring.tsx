@@ -80,9 +80,9 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		try {
 			const url = new URL(`${baseUrl}/metrics/containers`);
 
-			if (dataPoints !== "all") {
-				url.searchParams.append("limit", dataPoints);
-			}
+			// if (dataPoints !== "all") {
+			url.searchParams.append("limit", dataPoints);
+			// }
 
 			if (!appName) {
 				throw new Error(`No app name provided ${appName}`);
@@ -117,6 +117,10 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	useEffect(() => {
 		fetchMetrics();
+
+		if (dataPoints === "all") {
+			return;
+		}
 
 		const interval = setInterval(() => {
 			fetchMetrics();
