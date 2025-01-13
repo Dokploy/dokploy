@@ -8,6 +8,7 @@ import {
 	BlocksIcon,
 	BookIcon,
 	ChevronRight,
+	CircleHelp,
 	Command,
 	CreditCard,
 	Database,
@@ -127,7 +128,7 @@ const data = {
 			isActive: false,
 		},
 		{
-			title: "File System",
+			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			isSingle: true,
@@ -317,9 +318,15 @@ const data = {
 		},
 		{
 			name: "Support",
+			url: "https://discord.gg/2tBnJ3jDJc",
+			icon: CircleHelp,
+		},
+		{
+			name: "Sponsor",
 			url: "https://opencollective.com/dokploy",
 			icon: Heart,
 		},
+
 		// {
 		// 	name: "Sales & Marketing",
 		// 	url: "#",
