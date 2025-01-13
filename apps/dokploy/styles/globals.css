@@ -192,26 +192,26 @@
 
 /* Docker Logs Scrollbar */
 @layer utilities {
-	.custom-logs-scrollbar {
+	.custom-scrollbar {
 		scrollbar-width: thin;
 		scrollbar-color: hsl(var(--muted-foreground)) transparent;
 	}
 
-	.custom-logs-scrollbar::-webkit-scrollbar {
+	.custom-scrollbar::-webkit-scrollbar {
 		width: 8px;
 		height: 8px;
 	}
 
-	.custom-logs-scrollbar::-webkit-scrollbar-track {
+	.custom-scrollbar::-webkit-scrollbar-track {
 		background: transparent;
 	}
 
-	.custom-logs-scrollbar::-webkit-scrollbar-thumb {
+	.custom-scrollbar::-webkit-scrollbar-thumb {
 		background-color: hsl(var(--muted-foreground) / 0.3);
 		border-radius: 20px;
 	}
 
-	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
 		background-color: hsl(var(--muted-foreground) / 0.5);
 	}
 }
