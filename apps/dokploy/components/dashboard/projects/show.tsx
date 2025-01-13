@@ -117,7 +117,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 flex-wrap gap-5">
+									<div className="w-full  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices =
 												project?.mariadb.length === 0 &&
@@ -140,7 +140,7 @@ export const ShowProjects = () => {
 											return (
 												<div
 													key={project.projectId}
-													className="w-full lg:max-w-md"
+													className="w-full "
 												>
 													<Link
 														href={`/dashboard/project/${project.projectId}`}
