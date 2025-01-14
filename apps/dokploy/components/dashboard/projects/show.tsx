@@ -75,7 +75,7 @@ export const ShowProjects = () => {
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex justify-between gap-4 w-full items-center">
 							<CardHeader className="">
