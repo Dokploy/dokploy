@@ -1239,4 +1239,19 @@ export const templates: TemplateData[] = [
 		tags: ["matrix", "communication"],
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
+	{
+		id: "conduwuit",
+		name: "Conduwuit",
+		version: "latest",
+		description:
+			"Well-maintained, featureful Matrix chat homeserver (fork of Conduit)",
+		logo: "conduwuit.svg",
+		links: {
+			github: "https://github.com/girlbossceo/conduwuit",
+			website: "https://conduwuit.puppyirl.gay",
+			docs: "https://conduwuit.puppyirl.gay/configuration.html",
+		},
+		tags: ["matrix", "communication", "chat", "server", "backend"],
+		load: () => import("./conduwuit/index").then((m) => m.generate),
+	},
 ];
