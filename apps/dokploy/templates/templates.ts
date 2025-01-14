@@ -1251,7 +1251,7 @@ export const templates: TemplateData[] = [
 			website: "https://conduwuit.puppyirl.gay",
 			docs: "https://conduwuit.puppyirl.gay/configuration.html",
 		},
-		tags: ["matrix", "communication", "chat", "server", "backend"],
+		tags: ["backend", "chat", "communication", "matrix", "server"],
 		load: () => import("./conduwuit/index").then((m) => m.generate),
 	},
 ];
