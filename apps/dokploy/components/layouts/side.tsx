@@ -424,7 +424,11 @@ export default function Page({ children }: Props) {
 
 	let filteredSettings = isCloud
 		? data.settings.filter(
-				(item) => !["/dashboard/settings/server"].includes(item.url),
+				(item) =>
+					![
+						"/dashboard/settings/server",
+						"/dashboard/settings/cluster",
+					].includes(item.url),
 			)
 		: data.settings.filter(
 				(item) => !["/dashboard/settings/billing"].includes(item.url),
