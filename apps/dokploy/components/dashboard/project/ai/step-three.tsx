@@ -15,12 +15,12 @@ import {
 import { api } from "@/utils/api";
 import { useState } from "react";
 
-export function StepThree({
+export const StepThree = ({
 	nextStep,
 	prevStep,
 	templateInfo,
 	setTemplateInfo,
-}: any) {
+}: any) => {
 	const [name, setName] = useState(templateInfo.name);
 	const [server, setServer] = useState(templateInfo.server);
 	const { data: servers } = api.server.withSSHKey.useQuery();

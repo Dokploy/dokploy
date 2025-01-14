@@ -36,7 +36,7 @@ interface Props {
 	projectName?: string;
 }
 
-export function TemplateGenerator({ projectId }: Props) {
+export const TemplateGenerator = ({ projectId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState(1);
 	const { data: aiSettings } = api.ai.get.useQuery();

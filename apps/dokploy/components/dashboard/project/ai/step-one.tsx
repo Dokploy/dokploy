@@ -13,7 +13,7 @@ const examples = [
 	"Sendgrid service opensource analogue",
 ];
 
-export function StepOne({ nextStep, setTemplateInfo, templateInfo }: any) {
+export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 	const [userInput, setUserInput] = useState(templateInfo.userInput);
 
 	const handleNext = () => {

@@ -11,14 +11,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/utils/api";
 import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-	ssr: false,
-});
+import {CodeEditor} from "@/components/shared/code-editor";
 
 interface EnvVariable {
 	name: string;
@@ -34,12 +30,12 @@ interface TemplateInfo {
 	envVariables: EnvVariable[];
 }
 
-export function StepTwo({
+export const StepTwo = ({
 	nextStep,
 	prevStep,
 	templateInfo,
 	setTemplateInfo,
-}: any) {
+}: any) => {
 	const [suggestions, setSuggestions] = useState<Array<TemplateInfo>>([]);
 	const [selectedVariant, setSelectedVariant] = useState("");
 	const [dockerCompose, setDockerCompose] = useState("");
@@ -203,26 +199,11 @@ export function StepTwo({
 									<AccordionItem value="docker-compose">
 										<AccordionTrigger>Docker Compose</AccordionTrigger>
 										<AccordionContent>
-											<div className="h-[400px] w-full rounded-md border overflow-hidden">
-												<MonacoEditor
-													height="100%"
-													language="yaml"
-													theme="vs-dark"
-													value={dockerCompose}
-													onChange={(value) =>
-														setDockerCompose(value as string)
-													}
-													options={{
-														minimap: { enabled: false },
-														scrollBeyondLastLine: false,
-														fontSize: 14,
-														lineNumbers: "on",
-														readOnly: false,
-														wordWrap: "on",
-														automaticLayout: true,
-													}}
-												/>
-											</div>
+											<CodeEditor
+												value={dockerCompose}
+												className="font-mono"
+												onChange={(value) => setDockerCompose(value)}
+											/>
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="env-variables">

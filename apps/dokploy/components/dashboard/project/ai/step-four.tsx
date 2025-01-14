@@ -1,18 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import dynamic from "next/dynamic";
 import ReactMarkdown from "react-markdown";
+import {CodeEditor} from "@/components/shared/code-editor";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-	ssr: false,
-});
-
-export function StepFour({
+export const StepFour = ({
 	prevStep,
 	templateInfo,
 	setOpen,
 	setTemplateInfo,
-}: any) {
+}: any) => {
 	const handleSubmit = () => {
 		setTemplateInfo(templateInfo); // Update the template info
 		setOpen(false);
@@ -40,20 +36,11 @@ export function StepFour({
 							</div>
 							<div>
 								<h3 className="text-md font-semibold">Docker Compose</h3>
-								<MonacoEditor
-									height="200px"
-									language="yaml"
-									theme="vs-dark"
+								<CodeEditor
+									lineWrapping
 									value={templateInfo.details.dockerCompose}
-									options={{
-										minimap: { enabled: false },
-										scrollBeyondLastLine: false,
-										fontSize: 14,
-										lineNumbers: "on",
-										readOnly: true,
-										wordWrap: "on",
-										automaticLayout: true,
-									}}
+									disabled
+									className="font-mono"
 								/>
 							</div>
 							<div>

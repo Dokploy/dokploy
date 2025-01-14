@@ -44,7 +44,6 @@
 		"@dokploy/server": "workspace:*",
 		"@dokploy/trpc-openapi": "0.0.4",
 		"@hookform/resolvers": "^3.9.0",
-		"@monaco-editor/react": "^4.6.0",
 		"@octokit/webhooks": "^13.2.7",
 		"@radix-ui/react-accordion": "1.1.2",
 		"@radix-ui/react-alert-dialog": "^1.0.5",
@@ -167,6 +166,8 @@
 		]
 	},
 	"commitlint": {
-		"extends": ["@commitlint/config-conventional"]
+		"extends": [
+			"@commitlint/config-conventional"
+		]
 	}
 }
