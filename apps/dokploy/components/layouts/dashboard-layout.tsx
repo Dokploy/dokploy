@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import Page from "./side";
+import SideWrapper from "./side-wrapper";
 
 interface Props {
 	children: React.ReactNode;
@@ -7,19 +6,9 @@ interface Props {
 }
 
 export const DashboardLayout = ({ children }: Props) => {
-	const [defaultOpen, setDefaultOpen] = useState(true);
-
-	useEffect(() => {
-		const cookieValue = document.cookie
-			.split("; ")
-			.find((row) => row.startsWith("sidebar:state="))
-			?.split("=")[1];
-		setDefaultOpen(cookieValue === "true");
-	}, []);
-
 	return (
-		<Page defaultOpen={defaultOpen}>
+		<SideWrapper>
 			<div>{children}</div>
-		</Page>
+		</SideWrapper>
 	);
 };
