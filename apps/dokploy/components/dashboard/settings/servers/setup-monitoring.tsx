@@ -56,6 +56,9 @@ const Schema = z.object({
       }),
       token: z.string(),
       urlCallback: z.string(),
+      retentionDays: z.number().min(1, {
+        message: "Retention days must be at least 1",
+      }),
       thresholds: z.object({
         cpu: z.number().min(0),
         memory: z.number().min(0),
@@ -124,6 +127,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
           port: 4500,
           token: "",
           urlCallback: "",
+          retentionDays: 7,
           thresholds: {
             cpu: 0,
             memory: 0,
@@ -149,6 +153,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
             port: data?.metricsConfig?.server?.port,
             token: data?.metricsConfig?.server?.token || generateToken(),
             urlCallback: data?.metricsConfig?.server?.urlCallback || url,
+            retentionDays: data?.metricsConfig?.server?.retentionDays || 5,
             thresholds: {
               cpu: data?.metricsConfig?.server?.thresholds?.cpu,
               memory: data?.metricsConfig?.server?.thresholds?.memory,
@@ -516,6 +521,23 @@ export const SetupMonitoring = ({ serverId }: Props) => {
                     </FormControl>
                     <FormDescription>
                       Alert when memory usage exceeds this percentage
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="metricsConfig.server.retentionDays"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Server Retention Days</FormLabel>
+                    <FormControl>
+                      <NumberInput {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Number of days to retain server metrics data
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

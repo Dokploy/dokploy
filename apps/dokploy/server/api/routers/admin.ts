@@ -137,6 +137,7 @@ export const adminRouter = createTRPCRouter({
 							port: input.metricsConfig.server.port,
 							token: input.metricsConfig.server.token,
 							urlCallback: input.metricsConfig.server.urlCallback,
+							retentionDays: input.metricsConfig.server.retentionDays,
 							thresholds: {
 								cpu: input.metricsConfig.server.thresholds.cpu,
 								memory: input.metricsConfig.server.thresholds.memory,

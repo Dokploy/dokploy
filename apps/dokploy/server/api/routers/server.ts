@@ -265,6 +265,7 @@ export const serverRouter = createTRPCRouter({
 					metricsConfig: {
 						server: {
 							refreshRate: input.metricsConfig.server.refreshRate,
+							retentionDays: input.metricsConfig.server.retentionDays,
 							port: input.metricsConfig.server.port,
 							token: input.metricsConfig.server.token,
 							urlCallback: input.metricsConfig.server.urlCallback,

@@ -41,6 +41,7 @@ export const admins = pgTable("admin", {
 				port: number;
 				token: string;
 				urlCallback: string;
+				retentionDays: number;
 				thresholds: {
 					cpu: number;
 					memory: number;
@@ -63,6 +64,7 @@ export const admins = pgTable("admin", {
 				refreshRate: 20,
 				port: 4500,
 				token: "",
+				retentionDays: 2,
 				urlCallback: "",
 				thresholds: {
 					cpu: 0,
@@ -172,6 +174,7 @@ export const apiUpdateWebServerMonitoring = z.object({
 				port: z.number().min(1),
 				token: z.string(),
 				urlCallback: z.string().url(),
+				retentionDays: z.number().min(1),
 				thresholds: z.object({
 					cpu: z.number().min(0),
 					memory: z.number().min(0),

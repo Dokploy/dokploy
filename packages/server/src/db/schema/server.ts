@@ -51,46 +51,51 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
-	metricsConfig: json("metricsConfig").$type<{
-		server: {
-			refreshRate: number;
-			port: number;
-			token: string;
-			urlCallback: string;
-			thresholds: {
-				cpu: number;
-				memory: number;
+	metricsConfig: json("metricsConfig")
+		.$type<{
+			server: {
+				refreshRate: number;
+				port: number;
+				token: string;
+				urlCallback: string;
+				retentionDays: number;
+				thresholds: {
+					cpu: number;
+					memory: number;
+				};
 			};
-		};
-		containers: {
-			refreshRate: number;
-			services: {
-				include: {
-					appName: string;
-					retentionDays: number;
-				}[];
-				exclude: string[];
+			containers: {
+				refreshRate: number;
+				services: {
+					include: {
+						appName: string;
+						retentionDays: number;
+					}[];
+					exclude: string[];
+				};
 			};
-		};
-	}>().notNull().default({
-		server: {
-			refreshRate: 20,
-			port: 4500,
-			token: "",
-			urlCallback: "",
-			thresholds: {
-				cpu: 0,
-				memory: 0,
+		}>()
+		.notNull()
+		.default({
+			server: {
+				refreshRate: 20,
+				port: 4500,
+				token: "",
+				urlCallback: "",
+				retentionDays: 2,
+				thresholds: {
+					cpu: 0,
+					memory: 0,
+				},
 			},
-		},
-		containers: {
-			refreshRate: 20,
-			services: {
-				include: [],
-				exclude: [],
+			containers: {
+				refreshRate: 20,
+				services: {
+					include: [],
+					exclude: [],
+				},
 			},
-		},
-	}),
+		}),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -170,6 +175,7 @@ export const apiUpdateServerMonitoring = createSchema
 					port: z.number().min(1),
 					token: z.string(),
 					urlCallback: z.string().url(),
+					retentionDays: z.number().min(1),
 					thresholds: z.object({
 						cpu: z.number().min(0),
 						memory: z.number().min(0),
