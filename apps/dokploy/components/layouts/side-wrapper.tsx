@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import { useEffect, useState } from "react";
-import Page from "./side";
 import { SIDEBAR_COOKIE_NAME } from "../ui/sidebar";
+import Page from "./side";
 
 export default function SideWrapper({
 	children,
