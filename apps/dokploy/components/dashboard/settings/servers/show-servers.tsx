@@ -49,9 +49,7 @@ export const ShowServers = () => {
 	const query = router.query;
 	const { data, refetch, isLoading } = api.server.all.useQuery();
 	const { mutateAsync } = api.server.remove.useMutation();
-	const { data: sshKeys } = {
-		data: [],
-	};
+	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: canCreateMoreServers } =
 		api.stripe.canCreateMoreServers.useQuery();

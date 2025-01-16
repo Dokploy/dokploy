@@ -75,7 +75,7 @@ export const ShowProjects = () => {
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex justify-between gap-4 w-full items-center">
 							<CardHeader className="">
@@ -117,7 +117,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full  grid sm:grid-cols-2 lg:grid-cols-4 flex-wrap gap-5">
+									<div className="w-full  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices =
 												project?.mariadb.length === 0 &&
@@ -145,7 +145,7 @@ export const ShowProjects = () => {
 													<Link
 														href={`/dashboard/project/${project.projectId}`}
 													>
-														<Card className="group relative w-full  bg-transparent transition-colors hover:bg-border">
+														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
 															<Button
 																className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
 																size="sm"

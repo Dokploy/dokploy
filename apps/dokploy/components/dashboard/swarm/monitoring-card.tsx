@@ -70,7 +70,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	);
 
 	return (
-		<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto w-full">
+		<Card className="h-full bg-sidebar  p-2.5 rounded-xl mx-auto w-full">
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<header className="flex items-center justify-between">
 					<div className="space-y-1">
@@ -94,7 +94,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					)}
 				</header>
 
-				<div className="grid gap-6 md:grid-cols-3">
+				<div className="grid gap-6 lg:grid-cols-3">
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium">Total Nodes</CardTitle>

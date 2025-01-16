@@ -167,10 +167,10 @@ const Mongo = (
 														router.push(
 															`/dashboard/project/${data?.projectId}`,
 														);
-														toast.success("Postgres deleted successfully");
+														toast.success("Mongo deleted successfully");
 													})
 													.catch(() => {
-														toast.error("Error deleting the postgres");
+														toast.error("Error deleting the mongo");
 													});
 											}}
 										>

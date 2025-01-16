@@ -7,7 +7,9 @@ import {
 	Bell,
 	BlocksIcon,
 	BookIcon,
+	Boxes,
 	ChevronRight,
+	CircleHelp,
 	Command,
 	CreditCard,
 	Database,
@@ -127,7 +129,7 @@ const data = {
 			isActive: false,
 		},
 		{
-			title: "File System",
+			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			isSingle: true,
@@ -289,6 +291,13 @@ const data = {
 			isActive: false,
 		},
 		{
+			title: "Cluster",
+			url: "/dashboard/settings/cluster",
+			icon: Boxes,
+			isSingle: true,
+			isActive: false,
+		},
+		{
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
@@ -317,9 +326,15 @@ const data = {
 		},
 		{
 			name: "Support",
+			url: "https://discord.gg/2tBnJ3jDJc",
+			icon: CircleHelp,
+		},
+		{
+			name: "Sponsor",
 			url: "https://opencollective.com/dokploy",
 			icon: Heart,
 		},
+
 		// {
 		// 	name: "Sales & Marketing",
 		// 	url: "#",
@@ -348,23 +363,28 @@ function SidebarLogo() {
 	return (
 		<Link
 			href="/dashboard/projects"
-			className=" flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
+			className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
 		>
 			<div
 				className={cn(
-					"flex aspect-square items-center justify-center rounded-lg ",
+					"flex aspect-square items-center justify-center rounded-lg transition-all",
 					state === "collapsed" ? "size-6" : "size-10",
 				)}
 			>
-				<Logo className={state === "collapsed" ? "size-6" : "size-10"} />
+				<Logo
+					className={cn(
+						"transition-all",
+						state === "collapsed" ? "size-6" : "size-10",
+					)}
+				/>
 			</div>
 
-			{state === "expanded" && (
-				<div className="flex flex-col gap-1 text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
-					<span className="truncate font-semibold">Dokploy</span>
-					<span className="truncate text-xs">{dokployVersion}</span>
-				</div>
-			)}
+			<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
+				<p className="truncate font-semibold">Dokploy</p>
+				<p className="truncate text-xs text-muted-foreground">
+					{dokployVersion}
+				</p>
+			</div>
 		</Link>
 	);
 }
@@ -416,7 +436,11 @@ export default function Page({ children }: Props) {
 
 	let filteredSettings = isCloud
 		? data.settings.filter(
-				(item) => !["/dashboard/settings/server"].includes(item.url),
+				(item) =>
+					![
+						"/dashboard/settings/server",
+						"/dashboard/settings/cluster",
+					].includes(item.url),
 			)
 		: data.settings.filter(
 				(item) => !["/dashboard/settings/billing"].includes(item.url),
@@ -451,11 +475,12 @@ export default function Page({ children }: Props) {
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
-					<SidebarMenu>
-						<SidebarMenuItem>
-							<LogoWrapper />
-						</SidebarMenuItem>
-					</SidebarMenu>
+					<SidebarMenuButton
+						className="group-data-[collapsible=icon]:!p-0"
+						size="lg"
+					>
+						<LogoWrapper />
+					</SidebarMenuButton>
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
@@ -686,7 +711,7 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
+				<div className="flex flex-col w-full gap-4 p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

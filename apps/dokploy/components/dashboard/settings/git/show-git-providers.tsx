@@ -4,7 +4,7 @@ import {
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -13,8 +13,16 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { formatDate } from "date-fns";
-import { GitBranch, Loader2, Trash2 } from "lucide-react";
+import {
+	ExternalLinkIcon,
+	GitBranch,
+	ImportIcon,
+	Loader2,
+	Trash2,
+} from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
@@ -27,7 +35,20 @@ export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.gitProvider.remove.useMutation();
+	const url = useUrl();
+	const getGitlabUrl = (
+		clientId: string,
+		gitlabId: string,
+		gitlabUrl: string,
+	) => {
+		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 
+		const scope = "api read_user read_repository";
+
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+
+		return authUrl;
+	};
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
@@ -128,6 +149,51 @@ export const ShowGitProviders = () => {
 															</div>
 
 															<div className="flex flex-row gap-1">
+																{!haveGithubRequirements && isGithub && (
+																	<div className="flex flex-col  gap-1">
+																		<Link
+																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
+																			className={buttonVariants({
+																				size: "icon",
+																				variant: "ghost",
+																			})}
+																		>
+																			<ImportIcon className="size-4 text-primary" />
+																		</Link>
+																	</div>
+																)}
+																{haveGithubRequirements && isGithub && (
+																	<div className="flex flex-col  gap-1">
+																		<Link
+																			href={`${gitProvider?.github?.githubAppName}`}
+																			target="_blank"
+																			className={buttonVariants({
+																				size: "icon",
+																				variant: "ghost",
+																			})}
+																		>
+																			<ExternalLinkIcon className="size-4 text-primary" />
+																		</Link>
+																	</div>
+																)}
+																{!haveGitlabRequirements && isGitlab && (
+																	<div className="flex flex-col  gap-1">
+																		<Link
+																			href={getGitlabUrl(
+																				gitProvider.gitlab?.applicationId || "",
+																				gitProvider.gitlab?.gitlabId || "",
+																				gitProvider.gitlab?.gitlabUrl,
+																			)}
+																			target="_blank"
+																			className={buttonVariants({
+																				size: "icon",
+																				variant: "ghost",
+																			})}
+																		>
+																			<ImportIcon className="size-4 text-primary" />
+																		</Link>
+																	</div>
+																)}
 																{isGithub && haveGithubRequirements && (
 																	<EditGithubProvider
 																		githubId={gitProvider.github.githubId}
