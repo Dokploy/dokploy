@@ -114,26 +114,26 @@ export const AddTemplate = ({ projectId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen sm:max-w-[90vw] p-0">
 				<DialogHeader className="sticky top-0 z-10 bg-background p-6 border-b">
-					<div className="flex flex-col space-y-4">
-						<div className="flex items-center justify-between">
+					<div className="flex flex-col space-y-6">
+						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 							<div>
 								<DialogTitle>Create from Template</DialogTitle>
 								<DialogDescription>
 									Create an open source application from a template
 								</DialogDescription>
 							</div>
-							<div className="flex items-center gap-4">
+							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
 								<Input
 									placeholder="Search Template"
 									onChange={(e) => setQuery(e.target.value)}
-									className="w-[200px]"
+									className="w-full sm:w-[200px]"
 									value={query}
 								/>
 								<Popover modal={true}>
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											className={cn("w-[200px] justify-between !bg-input")}
+											className={cn("w-full sm:w-[200px] justify-between !bg-input")}
 										>
 											{isLoadingTags
 												? "Loading...."
