@@ -71,6 +71,23 @@ export default async function handler(
 		return;
 	}
 
+	// skip workflow runs use keywords
+	// @link https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/skipping-workflow-runs
+	if (
+		[
+			"[skip ci]",
+			"[ci skip]",
+			"[no ci]",
+			"[skip actions]",
+			"[actions skip]",
+		].find((keyword) =>
+			extractCommitMessage(req.headers, req.body).includes(keyword),
+		)
+	) {
+		res.status(200).json({ message: "Deployment skipped" });
+		return;
+	}
+
 	if (req.headers["x-github-event"] === "push") {
 		try {
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
