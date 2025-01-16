@@ -262,19 +262,25 @@ export const serverRouter = createTRPCRouter({
 				}
 
 				await updateServerById(input.serverId, {
-					defaultPortMetrics: input.defaultPortMetrics,
-					containerRefreshRateMetrics: input.containerRefreshRateMetrics,
-					serverRefreshRateMetrics: input.serverRefreshRateMetrics,
-					containersMetricsDefinition: {
-						includeServices:
-							input?.containersMetricsDefinition?.includeServices ?? [],
-						excludedServices:
-							input?.containersMetricsDefinition?.excludedServices ?? [],
+					metricsConfig: {
+						server: {
+							refreshRate: input.metricsConfig.server.refreshRate,
+							port: input.metricsConfig.server.port,
+							token: input.metricsConfig.server.token,
+							urlCallback: input.metricsConfig.server.urlCallback,
+							thresholds: {
+								cpu: input.metricsConfig.server.thresholds.cpu,
+								memory: input.metricsConfig.server.thresholds.memory,
+							},
+						},
+						containers: {
+							refreshRate: input.metricsConfig.containers.refreshRate,
+							services: {
+								include: input.metricsConfig.containers.services.include || [],
+								exclude: input.metricsConfig.containers.services.exclude || [],
+							},
+						},
 					},
-					metricsToken: input.metricsToken,
-					thresholdCpu: input.thresholdCpu,
-					thresholdMemory: input.thresholdMemory,
-					metricsUrlCallback: input.metricsUrlCallback,
 				});
 				const currentServer = await setupMonitoring(input.serverId);
 				return currentServer;

@@ -51,24 +51,46 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
-	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
-		.notNull()
-		.default(20),
-	containerRefreshRateMetrics: integer("containerRefreshRateMetrics")
-		.notNull()
-		.default(20),
-	containersMetricsDefinition: json("containersMetricsDefinition").$type<{
-		includeServices: {
-			appName: string;
-			maxFileSizeMB: number;
-		}[];
-		excludedServices: string[];
-	}>(),
-	defaultPortMetrics: integer("defaultPortMetrics").notNull().default(4500),
-	metricsToken: text("metricsToken").notNull().default(""),
-	metricsUrlCallback: text("metricsUrlCallback").notNull().default(""),
-	thresholdCpu: integer("thresholdCpu").notNull().default(0),
-	thresholdMemory: integer("thresholdMemory").notNull().default(0),
+	metricsConfig: json("metricsConfig").$type<{
+		server: {
+			refreshRate: number;
+			port: number;
+			token: string;
+			urlCallback: string;
+			thresholds: {
+				cpu: number;
+				memory: number;
+			};
+		};
+		containers: {
+			refreshRate: number;
+			services: {
+				include: {
+					appName: string;
+					retentionDays: number;
+				}[];
+				exclude: string[];
+			};
+		};
+	}>().notNull().default({
+		server: {
+			refreshRate: 20,
+			port: 4500,
+			token: "",
+			urlCallback: "",
+			thresholds: {
+				cpu: 0,
+				memory: 0,
+			},
+		},
+		containers: {
+			refreshRate: 20,
+			services: {
+				include: [],
+				exclude: [],
+			},
+		},
+	}),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -129,8 +151,6 @@ export const apiUpdateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
-		// refreshRateMetrics: true,
-		// defaultPortMetrics: true,
 	})
 	.required()
 	.extend({
@@ -143,24 +163,32 @@ export const apiUpdateServerMonitoring = createSchema
 	})
 	.required()
 	.extend({
-		serverRefreshRateMetrics: z.number().optional(),
-		containerRefreshRateMetrics: z.number().optional(),
-		containersMetricsDefinition: z
+		metricsConfig: z
 			.object({
-				includeServices: z
-					.array(
-						z.object({
-							appName: z.string().min(1),
-							maxFileSizeMB: z.number().min(1),
-						}),
-					)
-					.optional(),
-				excludedServices: z.string().array().optional(),
+				server: z.object({
+					refreshRate: z.number().min(2),
+					port: z.number().min(1),
+					token: z.string(),
+					urlCallback: z.string().url(),
+					thresholds: z.object({
+						cpu: z.number().min(0),
+						memory: z.number().min(0),
+					}),
+				}),
+				containers: z.object({
+					refreshRate: z.number().min(2),
+					services: z.object({
+						include: z
+							.array(
+								z.object({
+									appName: z.string().min(1),
+									retentionDays: z.number().min(1),
+								}),
+							)
+							.optional(),
+						exclude: z.array(z.string()).optional(),
+					}),
+				}),
 			})
-			.optional(),
-		defaultPortMetrics: z.number().optional(),
-		metricsToken: z.string().min(1),
-		metricsUrlCallback: z.string().url(),
-		thresholdCpu: z.number().optional(),
-		thresholdMemory: z.number().optional(),
+			.required(),
 	});

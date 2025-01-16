@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG: MonitoringConfig = {
 	includeServices: [
 		{
 			appName: "*",
-			maxFileSizeMB: 10,
+			retentionDays: 30,
 		},
 	],
 	excludeServices: [],
@@ -69,5 +69,5 @@ export const getContainerConfig = (containerName: string): ServiceConfig => {
 		return false;
 	});
 
-	return specificConfig || { appName: "*", maxFileSizeMB: 10 };
+	return specificConfig || { appName: "*", retentionDays: 30 };
 };

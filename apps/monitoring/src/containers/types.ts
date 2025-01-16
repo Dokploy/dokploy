@@ -1,6 +1,6 @@
 export interface ServiceConfig {
 	appName: string;
-	maxFileSizeMB: number;
+	retentionDays: number;
 }
 
 export interface MonitoringConfig {
