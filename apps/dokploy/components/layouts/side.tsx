@@ -350,6 +350,7 @@ const data = {
 
 interface Props {
 	children: React.ReactNode;
+	defaultOpen?: boolean;
 }
 
 function LogoWrapper() {
@@ -389,7 +390,7 @@ function SidebarLogo() {
 	);
 }
 
-export default function Page({ children }: Props) {
+export default function Page({ children, defaultOpen }: Props) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -466,6 +467,7 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
 			style={
 				{
 					"--sidebar-width": "19.5rem",

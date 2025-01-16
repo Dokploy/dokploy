@@ -1,4 +1,4 @@
-import Page from "./side";
+import SideWrapper from "./side-wrapper";
 interface Props {
 	children: React.ReactNode;
 	metaName?: string;
@@ -6,8 +6,8 @@ interface Props {
 
 export const DashboardLayout = ({ children }: Props) => {
 	return (
-		<Page>
+		<SideWrapper>
 			<div>{children}</div>
-		</Page>
+		</SideWrapper>
 	);
 };
