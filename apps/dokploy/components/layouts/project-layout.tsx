@@ -11,7 +11,7 @@ export const ProjectLayout = ({ children }: Props) => {
 	useEffect(() => {
 		const cookieValue = document.cookie
 			.split("; ")
-			.find(row => row.startsWith("sidebar:state="))
+			.find((row) => row.startsWith("sidebar:state="))
 			?.split("=")[1];
 		setDefaultOpen(cookieValue === "true");
 	}, []);
