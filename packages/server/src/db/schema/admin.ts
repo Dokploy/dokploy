@@ -36,10 +36,10 @@ export const admins = pgTable("admin", {
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
 		.notNull()
-		.default(5),
+		.default(20),
 	containerRefreshRateMetrics: integer("containerRefreshRateMetrics")
 		.notNull()
-		.default(5),
+		.default(20),
 	containersMetricsDefinition: json("containersMetricsDefinition").$type<{
 		includeServices: {
 			appName: string;

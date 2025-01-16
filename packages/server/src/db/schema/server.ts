@@ -53,10 +53,10 @@ export const server = pgTable("server", {
 	}),
 	serverRefreshRateMetrics: integer("serverRefreshRateMetrics")
 		.notNull()
-		.default(5),
+		.default(20),
 	containerRefreshRateMetrics: integer("containerRefreshRateMetrics")
 		.notNull()
-		.default(5),
+		.default(20),
 	containersMetricsDefinition: json("containersMetricsDefinition").$type<{
 		includeServices: {
 			appName: string;
