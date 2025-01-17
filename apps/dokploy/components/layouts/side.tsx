@@ -300,7 +300,6 @@ const data = {
 			isSingle: true,
 			isActive: false,
 		},
-
 	] as NavItem[],
 	help: [
 		{
@@ -317,7 +316,12 @@ const data = {
 			name: "Sponsor",
 			url: "https://opencollective.com/dokploy",
 			icon: ({ className }) => (
-				<HeartIcon className={cn("text-red-500 fill-red-600 animate-heartbeat", className)} />
+				<HeartIcon
+					className={cn(
+						"text-red-500 fill-red-600 animate-heartbeat",
+						className,
+					)}
+				/>
 			),
 		},
 	] as ExternalLink[],
