@@ -1240,6 +1240,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
 	{
+		id: "conduwuit",
+		name: "Conduwuit",
+		version: "latest",
+		description:
+			"Well-maintained, featureful Matrix chat homeserver (fork of Conduit)",
+		logo: "conduwuit.svg",
+		links: {
+			github: "https://github.com/girlbossceo/conduwuit",
+			website: "https://conduwuit.puppyirl.gay",
+			docs: "https://conduwuit.puppyirl.gay/configuration.html",
+		},
+		tags: ["backend", "chat", "communication", "matrix", "server"],
+		load: () => import("./conduwuit/index").then((m) => m.generate),
+	},
+	{
 		id: "cloudflared",
 		name: "Cloudflared",
 		version: "latest",
