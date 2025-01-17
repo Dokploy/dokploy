@@ -1239,4 +1239,35 @@ export const templates: TemplateData[] = [
 		tags: ["matrix", "communication"],
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
+	{
+		id: "conduwuit",
+		name: "Conduwuit",
+		version: "latest",
+		description:
+			"Well-maintained, featureful Matrix chat homeserver (fork of Conduit)",
+		logo: "conduwuit.svg",
+		links: {
+			github: "https://github.com/girlbossceo/conduwuit",
+			website: "https://conduwuit.puppyirl.gay",
+			docs: "https://conduwuit.puppyirl.gay/configuration.html",
+		},
+		tags: ["backend", "chat", "communication", "matrix", "server"],
+		load: () => import("./conduwuit/index").then((m) => m.generate),
+	},
+	{
+		id: "cloudflared",
+		name: "Cloudflared",
+		version: "latest",
+		description:
+			"A lightweight daemon that securely connects local services to the internet through Cloudflare Tunnel.",
+		logo: "cloudflared.svg",
+		links: {
+			github: "https://github.com/cloudflare/cloudflared",
+			website:
+				"https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/",
+			docs: "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/",
+		},
+		tags: ["cloud", "networking", "security", "tunnel"],
+		load: () => import("./cloudflared/index").then((m) => m.generate),
+	},
 ];
