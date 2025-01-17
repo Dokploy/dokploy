@@ -84,7 +84,9 @@ export default async function handler(
 			extractCommitMessage(req.headers, req.body).includes(keyword),
 		)
 	) {
-		res.status(200).json({ message: "Deployment skipped" });
+		res.status(200).json({
+			message: "Deployment skipped: commit message contains skip keyword",
+		});
 		return;
 	}
 
