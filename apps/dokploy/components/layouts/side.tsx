@@ -17,7 +17,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
-	Heart,
+	HeartIcon,
 	KeyRound,
 	type LucideIcon,
 	Package,
@@ -87,7 +87,7 @@ interface NavItem {
 interface ExternalLink {
 	name: string;
 	url: string;
-	icon: LucideIcon;
+	icon: React.ComponentType<{ className?: string }>;
 }
 
 const data = {
@@ -212,17 +212,6 @@ const data = {
 		// 			url: "/dashboard/settings/notifications",
 		// 		},
 		// 	],
-		// },
-		// {
-		// 	title: "Appearance",
-		// 	icon: Frame,
-		// 	items: [
-		// 		{
-		// 			title: "Theme",
-		// 			url: "/dashboard/settings/appearance",
-		// 		},
-		// 	],
-		// },
 	] as NavItem[],
 	settings: [
 		{
@@ -312,13 +301,8 @@ const data = {
 			isActive: false,
 		},
 
-		// {
-		// 	title: "Appearance",
-		// 	url: "/dashboard/settings/appearance",
-		// 	icon: Frame,
-		// },
 	] as NavItem[],
-	projects: [
+	help: [
 		{
 			name: "Documentation",
 			url: "https://docs.dokploy.com/docs/core",
@@ -332,19 +316,10 @@ const data = {
 		{
 			name: "Sponsor",
 			url: "https://opencollective.com/dokploy",
-			icon: Heart,
+			icon: ({ className }) => (
+				<HeartIcon className={cn("text-red-500 fill-red-600 animate-heartbeat", className)} />
+			),
 		},
-
-		// {
-		// 	name: "Sales & Marketing",
-		// 	url: "#",
-		// 	icon: PieChart,
-		// },
-		// {
-		// 	name: "Travel",
-		// 	url: "#",
-		// 	icon: Map,
-		// },
 	] as ExternalLink[],
 };
 
@@ -652,13 +627,20 @@ export default function Page({ children }: Props) {
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 						<SidebarGroupLabel>Extra</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.projects.map((item) => (
+							{data.help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
-										<Link href={item.url}>
-											<item.icon />
+										<a
+											href={item.url}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="flex w-full items-center gap-2"
+										>
+											<span className="mr-2">
+												<item.icon className="h-4 w-4" />
+											</span>
 											<span>{item.name}</span>
-										</Link>
+										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}

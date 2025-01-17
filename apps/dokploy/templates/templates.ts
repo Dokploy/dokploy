@@ -1253,5 +1253,22 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["backend", "chat", "communication", "matrix", "server"],
 		load: () => import("./conduwuit/index").then((m) => m.generate),
+  },
+    {
+		id: "cloudflared",
+		name: "Cloudflared",
+		version: "latest",
+		description:
+			"A lightweight daemon that securely connects local services to the internet through Cloudflare Tunnel.",
+		logo: "cloudflared.svg",
+		links: {
+			github: "https://github.com/cloudflare/cloudflared",
+			website:
+				"https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/",
+			docs: "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/",
+		},
+		tags: ["cloud", "networking", "security", "tunnel"],
+		load: () => import("./cloudflared/index").then((m) => m.generate),
+
 	},
 ];
