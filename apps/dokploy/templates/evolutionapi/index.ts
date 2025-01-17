@@ -33,7 +33,7 @@ export function generate(schema: Schema): Template {
 		"TELEMETRY_URL=",
 
 		"POSTGRES_DATABASE=evolution",
-		"POSTGRES_USERNAME=postgres",
+		"POSTGRES_USERNAME=postgresql",
 		`POSTGRES_PASSWORD=${postgresPassword}`,
 		"DATABASE_ENABLED=true",
 		"DATABASE_PROVIDER=postgres",
