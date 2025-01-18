@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 
+	"github.com/mauriciogm/dokploy/apps/golang/config"
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 )
 
@@ -183,10 +183,21 @@ func ConvertToSystemMetrics(metric database.ServerMetric) SystemMetrics {
 }
 
 func CheckThresholds(metrics database.ServerMetric) error {
-	cpuThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_CPU"), 64)
-	memThreshold, _ := strconv.ParseFloat(os.Getenv("THRESHOLD_MEMORY"), 64)
-	callbackURL := os.Getenv("METRICS_URL_CALLBACK")
-	metricsToken := os.Getenv("METRICS_TOKEN")
+	cfg := config.GetMetricsConfig()
+	cpuThreshold := float64(cfg.Server.Thresholds.CPU)
+	memThreshold := float64(cfg.Server.Thresholds.Memory)
+	callbackURL := cfg.Server.UrlCallback
+	metricsToken := cfg.Server.Token
+
+	// log.Printf("CPU threshold: %.2f%%", cpuThreshold)
+	// log.Printf("Current CPU usage: %.2f%%", metrics.CPU)
+	// log.Printf("Memory threshold: %.2f%%", memThreshold)
+	// log.Printf("Callback URL: %s", callbackURL)
+	// log.Printf("Metrics token: %s", metricsToken)
+
+	if cpuThreshold == 0 && memThreshold == 0 {
+		return nil
+	}
 
 	if cpuThreshold > 0 && metrics.CPU > cpuThreshold {
 		alert := AlertPayload{

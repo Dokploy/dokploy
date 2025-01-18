@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/mauriciogm/dokploy/apps/golang/config"
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 )
 
@@ -38,28 +38,27 @@ func (cm *ContainerMonitor) Start() error {
 	}
 
 	// Verificar si hay servicios para monitorear
-	if len(config.IncludeServices) == 0 {
+	if len(monitorConfig.IncludeServices) == 0 {
 		log.Printf("No services to monitor. Skipping container metrics collection")
 		return nil
 	}
 
-	refreshRateSeconds := 10 // default 10 segundos
-	if rateStr := os.Getenv("CONTAINER_REFRESH_RATE"); rateStr != "" {
-		if rate, err := strconv.Atoi(rateStr); err == nil {
-			refreshRateSeconds = rate
-		}
+	metricsConfig := config.GetMetricsConfig()
+	refreshRate := metricsConfig.Containers.RefreshRate
+	if refreshRate == 0 {
+		refreshRate = 60 // default refresh rate
 	}
+	duration := time.Duration(refreshRate) * time.Second
 
-	refreshRateMs := refreshRateSeconds * 1000
-	log.Printf("Container metrics collection will run every %d seconds for services: %v", refreshRateSeconds, config.IncludeServices)
+	// log.Printf("Container metrics collection will run every %d seconds for services: %v", refreshRate, monitorConfig.IncludeServices)
 
-	ticker := time.NewTicker(time.Duration(refreshRateMs) * time.Millisecond)
+	ticker := time.NewTicker(duration)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
 				// Verificar nuevamente por si la configuración cambió
-				if len(config.IncludeServices) == 0 {
+				if len(monitorConfig.IncludeServices) == 0 {
 					log.Printf("No services to monitor. Stopping metrics collection")
 					ticker.Stop()
 					return

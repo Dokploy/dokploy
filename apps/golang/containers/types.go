@@ -11,14 +11,14 @@ type Container struct {
 }
 
 type ContainerMetric struct {
-	Timestamp string          `json:"timestamp"`
-	CPU       float64         `json:"CPU"`
-	Memory    MemoryMetric    `json:"Memory"`
-	Network   NetworkMetric   `json:"Network"`
-	BlockIO   BlockIOMetric   `json:"BlockIO"`
-	Container string          `json:"Container"`
-	ID        string          `json:"ID"`
-	Name      string          `json:"Name"`
+	Timestamp string        `json:"timestamp"`
+	CPU       float64       `json:"CPU"`
+	Memory    MemoryMetric  `json:"Memory"`
+	Network   NetworkMetric `json:"Network"`
+	BlockIO   BlockIOMetric `json:"BlockIO"`
+	Container string        `json:"Container"`
+	ID        string        `json:"ID"`
+	Name      string        `json:"Name"`
 }
 
 type MemoryMetric struct {
@@ -43,8 +43,8 @@ type BlockIOMetric struct {
 }
 
 type ContainerConfig struct {
-	AppName      string `json:"appName"`
-	MaxFileSizeMB int    `json:"maxFileSizeMB"`
+	AppName       string `json:"appName"`
+	RetentionDays int    `json:"retentionDays"`
 }
 
 type MonitoringConfig struct {

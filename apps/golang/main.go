@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
+	"github.com/mauriciogm/dokploy/apps/golang/config"
 	"github.com/mauriciogm/dokploy/apps/golang/containers"
 	"github.com/mauriciogm/dokploy/apps/golang/database"
 	"github.com/mauriciogm/dokploy/apps/golang/middleware"
@@ -18,15 +19,15 @@ import (
 func main() {
 	godotenv.Load()
 
+	// Get configuration
+	cfg := config.GetMetricsConfig()
+	token := cfg.Server.Token
+	METRICS_URL_CALLBACK := cfg.Server.UrlCallback
 	log.Printf("Environment variables:")
-	log.Printf("REFRESH_RATE_SERVER: %s", os.Getenv("REFRESH_RATE_SERVER"))
-	log.Printf("CONTAINER_REFRESH_RATE: %s", os.Getenv("CONTAINER_REFRESH_RATE"))
-	log.Printf("CONTAINER_MONITORING_CONFIG: %s", os.Getenv("CONTAINER_MONITORING_CONFIG"))
+	log.Printf("METRICS_CONFIG: %s", os.Getenv("METRICS_CONFIG"))
 
-	token := os.Getenv("METRICS_TOKEN")
-	METRICS_URL_CALLBACK := os.Getenv("METRICS_URL_CALLBACK")
 	if token == "" || METRICS_URL_CALLBACK == "" {
-		log.Fatal("METRICS_TOKEN and METRICS_URL_CALLBACK environment variables are required")
+		log.Fatal("token and urlCallback are required in the configuration")
 	}
 
 	db, err := database.InitDB()
@@ -127,18 +128,13 @@ func main() {
 	})
 
 	go func() {
-		refreshRate := os.Getenv("REFRESH_RATE_SERVER")
-		duration := 10 * time.Second
-		if refreshRate != "" {
-			if seconds, err := strconv.Atoi(refreshRate); err == nil {
-				duration = time.Duration(seconds) * time.Second
-			} else {
-				log.Printf("Invalid REFRESH_RATE_SERVER value, using default: %v", err)
-			}
-		}
+		refreshRate := cfg.Server.RefreshRate
+		duration := time.Duration(refreshRate) * time.Second
 
 		log.Printf("Refreshing server metrics every %v", duration)
 		ticker := time.NewTicker(duration)
+		defer ticker.Stop()
+
 		for range ticker.C {
 			metrics := monitoring.GetServerMetrics()
 			if err := db.SaveMetric(metrics); err != nil {
@@ -148,15 +144,14 @@ func main() {
 			if err := monitoring.CheckThresholds(metrics); err != nil {
 				log.Printf("Error checking thresholds: %v", err)
 			}
-
 		}
 	}()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3001"
+	port := cfg.Server.Port
+	if port == 0 {
+		port = 3001
 	}
 
-	log.Printf("Server starting on port %s", port)
-	log.Fatal(app.Listen(":" + port))
+	log.Printf("Server starting on port %d", port)
+	log.Fatal(app.Listen(":" + strconv.Itoa(port)))
 }

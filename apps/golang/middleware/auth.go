@@ -1,18 +1,15 @@
 package middleware
 
 import (
-	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/mauriciogm/dokploy/apps/golang/config"
 )
 
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		expectedToken := os.Getenv("METRICS_TOKEN")
-		if expectedToken == "" {
-			return c.Next()
-		}
+		expectedToken := config.GetMetricsConfig().Server.Token
 
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {

@@ -34,11 +34,11 @@ const Dashboard = () => {
 					<div className="rounded-xl bg-background shadow-md px-4">
 						<ShowPaidMonitoring
 							BASE_URL={
-								process.env.NODE_ENV === "production"
-									? `http://${admin?.serverIp}:${admin?.defaultPortMetrics}/metrics`
-									: BASE_URL
+								// process.env.NODE_ENV === "production"
+								"http://localhost:3001/metrics"
+								// : BASE_URL/
 							}
-							token={"testing" || admin?.metricsToken}
+							token={"testing"}
 						/>
 					</div>
 				</Card>
