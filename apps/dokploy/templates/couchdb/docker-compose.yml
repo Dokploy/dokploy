@@ -4,7 +4,7 @@ services:
   couchdb:
     image: couchdb:latest
     ports:
-      - '5984:5984'
+      - '5984'
     volumes:
       - couchdb-data:/opt/couchdb/data
     environment:
