@@ -10,6 +10,7 @@ import {
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
+import { format } from "date-fns";
 
 export const sendDokployRestartNotifications = async () => {
 	const date = new Date();
@@ -79,10 +80,7 @@ export const sendDokployRestartNotifications = async () => {
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>✅ Dokploy Server Restarted</b>
-				<b>Time:</b> ${date.toLocaleString()}
-			`,
+				`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`
 			);
 		}
 

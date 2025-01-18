@@ -3,6 +3,7 @@ import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { renderAsync } from "@react-email/components";
 import { and, eq } from "drizzle-orm";
+import { format } from "date-fns";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -95,11 +96,7 @@ export const sendDockerCleanupNotifications = async (
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>✅ Docker Cleanup</b>
-				<b>Message:</b> ${message}
-				<b>Time:</b> ${date.toLocaleString()}
-			`,
+				`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`
 			);
 		}
 
