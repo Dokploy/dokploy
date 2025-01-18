@@ -1,6 +1,7 @@
 import type {
 	discord,
 	email,
+	gotify,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -92,5 +93,35 @@ export const sendSlackNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+	}
+};
+
+export const sendGotifyNotification = async (
+	connection: typeof gotify.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const response = await fetch(`${connection.serverUrl}/message`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-Gotify-Key": connection.appToken,
+		},
+		body: JSON.stringify({
+			title: title,
+			message: message,
+			priority: connection.priority,
+			extras: {
+				"client::display": {
+					contentType: "text/plain",
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Gotify notification: ${response.statusText}`,
+		);
 	}
 };
