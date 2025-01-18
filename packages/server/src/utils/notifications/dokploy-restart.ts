@@ -68,7 +68,7 @@ export const sendDokployRestartNotifications = async () => {
 
 		if (gotify) {
 			const decorate = (decoration: string, text: string) =>
-				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
 			await sendGotifyNotification(
 				gotify,
 				decorate("✅", "Dokploy Server Restarted"),

@@ -116,16 +116,16 @@ export const sendBuildErrorNotifications = async ({
 
 		if (gotify) {
 			const decorate = (decoration: string, text: string) =>
-				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
 			await sendGotifyNotification(
 				gotify,
 				decorate("⚠️", "Build Failed"),
-				`${decorate("🛠️", `Project: ${projectName}`)}
-				${decorate("⚙️", `Application: ${applicationName}`)}
-				${decorate("❔", `Type: ${applicationType}`)}
-				${decorate("🕒", `Date: ${date.toLocaleString()}`)}
-				${decorate("⚠️", `Error:\n${errorMessage}`)}
-				${decorate("🔗", `Build details:\n${buildLink}`)}`,
+				`${decorate("🛠️", `Project: ${projectName}`)}` +
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${applicationType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
+					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
 			);
 		}
 

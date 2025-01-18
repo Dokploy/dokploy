@@ -125,7 +125,7 @@ export const sendDatabaseBackupNotifications = async ({
 
 		if (gotify) {
 			const decorate = (decoration: string, text: string) =>
-				`${gotify.decoration ? decoration : ""} ${text}`.trim();
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
 
 			await sendGotifyNotification(
 				gotify,
@@ -133,11 +133,11 @@ export const sendDatabaseBackupNotifications = async ({
 					type === "success" ? "✅" : "❌",
 					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
 				),
-				`${decorate("🛠️", `Project: ${projectName}`)}
-				${decorate("⚙️", `Application: ${applicationName}`)}
-				${decorate("❔", `Type: ${databaseType}`)}
-				${decorate("🕒", `Date: ${date.toLocaleString()}`)}
-				${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
+				`${decorate("🛠️", `Project: ${projectName}`)}` +
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${databaseType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
 			);
 		}
 
