@@ -54,7 +54,7 @@ export const addNewProject = async (authId: string, projectId: string) => {
 	await db
 		.update(users)
 		.set({
-			accesedProjects: [...user.accesedProjects, projectId],
+			accessedProjects: [...user.accessedProjects, projectId],
 		})
 		.where(eq(users.authId, authId));
 };
@@ -64,7 +64,7 @@ export const addNewService = async (authId: string, serviceId: string) => {
 	await db
 		.update(users)
 		.set({
-			accesedServices: [...user.accesedServices, serviceId],
+			accessedServices: [...user.accessedServices, serviceId],
 		})
 		.where(eq(users.authId, authId));
 };
@@ -73,8 +73,8 @@ export const canPerformCreationService = async (
 	userId: string,
 	projectId: string,
 ) => {
-	const { accesedProjects, canCreateServices } = await findUserByAuthId(userId);
-	const haveAccessToProject = accesedProjects.includes(projectId);
+	const { accessedProjects, canCreateServices } = await findUserByAuthId(userId);
+	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canCreateServices && haveAccessToProject) {
 		return true;
@@ -87,8 +87,8 @@ export const canPerformAccessService = async (
 	userId: string,
 	serviceId: string,
 ) => {
-	const { accesedServices } = await findUserByAuthId(userId);
-	const haveAccessToService = accesedServices.includes(serviceId);
+	const { accessedServices } = await findUserByAuthId(userId);
+	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (haveAccessToService) {
 		return true;
@@ -101,8 +101,8 @@ export const canPeformDeleteService = async (
 	authId: string,
 	serviceId: string,
 ) => {
-	const { accesedServices, canDeleteServices } = await findUserByAuthId(authId);
-	const haveAccessToService = accesedServices.includes(serviceId);
+	const { accessedServices, canDeleteServices } = await findUserByAuthId(authId);
+	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (canDeleteServices && haveAccessToService) {
 		return true;
@@ -135,9 +135,9 @@ export const canPerformAccessProject = async (
 	authId: string,
 	projectId: string,
 ) => {
-	const { accesedProjects } = await findUserByAuthId(authId);
+	const { accessedProjects } = await findUserByAuthId(authId);
 
-	const haveAccessToProject = accesedProjects.includes(projectId);
+	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (haveAccessToProject) {
 		return true;

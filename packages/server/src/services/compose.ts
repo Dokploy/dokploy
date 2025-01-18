@@ -243,6 +243,7 @@ export const deployCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -366,6 +367,7 @@ export const deployRemoteCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
