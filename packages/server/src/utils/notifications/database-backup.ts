@@ -3,6 +3,7 @@ import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { renderAsync } from "@react-email/components";
 import { and, eq } from "drizzle-orm";
+import { format } from "date-fns";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -121,18 +122,14 @@ export const sendDatabaseBackupNotifications = async ({
 		}
 
 		if (telegram) {
+			const isError = type === "error" && errorMessage;
+			
 			const statusEmoji = type === "success" ? "✅" : "❌";
-			const messageText = `
-				<b>${statusEmoji} Database Backup ${type === "success" ? "Successful" : "Failed"}</b>
-
-			<b>Project:</b> ${projectName}
-			<b>Application:</b> ${applicationName}
-			<b>Type:</b> ${databaseType}
-			<b>Time:</b> ${date.toLocaleString()}
-
-			<b>Status:</b> ${type === "success" ? "Successful" : "Failed"}
-			${type === "error" && errorMessage ? `<b>Error:</b> ${errorMessage}` : ""}
-			`;
+			const typeStatus = type === "success" ? "Successful" : "Failed";
+			const errorMsg = isError ? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>` : "";
+			
+			const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+			
 			await sendTelegramNotification(telegram, messageText);
 		}
 

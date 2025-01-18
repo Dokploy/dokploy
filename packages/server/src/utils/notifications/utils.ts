@@ -55,6 +55,10 @@ export const sendDiscordNotification = async (
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
+	inlineButton?: {
+		text: string;
+		url: string;
+	}[][]
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
@@ -66,6 +70,9 @@ export const sendTelegramNotification = async (
 				text: messageText,
 				parse_mode: "HTML",
 				disable_web_page_preview: true,
+				reply_markup: {
+					inline_keyboard: inlineButton,
+				},
 			}),
 		});
 	} catch (err) {

@@ -1,8 +1,10 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
+import { Domain } from "@dokploy/server/services/domain";
 import { renderAsync } from "@react-email/components";
 import { and, eq } from "drizzle-orm";
+import { format } from "date-fns";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -16,6 +18,7 @@ interface Props {
 	applicationType: string;
 	buildLink: string;
 	adminId: string;
+	domains: Domain[];
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -24,6 +27,7 @@ export const sendBuildSuccessNotifications = async ({
 	applicationType,
 	buildLink,
 	adminId,
+	domains
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -107,18 +111,29 @@ export const sendBuildSuccessNotifications = async ({
 		}
 
 		if (telegram) {
+			const chunkArray = <T>(array: T[], chunkSize: number): T[][] =>
+				Array.from({ length: Math.ceil(array.length / chunkSize) }, (_, i) => array.slice(i * chunkSize, i * chunkSize + chunkSize)
+			);
+			
+			const inlineButton = [
+				[
+					{
+						text: "Deployment Logs",
+						url: buildLink,
+					},
+				],
+				...chunkArray(domains, 2).map((chunk) =>
+					chunk.map((data) => ({
+						text: data.host,
+						url: `${data.https ? "https" : "http"}://${data.host}`,
+					}))
+				),
+			];
+			
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>✅ Build Success</b>
-
-				<b>Project:</b> ${projectName}
-				<b>Application:</b> ${applicationName}
-				<b>Type:</b> ${applicationType}
-				<b>Time:</b> ${date.toLocaleString()}
-
-				<b>Build Details:</b> ${buildLink}
-				`,
+        `<b>✅ Build Success</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+				inlineButton
 			);
 		}
 
