@@ -68,7 +68,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				const { accesedServices } = await findUserByAuthId(ctx.user.authId);
+				const { accessedServices } = await findUserByAuthId(ctx.user.authId);
 
 				await checkProjectAccess(ctx.user.authId, "access", input.projectId);
 
@@ -79,28 +79,28 @@ export const projectRouter = createTRPCRouter({
 					),
 					with: {
 						compose: {
-							where: buildServiceFilter(compose.composeId, accesedServices),
+							where: buildServiceFilter(compose.composeId, accessedServices),
 						},
 						applications: {
 							where: buildServiceFilter(
 								applications.applicationId,
-								accesedServices,
+								accessedServices,
 							),
 						},
 						mariadb: {
-							where: buildServiceFilter(mariadb.mariadbId, accesedServices),
+							where: buildServiceFilter(mariadb.mariadbId, accessedServices),
 						},
 						mongo: {
-							where: buildServiceFilter(mongo.mongoId, accesedServices),
+							where: buildServiceFilter(mongo.mongoId, accessedServices),
 						},
 						mysql: {
-							where: buildServiceFilter(mysql.mysqlId, accesedServices),
+							where: buildServiceFilter(mysql.mysqlId, accessedServices),
 						},
 						postgres: {
-							where: buildServiceFilter(postgres.postgresId, accesedServices),
+							where: buildServiceFilter(postgres.postgresId, accessedServices),
 						},
 						redis: {
-							where: buildServiceFilter(redis.redisId, accesedServices),
+							where: buildServiceFilter(redis.redisId, accessedServices),
 						},
 					},
 				});
@@ -125,18 +125,18 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		if (ctx.user.rol === "user") {
-			const { accesedProjects, accesedServices } = await findUserByAuthId(
+			const { accessedProjects, accessedServices } = await findUserByAuthId(
 				ctx.user.authId,
 			);
 
-			if (accesedProjects.length === 0) {
+			if (accessedProjects.length === 0) {
 				return [];
 			}
 
 			const query = await db.query.projects.findMany({
 				where: and(
 					sql`${projects.projectId} IN (${sql.join(
-						accesedProjects.map((projectId) => sql`${projectId}`),
+						accessedProjects.map((projectId) => sql`${projectId}`),
 						sql`, `,
 					)})`,
 					eq(projects.adminId, ctx.user.adminId),
@@ -145,27 +145,27 @@ export const projectRouter = createTRPCRouter({
 					applications: {
 						where: buildServiceFilter(
 							applications.applicationId,
-							accesedServices,
+							accessedServices,
 						),
 						with: { domains: true },
 					},
 					mariadb: {
-						where: buildServiceFilter(mariadb.mariadbId, accesedServices),
+						where: buildServiceFilter(mariadb.mariadbId, accessedServices),
 					},
 					mongo: {
-						where: buildServiceFilter(mongo.mongoId, accesedServices),
+						where: buildServiceFilter(mongo.mongoId, accessedServices),
 					},
 					mysql: {
-						where: buildServiceFilter(mysql.mysqlId, accesedServices),
+						where: buildServiceFilter(mysql.mysqlId, accessedServices),
 					},
 					postgres: {
-						where: buildServiceFilter(postgres.postgresId, accesedServices),
+						where: buildServiceFilter(postgres.postgresId, accessedServices),
 					},
 					redis: {
-						where: buildServiceFilter(redis.redisId, accesedServices),
+						where: buildServiceFilter(redis.redisId, accessedServices),
 					},
 					compose: {
-						where: buildServiceFilter(compose.composeId, accesedServices),
+						where: buildServiceFilter(compose.composeId, accessedServices),
 						with: { domains: true },
 					},
 				},
@@ -239,10 +239,10 @@ export const projectRouter = createTRPCRouter({
 			}
 		}),
 });
-function buildServiceFilter(fieldName: AnyPgColumn, accesedServices: string[]) {
-	return accesedServices.length > 0
+function buildServiceFilter(fieldName: AnyPgColumn, accessedServices: string[]) {
+	return accessedServices.length > 0
 		? sql`${fieldName} IN (${sql.join(
-				accesedServices.map((serviceId) => sql`${serviceId}`),
+				accessedServices.map((serviceId) => sql`${serviceId}`),
 				sql`, `,
 			)})`
 		: sql`1 = 0`;
