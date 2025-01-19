@@ -54,7 +54,6 @@ jobs:
             --base main \
             --head canary \
             --draft \
-            --label "release" --label "automated pr" \
             --reviewer siumauricio \
             --assignee siumauricio
         env:
