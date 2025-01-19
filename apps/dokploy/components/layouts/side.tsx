@@ -676,7 +676,7 @@ export default function Page({ children }: Props) {
 								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
-										<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbItem className="block">
 											<BreadcrumbLink asChild>
 												<Link
 													href={activeItem?.url || "/"}
@@ -686,7 +686,7 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="hidden md:block" />
+										<BreadcrumbSeparator className="block" />
 										<BreadcrumbItem>
 											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 										</BreadcrumbItem>

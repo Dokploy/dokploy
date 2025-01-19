@@ -47,7 +47,7 @@ export const ShowNotifications = () => {
 								{data?.length === 0 ? (
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Bell />
-										<span className="text-base text-muted-foreground">
+										<span className="text-base text-muted-foreground text-center">
 											To send notifications it is required to set at least 1
 											provider.
 										</span>

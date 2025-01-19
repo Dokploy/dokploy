@@ -5,9 +5,5 @@ interface Props {
 }
 
 export const ProjectLayout = ({ children }: Props) => {
-	return (
-		<div>
-			<Page>{children}</Page>
-		</div>
-	);
+	return <Page>{children}</Page>;
 };
