@@ -269,6 +269,7 @@ export const serverRouter = createTRPCRouter({
 							port: input.metricsConfig.server.port,
 							token: input.metricsConfig.server.token,
 							urlCallback: input.metricsConfig.server.urlCallback,
+							cronJob: input.metricsConfig.server.cronJob,
 							thresholds: {
 								cpu: input.metricsConfig.server.thresholds.cpu,
 								memory: input.metricsConfig.server.thresholds.memory,

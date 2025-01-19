@@ -35,6 +35,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Iniciar el sistema de limpieza de métricas
+	cleanupCron, err := database.StartMetricsCleanup(db.DB, cfg.Server.RetentionDays, cfg.Server.CronJob)
+	if err != nil {
+		log.Fatalf("Error starting metrics cleanup system: %v", err)
+	}
+	defer cleanupCron.Stop()
+
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{

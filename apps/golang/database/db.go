@@ -19,7 +19,7 @@ func InitDB() (*DB, error) {
 	// Create metrics table if it doesn't exist
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS server_metrics (
-			timestamp INTEGER PRIMARY KEY,
+			timestamp TEXT PRIMARY KEY,
 			cpu REAL,
 			cpu_model TEXT,
 			cpu_cores INTEGER,

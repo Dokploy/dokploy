@@ -63,20 +63,16 @@ const Schema = z.object({
 				cpu: z.number().min(0),
 				memory: z.number().min(0),
 			}),
+			cronJob: z.string().min(1, {
+				message: "Cron Job is required",
+			}),
 		}),
 		containers: z.object({
 			refreshRate: z.number().min(2, {
 				message: "Container Refresh Rate is required",
 			}),
 			services: z.object({
-				include: z
-					.array(
-						z.object({
-							appName: z.string(),
-							retentionDays: z.number().min(1),
-						}),
-					)
-					.optional(),
+				include: z.array(z.string()).optional(),
 				exclude: z.array(z.string()).optional(),
 			}),
 		}),
@@ -132,6 +128,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 						cpu: 0,
 						memory: 0,
 					},
+					cronJob: "",
 				},
 				containers: {
 					refreshRate: 20,
@@ -158,6 +155,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 							cpu: data?.metricsConfig?.server?.thresholds?.cpu,
 							memory: data?.metricsConfig?.server?.thresholds?.memory,
 						},
+						cronJob: data?.metricsConfig?.server?.cronJob || "0 0 * * *",
 					},
 					containers: {
 						refreshRate: data?.metricsConfig?.containers?.refreshRate,
@@ -173,14 +171,13 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const [search, setSearch] = useState("");
 	const [searchExclude, setSearchExclude] = useState("");
-	const [retentionDays, setRetentionDays] = useState(10);
 	const [showToken, setShowToken] = useState(false);
 
 	const availableServices = services?.filter(
 		(service) =>
 			!form
 				.watch("metricsConfig.containers.services.include")
-				?.some((s) => s.appName === service) &&
+				?.some((s) => s === service) &&
 			!form
 				.watch("metricsConfig.containers.services.exclude")
 				?.includes(service) &&
@@ -195,7 +192,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					?.includes(service) &&
 				!form
 					.watch("metricsConfig.containers.services.include")
-					?.some((s) => s.appName === service) &&
+					?.some((s) => s === service) &&
 				service.toLowerCase().includes(searchExclude.toLowerCase()),
 		) ?? []),
 		...(!form.watch("metricsConfig.containers.services.exclude")?.includes("*")
@@ -287,6 +284,39 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 							<FormField
 								control={form.control}
+								name="metricsConfig.server.cronJob"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Cron Job</FormLabel>
+										<FormControl>
+											<Input {...field} placeholder="0 0 * * *" />
+										</FormControl>
+										<FormDescription>
+											Cron job for scheduling metrics collection
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="metricsConfig.server.retentionDays"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Server Retention Days</FormLabel>
+										<FormControl>
+											<NumberInput {...field} />
+										</FormControl>
+										<FormDescription>
+											Number of days to retain server metrics data
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
 								name="metricsConfig.server.port"
 								render={({ field }) => (
 									<FormItem className="flex flex-col justify-center max-sm:items-center">
@@ -342,10 +372,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																					onSelect={() => {
 																						field.onChange([
 																							...(field.value ?? []),
-																							{
-																								appName: service,
-																								retentionDays: retentionDays,
-																							},
+																							service,
 																						]);
 																						setSearch("");
 																					}}
@@ -359,22 +386,15 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															</Command>
 														</PopoverContent>
 													</Popover>
-													<NumberInput
-														placeholder="Retention Days"
-														value={retentionDays}
-														onChange={(e) =>
-															setRetentionDays(Number(e.target.value))
-														}
-													/>
 												</div>
 												<div className="flex flex-wrap gap-2">
-													{field.value?.map((service, index) => (
+													{field.value?.map((service) => (
 														<Badge
-															key={service.appName}
+															key={service}
 															variant="secondary"
 															className="flex items-center gap-2"
 														>
-															{service.appName} ({service.retentionDays} days)
+															{service}
 															<Button
 																type="button"
 																variant="ghost"
@@ -382,7 +402,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 																className="h-4 w-4 p-0"
 																onClick={() => {
 																	field.onChange(
-																		field.value?.filter((_, i) => i !== index),
+																		field.value?.filter((s) => s !== service),
 																	);
 																}}
 															>
@@ -393,10 +413,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 												</div>
 											</div>
 										</FormControl>
-										<FormDescription>
-											Services to monitor. Each service can have its own
-											retention period.
-										</FormDescription>
+										<FormDescription>Services to monitor.</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -521,23 +538,6 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 										</FormControl>
 										<FormDescription>
 											Alert when memory usage exceeds this percentage
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="metricsConfig.server.retentionDays"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Server Retention Days</FormLabel>
-										<FormControl>
-											<NumberInput {...field} />
-										</FormControl>
-										<FormDescription>
-											Number of days to retain server metrics data
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

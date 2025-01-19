@@ -13,6 +13,7 @@ type Config struct {
 		Port          int    `json:"port"`
 		Token         string `json:"token"`
 		UrlCallback   string `json:"urlCallback"`
+		CronJob       string `json:"cronJob"`
 		RetentionDays int    `json:"retentionDays"`
 		Thresholds    struct {
 			CPU    int `json:"cpu"`
@@ -22,10 +23,7 @@ type Config struct {
 	Containers struct {
 		RefreshRate int `json:"refreshRate"`
 		Services    struct {
-			Include []struct {
-				AppName       string `json:"appName"`
-				RetentionDays int    `json:"retentionDays"`
-			} `json:"include"`
+			Include []string `json:"include"`
 			Exclude []string `json:"exclude"`
 		} `json:"services"`
 	} `json:"containers"`

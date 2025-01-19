@@ -37,7 +37,7 @@ func (cm *ContainerMonitor) Start() error {
 		return fmt.Errorf("error loading config: %v", err)
 	}
 
-	// Verificar si hay servicios para monitorear
+	// Check if there are services to monitor
 	if len(monitorConfig.IncludeServices) == 0 {
 		log.Printf("No services to monitor. Skipping container metrics collection")
 		return nil
@@ -57,7 +57,7 @@ func (cm *ContainerMonitor) Start() error {
 		for {
 			select {
 			case <-ticker.C:
-				// Verificar nuevamente por si la configuración cambió
+				// Check again in case the configuration has changed
 				if len(monitorConfig.IncludeServices) == 0 {
 					log.Printf("No services to monitor. Stopping metrics collection")
 					ticker.Stop()
@@ -136,7 +136,7 @@ func (cm *ContainerMonitor) collectMetrics() {
 
 		// log.Printf("Container: %+v", container)
 
-		// Procesar métricas
+		// Process metrics
 		metric := processContainerMetrics(container)
 
 		// log.Printf("Saving metrics for %s: %+v", serviceName, metric)
@@ -149,10 +149,10 @@ func (cm *ContainerMonitor) collectMetrics() {
 
 func processContainerMetrics(container Container) *database.ContainerMetric {
 
-	// Procesar CPU
+	// Process CPU
 	cpu, _ := strconv.ParseFloat(strings.TrimSuffix(container.CPUPerc, "%"), 64)
 
-	// Procesar Memoria
+	// Process Memory
 	memPerc, _ := strconv.ParseFloat(strings.TrimSuffix(container.MemPerc, "%"), 64)
 	memParts := strings.Split(container.MemUsage, " / ")
 
@@ -160,12 +160,12 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 	var usedUnit, totalUnit string
 
 	if len(memParts) == 2 {
-		// Procesar used memory
+		// Process used memory
 		usedParts := strings.Fields(memParts[0])
 		if len(usedParts) > 0 {
 			usedValue, _ = strconv.ParseFloat(strings.TrimRight(usedParts[0], "MiBGiB"), 64)
 			usedUnit = strings.TrimLeft(usedParts[0], "0123456789.")
-			// Convertir MiB a MB y GiB a GB
+			// Convert MiB to MB and GiB to GB
 			if usedUnit == "MiB" {
 				usedUnit = "MB"
 			} else if usedUnit == "GiB" {
@@ -173,12 +173,12 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 			}
 		}
 
-		// Procesar total memory
+		// Process total memory
 		totalParts := strings.Fields(memParts[1])
 		if len(totalParts) > 0 {
 			totalValue, _ = strconv.ParseFloat(strings.TrimRight(totalParts[0], "MiBGiB"), 64)
 			totalUnit = strings.TrimLeft(totalParts[0], "0123456789.")
-			// Convertir MiB a MB y GiB a GB
+			// Convert MiB to MB and GiB to GB
 			if totalUnit == "MiB" {
 				totalUnit = "MB"
 			} else if totalUnit == "GiB" {
@@ -187,21 +187,21 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 		}
 	}
 
-	// Procesar Network I/O
+	// Process Network I/O
 	netParts := strings.Split(container.NetIO, " / ")
 
 	var netInValue, netOutValue float64
 	var netInUnit, netOutUnit string
 
 	if len(netParts) == 2 {
-		// Procesar input
+		// Process input
 		inParts := strings.Fields(netParts[0])
 		if len(inParts) > 0 {
 			netInValue, _ = strconv.ParseFloat(strings.TrimRight(inParts[0], "kMGTB"), 64)
 			netInUnit = strings.TrimLeft(inParts[0], "0123456789.")
 		}
 
-		// Procesar output
+		// Process output
 		outParts := strings.Fields(netParts[1])
 		if len(outParts) > 0 {
 			netOutValue, _ = strconv.ParseFloat(strings.TrimRight(outParts[0], "kMGTB"), 64)
@@ -209,21 +209,21 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 		}
 	}
 
-	// Procesar Block I/O
+	// Process Block I/O
 	blockParts := strings.Split(container.BlockIO, " / ")
 
 	var blockReadValue, blockWriteValue float64
 	var blockReadUnit, blockWriteUnit string
 
 	if len(blockParts) == 2 {
-		// Procesar read
+		// Process read
 		readParts := strings.Fields(blockParts[0])
 		if len(readParts) > 0 {
 			blockReadValue, _ = strconv.ParseFloat(strings.TrimRight(readParts[0], "kMGTB"), 64)
 			blockReadUnit = strings.TrimLeft(readParts[0], "0123456789.")
 		}
 
-		// Procesar write
+		// Process write
 		writeParts := strings.Fields(blockParts[1])
 		if len(writeParts) > 0 {
 			blockWriteValue, _ = strconv.ParseFloat(strings.TrimRight(writeParts[0], "kMGTB"), 64)

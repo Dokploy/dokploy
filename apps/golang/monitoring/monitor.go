@@ -138,7 +138,7 @@ func GetServerMetrics() database.ServerMetric {
 		networkOut = float64(netInfo[0].BytesSent) / 1024 / 1024
 	}
 	return database.ServerMetric{
-		Timestamp:        time.Now().Unix(),
+		Timestamp:        time.Now().UTC().Format(time.RFC3339Nano),
 		CPU:              c[0],
 		CPUModel:         cpuModel,
 		CPUCores:         int32(runtime.NumCPU()),
@@ -178,7 +178,7 @@ func ConvertToSystemMetrics(metric database.ServerMetric) SystemMetrics {
 		TotalDisk:        fmt.Sprintf("%.2f", metric.TotalDisk),
 		NetworkIn:        fmt.Sprintf("%.2f", metric.NetworkIn),
 		NetworkOut:       fmt.Sprintf("%.2f", metric.NetworkOut),
-		Timestamp:        time.Unix(metric.Timestamp, 0).Format(time.RFC3339),
+		Timestamp:        metric.Timestamp,
 	}
 }
 
@@ -205,7 +205,7 @@ func CheckThresholds(metrics database.ServerMetric) error {
 			Value:     metrics.CPU,
 			Threshold: cpuThreshold,
 			Message:   fmt.Sprintf("CPU usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.CPU, cpuThreshold),
-			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+			Timestamp: metrics.Timestamp,
 			Token:     metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {
@@ -219,7 +219,7 @@ func CheckThresholds(metrics database.ServerMetric) error {
 			Value:     metrics.MemUsed,
 			Threshold: memThreshold,
 			Message:   fmt.Sprintf("Memory usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.MemUsed, memThreshold),
-			Timestamp: time.Unix(metrics.Timestamp, 0).Format(time.RFC3339),
+			Timestamp: metrics.Timestamp,
 			Token:     metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {

@@ -42,12 +42,7 @@ type BlockIOMetric struct {
 	WriteUnit string  `json:"writeUnit"`
 }
 
-type ContainerConfig struct {
-	AppName       string `json:"appName"`
-	RetentionDays int    `json:"retentionDays"`
-}
-
 type MonitoringConfig struct {
-	IncludeServices []ContainerConfig `json:"includeServices"`
-	ExcludeServices []ContainerConfig `json:"excludeServices"`
+	IncludeServices []string `json:"includeServices"`
+	ExcludeServices []string `json:"excludeServices"`
 }

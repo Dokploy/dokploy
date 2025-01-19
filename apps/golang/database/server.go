@@ -1,11 +1,13 @@
 package database
 
 import (
+	"time"
+
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type ServerMetric struct {
-	Timestamp        int64   `json:"timestamp"`
+	Timestamp        string  `json:"timestamp"`
 	CPU              float64 `json:"cpu"`
 	CPUModel         string  `json:"cpuModel"`
 	CPUCores         int32   `json:"cpuCores"`
@@ -26,6 +28,10 @@ type ServerMetric struct {
 }
 
 func (db *DB) SaveMetric(metric ServerMetric) error {
+	if metric.Timestamp == "" {
+		metric.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+
 	_, err := db.Exec(`
 		INSERT INTO server_metrics (timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -33,13 +39,13 @@ func (db *DB) SaveMetric(metric ServerMetric) error {
 	return err
 }
 
-func (db *DB) GetMetricsInRange(start, end int64) ([]ServerMetric, error) {
+func (db *DB) GetMetricsInRange(start, end time.Time) ([]ServerMetric, error) {
 	rows, err := db.Query(`
 		SELECT timestamp, cpu, cpu_model, cpu_cores, cpu_physical_cores, cpu_speed, os, distro, kernel, arch, mem_used, mem_used_gb, mem_total, uptime, disk_used, total_disk, network_in, network_out
 		FROM server_metrics
 		WHERE timestamp BETWEEN ? AND ?
 		ORDER BY timestamp ASC
-	`, start, end)
+	`, start.UTC().Format(time.RFC3339Nano), end.UTC().Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}

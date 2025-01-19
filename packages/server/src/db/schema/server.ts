@@ -59,6 +59,7 @@ export const server = pgTable("server", {
 				token: string;
 				urlCallback: string;
 				retentionDays: number;
+				cronJob: string;
 				thresholds: {
 					cpu: number;
 					memory: number;
@@ -67,10 +68,7 @@ export const server = pgTable("server", {
 			containers: {
 				refreshRate: number;
 				services: {
-					include: {
-						appName: string;
-						retentionDays: number;
-					}[];
+					include: string[];
 					exclude: string[];
 				};
 			};
@@ -82,6 +80,7 @@ export const server = pgTable("server", {
 				port: 4500,
 				token: "",
 				urlCallback: "",
+				cronJob: "",
 				retentionDays: 2,
 				thresholds: {
 					cpu: 0,
@@ -176,6 +175,7 @@ export const apiUpdateServerMonitoring = createSchema
 					token: z.string(),
 					urlCallback: z.string().url(),
 					retentionDays: z.number().min(1),
+					cronJob: z.string().min(1),
 					thresholds: z.object({
 						cpu: z.number().min(0),
 						memory: z.number().min(0),
@@ -184,14 +184,7 @@ export const apiUpdateServerMonitoring = createSchema
 				containers: z.object({
 					refreshRate: z.number().min(2),
 					services: z.object({
-						include: z
-							.array(
-								z.object({
-									appName: z.string().min(1),
-									retentionDays: z.number().min(1),
-								}),
-							)
-							.optional(),
+						include: z.array(z.string()).optional(),
 						exclude: z.array(z.string()).optional(),
 					}),
 				}),
