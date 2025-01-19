@@ -178,13 +178,26 @@ export const setupTerminalWebSocketServer = (
 
 					ws.on("message", (message) => {
 						try {
-							let command: string | Buffer[] | Buffer | ArrayBuffer;
+							let data: string | Buffer[] | Buffer | ArrayBuffer;
 							if (Buffer.isBuffer(message)) {
-								command = message.toString("utf8");
+								data = message.toString("utf8");
 							} else {
-								command = message;
+								data = message;
 							}
-							stream.write(command.toString());
+
+							try {
+								// Try parsing as JSON for resize messages
+								const parsed = JSON.parse(data.toString());
+								if (parsed.type === "resize" && stream.setWindow) {
+									stream.setWindow(parsed.rows, parsed.cols, 0, 0);
+									return;
+								}
+							} catch {
+								// Not JSON, treat as regular command
+							}
+
+							// Regular command handling
+							stream.write(data.toString());
 						} catch (error) {
 							// @ts-ignore
 							const errorMessage = error?.message as unknown as string;

@@ -53,6 +53,17 @@ export const DockerTerminal: React.FC<Props> = ({
 		term.loadAddon(addonAttach);
 		addonFit.fit();
 
+		// Send initial terminal dimensions
+		const { cols, rows } = term;
+		ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+
+		// Listen for terminal resize events
+		term.onResize(({ cols, rows }) => {
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+			}
+		});
+
 		// Handle paste events to prevent unstable content
 		term.onData((data) => {
 			// Rate limit large paste operations

@@ -119,13 +119,26 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				});
 				ws.on("message", (message) => {
 					try {
-						let command: string | Buffer[] | Buffer | ArrayBuffer;
+						let data: string | Buffer[] | Buffer | ArrayBuffer;
 						if (Buffer.isBuffer(message)) {
-							command = message.toString("utf8");
+							data = message.toString("utf8");
 						} else {
-							command = message;
+							data = message;
 						}
-						ptyProcess.write(command.toString());
+
+						try {
+							// Try parsing as JSON for resize messages
+							const parsed = JSON.parse(data.toString());
+							if (parsed.type === "resize" && ptyProcess.resize) {
+								ptyProcess.resize(parsed.cols, parsed.rows);
+								return;
+							}
+						} catch {
+							// Not JSON, treat as regular command
+						}
+
+						// Regular command handling
+						ptyProcess.write(data.toString());
 					} catch (error) {
 						// @ts-ignore
 						const errorMessage = error?.message as unknown as string;
