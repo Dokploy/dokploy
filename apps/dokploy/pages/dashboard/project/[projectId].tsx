@@ -15,6 +15,8 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
+
+import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import {
 	Card,
 	CardContent,
@@ -280,6 +282,10 @@ const Project = (
 												projectName={data?.name}
 											/>
 											<AddTemplate projectId={projectId} />
+											<AddAiAssistant
+												projectId={projectId}
+												projectName={data?.name}
+											/>
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>

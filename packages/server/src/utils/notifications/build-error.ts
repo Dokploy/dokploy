@@ -2,10 +2,12 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -39,11 +41,12 @@ export const sendBuildErrorNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -112,22 +115,35 @@ export const sendBuildErrorNotifications = async ({
 			});
 		}
 
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
+			await sendGotifyNotification(
+				gotify,
+				decorate("⚠️", "Build Failed"),
+				`${decorate("🛠️", `Project: ${projectName}`)}` +
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${applicationType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
+					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+			);
+		}
+
 		if (telegram) {
+			const inlineButton = [
+				[
+					{
+						text: "Deployment Logs",
+						url: buildLink,
+					},
+				],
+			];
+
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>⚠️ Build Failed</b>
-
-				<b>Project:</b> ${projectName}
-				<b>Application:</b> ${applicationName}
-				<b>Type:</b> ${applicationType}
-				<b>Time:</b> ${date.toLocaleString()}
-
-				<b>Error:</b>
-				<pre>${errorMessage}</pre>
-
-				<b>Build Details:</b> ${buildLink}
-				`,
+				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+				inlineButton,
 			);
 		}
 

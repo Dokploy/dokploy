@@ -28,7 +28,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon } from "lucide-react";
+import {
+	AlertTriangle,
+	Mail,
+	MessageCircleMore,
+	PenBoxIcon,
+	PlusIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -84,6 +90,15 @@ export const notificationSchema = z.discriminatedUnion("type", [
 				.min(1, { message: "At least one email is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("gotify"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			appToken: z.string().min(1, { message: "App Token is required" }),
+			priority: z.number().min(1).max(10).default(5),
+			decoration: z.boolean().default(true),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -102,6 +117,10 @@ export const notificationsMap = {
 	email: {
 		icon: <Mail size={29} className="text-muted-foreground" />,
 		label: "Email",
+	},
+	gotify: {
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		label: "Gotify",
 	},
 };
 
@@ -126,13 +145,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	);
 	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
-
 	const { mutateAsync: testTelegramConnection, isLoading: isLoadingTelegram } =
 		api.notification.testTelegramConnection.useMutation();
 	const { mutateAsync: testDiscordConnection, isLoading: isLoadingDiscord } =
 		api.notification.testDiscordConnection.useMutation();
 	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
+	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
+		api.notification.testGotifyConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -145,6 +165,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const emailMutation = notificationId
 		? api.notification.updateEmail.useMutation()
 		: api.notification.createEmail.useMutation();
+	const gotifyMutation = notificationId
+		? api.notification.updateGotify.useMutation()
+		: api.notification.createGotify.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -222,6 +245,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 				});
+			} else if (notification.notificationType === "gotify") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					appToken: notification.gotify?.appToken,
+					decoration: notification.gotify?.decoration || undefined,
+					priority: notification.gotify?.priority,
+					serverUrl: notification.gotify?.serverUrl,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+				});
 			}
 		} else {
 			form.reset();
@@ -233,6 +270,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		telegram: telegramMutation,
 		discord: discordMutation,
 		email: emailMutation,
+		gotify: gotifyMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -299,6 +337,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+			});
+		} else if (data.type === "gotify") {
+			promise = gotifyMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				serverUrl: data.serverUrl,
+				appToken: data.appToken,
+				priority: data.priority,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				decoration: data.decoration,
+				notificationId: notificationId || "",
+				gotifyId: notification?.gotifyId || "",
 			});
 		}
 
@@ -700,6 +753,94 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</Button>
 									</>
 								)}
+
+								{type === "gotify" && (
+									<>
+										<FormField
+											control={form.control}
+											name="serverUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Server URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://gotify.example.com"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="appToken"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>App Token</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="AzxcvbnmKjhgfdsa..."
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="priority"
+											defaultValue={5}
+											render={({ field }) => (
+												<FormItem className="w-full">
+													<FormLabel>Priority</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="5"
+															{...field}
+															onChange={(e) => {
+																const value = e.target.value;
+																if (value) {
+																	const port = Number.parseInt(value);
+																	if (port > 0 && port < 10) {
+																		field.onChange(port);
+																	}
+																}
+															}}
+															type="number"
+														/>
+													</FormControl>
+													<FormDescription>
+														Message priority (1-10, default: 5)
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -824,7 +965,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingSlack ||
 								isLoadingTelegram ||
 								isLoadingDiscord ||
-								isLoadingEmail
+								isLoadingEmail ||
+								isLoadingGotify
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -852,6 +994,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											password: form.getValues("password"),
 											toAddresses: form.getValues("toAddresses"),
 											fromAddress: form.getValues("fromAddress"),
+										});
+									} else if (type === "gotify") {
+										await testGotifyConnection({
+											serverUrl: form.getValues("serverUrl"),
+											appToken: form.getValues("appToken"),
+											priority: form.getValues("priority"),
+											decoration: form.getValues("decoration"),
 										});
 									}
 									toast.success("Connection Success");

@@ -13,6 +13,7 @@ export default defineConfig({
 			NODE: "test",
 		},
 	},
+	plugins: [tsconfigPaths()],
 	resolve: {
 		alias: {
 			"@dokploy/server": path.resolve(

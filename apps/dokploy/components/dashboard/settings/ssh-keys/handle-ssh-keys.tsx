@@ -128,7 +128,6 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 						Add SSH Key
 					</Button>
 				)}
-				{/* {children} */}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>

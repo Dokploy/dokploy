@@ -80,7 +80,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-8xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">

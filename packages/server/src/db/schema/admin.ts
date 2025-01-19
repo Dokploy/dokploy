@@ -3,6 +3,7 @@ import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { ai } from "./ai";
 import { auth } from "./auth";
 import { certificates } from "./certificate";
 import { registry } from "./registry";
@@ -42,6 +43,7 @@ export const adminsRelations = relations(admins, ({ one, many }) => ({
 	registry: many(registry),
 	sshKeys: many(sshKeys),
 	certificates: many(certificates),
+	ai: many(ai),
 }));
 
 const createSchema = createInsertSchema(admins, {

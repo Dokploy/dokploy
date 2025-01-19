@@ -79,10 +79,10 @@ export const ShowBackups = ({ id, type }: Props) => {
 							To create a backup it is required to set at least 1 provider.
 							Please, go to{" "}
 							<Link
-								href="/dashboard/settings/server"
+								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								Settings
+								S3 Destinations
 							</Link>{" "}
 							to do so.
 						</span>

@@ -13,7 +13,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Bell, Loader2, Mail, Trash2 } from "lucide-react";
+import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleNotifications } from "./handle-notifications";
 
@@ -81,6 +81,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "email" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<Mail className="size-6 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "gotify" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<MessageCircleMore className="size-6 text-muted-foreground" />
 																</div>
 															)}
 
