@@ -47,14 +47,27 @@ jobs:
 
       - name: Create Pull Request
         if: env.VERSION_CHANGED == 'true' && env.PR_EXISTS == '0'
-        run: |
-          gh pr create \
-            --title "🚀 Release v${{ env.VERSION }}" \
-            --body "## 🔄 Release v${{ env.VERSION }}\n\nThis PR promotes changes from \`canary\` to \`main\` for version v${{ env.VERSION }}.\n\n### 🔍 Changes Include:\n- Version bump to v${{ env.VERSION }}\n- All changes from canary branch\n\n### ✅ Pre-merge Checklist:\n- [ ] All tests passing\n- [ ] Documentation updated\n- [ ] Docker images built and tested\n\n> 🤖 This PR was automatically generated from the canary branch" \
-            --base main \
-            --head canary \
-            --draft \
-            --reviewer siumauricio \
-            --assignee siumauricio
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_PAT }}
+          title: "🚀 Release ${{ env.VERSION }}"
+          body: |
+            ## 🔄 Release ${{ env.VERSION }}
+
+            This PR promotes changes from `canary` to `main` for version ${{ env.VERSION }}.
+
+            ### 🔍 Changes Include:
+            - Version bump to ${{ env.VERSION }}
+            - All changes from canary branch
+
+            ### ✅ Pre-merge Checklist:
+            - [ ] All tests passing
+            - [ ] Documentation updated
+            - [ ] Docker images built and tested
+
+            > 🤖 This PR was automatically generated from the canary branch
+          base: main
+          branch: canary
+          draft: true
+          assignees: siumauricio
+          reviewers: siumauricio
