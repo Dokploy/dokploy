@@ -1,6 +1,6 @@
 {
-  "id": "8d11995a-6e8d-44d3-a148-5ecd29dbd12c",
-  "prevId": "7ecd6015-f9bb-4a3d-a7bf-ad79adc3faf8",
+  "id": "7a143af6-d82e-41c6-97b0-dd355e6c52a9",
+  "prevId": "b00fa001-dd12-4f37-97dc-478c7a790779",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -976,60 +976,33 @@
           "notNull": true,
           "default": false
         },
-        "serverRefreshRateMetrics": {
-          "name": "serverRefreshRateMetrics",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 20
-        },
-        "containerRefreshRateMetrics": {
-          "name": "containerRefreshRateMetrics",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 20
-        },
-        "containersMetricsDefinition": {
-          "name": "containersMetricsDefinition",
+        "metricsConfig": {
+          "name": "metricsConfig",
           "type": "json",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'{\"server\":{\"refreshRate\":20,\"port\":4500,\"token\":\"\",\"retentionDays\":2,\"urlCallback\":\"\",\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":20,\"services\":{\"include\":[],\"exclude\":[]}}}'::json"
         },
-        "defaultPortMetrics": {
-          "name": "defaultPortMetrics",
-          "type": "integer",
+        "cleanupCacheApplications": {
+          "name": "cleanupCacheApplications",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": 4500
+          "default": true
         },
-        "metricsToken": {
-          "name": "metricsToken",
-          "type": "text",
+        "cleanupCacheOnPreviews": {
+          "name": "cleanupCacheOnPreviews",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "''"
+          "default": false
         },
-        "metricsUrlCallback": {
-          "name": "metricsUrlCallback",
-          "type": "text",
+        "cleanupCacheOnCompose": {
+          "name": "cleanupCacheOnCompose",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": "''"
-        },
-        "thresholdCpu": {
-          "name": "thresholdCpu",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "thresholdMemory": {
-          "name": "thresholdMemory",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "default": false
         }
       },
       "indexes": {},
@@ -3329,6 +3302,47 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.gotify": {
+      "name": "gotify",
+      "schema": "",
+      "columns": {
+        "gotifyId": {
+          "name": "gotifyId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "serverUrl": {
+          "name": "serverUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appToken": {
+          "name": "appToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 5
+        },
+        "decoration": {
+          "name": "decoration",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.notification": {
       "name": "notification",
       "schema": "",
@@ -3424,6 +3438,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gotifyId": {
+          "name": "gotifyId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "adminId": {
           "name": "adminId",
           "type": "text",
@@ -3481,6 +3501,19 @@
           ],
           "columnsTo": [
             "emailId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_gotifyId_gotify_gotifyId_fk": {
+          "name": "notification_gotifyId_gotify_gotifyId_fk",
+          "tableFrom": "notification",
+          "tableTo": "gotify",
+          "columnsFrom": [
+            "gotifyId"
+          ],
+          "columnsTo": [
+            "gotifyId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3991,60 +4024,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "serverRefreshRateMetrics": {
-          "name": "serverRefreshRateMetrics",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 20
-        },
-        "containerRefreshRateMetrics": {
-          "name": "containerRefreshRateMetrics",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 20
-        },
-        "containersMetricsDefinition": {
-          "name": "containersMetricsDefinition",
+        "metricsConfig": {
+          "name": "metricsConfig",
           "type": "json",
           "primaryKey": false,
-          "notNull": false
-        },
-        "defaultPortMetrics": {
-          "name": "defaultPortMetrics",
-          "type": "integer",
-          "primaryKey": false,
           "notNull": true,
-          "default": 4500
-        },
-        "metricsToken": {
-          "name": "metricsToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "metricsUrlCallback": {
-          "name": "metricsUrlCallback",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "thresholdCpu": {
-          "name": "thresholdCpu",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "thresholdMemory": {
-          "name": "thresholdMemory",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "default": "'{\"server\":{\"refreshRate\":20,\"port\":4500,\"token\":\"\",\"urlCallback\":\"\",\"retentionDays\":2,\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":20,\"services\":{\"include\":[],\"exclude\":[]}}}'::json"
         }
       },
       "indexes": {},
@@ -4347,7 +4332,8 @@
         "slack",
         "telegram",
         "discord",
-        "email"
+        "email",
+        "gotify"
       ]
     },
     "public.gitProviderType": {
