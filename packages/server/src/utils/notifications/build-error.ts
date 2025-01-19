@@ -2,8 +2,8 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
-import { and, eq } from "drizzle-orm";
 import { format } from "date-fns";
+import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -139,11 +139,11 @@ export const sendBuildErrorNotifications = async ({
 					},
 				],
 			];
-			
+
 			await sendTelegramNotification(
 				telegram,
 				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
-				inlineButton
+				inlineButton,
 			);
 		}
 
