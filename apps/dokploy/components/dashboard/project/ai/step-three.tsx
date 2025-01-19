@@ -14,21 +14,21 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { useState } from "react";
+import type { StepProps } from "./step-two";
 
 export const StepThree = ({
 	nextStep,
 	prevStep,
 	templateInfo,
 	setTemplateInfo,
-}: any) => {
-	const [name, setName] = useState(templateInfo.name);
-	const [server, setServer] = useState(templateInfo.server);
+}: StepProps) => {
+	const [server, setServer] = useState(templateInfo.serverId);
 	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const handleNext = () => {
 		const updatedInfo = { ...templateInfo, name };
 		if (server?.trim()) {
-			updatedInfo.server = server;
+			updatedInfo.serverId = server;
 		}
 		setTemplateInfo(updatedInfo);
 		nextStep();
@@ -43,8 +43,16 @@ export const StepThree = ({
 						<Label htmlFor="name">App Name</Label>
 						<Input
 							id="name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
+							value={templateInfo?.details?.name || ""}
+							onChange={(e) => {
+								setTemplateInfo({
+									...templateInfo,
+									details: {
+										...templateInfo?.details,
+										name: e.target.value,
+									},
+								});
+							}}
 							placeholder="Enter app name"
 							className="mt-1"
 						/>
@@ -74,7 +82,10 @@ export const StepThree = ({
 					<Button onClick={prevStep} variant="outline">
 						Back
 					</Button>
-					<Button onClick={handleNext} disabled={!name.trim()}>
+					<Button
+						onClick={handleNext}
+						disabled={!templateInfo?.details?.name?.trim()}
+					>
 						Next
 					</Button>
 				</div>

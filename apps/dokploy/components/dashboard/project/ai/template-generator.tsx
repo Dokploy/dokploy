@@ -8,27 +8,65 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { AlertCircle, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { StepFour } from "./step-four";
 import { StepOne } from "./step-one";
 import { StepThree } from "./step-three";
 import { StepTwo } from "./step-two";
+import { AlertBlock } from "@/components/shared/alert-block";
+import Link from "next/link";
 
-const emptyState = {
+interface EnvVariable {
+	name: string;
+	value: string;
+}
+
+interface Domain {
+	host: string;
+	port: number;
+	serviceName: string;
+}
+export interface TemplateInfo {
+	id: string;
+	userInput: string;
+	type: string;
+	details?: {
+		name: string;
+		id: string;
+		description: string;
+		dockerCompose: string;
+		envVariables: EnvVariable[];
+		shortDescription: string;
+		domains: Domain[];
+	};
+	serverId?: string;
+	aiId: string;
+}
+
+const defaultTemplateInfo: TemplateInfo = {
+	id: "",
+	aiId: "",
 	userInput: "",
 	type: "",
 	details: {
 		id: "",
+		name: "",
+		description: "",
 		dockerCompose: "",
 		envVariables: [],
 		shortDescription: "",
+		domains: [],
 	},
-	name: "",
-	server: undefined,
-	description: "",
 };
 
 interface Props {
@@ -39,9 +77,10 @@ interface Props {
 export const TemplateGenerator = ({ projectId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState(1);
-	const { data: aiSettings } = api.ai.get.useQuery();
+	const { data: aiSettings } = api.ai.getAll.useQuery();
 	const { mutateAsync } = api.ai.deploy.useMutation();
-	const [templateInfo, setTemplateInfo] = useState(emptyState);
+	const [templateInfo, setTemplateInfo] =
+		useState<TemplateInfo>(defaultTemplateInfo);
 	const utils = api.useUtils();
 
 	const totalSteps = 4;
@@ -52,11 +91,14 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 	const handleOpenChange = (newOpen: boolean) => {
 		setOpen(newOpen);
 		if (!newOpen) {
-			// Reset to the first step when closing the dialog
 			setStep(1);
-			setTemplateInfo(emptyState);
+			setTemplateInfo(defaultTemplateInfo);
 		}
 	};
+
+	const haveAtleasOneProviderEnabled = aiSettings?.some(
+		(ai) => ai.isEnabled === true,
+	);
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -69,7 +111,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 					<span>AI Assistant</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-w-[800px] w-full max-h-[90vh] flex flex-col">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl w-full  flex flex-col">
 				<DialogHeader>
 					<DialogTitle>AI Assistant</DialogTitle>
 					<DialogDescription>
@@ -79,29 +121,65 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 				<div className="mt-4 flex-grow overflow-auto">
 					{step === 1 && (
 						<>
-							{(!aiSettings || !aiSettings?.isEnabled) && (
-								<Alert variant="destructive" className="mb-4">
-									<AlertCircle className="h-4 w-4" />
-									<AlertTitle>AI features are not enabled</AlertTitle>
-									<AlertDescription>
-										To use AI-powered template generation, please{" "}
-										<a
-											href="/dashboard/settings/ai"
-											className="font-medium underline underline-offset-4"
-										>
-											enable AI in your settings
-										</a>
-										.
-									</AlertDescription>
-								</Alert>
+							{!haveAtleasOneProviderEnabled && (
+								<AlertBlock type="warning">
+									<div className="flex flex-col w-full">
+										<span>AI features are not enabled</span>
+										<span>
+											To use AI-powered template generation, please{" "}
+											<Link
+												href="/dashboard/settings/ai"
+												className="font-medium underline underline-offset-4"
+											>
+												enable AI in your settings
+											</Link>
+											.
+										</span>
+									</div>
+								</AlertBlock>
 							)}
-							{!!aiSettings && !!aiSettings?.isEnabled && (
-								<StepOne
-									nextStep={nextStep}
-									setTemplateInfo={setTemplateInfo}
-									templateInfo={templateInfo}
-								/>
-							)}
+
+							{haveAtleasOneProviderEnabled &&
+								aiSettings &&
+								aiSettings?.length > 0 && (
+									<div className="space-y-4">
+										<div className="flex flex-col gap-2">
+											<label
+												htmlFor="user-needs"
+												className="text-sm font-medium"
+											>
+												Select AI Provider
+											</label>
+											<Select
+												value={templateInfo.aiId}
+												onValueChange={(value) =>
+													setTemplateInfo((prev) => ({
+														...prev,
+														aiId: value,
+													}))
+												}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select an AI provider" />
+												</SelectTrigger>
+												<SelectContent>
+													{aiSettings.map((ai) => (
+														<SelectItem key={ai.aiId} value={ai.aiId}>
+															{ai.name} ({ai.model})
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+										{templateInfo.aiId && (
+											<StepOne
+												nextStep={nextStep}
+												setTemplateInfo={setTemplateInfo}
+												templateInfo={templateInfo}
+											/>
+										)}
+									</div>
+								)}
 						</>
 					)}
 					{step === 2 && (
@@ -129,14 +207,14 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 								setTemplateInfo(data);
 								await mutateAsync({
 									projectId,
-									id: templateInfo.details?.id,
-									name: templateInfo.name,
-									description: data.details.shortDescription,
-									dockerCompose: data.details.dockerCompose,
-									envVariables: (data.details?.envVariables || [])
+									id: templateInfo.details?.id || "",
+									name: templateInfo?.details?.name || "",
+									description: data?.details?.shortDescription || "",
+									dockerCompose: data?.details?.dockerCompose || "",
+									envVariables: (data?.details?.envVariables || [])
 										.map((env: any) => `${env.name}=${env.value}`)
 										.join("\n"),
-									serverId: data.server,
+									serverId: data.server || "",
 								})
 									.then(async () => {
 										toast.success("Compose Created");

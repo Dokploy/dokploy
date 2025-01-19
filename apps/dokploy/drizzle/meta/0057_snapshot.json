@@ -1,5 +1,5 @@
 {
-  "id": "03ce8887-3824-49b9-ad47-12c25aa4c090",
+  "id": "841960d7-0573-41e4-8529-fd9960f726d5",
   "prevId": "24787a88-0754-437a-b077-03a3265b8ef5",
   "version": "6",
   "dialect": "postgresql",
@@ -4144,10 +4144,16 @@
       "name": "ai",
       "schema": "",
       "columns": {
-        "authId": {
-          "name": "authId",
+        "aiId": {
+          "name": "aiId",
           "type": "text",
           "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true
         },
         "apiUrl": {
@@ -4174,10 +4180,36 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "adminId": {
+          "name": "adminId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "ai_adminId_admin_adminId_fk": {
+          "name": "ai_adminId_admin_adminId_fk",
+          "tableFrom": "ai",
+          "tableTo": "admin",
+          "columnsFrom": [
+            "adminId"
+          ],
+          "columnsTo": [
+            "adminId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }

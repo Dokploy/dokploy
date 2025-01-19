@@ -15,19 +15,13 @@ import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import type { TemplateInfo } from "./template-generator";
 
-interface EnvVariable {
-	name: string;
-	value: string;
-}
-
-interface TemplateInfo {
-	id: string;
-	name: string;
-	shortDescription: string;
-	description: string;
-	dockerCompose: string;
-	envVariables: EnvVariable[];
+export interface StepProps {
+	nextStep: () => void;
+	prevStep: () => void;
+	templateInfo: TemplateInfo;
+	setTemplateInfo: React.Dispatch<React.SetStateAction<TemplateInfo>>;
 }
 
 export const StepTwo = ({
@@ -35,56 +29,34 @@ export const StepTwo = ({
 	prevStep,
 	templateInfo,
 	setTemplateInfo,
-}: any) => {
-	const [suggestions, setSuggestions] = useState<Array<TemplateInfo>>([]);
-	const [selectedVariant, setSelectedVariant] = useState("");
-	const [dockerCompose, setDockerCompose] = useState("");
-	const [envVariables, setEnvVariables] = useState<Array<EnvVariable>>([]);
+}: StepProps) => {
+	const [suggestions, setSuggestions] = useState<TemplateInfo["details"][]>();
+	const [selectedVariant, setSelectedVariant] =
+		useState<TemplateInfo["details"]>();
 	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
 
 	const { mutateAsync, isLoading } = api.ai.suggest.useMutation();
 
 	useEffect(() => {
-		mutateAsync(templateInfo.userInput)
+		mutateAsync({
+			aiId: templateInfo.aiId,
+			prompt: templateInfo.userInput,
+		})
 			.then((data) => {
+				console.log(data);
 				setSuggestions(data);
 			})
-			.catch(() => {
-				toast.error("Error updating AI settings");
+			.catch((error) => {
+				console.error("Error details:", error);
+				toast.error("Error generating suggestions");
 			});
 	}, [templateInfo.userInput]);
 
-	useEffect(() => {
-		if (selectedVariant) {
-			const selected = suggestions.find(
-				(s: { id: string }) => s.id === selectedVariant,
-			);
-			if (selected) {
-				setDockerCompose(selected.dockerCompose);
-				setEnvVariables(selected.envVariables);
-				setShowValues(
-					selected.envVariables.reduce((acc: Record<string, boolean>, env) => {
-						acc[env.name] = false;
-						return acc;
-					}, {}),
-				);
-			}
-		}
-	}, [selectedVariant, suggestions]);
-
 	const handleNext = () => {
-		const selected = suggestions.find(
-			(s: { id: string }) => s.id === selectedVariant,
-		);
-		if (selected) {
+		if (selectedVariant) {
 			setTemplateInfo({
 				...templateInfo,
-				type: selectedVariant,
-				details: {
-					...selected,
-					dockerCompose,
-					envVariables,
-				},
+				details: selectedVariant,
 			});
 		}
 		nextStep();
@@ -95,25 +67,49 @@ export const StepTwo = ({
 		field: string,
 		value: string,
 	) => {
-		const updatedEnvVariables = [...envVariables];
-		if (updatedEnvVariables[index]) {
-			updatedEnvVariables[index] = {
-				...updatedEnvVariables[index],
-				[field]: value,
-			};
-			setEnvVariables(updatedEnvVariables);
-		}
+		// const updatedEnvVariables = [...envVariables];
+		// if (updatedEnvVariables[index]) {
+		// 	updatedEnvVariables[index] = {
+		// 		...updatedEnvVariables[index],
+		// 		[field]: value,
+		// 	};
+		// 	setEnvVariables(updatedEnvVariables);
+		// }
 	};
 
-	const addEnvVariable = () => {
-		setEnvVariables([...envVariables, { name: "", value: "" }]);
-		setShowValues((prev) => ({ ...prev, "": false }));
-	};
+	// const addEnvVariable = () => {
+	// 	setEnvVariables([...envVariables, { name: "", value: "" }]);
+	// 	setShowValues((prev) => ({ ...prev, "": false }));
+	// };
 
-	const removeEnvVariable = (index: number) => {
-		const updatedEnvVariables = envVariables.filter((_, i) => i !== index);
-		setEnvVariables(updatedEnvVariables);
-	};
+	// const removeEnvVariable = (index: number) => {
+	// 	const updatedEnvVariables = envVariables.filter((_, i) => i !== index);
+	// 	setEnvVariables(updatedEnvVariables);
+	// };
+
+	// const handleDomainChange = (
+	// 	index: number,
+	// 	field: string,
+	// 	value: string | number,
+	// ) => {
+	// 	const updatedDomains = [...domains];
+	// 	if (updatedDomains[index]) {
+	// 		updatedDomains[index] = {
+	// 			...updatedDomains[index],
+	// 			[field]: value,
+	// 		};
+	// 		setDomains(updatedDomains);
+	// 	}
+	// };
+
+	// const addDomain = () => {
+	// 	setDomains([...domains, { host: "", port: 0, serviceName: "" }]);
+	// };
+
+	// const removeDomain = (index: number) => {
+	// 	const updatedDomains = domains.filter((_, i) => i !== index);
+	// 	setDomains(updatedDomains);
+	// };
 
 	const toggleShowValue = (name: string) => {
 		setShowValues((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -134,39 +130,38 @@ export const StepTwo = ({
 		);
 	}
 
-	const selectedTemplate = suggestions.find(
-		(s: { id: string }) => s.id === selectedVariant,
-	);
-
 	return (
 		<div className="flex flex-col h-full">
-			<div className="flex-grow overflow-auto">
-				<div className="space-y-6 pb-20">
+			<div className="flex-grow overflow-auto pb-8">
+				<div className="space-y-6">
 					<h2 className="text-lg font-semibold">Step 2: Choose a Variant</h2>
 					{!selectedVariant && (
 						<div className="space-y-4">
 							<div>Based on your input, we suggest the following variants:</div>
 							<RadioGroup
 								value={selectedVariant}
-								onValueChange={setSelectedVariant}
+								onValueChange={(value) => {
+									const element = suggestions?.find((s) => s?.id === value);
+									setSelectedVariant(element);
+								}}
 								className="space-y-4"
 							>
-								{suggestions.map((suggestion) => (
+								{suggestions?.map((suggestion) => (
 									<div
-										key={suggestion.id}
+										key={suggestion?.id}
 										className="flex items-start space-x-3"
 									>
 										<RadioGroupItem
-											value={suggestion.id}
-											id={suggestion.id}
+											value={suggestion?.id || ""}
+											id={suggestion?.id}
 											className="mt-1"
 										/>
 										<div>
-											<Label htmlFor={suggestion.id} className="font-medium">
-												{suggestion.name}
+											<Label htmlFor={suggestion?.id} className="font-medium">
+												{suggestion?.name}
 											</Label>
 											<p className="text-sm text-muted-foreground">
-												{suggestion.shortDescription}
+												{suggestion?.shortDescription}
 											</p>
 										</div>
 									</div>
@@ -177,22 +172,20 @@ export const StepTwo = ({
 					{selectedVariant && (
 						<>
 							<div className="mb-6">
-								<h3 className="text-xl font-bold">{selectedTemplate?.name}</h3>
+								<h3 className="text-xl font-bold">{selectedVariant?.name}</h3>
 								<p className="text-muted-foreground mt-2">
-									{selectedTemplate?.shortDescription}
+									{selectedVariant?.shortDescription}
 								</p>
 							</div>
-							<ScrollArea className="h-[400px] p-5">
+							<ScrollArea>
 								<Accordion type="single" collapsible className="w-full">
 									<AccordionItem value="description">
 										<AccordionTrigger>Description</AccordionTrigger>
 										<AccordionContent>
-											<ScrollArea className="h-[300px] w-full rounded-md border">
-												<div className="p-4">
-													<ReactMarkdown className="prose dark:prose-invert">
-														{selectedTemplate?.description}
-													</ReactMarkdown>
-												</div>
+											<ScrollArea className=" w-full rounded-md border p-4">
+												<ReactMarkdown className="text-muted-foreground text-sm">
+													{selectedVariant?.description}
+												</ReactMarkdown>
 											</ScrollArea>
 										</AccordionContent>
 									</AccordionItem>
@@ -200,9 +193,14 @@ export const StepTwo = ({
 										<AccordionTrigger>Docker Compose</AccordionTrigger>
 										<AccordionContent>
 											<CodeEditor
-												value={dockerCompose}
+												value={selectedVariant?.dockerCompose}
 												className="font-mono"
-												onChange={(value) => setDockerCompose(value)}
+												onChange={(value) => {
+													setSelectedVariant({
+														...selectedVariant,
+														dockerCompose: value,
+													});
+												}}
 											/>
 										</AccordionContent>
 									</AccordionItem>
@@ -211,7 +209,7 @@ export const StepTwo = ({
 										<AccordionContent>
 											<ScrollArea className="h-[300px] w-full rounded-md border">
 												<div className="p-4 space-y-4">
-													{envVariables.map((env, index) => (
+													{selectedVariant?.envVariables.map((env, index) => (
 														<div
 															key={index}
 															className="flex items-center space-x-2"
@@ -272,10 +270,81 @@ export const StepTwo = ({
 														variant="outline"
 														size="sm"
 														className="mt-2"
-														onClick={addEnvVariable}
+														// onClick={addEnvVariable}
 													>
 														<PlusCircle className="h-4 w-4 mr-2" />
 														Add Variable
+													</Button>
+												</div>
+											</ScrollArea>
+										</AccordionContent>
+									</AccordionItem>
+									<AccordionItem value="domains">
+										<AccordionTrigger>Domains</AccordionTrigger>
+										<AccordionContent>
+											<ScrollArea className=" w-full rounded-md border">
+												<div className="p-4 space-y-4">
+													{selectedVariant?.domains.map((domain, index) => (
+														<div
+															key={index}
+															className="flex items-center space-x-2"
+														>
+															<Input
+																value={domain.host}
+																onChange={(e) =>
+																	handleDomainChange(
+																		index,
+																		"host",
+																		e.target.value,
+																	)
+																}
+																placeholder="Domain Host"
+																className="flex-1"
+															/>
+															<Input
+																type="number"
+																value={domain.port}
+																onChange={(e) =>
+																	handleDomainChange(
+																		index,
+																		"port",
+																		parseInt(e.target.value),
+																	)
+																}
+																placeholder="Port"
+																className="w-24"
+															/>
+															<Input
+																value={domain.serviceName}
+																onChange={(e) =>
+																	handleDomainChange(
+																		index,
+																		"serviceName",
+																		e.target.value,
+																	)
+																}
+																placeholder="Service Name"
+																className="flex-1"
+															/>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																onClick={() => removeDomain(index)}
+															>
+																<Trash2 className="h-4 w-4" />
+															</Button>
+														</div>
+													))}
+													<Button
+														type="button"
+														variant="outline"
+														size="sm"
+														className="mt-2"
+														// onClick={addDomain}
+													>
+														<PlusCircle className="h-4 w-4 mr-2" />
+														Add Domain
 													</Button>
 												</div>
 											</ScrollArea>
@@ -287,11 +356,11 @@ export const StepTwo = ({
 					)}
 				</div>
 			</div>
-			<div className="sticky bottom-0 bg-background pt-2 border-t">
+			<div className="sticky bottom-0 bg-background pt-5 border-t">
 				<div className="flex justify-between">
 					<Button
 						onClick={() =>
-							selectedVariant ? setSelectedVariant("") : prevStep()
+							selectedVariant ? setSelectedVariant(undefined) : prevStep()
 						}
 						variant="outline"
 					>

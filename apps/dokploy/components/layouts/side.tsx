@@ -19,6 +19,7 @@ import {
 	GitBranch,
 	HeartIcon,
 	KeyRound,
+	BotIcon,
 	type LucideIcon,
 	Package,
 	PieChart,
@@ -249,7 +250,13 @@ const data = {
 			isSingle: true,
 			isActive: false,
 		},
-
+		{
+			title: "AI",
+			icon: BotIcon,
+			url: "/dashboard/settings/ai",
+			isSingle: true,
+			isActive: false,
+		},
 		{
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
