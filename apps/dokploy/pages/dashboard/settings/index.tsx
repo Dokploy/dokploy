@@ -102,7 +102,7 @@ const Page = () => {
 											<div className="space-y-0.5">
 												<FormLabel>Clean Cache on Applications</FormLabel>
 												<FormDescription>
-													Clean the cache after every deployment
+													Clean the cache after every application deployment
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -122,7 +122,7 @@ const Page = () => {
 											<div className="space-y-0.5">
 												<FormLabel>Clean Cache on Previews</FormLabel>
 												<FormDescription>
-													Clean the cache after every deployment
+													Clean the cache after every preview deployment
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -142,7 +142,7 @@ const Page = () => {
 											<div className="space-y-0.5">
 												<FormLabel>Clean Cache on Compose</FormLabel>
 												<FormDescription>
-													Clean the cache after every deployment
+													Clean the cache after every compose deployment
 												</FormDescription>
 											</div>
 											<FormControl>
