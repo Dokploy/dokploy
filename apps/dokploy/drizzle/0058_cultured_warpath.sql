@@ -1,1 +1,0 @@
-ALTER TABLE "admin" RENAME COLUMN "enableCleanupCache" TO "cleanupCacheOnDeployments";

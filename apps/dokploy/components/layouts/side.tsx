@@ -1,5 +1,4 @@
 "use client";
-import { useState, useEffect } from "react";
 import {
 	Activity,
 	AudioWaveform,
@@ -28,6 +27,7 @@ import {
 	Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type * as React from "react";
 
 import {
@@ -45,8 +45,8 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
-	Sidebar,
 	SIDEBAR_COOKIE_NAME,
+	Sidebar,
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,

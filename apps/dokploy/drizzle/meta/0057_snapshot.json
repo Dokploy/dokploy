@@ -1,5 +1,5 @@
 {
-  "id": "0b4b4db4-2e13-4ef0-8bdd-85bc4bbfe10b",
+  "id": "b00fa001-dd12-4f37-97dc-478c7a790779",
   "prevId": "24787a88-0754-437a-b077-03a3265b8ef5",
   "version": "6",
   "dialect": "postgresql",
@@ -969,12 +969,26 @@
           "notNull": true,
           "default": 0
         },
-        "enableCleanupCache": {
-          "name": "enableCleanupCache",
+        "cleanupCacheApplications": {
+          "name": "cleanupCacheApplications",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": true
+        },
+        "cleanupCacheOnPreviews": {
+          "name": "cleanupCacheOnPreviews",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cleanupCacheOnCompose": {
+          "name": "cleanupCacheOnCompose",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
