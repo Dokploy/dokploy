@@ -25,11 +25,10 @@ FROM alpine:3.19
 # Instalar SQLite y otras dependencias necesarias
 RUN apk add --no-cache sqlite-libs docker-cli
 
-# Crear el directorio para la base de datos
-RUN mkdir -p /etc/dokploy/monitoring
 
-# Crear el directorio de datos de la aplicación
-RUN mkdir -p /app/data
+# Crear el directorio de datos de la aplicación y el archivo de base de datos
+RUN mkdir -p /app/data && \
+    touch /app/data/monitoring.db
 
 WORKDIR /app
 
