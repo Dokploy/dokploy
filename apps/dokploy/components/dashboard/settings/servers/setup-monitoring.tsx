@@ -122,7 +122,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					refreshRate: 20,
 					port: 4500,
 					token: "",
-					urlCallback: "",
+					urlCallback: url,
 					retentionDays: 7,
 					thresholds: {
 						cpu: 0,
@@ -167,7 +167,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 				},
 			});
 		}
-	}, [data]);
+	}, [data, url]);
 
 	const [search, setSearch] = useState("");
 	const [searchExclude, setSearchExclude] = useState("");
@@ -292,7 +292,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 											<Input {...field} placeholder="0 0 * * *" />
 										</FormControl>
 										<FormDescription>
-											Cron job for scheduling metrics collection
+											Cron job for cleaning up metrics
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -410,10 +410,12 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															</Button>
 														</Badge>
 													))}
+													<FormDescription>
+														Services to monitor.
+													</FormDescription>
 												</div>
 											</div>
 										</FormControl>
-										<FormDescription>Services to monitor.</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -499,12 +501,13 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 															</Button>
 														</Badge>
 													))}
+													<FormDescription>
+														Services to exclude from monitoring
+													</FormDescription>
 												</div>
 											</div>
 										</FormControl>
-										<FormDescription>
-											Services to exclude from monitoring
-										</FormDescription>
+
 										<FormMessage />
 									</FormItem>
 								)}

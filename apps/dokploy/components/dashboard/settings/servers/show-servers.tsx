@@ -316,8 +316,11 @@ export const ShowServers = () => {
 																							serverId={server.serverId}
 																						/>
 																						<ShowMonitoringModal
-																							url={`http://${server.ipAddress}:${server.defaultPortMetrics}/metrics`}
-																							token={server.metricsToken}
+																							url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																							token={
+																								server?.metricsConfig?.server
+																									?.token
+																							}
 																						/>
 																						<ShowSwarmOverviewModal
 																							serverId={server.serverId}
