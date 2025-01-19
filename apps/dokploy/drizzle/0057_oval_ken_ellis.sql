@@ -1,0 +1,1 @@
+ALTER TABLE "admin" ADD COLUMN "enableCleanupCache" boolean DEFAULT true NOT NULL;
