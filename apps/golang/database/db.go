@@ -13,7 +13,7 @@ type DB struct {
 }
 
 func InitDB() (*DB, error) {
-	dbPath := "./monitoring.db"
+	dbPath := "/app/data/monitoring.db"
 
 	// Create the database file if it doesn't exist
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {

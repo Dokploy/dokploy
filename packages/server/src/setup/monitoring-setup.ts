@@ -31,7 +31,7 @@ export const setupMonitoring = async (serverId: string) => {
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				"/proc:/host/proc:ro",
-				"/etc/dokploy/monitoring/monitoring.db:./monitoring.db",
+				"/etc/dokploy/monitoring/monitoring.db:/app/data/monitoring.db",
 			],
 			NetworkMode: "host",
 		},
@@ -61,7 +61,7 @@ export const setupMonitoring = async (serverId: string) => {
 
 		console.log("Monitoring Started ");
 	} catch (error) {
-		console.log("Monitoring Not Found: Starting ");
+		console.log("Monitoring Not Found: Starting ", error);
 	}
 };
 
@@ -92,7 +92,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				"/proc:/host/proc:ro",
-				"/etc/dokploy/monitoring/monitoring.db:./monitoring.db",
+				"/etc/dokploy/monitoring/monitoring.db:/app/data/monitoring.db",
 			],
 			// NetworkMode: "host",
 		},
@@ -117,6 +117,6 @@ export const setupWebMonitoring = async (adminId: string) => {
 
 		console.log("Monitoring Started ");
 	} catch (error) {
-		console.log("Monitoring Not Found: Starting ");
+		console.log("Monitoring Not Found: Starting ", error);
 	}
 };

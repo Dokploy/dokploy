@@ -28,6 +28,9 @@ RUN apk add --no-cache sqlite-libs docker-cli
 # Crear el directorio para la base de datos
 RUN mkdir -p /etc/dokploy/monitoring
 
+# Crear el directorio de datos de la aplicación
+RUN mkdir -p /app/data
+
 WORKDIR /app
 
 # Copiar el binario compilado y el archivo monitor.go
