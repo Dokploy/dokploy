@@ -7,6 +7,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findAdminById } from "./admin";
+import { findServerById } from "./server";
 
 export const getAiSettingsByAdminId = async (adminId: string) => {
   const aiSettings = await db.query.ai.findMany({
@@ -51,11 +52,19 @@ export const deleteAiSettings = async (aiId: string) => {
   return db.delete(ai).where(eq(ai.aiId, aiId));
 };
 
-export const suggestVariants = async (
-  adminId: string,
-  aiId: string,
-  input: string
-) => {
+interface Props {
+  adminId: string;
+  aiId: string;
+  input: string;
+  serverId?: string | undefined;
+}
+
+export const suggestVariants = async ({
+  adminId,
+  aiId,
+  input,
+  serverId,
+}: Props) => {
   try {
     const aiSettings = await getAiSettingById(aiId);
     if (!aiSettings || !aiSettings.isEnabled) {
@@ -72,6 +81,13 @@ export const suggestVariants = async (
     if (!IS_CLOUD) {
       const admin = await findAdminById(adminId);
       ip = admin?.serverIp || "";
+    }
+
+    if (serverId) {
+      const server = await findServerById(serverId);
+      ip = server.ipAddress;
+    } else if (process.env.NODE_ENV === "development") {
+      ip = "127.0.0.1";
     }
 
     const { object } = await generateObject({
@@ -122,13 +138,13 @@ export const suggestVariants = async (
               2. Use complex values for passwords/secrets variables
               3. Don't set container_name field in services
               4. Don't set version field in the docker compose
-              5. Don't set ports like 'ports: 3000:3000', use 'ports: ["3000"]' instead
+              5. Don't set ports like 'ports: 3000:3000', use 'ports: "3000"' instead
               6. Use dokploy-network in all services
               7. Add dokploy-network at the end and mark it as external: true
               
               For each service that needs to be exposed to the internet:
               1. Define a domain configuration with:
-                - host: the domain name for the service
+                - host: the domain name for the service in format: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.traefik.me
                 - port: the internal port the service runs on
                 - serviceName: the name of the service in the docker-compose
               2. Make sure the service is properly configured in the docker-compose to work with the specified port
@@ -145,7 +161,6 @@ export const suggestVariants = async (
           }
         } catch (error) {
           console.error("Error in docker compose generation:", error);
-          console.error("Error details:", error.cause?.issues || error);
         }
       }
       return result;

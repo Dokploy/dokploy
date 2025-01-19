@@ -3,7 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useState } from "react";
+import { api } from "@/utils/api";
 
 const examples = [
 	"Make a personal blog",
@@ -16,8 +26,14 @@ const examples = [
 export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 	const [userInput, setUserInput] = useState(templateInfo.userInput);
 
+	// Get servers from the API
+	const { data: servers } = api.server.withSSHKey.useQuery();
+
 	const handleNext = () => {
-		setTemplateInfo({ ...templateInfo, userInput });
+		setTemplateInfo({
+			...templateInfo,
+			userInput,
+		});
 		nextStep();
 	};
 
@@ -26,9 +42,9 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 	};
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="flex-grow overflow-auto">
-				<div className="space-y-4 pb-20">
+		<div className="flex flex-col h-full gap-4">
+			<div className="">
+				<div className="space-y-4 ">
 					<h2 className="text-lg font-semibold">Step 1: Describe Your Needs</h2>
 					<div className="space-y-2">
 						<Label htmlFor="user-needs">Describe your template needs</Label>
@@ -40,6 +56,39 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 							className="min-h-[100px]"
 						/>
 					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="server-deploy">
+							Select the server where you want to deploy (optional)
+						</Label>
+						<Select
+							value={templateInfo.server?.serverId}
+							onValueChange={(value) => {
+								const server = servers?.find((s) => s.serverId === value);
+								if (server) {
+									setTemplateInfo({
+										...templateInfo,
+										server: server,
+									});
+								}
+							}}
+						>
+							<SelectTrigger className="w-full">
+								<SelectValue placeholder="Select a server" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectGroup>
+									{servers?.map((server) => (
+										<SelectItem key={server.serverId} value={server.serverId}>
+											{server.name}
+										</SelectItem>
+									))}
+									<SelectLabel>Servers ({servers?.length})</SelectLabel>
+								</SelectGroup>
+							</SelectContent>
+						</Select>
+					</div>
+
 					<div className="space-y-2">
 						<Label>Examples:</Label>
 						<div className="flex flex-wrap gap-2">
@@ -57,7 +106,7 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 					</div>
 				</div>
 			</div>
-			<div className="sticky bottom-0 bg-background pt-2 border-t">
+			<div className="">
 				<div className="flex justify-end">
 					<Button onClick={handleNext} disabled={!userInput.trim()}>
 						Next

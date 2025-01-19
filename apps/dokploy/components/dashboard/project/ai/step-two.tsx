@@ -40,7 +40,8 @@ export const StepTwo = ({
 	useEffect(() => {
 		mutateAsync({
 			aiId: templateInfo.aiId,
-			prompt: templateInfo.userInput,
+			serverId: templateInfo.server?.serverId || "",
+			input: templateInfo.userInput,
 		})
 			.then((data) => {
 				console.log(data);
@@ -62,57 +63,96 @@ export const StepTwo = ({
 		nextStep();
 	};
 
-	const handleEnvVariableChange = (
-		index: number,
-		field: string,
-		value: string,
-	) => {
-		// const updatedEnvVariables = [...envVariables];
-		// if (updatedEnvVariables[index]) {
-		// 	updatedEnvVariables[index] = {
-		// 		...updatedEnvVariables[index],
-		// 		[field]: value,
-		// 	};
-		// 	setEnvVariables(updatedEnvVariables);
-		// }
-	};
-
-	// const addEnvVariable = () => {
-	// 	setEnvVariables([...envVariables, { name: "", value: "" }]);
-	// 	setShowValues((prev) => ({ ...prev, "": false }));
-	// };
-
-	// const removeEnvVariable = (index: number) => {
-	// 	const updatedEnvVariables = envVariables.filter((_, i) => i !== index);
-	// 	setEnvVariables(updatedEnvVariables);
-	// };
-
-	// const handleDomainChange = (
-	// 	index: number,
-	// 	field: string,
-	// 	value: string | number,
-	// ) => {
-	// 	const updatedDomains = [...domains];
-	// 	if (updatedDomains[index]) {
-	// 		updatedDomains[index] = {
-	// 			...updatedDomains[index],
-	// 			[field]: value,
-	// 		};
-	// 		setDomains(updatedDomains);
-	// 	}
-	// };
-
-	// const addDomain = () => {
-	// 	setDomains([...domains, { host: "", port: 0, serviceName: "" }]);
-	// };
-
-	// const removeDomain = (index: number) => {
-	// 	const updatedDomains = domains.filter((_, i) => i !== index);
-	// 	setDomains(updatedDomains);
-	// };
-
 	const toggleShowValue = (name: string) => {
 		setShowValues((prev) => ({ ...prev, [name]: !prev[name] }));
+	};
+
+	const handleEnvVariableChange = (
+		index: number,
+		field: "name" | "value",
+		value: string,
+	) => {
+		if (!selectedVariant) return;
+
+		const updatedEnvVariables = [...selectedVariant.envVariables];
+		updatedEnvVariables[index] = {
+			...updatedEnvVariables[index],
+			[field]: value,
+		};
+
+		setSelectedVariant({
+			...selectedVariant,
+			envVariables: updatedEnvVariables,
+		});
+	};
+
+	const removeEnvVariable = (index: number) => {
+		if (!selectedVariant) return;
+
+		const updatedEnvVariables = selectedVariant.envVariables.filter(
+			(_, i) => i !== index,
+		);
+
+		setSelectedVariant({
+			...selectedVariant,
+			envVariables: updatedEnvVariables,
+		});
+	};
+
+	const handleDomainChange = (
+		index: number,
+		field: "host" | "port" | "serviceName",
+		value: string | number,
+	) => {
+		if (!selectedVariant) return;
+
+		const updatedDomains = [...selectedVariant.domains];
+		updatedDomains[index] = {
+			...updatedDomains[index],
+			[field]: value,
+		};
+
+		setSelectedVariant({
+			...selectedVariant,
+			domains: updatedDomains,
+		});
+	};
+
+	const removeDomain = (index: number) => {
+		if (!selectedVariant) return;
+
+		const updatedDomains = selectedVariant.domains.filter(
+			(_, i) => i !== index,
+		);
+
+		setSelectedVariant({
+			...selectedVariant,
+			domains: updatedDomains,
+		});
+	};
+
+	const addEnvVariable = () => {
+		if (!selectedVariant) return;
+
+		setSelectedVariant({
+			...selectedVariant,
+			envVariables: [
+				...selectedVariant.envVariables,
+				{ name: "", value: "" },
+			],
+		});
+	};
+
+	const addDomain = () => {
+		if (!selectedVariant) return;
+
+		setSelectedVariant({
+			...selectedVariant,
+			domains: [
+				...selectedVariant.domains,
+				{ host: "", port: 80, serviceName: "" },
+			],
+		});
 	};
 
 	if (isLoading) {
@@ -131,7 +171,7 @@ export const StepTwo = ({
 	}
 
 	return (
-		<div className="flex flex-col h-full">
+		<div className="flex flex-col h-full gap-6">
 			<div className="flex-grow overflow-auto pb-8">
 				<div className="space-y-6">
 					<h2 className="text-lg font-semibold">Step 2: Choose a Variant</h2>
@@ -207,7 +247,7 @@ export const StepTwo = ({
 									<AccordionItem value="env-variables">
 										<AccordionTrigger>Environment Variables</AccordionTrigger>
 										<AccordionContent>
-											<ScrollArea className="h-[300px] w-full rounded-md border">
+											<ScrollArea className=" w-full rounded-md border">
 												<div className="p-4 space-y-4">
 													{selectedVariant?.envVariables.map((env, index) => (
 														<div
@@ -270,7 +310,7 @@ export const StepTwo = ({
 														variant="outline"
 														size="sm"
 														className="mt-2"
-														// onClick={addEnvVariable}
+														onClick={addEnvVariable}
 													>
 														<PlusCircle className="h-4 w-4 mr-2" />
 														Add Variable
@@ -308,7 +348,7 @@ export const StepTwo = ({
 																	handleDomainChange(
 																		index,
 																		"port",
-																		parseInt(e.target.value),
+																		Number.parseInt(e.target.value),
 																	)
 																}
 																placeholder="Port"
@@ -341,7 +381,7 @@ export const StepTwo = ({
 														variant="outline"
 														size="sm"
 														className="mt-2"
-														// onClick={addDomain}
+														onClick={addDomain}
 													>
 														<PlusCircle className="h-4 w-4 mr-2" />
 														Add Domain
@@ -356,7 +396,7 @@ export const StepTwo = ({
 					)}
 				</div>
 			</div>
-			<div className="sticky bottom-0 bg-background pt-5 border-t">
+			<div className="">
 				<div className="flex justify-between">
 					<Button
 						onClick={() =>

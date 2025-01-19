@@ -1,5 +1,6 @@
 "use client";
 
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -12,7 +13,6 @@ import { api } from "@/utils/api";
 import { BotIcon, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleAi } from "./handle-ai";
-import { DialogAction } from "@/components/shared/dialog-action";
 
 export const AiForm = () => {
 	const { data: aiConfigs, refetch, isLoading } = api.ai.getAll.useQuery();

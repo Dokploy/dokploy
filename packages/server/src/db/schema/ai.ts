@@ -1,9 +1,9 @@
+import { relations } from "drizzle-orm";
 import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { nanoid } from "nanoid";
 import { z } from "zod";
 import { admins } from "./admin";
-import { relations } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 export const ai = pgTable("ai", {
   aiId: text("aiId")
@@ -63,4 +63,13 @@ export const deploySuggestionSchema = z.object({
   serverId: z.string().optional(),
   name: z.string().min(1),
   description: z.string(),
+  domains: z
+    .array(
+      z.object({
+        host: z.string().min(1),
+        port: z.number().min(1),
+        serviceName: z.string().min(1),
+      })
+    )
+    .optional(),
 });

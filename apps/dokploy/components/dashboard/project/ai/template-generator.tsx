@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	Dialog,
 	DialogContent,
@@ -17,14 +17,12 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { Bot } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { StepFour } from "./step-four";
 import { StepOne } from "./step-one";
 import { StepThree } from "./step-three";
 import { StepTwo } from "./step-two";
-import { AlertBlock } from "@/components/shared/alert-block";
-import Link from "next/link";
 
 interface EnvVariable {
 	name: string;
@@ -37,9 +35,7 @@ interface Domain {
 	serviceName: string;
 }
 export interface TemplateInfo {
-	id: string;
 	userInput: string;
-	type: string;
 	details?: {
 		name: string;
 		id: string;
@@ -49,15 +45,17 @@ export interface TemplateInfo {
 		shortDescription: string;
 		domains: Domain[];
 	};
-	serverId?: string;
+	server?: {
+		serverId: string;
+		name: string;
+	};
 	aiId: string;
 }
 
 const defaultTemplateInfo: TemplateInfo = {
-	id: "",
 	aiId: "",
 	userInput: "",
-	type: "",
+	server: undefined,
 	details: {
 		id: "",
 		name: "",
@@ -83,7 +81,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 		useState<TemplateInfo>(defaultTemplateInfo);
 	const utils = api.useUtils();
 
-	const totalSteps = 4;
+	const totalSteps = 3;
 
 	const nextStep = () => setStep((prev) => Math.min(prev + 1, totalSteps));
 	const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
@@ -118,7 +116,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 						Create a custom template based on your needs
 					</DialogDescription>
 				</DialogHeader>
-				<div className="mt-4 flex-grow overflow-auto">
+				<div className="mt-4 ">
 					{step === 1 && (
 						<>
 							{!haveAtleasOneProviderEnabled && (
@@ -192,29 +190,25 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 					)}
 					{step === 3 && (
 						<StepThree
+							prevStep={prevStep}
+							templateInfo={templateInfo}
 							nextStep={nextStep}
-							prevStep={prevStep}
-							templateInfo={templateInfo}
 							setTemplateInfo={setTemplateInfo}
-						/>
-					)}
-					{step === 4 && (
-						<StepFour
-							prevStep={prevStep}
-							templateInfo={templateInfo}
-							setTemplateInfo={async (data: any) => {
-								console.log("Submitting template:", data);
-								setTemplateInfo(data);
+							onSubmit={async () => {
+								console.log("Submitting template:", templateInfo);
 								await mutateAsync({
 									projectId,
 									id: templateInfo.details?.id || "",
 									name: templateInfo?.details?.name || "",
-									description: data?.details?.shortDescription || "",
-									dockerCompose: data?.details?.dockerCompose || "",
-									envVariables: (data?.details?.envVariables || [])
+									description: templateInfo?.details?.shortDescription || "",
+									dockerCompose: templateInfo?.details?.dockerCompose || "",
+									envVariables: (templateInfo?.details?.envVariables || [])
 										.map((env: any) => `${env.name}=${env.value}`)
 										.join("\n"),
-									serverId: data.server || "",
+									domains: templateInfo?.details?.domains || [],
+									...(templateInfo.server?.serverId && {
+										serverId: templateInfo.server?.serverId || "",
+									}),
 								})
 									.then(async () => {
 										toast.success("Compose Created");
@@ -227,7 +221,6 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 										toast.error("Error creating the compose");
 									});
 							}}
-							setOpen={setOpen}
 						/>
 					)}
 				</div>

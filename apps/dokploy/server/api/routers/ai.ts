@@ -11,11 +11,12 @@ import {
   apiUpdateAi,
   deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
+import { createDomain } from "@dokploy/server/index";
 import {
-  getAiSettingsByAdminId,
-  getAiSettingById,
-  saveAiSettings,
   deleteAiSettings,
+  getAiSettingById,
+  getAiSettingsByAdminId,
+  saveAiSettings,
   suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
@@ -84,11 +85,15 @@ export const aiRouter = createTRPCRouter({
     .input(
       z.object({
         aiId: z.string(),
-        prompt: z.string(),
+        input: z.string(),
+        serverId: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return await suggestVariants(ctx.user.adminId, input.aiId, input.prompt);
+      return await suggestVariants({
+        ...input,
+        adminId: ctx.user.adminId,
+      });
     }),
   deploy: protectedProcedure
     .input(deploySuggestionSchema)
@@ -108,6 +113,8 @@ export const aiRouter = createTRPCRouter({
 
       const projectName = slugify(`${project.name} ${input.id}`);
 
+      console.log(input);
+
       const compose = await createComposeByTemplate({
         ...input,
         composeFile: input.dockerCompose,
@@ -117,6 +124,17 @@ export const aiRouter = createTRPCRouter({
         sourceType: "raw",
         appName: `${projectName}-${generatePassword(6)}`,
       });
+
+      if (input.domains && input.domains?.length > 0) {
+        for (const domain of input.domains) {
+          await createDomain({
+            ...domain,
+            domainType: "compose",
+            certificateType: "none",
+            composeId: compose.composeId,
+          });
+        }
+      }
 
       if (ctx.user.rol === "user") {
         await addNewService(ctx.user.authId, compose.composeId);
