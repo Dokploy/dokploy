@@ -149,6 +149,17 @@ export const UserNav = () => {
 									Servers
 								</DropdownMenuItem>
 							)}
+
+							{data?.rol === "admin" && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/settings");
+									}}
+								>
+									Settings
+								</DropdownMenuItem>
+							)}
 						</>
 					)}
 				</DropdownMenuGroup>
