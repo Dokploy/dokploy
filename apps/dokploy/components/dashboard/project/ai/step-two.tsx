@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import type { TemplateInfo } from "./template-generator";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 export interface StepProps {
 	nextStep: () => void;
@@ -35,7 +36,8 @@ export const StepTwo = ({
 		useState<TemplateInfo["details"]>();
 	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
 
-	const { mutateAsync, isLoading } = api.ai.suggest.useMutation();
+	const { mutateAsync, isLoading, error, isError } =
+		api.ai.suggest.useMutation();
 
 	useEffect(() => {
 		mutateAsync({
@@ -48,7 +50,6 @@ export const StepTwo = ({
 				setSuggestions(data);
 			})
 			.catch((error) => {
-				console.error("Error details:", error);
 				toast.error("Error generating suggestions");
 			});
 	}, [templateInfo.userInput]);
@@ -75,6 +76,7 @@ export const StepTwo = ({
 		if (!selectedVariant) return;
 
 		const updatedEnvVariables = [...selectedVariant.envVariables];
+		// @ts-ignore
 		updatedEnvVariables[index] = {
 			...updatedEnvVariables[index],
 			[field]: value,
@@ -151,7 +153,26 @@ export const StepTwo = ({
 			],
 		});
 	};
+	if (isError) {
+		return (
+			<div className="flex flex-col items-center justify-center h-full space-y-4">
+				<Bot className="w-16 h-16 text-primary animate-pulse" />
+				<h2 className="text-2xl font-semibold animate-pulse">Error</h2>
+				<AlertBlock type="error">
+					{error?.message || "Error generating suggestions"}
+				</AlertBlock>
 
+				<Button
+					onClick={() =>
+						selectedVariant ? setSelectedVariant(undefined) : prevStep()
+					}
+					variant="outline"
+				>
+					{selectedVariant ? "Change Variant" : "Back"}
+				</Button>
+			</div>
+		);
+	}
 	if (isLoading) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full space-y-4">
