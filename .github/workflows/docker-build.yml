@@ -8,7 +8,7 @@ env:
 
 jobs:
   docker-amd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,13 +26,14 @@ jobs:
         id: meta
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAG="latest"
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-            echo "tags=${IMAGE_NAME}:latest,${IMAGE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-            echo "tags=${IMAGE_NAME}:canary" >> $GITHUB_OUTPUT
+            TAG="canary"
           else
-            echo "tags=${IMAGE_NAME}:feature" >> $GITHUB_OUTPUT
+            TAG="feature"
           fi
+          echo "tags=${IMAGE_NAME}:${TAG}-amd64" >> $GITHUB_OUTPUT
 
       - name: Prepare env file
         run: |
@@ -65,13 +66,14 @@ jobs:
         id: meta
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAG="latest"
             VERSION=$(node -p "require('./apps/dokploy/package.json').version")
-            echo "tags=${IMAGE_NAME}:latest,${IMAGE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
-            echo "tags=${IMAGE_NAME}:canary" >> $GITHUB_OUTPUT
+            TAG="canary"
           else
-            echo "tags=${IMAGE_NAME}:feature" >> $GITHUB_OUTPUT
+            TAG="feature"
           fi
+          echo "tags=${IMAGE_NAME}:${TAG}-arm64" >> $GITHUB_OUTPUT
 
       - name: Prepare env file
         run: |
