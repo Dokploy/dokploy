@@ -111,6 +111,7 @@ export const StepTwo = ({
 		if (!selectedVariant) return;
 
 		const updatedDomains = [...selectedVariant.domains];
+		// @ts-ignore
 		updatedDomains[index] = {
 			...updatedDomains[index],
 			[field]: value,
