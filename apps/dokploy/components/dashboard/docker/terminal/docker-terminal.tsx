@@ -30,6 +30,7 @@ export const DockerTerminal: React.FC<Props> = ({
 			lineHeight: 1.6, // Increased line height to prevent text overlap
 			convertEol: true,
 			scrollback: 5000, // Increased scrollback to prevent text loss
+			// Removed fixed dimensions to allow dynamic resizing
 			theme: {
 				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
 				background: "rgba(0, 0, 0, 0)",
@@ -51,6 +52,25 @@ export const DockerTerminal: React.FC<Props> = ({
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
+
+		// Handle paste events to prevent unstable content
+		term.onData((data) => {
+			// Rate limit large paste operations
+			if (data.length > 1000) {
+				const chunks = data.match(/.{1,1000}/g) || [];
+				let i = 0;
+				const sendChunk = () => {
+					if (i < chunks.length && chunks[i] !== undefined) {
+						ws.send(chunks[i]!); // Type assertion since we checked for undefined
+						i++;
+						setTimeout(sendChunk, 10);
+					}
+				};
+				sendChunk();
+			} else {
+				ws.send(data);
+			}
+		});
 
 		// Handle window resize events
 		const resizeObserver = new ResizeObserver(() => {
