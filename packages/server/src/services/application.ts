@@ -176,6 +176,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -184,6 +185,12 @@ export const deployApplication = async ({
 	});
 
 	try {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
+
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
 				...application,
@@ -230,12 +237,6 @@ export const deployApplication = async ({
 		});
 
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheApplications) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;
@@ -251,6 +252,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -258,6 +260,11 @@ export const rebuildApplication = async ({
 	});
 
 	try {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
 		if (application.sourceType === "github") {
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
@@ -277,12 +284,6 @@ export const rebuildApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheApplications) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;
@@ -298,6 +299,7 @@ export const deployRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -307,6 +309,11 @@ export const deployRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
+			const admin = await findAdminById(application.project.adminId);
+
+			if (admin.cleanupCacheApplications) {
+				await cleanupFullDocker(application?.serverId);
+			}
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -373,12 +380,6 @@ export const deployRemoteApplication = async ({
 		});
 
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheApplications) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;
@@ -396,6 +397,7 @@ export const deployPreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -452,6 +454,12 @@ export const deployPreviewApplication = async ({
 		application.env = application.previewEnv;
 		application.buildArgs = application.previewBuildArgs;
 
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheOnPreviews) {
+			await cleanupFullDocker(application?.serverId);
+		}
+
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
 				...application,
@@ -461,7 +469,6 @@ export const deployPreviewApplication = async ({
 			});
 			await buildApplication(application, deployment.logPath);
 		}
-		// 4eef09efc46009187d668cf1c25f768d0bde4f91
 		const successComment = getIssueComment(
 			application.name,
 			"success",
@@ -486,12 +493,6 @@ export const deployPreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheOnPreviews) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;
@@ -509,6 +510,7 @@ export const deployRemotePreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -566,6 +568,11 @@ export const deployRemotePreviewApplication = async ({
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
+			const admin = await findAdminById(application.project.adminId);
+
+			if (admin.cleanupCacheOnPreviews) {
+				await cleanupFullDocker(application?.serverId);
+			}
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -604,12 +611,6 @@ export const deployRemotePreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheOnPreviews) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;
@@ -625,6 +626,7 @@ export const rebuildRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -633,6 +635,11 @@ export const rebuildRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
+			const admin = await findAdminById(application.project.adminId);
+
+			if (admin.cleanupCacheApplications) {
+				await cleanupFullDocker(application?.serverId);
+			}
 			if (application.sourceType !== "docker") {
 				let command = "set -e;";
 				command += getBuildCommand(application, deployment.logPath);
@@ -657,12 +664,6 @@ export const rebuildRemoteApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
-	} finally {
-		const admin = await findAdminById(application.project.adminId);
-
-		if (admin.cleanupCacheApplications) {
-			await cleanupFullDocker(application?.serverId);
-		}
 	}
 
 	return true;

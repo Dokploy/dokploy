@@ -206,6 +206,7 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -216,6 +217,10 @@ export const deployCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.sourceType === "github") {
 			await cloneGithubRepository({
 				...compose,
@@ -260,11 +265,6 @@ export const deployCompose = async ({
 			adminId: compose.project.adminId,
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
 	}
 };
 
@@ -278,6 +278,7 @@ export const rebuildCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -285,6 +286,10 @@ export const rebuildCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		} else {
@@ -301,11 +306,6 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
 	}
 
 	return true;
@@ -321,6 +321,7 @@ export const deployRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -331,6 +332,10 @@ export const deployRemoteCompose = async ({
 	});
 	try {
 		if (compose.serverId) {
+			const admin = await findAdminById(compose.project.adminId);
+			if (admin.cleanupCacheOnCompose) {
+				await cleanupFullDocker(compose?.serverId);
+			}
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
@@ -404,11 +409,6 @@ export const deployRemoteCompose = async ({
 			adminId: compose.project.adminId,
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
 	}
 };
 
@@ -422,6 +422,7 @@ export const rebuildRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -429,6 +430,10 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}
@@ -453,11 +458,6 @@ export const rebuildRemoteCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
-	} finally {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
 	}
 
 	return true;
