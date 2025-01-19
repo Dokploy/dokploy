@@ -63,7 +63,7 @@ jobs:
             - [ ] Docker images built and tested
             > 🤖 This PR was automatically generated from the canary branch
           base: main
-          branch: canary
+          branch: release/v${{ env.VERSION }}
           draft: true
           labels: |
             release
