@@ -10,128 +10,128 @@ import { findAdminById } from "./admin";
 import { findServerById } from "./server";
 
 export const getAiSettingsByAdminId = async (adminId: string) => {
-  const aiSettings = await db.query.ai.findMany({
-    where: eq(ai.adminId, adminId),
-    orderBy: desc(ai.createdAt),
-  });
-  return aiSettings;
+	const aiSettings = await db.query.ai.findMany({
+		where: eq(ai.adminId, adminId),
+		orderBy: desc(ai.createdAt),
+	});
+	return aiSettings;
 };
 
 export const getAiSettingById = async (aiId: string) => {
-  const aiSetting = await db.query.ai.findFirst({
-    where: eq(ai.aiId, aiId),
-  });
-  if (!aiSetting) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "AI settings not found",
-    });
-  }
-  return aiSetting;
+	const aiSetting = await db.query.ai.findFirst({
+		where: eq(ai.aiId, aiId),
+	});
+	if (!aiSetting) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "AI settings not found",
+		});
+	}
+	return aiSetting;
 };
 
 export const saveAiSettings = async (adminId: string, settings: any) => {
-  const aiId = settings.aiId;
+	const aiId = settings.aiId;
 
-  return db
-    .insert(ai)
-    .values({
-      aiId,
-      adminId,
-      ...settings,
-    })
-    .onConflictDoUpdate({
-      target: ai.aiId,
-      set: {
-        ...settings,
-      },
-    });
+	return db
+		.insert(ai)
+		.values({
+			aiId,
+			adminId,
+			...settings,
+		})
+		.onConflictDoUpdate({
+			target: ai.aiId,
+			set: {
+				...settings,
+			},
+		});
 };
 
 export const deleteAiSettings = async (aiId: string) => {
-  return db.delete(ai).where(eq(ai.aiId, aiId));
+	return db.delete(ai).where(eq(ai.aiId, aiId));
 };
 
 interface Props {
-  adminId: string;
-  aiId: string;
-  input: string;
-  serverId?: string | undefined;
+	adminId: string;
+	aiId: string;
+	input: string;
+	serverId?: string | undefined;
 }
 
 export const suggestVariants = async ({
-  adminId,
-  aiId,
-  input,
-  serverId,
+	adminId,
+	aiId,
+	input,
+	serverId,
 }: Props) => {
-  try {
-    const aiSettings = await getAiSettingById(aiId);
-    if (!aiSettings || !aiSettings.isEnabled) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "AI features are not enabled for this configuration",
-      });
-    }
+	try {
+		const aiSettings = await getAiSettingById(aiId);
+		if (!aiSettings || !aiSettings.isEnabled) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "AI features are not enabled for this configuration",
+			});
+		}
 
-    const provider = selectAIProvider(aiSettings);
-    const model = provider(aiSettings.model);
+		const provider = selectAIProvider(aiSettings);
+		const model = provider(aiSettings.model);
 
-    let ip = "";
-    if (!IS_CLOUD) {
-      const admin = await findAdminById(adminId);
-      ip = admin?.serverIp || "";
-    }
+		let ip = "";
+		if (!IS_CLOUD) {
+			const admin = await findAdminById(adminId);
+			ip = admin?.serverIp || "";
+		}
 
-    if (serverId) {
-      const server = await findServerById(serverId);
-      ip = server.ipAddress;
-    } else if (process.env.NODE_ENV === "development") {
-      ip = "127.0.0.1";
-    }
+		if (serverId) {
+			const server = await findServerById(serverId);
+			ip = server.ipAddress;
+		} else if (process.env.NODE_ENV === "development") {
+			ip = "127.0.0.1";
+		}
 
-    const { object } = await generateObject({
-      model,
-      output: "array",
-      schema: z.object({
-        id: z.string(),
-        name: z.string(),
-        shortDescription: z.string(),
-        description: z.string(),
-      }),
-      prompt: `
+		const { object } = await generateObject({
+			model,
+			output: "array",
+			schema: z.object({
+				id: z.string(),
+				name: z.string(),
+				shortDescription: z.string(),
+				description: z.string(),
+			}),
+			prompt: `
         Act as advanced DevOps engineer and generate a list of open source projects what can cover users needs(up to 3 items), the suggestion 
         should include id, name, shortDescription, and description. Use slug of title for id. The description should be in markdown format with full description of suggested stack. The shortDescription should be in plain text and have short information about used technologies.
         User wants to create a new project with the following details, it should be installable in docker and can be docker compose generated for it:
         
         ${input}
       `,
-    });
+		});
 
-    if (object?.length) {
-      const result = [];
-      for (const suggestion of object) {
-        try {
-          const { object: docker } = await generateObject({
-            model,
-            output: "object",
-            schema: z.object({
-              dockerCompose: z.string(),
-              envVariables: z.array(
-                z.object({
-                  name: z.string(),
-                  value: z.string(),
-                })
-              ),
-              domains: z.array(
-                z.object({
-                  host: z.string(),
-                  port: z.number(),
-                  serviceName: z.string(),
-                })
-              ),
-            }),
-            prompt: `
+		if (object?.length) {
+			const result = [];
+			for (const suggestion of object) {
+				try {
+					const { object: docker } = await generateObject({
+						model,
+						output: "object",
+						schema: z.object({
+							dockerCompose: z.string(),
+							envVariables: z.array(
+								z.object({
+									name: z.string(),
+									value: z.string(),
+								}),
+							),
+							domains: z.array(
+								z.object({
+									host: z.string(),
+									port: z.number(),
+									serviceName: z.string(),
+								}),
+							),
+						}),
+						prompt: `
               Act as advanced DevOps engineer and generate docker compose with environment variables and domain configurations needed to install the following project.
               Return the docker compose as a YAML string. Follow these rules:
               1. Use placeholder like \${VARIABLE_NAME-default} for generated variables
@@ -152,26 +152,26 @@ export const suggestVariants = async ({
               Project details:
               ${suggestion?.description}
             `,
-          });
-          if (!!docker && !!docker.dockerCompose) {
-            result.push({
-              ...suggestion,
-              ...docker,
-            });
-          }
-        } catch (error) {
-          console.error("Error in docker compose generation:", error);
-        }
-      }
-      return result;
-    }
+					});
+					if (!!docker && !!docker.dockerCompose) {
+						result.push({
+							...suggestion,
+							...docker,
+						});
+					}
+				} catch (error) {
+					console.error("Error in docker compose generation:", error);
+				}
+			}
+			return result;
+		}
 
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "No suggestions found",
-    });
-  } catch (error) {
-    console.error("Error in suggestVariants:", error);
-    throw error;
-  }
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "No suggestions found",
+		});
+	} catch (error) {
+		console.error("Error in suggestVariants:", error);
+		throw error;
+	}
 };

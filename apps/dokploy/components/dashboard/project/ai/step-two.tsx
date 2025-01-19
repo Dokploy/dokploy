@@ -136,10 +136,7 @@ export const StepTwo = ({
 
 		setSelectedVariant({
 			...selectedVariant,
-			envVariables: [
-				...selectedVariant.envVariables,
-				{ name: "", value: "" },
-			],
+			envVariables: [...selectedVariant.envVariables, { name: "", value: "" }],
 		});
 	};
 

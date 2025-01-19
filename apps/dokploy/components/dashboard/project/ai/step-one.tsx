@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
 	Select,
 	SelectContent,
@@ -12,8 +11,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { useState } from "react";
 
 const examples = [
 	"Make a personal blog",
