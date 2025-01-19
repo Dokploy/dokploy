@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployRestartEmail from "@dokploy/server/emails/emails/dokploy-restart";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
@@ -10,7 +11,6 @@ import {
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
-import { format } from "date-fns";
 
 export const sendDokployRestartNotifications = async () => {
 	const date = new Date();
@@ -80,7 +80,7 @@ export const sendDokployRestartNotifications = async () => {
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`
+				`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 			);
 		}
 

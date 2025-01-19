@@ -31,6 +31,15 @@ export const admins = pgTable("admin", {
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
+	cleanupCacheApplications: boolean("cleanupCacheApplications")
+		.notNull()
+		.default(true),
+	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
+		.notNull()
+		.default(false),
+	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
+		.notNull()
+		.default(false),
 });
 
 export const adminsRelations = relations(admins, ({ one, many }) => ({

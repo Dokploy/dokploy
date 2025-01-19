@@ -73,7 +73,8 @@ export const canPerformCreationService = async (
 	userId: string,
 	projectId: string,
 ) => {
-	const { accessedProjects, canCreateServices } = await findUserByAuthId(userId);
+	const { accessedProjects, canCreateServices } =
+		await findUserByAuthId(userId);
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canCreateServices && haveAccessToProject) {
@@ -101,7 +102,8 @@ export const canPeformDeleteService = async (
 	authId: string,
 	serviceId: string,
 ) => {
-	const { accessedServices, canDeleteServices } = await findUserByAuthId(authId);
+	const { accessedServices, canDeleteServices } =
+		await findUserByAuthId(authId);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (canDeleteServices && haveAccessToService) {

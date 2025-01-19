@@ -133,7 +133,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											className={cn("w-full sm:w-[200px] justify-between !bg-input")}
+											className={cn(
+												"w-full sm:w-[200px] justify-between !bg-input",
+											)}
 										>
 											{isLoadingTags
 												? "Loading...."

@@ -101,7 +101,7 @@
 	* {
 		@apply border-border;
 	}
-	
+
 	body {
 		@apply bg-background text-foreground;
 	}
@@ -110,16 +110,16 @@
 	::-webkit-scrollbar {
 		width: 0.3125rem;
 	}
-	
+
 	::-webkit-scrollbar-track {
 		background: transparent;
 	}
-	
+
 	::-webkit-scrollbar-thumb {
 		background: hsl(var(--border));
 		border-radius: 0.3125rem;
 	}
-	
+
 	* {
 		scrollbar-width: thin;
 		scrollbar-color: hsl(var(--border)) transparent;
