@@ -12,16 +12,7 @@ export const setupMonitoring = async (serverId: string) => {
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
-		Env: [
-			`REFRESH_RATE_SERVER=${server.serverRefreshRateMetrics}`,
-			`CONTAINER_REFRESH_RATE=${server.containerRefreshRateMetrics}`,
-			`CONTAINER_MONITORING_CONFIG=${JSON.stringify(
-				server?.containersMetricsDefinition,
-			)}`,
-			`PORT=${server.defaultPortMetrics}`,
-			`METRICS_TOKEN=${server.metricsToken}`,
-			`METRICS_URL_CALLBACK=${server.metricsUrlCallback}`,
-		],
+		Env: [`METRICS_CONFIG=${JSON.stringify(server?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
 			// Memory: 100 * 1024 * 1024, // 100MB en bytes
@@ -29,9 +20,9 @@ export const setupMonitoring = async (serverId: string) => {
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
 			PortBindings: {
-				[`${server.defaultPortMetrics}/tcp`]: [
+				[`${server.metricsConfig.server.port}/tcp`]: [
 					{
-						HostPort: server.defaultPortMetrics.toString(),
+						HostPort: server.metricsConfig.server.port.toString(),
 					},
 				],
 			},
@@ -45,7 +36,7 @@ export const setupMonitoring = async (serverId: string) => {
 			NetworkMode: "host",
 		},
 		ExposedPorts: {
-			[`${server.defaultPortMetrics}/tcp`]: {},
+			[`${server.metricsConfig.server.port}/tcp`]: {},
 		},
 	};
 	const docker = await getRemoteDocker(serverId);
@@ -82,16 +73,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
-		Env: [
-			`REFRESH_RATE_SERVER=${admin.serverRefreshRateMetrics}`,
-			`CONTAINER_REFRESH_RATE=${admin.containerRefreshRateMetrics}`,
-			`CONTAINER_MONITORING_CONFIG=${JSON.stringify(
-				admin?.containersMetricsDefinition,
-			)}`,
-			`PORT=${admin.defaultPortMetrics}`,
-			`METRICS_TOKEN=${admin.metricsToken}`,
-			`METRICS_URL_CALLBACK=${admin.metricsUrlCallback}`,
-		],
+		Env: [`METRICS_CONFIG=${JSON.stringify(admin?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
 			// Memory: 100 * 1024 * 1024, // 100MB en bytes
@@ -99,9 +81,9 @@ export const setupWebMonitoring = async (adminId: string) => {
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
 			PortBindings: {
-				[`${admin.defaultPortMetrics}/tcp`]: [
+				[`${admin.metricsConfig.server.port}/tcp`]: [
 					{
-						HostPort: admin.defaultPortMetrics.toString(),
+						HostPort: admin.metricsConfig.server.port.toString(),
 					},
 				],
 			},
@@ -115,7 +97,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 			// NetworkMode: "host",
 		},
 		ExposedPorts: {
-			[`${admin.defaultPortMetrics}/tcp`]: {},
+			[`${admin.metricsConfig.server.port}/tcp`]: {},
 		},
 	};
 	const docker = await getRemoteDocker();

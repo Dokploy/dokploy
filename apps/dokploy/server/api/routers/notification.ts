@@ -329,13 +329,13 @@ export const notificationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const result = await db.query.server.findFirst({
-				where: eq(
-					server.metricsToken,
-					// token
-					"e50af3b5beff83a89c1d7ae2247e3a58d030af44b7df88d4535ae8871ef9006f",
-				),
-			});
+			// const result = await db.query.server.findFirst({
+			// 	where: eq(
+			// 		server.metricsConfig.server.token,
+			// 		// token
+			// 		"e50af3b5beff83a89c1d7ae2247e3a58d030af44b7df88d4535ae8871ef9006f",
+			// 	),
+			// });
 			if (!result) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
