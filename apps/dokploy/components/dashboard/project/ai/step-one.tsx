@@ -24,23 +24,12 @@ const examples = [
 ];
 
 export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
-	const [userInput, setUserInput] = useState(templateInfo.userInput);
-
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
 
-	const handleNext = () => {
-		setTemplateInfo({
-			...templateInfo,
-			userInput,
-		});
-		nextStep();
-	};
-
 	const handleExampleClick = (example: string) => {
-		setUserInput(example);
+		setTemplateInfo({ ...templateInfo, userInput: example });
 	};
-
 	return (
 		<div className="flex flex-col h-full gap-4">
 			<div className="">
@@ -51,8 +40,10 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 						<Textarea
 							id="user-needs"
 							placeholder="Describe the type of template you need, its purpose, and any specific features you'd like to include."
-							value={userInput}
-							onChange={(e) => setUserInput(e.target.value)}
+							value={templateInfo?.userInput}
+							onChange={(e) =>
+								setTemplateInfo({ ...templateInfo, userInput: e.target.value })
+							}
 							className="min-h-[100px]"
 						/>
 					</div>
@@ -104,13 +95,6 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 							))}
 						</div>
 					</div>
-				</div>
-			</div>
-			<div className="">
-				<div className="flex justify-end">
-					<Button onClick={handleNext} disabled={!userInput.trim()}>
-						Next
-					</Button>
 				</div>
 			</div>
 		</div>

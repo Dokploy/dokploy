@@ -1,13 +1,8 @@
 import { CodeEditor } from "@/components/shared/code-editor";
-import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import type { StepProps } from "./step-two";
 
-export const StepThree = ({
-	prevStep,
-	templateInfo,
-	onSubmit,
-}: StepProps & { onSubmit: () => void }) => {
+export const StepThree = ({ templateInfo }: StepProps) => {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="flex-grow">
@@ -91,14 +86,6 @@ export const StepThree = ({
 							</ul>
 						</div>
 					</div>
-				</div>
-			</div>
-			<div className="pt-6">
-				<div className="flex justify-between">
-					<Button onClick={prevStep} variant="outline">
-						Back
-					</Button>
-					<Button onClick={onSubmit}>Create</Button>
 				</div>
 			</div>
 		</div>

@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Accordion,
@@ -16,53 +17,44 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import type { TemplateInfo } from "./template-generator";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 export interface StepProps {
-	nextStep: () => void;
-	prevStep: () => void;
+	stepper?: any;
 	templateInfo: TemplateInfo;
 	setTemplateInfo: React.Dispatch<React.SetStateAction<TemplateInfo>>;
 }
 
 export const StepTwo = ({
-	nextStep,
-	prevStep,
+	stepper,
 	templateInfo,
 	setTemplateInfo,
 }: StepProps) => {
-	const [suggestions, setSuggestions] = useState<TemplateInfo["details"][]>();
-	const [selectedVariant, setSelectedVariant] =
-		useState<TemplateInfo["details"]>();
+	const suggestions = templateInfo.suggestions || [];
+	const selectedVariant = templateInfo.details;
 	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.ai.suggest.useMutation();
 
 	useEffect(() => {
+		if (suggestions?.length > 0) {
+			return;
+		}
 		mutateAsync({
 			aiId: templateInfo.aiId,
 			serverId: templateInfo.server?.serverId || "",
 			input: templateInfo.userInput,
 		})
 			.then((data) => {
-				console.log(data);
-				setSuggestions(data);
+				setTemplateInfo({
+					...templateInfo,
+					suggestions: data,
+				});
 			})
 			.catch((error) => {
 				toast.error("Error generating suggestions");
 			});
 	}, [templateInfo.userInput]);
-
-	const handleNext = () => {
-		if (selectedVariant) {
-			setTemplateInfo({
-				...templateInfo,
-				details: selectedVariant,
-			});
-		}
-		nextStep();
-	};
 
 	const toggleShowValue = (name: string) => {
 		setShowValues((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -82,9 +74,14 @@ export const StepTwo = ({
 			[field]: value,
 		};
 
-		setSelectedVariant({
-			...selectedVariant,
-			envVariables: updatedEnvVariables,
+		setTemplateInfo({
+			...templateInfo,
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					envVariables: updatedEnvVariables,
+				},
+			}),
 		});
 	};
 
@@ -95,9 +92,14 @@ export const StepTwo = ({
 			(_, i) => i !== index,
 		);
 
-		setSelectedVariant({
-			...selectedVariant,
-			envVariables: updatedEnvVariables,
+		setTemplateInfo({
+			...templateInfo,
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					envVariables: updatedEnvVariables,
+				},
+			}),
 		});
 	};
 
@@ -114,9 +116,14 @@ export const StepTwo = ({
 			[field]: value,
 		};
 
-		setSelectedVariant({
-			...selectedVariant,
-			domains: updatedDomains,
+		setTemplateInfo({
+			...templateInfo,
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					domains: updatedDomains,
+				},
+			}),
 		});
 	};
 
@@ -127,30 +134,49 @@ export const StepTwo = ({
 			(_, i) => i !== index,
 		);
 
-		setSelectedVariant({
-			...selectedVariant,
-			domains: updatedDomains,
+		setTemplateInfo({
+			...templateInfo,
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					domains: updatedDomains,
+				},
+			}),
 		});
 	};
 
 	const addEnvVariable = () => {
 		if (!selectedVariant) return;
 
-		setSelectedVariant({
-			...selectedVariant,
-			envVariables: [...selectedVariant.envVariables, { name: "", value: "" }],
+		setTemplateInfo({
+			...templateInfo,
+
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					envVariables: [
+						...selectedVariant.envVariables,
+						{ name: "", value: "" },
+					],
+				},
+			}),
 		});
 	};
 
 	const addDomain = () => {
 		if (!selectedVariant) return;
 
-		setSelectedVariant({
-			...selectedVariant,
-			domains: [
-				...selectedVariant.domains,
-				{ host: "", port: 80, serviceName: "" },
-			],
+		setTemplateInfo({
+			...templateInfo,
+			...(templateInfo.details && {
+				details: {
+					...templateInfo.details,
+					domains: [
+						...selectedVariant.domains,
+						{ host: "", port: 80, serviceName: "" },
+					],
+				},
+			}),
 		});
 	};
 	if (isError) {
@@ -161,15 +187,6 @@ export const StepTwo = ({
 				<AlertBlock type="error">
 					{error?.message || "Error generating suggestions"}
 				</AlertBlock>
-
-				<Button
-					onClick={() =>
-						selectedVariant ? setSelectedVariant(undefined) : prevStep()
-					}
-					variant="outline"
-				>
-					{selectedVariant ? "Change Variant" : "Back"}
-				</Button>
 			</div>
 		);
 	}
@@ -197,10 +214,13 @@ export const StepTwo = ({
 						<div className="space-y-4">
 							<div>Based on your input, we suggest the following variants:</div>
 							<RadioGroup
-								value={selectedVariant}
+								// value={selectedVariant?.}
 								onValueChange={(value) => {
 									const element = suggestions?.find((s) => s?.id === value);
-									setSelectedVariant(element);
+									setTemplateInfo({
+										...templateInfo,
+										details: element,
+									});
 								}}
 								className="space-y-4"
 							>
@@ -254,9 +274,14 @@ export const StepTwo = ({
 												value={selectedVariant?.dockerCompose}
 												className="font-mono"
 												onChange={(value) => {
-													setSelectedVariant({
-														...selectedVariant,
-														dockerCompose: value,
+													setTemplateInfo({
+														...templateInfo,
+														...(templateInfo?.details && {
+															details: {
+																...templateInfo.details,
+																dockerCompose: value,
+															},
+														}),
 													});
 												}}
 											/>
@@ -416,17 +441,17 @@ export const StepTwo = ({
 			</div>
 			<div className="">
 				<div className="flex justify-between">
-					<Button
-						onClick={() =>
-							selectedVariant ? setSelectedVariant(undefined) : prevStep()
-						}
-						variant="outline"
-					>
-						{selectedVariant ? "Change Variant" : "Back"}
-					</Button>
-					<Button onClick={handleNext} disabled={!selectedVariant}>
-						Next
-					</Button>
+					{selectedVariant && (
+						<Button
+							onClick={() => {
+								const { details, ...rest } = templateInfo;
+								setTemplateInfo(rest);
+							}}
+							variant="outline"
+						>
+							Change Variant
+						</Button>
+					)}
 				</div>
 			</div>
 		</div>
