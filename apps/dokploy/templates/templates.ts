@@ -1269,7 +1269,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["cloud", "networking", "security", "tunnel"],
 		load: () => import("./cloudflared/index").then((m) => m.generate),
-	},{
+	},
+	{
 		id: "couchdb",
 		name: "CouchDB",
 		version: "latest",

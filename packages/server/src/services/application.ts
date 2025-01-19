@@ -213,7 +213,7 @@ export const deployApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
-			domains: application.domains
+			domains: application.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -333,7 +333,7 @@ export const deployRemoteApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
-			domains: application.domains
+			domains: application.domains,
 		});
 	} catch (error) {
 		// @ts-ignore

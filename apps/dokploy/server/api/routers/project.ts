@@ -239,7 +239,10 @@ export const projectRouter = createTRPCRouter({
 			}
 		}),
 });
-function buildServiceFilter(fieldName: AnyPgColumn, accessedServices: string[]) {
+function buildServiceFilter(
+	fieldName: AnyPgColumn,
+	accessedServices: string[],
+) {
 	return accessedServices.length > 0
 		? sql`${fieldName} IN (${sql.join(
 				accessedServices.map((serviceId) => sql`${serviceId}`),

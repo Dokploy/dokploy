@@ -81,4 +81,4 @@ export const StepThree = ({
 			</div>
 		</div>
 	);
-}
+};

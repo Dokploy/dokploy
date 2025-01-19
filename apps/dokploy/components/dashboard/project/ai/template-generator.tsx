@@ -156,4 +156,4 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 			</DialogContent>
 		</Dialog>
 	);
-}
+};

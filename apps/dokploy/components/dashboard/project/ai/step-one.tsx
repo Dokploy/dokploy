@@ -66,4 +66,4 @@ export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
 			</div>
 		</div>
 	);
-}
+};

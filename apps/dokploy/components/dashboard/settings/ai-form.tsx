@@ -51,7 +51,7 @@ interface Model {
 	owned_by: string;
 }
 
-export const AiForm = ()=>  {
+export const AiForm = () => {
 	const [models, setModels] = useState<Model[]>([]);
 	const [isLoadingModels, setIsLoadingModels] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -273,4 +273,4 @@ export const AiForm = ()=>  {
 			</CardContent>
 		</Card>
 	);
-}
+};

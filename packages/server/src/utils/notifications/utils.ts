@@ -59,7 +59,7 @@ export const sendTelegramNotification = async (
 	inlineButton?: {
 		text: string;
 		url: string;
-	}[][]
+	}[][],
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;

@@ -1,7 +1,7 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
-import {CodeEditor} from "@/components/shared/code-editor";
 
 export const StepFour = ({
 	prevStep,
@@ -76,4 +76,4 @@ export const StepFour = ({
 			</div>
 		</div>
 	);
-}
+};

@@ -1,3 +1,4 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Accordion,
 	AccordionContent,
@@ -14,7 +15,6 @@ import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
-import {CodeEditor} from "@/components/shared/code-editor";
 
 interface EnvVariable {
 	name: string;
@@ -304,4 +304,4 @@ export const StepTwo = ({
 			</div>
 		</div>
 	);
-}
+};
