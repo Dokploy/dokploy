@@ -1,5 +1,5 @@
 "use client";
-
+import { useState, useEffect } from "react";
 import {
 	Activity,
 	AudioWaveform,
@@ -46,6 +46,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
 	Sidebar,
+	SIDEBAR_COOKIE_NAME,
 	SidebarContent,
 	SidebarFooter,
 	SidebarGroup,
@@ -369,6 +370,19 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
+	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		const cookieValue = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+			?.split("=")[1];
+
+		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+	}, []);
+
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -445,6 +459,13 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
+			open={defaultOpen}
+			onOpenChange={(open) => {
+				setDefaultOpen(open);
+
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
+			}}
 			style={
 				{
 					"--sidebar-width": "19.5rem",
