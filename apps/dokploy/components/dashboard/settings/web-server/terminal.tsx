@@ -29,8 +29,11 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		}
 		const term = new XTerm({
 			cursorBlink: true,
-			lineHeight: 1.4,
+			lineHeight: 1.6, // Increased line height to prevent text overlap
 			convertEol: true,
+			rows: 24,
+			cols: 80,
+			scrollback: 5000, // Increased scrollback to prevent text loss
 			theme: {
 				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
 				background: "rgba(0, 0, 0, 0)",
@@ -61,8 +64,38 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
 		addonFit.fit();
+
+		// Handle paste events to prevent unstable content
+		term.onData((data) => {
+			// Rate limit large paste operations
+			if (data.length > 1000) {
+				const chunks = data.match(/.{1,1000}/g) || [];
+				let i = 0;
+				const sendChunk = () => {
+					if (i < chunks.length && chunks[i] !== undefined) {
+						ws.send(chunks[i]!); // Type assertion since we checked for undefined
+						i++;
+						setTimeout(sendChunk, 10);
+					}
+				};
+				sendChunk();
+			} else {
+				ws.send(data);
+			}
+		});
+
+		// Handle window resize events
+		const resizeObserver = new ResizeObserver(() => {
+			addonFit.fit();
+		});
+		
+		if (termRef.current) {
+			resizeObserver.observe(termRef.current);
+		}
+
 		return () => {
 			ws.readyState === WebSocket.OPEN && ws.close();
+			resizeObserver.disconnect();
 		};
 	}, [id, serverId]);
 
