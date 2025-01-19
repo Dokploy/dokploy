@@ -2,6 +2,7 @@ import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
 import { findAdminById } from "../services/admin";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
+import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 export const setupMonitoring = async (serverId: string) => {
@@ -31,7 +32,7 @@ export const setupMonitoring = async (serverId: string) => {
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				"/proc:/host/proc:ro",
-				"/etc/dokploy/monitoring/monitoring.db:/app/data/monitoring.db",
+				"/etc/dokploy/monitoring/monitoring.db:/app/monitoring.db",
 			],
 			NetworkMode: "host",
 		},
@@ -41,6 +42,10 @@ export const setupMonitoring = async (serverId: string) => {
 	};
 	const docker = await getRemoteDocker(serverId);
 	try {
+		await execAsyncRemote(
+			serverId,
+			"mkdir -p /etc/dokploy/monitoring && touch /etc/dokploy/monitoring/monitoring.db",
+		);
 		if (serverId) {
 			await pullRemoteImage(imageName, serverId);
 		}
@@ -92,7 +97,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 				"/sys:/host/sys:ro",
 				"/etc/os-release:/etc/os-release:ro",
 				"/proc:/host/proc:ro",
-				"/etc/dokploy/monitoring/monitoring.db:/app/data/monitoring.db",
+				"/etc/dokploy/monitoring/monitoring.db:/app/monitoring.db",
 			],
 			// NetworkMode: "host",
 		},
@@ -102,6 +107,9 @@ export const setupWebMonitoring = async (adminId: string) => {
 	};
 	const docker = await getRemoteDocker();
 	try {
+		await execAsync(
+			"mkdir -p /etc/dokploy/monitoring && touch /etc/dokploy/monitoring/monitoring.db",
+		);
 		await pullImage(imageName);
 
 		const container = docker.getContainer(containerName);

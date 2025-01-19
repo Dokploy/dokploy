@@ -25,11 +25,6 @@ FROM alpine:3.19
 # Instalar SQLite y otras dependencias necesarias
 RUN apk add --no-cache sqlite-libs docker-cli
 
-
-# Crear el directorio de datos de la aplicación y el archivo de base de datos
-RUN mkdir -p /app/data && \
-    touch /app/data/monitoring.db
-
 WORKDIR /app
 
 # Copiar el binario compilado y el archivo monitor.go
