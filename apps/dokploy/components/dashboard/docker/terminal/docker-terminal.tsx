@@ -55,12 +55,12 @@ export const DockerTerminal: React.FC<Props> = ({
 
 		// Send initial terminal dimensions
 		const { cols, rows } = term;
-		ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+		ws.send(JSON.stringify({ type: "resize", cols, rows }));
 
 		// Listen for terminal resize events
 		term.onResize(({ cols, rows }) => {
 			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+				ws.send(JSON.stringify({ type: "resize", cols, rows }));
 			}
 		});
 
