@@ -8,7 +8,14 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Activity, Loader2, Monitor, Settings, Server } from "lucide-react";
+import {
+	Activity,
+	Loader2,
+	Monitor,
+	Server,
+	Settings,
+	WorkflowIcon,
+} from "lucide-react";
 import { NodeCard } from "./details/details-card";
 
 interface Props {
@@ -23,10 +30,14 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (isLoading) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						<Loader2 className="h-6 w-6 animate-spin" />
+				<div className="mb-6 border min-h-[55vh] flex rounded-lg h-full items-center justify-center  text-muted-foreground">
+					{/* <div className="flex items-center justify-center h-full text-muted-foreground"> */}
+
+					<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[55vh]">
+						<span>Loading...</span>
+						<Loader2 className="animate-spin size-4" />
 					</div>
+					{/* </div> */}
 				</div>
 			</div>
 		);
@@ -35,7 +46,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	if (!nodes) {
 		return (
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="mb-6 border min-h-[55vh] rounded-lg h-full">
+				<div className="mb-6 border min-h-[55vh] flex justify-center items-center rounded-lg h-full">
 					<div className="flex items-center justify-center h-full  text-destructive">
 						<span>Failed to load data</span>
 					</div>
@@ -59,13 +70,14 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	);
 
 	return (
-		<div>
-			<div className="w-full max-w-7xl mx-auto space-y-6 py-4">
+		<Card className="h-full bg-sidebar  p-2.5 rounded-xl mx-auto w-full">
+			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
 				<header className="flex items-center justify-between">
 					<div className="space-y-1">
-						<h1 className="text-2xl font-semibold tracking-tight">
+						<CardTitle className="text-xl flex flex-row gap-2">
+							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
 							Docker Swarm Overview
-						</h1>
+						</CardTitle>
 						<p className="text-sm text-muted-foreground">
 							Monitor and manage your Docker Swarm cluster
 						</p>
@@ -82,7 +94,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					)}
 				</header>
 
-				<div className="grid gap-6 md:grid-cols-3">
+				<div className="grid gap-6 lg:grid-cols-3">
 					<Card className="bg-background">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 							<CardTitle className="text-sm font-medium">Total Nodes</CardTitle>
@@ -170,6 +182,6 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					))}
 				</div>
 			</div>
-		</div>
+		</Card>
 	);
 }

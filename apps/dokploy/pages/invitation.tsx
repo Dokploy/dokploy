@@ -1,3 +1,4 @@
+import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +23,7 @@ import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -127,19 +128,20 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 		<div>
 			<div className="flex  h-screen w-full items-center justify-center ">
 				<div className="flex flex-col items-center gap-4 w-full">
-					<Link
-						href="https://dokploy.com"
-						target="_blank"
-						className="flex flex-row items-center gap-2"
-					>
-						<Logo />
-						<span className="font-medium text-sm">Dokploy</span>
-					</Link>
-					<CardTitle className="text-2xl font-bold">Invitation</CardTitle>
+					<CardTitle className="text-2xl font-bold flex items-center gap-2">
+						<Link
+							href="https://dokploy.com"
+							target="_blank"
+							className="flex flex-row items-center gap-2"
+						>
+							<Logo className="size-12" />
+						</Link>
+						Invitation
+					</CardTitle>
 					<CardDescription>
 						Fill the form below to create your account
 					</CardDescription>
-					<Card className="mx-auto w-full max-w-md bg-transparent">
+					<div className="w-full">
 						<div className="p-3" />
 
 						{isError && (
@@ -151,7 +153,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 							</div>
 						)}
 
-						<CardContent>
+						<CardContent className="p-0">
 							<Form {...form}>
 								<form
 									onSubmit={form.handleSubmit(onSubmit)}
@@ -237,7 +239,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 								</form>
 							</Form>
 						</CardContent>
-					</Card>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -245,7 +247,9 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 };
 
 export default Invitation;
-
+Invitation.getLayout = (page: ReactElement) => {
+	return <OnboardingLayout>{page}</OnboardingLayout>;
+};
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { query } = ctx;
 

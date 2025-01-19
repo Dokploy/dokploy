@@ -11,17 +11,27 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+} from "@/components/ui/command";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -29,20 +39,34 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import type { findProjectById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { CircuitBoard, FolderInput, GlobeIcon, PlusIcon } from "lucide-react";
+import {
+	CircuitBoard,
+	FolderInput,
+	GlobeIcon,
+	Loader2,
+	PlusIcon,
+	Search,
+} from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { type ReactElement } from "react";
+import React, { useMemo, useState, type ReactElement } from "react";
 import superjson from "superjson";
 
 export type Services = {
@@ -163,7 +187,7 @@ const Project = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
-	const { data } = api.project.one.useQuery({ projectId });
+	const { data, isLoading } = api.project.one.useQuery({ projectId });
 	const router = useRouter();
 
 	const emptyServices =
@@ -177,146 +201,271 @@ const Project = (
 
 	const applications = extractServices(data);
 
+	const [searchQuery, setSearchQuery] = useState("");
+	const serviceTypes = [
+		{ value: "application", label: "Application", icon: GlobeIcon },
+		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
+		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
+		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },
+		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
+		{ value: "redis", label: "Redis", icon: RedisIcon },
+		{ value: "compose", label: "Compose", icon: CircuitBoard },
+	];
+
+	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+	const [openCombobox, setOpenCombobox] = useState(false);
+
+	const filteredServices = useMemo(() => {
+		if (!applications) return [];
+		return applications.filter(
+			(service) =>
+				(service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					service.description
+						?.toLowerCase()
+						.includes(searchQuery.toLowerCase())) &&
+				(selectedTypes.length === 0 || selectedTypes.includes(service.type)),
+		);
+	}, [applications, searchQuery, selectedTypes]);
+
 	return (
 		<div>
-			<div className="flex flex-col gap-4">
-				<Breadcrumb>
-					<BreadcrumbItem>
-						<BreadcrumbLink as={Link} href="/dashboard/projects">
-							Projects
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbItem isCurrentPage>
-						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
-					</BreadcrumbItem>
-				</Breadcrumb>
-				<Head>
-					<title>Project: {data?.name} | Dokploy</title>
-				</Head>
-				<header className="mb-6 flex w-full items-center justify-between flex-wrap gap-2">
-					<div className="flex flex-col gap-2">
-						<h1 className="text-xl font-bold lg:text-3xl">{data?.name}</h1>
-
-						<p className="lg:text-medium text-muted-foreground">
-							{data?.description}
-						</p>
-					</div>
-
-					{(auth?.rol === "admin" || user?.canCreateServices) && (
-						<div className="flex flex-row gap-4 flex-wrap">
-							<ProjectEnvironment projectId={projectId}>
-								<Button variant="outline">Project Environment</Button>
-							</ProjectEnvironment>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button>
-										<PlusIcon className="h-4 w-4" />
-										Create Service
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									className="w-[200px] space-y-2"
-									align="end"
-								>
-									<DropdownMenuLabel className="text-sm font-normal ">
-										Actions
-									</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									<AddApplication
-										projectId={projectId}
-										projectName={data?.name}
-									/>
-									<AddDatabase projectId={projectId} projectName={data?.name} />
-									<AddCompose projectId={projectId} projectName={data?.name} />
-									<AddTemplate projectId={projectId} />
-									<AddAiAssistant
-										projectId={projectId}
-										projectName={data?.name}
-									/>
-								</DropdownMenuContent>
-							</DropdownMenu>
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{ name: data?.name || "", href: `/dashboard/project/${projectId}` },
+				]}
+			/>
+			<Head>
+				<title>Project: {data?.name} | Dokploy</title>
+			</Head>
+			<div className="w-full">
+				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
+					<div className="rounded-xl bg-background shadow-md ">
+						<div className="flex justify-between gap-4 w-full items-center">
+							<CardHeader className="">
+								<CardTitle className="text-xl flex flex-row gap-2">
+									<FolderInput className="size-6 text-muted-foreground self-center" />
+									{data?.name}
+								</CardTitle>
+								<CardDescription>{data?.description}</CardDescription>
+							</CardHeader>
+							{(auth?.rol === "admin" || user?.canCreateServices) && (
+								<div className="flex flex-row gap-4 flex-wrap px-4">
+									<ProjectEnvironment projectId={projectId}>
+										<Button variant="outline">Project Environment</Button>
+									</ProjectEnvironment>
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button>
+												<PlusIcon className="h-4 w-4" />
+												Create Service
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											className="w-[200px] space-y-2"
+											align="end"
+										>
+											<DropdownMenuLabel className="text-sm font-normal ">
+												Actions
+											</DropdownMenuLabel>
+											<DropdownMenuSeparator />
+											<AddApplication
+												projectId={projectId}
+												projectName={data?.name}
+											/>
+											<AddDatabase
+												projectId={projectId}
+												projectName={data?.name}
+											/>
+											<AddCompose
+												projectId={projectId}
+												projectName={data?.name}
+											/>
+											<AddTemplate projectId={projectId} />
+											<AddAiAssistant
+												projectId={projectId}
+												projectName={data?.name}
+											/>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</div>
+							)}
 						</div>
-					)}
-				</header>
-			</div>
-
-			<div className="flex w-full gap-8">
-				{emptyServices ? (
-					<div className="flex h-[70vh] w-full flex-col items-center justify-center">
-						<FolderInput className="size-10 md:size-28 text-muted" />
-						<span className="text-center font-medium  text-muted-foreground">
-							No services added yet. Click on Create Service.
-						</span>
-					</div>
-				) : (
-					<div className="flex w-full flex-col gap-4">
-						<div className="grid gap-5 pb-10 sm:grid-cols-2 lg:grid-cols-3">
-							{applications?.map((service) => (
-								<Card
-									key={service.id}
-									onClick={() => {
-										router.push(
-											`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
-										);
-									}}
-									className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-card"
-								>
-									<div className="absolute -right-1 -top-2">
-										<StatusTooltip status={service.status} />
+						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
+							{isLoading ? (
+								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
+									<span>Loading...</span>
+									<Loader2 className="animate-spin size-4" />
+								</div>
+							) : (
+								<>
+									<div className="flex flex-row gap-2 items-center">
+										<div className="w-full relative">
+											<Input
+												placeholder="Filter services..."
+												value={searchQuery}
+												onChange={(e) => setSearchQuery(e.target.value)}
+												className="pr-10"
+											/>
+											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+										</div>
+										<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+											<PopoverTrigger asChild>
+												<Button
+													variant="outline"
+													aria-expanded={openCombobox}
+													className="min-w-[200px] justify-between"
+												>
+													{selectedTypes.length === 0
+														? "Select types..."
+														: `${selectedTypes.length} selected`}
+													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-[200px] p-0">
+												<Command>
+													<CommandInput placeholder="Search type..." />
+													<CommandEmpty>No type found.</CommandEmpty>
+													<CommandGroup>
+														{serviceTypes.map((type) => (
+															<CommandItem
+																key={type.value}
+																onSelect={() => {
+																	setSelectedTypes((prev) =>
+																		prev.includes(type.value)
+																			? prev.filter((t) => t !== type.value)
+																			: [...prev, type.value],
+																	);
+																	setOpenCombobox(false);
+																}}
+															>
+																<div className="flex flex-row">
+																	<Check
+																		className={cn(
+																			"mr-2 h-4 w-4",
+																			selectedTypes.includes(type.value)
+																				? "opacity-100"
+																				: "opacity-0",
+																		)}
+																	/>
+																	{type.icon && (
+																		<type.icon className="mr-2 h-4 w-4" />
+																	)}
+																	{type.label}
+																</div>
+															</CommandItem>
+														))}
+														<CommandItem
+															onSelect={() => {
+																setSelectedTypes([]);
+																setOpenCombobox(false);
+															}}
+															className="border-t"
+														>
+															<div className="flex flex-row items-center">
+																<X className="mr-2 h-4 w-4" />
+																Clear filters
+															</div>
+														</CommandItem>
+													</CommandGroup>
+												</Command>
+											</PopoverContent>
+										</Popover>
 									</div>
 
-									<CardHeader>
-										<CardTitle className="flex items-center justify-between">
-											<div className="flex flex-row items-center gap-2 justify-between w-full">
-												<div className="flex flex-col gap-2">
-													<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
-														{service.name}
-													</span>
-													{service.description && (
-														<span className="text-sm font-medium text-muted-foreground">
-															{service.description}
-														</span>
-													)}
-												</div>
-
-												<span className="text-sm font-medium text-muted-foreground self-start">
-													{service.type === "postgres" && (
-														<PostgresqlIcon className="h-7 w-7" />
-													)}
-													{service.type === "redis" && (
-														<RedisIcon className="h-7 w-7" />
-													)}
-													{service.type === "mariadb" && (
-														<MariadbIcon className="h-7 w-7" />
-													)}
-													{service.type === "mongo" && (
-														<MongodbIcon className="h-7 w-7" />
-													)}
-													{service.type === "mysql" && (
-														<MysqlIcon className="h-7 w-7" />
-													)}
-													{service.type === "application" && (
-														<GlobeIcon className="h-6 w-6" />
-													)}
-													{service.type === "compose" && (
-														<CircuitBoard className="h-6 w-6" />
-													)}
+									<div className="flex w-full gap-8">
+										{emptyServices ? (
+											<div className="flex h-[70vh] w-full flex-col items-center justify-center">
+												<FolderInput className="size-8 self-center text-muted-foreground" />
+												<span className="text-center font-medium  text-muted-foreground">
+													No services added yet. Click on Create Service.
 												</span>
 											</div>
-										</CardTitle>
-									</CardHeader>
-									<CardFooter className="mt-auto">
-										<div className="space-y-1 text-sm">
-											<DateTooltip date={service.createdAt}>
-												Created
-											</DateTooltip>
-										</div>
-									</CardFooter>
-								</Card>
-							))}
-						</div>
+										) : filteredServices.length === 0 ? (
+											<div className="flex h-[70vh] w-full flex-col items-center justify-center">
+												<Search className="size-8 self-center text-muted-foreground" />
+												<span className="text-center font-medium text-muted-foreground">
+													No services found with the current filters
+												</span>
+												<span className="text-sm text-muted-foreground">
+													Try adjusting your search or filters
+												</span>
+											</div>
+										) : (
+											<div className="flex w-full flex-col gap-4">
+												<div className=" gap-5 pb-10  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+													{filteredServices?.map((service) => (
+														<Card
+															key={service.id}
+															onClick={() => {
+																router.push(
+																	`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
+																);
+															}}
+															className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border"
+														>
+															<div className="absolute -right-1 -top-2">
+																<StatusTooltip status={service.status} />
+															</div>
+
+															<CardHeader>
+																<CardTitle className="flex items-center justify-between">
+																	<div className="flex flex-row items-center gap-2 justify-between w-full">
+																		<div className="flex flex-col gap-2">
+																			<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+																				{service.name}
+																			</span>
+																			{service.description && (
+																				<span className="text-sm font-medium text-muted-foreground">
+																					{service.description}
+																				</span>
+																			)}
+																		</div>
+
+																		<span className="text-sm font-medium text-muted-foreground self-start">
+																			{service.type === "postgres" && (
+																				<PostgresqlIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "redis" && (
+																				<RedisIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mariadb" && (
+																				<MariadbIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mongo" && (
+																				<MongodbIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "mysql" && (
+																				<MysqlIcon className="h-7 w-7" />
+																			)}
+																			{service.type === "application" && (
+																				<GlobeIcon className="h-6 w-6" />
+																			)}
+																			{service.type === "compose" && (
+																				<CircuitBoard className="h-6 w-6" />
+																			)}
+																		</span>
+																	</div>
+																</CardTitle>
+															</CardHeader>
+															<CardFooter className="mt-auto">
+																<div className="space-y-1 text-sm">
+																	<DateTooltip date={service.createdAt}>
+																		Created
+																	</DateTooltip>
+																</div>
+															</CardFooter>
+														</Card>
+													))}
+												</div>
+											</div>
+										)}
+									</div>
+								</>
+							)}
+						</CardContent>
 					</div>
-				)}
+				</Card>
 			</div>
 		</div>
 	);

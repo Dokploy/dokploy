@@ -4,9 +4,9 @@ import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
 import { Queue } from "@nerimity/mimiqueue";
 import { createClient } from "redis";
-import { logger } from "./logger";
-import { type DeployJob, deployJobSchema } from "./schema";
-import { deploy } from "./utils";
+import { logger } from "./logger.js";
+import { type DeployJob, deployJobSchema } from "./schema.js";
+import { deploy } from "./utils.js";
 
 const app = new Hono();
 const redisClient = createClient({

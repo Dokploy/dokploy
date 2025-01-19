@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit } from "lucide-react";
+import { Edit, PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 			enabled: !!bitbucketId,
 		},
 	);
+
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } = api.bitbucket.update.useMutation();
@@ -73,7 +74,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 			workspaceName: bitbucket?.bitbucketWorkspaceName || "",
 			name: bitbucket?.gitProvider.name || "",
 		});
-	}, [form, isOpen]);
+	}, [form, isOpen, bitbucket]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
@@ -96,14 +97,18 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<Edit className="size-4" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Bitbucket Provider <BitbucketIcon className="size-5" />
+						Update Bitbucket <BitbucketIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -166,7 +171,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 									)}
 								/>
 
-								<div className="flex w-full justify-end gap-4 mt-4">
+								<div className="flex w-full justify-between gap-4 mt-4">
 									<Button
 										type="button"
 										variant={"secondary"}

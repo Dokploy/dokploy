@@ -1,7 +1,7 @@
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
@@ -12,9 +12,11 @@ import superjson from "superjson";
 
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<WebDomain />
-			<WebServer />
+		<div className="w-full">
+			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
+				<WebDomain />
+				<WebServer />
+			</div>
 		</div>
 	);
 };
@@ -22,11 +24,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout tab={"settings"} metaName="Server">
-			<SettingsLayout>{page}</SettingsLayout>
-		</DashboardLayout>
-	);
+	return <DashboardLayout metaName="Server">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

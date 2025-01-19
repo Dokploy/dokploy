@@ -1,6 +1,7 @@
 import type {
 	discord,
 	email,
+	gotify,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -41,20 +42,24 @@ export const sendDiscordNotification = async (
 	connection: typeof discord.$inferInsert,
 	embed: any,
 ) => {
-	try {
-		await fetch(connection.webhookUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ embeds: [embed] }),
-		});
-	} catch (err) {
-		console.log(err);
-	}
+	// try {
+	await fetch(connection.webhookUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ embeds: [embed] }),
+	});
+	// } catch (err) {
+	// 	console.log(err);
+	// }
 };
 
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
+	inlineButton?: {
+		text: string;
+		url: string;
+	}[][]
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
@@ -66,6 +71,9 @@ export const sendTelegramNotification = async (
 				text: messageText,
 				parse_mode: "HTML",
 				disable_web_page_preview: true,
+				reply_markup: {
+					inline_keyboard: inlineButton,
+				},
 			}),
 		});
 	} catch (err) {
@@ -85,5 +93,35 @@ export const sendSlackNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+	}
+};
+
+export const sendGotifyNotification = async (
+	connection: typeof gotify.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const response = await fetch(`${connection.serverUrl}/message`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-Gotify-Key": connection.appToken,
+		},
+		body: JSON.stringify({
+			title: title,
+			message: message,
+			priority: connection.priority,
+			extras: {
+				"client::display": {
+					contentType: "text/plain",
+				},
+			},
+		}),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Gotify notification: ${response.statusText}`,
+		);
 	}
 };
