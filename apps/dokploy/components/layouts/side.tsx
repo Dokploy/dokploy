@@ -1,5 +1,4 @@
 "use client";
-
 import {
 	Activity,
 	AudioWaveform,
@@ -7,7 +6,9 @@ import {
 	Bell,
 	BlocksIcon,
 	BookIcon,
+	Boxes,
 	ChevronRight,
+	CircleHelp,
 	Command,
 	CreditCard,
 	Database,
@@ -15,7 +16,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
-	Heart,
+	HeartIcon,
 	KeyRound,
 	type LucideIcon,
 	Package,
@@ -26,6 +27,7 @@ import {
 	Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type * as React from "react";
 
 import {
@@ -43,6 +45,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
+	SIDEBAR_COOKIE_NAME,
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -85,7 +88,7 @@ interface NavItem {
 interface ExternalLink {
 	name: string;
 	url: string;
-	icon: LucideIcon;
+	icon: React.ComponentType<{ className?: string }>;
 }
 
 const data = {
@@ -127,7 +130,7 @@ const data = {
 			isActive: false,
 		},
 		{
-			title: "File System",
+			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			isSingle: true,
@@ -210,17 +213,6 @@ const data = {
 		// 			url: "/dashboard/settings/notifications",
 		// 		},
 		// 	],
-		// },
-		// {
-		// 	title: "Appearance",
-		// 	icon: Frame,
-		// 	items: [
-		// 		{
-		// 			title: "Theme",
-		// 			url: "/dashboard/settings/appearance",
-		// 		},
-		// 	],
-		// },
 	] as NavItem[],
 	settings: [
 		{
@@ -289,6 +281,13 @@ const data = {
 			isActive: false,
 		},
 		{
+			title: "Cluster",
+			url: "/dashboard/settings/cluster",
+			icon: Boxes,
+			isSingle: true,
+			isActive: false,
+		},
+		{
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
@@ -302,14 +301,8 @@ const data = {
 			isSingle: true,
 			isActive: false,
 		},
-
-		// {
-		// 	title: "Appearance",
-		// 	url: "/dashboard/settings/appearance",
-		// 	icon: Frame,
-		// },
 	] as NavItem[],
-	projects: [
+	help: [
 		{
 			name: "Documentation",
 			url: "https://docs.dokploy.com/docs/core",
@@ -317,19 +310,21 @@ const data = {
 		},
 		{
 			name: "Support",
-			url: "https://opencollective.com/dokploy",
-			icon: Heart,
+			url: "https://discord.gg/2tBnJ3jDJc",
+			icon: CircleHelp,
 		},
-		// {
-		// 	name: "Sales & Marketing",
-		// 	url: "#",
-		// 	icon: PieChart,
-		// },
-		// {
-		// 	name: "Travel",
-		// 	url: "#",
-		// 	icon: Map,
-		// },
+		{
+			name: "Sponsor",
+			url: "https://opencollective.com/dokploy",
+			icon: ({ className }) => (
+				<HeartIcon
+					className={cn(
+						"text-red-500 fill-red-600 animate-heartbeat",
+						className,
+					)}
+				/>
+			),
+		},
 	] as ExternalLink[],
 };
 
@@ -348,28 +343,46 @@ function SidebarLogo() {
 	return (
 		<Link
 			href="/dashboard/projects"
-			className=" flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
+			className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
 		>
 			<div
 				className={cn(
-					"flex aspect-square items-center justify-center rounded-lg ",
+					"flex aspect-square items-center justify-center rounded-lg transition-all",
 					state === "collapsed" ? "size-6" : "size-10",
 				)}
 			>
-				<Logo className={state === "collapsed" ? "size-6" : "size-10"} />
+				<Logo
+					className={cn(
+						"transition-all",
+						state === "collapsed" ? "size-6" : "size-10",
+					)}
+				/>
 			</div>
 
-			{state === "expanded" && (
-				<div className="flex flex-col gap-1 text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
-					<span className="truncate font-semibold">Dokploy</span>
-					<span className="truncate text-xs">{dokployVersion}</span>
-				</div>
-			)}
+			<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
+				<p className="truncate font-semibold">Dokploy</p>
+				<p className="truncate text-xs text-muted-foreground">
+					{dokployVersion}
+				</p>
+			</div>
 		</Link>
 	);
 }
 
 export default function Page({ children }: Props) {
+	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		const cookieValue = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+			?.split("=")[1];
+
+		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+	}, []);
+
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -416,7 +429,11 @@ export default function Page({ children }: Props) {
 
 	let filteredSettings = isCloud
 		? data.settings.filter(
-				(item) => !["/dashboard/settings/server"].includes(item.url),
+				(item) =>
+					![
+						"/dashboard/settings/server",
+						"/dashboard/settings/cluster",
+					].includes(item.url),
 			)
 		: data.settings.filter(
 				(item) => !["/dashboard/settings/billing"].includes(item.url),
@@ -442,6 +459,13 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
+			open={defaultOpen}
+			onOpenChange={(open) => {
+				setDefaultOpen(open);
+
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
+			}}
 			style={
 				{
 					"--sidebar-width": "19.5rem",
@@ -451,11 +475,12 @@ export default function Page({ children }: Props) {
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
-					<SidebarMenu>
-						<SidebarMenuItem>
-							<LogoWrapper />
-						</SidebarMenuItem>
-					</SidebarMenu>
+					<SidebarMenuButton
+						className="group-data-[collapsible=icon]:!p-0"
+						size="lg"
+					>
+						<LogoWrapper />
+					</SidebarMenuButton>
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
@@ -627,13 +652,20 @@ export default function Page({ children }: Props) {
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 						<SidebarGroupLabel>Extra</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.projects.map((item) => (
+							{data.help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
-										<Link href={item.url}>
-											<item.icon />
+										<a
+											href={item.url}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="flex w-full items-center gap-2"
+										>
+											<span className="mr-2">
+												<item.icon className="h-4 w-4" />
+											</span>
 											<span>{item.name}</span>
-										</Link>
+										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
@@ -665,7 +697,7 @@ export default function Page({ children }: Props) {
 								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
-										<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbItem className="block">
 											<BreadcrumbLink asChild>
 												<Link
 													href={activeItem?.url || "/"}
@@ -675,7 +707,7 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="hidden md:block" />
+										<BreadcrumbSeparator className="block" />
 										<BreadcrumbItem>
 											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 										</BreadcrumbItem>

@@ -3,7 +3,6 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
 import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildCompose,
 	getBuildComposeCommand,
@@ -45,9 +44,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { getDokployUrl } from "./admin";
+import { findAdminById, getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
+import { cleanupFullDocker } from "./settings";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -243,6 +243,7 @@ export const deployCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -259,6 +260,11 @@ export const deployCompose = async ({
 			adminId: compose.project.adminId,
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 	}
 };
 
@@ -295,6 +301,11 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 	}
 
 	return true;
@@ -366,6 +377,7 @@ export const deployRemoteCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -392,6 +404,11 @@ export const deployRemoteCompose = async ({
 			adminId: compose.project.adminId,
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 	}
 };
 
@@ -436,6 +453,11 @@ export const rebuildRemoteCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 	}
 
 	return true;

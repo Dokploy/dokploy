@@ -393,6 +393,20 @@
       "when": 1736669623831,
       "tag": "0055_next_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1736789918294,
+      "tag": "0056_majestic_skaar",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1737306063563,
+      "tag": "0057_tricky_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

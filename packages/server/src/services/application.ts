@@ -40,7 +40,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { getDokployUrl } from "./admin";
+import { findAdminById, getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
@@ -58,6 +58,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { cleanupFullDocker } from "./settings";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -213,6 +214,7 @@ export const deployApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
+			domains: application.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -228,6 +230,12 @@ export const deployApplication = async ({
 		});
 
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
@@ -269,6 +277,12 @@ export const rebuildApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
@@ -332,6 +346,7 @@ export const deployRemoteApplication = async ({
 			applicationType: "application",
 			buildLink,
 			adminId: application.project.adminId,
+			domains: application.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -357,15 +372,13 @@ export const deployRemoteApplication = async ({
 			adminId: application.project.adminId,
 		});
 
-		console.log(
-			"Error on ",
-			application.buildType,
-			"/",
-			application.sourceType,
-			error,
-		);
-
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
@@ -473,6 +486,12 @@ export const deployPreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheOnPreviews) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
@@ -585,6 +604,12 @@ export const deployRemotePreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheOnPreviews) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
@@ -632,6 +657,12 @@ export const rebuildRemoteApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
+	} finally {
+		const admin = await findAdminById(application.project.adminId);
+
+		if (admin.cleanupCacheApplications) {
+			await cleanupFullDocker(application?.serverId);
+		}
 	}
 
 	return true;
