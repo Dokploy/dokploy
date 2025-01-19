@@ -77,7 +77,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		const resizeObserver = new ResizeObserver(() => {
 			addonFit.fit();
 		});
-		
+
 		if (termRef.current) {
 			resizeObserver.observe(termRef.current);
 		}

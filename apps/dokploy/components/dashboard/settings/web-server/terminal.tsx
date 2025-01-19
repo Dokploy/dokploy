@@ -88,7 +88,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		const resizeObserver = new ResizeObserver(() => {
 			addonFit.fit();
 		});
-		
+
 		if (termRef.current) {
 			resizeObserver.observe(termRef.current);
 		}
