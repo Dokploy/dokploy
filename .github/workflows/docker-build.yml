@@ -1,0 +1,87 @@
+name: Docker Build
+
+on:
+  pull_request:
+    branches: [main, canary, feat/github-runners]
+env:
+  IMAGE_NAME: dokploy/dokploy
+
+jobs:
+  docker-amd:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set tag and version
+        id: meta
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+            echo "tags=${IMAGE_NAME}:latest,${IMAGE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
+            echo "tags=${IMAGE_NAME}:canary" >> $GITHUB_OUTPUT
+          else
+            echo "tags=${IMAGE_NAME}:feature" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare env file
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+  docker-arm:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set tag and version
+        id: meta
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+            echo "tags=${IMAGE_NAME}:latest,${IMAGE_NAME}:${VERSION}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
+            echo "tags=${IMAGE_NAME}:canary" >> $GITHUB_OUTPUT
+          else
+            echo "tags=${IMAGE_NAME}:feature" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare env file
+        run: |
+          cp apps/dokploy/.env.production.example .env.production
+          cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
