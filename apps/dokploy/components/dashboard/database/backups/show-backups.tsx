@@ -75,14 +75,14 @@ export const ShowBackups = ({ id, type }: Props) => {
 				{data?.length === 0 ? (
 					<div className="flex flex-col items-center gap-3">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
+						<span className="text-base text-muted-foreground text-center">
 							To create a backup it is required to set at least 1 provider.
 							Please, go to{" "}
 							<Link
-								href="/dashboard/settings/server"
+								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								Settings
+								S3 Destinations
 							</Link>{" "}
 							to do so.
 						</span>

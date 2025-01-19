@@ -11,7 +11,7 @@ interface Props {
 export const OnboardingLayout = ({ children }: Props) => {
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
-			<div className="relative hidden h-full flex-col  p-10 text-white dark:border-r lg:flex">
+			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
 				<div className="absolute inset-0 bg-muted" />
 				<Link
 					href="https://dokploy.com"
@@ -26,31 +26,12 @@ export const OnboardingLayout = ({ children }: Props) => {
 							&ldquo;The Open Source alternative to Netlify, Vercel,
 							Heroku.&rdquo;
 						</p>
-						{/* <footer className="text-sm">Sofia Davis</footer> */}
 					</blockquote>
 				</div>
 			</div>
 			<div className="w-full">
 				<div className="flex w-full flex-col justify-center space-y-6 max-w-lg mx-auto">
 					{children}
-
-					{/* <p className="px-8 text-center text-sm text-muted-foreground">
-							By clicking continue, you agree to our{" "}
-							<Link
-								href="/terms"
-								className="underline underline-offset-4 hover:text-primary"
-							>
-								Terms of Service
-							</Link>{" "}
-							and{" "}
-							<Link
-								href="/privacy"
-								className="underline underline-offset-4 hover:text-primary"
-							>
-								Privacy Policy
-							</Link>
-							.
-						</p> */}
 				</div>
 				<div className="flex items-center gap-4 justify-center absolute bottom-4 right-4 text-muted-foreground">
 					<Button variant="ghost" size="icon">

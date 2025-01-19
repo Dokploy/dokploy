@@ -79,6 +79,15 @@ export const admins = pgTable("admin", {
 				},
 			},
 		}),
+	cleanupCacheApplications: boolean("cleanupCacheApplications")
+		.notNull()
+		.default(true),
+	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
+		.notNull()
+		.default(false),
+	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
+		.notNull()
+		.default(false),
 });
 
 export const adminsRelations = relations(admins, ({ one, many }) => ({

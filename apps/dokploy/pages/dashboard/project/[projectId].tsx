@@ -255,8 +255,8 @@ const Project = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
-						<div className="flex justify-between gap-4 w-full items-center">
-							<CardHeader className="">
+						<div className="flex justify-between gap-4 w-full items-center  flex-wrap p-6">
+							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									{data?.name}
@@ -264,7 +264,7 @@ const Project = (
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
 							{(auth?.rol === "admin" || user?.canCreateServices) && (
-								<div className="flex flex-row gap-4 flex-wrap px-4">
+								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>

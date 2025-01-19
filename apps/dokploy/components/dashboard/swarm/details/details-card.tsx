@@ -60,7 +60,7 @@ export function NodeCard({ node, serverId }: Props) {
 							<div className="font-medium">{node.Hostname}</div>
 							<Badge variant="green">{node.ManagerStatus || "Worker"}</Badge>
 						</div>
-						<div className="flex flex-wrap items-center space-x-4">
+						<div className="flex flex-wrap items-center gap-4">
 							<Badge variant="green">TLS Status: {node.TLSStatus}</Badge>
 							<Badge variant="blue">Availability: {node.Availability}</Badge>
 						</div>

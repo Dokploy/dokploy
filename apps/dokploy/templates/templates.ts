@@ -1270,4 +1270,32 @@ export const templates: TemplateData[] = [
 		tags: ["cloud", "networking", "security", "tunnel"],
 		load: () => import("./cloudflared/index").then((m) => m.generate),
 	},
+	{
+		id: "couchdb",
+		name: "CouchDB",
+		version: "latest",
+		description:
+			"CouchDB is a document-oriented NoSQL database that excels at replication and horizontal scaling.",
+		logo: "couchdb.png", // we defined the name and the extension of the logo
+		links: {
+			github: "lorem",
+			website: "lorem",
+			docs: "lorem",
+		},
+		tags: ["database", "storage"],
+		load: () => import("./couchdb/index").then((m) => m.generate),
+	},
+	{
+		id: "it-tools",
+		name: "IT Tools",
+		version: "latest",
+		description: "A collection of handy online it-tools for developers.",
+		logo: "it-tools.svg",
+		links: {
+			github: "https://github.com/CorentinTh/it-tools",
+			website: "https://it-tools.tech",
+		},
+		tags: ["developer", "tools"],
+		load: () => import("./it-tools/index").then((m) => m.generate),
+	},
 ];

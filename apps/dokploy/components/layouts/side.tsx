@@ -1,5 +1,4 @@
 "use client";
-
 import {
 	Activity,
 	AudioWaveform,
@@ -28,6 +27,7 @@ import {
 	Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type * as React from "react";
 
 import {
@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
+	SIDEBAR_COOKIE_NAME,
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -369,6 +370,19 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
+	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		const cookieValue = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+			?.split("=")[1];
+
+		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+	}, []);
+
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -445,6 +459,13 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
+			open={defaultOpen}
+			onOpenChange={(open) => {
+				setDefaultOpen(open);
+
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
+			}}
 			style={
 				{
 					"--sidebar-width": "19.5rem",
@@ -676,7 +697,7 @@ export default function Page({ children }: Props) {
 								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
-										<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbItem className="block">
 											<BreadcrumbLink asChild>
 												<Link
 													href={activeItem?.url || "/"}
@@ -686,7 +707,7 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="hidden md:block" />
+										<BreadcrumbSeparator className="block" />
 										<BreadcrumbItem>
 											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 										</BreadcrumbItem>

@@ -8,11 +8,7 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Dashboard = () => {
-	return (
-		<>
-			<SwarmMonitorCard />
-		</>
-	);
+	return <SwarmMonitorCard />;
 };
 
 export default Dashboard;
