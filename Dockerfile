@@ -26,7 +26,7 @@ RUN cp -R /usr/src/app/apps/dokploy/dist /prod/dokploy/dist
 FROM base AS dokploy
 WORKDIR /app
 
-# Set production
+# Set productions
 ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y curl unzip apache2-utils iproute2 && rm -rf /var/lib/apt/lists/*
