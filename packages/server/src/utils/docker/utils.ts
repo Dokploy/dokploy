@@ -145,9 +145,9 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
 		if (serverId) {
-			await execAsyncRemote(serverId, "docker image prune --all --force");
+			await execAsyncRemote(serverId, "docker image prune --force");
 		} else {
-			await execAsync("docker image prune --all --force");
+			await execAsync("docker image prune --force");
 		}
 	} catch (error) {
 		console.error(error);
@@ -171,9 +171,9 @@ export const cleanStoppedContainers = async (serverId?: string) => {
 export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
 		if (serverId) {
-			await execAsyncRemote(serverId, "docker volume prune --all --force");
+			await execAsyncRemote(serverId, "docker volume prune  --force");
 		} else {
-			await execAsync("docker volume prune --all --force");
+			await execAsync("docker volume prune  --force");
 		}
 	} catch (error) {
 		console.error(error);
