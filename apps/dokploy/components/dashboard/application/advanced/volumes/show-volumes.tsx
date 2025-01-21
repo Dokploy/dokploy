@@ -98,20 +98,12 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 
 											{mount.type === "file" && (
-												<>
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">Content</span>
-														<span className="text-sm text-muted-foreground">
-															{mount.content}
-														</span>
-													</div>
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">File Path</span>
-														<span className="text-sm text-muted-foreground">
-															{mount.filePath}
-														</span>
-													</div>
-												</>
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Content</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.content}
+													</span>
+												</div>
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">
@@ -121,7 +113,14 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													</span>
 												</div>
 											)}
-											{mount.type !== "file" && (
+											{mount.type === "file" ? (
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">File Path</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.filePath}
+													</span>
+												</div>
+											) : (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">Mount Path</span>
 													<span className="text-sm text-muted-foreground">
