@@ -76,6 +76,7 @@ export const deploy = async (job: DeployJob) => {
 				previewStatus: "error",
 			});
 		}
+		throw new Error(`Deployment failed: ${error.message}`);
 	}
 
 	return true;
