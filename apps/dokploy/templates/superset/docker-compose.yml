@@ -35,6 +35,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - dokploy-network
 
@@ -44,6 +49,11 @@ services:
     volumes:
       - redis:/data
     command: redis-server --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - dokploy-network
 
