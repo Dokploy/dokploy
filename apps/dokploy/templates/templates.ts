@@ -1309,7 +1309,7 @@ export const templates: TemplateData[] = [
 			website: "https://superset.apache.org",
 			docs: "https://superset.apache.org/docs/intro",
 		},
-		tags: ["developer", "tools"],
+		tags: ["bi", "dashboard", "database", "sql"],
 		load: () => import("./superset/index").then((m) => m.generate),
 	},
 ];
