@@ -1,0 +1,79 @@
+# Note: this is an UNOFFICIAL production docker image build for Superset:
+# - https://github.com/amancevice/docker-superset
+#
+# Before deploying, you must mount your `superset_config.py` file to
+# the superset container. An example config is:
+#
+#    ```python
+#    import os
+#    
+#    SECRET_KEY = os.getenv("SECRET_KEY")
+#    MAPBOX_API_KEY = os.getenv("MAPBOX_API_KEY", "")
+#    
+#    CACHE_CONFIG = {
+#      "CACHE_TYPE": "RedisCache",
+#      "CACHE_DEFAULT_TIMEOUT": 300,
+#      "CACHE_KEY_PREFIX": "superset_",
+#      "CACHE_REDIS_HOST": "redis",
+#      "CACHE_REDIS_PORT": 6379,
+#      "CACHE_REDIS_DB": 1,
+#      "CACHE_REDIS_URL": f"redis://:{os.getenv('REDIS_PASSWORD')}@redis:6379/1",
+#    }
+#    
+#    FILTER_STATE_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_filter_"}
+#    EXPLORE_FORM_DATA_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_explore_form_"}
+#    
+#    SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/{os.getenv('POSTGRES_DB')}"
+#    SQLALCHEMY_TRACK_MODIFICATIONS = True
+#    ```
+#
+# After deploying this image, you will need to run one of the two
+# commands below in a terminal within the superset container:
+#      $ superset-demo     # Initialise database + load demo charts/datasets
+#      $ superset-init     # Initialise database only
+#
+# You will be prompted to enter the credentials for the admin user.
+
+services:
+  superset:
+    image: amancevice/superset
+    restart: always
+    depends_on:
+      - db
+      - redis
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      # NOTE: ensure `/opt/superset/superset_config.py` exists on your
+      #       host machine (or change the path as appropriate)
+      - /opt/superset/superset_config.py:/etc/superset/superset_config.py
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+
+  redis:
+    image: redis
+    restart: always
+    volumes:
+      - redis:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - dokploy-network
+
+volumes:
+  postgres:
+  redis:
