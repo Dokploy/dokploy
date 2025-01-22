@@ -1298,4 +1298,18 @@ export const templates: TemplateData[] = [
 		tags: ["developer", "tools"],
 		load: () => import("./it-tools/index").then((m) => m.generate),
 	},
+	{
+		id: "superset",
+		name: "Superset (Unofficial)",
+		version: "latest",
+		description: "Data visualization and data exploration platform.",
+		logo: "superset.svg",
+		links: {
+			github: "https://github.com/amancevice/docker-superset",
+			website: "https://superset.apache.org",
+			docs: "https://superset.apache.org/docs/intro",
+		},
+		tags: ["analytics", "bi", "dashboard", "database", "sql"],
+		load: () => import("./superset/index").then((m) => m.generate),
+	},
 ];

@@ -1,0 +1,62 @@
+# Note: this is an UNOFFICIAL production docker image build for Superset:
+# - https://github.com/amancevice/docker-superset
+#
+# After deploying this image, you will need to run one of the two
+# commands below in a terminal within the superset container:
+#      $ superset-demo     # Initialise database + load demo charts/datasets
+#      $ superset-init     # Initialise database only
+#
+# You will be prompted to enter the credentials for the admin user.
+
+services:
+  superset:
+    image: amancevice/superset
+    restart: always
+    depends_on:
+      - db
+      - redis
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      MAPBOX_API_KEY: ${MAPBOX_API_KEY}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      # Note: superset_config.py can be edited in Dokploy's UI Volume Mount
+      - ../files/superset/superset_config.py:/etc/superset/superset_config.py
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - dokploy-network
+
+  redis:
+    image: redis
+    restart: always
+    volumes:
+      - redis:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - dokploy-network
+
+volumes:
+  postgres:
+  redis:
