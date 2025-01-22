@@ -118,7 +118,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>Add a project</DialogTitle>
+					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
 					<DialogDescription>The home of something big!</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}

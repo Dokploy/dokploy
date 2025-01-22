@@ -87,9 +87,12 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							<div className="">
-								<HandleProject />
-							</div>
+
+							{(auth?.rol === "admin" || user?.canCreateProjects) && (
+								<div className="">
+									<HandleProject />
+								</div>
+							)}
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
