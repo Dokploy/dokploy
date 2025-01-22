@@ -1,6 +1,7 @@
 export const Languages = {
 	english: { code: "en", name: "English" },
 	polish: { code: "pl", name: "Polski" },
+	ukrainian: { code: "uk", name: "Українська" },
 	russian: { code: "ru", name: "Русский" },
 	french: { code: "fr", name: "Français" },
 	german: { code: "de", name: "Deutsch" },

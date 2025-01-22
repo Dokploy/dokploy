@@ -121,7 +121,7 @@ export default async function handler(
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
 					await deploy(jobData);
-					return true;
+					continue;
 				}
 				await myQueue.add(
 					"deployments",
@@ -156,7 +156,7 @@ export default async function handler(
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					await deploy(jobData);
-					return true;
+					continue;
 				}
 
 				await myQueue.add(
