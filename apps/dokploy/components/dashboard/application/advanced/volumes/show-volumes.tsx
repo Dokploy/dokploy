@@ -113,12 +113,21 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													</span>
 												</div>
 											)}
-											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Path</span>
-												<span className="text-sm text-muted-foreground">
-													{mount.mountPath}
-												</span>
-											</div>
+											{mount.type === "file" ? (
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">File Path</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.filePath}
+													</span>
+												</div>
+											) : (
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Mount Path</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.mountPath}
+													</span>
+												</div>
+											)}
 										</div>
 										<div className="flex flex-row gap-1">
 											<UpdateVolume
