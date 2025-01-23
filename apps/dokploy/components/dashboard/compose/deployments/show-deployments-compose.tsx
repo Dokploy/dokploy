@@ -8,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api, type RouterOutputs } from "@/utils/api";
+import { type RouterOutputs, api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueuesCompose } from "./cancel-queues-compose";
