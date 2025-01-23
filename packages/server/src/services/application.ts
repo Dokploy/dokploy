@@ -577,6 +577,8 @@ export const deployRemotePreviewApplication = async ({
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
 					...application,
+					appName: previewDeployment.appName,
+					branch: previewDeployment.branch,
 					serverId: application.serverId,
 					logPath: deployment.logPath,
 				});
