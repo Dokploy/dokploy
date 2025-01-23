@@ -1074,7 +1074,7 @@ export const templates: TemplateData[] = [
 			website: "https://penpot.app/",
 			docs: "https://docs.penpot.app/",
 		},
-		tags: ["desing", "collaboration"],
+		tags: ["design", "collaboration"],
 		load: () => import("./penpot/index").then((m) => m.generate),
 	},
 	{
@@ -1097,7 +1097,7 @@ export const templates: TemplateData[] = [
 		name: "Unsend",
 		version: "v1.2.4",
 		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
-		logo: "unsend.png", // we defined the name and the extension of the logo
+		logo: "unsend.png",
 		links: {
 			github: "https://github.com/unsend-dev/unsend",
 			website: "https://unsend.dev/",
@@ -1276,11 +1276,11 @@ export const templates: TemplateData[] = [
 		version: "latest",
 		description:
 			"CouchDB is a document-oriented NoSQL database that excels at replication and horizontal scaling.",
-		logo: "couchdb.png", // we defined the name and the extension of the logo
+		logo: "couchdb.png",
 		links: {
-			github: "lorem",
-			website: "lorem",
-			docs: "lorem",
+			github: "https://github.com/apache/couchdb",
+			website: "https://couchdb.apache.org/",
+			docs: "https://docs.couchdb.org/en/stable/",
 		},
 		tags: ["database", "storage"],
 		load: () => import("./couchdb/index").then((m) => m.generate),
@@ -1311,5 +1311,34 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["analytics", "bi", "dashboard", "database", "sql"],
 		load: () => import("./superset/index").then((m) => m.generate),
+	},
+	{
+		id: "glance",
+		name: "Glance",
+		version: "latest",
+		description:
+			"A self-hosted dashboard that puts all your feeds in one place. Features RSS feeds, weather, bookmarks, site monitoring, and more in a minimal, fast interface.",
+		logo: "glance.png",
+		links: {
+			github: "https://github.com/glanceapp/glance",
+			docs: "https://github.com/glanceapp/glance/blob/main/docs/configuration.md",
+		},
+		tags: ["dashboard", "monitoring", "widgets", "rss"],
+		load: () => import("./glance/index").then((m) => m.generate),
+	},
+	{
+		id: "homarr",
+		name: "Homarr",
+		version: "latest",
+		description:
+			"A sleek, modern dashboard that puts all your apps and services in one place with Docker integration.",
+		logo: "homarr.png",
+		links: {
+			github: "https://github.com/homarr-labs/homarr",
+			docs: "https://homarr.dev/docs/getting-started/installation/docker",
+			website: "https://homarr.dev/",
+		},
+		tags: ["dashboard", "monitoring"],
+		load: () => import("./homarr/index").then((m) => m.generate),
 	},
 ];
