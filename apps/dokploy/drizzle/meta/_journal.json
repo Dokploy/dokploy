@@ -414,6 +414,13 @@
       "when": 1737612903012,
       "tag": "0058_brown_sharon_carter",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1737615160768,
+      "tag": "0059_striped_bill_hollister",
+      "breakpoints": true
     }
   ]
 }
