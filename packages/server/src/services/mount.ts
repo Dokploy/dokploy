@@ -64,7 +64,7 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error creating the mount",
+			message: `Error ${error instanceof Error ? error.message : error}`,
 			cause: error,
 		});
 	}
@@ -91,7 +91,7 @@ export const createFileMount = async (mountId: string) => {
 		console.log(`Error creating the file mount: ${error}`);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error creating the mount",
+			message: `Error creating the mount ${error instanceof Error ? error.message : error}`,
 			cause: error,
 		});
 	}
