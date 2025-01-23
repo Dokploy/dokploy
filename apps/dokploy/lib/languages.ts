@@ -18,7 +18,7 @@ export const Languages = {
 	norwegian: { code: "no", name: "Norsk" },
 	azerbaijani: { code: "az", name: "Azərbaycan" },
 	indonesian: { code: "id", name: "Bahasa Indonesia" },
-	malayalam: { code: "ml", name: "മലയാളം" }
+	malayalam: { code: "ml", name: "മലയാളം" },
 };
 
 export type Language = keyof typeof Languages;

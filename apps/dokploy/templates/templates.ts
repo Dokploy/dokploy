@@ -1316,7 +1316,8 @@ export const templates: TemplateData[] = [
 		id: "glance",
 		name: "Glance",
 		version: "latest",
-		description: "A self-hosted dashboard that puts all your feeds in one place. Features RSS feeds, weather, bookmarks, site monitoring, and more in a minimal, fast interface.",
+		description:
+			"A self-hosted dashboard that puts all your feeds in one place. Features RSS feeds, weather, bookmarks, site monitoring, and more in a minimal, fast interface.",
 		logo: "glance.png",
 		links: {
 			github: "https://github.com/glanceapp/glance",
@@ -1329,7 +1330,8 @@ export const templates: TemplateData[] = [
 		id: "homarr",
 		name: "Homarr",
 		version: "latest",
-		description: "A sleek, modern dashboard that puts all your apps and services in one place with Docker integration.",
+		description:
+			"A sleek, modern dashboard that puts all your apps and services in one place with Docker integration.",
 		logo: "homarr.png",
 		links: {
 			github: "https://github.com/homarr-labs/homarr",
@@ -1339,5 +1341,4 @@ export const templates: TemplateData[] = [
 		tags: ["dashboard", "monitoring"],
 		load: () => import("./homarr/index").then((m) => m.generate),
 	},
-
 ];
