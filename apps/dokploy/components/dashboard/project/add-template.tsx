@@ -226,7 +226,11 @@ export const AddTemplate = ({ projectId }: Props) => {
 
 				<ScrollArea className="h-[calc(98vh-8rem)]">
 					<div className="p-6">
-						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+						{isError && (
+							<AlertBlock type="error" className="mb-4">
+								{error?.message}
+							</AlertBlock>
+						)}
 
 						{templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">

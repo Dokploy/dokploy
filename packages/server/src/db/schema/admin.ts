@@ -33,7 +33,7 @@ export const admins = pgTable("admin", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
-		.default(true),
+		.default(false),
 	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
 		.notNull()
 		.default(false),
