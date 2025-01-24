@@ -32,10 +32,14 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
-				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
-				background: "rgba(0, 0, 0, 0)",
-				foreground: "currentColor",
+				cursor: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
+				background: resolvedTheme === "light" ? "#FFFFFF" : "rgba(0, 0, 0, 0.9)",
+				foreground: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
+				selectionForeground: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
 			},
+			allowTransparency: true,
+			screenReaderMode: true,
+			scrollback: 1000,
 		});
 		const addonFit = new FitAddon();
 
@@ -68,7 +72,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="w-full h-full bg-transparent border rounded-lg p-2 ">
+			<div className="w-full h-full bg-transparent border rounded-lg p-2">
 				<div id={id} ref={termRef} className="rounded-xl" />
 			</div>
 		</div>
