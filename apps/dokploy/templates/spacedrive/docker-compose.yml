@@ -1,0 +1,9 @@
+services:
+  server:
+    image: ghcr.io/spacedriveapp/spacedrive/server:latest
+    ports:
+      - 8080
+    environment:
+      - SD_AUTH=${SD_USERNAME}:${SD_PASSWORD}
+    volumes:
+      - /var/spacedrive:/var/spacedrive
