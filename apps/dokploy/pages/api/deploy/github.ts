@@ -182,8 +182,9 @@ export default async function handler(
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
+		const action = githubBody?.action;
 
-		if (githubBody?.action === "closed") {
+		if (action === "closed") {
 			const previewDeploymentResult =
 				await findPreviewDeploymentsByPullRequestId(prId);
 
@@ -203,7 +204,11 @@ export default async function handler(
 		}
 
 		// opened or synchronize or reopened
-		if (githubBody?.action === "opened" || githubBody?.action === "synchronize" || githubBody?.action === "reopened") {
+		if (
+			action === "opened" ||
+			action === "synchronize" ||
+			action === "reopened"
+		) {
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
@@ -264,7 +269,7 @@ export default async function handler(
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
 					await deploy(jobData);
-					return true;
+					continue;
 				}
 				await myQueue.add(
 					"deployments",
