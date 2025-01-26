@@ -23,12 +23,12 @@ import { api } from "@/utils/api";
 import type { ServiceType } from "@dokploy/server/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Trash2 } from "lucide-react";
-import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import copy from "copy-to-clipboard";
 
 const deleteComposeSchema = z.object({
 	projectName: z.string().min(1, {
@@ -155,9 +155,7 @@ export const DeleteService = ({ id, type }: Props) => {
 													variant="outline"
 													onClick={() => {
 														if (data?.name && data?.appName) {
-															navigator.clipboard.writeText(
-																`${data.name}/${data.appName}`,
-															);
+															copy(`${data.name}/${data.appName}`);
 															toast.success("Copied to clipboard. Be careful!");
 														}
 													}}
