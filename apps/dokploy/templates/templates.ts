@@ -1342,6 +1342,28 @@ export const templates: TemplateData[] = [
 		load: () => import("./homarr/index").then((m) => m.generate),
 	},
 	{
+		id: "erpnext",
+		name: "ERPNext",
+		version: "version-15",
+		description: "100% Open Source and highly customizable ERP software.",
+		logo: "erpnext.svg",
+		links: {
+			github: "https://github.com/frappe/erpnext",
+			docs: "https://docs.frappe.io/erpnext",
+			website: "https://erpnext.com",
+		},
+		tags: [
+			"erp",
+			"accounts",
+			"manufacturing",
+			"retail",
+			"sales",
+			"pos",
+			"hrms",
+		],
+		load: () => import("./erpnext/index").then((m) => m.generate),
+	},
+	{
 		id: "maybe",
 		name: "Maybe",
 		version: "latest",
