@@ -98,8 +98,12 @@ export const ShowDomains = ({ applicationId }: Props) => {
 												applicationId={applicationId}
 												domainId={item.domainId}
 											>
-												<Button variant="ghost">
-													<PenBoxIcon className="size-4 text-muted-foreground" />
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-blue-500/10 "
+												>
+													<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 												</Button>
 											</AddDomain>
 											<DialogAction
