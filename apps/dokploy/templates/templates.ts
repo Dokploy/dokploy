@@ -1408,4 +1408,19 @@ export const templates: TemplateData[] = [
 		tags: ["file", "webdav", "storage"],
 		load: () => import("./alist/index").then((m) => m.generate),
 	},
+	{
+		id: "answer",
+		name: "Answer",
+		version: "v1.4.1",
+		description:
+			"Answer is an open-source Q&A platform for building a self-hosted question-and-answer service.",
+		logo: "answer.png",
+		links: {
+			github: "https://github.com/apache/answer",
+			website: "https://answer.apache.org/",
+			docs: "https://answer.apache.org/docs",
+		},
+		tags: ["q&a", "self-hosted"],
+		load: () => import("./answer/index").then((m) => m.generate),
+	},
 ];
