@@ -80,6 +80,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data } = api.compose.templates.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: tags, isLoading: isLoadingTags } =
 		api.compose.getTags.useQuery();
@@ -372,7 +373,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																			Select a Server (Optional)
+																			Select a Server{" "}
+																			{!isCloud ? "(Optional)" : ""}
 																			<HelpCircle className="size-4 text-muted-foreground" />
 																		</Label>
 																	</TooltipTrigger>
@@ -405,7 +407,12 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				key={server.serverId}
 																				value={server.serverId}
 																			>
-																				{server.name}
+																				<span className="flex items-center gap-2 justify-between w-full">
+																					<span>{server.name}</span>
+																					<span className="text-muted-foreground text-xs self-center">
+																						{server.ipAddress}
+																					</span>
+																				</span>
 																			</SelectItem>
 																		))}
 																		<SelectLabel>
