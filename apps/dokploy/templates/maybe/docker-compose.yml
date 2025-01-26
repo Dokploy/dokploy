@@ -3,7 +3,7 @@ services:
     image: ghcr.io/maybe-finance/maybe:sha-68c570eed8810fd59b5b33cca51bbad5eabb4cb4
     restart: unless-stopped
     volumes:
-      - ./uploads:/app/uploads
+      - ../files/uploads:/app/uploads
     environment:
       DATABASE_URL: postgresql://maybe:maybe@db:5432/maybe
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
