@@ -2,6 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
@@ -67,8 +68,7 @@ const Mariadb = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.mariadb.remove.useMutation();
+
 	return (
 		<div className="pb-10">
 			<BreadcrumbSidebar
@@ -148,35 +148,10 @@ const Mariadb = (
 										</TooltipProvider>
 									)}
 								</div>
-								<div className="flex flex-row gap-2">
+								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Remove Mariadb"
-											description="Are you sure you want to delete this mariadb?"
-											type="destructive"
-											onClick={async () => {
-												await remove({ mariadbId })
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Mariadb deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting the mariadb");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>
 							</div>
