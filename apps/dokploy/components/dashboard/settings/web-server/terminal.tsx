@@ -6,6 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
 import { getLocalServerData } from "./local-server-config";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 
 interface Props {
 	id: string;
@@ -32,15 +33,15 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 			lineHeight: 1.4,
 			convertEol: true,
 			theme: {
-				cursor: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
-				background: resolvedTheme === "light" ? "#FFFFFF" : "rgba(0, 0, 0, 0.9)",
-				foreground: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
-				selectionForeground: resolvedTheme === "light" ? "#000000" : "#FFFFFF",
+				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
+				background: "rgba(0, 0, 0, 0)",
+				foreground: "currentColor",
 			},
 			allowTransparency: true,
 			screenReaderMode: true,
 			scrollback: 1000,
 		});
+
 		const addonFit = new FitAddon();
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -58,6 +59,8 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
+		const clipboardAddon = new ClipboardAddon();
+		term.loadAddon(clipboardAddon);
 
 		// @ts-ignore
 		term.open(termRef.current);
