@@ -2,7 +2,7 @@ services:
   answer:
     image: apache/answer:1.4.1
     ports:
-      - '9080:80'
+      - '80'
     restart: on-failure
     volumes:
       - answer-data:/data
