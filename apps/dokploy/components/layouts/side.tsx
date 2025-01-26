@@ -783,7 +783,7 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && (
+							{!isCloud && auth?.rol === "admin" && (
 								<SidebarMenuItem>
 									<SidebarMenuButton asChild>
 										<UpdateServerButton />
