@@ -1342,6 +1342,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./homarr/index").then((m) => m.generate),
 	},
 	{
+		id: "maybe",
+		name: "Maybe",
+		version: "latest",
+		description:
+			"Maybe is a self-hosted finance tracking application designed to simplify budgeting and expenses.",
+		logo: "maybe.svg",
+		links: {
+			github: "https://github.com/maybe-finance/maybe",
+			website: "https://maybe.finance/",
+			docs: "https://docs.maybe.finance/",
+		},
+		tags: ["finance", "self-hosted"],
+		load: () => import("./maybe/index").then((m) => m.generate),
+  },
+    {
 		id: "spacedrive",
 		name: "Spacedrive",
 		version: "latest",
@@ -1369,6 +1384,5 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["file", "webdav", "storage"],
 		load: () => import("./alist/index").then((m) => m.generate),
-
 	},
 ];
