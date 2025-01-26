@@ -538,7 +538,7 @@ export const templates: TemplateData[] = [
 			website: "https://filebrowser.org/",
 			docs: "https://filebrowser.org/",
 		},
-		tags: ["file-manager","storage"],
+		tags: ["file-manager", "storage"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
 	},
 	{
@@ -1355,8 +1355,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["finance", "self-hosted"],
 		load: () => import("./maybe/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "spacedrive",
 		name: "Spacedrive",
 		version: "latest",
@@ -1369,8 +1369,9 @@ export const templates: TemplateData[] = [
 		},
 		logo: "spacedrive.png",
 		tags: ["file-manager", "vdfs", "storage"],
-  },
-    {
+		load: () => import("./spacedrive/index").then((m) => m.generate),
+	},
+	{
 		id: "alist",
 		name: "AList",
 		version: "v3.41.0",
