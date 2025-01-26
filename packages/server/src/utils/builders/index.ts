@@ -203,20 +203,13 @@ export const mechanizeDockerContainer = async (
 };
 
 const getImageName = (application: ApplicationNested) => {
-	const { appName, sourceType, dockerImage, registry, registryUrl } = application;
+	const { appName, sourceType, dockerImage, registry } = application;
 
 	if (sourceType === "docker") {
-		if (!dockerImage) {
-			return "ERROR-NO-IMAGE-PROVIDED";
-		}
-		// Don't modify if image already includes a registry URL
-		if (dockerImage.includes("/")) {
-			return dockerImage;
-		}
-		// Use registry.registryUrl or fallback to registryUrl
-		const registryHost = registry?.registryUrl || registryUrl;
-		if (registryHost) {
-			return join(registryHost, dockerImage);
+		if (!dockerImage) return "ERROR-NO-IMAGE-PROVIDED";
+
+		if (registry?.registryUrl) {
+			return join(registry.registryUrl, dockerImage);
 		}
 		return dockerImage;
 	}
