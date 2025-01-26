@@ -3,242 +3,242 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --terminal-paste: rgba(0, 0, 0, 0.2);
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+	:root {
+		--terminal-paste: rgba(0, 0, 0, 0.2);
+		--background: 0 0% 100%;
+		--foreground: 240 10% 3.9%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+		--card: 0 0% 100%;
+		--card-foreground: 240 10% 3.9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 240 10% 3.9%;
 
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+		--primary: 240 5.9% 10%;
+		--primary-foreground: 0 0% 98%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+		--secondary: 240 4.8% 95.9%;
+		--secondary-foreground: 240 5.9% 10%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+		--muted: 240 4.8% 95.9%;
+		--muted-foreground: 240 3.8% 46.1%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+		--accent: 240 4.8% 95.9%;
+		--accent-foreground: 240 5.9% 10%;
 
-    --destructive: 0 84.2% 50.2%;
-    --destructive-foreground: 0 0% 98%;
+		--destructive: 0 84.2% 50.2%;
+		--destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+		--border: 240 5.9% 90%;
+		--input: 240 5.9% 90%;
+		--ring: 240 10% 3.9%;
 
-    --radius: 0.5rem;
-    --overlay: rgba(0, 0, 0, 0.2);
+		--radius: 0.5rem;
+		--overlay: rgba(0, 0, 0, 0.2);
 
-    --chart-1: 173 58% 39%;
-    --chart-2: 12 76% 61%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+		--chart-1: 173 58% 39%;
+		--chart-2: 12 76% 61%;
+		--chart-3: 197 37% 24%;
+		--chart-4: 43 74% 66%;
+		--chart-5: 27 87% 67%;
+		--sidebar-background: 0 0% 98%;
+		--sidebar-foreground: 240 5.3% 26.1%;
+		--sidebar-primary: 240 5.9% 10%;
+		--sidebar-primary-foreground: 0 0% 98%;
+		--sidebar-accent: 240 4.8% 95.9%;
+		--sidebar-accent-foreground: 240 5.9% 10%;
+		--sidebar-border: 220 13% 91%;
+		--sidebar-ring: 217.2 91.2% 59.8%;
+	}
 
-  .dark {
-    --terminal-paste: rgba(255, 255, 255, 0.2);
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
+	.dark {
+		--terminal-paste: rgba(255, 255, 255, 0.2);
+		--background: 0 0% 0%;
+		--foreground: 0 0% 98%;
 
-    --card: 240 4% 10%;
-    --card-foreground: 0 0% 98%;
+		--card: 240 4% 10%;
+		--card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+		--popover: 240 10% 3.9%;
+		--popover-foreground: 0 0% 98%;
 
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
+		--primary: 0 0% 98%;
+		--primary-foreground: 240 5.9% 10%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+		--secondary: 240 3.7% 15.9%;
+		--secondary-foreground: 0 0% 98%;
 
-    --muted: 240 4% 10%;
-    --muted-foreground: 240 5% 64.9%;
+		--muted: 240 4% 10%;
+		--muted-foreground: 240 5% 64.9%;
 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+		--accent: 240 3.7% 15.9%;
+		--accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 50.2%;
-    --destructive-foreground: 0 0% 98%;
+		--destructive: 0 84.2% 50.2%;
+		--destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 4% 10%;
-    --ring: 240 4.9% 83.9%;
+		--border: 240 3.7% 15.9%;
+		--input: 240 4% 10%;
+		--ring: 240 4.9% 83.9%;
 
-    --overlay: rgba(0, 0, 0, 0.5);
+		--overlay: rgba(0, 0, 0, 0.5);
 
-    --chart-1: 220 70% 50%;
-    --chart-5: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-2: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+		--chart-1: 220 70% 50%;
+		--chart-5: 160 60% 45%;
+		--chart-3: 30 80% 55%;
+		--chart-4: 280 65% 60%;
+		--chart-2: 340 75% 55%;
+		--sidebar-background: 240 5.9% 10%;
+		--sidebar-foreground: 240 4.8% 95.9%;
+		--sidebar-primary: 224.3 76.3% 48%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 240 3.7% 15.9%;
+		--sidebar-accent-foreground: 240 4.8% 95.9%;
+		--sidebar-border: 240 3.7% 15.9%;
+		--sidebar-ring: 217.2 91.2% 59.8%;
+	}
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+	* {
+		@apply border-border;
+	}
 
-  body {
-    @apply bg-background text-foreground;
-  }
+	body {
+		@apply bg-background text-foreground;
+	}
 
-  /* Custom scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 0.3125rem;
-  }
+	/* Custom scrollbar styling */
+	::-webkit-scrollbar {
+		width: 0.3125rem;
+	}
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
 
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 0.3125rem;
-  }
+	::-webkit-scrollbar-thumb {
+		background: hsl(var(--border));
+		border-radius: 0.3125rem;
+	}
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
-  }
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--border)) transparent;
+	}
 }
 
 .xterm-viewport {
-  border-radius: 0.75rem /* 12px */ !important;
+	border-radius: 0.75rem /* 12px */ !important;
 }
 
 .xterm .xterm-viewport {
-  overflow-y: auto !important;
+	overflow-y: auto !important;
 }
 
 .xterm .xterm-screen {
-  overflow: hidden;
+	overflow: hidden;
 }
 
 @layer utilities {
-  /* Chrome, Safari and Opera */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+	/* Chrome, Safari and Opera */
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
 
-  .no-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
+	.no-scrollbar {
+		-ms-overflow-style: none; /* IE and Edge */
+		scrollbar-width: none; /* Firefox */
+	}
 }
 
 /* Codemirror */
 .cm-editor {
-  @apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;
+	@apply w-full h-full rounded-md overflow-hidden border border-solid border-border outline-none;
 }
 
 .cm-editor .cm-scroller {
-  font-family: inherit;
-  line-height: inherit;
+	font-family: inherit;
+	line-height: inherit;
 }
 
 .cm-editor.cm-focused {
-  @apply outline-none;
+	@apply outline-none;
 }
 
 /* fix: placeholder bg */
 .cm-editor .cm-activeLine:has(.cm-placeholder) {
-  background-color: transparent;
+	background-color: transparent;
 }
 
 .compose-file-editor .cm-editor {
-  @apply min-h-[25rem];
+	@apply min-h-[25rem];
 }
 
 @keyframes heartbeat {
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  25% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  75% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
+	0% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	25% {
+		transform: scale(1.1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
+	75% {
+		transform: scale(1.1);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 0.7;
+	}
 }
 
 .animate-heartbeat {
-  animation: heartbeat 2.5s infinite;
+	animation: heartbeat 2.5s infinite;
 }
 @media (prefers-color-scheme: dark) {
-  .swagger-ui {
-    background-color: white;
-  }
+	.swagger-ui {
+		background-color: white;
+	}
 
-  .swagger-ui .info {
-    margin: 0px !important;
-    padding-top: 1rem !important;
-  }
+	.swagger-ui .info {
+		margin: 0px !important;
+		padding-top: 1rem !important;
+	}
 }
 
 /* Docker Logs Scrollbar */
 @layer utilities {
-  .custom-logs-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground)) transparent;
-  }
+	.custom-logs-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--muted-foreground)) transparent;
+	}
 
-  .custom-logs-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+	.custom-logs-scrollbar::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
 
-  .custom-logs-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
+	.custom-logs-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
 
-  .custom-logs-scrollbar::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 20px;
-  }
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb {
+		background-color: hsl(var(--muted-foreground) / 0.3);
+		border-radius: 20px;
+	}
 
-  .custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5);
-  }
+	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: hsl(var(--muted-foreground) / 0.5);
+	}
 }
 
 .xterm-bg-257.xterm-fg-257 {
-  background-color: var(--terminal-paste) !important;
-  color: currentColor !important;
+	background-color: var(--terminal-paste) !important;
+	color: currentColor !important;
 }

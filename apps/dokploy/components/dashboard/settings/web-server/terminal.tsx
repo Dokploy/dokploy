@@ -4,9 +4,9 @@ import { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
 import { getLocalServerData } from "./local-server-config";
-import { ClipboardAddon } from "@xterm/addon-clipboard";
 
 interface Props {
 	id: string;
