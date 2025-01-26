@@ -538,7 +538,7 @@ export const templates: TemplateData[] = [
 			website: "https://filebrowser.org/",
 			docs: "https://filebrowser.org/",
 		},
-		tags: ["file", "manager"],
+		tags: ["file-manager", "storage"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
 	},
 	{
@@ -834,7 +834,7 @@ export const templates: TemplateData[] = [
 			website: "https://nextcloud.com/",
 			docs: "https://docs.nextcloud.com/",
 		},
-		tags: ["file", "sync"],
+		tags: ["file-manager", "sync"],
 		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
 	},
 	{
@@ -1340,5 +1340,49 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["dashboard", "monitoring"],
 		load: () => import("./homarr/index").then((m) => m.generate),
+	},
+	{
+		id: "maybe",
+		name: "Maybe",
+		version: "latest",
+		description:
+			"Maybe is a self-hosted finance tracking application designed to simplify budgeting and expenses.",
+		logo: "maybe.svg",
+		links: {
+			github: "https://github.com/maybe-finance/maybe",
+			website: "https://maybe.finance/",
+			docs: "https://docs.maybe.finance/",
+		},
+		tags: ["finance", "self-hosted"],
+		load: () => import("./maybe/index").then((m) => m.generate),
+	},
+	{
+		id: "spacedrive",
+		name: "Spacedrive",
+		version: "latest",
+		description:
+			"Spacedrive is a cross-platform file manager. It connects your devices together to help you organize files from anywhere. powered by a virtual distributed filesystem (VDFS) written in Rust. Organize files across many devices in one place.",
+		links: {
+			github: "https://github.com/spacedriveapp/spacedrive",
+			website: "https://spacedrive.com/",
+			docs: "https://www.spacedrive.com/docs/product/getting-started/introduction",
+		},
+		logo: "spacedrive.png",
+		tags: ["file-manager", "vdfs", "storage"],
+	},
+	{
+		id: "alist",
+		name: "AList",
+		version: "v3.41.0",
+		description:
+			"🗂️A file list/WebDAV program that supports multiple storages, powered by Gin and Solidjs.",
+		logo: "alist.svg",
+		links: {
+			github: "https://github.com/AlistGo/alist",
+			website: "https://alist.nn.ci",
+			docs: "https://alist.nn.ci/guide/install/docker.html",
+		},
+		tags: ["file", "webdav", "storage"],
+		load: () => import("./alist/index").then((m) => m.generate),
 	},
 ];
