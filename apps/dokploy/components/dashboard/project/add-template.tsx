@@ -308,7 +308,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										{/* Create Button */}
 										<div
 											className={cn(
-												"flex-none px-6 pb-6 pt-3 mt-auto",
+												"flex-none px-6 py-3 mt-auto",
 												viewMode === "detailed"
 													? "flex items-center justify-between bg-muted/30 border-t"
 													: "flex justify-center",
