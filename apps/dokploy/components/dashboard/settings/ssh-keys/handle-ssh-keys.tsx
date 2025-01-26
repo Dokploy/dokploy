@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { sshKeyCreate, type sshKeyType } from "@/server/db/validations";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { DownloadIcon, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -110,6 +110,26 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 			.catch(() => {
 				toast.error("Error generating the SSH Key");
 			});
+
+	const downloadKey = (
+		content: string,
+		defaultFilename: string,
+		keyType: "private" | "public",
+	) => {
+		const keyName = form.watch("name");
+		const filename = keyName
+			? `${keyName}${sshKeyId ? `_${sshKeyId}` : ""}_${keyType}_${defaultFilename}`
+			: `${keyType}_${defaultFilename}`;
+		const blob = new Blob([content], { type: "text/plain" });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		window.URL.revokeObjectURL(url);
+	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -245,7 +265,41 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<DialogFooter>
+						<DialogFooter className="flex items-center justify-between">
+							<div className="flex items-center gap-4">
+								{form.watch("privateKey") && (
+									<Button
+										type="button"
+										variant="outline"
+										size="default"
+										onClick={() =>
+											downloadKey(form.watch("privateKey"), "id_rsa", "private")
+										}
+										className="flex items-center gap-2"
+									>
+										<DownloadIcon className="h-4 w-4" />
+										Private Key
+									</Button>
+								)}
+								{form.watch("publicKey") && (
+									<Button
+										type="button"
+										variant="outline"
+										size="default"
+										onClick={() =>
+											downloadKey(
+												form.watch("publicKey"),
+												"id_rsa.pub",
+												"public",
+											)
+										}
+										className="flex items-center gap-2"
+									>
+										<DownloadIcon className="h-4 w-4" />
+										Public Key
+									</Button>
+								)}
+							</div>
 							<Button isLoading={isLoading} type="submit">
 								{sshKeyId ? "Update" : "Create"}
 							</Button>
