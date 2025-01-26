@@ -69,6 +69,7 @@ export const cloneGitRepository = async (
 			});
 		}
 
+		const { port } = sanitizeRepoPathSSH(customGitUrl);
 		await spawnAsync(
 			"git",
 			[
@@ -91,7 +92,7 @@ export const cloneGitRepository = async (
 				env: {
 					...process.env,
 					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath} -o UserKnownHostsFile=${knownHostsPath}`,
+						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
 					}),
 				},
 			},
@@ -168,7 +169,8 @@ export const getCustomGitCloneCommand = async (
 		);
 		if (customGitSSHKeyId) {
 			const sshKey = await findSSHKeyById(customGitSSHKeyId);
-			const gitSshCommand = `ssh -i /tmp/id_rsa -o UserKnownHostsFile=${knownHostsPath}`;
+			const { port } = sanitizeRepoPathSSH(customGitUrl);
+			const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
 			command.push(
 				`
 				echo "${sshKey.privateKey}" > /tmp/id_rsa
@@ -304,6 +306,7 @@ export const cloneGitRawRepository = async (entity: {
 			});
 		}
 
+		const { port } = sanitizeRepoPathSSH(customGitUrl);
 		await spawnAsync(
 			"git",
 			[
@@ -322,7 +325,7 @@ export const cloneGitRawRepository = async (entity: {
 				env: {
 					...process.env,
 					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath} -o UserKnownHostsFile=${knownHostsPath}`,
+						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
 					}),
 				},
 			},
@@ -381,7 +384,8 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		command.push(`mkdir -p ${outputPath};`);
 		if (customGitSSHKeyId) {
 			const sshKey = await findSSHKeyById(customGitSSHKeyId);
-			const gitSshCommand = `ssh -i /tmp/id_rsa -o UserKnownHostsFile=${knownHostsPath}`;
+			const { port } = sanitizeRepoPathSSH(customGitUrl);
+			const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
 			command.push(
 				`
 				echo "${sshKey.privateKey}" > /tmp/id_rsa
