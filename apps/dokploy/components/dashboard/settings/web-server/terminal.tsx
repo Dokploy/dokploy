@@ -37,9 +37,6 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 				background: "rgba(0, 0, 0, 0)",
 				foreground: "currentColor",
 			},
-			allowTransparency: true,
-			screenReaderMode: true,
-			scrollback: 1000,
 		});
 
 		const addonFit = new FitAddon();
