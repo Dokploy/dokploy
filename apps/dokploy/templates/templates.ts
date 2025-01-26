@@ -1369,6 +1369,7 @@ export const templates: TemplateData[] = [
 		},
 		logo: "spacedrive.png",
 		tags: ["file-manager", "vdfs", "storage"],
+		load: () => import("./spacedrive/index").then((m) => m.generate),
 	},
 	{
 		id: "alist",
