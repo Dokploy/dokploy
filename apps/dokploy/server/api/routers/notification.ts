@@ -47,7 +47,7 @@ import {
 	updateTelegramNotification,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 // TODO: Uncomment the validations when is cloud ready
@@ -330,12 +330,11 @@ export const notificationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			const result = await db.query.server.findFirst({
-				where: eq(
-					server.metricsConfig.server.token,
-					// token
-					"e50af3b5beff83a89c1d7ae2247e3a58d030af44b7df88d4535ae8871ef9006f",
-				),
+				where: sql`${server.metricsConfig}::text LIKE '%"token": "%' || ${input.Token} || '%"%'`,
 			});
+			// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
+			// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
+			console.log(result);
 			if (!result) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

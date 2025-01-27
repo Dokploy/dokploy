@@ -47,6 +47,7 @@ export const adminRouter = createTRPCRouter({
 				});
 			}
 			const { authId } = await findAdminById(ctx.user.adminId);
+			// @ts-ignore
 			return updateAdmin(authId, input);
 		}),
 	createUserInvitation: adminProcedure

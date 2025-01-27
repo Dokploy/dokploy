@@ -8,7 +8,7 @@ import {
 	Tooltip,
 	YAxis,
 } from "recharts";
-import type { DockerStatsJSON } from "./show";
+import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
 	acummulativeData: DockerStatsJSON["block"];

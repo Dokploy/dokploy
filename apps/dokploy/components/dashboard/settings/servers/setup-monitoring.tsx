@@ -331,7 +331,6 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 									</FormItem>
 								)}
 							/>
-
 							<FormField
 								control={form.control}
 								name="metricsConfig.containers.services.include"
