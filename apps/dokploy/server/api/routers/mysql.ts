@@ -12,6 +12,7 @@ import {
 
 import { TRPCError } from "@trpc/server";
 
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -31,7 +32,6 @@ import {
 	updateMySqlById,
 } from "@dokploy/server";
 import { observable } from "@trpc/server/observable";
-import { cancelJobs } from "@/server/utils/backup";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure

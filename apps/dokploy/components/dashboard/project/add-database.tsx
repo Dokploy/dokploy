@@ -110,10 +110,7 @@ const mySchema = z.discriminatedUnion("type", [
 			type: z.literal("mysql"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mysql"),
-			databaseName: z
-				.string()
-				.min(1, "Database name required")
-				.default("mysql"),
+			databaseName: z.string().default("mysql"),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -122,10 +119,7 @@ const mySchema = z.discriminatedUnion("type", [
 			dockerImage: z.string().default("mariadb:4"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mariadb"),
-			databaseName: z
-				.string()
-				.min(1, "Database name required")
-				.default("mariadb"),
+			databaseName: z.string().default("mariadb"),
 		})
 		.merge(baseDatabaseSchema),
 ]);
