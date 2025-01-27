@@ -252,10 +252,10 @@ const Service = (
 												{data?.serverId ? (
 													<ComposePaidMonitoring
 														serverId={data?.serverId || ""}
-														url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
 														appName={data?.appName || ""}
 														token={
-															data?.server?.metricsToken ||
+															data?.server?.metricsConfig?.server?.token ||
 															monitoring?.metricsToken ||
 															""
 														}

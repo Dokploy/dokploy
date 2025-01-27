@@ -232,9 +232,9 @@ const Postgresql = (
 												{data?.serverId ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.defaultPortMetrics}` : "http://localhost:4500"}`}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
 														token={
-															data?.server?.metricsToken ||
+															data?.server?.metricsConfig?.server?.token ||
 															monitoring?.metricsToken ||
 															""
 														}
