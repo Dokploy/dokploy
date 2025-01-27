@@ -1423,4 +1423,19 @@ export const templates: TemplateData[] = [
 		tags: ["q&a", "self-hosted"],
 		load: () => import("./answer/index").then((m) => m.generate),
 	},
+	{
+		id: "shlink",
+		name: "Shlink",
+		version: "v1.4.1",
+		description:
+			"URL shortener that can be used to serve shortened URLs under your own domain.",
+		logo: "shlink.svg",
+		links: {
+			github: "https://github.com/shlinkio/shlink",
+			website: "https://shlink.io",
+			docs: "https://shlink.io/documentation",
+		},
+		tags: ["sharing", "shortener", "url"],
+		load: () => import("./shlink/index").then((m) => m.generate),
+	},
 ];
