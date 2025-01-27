@@ -80,7 +80,7 @@ export const admins = pgTable("admin", {
 		}),
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
-		.default(true),
+		.default(false),
 	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
 		.notNull()
 		.default(false),

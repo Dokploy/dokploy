@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.17.5",
+	"version": "v0.17.9",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -35,6 +35,18 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"bl": "6.0.11",
+		"rotating-file-stream": "3.2.3",
+		"qrcode": "^1.5.3",
+		"otpauth": "^9.2.3",
+		"hi-base32": "^0.5.1",
+		"boxen": "^7.1.1",
+		"@octokit/auth-app": "^6.0.4",
+		"nodemailer": "6.9.14",
+		"@react-email/components": "^0.0.21",
+		"node-os-utils": "1.3.7",
+		"@lucia-auth/adapter-drizzle": "1.0.7",
+		"dockerode": "4.0.2",
 		"@codemirror/lang-json": "^6.0.1",
 		"@codemirror/lang-yaml": "^6.1.1",
 		"@codemirror/language": "^6.10.1",
@@ -75,6 +87,7 @@
 		"@uiw/react-codemirror": "^4.22.1",
 		"@xterm/addon-attach": "0.10.0",
 		"@xterm/xterm": "^5.4.0",
+		"@xterm/addon-clipboard": "0.1.0",
 		"adm-zip": "^0.5.14",
 		"bcrypt": "5.1.1",
 		"bullmq": "5.4.2",
@@ -128,6 +141,9 @@
 		"@faker-js/faker": "^8.4.1"
 	},
 	"devDependencies": {
+		"@types/qrcode": "^1.5.5",
+		"@types/nodemailer": "^6.4.15",
+		"@types/node-os-utils": "1.3.4",
 		"@types/adm-zip": "^0.5.5",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-cookie": "^3.0.6",

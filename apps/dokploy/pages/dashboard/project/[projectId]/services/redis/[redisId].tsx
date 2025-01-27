@@ -4,6 +4,8 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
@@ -70,8 +72,6 @@ const Redis = (
 		},
 	);
 
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.redis.remove.useMutation();
 	return (
 		<div className="pb-10">
 			<BreadcrumbSidebar
@@ -155,32 +155,7 @@ const Redis = (
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Remove Redis"
-											description="Are you sure you want to delete this redis?"
-											type="destructive"
-											onClick={async () => {
-												await remove({ redisId })
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Redis deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting the redis");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={redisId} type="redis" />
 									)}
 								</div>
 							</div>

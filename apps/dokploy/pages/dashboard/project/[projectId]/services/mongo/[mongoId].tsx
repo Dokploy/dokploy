@@ -2,6 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
 import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
@@ -71,8 +72,6 @@ const Mongo = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.mongo.remove.useMutation();
 
 	return (
 		<div className="pb-10">
@@ -157,32 +156,7 @@ const Mongo = (
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMongo mongoId={mongoId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Remove mongo"
-											description="Are you sure you want to delete this mongo?"
-											type="destructive"
-											onClick={async () => {
-												await remove({ mongoId })
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Mongo deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting the mongo");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={mongoId} type="mongo" />
 									)}
 								</div>
 							</div>

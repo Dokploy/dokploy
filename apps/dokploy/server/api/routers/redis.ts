@@ -244,7 +244,6 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to delete this Redis",
 				});
 			}
-
 			const cleanupOperations = [
 				async () => await removeService(redis?.appName, redis.serverId),
 				async () => await removeRedisById(input.redisId),

@@ -15,6 +15,8 @@ import { ShowPreviewDeployments } from "@/components/dashboard/application/previ
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -83,8 +85,6 @@ const Service = (
 		},
 	);
 
-	const { mutateAsync, isLoading: isRemoving } =
-		api.application.delete.useMutation();
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
@@ -179,34 +179,7 @@ const Service = (
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Delete Application"
-											description="Are you sure you want to delete this application?"
-											type="destructive"
-											onClick={async () => {
-												await mutateAsync({
-													applicationId: applicationId,
-												})
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Application deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting application");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>
 							</div>

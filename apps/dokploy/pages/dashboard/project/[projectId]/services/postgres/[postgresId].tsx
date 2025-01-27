@@ -2,6 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
@@ -70,9 +71,6 @@ const Postgresql = (
 		},
 	);
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.postgres.remove.useMutation();
 
 	return (
 		<div className="pb-10">
@@ -157,32 +155,7 @@ const Postgresql = (
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Remove Postgres"
-											description="Are you sure you want to delete this postgres?"
-											type="destructive"
-											onClick={async () => {
-												await remove({ postgresId })
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Postgres deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting the postgres");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>
 							</div>

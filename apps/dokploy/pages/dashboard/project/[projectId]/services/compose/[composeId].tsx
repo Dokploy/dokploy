@@ -1,7 +1,7 @@
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -170,7 +170,7 @@ const Service = (
 										<UpdateCompose composeId={composeId} />
 
 										{(auth?.rol === "admin" || user?.canDeleteServices) && (
-											<DeleteCompose composeId={composeId} />
+											<DeleteService id={composeId} type="compose" />
 										)}
 									</div>
 								</div>
