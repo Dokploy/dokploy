@@ -45,7 +45,6 @@ export function TeamSwitcher() {
 				<PopoverTrigger asChild>
 					<Button
 						variant="outline"
-						role="combobox"
 						aria-expanded={open}
 						aria-label="Select a team"
 						className="w-[200px] justify-between"

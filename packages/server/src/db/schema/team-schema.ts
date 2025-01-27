@@ -94,11 +94,7 @@ export const teamsRelations = relations(teams, ({ many }) => ({
 
 export type TeamRole = "OWNER" | "ADMIN" | "MEMBER" | "GUEST";
 export type AssignableTeamRole = "ADMIN" | "MEMBER" | "GUEST";
-export const teamRoles: AssignableTeamRole[] = [
-	"ADMIN",
-	"MEMBER",
-	"GUEST",
-];
+export const teamRoles: AssignableTeamRole[] = ["ADMIN", "MEMBER", "GUEST"];
 export const allTeamRoles = ["OWNER", "ADMIN", "MEMBER", "GUEST"] as const;
 
 export interface TeamInvitation {

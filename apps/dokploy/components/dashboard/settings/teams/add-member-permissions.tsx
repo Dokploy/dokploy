@@ -1,5 +1,9 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { PermissionFormFields } from "@/components/shared/permission-form-fields";
+import {
+	type TeamPermissions,
+	teamPermissionSchema,
+} from "@/components/shared/shared-permissions";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,20 +17,19 @@ import {
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Form } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
 import type { TeamRole } from "@dokploy/server/db/schema/team-schema";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { teamPermissionSchema, type TeamPermissions } from "@/components/shared/shared-permissions";
 
 interface Props {
 	teamId: string;
 	userId: string;
-	role: TeamRole;
+	teamRole: TeamRole;
 }
 
-export const AddMemberPermissions = ({ teamId, userId, role }: Props) => {
+export const AddMemberPermissions = ({ teamId, userId, teamRole }: Props) => {
 	const utils = api.useContext();
 	const { data: member, refetch } = api.team.getMemberPermissions.useQuery(
 		{ teamId, userId },
@@ -74,7 +77,7 @@ export const AddMemberPermissions = ({ teamId, userId, role }: Props) => {
 			teamId,
 			userId,
 			...data,
-			accesedServices: data.accesedServices || undefined
+			accesedServices: data.accesedServices || undefined,
 		})
 			.then(async () => {
 				toast.success("Team member permissions updated");
@@ -106,9 +109,9 @@ export const AddMemberPermissions = ({ teamId, userId, role }: Props) => {
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<Form {...form}>
-					<form 
+					<form
 						id="hook-form-add-permissions"
-						onSubmit={form.handleSubmit(onSubmit)} 
+						onSubmit={form.handleSubmit(onSubmit)}
 						className="space-y-8"
 					>
 						<PermissionFormFields control={form.control} showTeamFields />

@@ -275,7 +275,7 @@ export const TeamManagement = ({ teamId }: Props) => {
 						</div>
 					</DialogHeader>
 
-					<Tabs defaultValue="invitations" className="w-full">
+					<Tabs defaultValue="members" className="w-full">
 						<TabsList className="grid w-full grid-cols-2">
 							<TabsTrigger value="members" className="flex items-center gap-2">
 								<UsersIcon className="size-4" /> Members
@@ -324,7 +324,10 @@ export const TeamManagement = ({ teamId }: Props) => {
 																</SelectTrigger>
 																<SelectContent>
 																	{roleOptions.map((role) => (
-																		<SelectItem key={role.value} value={role.value}>
+																		<SelectItem
+																			key={role.value}
+																			value={role.value}
+																		>
 																			{role.label}
 																		</SelectItem>
 																	))}
@@ -397,8 +400,10 @@ export const TeamManagement = ({ teamId }: Props) => {
 															) : (
 																<>
 																	<AddMemberPermissions
-																			teamId={teamId}
-																			userId={member.userId} role={"ADMIN"}																	/>
+																		teamId={teamId}
+																		userId={member.userId}
+																		teamRole={"ADMIN"}
+																	/>
 																	<DropdownMenuItem
 																		className="text-destructive cursor-pointer"
 																		onSelect={(e) => {
@@ -430,7 +435,7 @@ export const TeamManagement = ({ teamId }: Props) => {
 												No team members
 											</TableCell>
 										</TableRow>
-										)}
+									)}
 								</TableBody>
 							</Table>
 						</TabsContent>
@@ -701,8 +706,14 @@ export const TeamManagement = ({ teamId }: Props) => {
 												className="flex flex-row gap-4"
 											>
 												{roleOptions.map((role) => (
-													<div key={role.value} className="flex items-center space-x-2">
-														<RadioGroupItem value={role.value} id={role.value} />
+													<div
+														key={role.value}
+														className="flex items-center space-x-2"
+													>
+														<RadioGroupItem
+															value={role.value}
+															id={role.value}
+														/>
 														<Label htmlFor={role.value}>{role.label}</Label>
 													</div>
 												))}

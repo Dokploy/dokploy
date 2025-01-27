@@ -393,9 +393,7 @@ export const teamRouter = createTRPCRouter({
 				.where(eq(teamMembers.teamId, input.teamId));
 
 			// Filter out any members with null user data
-			const validMembers = members.filter(
-				(member) => member.user && member.user.email,
-			);
+			const validMembers = members.filter((member) => member.user?.email);
 			const owner = validMembers.find((member) => member.role === "OWNER");
 			const otherMembers = validMembers.filter(
 				(member) => member.role !== "OWNER",

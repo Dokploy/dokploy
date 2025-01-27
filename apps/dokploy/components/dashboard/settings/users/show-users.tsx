@@ -29,13 +29,14 @@ import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ShowTeams } from "../teams/show-teams";
 import { AddUserPermissions } from "./add-permissions";
-import { AddToTeam } from "./add-to-team";
 import { AddUser } from "./add-user";
 
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Loader2 } from "lucide-react";
+
+import { ShowTeams } from "../teams/show-teams";
+import { AddToTeam } from "./add-to-team";
 
 export const ShowUsers = () => {
 	const { data, isLoading, refetch } = api.user.all.useQuery();
@@ -43,8 +44,9 @@ export const ShowUsers = () => {
 		api.admin.removeUser.useMutation();
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+		<div className="w-full space-y-8">
+			<ShowTeams />
+			<Card className="bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -149,22 +151,60 @@ export const ShowUsers = () => {
 																			</DropdownMenuItem>
 																		)}
 
-															{user.isRegistered && (
-																<AddUserPermissions userId={user.userId} />
-															)}
+																		{user.isRegistered && (
+																			<AddUserPermissions
+																				userId={user.userId}
+																			/>
+																		)}
 
-															<DeleteUser authId={user.authId} />
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</div>
-					)}
-				</CardContent>
+																		<AddToTeam userId={user.authId} />
+
+																		<DialogAction
+																			title="Delete User"
+																			description="Are you sure you want to delete this user?"
+																			type="destructive"
+																			onClick={async () => {
+																				await mutateAsync({
+																					authId: user.authId,
+																				})
+																					.then(() => {
+																						toast.success(
+																							"User deleted successfully",
+																						);
+																						refetch();
+																					})
+																					.catch(() => {
+																						toast.error(
+																							"Error deleting destination",
+																						);
+																					});
+																			}}
+																		>
+																			<DropdownMenuItem
+																				className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																				onSelect={(e) => e.preventDefault()}
+																			>
+																				Delete User
+																			</DropdownMenuItem>
+																		</DialogAction>
+																	</DropdownMenuContent>
+																</DropdownMenu>
+															</TableCell>
+														</TableRow>
+													);
+												})}
+											</TableBody>
+										</Table>
+
+										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+											<AddUser />
+										</div>
+									</div>
+								)}
+							</>
+						)}
+					</CardContent>
+				</div>
 			</Card>
 		</div>
 	);
