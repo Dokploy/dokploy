@@ -250,6 +250,9 @@ importers:
       date-fns:
         specifier: 3.6.0
         version: 3.6.0
+      dockerode:
+        specifier: 4.0.2
+        version: 4.0.2
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
