@@ -12,6 +12,7 @@ import {
 
 import { TRPCError } from "@trpc/server";
 
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -19,6 +20,7 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
 	removeMySqlById,
@@ -249,8 +251,10 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.mysqlId, "mysql");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMySqlById(input.mysqlId),
 			];
 

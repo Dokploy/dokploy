@@ -146,38 +146,6 @@ export const ShowResources = ({ id, type }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
-								name="memoryReservation"
-								render={({ field }) => (
-									<FormItem>
-										<div className="flex items-center gap-2">
-											<FormLabel>Memory Reservation</FormLabel>
-											<TooltipProvider>
-												<Tooltip delayDuration={0}>
-													<TooltipTrigger>
-														<InfoIcon className="h-4 w-4 text-muted-foreground" />
-													</TooltipTrigger>
-													<TooltipContent>
-														<p>
-															Memory soft limit in bytes. Example: 256MB =
-															268435456 bytes
-														</p>
-													</TooltipContent>
-												</Tooltip>
-											</TooltipProvider>
-										</div>
-										<FormControl>
-											<Input
-												placeholder="268435456 (256MB in bytes)"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
 								name="memoryLimit"
 								render={({ field }) => {
 									return (
@@ -208,6 +176,37 @@ export const ShowResources = ({ id, type }: Props) => {
 										</FormItem>
 									);
 								}}
+							/>
+							<FormField
+								control={form.control}
+								name="memoryReservation"
+								render={({ field }) => (
+									<FormItem>
+										<div className="flex items-center gap-2">
+											<FormLabel>Memory Reservation</FormLabel>
+											<TooltipProvider>
+												<Tooltip delayDuration={0}>
+													<TooltipTrigger>
+														<InfoIcon className="h-4 w-4 text-muted-foreground" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Memory soft limit in bytes. Example: 256MB =
+															268435456 bytes
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										<FormControl>
+											<Input
+												placeholder="268435456 (256MB in bytes)"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
 							/>
 
 							<FormField

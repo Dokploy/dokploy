@@ -247,7 +247,7 @@ const MENU: Menu = {
 	settings: [
 		{
 			isSingle: true,
-			title: "Server",
+			title: "Web Server",
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
@@ -262,7 +262,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Servers",
+			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
@@ -783,7 +783,7 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && (
+							{!isCloud && auth?.rol === "admin" && (
 								<SidebarMenuItem>
 									<SidebarMenuButton asChild>
 										<UpdateServerButton />
