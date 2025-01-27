@@ -14,6 +14,7 @@ import {
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -21,6 +22,7 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	findBackupsByDbId,
 	findPostgresById,
 	findProjectById,
 	removePostgresById,
@@ -231,8 +233,11 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.postgresId, "postgres");
+
 			const cleanupOperations = [
 				removeService(postgres.appName, postgres.serverId),
+				cancelJobs(backups),
 				removePostgresById(input.postgresId),
 			];
 

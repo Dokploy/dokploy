@@ -9,6 +9,7 @@ import {
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -16,6 +17,7 @@ import {
 	createMariadb,
 	createMount,
 	deployMariadb,
+	findBackupsByDbId,
 	findMariadbById,
 	findProjectById,
 	findServerById,
@@ -211,8 +213,10 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMariadbById(input.mariadbId),
 			];
 

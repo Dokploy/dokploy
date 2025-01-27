@@ -9,6 +9,7 @@ import {
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -16,6 +17,7 @@ import {
 	createMongo,
 	createMount,
 	deployMongo,
+	findBackupsByDbId,
 	findMongoById,
 	findProjectById,
 	removeMongoById,
@@ -252,9 +254,11 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to delete this mongo",
 				});
 			}
+			const backups = await findBackupsByDbId(input.mongoId, "mongo");
 
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMongoById(input.mongoId),
 			];
 
