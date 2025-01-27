@@ -89,7 +89,7 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("postgres"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("postgres"),
 			databaseUser: z.string().default("postgres"),
 		})
 		.merge(baseDatabaseSchema),
@@ -110,7 +110,10 @@ const mySchema = z.discriminatedUnion("type", [
 			type: z.literal("mysql"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z
+				.string()
+				.min(1, "Database name required")
+				.default("mysql"),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -119,7 +122,10 @@ const mySchema = z.discriminatedUnion("type", [
 			dockerImage: z.string().default("mariadb:4"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z
+				.string()
+				.min(1, "Database name required")
+				.default("mariadb"),
 		})
 		.merge(baseDatabaseSchema),
 ]);
@@ -206,7 +212,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = postgresMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "postgres",
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -233,7 +239,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseRootPassword: data.databaseRootPassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
@@ -242,7 +248,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = mysqlMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,

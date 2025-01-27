@@ -21,6 +21,7 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	findBackupsByDbId,
 	findPostgresById,
 	findProjectById,
 	removePostgresById,
@@ -34,6 +35,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
+import { cancelJobs } from "@/server/utils/backup";
 
 const ee = new EventEmitter();
 
@@ -231,8 +233,11 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.postgresId, "postgres");
+
 			const cleanupOperations = [
 				removeService(postgres.appName, postgres.serverId),
+				cancelJobs(backups),
 				removePostgresById(input.postgresId),
 			];
 

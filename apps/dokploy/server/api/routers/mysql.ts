@@ -19,6 +19,7 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
 	removeMySqlById,
@@ -30,6 +31,7 @@ import {
 	updateMySqlById,
 } from "@dokploy/server";
 import { observable } from "@trpc/server/observable";
+import { cancelJobs } from "@/server/utils/backup";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -249,8 +251,10 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.mysqlId, "mysql");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMySqlById(input.mysqlId),
 			];
 
