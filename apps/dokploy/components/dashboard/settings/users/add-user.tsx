@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -37,6 +37,7 @@ const addUser = z.object({
 type AddUser = z.infer<typeof addUser>;
 
 export const AddUser = () => {
+	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
 	const { mutateAsync, isError, error, isLoading } =
@@ -59,13 +60,14 @@ export const AddUser = () => {
 			.then(async () => {
 				toast.success("Invitation created");
 				await utils.user.all.invalidate();
+				setOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error creating the invitation");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
 				<Button>
 					<PlusIcon className="h-4 w-4" /> Add User

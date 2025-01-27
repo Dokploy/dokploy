@@ -13,10 +13,12 @@ import { CardTitle } from "@/components/ui/card";
 import {
 	InputOTP,
 	InputOTPGroup,
+	InputOTPSeparator,
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -93,19 +95,25 @@ export const Login2FA = ({ authId }: Props) => {
 					control={form.control}
 					name="pin"
 					render={({ field }) => (
-						<FormItem className="flex flex-col justify-center max-sm:items-center">
+						<FormItem className="flex flex-col  max-sm:items-center">
 							<FormLabel>Pin</FormLabel>
 							<FormControl>
-								<InputOTP maxLength={6} {...field}>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
-									</InputOTPGroup>
-								</InputOTP>
+								<div className="flex">
+									<InputOTP
+										maxLength={6}
+										{...field}
+										pattern={REGEXP_ONLY_DIGITS}
+									>
+										<InputOTPGroup>
+											<InputOTPSlot index={0} className="border-border" />
+											<InputOTPSlot index={1} className="border-border" />
+											<InputOTPSlot index={2} className="border-border" />
+											<InputOTPSlot index={3} className="border-border" />
+											<InputOTPSlot index={4} className="border-border" />
+											<InputOTPSlot index={5} className="border-border" />
+										</InputOTPGroup>
+									</InputOTP>
+								</div>
 							</FormControl>
 							<FormDescription>
 								Please enter the 6 digits code provided by your authenticator

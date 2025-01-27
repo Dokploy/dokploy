@@ -4,6 +4,7 @@
 
 @layer base {
 	:root {
+		--terminal-paste: rgba(0, 0, 0, 0.2);
 		--background: 0 0% 100%;
 		--foreground: 240 10% 3.9%;
 
@@ -25,7 +26,7 @@
 		--accent: 240 4.8% 95.9%;
 		--accent-foreground: 240 5.9% 10%;
 
-		--destructive: 0 84.2% 60.2%;
+		--destructive: 0 84.2% 50.2%;
 		--destructive-foreground: 0 0% 98%;
 
 		--border: 240 5.9% 90%;
@@ -40,9 +41,18 @@
 		--chart-3: 197 37% 24%;
 		--chart-4: 43 74% 66%;
 		--chart-5: 27 87% 67%;
+		--sidebar-background: 0 0% 98%;
+		--sidebar-foreground: 240 5.3% 26.1%;
+		--sidebar-primary: 240 5.9% 10%;
+		--sidebar-primary-foreground: 0 0% 98%;
+		--sidebar-accent: 240 4.8% 95.9%;
+		--sidebar-accent-foreground: 240 5.9% 10%;
+		--sidebar-border: 220 13% 91%;
+		--sidebar-ring: 217.2 91.2% 59.8%;
 	}
 
 	.dark {
+		--terminal-paste: rgba(255, 255, 255, 0.2);
 		--background: 0 0% 0%;
 		--foreground: 0 0% 98%;
 
@@ -64,7 +74,7 @@
 		--accent: 240 3.7% 15.9%;
 		--accent-foreground: 0 0% 98%;
 
-		--destructive: 0 84.2% 60.2%;
+		--destructive: 0 84.2% 50.2%;
 		--destructive-foreground: 0 0% 98%;
 
 		--border: 240 3.7% 15.9%;
@@ -78,6 +88,14 @@
 		--chart-3: 30 80% 55%;
 		--chart-4: 280 65% 60%;
 		--chart-2: 340 75% 55%;
+		--sidebar-background: 240 5.9% 10%;
+		--sidebar-foreground: 240 4.8% 95.9%;
+		--sidebar-primary: 224.3 76.3% 48%;
+		--sidebar-primary-foreground: 0 0% 100%;
+		--sidebar-accent: 240 3.7% 15.9%;
+		--sidebar-accent-foreground: 240 4.8% 95.9%;
+		--sidebar-border: 240 3.7% 15.9%;
+		--sidebar-ring: 217.2 91.2% 59.8%;
 	}
 }
 
@@ -85,13 +103,29 @@
 	* {
 		@apply border-border;
 	}
+
 	body {
 		@apply bg-background text-foreground;
 	}
-}
 
-html {
-	scrollbar-gutter: stable both-edges;
+	/* Custom scrollbar styling */
+	::-webkit-scrollbar {
+		width: 0.3125rem;
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: hsl(var(--border));
+		border-radius: 0.3125rem;
+	}
+
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--border)) transparent;
+	}
 }
 
 .xterm-viewport {
@@ -202,4 +236,9 @@ html {
 	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
 		background-color: hsl(var(--muted-foreground) / 0.5);
 	}
+}
+
+.xterm-bg-257.xterm-fg-257 {
+	background-color: var(--terminal-paste) !important;
+	color: currentColor !important;
 }

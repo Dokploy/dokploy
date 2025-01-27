@@ -8,17 +8,13 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Dashboard = () => {
-	return (
-		<>
-			<SwarmMonitorCard />
-		</>
-	);
+	return <SwarmMonitorCard />;
 };
 
 export default Dashboard;
 
 Dashboard.getLayout = (page: ReactElement) => {
-	return <DashboardLayout tab={"swarm"}>{page}</DashboardLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

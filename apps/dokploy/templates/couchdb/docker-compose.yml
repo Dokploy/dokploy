@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  couchdb:
+    image: couchdb:latest
+    ports:
+      - '5984'
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
+    restart: unless-stopped
+
+volumes:
+  couchdb-data:
+    driver: local

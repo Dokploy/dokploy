@@ -9,6 +9,7 @@ import {
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -16,6 +17,7 @@ import {
 	createMariadb,
 	createMount,
 	deployMariadb,
+	findBackupsByDbId,
 	findMariadbById,
 	findProjectById,
 	findServerById,
@@ -28,6 +30,7 @@ import {
 	updateMariadbById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -155,6 +158,31 @@ export const mariadbRouter = createTRPCRouter({
 
 			return deployMariadb(input.mariadbId);
 		}),
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mariadb-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployMariaDB)
+		.subscription(async ({ input, ctx }) => {
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Mariadb",
+				});
+			}
+
+			return observable<string>((emit) => {
+				deployMariadb(input.mariadbId, (log) => {
+					emit.next(log);
+				});
+			});
+		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMariaDBStatus)
 		.mutation(async ({ input, ctx }) => {
@@ -185,8 +213,10 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMariadbById(input.mariadbId),
 			];
 

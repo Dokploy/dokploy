@@ -1,22 +1,25 @@
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
-import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
-import { ShowEnvironmentCompose } from "@/components/dashboard/compose/environment/show";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ProjectLayout } from "@/components/layouts/project-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -83,209 +86,218 @@ const Service = (
 
 	return (
 		<div className="pb-10">
-			<div className="flex flex-col gap-4">
-				<Breadcrumb>
-					<BreadcrumbItem>
-						<BreadcrumbLink as={Link} href="/dashboard/projects">
-							Projects
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbItem>
-						<BreadcrumbLink
-							as={Link}
-							href={`/dashboard/project/${data?.project.projectId}`}
-						>
-							{data?.project.name}
-						</BreadcrumbLink>
-					</BreadcrumbItem>
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/compose/${composeId}`,
+					},
+				]}
+			/>
+			<Head>
+				<title>
+					Compose: {data?.name} - {data?.project.name} | Dokploy
+				</title>
+			</Head>
+			<div className="w-full">
+				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
+					<div className="rounded-xl bg-background shadow-md ">
+						<div className="flex flex-col gap-4">
+							<CardHeader className="flex flex-row justify-between items-center">
+								<div className="flex flex-col">
+									<CardTitle className="text-xl flex flex-row gap-2">
+										<div className="relative flex flex-row gap-4">
+											<div className="absolute -right-1  -top-2">
+												<StatusTooltip status={data?.composeStatus} />
+											</div>
 
-					<BreadcrumbItem isCurrentPage>
-						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
-					</BreadcrumbItem>
-				</Breadcrumb>
-				<Head>
-					<title>
-						Compose: {data?.name} - {data?.project.name} | Dokploy
-					</title>
-				</Head>
-				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
-					<div className="flex  flex-col justify-between w-fit gap-2">
-						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
-							<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
-								{data?.name}
-							</h1>
-							<span className="text-sm">{data?.appName}</span>
-						</div>
-						<div className="flex flex-row h-fit w-fit gap-2">
-							<Badge
-								variant={
-									!data?.serverId
-										? "default"
-										: data?.server?.serverStatus === "active"
-											? "default"
-											: "destructive"
-								}
-							>
-								{data?.server?.name || "Dokploy Server"}
-							</Badge>
-							{data?.server?.serverStatus === "inactive" && (
-								<TooltipProvider delayDuration={0}>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Label className="break-all w-fit flex flex-row gap-1 items-center">
-												<HelpCircle className="size-4 text-muted-foreground" />
-											</Label>
-										</TooltipTrigger>
-										<TooltipContent
-											className="z-[999] w-[300px]"
-											align="start"
-											side="top"
+											<CircuitBoard className="h-6 w-6 text-muted-foreground" />
+										</div>
+										{data?.name}
+									</CardTitle>
+									{data?.description && (
+										<CardDescription>{data?.description}</CardDescription>
+									)}
+
+									<span className="text-sm text-muted-foreground">
+										{data?.appName}
+									</span>
+								</div>
+								<div className="flex flex-col h-fit w-fit gap-2">
+									<div className="flex flex-row h-fit w-fit gap-2">
+										<Badge
+											variant={
+												!data?.serverId
+													? "default"
+													: data?.server?.serverStatus === "active"
+														? "default"
+														: "destructive"
+											}
 										>
-											<span>
-												You cannot, deploy this application because the server
-												is inactive, please upgrade your plan to add more
-												servers.
-											</span>
-										</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
-							)}
-						</div>
-						{data?.description && (
-							<p className="text-sm text-muted-foreground max-w-6xl">
-								{data?.description}
-							</p>
-						)}
-					</div>
+											{data?.server?.name || "Dokploy Server"}
+										</Badge>
+										{data?.server?.serverStatus === "inactive" && (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Label className="break-all w-fit flex flex-row gap-1 items-center">
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</Label>
+													</TooltipTrigger>
+													<TooltipContent
+														className="z-[999] w-[300px]"
+														align="start"
+														side="top"
+													>
+														<span>
+															You cannot, deploy this application because the
+															server is inactive, please upgrade your plan to
+															add more servers.
+														</span>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
+									</div>
+									<div className="flex flex-row gap-2 justify-end">
+										<UpdateCompose composeId={composeId} />
 
-					<div className="relative flex flex-row gap-4">
-						<div className="absolute -right-1  -top-2">
-							<StatusTooltip status={data?.composeStatus} />
+										{(auth?.rol === "admin" || user?.canDeleteServices) && (
+											<DeleteService id={composeId} type="compose" />
+										)}
+									</div>
+								</div>
+							</CardHeader>
 						</div>
-
-						<CircuitBoard className="h-6 w-6 text-muted-foreground" />
-					</div>
-				</header>
-			</div>
-			{data?.server?.serverStatus === "inactive" ? (
-				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
-					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
-						<ServerOff className="size-10 text-muted-foreground self-center" />
-						<span className="text-center text-base text-muted-foreground">
-							This service is hosted on the server {data.server.name}, but this
-							server has been disabled because your current plan doesn't include
-							enough servers. Please purchase more servers to regain access to
-							this application.
-						</span>
-						<span className="text-center text-base text-muted-foreground">
-							Go to{" "}
-							<Link href="/dashboard/settings/billing" className="text-primary">
-								Billing
-							</Link>
-						</span>
-					</div>
-				</div>
-			) : (
-				<Tabs
-					value={tab}
-					defaultValue="general"
-					className="w-full"
-					onValueChange={(e) => {
-						setTab(e as TabState);
-						const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
-						router.push(newPath);
-					}}
-				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
-						<TabsList
-							className={cn(
-								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-								data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
-								data?.composeType === "docker-compose" ? "" : "md:grid-cols-6",
-								data?.serverId && data?.composeType === "stack"
-									? "md:grid-cols-5"
-									: "",
-							)}
-						>
-							<TabsTrigger value="general">General</TabsTrigger>
-							{data?.composeType === "docker-compose" && (
-								<TabsTrigger value="environment">Environment</TabsTrigger>
-							)}
-							{!data?.serverId && (
-								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-							)}
-							<TabsTrigger value="logs">Logs</TabsTrigger>
-							<TabsTrigger value="deployments">Deployments</TabsTrigger>
-							<TabsTrigger value="domains">Domains</TabsTrigger>
-							<TabsTrigger value="advanced">Advanced</TabsTrigger>
-						</TabsList>
-						<div className="flex flex-row gap-2">
-							<UpdateCompose composeId={composeId} />
-
-							{(auth?.rol === "admin" || user?.canDeleteServices) && (
-								<DeleteCompose composeId={composeId} />
-							)}
-						</div>
-					</div>
-
-					<TabsContent value="general">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowGeneralCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					<TabsContent value="environment">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowEnvironmentCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					{!data?.serverId && (
-						<TabsContent value="monitoring">
-							<div className="flex flex-col gap-4 pt-2.5">
-								<ShowMonitoringCompose
-									serverId={data?.serverId || ""}
-									appName={data?.appName || ""}
-									appType={data?.composeType || "docker-compose"}
-								/>
-							</div>
-						</TabsContent>
-					)}
-
-					<TabsContent value="logs">
-						<div className="flex flex-col gap-4 pt-2.5">
-							{data?.composeType === "docker-compose" ? (
-								<ShowDockerLogsCompose
-									serverId={data?.serverId || ""}
-									appName={data?.appName || ""}
-									appType={data?.composeType || "docker-compose"}
-								/>
+						<CardContent className="space-y-2 py-8 border-t">
+							{data?.server?.serverStatus === "inactive" ? (
+								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+										<ServerOff className="size-10 text-muted-foreground self-center" />
+										<span className="text-center text-base text-muted-foreground">
+											This service is hosted on the server {data.server.name},
+											but this server has been disabled because your current
+											plan doesn't include enough servers. Please purchase more
+											servers to regain access to this application.
+										</span>
+										<span className="text-center text-base text-muted-foreground">
+											Go to{" "}
+											<Link
+												href="/dashboard/settings/billing"
+												className="text-primary"
+											>
+												Billing
+											</Link>
+										</span>
+									</div>
+								</div>
 							) : (
-								<ShowDockerLogsStack
-									serverId={data?.serverId || ""}
-									appName={data?.appName || ""}
-								/>
+								<Tabs
+									value={tab}
+									defaultValue="general"
+									className="w-full"
+									onValueChange={(e) => {
+										setTab(e as TabState);
+										const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
+										router.push(newPath);
+									}}
+								>
+									<div className="flex flex-row items-center justify-between  w-full gap-4">
+										<TabsList
+											className={cn(
+												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+												data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+												data?.composeType === "docker-compose"
+													? ""
+													: "md:grid-cols-6",
+												data?.serverId && data?.composeType === "stack"
+													? "md:grid-cols-5"
+													: "",
+											)}
+										>
+											<TabsTrigger value="general">General</TabsTrigger>
+											{data?.composeType === "docker-compose" && (
+												<TabsTrigger value="environment">
+													Environment
+												</TabsTrigger>
+											)}
+											{!data?.serverId && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											)}
+											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="domains">Domains</TabsTrigger>
+											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+										</TabsList>
+									</div>
+
+									<TabsContent value="general">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowGeneralCompose composeId={composeId} />
+										</div>
+									</TabsContent>
+									<TabsContent value="environment">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+									{!data?.serverId && (
+										<TabsContent value="monitoring">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowMonitoringCompose
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+												/>
+											</div>
+										</TabsContent>
+									)}
+
+									<TabsContent value="logs">
+										<div className="flex flex-col gap-4 pt-2.5">
+											{data?.composeType === "docker-compose" ? (
+												<ShowDockerLogsCompose
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+												/>
+											) : (
+												<ShowDockerLogsStack
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+												/>
+											)}
+										</div>
+									</TabsContent>
+
+									<TabsContent value="deployments">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowDeploymentsCompose composeId={composeId} />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="domains">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowDomainsCompose composeId={composeId} />
+										</div>
+									</TabsContent>
+									<TabsContent value="advanced">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<AddCommandCompose composeId={composeId} />
+											<ShowVolumes id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+								</Tabs>
 							)}
-						</div>
-					</TabsContent>
-
-					<TabsContent value="deployments">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDeploymentsCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-
-					<TabsContent value="domains">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDomainsCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					<TabsContent value="advanced">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<AddCommandCompose composeId={composeId} />
-							<ShowVolumesCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-				</Tabs>
-			)}
+						</CardContent>
+					</div>
+				</Card>
+			</div>
 		</div>
 	);
 };

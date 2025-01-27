@@ -6,7 +6,7 @@ export default function Document() {
 			<Head>
 				<link rel="icon" href="/icon.svg" />
 			</Head>
-			<body className="flex h-full flex-col font-sans">
+			<body className="flex h-full w-full flex-col font-sans">
 				<Main />
 				<NextScript />
 			</body>

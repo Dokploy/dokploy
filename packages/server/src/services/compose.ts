@@ -3,7 +3,6 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
 import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildCompose,
 	getBuildComposeCommand,
@@ -45,9 +44,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { getDokployUrl } from "./admin";
+import { findAdminById, getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
+import { cleanupFullDocker } from "./settings";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -206,6 +206,7 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -216,6 +217,10 @@ export const deployCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.sourceType === "github") {
 			await cloneGithubRepository({
 				...compose,
@@ -243,6 +248,7 @@ export const deployCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -272,6 +278,7 @@ export const rebuildCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -279,6 +286,10 @@ export const rebuildCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		} else {
@@ -310,6 +321,7 @@ export const deployRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -320,6 +332,10 @@ export const deployRemoteCompose = async ({
 	});
 	try {
 		if (compose.serverId) {
+			const admin = await findAdminById(compose.project.adminId);
+			if (admin.cleanupCacheOnCompose) {
+				await cleanupFullDocker(compose?.serverId);
+			}
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
@@ -366,6 +382,7 @@ export const deployRemoteCompose = async ({
 			applicationType: "compose",
 			buildLink,
 			adminId: compose.project.adminId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -405,6 +422,7 @@ export const rebuildRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -412,6 +430,10 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
+		const admin = await findAdminById(compose.project.adminId);
+		if (admin.cleanupCacheOnCompose) {
+			await cleanupFullDocker(compose?.serverId);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}

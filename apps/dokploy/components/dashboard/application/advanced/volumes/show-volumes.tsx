@@ -1,4 +1,6 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -7,40 +9,49 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Package } from "lucide-react";
+import { Package, Trash2 } from "lucide-react";
 import React from "react";
+import { toast } from "sonner";
+import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
-import { DeleteVolume } from "./delete-volume";
 import { UpdateVolume } from "./update-volume";
 interface Props {
-	applicationId: string;
+	id: string;
+	type: ServiceType | "compose";
 }
 
-export const ShowVolumes = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{ enabled: !!applicationId },
-	);
-
+export const ShowVolumes = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
+		api.mounts.remove.useMutation();
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
 					<CardTitle className="text-xl">Volumes</CardTitle>
 					<CardDescription>
-						If you want to persist data in this application use the following
-						config to setup the volumes
+						If you want to persist data in this service use the following config
+						to setup the volumes
 					</CardDescription>
 				</div>
 
 				{data && data?.mounts.length > 0 && (
-					<AddVolumes
-						serviceId={applicationId}
-						refetch={refetch}
-						serviceType="application"
-					>
+					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
 						Add Volume
 					</AddVolumes>
 				)}
@@ -52,17 +63,13 @@ export const ShowVolumes = ({ applicationId }: Props) => {
 						<span className="text-base text-muted-foreground">
 							No volumes/mounts configured
 						</span>
-						<AddVolumes
-							serviceId={applicationId}
-							refetch={refetch}
-							serviceType="application"
-						>
+						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
 							Add Volume
 						</AddVolumes>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 gap-4">
-						<AlertBlock type="info">
+						<AlertBlock type="warning">
 							Please remember to click Redeploy after adding, editing, or
 							deleting a mount to apply the changes.
 						</AlertBlock>
@@ -73,7 +80,8 @@ export const ShowVolumes = ({ applicationId }: Props) => {
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
+										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
+										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>
 												<span className="text-sm text-muted-foreground">
@@ -90,21 +98,12 @@ export const ShowVolumes = ({ applicationId }: Props) => {
 											)}
 
 											{mount.type === "file" && (
-												<>
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">Content</span>
-														<span className="text-sm text-muted-foreground">
-															{mount.content}
-														</span>
-													</div>
-
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">File Path</span>
-														<span className="text-sm text-muted-foreground">
-															{mount.filePath}
-														</span>
-													</div>
-												</>
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Content</span>
+													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
+														{mount.content}
+													</span>
+												</div>
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">
@@ -114,21 +113,55 @@ export const ShowVolumes = ({ applicationId }: Props) => {
 													</span>
 												</div>
 											)}
-											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Path</span>
-												<span className="text-sm text-muted-foreground">
-													{mount.mountPath}
-												</span>
-											</div>
+											{mount.type === "file" ? (
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">File Path</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.filePath}
+													</span>
+												</div>
+											) : (
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Mount Path</span>
+													<span className="text-sm text-muted-foreground">
+														{mount.mountPath}
+													</span>
+												</div>
+											)}
 										</div>
 										<div className="flex flex-row gap-1">
 											<UpdateVolume
 												mountId={mount.mountId}
 												type={mount.type}
 												refetch={refetch}
-												serviceType="application"
+												serviceType={type}
 											/>
-											<DeleteVolume mountId={mount.mountId} refetch={refetch} />
+											<DialogAction
+												title="Delete Volume"
+												description="Are you sure you want to delete this volume?"
+												type="destructive"
+												onClick={async () => {
+													await deleteVolume({
+														mountId: mount.mountId,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Volume deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting volume");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								</div>

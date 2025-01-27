@@ -115,24 +115,37 @@ export const removePostgresById = async (postgresId: string) => {
 	return result[0];
 };
 
-export const deployPostgres = async (postgresId: string) => {
+export const deployPostgres = async (
+	postgresId: string,
+	onData?: (data: any) => void,
+) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
-		const promises = [];
+		await updatePostgresById(postgresId, {
+			applicationStatus: "running",
+		});
+
+		onData?.("Starting postgres deployment...");
+
 		if (postgres.serverId) {
-			const result = await execAsyncRemote(
+			await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
+				onData,
 			);
 		} else {
-			await pullImage(postgres.dockerImage);
+			await pullImage(postgres.dockerImage, onData);
 		}
 
 		await buildPostgres(postgres);
+
 		await updatePostgresById(postgresId, {
 			applicationStatus: "done",
 		});
+
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updatePostgresById(postgresId, {
 			applicationStatus: "error",
 		});

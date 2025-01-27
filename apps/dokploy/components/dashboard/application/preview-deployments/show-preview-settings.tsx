@@ -291,16 +291,6 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														"PORT=3000",
 													].join("\n")}
 												/>
-												{/* <CodeEditor
-													lineWrapping
-													language="properties"
-													wrapperClassName="h-[25rem] font-mono"
-													placeholder={`NODE_ENV=production
-PORT=3000
-
-                                                    `}
-													{...field}
-												/> */}
 											</FormControl>
 											<FormMessage />
 										</FormItem>

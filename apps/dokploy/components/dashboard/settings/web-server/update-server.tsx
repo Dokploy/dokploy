@@ -7,6 +7,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import type { IUpdateData } from "@dokploy/server/index";
 import {
 	Bug,
 	Download,
@@ -23,15 +24,23 @@ import { toast } from "sonner";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
 
-export const UpdateServer = () => {
-	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(false);
-	const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+interface Props {
+	updateData?: IUpdateData;
+}
+
+export const UpdateServer = ({ updateData }: Props) => {
+	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(!!updateData);
+	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
+		!!updateData?.updateAvailable,
+	);
 	const { mutateAsync: getUpdateData, isLoading } =
 		api.settings.getUpdateData.useMutation();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: releaseTag } = api.settings.getReleaseTag.useQuery();
 	const [isOpen, setIsOpen] = useState(false);
-	const [latestVersion, setLatestVersion] = useState("");
+	const [latestVersion, setLatestVersion] = useState(
+		updateData?.latestVersion ?? "",
+	);
 
 	const handleCheckUpdates = async () => {
 		try {
@@ -61,9 +70,24 @@ export const UpdateServer = () => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="secondary" className="gap-2">
-					<Sparkles className="h-4 w-4" />
-					Updates
+				<Button
+					variant={updateData ? "outline" : "secondary"}
+					className="gap-2"
+				>
+					{updateData ? (
+						<>
+							<span className="flex h-2 w-2">
+								<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
+								<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+							</span>
+							Update available
+						</>
+					) : (
+						<>
+							<Sparkles className="h-4 w-4" />
+							Updates
+						</>
+					)}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-lg p-6">
@@ -99,10 +123,6 @@ export const UpdateServer = () => {
 					<div className="mb-8">
 						<div className="inline-flex items-center gap-2 rounded-lg px-3 py-2 border border-emerald-900 bg-emerald-900 dark:bg-emerald-900/40 mb-4 w-full">
 							<div className="flex items-center gap-1.5">
-								<span className="flex h-2 w-2">
-									<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
-									<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-								</span>
 								<Download className="h-4 w-4 text-emerald-400" />
 								<span className="text font-medium text-emerald-400 ">
 									New version available:

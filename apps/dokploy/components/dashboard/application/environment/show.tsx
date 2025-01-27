@@ -56,12 +56,12 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onSubmit)}
-				className="flex w-full flex-col gap-5 "
-			>
-				<Card className="bg-background p-6">
+		<Card className="bg-background px-6 pb-6">
+			<Form {...form}>
+				<form
+					onSubmit={form.handleSubmit(onSubmit)}
+					className="flex w-full flex-col gap-4"
+				>
 					<Secrets
 						name="env"
 						title="Environment Settings"
@@ -89,15 +89,13 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							placeholder="NPM_TOKEN=xyz"
 						/>
 					)}
-					<CardContent>
-						<div className="flex flex-row justify-end">
-							<Button isLoading={isLoading} className="w-fit" type="submit">
-								Save
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-			</form>
-		</Form>
+					<div className="flex flex-row justify-end">
+						<Button isLoading={isLoading} className="w-fit" type="submit">
+							Save
+						</Button>
+					</div>
+				</form>
+			</Form>
+		</Card>
 	);
 };

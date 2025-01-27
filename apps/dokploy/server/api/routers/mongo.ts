@@ -9,6 +9,7 @@ import {
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -16,6 +17,7 @@ import {
 	createMongo,
 	createMount,
 	deployMongo,
+	findBackupsByDbId,
 	findMongoById,
 	findProjectById,
 	removeMongoById,
@@ -27,6 +29,7 @@ import {
 	updateMongoById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -167,6 +170,31 @@ export const mongoRouter = createTRPCRouter({
 			}
 			return deployMongo(input.mongoId);
 		}),
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mongo-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployMongo)
+		.subscription(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this mongo",
+				});
+			}
+			return observable<string>((emit) => {
+				deployMongo(input.mongoId, (log) => {
+					emit.next(log);
+				});
+			});
+		}),
+
 	changeStatus: protectedProcedure
 		.input(apiChangeMongoStatus)
 		.mutation(async ({ input, ctx }) => {
@@ -226,9 +254,11 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to delete this mongo",
 				});
 			}
+			const backups = await findBackupsByDbId(input.mongoId, "mongo");
 
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMongoById(input.mongoId),
 			];
 

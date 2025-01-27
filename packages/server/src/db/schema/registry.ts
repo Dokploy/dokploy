@@ -67,7 +67,7 @@ export const apiCreateRegistry = createSchema
 	});
 
 export const apiTestRegistry = createSchema.pick({}).extend({
-	registryName: z.string().min(1),
+	registryName: z.string().optional(),
 	username: z.string().min(1),
 	password: z.string().min(1),
 	registryUrl: z.string(),
