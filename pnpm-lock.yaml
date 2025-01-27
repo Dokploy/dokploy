@@ -237,7 +237,7 @@ importers:
         version: 0.5.14
       bcrypt:
         specifier: 5.1.1
-        version: 5.1.1
+        version: 5.1.1(encoding@0.1.13)
       bl:
         specifier: 6.0.11
         version: 6.0.11
