@@ -45,8 +45,8 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Volumes</CardTitle>
 					<CardDescription>
-						If you want to persist data in this postgres database use the
-						following config to setup the volumes
+						If you want to persist data in this service use the following config
+						to setup the volumes
 					</CardDescription>
 				</div>
 
