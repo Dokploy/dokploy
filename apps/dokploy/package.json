@@ -35,6 +35,7 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"bl": "6.0.11",
 		"rotating-file-stream": "3.2.3",
 		"qrcode": "^1.5.3",
 		"otpauth": "^9.2.3",
