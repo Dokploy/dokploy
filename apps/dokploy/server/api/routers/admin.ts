@@ -154,8 +154,8 @@ export const adminRouter = createTRPCRouter({
 						},
 					},
 				});
-				// const currentServer = await setupWebMonitoring(admin.adminId);
-				// return currentServer;
+				const currentServer = await setupWebMonitoring(admin.adminId);
+				return currentServer;
 			} catch (error) {
 				throw error;
 			}
