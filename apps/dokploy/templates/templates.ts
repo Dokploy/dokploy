@@ -1426,7 +1426,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "shlink",
 		name: "Shlink",
-		version: "v1.4.1",
+		version: "stable",
 		description:
 			"URL shortener that can be used to serve shortened URLs under your own domain.",
 		logo: "shlink.svg",
