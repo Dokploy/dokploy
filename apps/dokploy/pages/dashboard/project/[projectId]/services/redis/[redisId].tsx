@@ -23,6 +23,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -35,7 +36,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -52,6 +53,7 @@ type TabState = "projects" | "monitoring" | "settings" | "advanced";
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
 	const { redisId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -226,17 +228,42 @@ const Redis = (
 														appName={data?.appName || ""}
 														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
 														token={
-															data?.server?.metricsConfig?.server?.token ||
-															monitoring?.metricsToken ||
-															""
+															data?.server?.metricsConfig?.server?.token || ""
 														}
 													/>
 												) : (
-													<div>
-														<ContainerFreeMonitoring
-															appName={data?.appName || ""}
-														/>
-													</div>
+													<>
+														{monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={toggleMonitoring}
+																	onCheckedChange={setToggleMonitoring}
+																/>
+															</div>
+														)}
+
+														{toggleMonitoring ? (
+															<div>
+																<ContainerPaidMonitoring
+																	appName={data?.appName || ""}
+																	baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																	token={
+																		monitoring?.metricsConfig?.server?.token ||
+																		""
+																	}
+																/>
+															</div>
+														) : (
+															<div>
+																<ContainerFreeMonitoring
+																	appName={data?.appName || ""}
+																/>
+															</div>
+														)}
+													</>
 												)}
 											</div>
 										</div>

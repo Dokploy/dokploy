@@ -3,20 +3,24 @@ import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/serve
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/index";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type React from "react";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 
 const BASE_URL = "http://localhost:3001/metrics";
 
 const DEFAULT_TOKEN = "metrics";
 
 const Dashboard = () => {
-	const { data: admin, isLoading } = api.admin.one.useQuery();
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+
+	const { data: monitoring, isLoading } = api.admin.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			<AlertBlock>
@@ -40,18 +44,27 @@ const Dashboard = () => {
 				</Card>
 			) : (
 				<>
-					{admin?.enablePaidFeatures ? (
+					{monitoring?.enabledFeatures && (
+						<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+							<Label className="text-muted-foreground">Change Monitoring</Label>
+							<Switch
+								checked={toggleMonitoring}
+								onCheckedChange={setToggleMonitoring}
+							/>
+						</div>
+					)}
+					{toggleMonitoring ? (
 						<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto">
-							<div className="rounded-xl bg-background shadow-md px-4">
+							<div className="rounded-xl bg-background shadow-md">
 								<ShowPaidMonitoring
 									BASE_URL={
 										process.env.NODE_ENV === "production"
-											? `http://${admin?.serverIp}:${admin?.metricsConfig?.server?.port}/metrics`
+											? `http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}/metrics`
 											: BASE_URL
 									}
 									token={
 										process.env.NODE_ENV === "production"
-											? admin?.metricsConfig?.server?.token
+											? monitoring?.metricsConfig?.server?.token
 											: DEFAULT_TOKEN
 									}
 								/>

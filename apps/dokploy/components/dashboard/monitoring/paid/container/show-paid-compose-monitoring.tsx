@@ -26,7 +26,7 @@ interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
-	url: string;
+	baseUrl: string;
 	token: string;
 }
 
@@ -34,7 +34,7 @@ export const ComposePaidMonitoring = ({
 	appName,
 	appType = "stack",
 	serverId,
-	url,
+	baseUrl,
 	token,
 }: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
@@ -125,7 +125,7 @@ export const ComposePaidMonitoring = ({
 					<div className="flex flex-col gap-4">
 						<ContainerPaidMonitoring
 							appName={containerAppName || ""}
-							baseUrl={url}
+							baseUrl={baseUrl}
 							token={token}
 						/>
 					</div>

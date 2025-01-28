@@ -81,12 +81,21 @@ export const ShowPaidMonitoring = ({
 			});
 
 			if (!response.ok) {
-				throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+				throw new Error(
+					`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
+				);
 			}
 
 			const data = await response.json();
 			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error("No data available");
+				throw new Error(
+					[
+						"No monitoring data available. This could be because:",
+						"",
+						"1. You don't have setup the monitoring service, you can do in web server section.",
+						"2. If you already have setup the monitoring service, wait a few minutes and refresh the page.",
+					].join("\n"),
+				);
 			}
 
 			const formattedData = data.map((metric: SystemMetrics) => ({
@@ -116,7 +125,11 @@ export const ShowPaidMonitoring = ({
 			setMetrics(formattedData[formattedData.length - 1] || {});
 			setError(null);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to fetch metrics");
+			setError(
+				err instanceof Error
+					? err.message
+					: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly.",
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -154,18 +167,22 @@ export const ShowPaidMonitoring = ({
 
 	if (error) {
 		return (
-			<div className="mt-5 border p-4 rounded-lg min-h-[55vh] flex items-center justify-center w-full">
-				<span className="text-base font-medium leading-none text-muted-foreground">
-					Error fetching metrics to: {BASE_URL}
-					<strong className="font-semibold text-destructive">{error}</strong>
-				</span>
+			<div className="flex min-h-[55vh] w-full items-center justify-center p-4">
+				<div className="max-w-xl text-center">
+					<p className="mb-2 text-base font-medium leading-none text-muted-foreground">
+						Error fetching metrics{" "}
+					</p>
+					<p className="whitespace-pre-line text-sm text-destructive">
+						{error}
+					</p>
+					<p className=" text-sm text-muted-foreground">URL: {BASE_URL}</p>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-4 pt-5 pb-10 w-full">
-			{/* Header con selector de puntos de datos */}
+		<div className="space-y-4 pt-5 pb-10 w-full px-4">
 			<div className="flex justify-between items-center">
 				<h2 className="text-2xl font-bold tracking-tight">System Monitoring</h2>
 				<div className="flex items-center gap-2">

@@ -22,6 +22,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -57,6 +58,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
 	const { composeId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -248,27 +250,57 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg ">
+											<div className="flex flex-col border rounded-lg ">
 												{data?.serverId ? (
 													<ComposePaidMonitoring
 														serverId={data?.serverId || ""}
-														url={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
 														appName={data?.appName || ""}
 														token={
-															data?.server?.metricsConfig?.server?.token ||
-															monitoring?.metricsToken ||
-															""
+															data?.server?.metricsConfig?.server?.token || ""
 														}
 														appType={data?.composeType || "docker-compose"}
 													/>
 												) : (
-													<div>
-														<ComposeFreeMonitoring
-															serverId={data?.serverId || ""}
-															appName={data?.appName || ""}
-															appType={data?.composeType || "docker-compose"}
-														/>
-													</div>
+													<>
+														{monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={toggleMonitoring}
+																	onCheckedChange={setToggleMonitoring}
+																/>
+															</div>
+														)}
+
+														{toggleMonitoring ? (
+															<div>
+																<ComposePaidMonitoring
+																	appName={data?.appName || ""}
+																	baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																	token={
+																		monitoring?.metricsConfig?.server?.token ||
+																		""
+																	}
+																	appType={
+																		data?.composeType || "docker-compose"
+																	}
+																/>
+															</div>
+														) : (
+															<div>
+																<ComposeFreeMonitoring
+																	serverId={data?.serverId || ""}
+																	appName={data?.appName || ""}
+																	appType={
+																		data?.composeType || "docker-compose"
+																	}
+																/>
+															</div>
+														)}
+													</>
 												)}
 											</div>
 										</div>
