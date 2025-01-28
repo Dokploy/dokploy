@@ -251,16 +251,13 @@ const Postgresql = (
 														)}
 
 														{toggleMonitoring ? (
-															<div>
-																<ContainerPaidMonitoring
-																	appName={data?.appName || ""}
-																	baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																	token={
-																		monitoring?.metricsConfig?.server?.token ||
-																		""
-																	}
-																/>
-															</div>
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+															/>
 														) : (
 															<div>
 																<ContainerFreeMonitoring

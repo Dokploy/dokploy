@@ -276,19 +276,14 @@ const Service = (
 														)}
 
 														{toggleMonitoring ? (
-															<div>
-																<ComposePaidMonitoring
-																	appName={data?.appName || ""}
-																	baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																	token={
-																		monitoring?.metricsConfig?.server?.token ||
-																		""
-																	}
-																	appType={
-																		data?.composeType || "docker-compose"
-																	}
-																/>
-															</div>
+															<ComposePaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+																appType={data?.composeType || "docker-compose"}
+															/>
 														) : (
 															<div>
 																<ComposeFreeMonitoring
