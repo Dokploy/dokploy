@@ -1438,4 +1438,19 @@ export const templates: TemplateData[] = [
 		tags: ["sharing", "shortener", "url"],
 		load: () => import("./shlink/index").then((m) => m.generate),
 	},
+	{
+		id: "formbricks",
+		name: "Formbricks",
+		version: "v3.1.3",
+		description:
+			"Formbricks es una plataforma de encuestas y formularios open-source para recolectar datos de usuarios.",
+		logo: "formbricks.png",
+		links: {
+			github: "https://github.com/formbricks/formbricks",
+			website: "https://formbricks.com/",
+			docs: "https://formbricks.com/docs",
+		},
+		tags: ["forms", "analytics"],
+		load: () => import("./formbricks/index").then((m) => m.generate),
+	},
 ];
