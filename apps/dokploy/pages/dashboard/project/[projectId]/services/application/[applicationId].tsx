@@ -51,7 +51,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, useEffect, type ReactElement } from "react";
 import { toast } from "sonner";
-import superjson from "superjson";
+import superjson from "superjson";	
 
 type TabState =
 	| "projects"
@@ -139,6 +139,13 @@ const Service = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
+										className="cursor-pointer"
+										onClick={() => {
+											if (data?.server?.ipAddress) {
+												navigator.clipboard.writeText(data.server.ipAddress);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"
