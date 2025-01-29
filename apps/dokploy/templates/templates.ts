@@ -1443,7 +1443,7 @@ export const templates: TemplateData[] = [
 		name: "Formbricks",
 		version: "v3.1.3",
 		description:
-			"Formbricks es una plataforma de encuestas y formularios open-source para recolectar datos de usuarios.",
+			"Formbricks is an open-source survey and form platform for collecting user data.",
 		logo: "formbricks.png",
 		links: {
 			github: "https://github.com/formbricks/formbricks",
