@@ -6,20 +6,19 @@ services:
       #       make sure to also change the credentials in Dokploy environment
       GOTENBERG_API_BASIC_AUTH_USERNAME: ${GOTENBERG_API_BASIC_AUTH_USERNAME}
       GOTENBERG_API_BASIC_AUTH_PASSWORD: ${GOTENBERG_API_BASIC_AUTH_PASSWORD}
-    command: [
-      "gotenberg",
+    command:
+      - gotenberg
       # See the full list of options at https://gotenberg.dev/docs/configuration
-      
-      # Examples:
-      "--api-enable-basic-auth"
-      #"--api-timeout=60s",
-      #"--chromium-auto-start"
-    ]
+      - "--api-enable-basic-auth"
+      # - "--api-timeout=60s"
+      # - "--chromium-auto-start"
+
     # If you want to horizontally scale gotenberg
     #deploy:
     #  replicas: 3
     #  restart_policy:
     #    condition: on-failure
+
     networks:
       - dokploy-network
     healthcheck:
