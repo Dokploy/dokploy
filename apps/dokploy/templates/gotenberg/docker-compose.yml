@@ -15,9 +15,19 @@ services:
       #"--api-timeout=60s",
       #"--chromium-auto-start"
     ]
-    restart: unless-stopped
+    # If you want to horizontally scale gotenberg
+    #deploy:
+    #  replicas: 3
+    #  restart_policy:
+    #    condition: on-failure
+    networks:
+      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+networks:
+  dokploy-network:
+    external: true
