@@ -80,6 +80,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data } = api.compose.templates.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: tags, isLoading: isLoadingTags } =
 		api.compose.getTags.useQuery();
@@ -226,7 +227,11 @@ export const AddTemplate = ({ projectId }: Props) => {
 
 				<ScrollArea className="h-[calc(98vh-8rem)]">
 					<div className="p-6">
-						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+						{isError && (
+							<AlertBlock type="error" className="mb-4">
+								{error?.message}
+							</AlertBlock>
+						)}
 
 						{templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
@@ -304,7 +309,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										{/* Create Button */}
 										<div
 											className={cn(
-												"flex-none px-6 pb-6 pt-3 mt-auto",
+												"flex-none px-6 py-3 mt-auto",
 												viewMode === "detailed"
 													? "flex items-center justify-between bg-muted/30 border-t"
 													: "flex justify-center",
@@ -368,7 +373,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																			Select a Server (Optional)
+																			Select a Server{" "}
+																			{!isCloud ? "(Optional)" : ""}
 																			<HelpCircle className="size-4 text-muted-foreground" />
 																		</Label>
 																	</TooltipTrigger>
@@ -401,7 +407,12 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				key={server.serverId}
 																				value={server.serverId}
 																			>
-																				{server.name}
+																				<span className="flex items-center gap-2 justify-between w-full">
+																					<span>{server.name}</span>
+																					<span className="text-muted-foreground text-xs self-center">
+																						{server.ipAddress}
+																					</span>
+																				</span>
 																			</SelectItem>
 																		))}
 																		<SelectLabel>

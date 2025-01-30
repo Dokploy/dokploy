@@ -4,6 +4,7 @@
 
 @layer base {
 	:root {
+		--terminal-paste: rgba(0, 0, 0, 0.2);
 		--background: 0 0% 100%;
 		--foreground: 240 10% 3.9%;
 
@@ -51,6 +52,7 @@
 	}
 
 	.dark {
+		--terminal-paste: rgba(255, 255, 255, 0.2);
 		--background: 0 0% 0%;
 		--foreground: 0 0% 98%;
 
@@ -234,4 +236,9 @@
 	.custom-logs-scrollbar::-webkit-scrollbar-thumb:hover {
 		background-color: hsl(var(--muted-foreground) / 0.5);
 	}
+}
+
+.xterm-bg-257.xterm-fg-257 {
+	background-color: var(--terminal-paste) !important;
+	color: currentColor !important;
 }

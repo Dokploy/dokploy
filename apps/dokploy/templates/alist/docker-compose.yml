@@ -1,0 +1,14 @@
+version: '3.3'
+services:
+  alist:
+    image: xhofe/alist:v3.41.0
+    volumes:
+      - alist-data:/opt/alist/data
+    environment:
+      - PUID=0
+      - PGID=0
+      - UMASK=022
+    restart: unless-stopped
+
+volumes:
+  alist-data:
