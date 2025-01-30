@@ -9,14 +9,6 @@ export function generate(schema: Schema): Template {
 	const username = "gotenberg";
 	const password = "changethis";
 
-	const domains: DomainSchema[] = [
-		{
-			host: generateRandomDomain(schema),
-			port: 3000,
-			serviceName: "gotenberg",
-		},
-	];
-
 	const envs = [
 		`GOTENBERG_API_BASIC_AUTH_USERNAME=${username}`,
 		`GOTENBERG_API_BASIC_AUTH_PASSWORD=${password}`,
@@ -24,6 +16,5 @@ export function generate(schema: Schema): Template {
 
 	return {
 		envs,
-		domains,
 	};
 }
