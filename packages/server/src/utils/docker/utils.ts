@@ -278,12 +278,15 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
-export const prepareBuildArgs = (input: string | null) => {
-	const pairs = (input ?? "").split("\n");
+export const getEnviromentVariablesObject = (
+	input: string | null,
+	projectEnv?: string | null,
+) => {
+	const envs = prepareEnvironmentVariables(input, projectEnv);
 
 	const jsonObject: Record<string, string> = {};
 
-	for (const pair of pairs) {
+	for (const pair of envs) {
 		const [key, value] = pair.split("=");
 		if (key && value) {
 			jsonObject[key] = value;

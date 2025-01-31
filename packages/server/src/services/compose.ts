@@ -558,6 +558,17 @@ export const stopCompose = async (composeId: string) => {
 			}
 		}
 
+		if (compose.composeType === "stack") {
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`docker stack rm ${compose.appName}`,
+				);
+			} else {
+				await execAsync(`docker stack rm ${compose.appName}`);
+			}
+		}
+
 		await updateCompose(composeId, {
 			composeStatus: "idle",
 		});
