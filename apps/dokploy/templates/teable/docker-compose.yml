@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   teable:
-    image: ghcr.io/teableio/teable:1.3.1-alpha-build.460
+    image: ghcr.io/teableio/teable:latest
     restart: always
     volumes:
       - teable-data:/app/.assets
