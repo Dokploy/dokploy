@@ -221,9 +221,7 @@ const Service = (
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
-											{/* {data?.composeType === "docker-compose" && ( */}
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{/* )} */}
 											{!data?.serverId && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
