@@ -27,7 +27,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - ${PORT}:3000
+      - 3000
     volumes:
       - ../files/uploads:/home/nextjs/apps/web/uploads/
     <<: *environment
