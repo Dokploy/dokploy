@@ -45,6 +45,7 @@ import { useRouter } from "next/router";
 import React, { useState, useEffect, type ReactElement } from "react";
 import superjson from "superjson";
 import { toast } from "sonner";
+import copy from 'copy-to-clipboard';
 
 type TabState =
 	| "projects"
@@ -135,7 +136,7 @@ const Service = (
 											className="cursor-pointer"
 											onClick={() => {
 												if (data?.server?.ipAddress) {
-													navigator.clipboard.writeText(data.server.ipAddress);
+													copy(data.server.ipAddress);
 													toast.success("IP Address Copied!");
 												}
 											}}
