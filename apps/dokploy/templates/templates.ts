@@ -1240,6 +1240,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
 	{
+		id: "evolutionapi",
+		name: "Evolution API",
+		version: "v2.1.2",
+		description:
+			"Evolution API is a robust platform dedicated to empowering small businesses with limited resources, going beyond a simple messaging solution via WhatsApp.",
+		logo: "evolutionapi.png",
+		links: {
+			github: "https://github.com/EvolutionAPI/evolution-api",
+			docs: "https://doc.evolution-api.com/v2/en/get-started/introduction",
+			website: "https://evolution-api.com/opensource-whatsapp-api/",
+		},
+		tags: ["api", "whatsapp", "messaging"],
+		load: () => import("./evolutionapi/index").then((m) => m.generate),
+	},
+	{
 		id: "conduwuit",
 		name: "Conduwuit",
 		version: "latest",
