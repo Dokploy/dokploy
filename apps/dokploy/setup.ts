@@ -24,6 +24,6 @@ import {
 		await initializeRedis();
 		await initializePostgres();
 	} catch (e) {
-		console.error("Error to setup dokploy", e);
+		console.error("Error in dokploy setup", e);
 	}
 })();

@@ -41,7 +41,7 @@ export const createSecurity = async (
 			if (!securityResponse) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the security",
+					message: "Error creating the security",
 				});
 			}
 			await createSecurityMiddleware(application, securityResponse);
@@ -50,7 +50,7 @@ export const createSecurity = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create this security",
+			message: "Error creating this security",
 			cause: error,
 		});
 	}
@@ -78,7 +78,7 @@ export const deleteSecurityById = async (securityId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to remove this security",
+			message: "Error removing this security",
 		});
 	}
 };
@@ -100,7 +100,7 @@ export const updateSecurityById = async (
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to update this security",
+			message: "Error updating this security",
 		});
 	}
 };

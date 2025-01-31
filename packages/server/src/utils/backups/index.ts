@@ -7,6 +7,7 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 } from "../docker/utils";
+import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
@@ -25,21 +26,26 @@ export const initCronJobs = async () => {
 			await cleanUpUnusedImages();
 			await cleanUpDockerBuilder();
 			await cleanUpSystemPrune();
+			await sendDockerCleanupNotifications(admin.adminId);
 		});
 	}
 
 	const servers = await getAllServers();
 
 	for (const server of servers) {
-		const { appName, serverId } = server;
-		if (serverId) {
+		const { serverId, enableDockerCleanup, name } = server;
+		if (enableDockerCleanup) {
 			scheduleJob(serverId, "0 0 * * *", async () => {
 				console.log(
-					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${appName}`,
+					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
 				await cleanUpUnusedImages(serverId);
 				await cleanUpDockerBuilder(serverId);
 				await cleanUpSystemPrune(serverId);
+				await sendDockerCleanupNotifications(
+					admin.adminId,
+					`Docker cleanup for Server ${name} (${serverId})`,
+				);
 			});
 		}
 	}
@@ -59,8 +65,11 @@ export const initCronJobs = async () => {
 	});
 	for (const pg of pgs) {
 		for (const backup of pg.backups) {
-			const { schedule, backupId, enabled } = backup;
+			const { schedule, backupId, enabled, database } = backup;
 			if (enabled) {
+				console.log(
+					`[Backup] Postgres DB ${pg.name} for ${database} Activated`,
+				);
 				scheduleJob(backupId, schedule, async () => {
 					console.log(
 						`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
@@ -87,8 +96,11 @@ export const initCronJobs = async () => {
 
 	for (const maria of mariadbs) {
 		for (const backup of maria.backups) {
-			const { schedule, backupId, enabled } = backup;
+			const { schedule, backupId, enabled, database } = backup;
 			if (enabled) {
+				console.log(
+					`[Backup] MariaDB DB ${maria.name} for ${database} Activated`,
+				);
 				scheduleJob(backupId, schedule, async () => {
 					console.log(
 						`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
@@ -117,6 +129,7 @@ export const initCronJobs = async () => {
 		for (const backup of mongo.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
+				console.log(`[Backup] MongoDB DB ${mongo.name} Activated`);
 				scheduleJob(backupId, schedule, async () => {
 					console.log(
 						`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
@@ -145,6 +158,7 @@ export const initCronJobs = async () => {
 		for (const backup of mysql.backups) {
 			const { schedule, backupId, enabled } = backup;
 			if (enabled) {
+				console.log(`[Backup] MySQL DB ${mysql.name} Activated`);
 				scheduleJob(backupId, schedule, async () => {
 					console.log(
 						`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,

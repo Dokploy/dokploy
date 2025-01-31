@@ -1,3 +1,4 @@
+import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -95,7 +96,7 @@ const Register = ({ isCloud }: Props) => {
 			password: values.password,
 		})
 			.then(() => {
-				toast.success("User registration succesfuly", {
+				toast.success("User registered successfuly", {
 					duration: 2000,
 				});
 				if (!isCloud) {
@@ -105,27 +106,24 @@ const Register = ({ isCloud }: Props) => {
 			.catch((e) => e);
 	};
 	return (
-		<div>
-			<div className="flex  h-screen w-full items-center justify-center ">
+		<div className="">
+			<div className="flex  w-full items-center justify-center ">
 				<div className="flex flex-col items-center gap-4 w-full">
-					<Link
-						href="https://dokploy.com"
-						target="_blank"
-						className="flex flex-row items-center gap-2"
-					>
-						<Logo />
-						<span className="font-medium text-sm">Dokploy</span>
-					</Link>
-
-					<CardTitle className="text-2xl font-bold">
-						{isCloud ? "Create an account" : "Setup the server"}
+					<CardTitle className="text-2xl font-bold flex  items-center gap-2">
+						<Link
+							href="https://dokploy.com"
+							target="_blank"
+							className="flex flex-row items-center gap-2"
+						>
+							<Logo className="size-12" />
+						</Link>
+						{isCloud ? "Sign Up" : "Setup the server"}
 					</CardTitle>
 					<CardDescription>
 						Enter your email and password to{" "}
 						{isCloud ? "create an account" : "setup the server"}
 					</CardDescription>
-					<Card className="mx-auto w-full max-w-lg bg-transparent">
-						<div className="p-3" />
+					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
 							<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
@@ -134,15 +132,15 @@ const Register = ({ isCloud }: Props) => {
 								</span>
 							</div>
 						)}
-						{data && (
+						{data?.type === "cloud" && (
 							<AlertBlock type="success" className="mx-4 my-2">
 								<span>
-									Registration succesfuly, Please check your inbox or spam
+									Registered successfully, please check your inbox or spam
 									folder to confirm your account.
 								</span>
 							</AlertBlock>
 						)}
-						<CardContent>
+						<CardContent className="p-0">
 							<Form {...form}>
 								<form
 									onSubmit={form.handleSubmit(onSubmit)}
@@ -210,7 +208,7 @@ const Register = ({ isCloud }: Props) => {
 							</Form>
 							<div className="flex flex-row justify-between flex-wrap">
 								{isCloud && (
-									<div className="mt-4 text-center text-sm flex gap-2">
+									<div className="mt-4 text-center text-sm flex gap-2 text-muted-foreground">
 										Already have account?
 										<Link className="underline" href="/">
 											Sign in
@@ -218,7 +216,7 @@ const Register = ({ isCloud }: Props) => {
 									</div>
 								)}
 
-								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
+								<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2  text-muted-foreground">
 									Need help?
 									<Link
 										className="underline"
@@ -230,7 +228,7 @@ const Register = ({ isCloud }: Props) => {
 								</div>
 							</div>
 						</CardContent>
-					</Card>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -238,6 +236,10 @@ const Register = ({ isCloud }: Props) => {
 };
 
 export default Register;
+
+Register.getLayout = (page: ReactElement) => {
+	return <OnboardingLayout>{page}</OnboardingLayout>;
+};
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
 		const { user } = await validateRequest(context.req, context.res);

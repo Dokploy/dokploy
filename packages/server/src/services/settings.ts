@@ -1,41 +1,109 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
-import { getServiceContainer } from "@dokploy/server/utils/docker/utils";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
+import { findAdminById } from "./admin";
 // import packageInfo from "../../../package.json";
 
-const updateIsAvailable = async () => {
-	try {
-		const service = await getServiceContainer("dokploy");
+export interface IUpdateData {
+	latestVersion: string | null;
+	updateAvailable: boolean;
+}
 
-		const localImage = await docker.getImage(getDokployImage()).inspect();
-		return localImage.Id !== service?.ImageID;
-	} catch (error) {
-		return false;
-	}
+export const DEFAULT_UPDATE_DATA: IUpdateData = {
+	latestVersion: null,
+	updateAvailable: false,
+};
+
+/** Returns current Dokploy docker image tag or `latest` by default. */
+export const getDokployImageTag = () => {
+	return process.env.RELEASE_TAG || "latest";
 };
 
 export const getDokployImage = () => {
-	return `dokploy/dokploy:${process.env.RELEASE_TAG || "latest"}`;
+	return `dokploy/dokploy:${getDokployImageTag()}`;
 };
 
 export const pullLatestRelease = async () => {
-	try {
-		const stream = await docker.pull(getDokployImage(), {});
-		await new Promise((resolve, reject) => {
-			docker.modem.followProgress(stream, (err, res) =>
-				err ? reject(err) : resolve(res),
-			);
-		});
-		const newUpdateIsAvailable = await updateIsAvailable();
-		return newUpdateIsAvailable;
-	} catch (error) {}
-
-	return false;
+	const stream = await docker.pull(getDokployImage());
+	await new Promise((resolve, reject) => {
+		docker.modem.followProgress(stream, (err, res) =>
+			err ? reject(err) : resolve(res),
+		);
+	});
 };
-export const getDokployVersion = () => {
-	// return packageInfo.version;
+
+/** Returns Dokploy docker service image digest */
+export const getServiceImageDigest = async () => {
+	const { stdout } = await execAsync(
+		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
+	);
+
+	const currentDigest = stdout.trim().split("@")[1];
+
+	if (!currentDigest) {
+		throw new Error("Could not get current service image digest");
+	}
+
+	return currentDigest;
+};
+
+/** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
+export const getUpdateData = async (): Promise<IUpdateData> => {
+	let currentDigest: string;
+	try {
+		currentDigest = await getServiceImageDigest();
+	} catch {
+		// Docker service might not exist locally
+		// You can run the # Installation command for docker service create mentioned in the below docs to test it locally:
+		// https://docs.dokploy.com/docs/core/manual-installation
+		return DEFAULT_UPDATE_DATA;
+	}
+
+	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+	let url: string | null = `${baseUrl}?page_size=100`;
+	let allResults: { digest: string; name: string }[] = [];
+	while (url) {
+		const response = await fetch(url, {
+			method: "GET",
+			headers: { "Content-Type": "application/json" },
+		});
+
+		const data = (await response.json()) as {
+			next: string | null;
+			results: { digest: string; name: string }[];
+		};
+
+		allResults = allResults.concat(data.results);
+		url = data?.next;
+	}
+
+	const imageTag = getDokployImageTag();
+	const searchedDigest = allResults.find((t) => t.name === imageTag)?.digest;
+
+	if (!searchedDigest) {
+		return DEFAULT_UPDATE_DATA;
+	}
+
+	if (imageTag === "latest") {
+		const versionedTag = allResults.find(
+			(t) => t.digest === searchedDigest && t.name.startsWith("v"),
+		);
+
+		if (!versionedTag) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
+		const { name: latestVersion, digest } = versionedTag;
+		const updateAvailable = digest !== currentDigest;
+
+		return { latestVersion, updateAvailable };
+	}
+	const updateAvailable = searchedDigest !== currentDigest;
+	return { latestVersion: imageTag, updateAvailable };
 };
 
 interface TreeDataItem {
@@ -145,4 +213,36 @@ echo "$json_output"
 		}
 	}
 	return result;
+};
+
+export const cleanupFullDocker = async (serverId?: string | null) => {
+	const cleanupImages = "docker image prune --force";
+	const cleanupVolumes = "docker volume prune --force";
+	const cleanupContainers = "docker container prune --force";
+	const cleanupSystem = "docker system prune --all --force --volumes";
+	const cleanupBuilder = "docker builder prune --all --force";
+
+	try {
+		if (serverId) {
+			await execAsyncRemote(
+				serverId,
+				`
+	${cleanupImages}
+	${cleanupVolumes}
+	${cleanupContainers}
+	${cleanupSystem}
+	${cleanupBuilder}
+			`,
+			);
+		}
+		await execAsync(`
+			${cleanupImages}
+			${cleanupVolumes}
+			${cleanupContainers}
+			${cleanupSystem}
+			${cleanupBuilder}
+					`);
+	} catch (error) {
+		console.log(error);
+	}
 };

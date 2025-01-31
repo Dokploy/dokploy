@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -26,10 +26,10 @@ export const mongo = pgTable("mongo", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	env: text("env"),
-	memoryReservation: integer("memoryReservation"),
-	memoryLimit: integer("memoryLimit"),
-	cpuReservation: integer("cpuReservation"),
-	cpuLimit: integer("cpuLimit"),
+	memoryReservation: text("memoryReservation"),
+	memoryLimit: text("memoryLimit"),
+	cpuReservation: text("cpuReservation"),
+	cpuLimit: text("cpuLimit"),
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
@@ -43,6 +43,7 @@ export const mongo = pgTable("mongo", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	replicaSets: boolean("replicaSets").default(false),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
@@ -68,15 +69,16 @@ const createSchema = createInsertSchema(mongo, {
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),
 	env: z.string().optional(),
-	memoryReservation: z.number().optional(),
-	memoryLimit: z.number().optional(),
-	cpuReservation: z.number().optional(),
-	cpuLimit: z.number().optional(),
+	memoryReservation: z.string().optional(),
+	memoryLimit: z.string().optional(),
+	cpuReservation: z.string().optional(),
+	cpuLimit: z.string().optional(),
 	projectId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
+	replicaSets: z.boolean().default(false),
 });
 
 export const apiCreateMongo = createSchema
@@ -89,6 +91,7 @@ export const apiCreateMongo = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		serverId: true,
+		replicaSets: true,
 	})
 	.required();
 

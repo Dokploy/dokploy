@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -76,14 +76,14 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Mongo updated succesfully");
+				toast.success("Mongo updated successfully");
 				utils.mongo.one.invalidate({
 					mongoId: mongoId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update mongo database");
+				toast.error("Error updating mongo database");
 			})
 			.finally(() => {});
 	};
@@ -91,8 +91,12 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<SquarePen className="size-4 text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">

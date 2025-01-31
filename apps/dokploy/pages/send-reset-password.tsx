@@ -76,13 +76,13 @@ export default function Home() {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to send email", {
+				toast.error("Error sending email", {
 					duration: 2000,
 				});
 			});
 	};
 	return (
-		<div className="flex  h-screen w-full items-center justify-center ">
+		<div className="flex w-full items-center justify-center ">
 			<div className="flex flex-col items-center gap-4 w-full">
 				<Link href="/" className="flex flex-row items-center gap-2">
 					<Logo />
@@ -93,9 +93,8 @@ export default function Home() {
 					Enter your email to reset your password
 				</CardDescription>
 
-				<Card className="mx-auto w-full max-w-lg bg-transparent ">
-					<div className="p-3.5" />
-					<CardContent>
+				<div className="mx-auto w-full max-w-lg bg-transparent ">
+					<CardContent className="p-0">
 						{isError && (
 							<AlertBlock type="error" className="my-2">
 								{error?.message}
@@ -147,7 +146,7 @@ export default function Home() {
 							</div>
 						</div>
 					</CardContent>
-				</Card>
+				</div>
 			</div>
 		</div>
 	);

@@ -1,6 +1,6 @@
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -19,11 +19,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout tab={"settings"}>
-			<SettingsLayout>{page}</SettingsLayout>
-		</DashboardLayout>
-	);
+	return <DashboardLayout metaName="Nodes">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

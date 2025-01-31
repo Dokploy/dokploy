@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -8,9 +9,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { ExternalLink, GlobeIcon, PenBoxIcon } from "lucide-react";
+import { ExternalLink, GlobeIcon, PenBoxIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { DeleteDomain } from "../../application/domains/delete-domain";
+import { toast } from "sonner";
 import { AddDomainCompose } from "./add-domain";
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export const ShowDomainsCompose = ({ composeId }: Props) => {
-	const { data } = api.domain.byComposeId.useQuery(
+	const { data, refetch } = api.domain.byComposeId.useQuery(
 		{
 			composeId,
 		},
@@ -26,6 +27,9 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 			enabled: !!composeId,
 		},
 	);
+
+	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
+		api.domain.delete.useMutation();
 
 	return (
 		<div className="flex w-full flex-col gap-5 ">
@@ -93,11 +97,40 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 												composeId={composeId}
 												domainId={item.domainId}
 											>
-												<Button variant="ghost">
-													<PenBoxIcon className="size-4 text-muted-foreground" />
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-blue-500/10 "
+												>
+													<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 												</Button>
 											</AddDomainCompose>
-											<DeleteDomain domainId={item.domainId} />
+											<DialogAction
+												title="Delete Domain"
+												description="Are you sure you want to delete this domain?"
+												type="destructive"
+												onClick={async () => {
+													await deleteDomain({
+														domainId: item.domainId,
+													})
+														.then((data) => {
+															refetch();
+															toast.success("Domain deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting domain");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								);

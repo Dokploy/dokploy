@@ -70,7 +70,7 @@ interface Props {
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -104,7 +104,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 				});
 			})
 			.catch((e) => {
-				toast.error("Error to create the service");
+				toast.error("Error creating the service");
 			});
 	};
 
@@ -166,7 +166,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server (Optional)
+													Select a Server {!isCloud ? "(Optional)" : ""}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -176,7 +176,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 												side="top"
 											>
 												<span>
-													If not server is selected, the application will be
+													If no server is selected, the application will be
 													deployed on the server where the user is logged in.
 												</span>
 											</TooltipContent>
@@ -197,7 +197,12 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 														key={server.serverId}
 														value={server.serverId}
 													>
-														{server.name}
+														<span className="flex items-center gap-2 justify-between w-full">
+															<span>{server.name}</span>
+															<span className="text-muted-foreground text-xs self-center">
+																{server.ipAddress}
+															</span>
+														</span>
 													</SelectItem>
 												))}
 												<SelectLabel>Servers ({servers?.length})</SelectLabel>
@@ -213,7 +218,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>AppName</FormLabel>
+									<FormLabel>App Name</FormLabel>
 									<FormControl>
 										<Input placeholder="my-app" {...field} />
 									</FormControl>
@@ -229,7 +234,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 									<FormLabel>Description</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your service..."
+											placeholder="Description of your service..."
 											className="resize-none"
 											{...field}
 										/>

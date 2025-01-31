@@ -12,6 +12,7 @@ import {
 
 import { TRPCError } from "@trpc/server";
 
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -19,6 +20,7 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
+	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
 	removeMySqlById,
@@ -29,6 +31,7 @@ import {
 	stopServiceRemote,
 	updateMySqlById,
 } from "@dokploy/server";
+import { observable } from "@trpc/server/observable";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -42,7 +45,7 @@ export const mysqlRouter = createTRPCRouter({
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You need to use a server to create a mysql",
+						message: "You need to use a server to create a MySQL",
 					});
 				}
 				1;
@@ -74,7 +77,7 @@ export const mysqlRouter = createTRPCRouter({
 				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error input: Inserting mysql database",
+					message: "Error input: Inserting MySQL database",
 					cause: error,
 				});
 			}
@@ -89,7 +92,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (mysql.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this mysql",
+					message: "You are not authorized to access this MySQL",
 				});
 			}
 			return mysql;
@@ -102,7 +105,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (service.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this mysql",
+					message: "You are not authorized to start this MySQL",
 				});
 			}
 
@@ -124,7 +127,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this mysql",
+					message: "You are not authorized to stop this MySQL",
 				});
 			}
 			if (mongo.serverId) {
@@ -161,10 +164,35 @@ export const mysqlRouter = createTRPCRouter({
 			if (mysql.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this mysql",
+					message: "You are not authorized to deploy this MySQL",
 				});
 			}
 			return deployMySql(input.mysqlId);
+		}),
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/mysql-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployMySql)
+		.subscription(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this MySQL",
+				});
+			}
+
+			return observable<string>((emit) => {
+				deployMySql(input.mysqlId, (log) => {
+					emit.next(log);
+				});
+			});
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)
@@ -173,7 +201,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this mysql status",
+					message: "You are not authorized to change this MySQL status",
 				});
 			}
 			await updateMySqlById(input.mysqlId, {
@@ -188,7 +216,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (mysql.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this mysql",
+					message: "You are not authorized to reload this MySQL",
 				});
 			}
 			if (mysql.serverId) {
@@ -219,12 +247,14 @@ export const mysqlRouter = createTRPCRouter({
 			if (mongo.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this mysql",
+					message: "You are not authorized to delete this MySQL",
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.mysqlId, "mysql");
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeMySqlById(input.mysqlId),
 			];
 
@@ -253,7 +283,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add environment variables",
+					message: "Error adding environment variables",
 				});
 			}
 
@@ -267,7 +297,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (mysql.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this mysql",
+					message: "You are not authorized to update this MySQL",
 				});
 			}
 			const service = await updateMySqlById(mysqlId, {
@@ -277,7 +307,7 @@ export const mysqlRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update mysql",
+					message: "Update: Error updating MySQL",
 				});
 			}
 

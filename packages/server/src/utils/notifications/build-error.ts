@@ -2,10 +2,12 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -28,6 +30,7 @@ export const sendBuildErrorNotifications = async ({
 	adminId,
 }: Props) => {
 	const date = new Date();
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appBuildError, true),
@@ -38,11 +41,12 @@ export const sendBuildErrorNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -58,46 +62,49 @@ export const sendBuildErrorNotifications = async ({
 		}
 
 		if (discord) {
+			const decorate = (decoration: string, text: string) =>
+				`${discord.decoration ? decoration : ""} ${text}`.trim();
+
 			await sendDiscordNotification(discord, {
-				title: "> `⚠️` - Build Failed",
+				title: decorate(">", "`⚠️` Build Failed"),
 				color: 0xed4245,
 				fields: [
 					{
-						name: "`🛠️`・Project",
+						name: decorate("`🛠️`", "Project"),
 						value: projectName,
 						inline: true,
 					},
 					{
-						name: "`⚙️`・Application",
+						name: decorate("`⚙️`", "Application"),
 						value: applicationName,
 						inline: true,
 					},
 					{
-						name: "`❔`・Type",
+						name: decorate("`❔`", "Type"),
 						value: applicationType,
 						inline: true,
 					},
 					{
-						name: "`📅`・Date",
-						value: date.toLocaleDateString(),
+						name: decorate("`📅`", "Date"),
+						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "`⌚`・Time",
-						value: date.toLocaleTimeString(),
+						name: decorate("`⌚`", "Time"),
+						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
-						name: "`❓`・Type",
+						name: decorate("`❓`", "Type"),
 						value: "Failed",
 						inline: true,
 					},
 					{
-						name: "`⚠️`・Error Message",
+						name: decorate("`⚠️`", "Error Message"),
 						value: `\`\`\`${errorMessage}\`\`\``,
 					},
 					{
-						name: "`🧷`・Build Link",
+						name: decorate("`🧷`", "Build Link"),
 						value: `[Click here to access build link](${buildLink})`,
 					},
 				],
@@ -108,22 +115,35 @@ export const sendBuildErrorNotifications = async ({
 			});
 		}
 
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
+			await sendGotifyNotification(
+				gotify,
+				decorate("⚠️", "Build Failed"),
+				`${decorate("🛠️", `Project: ${projectName}`)}` +
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${applicationType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
+					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+			);
+		}
+
 		if (telegram) {
+			const inlineButton = [
+				[
+					{
+						text: "Deployment Logs",
+						url: buildLink,
+					},
+				],
+			];
+
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>⚠️ Build Failed</b>
-				
-				<b>Project:</b> ${projectName}
-				<b>Application:</b> ${applicationName}
-				<b>Type:</b> ${applicationType}
-				<b>Time:</b> ${date.toLocaleString()}
-				
-				<b>Error:</b>
-				<pre>${errorMessage}</pre>
-				
-				<b>Build Details:</b> ${buildLink}
-				`,
+				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+				inlineButton,
 			);
 		}
 

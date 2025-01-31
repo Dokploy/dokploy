@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:13
+    image: postgres:17-alpine
     ports:
       - 5432
     networks:
@@ -19,7 +19,7 @@ services:
       - listmonk-data:/var/lib/postgresql/data
 
   setup:
-    image: listmonk/listmonk:v3.0.0
+    image: listmonk/listmonk:v4.1.0
     networks:
       - dokploy-network
     volumes:
@@ -35,7 +35,7 @@ services:
 
   app:
     restart: unless-stopped
-    image: listmonk/listmonk:v3.0.0
+    image: listmonk/listmonk:v4.1.0
     environment:
       - TZ=Etc/UTC
     depends_on:

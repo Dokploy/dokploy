@@ -27,7 +27,7 @@ export const bitbucketRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create this bitbucket provider",
+					message: "Error creating this Bitbucket provider",
 					cause: error,
 				});
 			}

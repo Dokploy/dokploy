@@ -11,8 +11,8 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
-import { server } from "./server";
 import { previewDeployments } from "./preview-deployments";
+import { server } from "./server";
 
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
@@ -47,6 +47,7 @@ export const deployments = pgTable("deployment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	errorMessage: text("errorMessage"),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({

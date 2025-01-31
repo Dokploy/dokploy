@@ -1,5 +1,3 @@
-import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -20,12 +18,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input, NumberInput } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Secrets } from "@/components/ui/secrets";
-import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
 import {
 	Select,
 	SelectContent,
@@ -33,6 +26,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const schema = z.object({
 	env: z.string(),
@@ -116,7 +117,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		<div>
 			<Dialog open={isOpen} onOpenChange={setIsOpen}>
 				<DialogTrigger asChild>
-					<Button variant="outline">View Settings</Button>
+					<Button variant="outline">
+						<Settings2 className="size-4" />
+						Configure
+					</Button>
 				</DialogTrigger>
 				<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl w-full">
 					<DialogHeader>
@@ -218,21 +222,21 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											name="previewCertificateType"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Certificate</FormLabel>
+													<FormLabel>Certificate Provider</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value || ""}
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a certificate" />
+																<SelectValue placeholder="Select a certificate provider" />
 															</SelectTrigger>
 														</FormControl>
 
 														<SelectContent>
 															<SelectItem value="none">None</SelectItem>
 															<SelectItem value={"letsencrypt"}>
-																Letsencrypt (Default)
+																Let's Encrypt
 															</SelectItem>
 														</SelectContent>
 													</Select>
@@ -287,16 +291,6 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 														"PORT=3000",
 													].join("\n")}
 												/>
-												{/* <CodeEditor
-													lineWrapping
-													language="properties"
-													wrapperClassName="h-[25rem] font-mono"
-													placeholder={`NODE_ENV=production
-PORT=3000
-
-                                                    `}
-													{...field}
-												/> */}
 											</FormControl>
 											<FormMessage />
 										</FormItem>

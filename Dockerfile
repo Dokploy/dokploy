@@ -1,4 +1,4 @@
-FROM node:18-slim AS base
+FROM node:20-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -7,7 +7,7 @@ FROM base AS build
 COPY . /usr/src/app
 WORKDIR /usr/src/app
 
-RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
@@ -29,7 +29,7 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y curl unzip apache2-utils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl unzip apache2-utils iproute2 && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next
@@ -48,6 +48,8 @@ RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm
 
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash
+
+ARG NIXPACKS_VERSION=1.29.1
 RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
     && ./install.sh \

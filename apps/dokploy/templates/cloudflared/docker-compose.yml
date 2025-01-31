@@ -1,0 +1,18 @@
+services:
+  cloudflared:
+    image: 'cloudflare/cloudflared:latest'
+    environment:
+      # Don't forget to set this in your Dokploy Environment
+      - 'TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}'
+    network_mode: host
+    restart: unless-stopped
+    command: [
+      "tunnel",
+
+      # More tunnel run parameters here:
+      # https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/tunnel-run-parameters/
+      "--no-autoupdate",
+      #"--protocol", "http2",
+
+      "run"
+    ]

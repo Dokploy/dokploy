@@ -23,8 +23,8 @@ import { type Server, findServerById } from "./server";
 
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import {
-	findPreviewDeploymentById,
 	type PreviewDeployment,
+	findPreviewDeploymentById,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 
@@ -93,16 +93,27 @@ export const createDeployment = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				applicationId: deployment.applicationId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -159,18 +170,29 @@ export const createDeploymentPreview = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				previewDeploymentId: deployment.previewDeploymentId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updatePreviewDeployment(deployment.previewDeploymentId, {
 			previewStatus: "error",
 		});
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -221,18 +243,29 @@ echo "Initializing deployment" >> ${logFilePath};
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				composeId: deployment.composeId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updateCompose(compose.composeId, {
 			composeStatus: "error",
 		});
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };
@@ -247,7 +280,7 @@ export const removeDeployment = async (deploymentId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to delete this deployment",
+			message: "Error deleting this deployment",
 		});
 	}
 };
@@ -497,14 +530,14 @@ export const createServerDeployment = async (
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the deployment",
+				message: "Error creating the deployment",
 			});
 		}
 		return deploymentCreate[0];
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the deployment",
+			message: "Error creating the deployment",
 		});
 	}
 };

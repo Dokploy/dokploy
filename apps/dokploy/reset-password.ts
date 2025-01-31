@@ -21,6 +21,6 @@ import { generateRandomPassword } from "@dokploy/server";
 
 		process.exit(0);
 	} catch (error) {
-		console.log("Error to reset password", error);
+		console.log("Error resetting password", error);
 	}
 })();

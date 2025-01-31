@@ -47,9 +47,9 @@ export const ShowDockerModalLogs = ({
 				</DialogHeader>
 				<div className="flex flex-col gap-4 pt-2.5">
 					<DockerLogsId
-						id="terminal"
 						containerId={containerId || ""}
 						serverId={serverId}
+						runType="native"
 					/>
 				</div>
 			</DialogContent>

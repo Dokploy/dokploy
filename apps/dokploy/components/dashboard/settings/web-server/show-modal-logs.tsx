@@ -92,9 +92,9 @@ export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
 						</SelectContent>
 					</Select>
 					<DockerLogsId
-						id="terminal"
 						containerId={containerId || ""}
 						serverId={serverId}
+						runType="native"
 					/>
 				</div>
 			</DialogContent>

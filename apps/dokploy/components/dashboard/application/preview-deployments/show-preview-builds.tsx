@@ -18,15 +18,28 @@ import { ShowDeployment } from "../deployments/show-deployment";
 interface Props {
 	deployments: RouterOutputs["deployment"]["all"];
 	serverId?: string;
+	trigger?: React.ReactNode;
 }
 
-export const ShowPreviewBuilds = ({ deployments, serverId }: Props) => {
-	const [activeLog, setActiveLog] = useState<string | null>(null);
+export const ShowPreviewBuilds = ({
+	deployments,
+	serverId,
+	trigger,
+}: Props) => {
+	const [activeLog, setActiveLog] = useState<
+		RouterOutputs["deployment"]["all"][number] | null
+	>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">View Builds</Button>
+				{trigger ? (
+					trigger
+				) : (
+					<Button className="sm:w-auto w-full" size="sm" variant="outline">
+						View Builds
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl">
 				<DialogHeader>
@@ -66,7 +79,7 @@ export const ShowPreviewBuilds = ({ deployments, serverId }: Props) => {
 
 								<Button
 									onClick={() => {
-										setActiveLog(deployment.logPath);
+										setActiveLog(deployment);
 									}}
 								>
 									View
@@ -78,9 +91,10 @@ export const ShowPreviewBuilds = ({ deployments, serverId }: Props) => {
 			</DialogContent>
 			<ShowDeployment
 				serverId={serverId || ""}
-				open={activeLog !== null}
+				open={Boolean(activeLog && activeLog.logPath !== null)}
 				onClose={() => setActiveLog(null)}
-				logPath={activeLog}
+				logPath={activeLog?.logPath || ""}
+				errorMessage={activeLog?.errorMessage || ""}
 			/>
 		</Dialog>
 	);

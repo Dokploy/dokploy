@@ -2,20 +2,24 @@ import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
+	publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateDiscord,
 	apiCreateEmail,
+	apiCreateGotify,
 	apiCreateSlack,
 	apiCreateTelegram,
 	apiFindOneNotification,
 	apiTestDiscordConnection,
 	apiTestEmailConnection,
+	apiTestGotifyConnection,
 	apiTestSlackConnection,
 	apiTestTelegramConnection,
 	apiUpdateDiscord,
 	apiUpdateEmail,
+	apiUpdateGotify,
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
@@ -24,16 +28,19 @@ import {
 	IS_CLOUD,
 	createDiscordNotification,
 	createEmailNotification,
+	createGotifyNotification,
 	createSlackNotification,
 	createTelegramNotification,
 	findNotificationById,
 	removeNotificationById,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
+	updateGotifyNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
 } from "@dokploy/server";
@@ -50,7 +57,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the notification",
+					message: "Error creating the notification",
 					cause: error,
 				});
 			}
@@ -87,7 +94,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to test the notification",
+					message: "Error testing the notification",
 					cause: error,
 				});
 			}
@@ -100,7 +107,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the notification",
+					message: "Error creating the notification",
 					cause: error,
 				});
 			}
@@ -125,7 +132,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update the notification",
+					message: "Error updating the notification",
 					cause: error,
 				});
 			}
@@ -139,7 +146,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to test the notification",
+					message: "Error testing the notification",
 					cause: error,
 				});
 			}
@@ -152,7 +159,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the notification",
+					message: "Error creating the notification",
 					cause: error,
 				});
 			}
@@ -177,7 +184,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update the notification",
+					message: "Error updating the notification",
 					cause: error,
 				});
 			}
@@ -187,16 +194,20 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestDiscordConnection)
 		.mutation(async ({ input }) => {
 			try {
+				const decorate = (decoration: string, text: string) =>
+					`${input.decoration ? decoration : ""} ${text}`.trim();
+
 				await sendDiscordNotification(input, {
-					title: "> `🤚` - Test Notification",
-					description: "> Hi, From Dokploy 👋",
+					title: decorate(">", "`🤚` - Test Notification"),
+					description: decorate(">", "Hi, From Dokploy 👋"),
 					color: 0xf3f7f4,
 				});
+
 				return true;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to test the notification",
+					message: "Error testing the notification",
 					cause: error,
 				});
 			}
@@ -209,7 +220,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the notification",
+					message: "Error creating the notification",
 					cause: error,
 				});
 			}
@@ -233,7 +244,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update the notification",
+					message: "Error updating the notification",
 					cause: error,
 				});
 			}
@@ -251,7 +262,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to test the notification",
+					message: "Error testing the notification",
 					cause: error,
 				});
 			}
@@ -272,7 +283,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to delete this notification",
+					message: "Error deleting this notification",
 				});
 			}
 		}),
@@ -296,10 +307,61 @@ export const notificationRouter = createTRPCRouter({
 				telegram: true,
 				discord: true,
 				email: true,
+				gotify: true,
 			},
 			orderBy: desc(notifications.createdAt),
 			...(IS_CLOUD && { where: eq(notifications.adminId, ctx.user.adminId) }),
 			// TODO: Remove this line when the cloud version is ready
 		});
 	}),
+	createGotify: adminProcedure
+		.input(apiCreateGotify)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				return await createGotifyNotification(input, ctx.user.adminId);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateGotify: adminProcedure
+		.input(apiUpdateGotify)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				return await updateGotifyNotification({
+					...input,
+					adminId: ctx.user.adminId,
+				});
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testGotifyConnection: adminProcedure
+		.input(apiTestGotifyConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendGotifyNotification(
+					input,
+					"Test Notification",
+					"Hi, From Dokploy 👋",
+				);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error testing the notification",
+					cause: error,
+				});
+			}
+		}),
 });

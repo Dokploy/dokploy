@@ -2,14 +2,17 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
+	type apiCreateGotify,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
+	type apiUpdateGotify,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
 	email,
+	gotify,
 	notifications,
 	slack,
 	telegram,
@@ -204,6 +207,7 @@ export const createDiscordNotification = async (
 			.insert(discord)
 			.values({
 				webhookUrl: input.webhookUrl,
+				decoration: input.decoration,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -272,6 +276,7 @@ export const updateDiscordNotification = async (
 			.update(discord)
 			.set({
 				webhookUrl: input.webhookUrl,
+				decoration: input.decoration,
 			})
 			.where(eq(discord.discordId, input.discordId))
 			.returning()
@@ -377,6 +382,96 @@ export const updateEmailNotification = async (
 	});
 };
 
+export const createGotifyNotification = async (
+	input: typeof apiCreateGotify._type,
+	adminId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newGotify = await tx
+			.insert(gotify)
+			.values({
+				serverUrl: input.serverUrl,
+				appToken: input.appToken,
+				priority: input.priority,
+				decoration: input.decoration,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newGotify) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting gotify",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				gotifyId: newGotify.gotifyId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "gotify",
+				adminId: adminId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateGotifyNotification = async (
+	input: typeof apiUpdateGotify._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				adminId: input.adminId,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(gotify)
+			.set({
+				serverUrl: input.serverUrl,
+				appToken: input.appToken,
+				priority: input.priority,
+				decoration: input.decoration,
+			})
+			.where(eq(gotify.gotifyId, input.gotifyId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -385,6 +480,7 @@ export const findNotificationById = async (notificationId: string) => {
 			telegram: true,
 			discord: true,
 			email: true,
+			gotify: true,
 		},
 	});
 	if (!notification) {

@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { PenBoxIcon, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -139,7 +139,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the Bind mount");
+					toast.error("Error updating the Bind mount");
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -153,7 +153,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the Volume mount");
+					toast.error("Error updating the Volume mount");
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -168,7 +168,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the File mount");
+					toast.error("Error updating the File mount");
 				});
 		}
 		refetch();
@@ -177,8 +177,13 @@ export const UpdateVolume = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<Pencil className="size-4  text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+					isLoading={isLoading}
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">

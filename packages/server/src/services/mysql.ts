@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMySql, backups, mysql } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
+import { buildAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
@@ -13,18 +13,14 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 export type MySql = typeof mysql.$inferSelect;
 
 export const createMysql = async (input: typeof apiCreateMySql._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("mysql");
+	const appName = buildAppName("mysql", input.appName);
 
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
-
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newMysql = await db
@@ -37,6 +33,7 @@ export const createMysql = async (input: typeof apiCreateMySql._type) => {
 			databaseRootPassword: input.databaseRootPassword
 				? input.databaseRootPassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -79,10 +76,11 @@ export const updateMySqlById = async (
 	mysqlId: string,
 	mysqlData: Partial<MySql>,
 ) => {
+	const { appName, ...rest } = mysqlData;
 	const result = await db
 		.update(mysql)
 		.set({
-			...mysqlData,
+			...rest,
 		})
 		.where(eq(mysql.mysqlId, mysqlId))
 		.returning();
@@ -118,20 +116,33 @@ export const removeMySqlById = async (mysqlId: string) => {
 	return result[0];
 };
 
-export const deployMySql = async (mysqlId: string) => {
+export const deployMySql = async (
+	mysqlId: string,
+	onData?: (data: any) => void,
+) => {
 	const mysql = await findMySqlById(mysqlId);
 	try {
+		await updateMySqlById(mysqlId, {
+			applicationStatus: "running",
+		});
+		onData?.("Starting mysql deployment...");
 		if (mysql.serverId) {
-			await execAsyncRemote(mysql.serverId, `docker pull ${mysql.dockerImage}`);
+			await execAsyncRemote(
+				mysql.serverId,
+				`docker pull ${mysql.dockerImage}`,
+				onData,
+			);
 		} else {
-			await pullImage(mysql.dockerImage);
+			await pullImage(mysql.dockerImage, onData);
 		}
 
 		await buildMysql(mysql);
 		await updateMySqlById(mysqlId, {
 			applicationStatus: "done",
 		});
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updateMySqlById(mysqlId, {
 			applicationStatus: "error",
 		});

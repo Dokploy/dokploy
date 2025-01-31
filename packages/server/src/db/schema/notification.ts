@@ -10,6 +10,7 @@ export const notificationType = pgEnum("notificationType", [
 	"telegram",
 	"discord",
 	"email",
+	"gotify",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -37,6 +38,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	emailId: text("emailId").references(() => email.emailId, {
+		onDelete: "cascade",
+	}),
+	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
 	adminId: text("adminId").references(() => admins.adminId, {
@@ -68,6 +72,7 @@ export const discord = pgTable("discord", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
 });
 
 export const email = pgTable("email", {
@@ -81,6 +86,17 @@ export const email = pgTable("email", {
 	password: text("password").notNull(),
 	fromAddress: text("fromAddress").notNull(),
 	toAddresses: text("toAddress").array().notNull(),
+});
+
+export const gotify = pgTable("gotify", {
+	gotifyId: text("gotifyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverUrl: text("serverUrl").notNull(),
+	appToken: text("appToken").notNull(),
+	priority: integer("priority").notNull().default(5),
+	decoration: boolean("decoration"),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -99,6 +115,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	email: one(email, {
 		fields: [notifications.emailId],
 		references: [email.emailId],
+	}),
+	gotify: one(gotify, {
+		fields: [notifications.gotifyId],
+		references: [gotify.gotifyId],
 	}),
 	admin: one(admins, {
 		fields: [notifications.adminId],
@@ -171,6 +191,7 @@ export const apiCreateDiscord = notificationsSchema
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
+		decoration: z.boolean(),
 	})
 	.required();
 
@@ -180,9 +201,13 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	adminId: z.string().optional(),
 });
 
-export const apiTestDiscordConnection = apiCreateDiscord.pick({
-	webhookUrl: true,
-});
+export const apiTestDiscordConnection = apiCreateDiscord
+	.pick({
+		webhookUrl: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
 
 export const apiCreateEmail = notificationsSchema
 	.pick({
@@ -218,6 +243,39 @@ export const apiTestEmailConnection = apiCreateEmail.pick({
 	fromAddress: true,
 });
 
+export const apiCreateGotify = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+	})
+	.extend({
+		serverUrl: z.string().min(1),
+		appToken: z.string().min(1),
+		priority: z.number().min(1),
+		decoration: z.boolean(),
+	})
+	.required();
+
+export const apiUpdateGotify = apiCreateGotify.partial().extend({
+	notificationId: z.string().min(1),
+	gotifyId: z.string().min(1),
+	adminId: z.string().optional(),
+});
+
+export const apiTestGotifyConnection = apiCreateGotify
+	.pick({
+		serverUrl: true,
+		appToken: true,
+		priority: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
+
 export const apiFindOneNotification = notificationsSchema
 	.pick({
 		notificationId: true,
@@ -236,5 +294,8 @@ export const apiSendTest = notificationsSchema
 		username: z.string(),
 		password: z.string(),
 		toAddresses: z.array(z.string()),
+		serverUrl: z.string(),
+		appToken: z.string(),
+		priority: z.number(),
 	})
 	.partial();

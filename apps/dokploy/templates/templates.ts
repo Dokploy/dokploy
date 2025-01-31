@@ -34,7 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.0",
+		version: "v2.1.4",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -155,7 +155,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "n8n",
 		name: "n8n",
-		version: "1.48.1",
+		version: "1.70.3",
 		description:
 			"n8n is an open source low-code platform for automating workflows and integrations.",
 		logo: "n8n.png",
@@ -538,7 +538,7 @@ export const templates: TemplateData[] = [
 			website: "https://filebrowser.org/",
 			docs: "https://filebrowser.org/",
 		},
-		tags: ["file", "manager"],
+		tags: ["file-manager", "storage"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
 	},
 	{
@@ -619,7 +619,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "vaultwarden",
 		name: "Vaultwarden",
-		version: "1.32.3",
+		version: "1.32.7",
 		description:
 			"Unofficial Bitwarden compatible server written in Rust, formerly known as bitwarden_rs",
 		logo: "vaultwarden.svg",
@@ -834,7 +834,7 @@ export const templates: TemplateData[] = [
 			website: "https://nextcloud.com/",
 			docs: "https://docs.nextcloud.com/",
 		},
-		tags: ["file", "sync"],
+		tags: ["file-manager", "sync"],
 		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
 	},
 	{
@@ -951,8 +951,8 @@ export const templates: TemplateData[] = [
 		logo: "ryot.png",
 		links: {
 			github: "https://github.com/IgnisDa/ryot",
-			website: "https://ryot.dev/",
-			docs: "https://ryot.dev/docs/getting-started",
+			website: "https://ryot.io/",
+			docs: "https://docs.ryot.io/",
 		},
 		tags: ["media", "tracking", "self-hosted"],
 		load: () => import("./ryot/index").then((m) => m.generate),
@@ -1016,8 +1016,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["browser", "automation"],
 		load: () => import("./browserless/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "drawio",
 		name: "draw.io",
 		version: "24.7.17",
@@ -1031,8 +1031,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["drawing", "diagrams"],
 		load: () => import("./drawio/index").then((m) => m.generate),
-  },
-  {
+	},
+	{
 		id: "kimai",
 		name: "Kimai",
 		version: "2.26.0",
@@ -1046,5 +1046,426 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["invoice", "business", "finance"],
 		load: () => import("./kimai/index").then((m) => m.generate),
+	},
+	{
+		id: "logto",
+		name: "Logto",
+		version: "1.22.0",
+		description:
+			"Logto is an open-source Identity and Access Management (IAM) platform designed to streamline Customer Identity and Access Management (CIAM) and Workforce Identity Management.",
+		logo: "logto.png",
+		links: {
+			github: "https://github.com/logto-io/logto",
+			website: "https://logto.io/",
+			docs: "https://docs.logto.io/introduction",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./logto/index").then((m) => m.generate),
+	},
+	{
+		id: "penpot",
+		name: "Penpot",
+		version: "2.3.2",
+		description:
+			"Penpot is the web-based open-source design tool that bridges the gap between designers and developers.",
+		logo: "penpot.svg",
+		links: {
+			github: "https://github.com/penpot/penpot",
+			website: "https://penpot.app/",
+			docs: "https://docs.penpot.app/",
+		},
+		tags: ["design", "collaboration"],
+		load: () => import("./penpot/index").then((m) => m.generate),
+	},
+	{
+		id: "huly",
+		name: "Huly",
+		version: "0.6.377",
+		description:
+			"Huly — All-in-One Project Management Platform (alternative to Linear, Jira, Slack, Notion, Motion)",
+		logo: "huly.svg",
+		links: {
+			github: "https://github.com/hcengineering/huly-selfhost",
+			website: "https://huly.io/",
+			docs: "https://docs.huly.io/",
+		},
+		tags: ["project-management", "community", "discussion"],
+		load: () => import("./huly/index").then((m) => m.generate),
+	},
+	{
+		id: "unsend",
+		name: "Unsend",
+		version: "v1.2.4",
+		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
+		logo: "unsend.png",
+		links: {
+			github: "https://github.com/unsend-dev/unsend",
+			website: "https://unsend.dev/",
+			docs: "https://docs.unsend.dev/get-started/",
+		},
+		tags: ["e-mail", "marketing", "business"],
+		load: () => import("./unsend/index").then((m) => m.generate),
+	},
+	{
+		id: "langflow",
+		name: "Langflow",
+		version: "1.1.1",
+		description:
+			"Langflow is a low-code app builder for RAG and multi-agent AI applications. It’s Python-based and agnostic to any model, API, or database. ",
+		logo: "langflow.svg",
+		links: {
+			github: "https://github.com/langflow-ai/langflow/tree/main",
+			website: "https://www.langflow.org/",
+			docs: "https://docs.langflow.org/",
+		},
+		tags: ["ai"],
+		load: () => import("./langflow/index").then((m) => m.generate),
+	},
+	{
+		id: "elastic-search",
+		name: "Elasticsearch",
+		version: "8.10.2",
+		description:
+			"Elasticsearch is an open-source search and analytics engine, used for full-text search and analytics on structured data such as text, web pages, images, and videos.",
+		logo: "elasticsearch.svg",
+		links: {
+			github: "https://github.com/elastic/elasticsearch",
+			website: "https://www.elastic.co/elasticsearch/",
+			docs: "https://docs.elastic.co/elasticsearch/",
+		},
+		tags: ["search", "analytics"],
+		load: () => import("./elastic-search/index").then((m) => m.generate),
+	},
+	{
+		id: "onedev",
+		name: "OneDev",
+		version: "11.6.6",
+		description:
+			"Git server with CI/CD, kanban, and packages. Seamless integration. Unparalleled experience.",
+		logo: "onedev.png",
+		links: {
+			github: "https://github.com/theonedev/onedev/",
+			website: "https://onedev.io/",
+			docs: "https://docs.onedev.io/",
+		},
+		tags: ["self-hosted", "development"],
+		load: () => import("./onedev/index").then((m) => m.generate),
+	},
+	{
+		id: "unifi",
+		name: "Unifi Network",
+		version: "11.6.6",
+		description:
+			"Unifi Network is an open-source enterprise network management platform for wireless networks.",
+		logo: "unifi.webp",
+		links: {
+			github: "https://github.com/ubiquiti",
+			website: "https://www.ui.com/",
+			docs: "https://help.ui.com/hc/en-us/articles/360012282453-Self-Hosting-a-UniFi-Network-Server",
+		},
+		tags: ["self-hosted", "networking"],
+		load: () => import("./unifi/index").then((m) => m.generate),
+	},
+	{
+		id: "glpi",
+		name: "GLPI Project",
+		version: "10.0.16",
+		description: "The most complete open source service management software",
+		logo: "glpi.webp",
+		links: {
+			github: "https://github.com/glpi-project/glpi",
+			website: "https://glpi-project.org/",
+			docs: "https://glpi-project.org/documentation/",
+		},
+		tags: ["self-hosted", "project-management", "management"],
+		load: () => import("./glpi/index").then((m) => m.generate),
+	},
+	{
+		id: "checkmate",
+		name: "Checkmate",
+		version: "2.0.1",
+		description:
+			"Checkmate is an open-source, self-hosted tool designed to track and monitor server hardware, uptime, response times, and incidents in real-time with beautiful visualizations.",
+		logo: "checkmate.png",
+		links: {
+			github: "https://github.com/bluewave-labs/checkmate",
+			website: "https://bluewavelabs.ca",
+			docs: "https://bluewavelabs.gitbook.io/checkmate",
+		},
+		tags: ["self-hosted", "monitoring", "uptime"],
+		load: () => import("./checkmate/index").then((m) => m.generate),
+	},
+	{
+		id: "gotenberg",
+		name: "Gotenberg",
+		version: "latest",
+		description: "Gotenberg is a Docker-powered stateless API for PDF files.",
+		logo: "gotenberg.png",
+		links: {
+			github: "https://github.com/gotenberg/gotenberg",
+			website: "https://gotenberg.dev",
+			docs: "https://gotenberg.dev/docs/getting-started/introduction",
+		},
+		tags: ["api", "backend", "pdf", "tools"],
+		load: () => import("./gotenberg/index").then((m) => m.generate),
+	},
+	{
+		id: "actualbudget",
+		name: "Actual Budget",
+		version: "latest",
+		description:
+			"A super fast and privacy-focused app for managing your finances.",
+		logo: "actualbudget.png",
+		links: {
+			github: "https://github.com/actualbudget/actual",
+			website: "https://actualbudget.org",
+			docs: "https://actualbudget.org/docs",
+		},
+		tags: ["budgeting", "finance", "money"],
+		load: () => import("./actualbudget/index").then((m) => m.generate),
+	},
+	{
+		id: "conduit",
+		name: "Conduit",
+		version: "v0.9.0",
+		description:
+			"Conduit is a simple, fast and reliable chat server powered by Matrix",
+		logo: "conduit.svg",
+		links: {
+			github: "https://gitlab.com/famedly/conduit",
+			website: "https://conduit.rs/",
+			docs: "https://docs.conduit.rs/",
+		},
+		tags: ["matrix", "communication"],
+		load: () => import("./conduit/index").then((m) => m.generate),
+	},
+	{
+		id: "evolutionapi",
+		name: "Evolution API",
+		version: "v2.1.2",
+		description:
+			"Evolution API is a robust platform dedicated to empowering small businesses with limited resources, going beyond a simple messaging solution via WhatsApp.",
+		logo: "evolutionapi.png",
+		links: {
+			github: "https://github.com/EvolutionAPI/evolution-api",
+			docs: "https://doc.evolution-api.com/v2/en/get-started/introduction",
+			website: "https://evolution-api.com/opensource-whatsapp-api/",
+		},
+		tags: ["api", "whatsapp", "messaging"],
+		load: () => import("./evolutionapi/index").then((m) => m.generate),
+	},
+	{
+		id: "conduwuit",
+		name: "Conduwuit",
+		version: "latest",
+		description:
+			"Well-maintained, featureful Matrix chat homeserver (fork of Conduit)",
+		logo: "conduwuit.svg",
+		links: {
+			github: "https://github.com/girlbossceo/conduwuit",
+			website: "https://conduwuit.puppyirl.gay",
+			docs: "https://conduwuit.puppyirl.gay/configuration.html",
+		},
+		tags: ["backend", "chat", "communication", "matrix", "server"],
+		load: () => import("./conduwuit/index").then((m) => m.generate),
+	},
+	{
+		id: "cloudflared",
+		name: "Cloudflared",
+		version: "latest",
+		description:
+			"A lightweight daemon that securely connects local services to the internet through Cloudflare Tunnel.",
+		logo: "cloudflared.svg",
+		links: {
+			github: "https://github.com/cloudflare/cloudflared",
+			website:
+				"https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/",
+			docs: "https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/",
+		},
+		tags: ["cloud", "networking", "security", "tunnel"],
+		load: () => import("./cloudflared/index").then((m) => m.generate),
+	},
+	{
+		id: "couchdb",
+		name: "CouchDB",
+		version: "latest",
+		description:
+			"CouchDB is a document-oriented NoSQL database that excels at replication and horizontal scaling.",
+		logo: "couchdb.png",
+		links: {
+			github: "https://github.com/apache/couchdb",
+			website: "https://couchdb.apache.org/",
+			docs: "https://docs.couchdb.org/en/stable/",
+		},
+		tags: ["database", "storage"],
+		load: () => import("./couchdb/index").then((m) => m.generate),
+	},
+	{
+		id: "it-tools",
+		name: "IT Tools",
+		version: "latest",
+		description: "A collection of handy online it-tools for developers.",
+		logo: "it-tools.svg",
+		links: {
+			github: "https://github.com/CorentinTh/it-tools",
+			website: "https://it-tools.tech",
+		},
+		tags: ["developer", "tools"],
+		load: () => import("./it-tools/index").then((m) => m.generate),
+	},
+	{
+		id: "superset",
+		name: "Superset (Unofficial)",
+		version: "latest",
+		description: "Data visualization and data exploration platform.",
+		logo: "superset.svg",
+		links: {
+			github: "https://github.com/amancevice/docker-superset",
+			website: "https://superset.apache.org",
+			docs: "https://superset.apache.org/docs/intro",
+		},
+		tags: ["analytics", "bi", "dashboard", "database", "sql"],
+		load: () => import("./superset/index").then((m) => m.generate),
+	},
+	{
+		id: "glance",
+		name: "Glance",
+		version: "latest",
+		description:
+			"A self-hosted dashboard that puts all your feeds in one place. Features RSS feeds, weather, bookmarks, site monitoring, and more in a minimal, fast interface.",
+		logo: "glance.png",
+		links: {
+			github: "https://github.com/glanceapp/glance",
+			docs: "https://github.com/glanceapp/glance/blob/main/docs/configuration.md",
+		},
+		tags: ["dashboard", "monitoring", "widgets", "rss"],
+		load: () => import("./glance/index").then((m) => m.generate),
+	},
+	{
+		id: "homarr",
+		name: "Homarr",
+		version: "latest",
+		description:
+			"A sleek, modern dashboard that puts all your apps and services in one place with Docker integration.",
+		logo: "homarr.png",
+		links: {
+			github: "https://github.com/homarr-labs/homarr",
+			docs: "https://homarr.dev/docs/getting-started/installation/docker",
+			website: "https://homarr.dev/",
+		},
+		tags: ["dashboard", "monitoring"],
+		load: () => import("./homarr/index").then((m) => m.generate),
+	},
+	{
+		id: "erpnext",
+		name: "ERPNext",
+		version: "version-15",
+		description: "100% Open Source and highly customizable ERP software.",
+		logo: "erpnext.svg",
+		links: {
+			github: "https://github.com/frappe/erpnext",
+			docs: "https://docs.frappe.io/erpnext",
+			website: "https://erpnext.com",
+		},
+		tags: [
+			"erp",
+			"accounts",
+			"manufacturing",
+			"retail",
+			"sales",
+			"pos",
+			"hrms",
+		],
+		load: () => import("./erpnext/index").then((m) => m.generate),
+	},
+	{
+		id: "maybe",
+		name: "Maybe",
+		version: "latest",
+		description:
+			"Maybe is a self-hosted finance tracking application designed to simplify budgeting and expenses.",
+		logo: "maybe.svg",
+		links: {
+			github: "https://github.com/maybe-finance/maybe",
+			website: "https://maybe.finance/",
+			docs: "https://docs.maybe.finance/",
+		},
+		tags: ["finance", "self-hosted"],
+		load: () => import("./maybe/index").then((m) => m.generate),
+	},
+	{
+		id: "spacedrive",
+		name: "Spacedrive",
+		version: "latest",
+		description:
+			"Spacedrive is a cross-platform file manager. It connects your devices together to help you organize files from anywhere. powered by a virtual distributed filesystem (VDFS) written in Rust. Organize files across many devices in one place.",
+		links: {
+			github: "https://github.com/spacedriveapp/spacedrive",
+			website: "https://spacedrive.com/",
+			docs: "https://www.spacedrive.com/docs/product/getting-started/introduction",
+		},
+		logo: "spacedrive.png",
+		tags: ["file-manager", "vdfs", "storage"],
+		load: () => import("./spacedrive/index").then((m) => m.generate),
+	},
+	{
+		id: "alist",
+		name: "AList",
+		version: "v3.41.0",
+		description:
+			"🗂️A file list/WebDAV program that supports multiple storages, powered by Gin and Solidjs.",
+		logo: "alist.svg",
+		links: {
+			github: "https://github.com/AlistGo/alist",
+			website: "https://alist.nn.ci",
+			docs: "https://alist.nn.ci/guide/install/docker.html",
+		},
+		tags: ["file", "webdav", "storage"],
+		load: () => import("./alist/index").then((m) => m.generate),
+	},
+	{
+		id: "answer",
+		name: "Answer",
+		version: "v1.4.1",
+		description:
+			"Answer is an open-source Q&A platform for building a self-hosted question-and-answer service.",
+		logo: "answer.png",
+		links: {
+			github: "https://github.com/apache/answer",
+			website: "https://answer.apache.org/",
+			docs: "https://answer.apache.org/docs",
+		},
+		tags: ["q&a", "self-hosted"],
+		load: () => import("./answer/index").then((m) => m.generate),
+	},
+	{
+		id: "shlink",
+		name: "Shlink",
+		version: "stable",
+		description:
+			"URL shortener that can be used to serve shortened URLs under your own domain.",
+		logo: "shlink.svg",
+		links: {
+			github: "https://github.com/shlinkio/shlink",
+			website: "https://shlink.io",
+			docs: "https://shlink.io/documentation",
+		},
+		tags: ["sharing", "shortener", "url"],
+		load: () => import("./shlink/index").then((m) => m.generate),
+	},
+	{
+		id: "formbricks",
+		name: "Formbricks",
+		version: "v3.1.3",
+		description:
+			"Formbricks is an open-source survey and form platform for collecting user data.",
+		logo: "formbricks.png",
+		links: {
+			github: "https://github.com/formbricks/formbricks",
+			website: "https://formbricks.com/",
+			docs: "https://formbricks.com/docs",
+		},
+		tags: ["forms", "analytics"],
+		load: () => import("./formbricks/index").then((m) => m.generate),
 	},
 ];

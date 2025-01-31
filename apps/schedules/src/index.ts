@@ -2,11 +2,16 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
-import { logger } from "./logger";
-import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
-import { jobQueueSchema } from "./schema";
-import { initializeJobs } from "./utils";
-import { firstWorker, secondWorker } from "./workers";
+import { logger } from "./logger.js";
+import {
+	cleanQueue,
+	getJobRepeatable,
+	removeJob,
+	scheduleJob,
+} from "./queue.js";
+import { jobQueueSchema } from "./schema.js";
+import { initializeJobs } from "./utils.js";
+import { firstWorker, secondWorker } from "./workers.js";
 
 const app = new Hono();
 

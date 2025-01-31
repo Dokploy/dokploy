@@ -3,6 +3,7 @@ import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiCreateComposeByTemplate,
+	apiDeleteCompose,
 	apiFetchServices,
 	apiFindCompose,
 	apiRandomizeCompose,
@@ -117,7 +118,7 @@ export const composeRouter = createTRPCRouter({
 			return updateCompose(input.composeId, input);
 		}),
 	delete: protectedProcedure
-		.input(apiFindCompose)
+		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(ctx.user.authId, input.composeId, "delete");
@@ -138,7 +139,7 @@ export const composeRouter = createTRPCRouter({
 				.returning();
 
 			const cleanupOperations = [
-				async () => await removeCompose(composeResult),
+				async () => await removeCompose(composeResult, input.deleteVolumes),
 				async () => await removeDeploymentsByComposeId(composeResult),
 				async () => await removeComposeDirectory(composeResult.appName),
 			];
@@ -197,7 +198,7 @@ export const composeRouter = createTRPCRouter({
 			} catch (err) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to fetch source type",
+					message: "Error fetching source type",
 					cause: err,
 				});
 			}

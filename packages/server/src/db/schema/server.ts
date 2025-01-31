@@ -40,7 +40,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.references(() => admins.adminId, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
-
+	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
@@ -105,4 +105,7 @@ export const apiUpdateServer = createSchema
 		username: true,
 		sshKeyId: true,
 	})
-	.required();
+	.required()
+	.extend({
+		command: z.string().optional(),
+	});

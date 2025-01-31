@@ -17,7 +17,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -31,7 +31,7 @@ export const sshRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the ssh key",
+					message: "Error creating the SSH key",
 					cause: error,
 				});
 			}
@@ -45,7 +45,7 @@ export const sshRouter = createTRPCRouter({
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this ssh key",
+						message: "You are not allowed to delete this SSH key",
 					});
 				}
 
@@ -63,7 +63,7 @@ export const sshRouter = createTRPCRouter({
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this ssh key",
+					message: "You are not allowed to access this SSH key",
 				});
 			}
 			return sshKey;
@@ -71,6 +71,7 @@ export const sshRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
 			...(IS_CLOUD && { where: eq(sshKeys.adminId, ctx.user.adminId) }),
+			orderBy: desc(sshKeys.createdAt),
 		});
 		// TODO: Remove this line when the cloud version is ready
 	}),
@@ -88,14 +89,14 @@ export const sshRouter = createTRPCRouter({
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to update this ssh key",
+						message: "You are not allowed to update this SSH key",
 					});
 				}
 				return await updateSSHKeyById(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update this ssh key",
+					message: "Error updating this SSH key",
 					cause: error,
 				});
 			}

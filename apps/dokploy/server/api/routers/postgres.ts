@@ -1,4 +1,9 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { EventEmitter } from "node:events";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -9,6 +14,7 @@ import {
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
 	addNewService,
@@ -16,6 +22,7 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
+	findBackupsByDbId,
 	findPostgresById,
 	findProjectById,
 	removePostgresById,
@@ -27,6 +34,10 @@ import {
 	updatePostgresById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { z } from "zod";
+
+const ee = new EventEmitter();
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -40,7 +51,7 @@ export const postgresRouter = createTRPCRouter({
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You need to use a server to create a postgres",
+						message: "You need to use a server to create a Postgres",
 					});
 				}
 
@@ -71,7 +82,7 @@ export const postgresRouter = createTRPCRouter({
 				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error input: Inserting postgresql database",
+					message: "Error input: Inserting Postgres database",
 					cause: error,
 				});
 			}
@@ -87,7 +98,7 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this postgres",
+					message: "You are not authorized to access this Postgres",
 				});
 			}
 			return postgres;
@@ -101,7 +112,7 @@ export const postgresRouter = createTRPCRouter({
 			if (service.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this postgres",
+					message: "You are not authorized to start this Postgres",
 				});
 			}
 
@@ -123,7 +134,7 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to stop this postgres",
+					message: "You are not authorized to stop this Postgres",
 				});
 			}
 			if (postgres.serverId) {
@@ -161,11 +172,37 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this postgres",
+					message: "You are not authorized to deploy this Postgres",
 				});
 			}
 			return deployPostgres(input.postgresId);
 		}),
+
+	deployWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/deploy/postgres-with-logs",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(apiDeployPostgres)
+		.subscription(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (postgres.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to deploy this Postgres",
+				});
+			}
+			return observable<string>((emit) => {
+				deployPostgres(input.postgresId, (log) => {
+					emit.next(log);
+				});
+			});
+		}),
+
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)
 		.mutation(async ({ input, ctx }) => {
@@ -173,7 +210,7 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this postgres status",
+					message: "You are not authorized to change this Postgres status",
 				});
 			}
 			await updatePostgresById(input.postgresId, {
@@ -192,12 +229,15 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this postgres",
+					message: "You are not authorized to delete this Postgres",
 				});
 			}
 
+			const backups = await findBackupsByDbId(input.postgresId, "postgres");
+
 			const cleanupOperations = [
 				removeService(postgres.appName, postgres.serverId),
+				cancelJobs(backups),
 				removePostgresById(input.postgresId),
 			];
 
@@ -222,7 +262,7 @@ export const postgresRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to add environment variables",
+					message: "Error adding environment variables",
 				});
 			}
 
@@ -235,7 +275,7 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this postgres",
+					message: "You are not authorized to reload this Postgres",
 				});
 			}
 			if (postgres.serverId) {
@@ -265,7 +305,7 @@ export const postgresRouter = createTRPCRouter({
 			if (postgres.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this postgres",
+					message: "You are not authorized to update this Postgres",
 				});
 			}
 			const service = await updatePostgresById(postgresId, {
@@ -275,7 +315,7 @@ export const postgresRouter = createTRPCRouter({
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error to update postgres",
+					message: "Error updating Postgres",
 				});
 			}
 

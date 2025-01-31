@@ -17,6 +17,7 @@ import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
+import { previewDeployments } from "./preview-deployments";
 import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
@@ -25,7 +26,6 @@ import { server } from "./server";
 import { applicationStatus, certificateType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { previewDeployments } from "./preview-deployments";
 
 export const sourceType = pgEnum("sourceType", [
 	"docker",
@@ -129,10 +129,10 @@ export const applications = pgTable("application", {
 		false,
 	),
 	buildArgs: text("buildArgs"),
-	memoryReservation: integer("memoryReservation"),
-	memoryLimit: integer("memoryLimit"),
-	cpuReservation: integer("cpuReservation"),
-	cpuLimit: integer("cpuLimit"),
+	memoryReservation: text("memoryReservation"),
+	memoryLimit: text("memoryLimit"),
+	cpuReservation: text("cpuReservation"),
+	cpuLimit: text("cpuLimit"),
 	title: text("title"),
 	enabled: boolean("enabled"),
 	subtitle: text("subtitle"),
@@ -355,10 +355,10 @@ const createSchema = createInsertSchema(applications, {
 	buildArgs: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
-	memoryReservation: z.number().optional(),
-	memoryLimit: z.number().optional(),
-	cpuReservation: z.number().optional(),
-	cpuLimit: z.number().optional(),
+	memoryReservation: z.string().optional(),
+	memoryLimit: z.string().optional(),
+	cpuReservation: z.string().optional(),
+	cpuLimit: z.string().optional(),
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),

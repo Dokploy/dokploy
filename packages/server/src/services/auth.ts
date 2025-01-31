@@ -7,7 +7,7 @@ import {
 	auth,
 	users,
 } from "@dokploy/server/db/schema";
-import { getPublicIpWithFallback } from "@dokploy/server/wss/terminal";
+import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
@@ -34,7 +34,7 @@ export const createAdmin = async (input: typeof apiCreateAdmin._type) => {
 		if (!newAuth) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the user",
+				message: "Error creating the user",
 			});
 		}
 
@@ -68,7 +68,7 @@ export const createUser = async (input: typeof apiCreateUser._type) => {
 		if (!res) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the user",
+				message: "Error creating the user",
 			});
 		}
 

@@ -109,15 +109,19 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the backup");
+				toast.error("Error updating the Backup");
 			});
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<PenBoxIcon className="size-4  text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">

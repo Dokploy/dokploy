@@ -2,16 +2,19 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployRestartEmail from "@dokploy/server/emails/emails/dokploy-restart";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
 
 export const sendDokployRestartNotifications = async () => {
 	const date = new Date();
+	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: eq(notifications.dokployRestart, true),
 		with: {
@@ -19,11 +22,12 @@ export const sendDokployRestartNotifications = async () => {
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -33,22 +37,25 @@ export const sendDokployRestartNotifications = async () => {
 		}
 
 		if (discord) {
+			const decorate = (decoration: string, text: string) =>
+				`${discord.decoration ? decoration : ""} ${text}`.trim();
+
 			await sendDiscordNotification(discord, {
-				title: "> `✅` - Dokploy Server Restarted",
+				title: decorate(">", "`✅` Dokploy Server Restarted"),
 				color: 0x57f287,
 				fields: [
 					{
-						name: "`📅`・Date",
-						value: date.toLocaleDateString(),
+						name: decorate("`📅`", "Date"),
+						value: `<t:${unixDate}:D>`,
 						inline: true,
 					},
 					{
-						name: "`⌚`・Time",
-						value: date.toLocaleTimeString(),
+						name: decorate("`⌚`", "Time"),
+						value: `<t:${unixDate}:t>`,
 						inline: true,
 					},
 					{
-						name: "`❓`・Type",
+						name: decorate("`❓`", "Type"),
 						value: "Successful",
 						inline: true,
 					},
@@ -60,13 +67,20 @@ export const sendDokployRestartNotifications = async () => {
 			});
 		}
 
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
+			await sendGotifyNotification(
+				gotify,
+				decorate("✅", "Dokploy Server Restarted"),
+				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}`,
+			);
+		}
+
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>✅ Dokploy Serverd Restarted</b>
-				<b>Time:</b> ${date.toLocaleString()}
-			`,
+				`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 			);
 		}
 

@@ -14,6 +14,9 @@ import {
 import { beforeEach, expect, test, vi } from "vitest";
 
 const baseAdmin: Admin = {
+	cleanupCacheApplications: false,
+	cleanupCacheOnCompose: false,
+	cleanupCacheOnPreviews: false,
 	createdAt: "",
 	authId: "",
 	adminId: "string",
