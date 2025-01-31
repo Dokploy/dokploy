@@ -26,7 +26,7 @@ export function generate(schema: Schema): Template {
 		`NEXTAUTH_SECRET=${secretBase}`,
 		`ENCRYPTION_KEY=${encryptionKey}`,
 		`CRON_SECRET=${cronSecret}`,
-		"PORT=8080",
+	
 	];
 
 	const mounts: Template["mounts"] = [];
