@@ -1,8 +1,6 @@
 "use client";
-
 import {
 	Activity,
-	AudioWaveform,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
@@ -10,7 +8,6 @@ import {
 	Boxes,
 	ChevronRight,
 	CircleHelp,
-	Command,
 	CreditCard,
 	Database,
 	Folder,
@@ -29,6 +26,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
+import { useEffect, useState } from "react";
 
 import {
 	Breadcrumb,
@@ -45,6 +43,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
+	SIDEBAR_COOKIE_NAME,
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -64,243 +63,290 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Logo } from "../shared/logo";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
-// This is sample data.
-interface NavItem {
+
+// The types of the queries we are going to use
+type AuthQueryOutput = inferRouterOutputs<AppRouter>["auth"]["get"];
+type UserQueryOutput = inferRouterOutputs<AppRouter>["user"]["byAuthId"];
+
+type SingleNavItem = {
+	isSingle?: true;
 	title: string;
 	url: string;
-	icon: LucideIcon;
-	isSingle: boolean;
-	isActive: boolean;
-	items?: {
-		title: string;
-		url: string;
-		icon?: LucideIcon;
-	}[];
-}
+	icon?: LucideIcon;
+	isEnabled?: (opts: {
+		auth?: AuthQueryOutput;
+		user?: UserQueryOutput;
+		isCloud: boolean;
+	}) => boolean;
+};
 
-interface ExternalLink {
+// NavItem type
+// Consists of a single item or a group of items
+// If `isSingle` is true or undefined, the item is a single item
+// If `isSingle` is false, the item is a group of items
+type NavItem =
+	| SingleNavItem
+	| {
+			isSingle: false;
+			title: string;
+			icon: LucideIcon;
+			items: SingleNavItem[];
+			isEnabled?: (opts: {
+				auth?: AuthQueryOutput;
+				user?: UserQueryOutput;
+				isCloud: boolean;
+			}) => boolean;
+	  };
+
+// ExternalLink type
+// Represents an external link item (used for the help section)
+type ExternalLink = {
 	name: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-}
+	isEnabled?: (opts: {
+		auth?: AuthQueryOutput;
+		user?: UserQueryOutput;
+		isCloud: boolean;
+	}) => boolean;
+};
 
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Dokploy",
-			logo: Logo,
-			plan: "Enterprise",
-		},
-		{
-			name: "Acme Corp.",
-			logo: AudioWaveform,
-			plan: "Startup",
-		},
-		{
-			name: "Evil Corp.",
-			logo: Command,
-			plan: "Free",
-		},
-	],
+// Menu type
+// Consists of home, settings, and help items
+type Menu = {
+	home: NavItem[];
+	settings: NavItem[];
+	help: ExternalLink[];
+};
+
+// Menu items
+// Consists of unfiltered home, settings, and help items
+// The items are filtered based on the user's role and permissions
+// The `isEnabled` function is called to determine if the item should be displayed
+const MENU: Menu = {
 	home: [
 		{
+			isSingle: true,
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
-			isSingle: true,
-			isActive: false,
 		},
 		{
+			isSingle: true,
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
-			isSingle: true,
-			isActive: false,
+			// Only enabled in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) => !isCloud,
 		},
 		{
+			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Traefik files in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!(
+					(auth?.rol === "admin" || user?.canAccessToTraefikFiles) &&
+					!isCloud
+				),
 		},
 		{
+			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!((auth?.rol === "admin" || user?.canAccessToDocker) && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!((auth?.rol === "admin" || user?.canAccessToDocker) && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!((auth?.rol === "admin" || user?.canAccessToDocker) && !isCloud),
 		},
 
+		// Legacy unused menu, adjusted to the new structure
 		// {
+		// 	isSingle: true,
 		// 	title: "Projects",
 		// 	url: "/dashboard/projects",
 		// 	icon: Folder,
-		// 	isSingle: true,
 		// },
 		// {
+		// 	isSingle: true,
 		// 	title: "Monitoring",
 		// 	icon: BarChartHorizontalBigIcon,
 		// 	url: "/dashboard/settings/monitoring",
-		// 	isSingle: true,
 		// },
-
 		// {
-		// 	title: "Settings",
-		// 	url: "#",
-		// 	icon: Settings2,
-		// 	isActive: true,
-		// 	items: [
-		// 		{
-		// 			title: "Profile",
-		// 			url: "/dashboard/settings/profile",
-		// 		},
-		// 		{
-		// 			title: "Users",
-		// 			url: "/dashboard/settings/users",
-		// 		},
-		// 		{
-		// 			title: "SSH Key",
-		// 			url: "/dashboard/settings/ssh-keys",
-		// 		},
-		// 		{
-		// 			title: "Git",
-		// 			url: "/dashboard/settings/git-providers",
-		// 		},
-		// 	],
+		//   isSingle: false,
+		//   title: "Settings",
+		//   icon: Settings2,
+		//   items: [
+		//     {
+		//       title: "Profile",
+		//       url: "/dashboard/settings/profile",
+		//     },
+		//     {
+		//       title: "Users",
+		//       url: "/dashboard/settings/users",
+		//     },
+		//     {
+		//       title: "SSH Key",
+		//       url: "/dashboard/settings/ssh-keys",
+		//     },
+		//     {
+		//       title: "Git",
+		//       url: "/dashboard/settings/git-providers",
+		//     },
+		//   ],
 		// },
-
 		// {
-		// 	title: "Integrations",
-		// 	icon: BlocksIcon,
-		// 	items: [
-		// 		{
-		// 			title: "S3 Destinations",
-		// 			url: "/dashboard/settings/destinations",
-		// 		},
-		// 		{
-		// 			title: "Registry",
-		// 			url: "/dashboard/settings/registry",
-		// 		},
-		// 		{
-		// 			title: "Notifications",
-		// 			url: "/dashboard/settings/notifications",
-		// 		},
-		// 	],
-	] as NavItem[],
+		//   isSingle: false,
+		//   title: "Integrations",
+		//   icon: BlocksIcon,
+		//   items: [
+		//     {
+		//       title: "S3 Destinations",
+		//       url: "/dashboard/settings/destinations",
+		//     },
+		//     {
+		//       title: "Registry",
+		//       url: "/dashboard/settings/registry",
+		//     },
+		//     {
+		//       title: "Notifications",
+		//       url: "/dashboard/settings/notifications",
+		//     },
+		//   ],
+		// },
+	],
+
 	settings: [
 		{
-			title: "Server",
+			isSingle: true,
+			title: "Web Server",
 			url: "/dashboard/settings/server",
 			icon: Activity,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!(auth?.rol === "admin" && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
-			isSingle: true,
-			isActive: false,
 		},
 		{
-			title: "Servers",
+			isSingle: true,
+			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 		{
+			isSingle: true,
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to SSH keys
+			isEnabled: ({ auth, user }) =>
+				!!(auth?.rol === "admin" || user?.canAccessToSSHKeys),
 		},
-
 		{
+			isSingle: true,
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Git providers
+			isEnabled: ({ auth, user }) =>
+				!!(auth?.rol === "admin" || user?.canAccessToGitProviders),
 		},
 		{
+			isSingle: true,
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 		{
+			isSingle: true,
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 
 		{
+			isSingle: true,
 			title: "Certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 		{
+			isSingle: true,
 			title: "Cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!(auth?.rol === "admin" && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.rol === "admin"),
 		},
 		{
+			isSingle: true,
 			title: "Billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in cloud environments
+			isEnabled: ({ auth, user, isCloud }) =>
+				!!(auth?.rol === "admin" && isCloud),
 		},
-	] as NavItem[],
+	],
+
 	help: [
 		{
 			name: "Documentation",
@@ -324,8 +370,108 @@ const data = {
 				/>
 			),
 		},
-	] as ExternalLink[],
-};
+	],
+} as const;
+
+/**
+ * Creates a menu based on the current user's role and permissions
+ * @returns a menu object with the home, settings, and help items
+ */
+function createMenuForAuthUser(opts: {
+	auth?: AuthQueryOutput;
+	user?: UserQueryOutput;
+	isCloud: boolean;
+}): Menu {
+	return {
+		// Filter the home items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		home: MENU.home.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						user: opts.user,
+						isCloud: opts.isCloud,
+					}),
+		),
+		// Filter the settings items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		settings: MENU.settings.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						user: opts.user,
+						isCloud: opts.isCloud,
+					}),
+		),
+		// Filter the help items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		help: MENU.help.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						user: opts.user,
+						isCloud: opts.isCloud,
+					}),
+		),
+	};
+}
+
+/**
+ * Determines if an item url is active based on the current pathname
+ * @returns true if the item url is active, false otherwise
+ */
+function isActiveRoute(opts: {
+	/** The url of the item. Usually obtained from `item.url` */
+	itemUrl: string;
+	/** The current pathname. Usually obtained from `usePathname()` */
+	pathname: string;
+}): boolean {
+	const normalizedItemUrl = opts.itemUrl?.replace("/projects", "/project");
+	const normalizedPathname = opts.pathname?.replace("/projects", "/project");
+
+	if (!normalizedPathname) return false;
+
+	if (normalizedPathname === normalizedItemUrl) return true;
+
+	if (normalizedPathname.startsWith(normalizedItemUrl)) {
+		const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
+		return nextChar === "/";
+	}
+
+	return false;
+}
+
+/**
+ * Finds the active nav item based on the current pathname
+ * @returns the active nav item with `SingleNavItem` type or undefined if none is active
+ */
+function findActiveNavItem(
+	navItems: NavItem[],
+	pathname: string,
+): SingleNavItem | undefined {
+	const found = navItems.find((item) =>
+		item.isSingle !== false
+			? // The current item is single, so check if the item url is active
+				isActiveRoute({ itemUrl: item.url, pathname })
+			: // The current item is not single, so check if any of the sub items are active
+				item.items.some((item) =>
+					isActiveRoute({ itemUrl: item.url, pathname }),
+				),
+	);
+
+	if (found?.isSingle !== false) {
+		// The found item is single, so return it
+		return found;
+	}
+
+	// The found item is not single, so find the active sub item
+	return found?.items.find((item) =>
+		isActiveRoute({ itemUrl: item.url, pathname }),
+	);
+}
 
 interface Props {
 	children: React.ReactNode;
@@ -369,6 +515,19 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
+	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		const cookieValue = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+			?.split("=")[1];
+
+		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+	}, []);
+
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
@@ -384,67 +543,31 @@ export default function Page({ children }: Props) {
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
-	const isActiveRoute = (itemUrl: string) => {
-		const normalizedItemUrl = itemUrl?.replace("/projects", "/project");
-		const normalizedPathname = pathname?.replace("/projects", "/project");
 
-		if (!normalizedPathname) return false;
+	const {
+		home: filteredHome,
+		settings: filteredSettings,
+		help,
+	} = createMenuForAuthUser({ auth, user, isCloud: !!isCloud });
 
-		if (normalizedPathname === normalizedItemUrl) return true;
+	const activeItem = findActiveNavItem(
+		[...filteredHome, ...filteredSettings],
+		pathname,
+	);
 
-		if (normalizedPathname.startsWith(normalizedItemUrl)) {
-			const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
-			return nextChar === "/";
-		}
-
-		return false;
-	};
-
-	let filteredHome = isCloud
-		? data.home.filter(
-				(item) =>
-					![
-						"/dashboard/monitoring",
-						"/dashboard/traefik",
-						"/dashboard/docker",
-						"/dashboard/swarm",
-						"/dashboard/requests",
-					].includes(item.url),
-			)
-		: data.home;
-
-	let filteredSettings = isCloud
-		? data.settings.filter(
-				(item) =>
-					![
-						"/dashboard/settings/server",
-						"/dashboard/settings/cluster",
-					].includes(item.url),
-			)
-		: data.settings.filter(
-				(item) => !["/dashboard/settings/billing"].includes(item.url),
-			);
-
-	filteredHome = filteredHome.map((item) => ({
-		...item,
-		isActive: isActiveRoute(item.url),
-	}));
-
-	filteredSettings = filteredSettings.map((item) => ({
-		...item,
-		isActive: isActiveRoute(item.url),
-	}));
-
-	const activeItem =
-		filteredHome.find((item) => item.isActive) ||
-		filteredSettings.find((item) => item.isActive);
-
-	const showProjectsButton =
-		currentPath === "/dashboard/projects" &&
-		(auth?.rol === "admin" || user?.canCreateProjects);
+	// const showProjectsButton =
+	//   currentPath === "/dashboard/projects" &&
+	//   (auth?.rol === "admin" || user?.canCreateProjects);
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
+			open={defaultOpen}
+			onOpenChange={(open) => {
+				setDefaultOpen(open);
+
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
+			}}
 			style={
 				{
 					"--sidebar-width": "19.5rem",
@@ -465,173 +588,185 @@ export default function Page({ children }: Props) {
 					<SidebarGroup>
 						<SidebarGroupLabel>Home</SidebarGroupLabel>
 						<SidebarMenu>
-							{filteredHome.map((item) => (
-								<Collapsible
-									key={item.title}
-									asChild
-									defaultOpen={item.isActive}
-									className="group/collapsible"
-								>
-									<SidebarMenuItem>
-										{item.isSingle ? (
-											<SidebarMenuButton
-												asChild
-												tooltip={item.title}
-												className={cn(isActiveRoute(item.url) && "bg-border")}
-											>
-												<Link
-													href={item.url}
-													className="flex w-full items-center gap-2"
-												>
-													<item.icon
-														className={cn(
-															isActiveRoute(item.url) && "text-primary",
-														)}
-													/>
-													<span>{item.title}</span>
-												</Link>
-											</SidebarMenuButton>
-										) : (
-											<>
-												<CollapsibleTrigger asChild>
-													<SidebarMenuButton
-														tooltip={item.title}
-														isActive={item.isActive}
-													>
-														{item.icon && <item.icon />}
+							{filteredHome.map((item) => {
+								const isSingle = item.isSingle !== false;
+								const isActive = isSingle
+									? isActiveRoute({ itemUrl: item.url, pathname })
+									: item.items.some((item) =>
+											isActiveRoute({ itemUrl: item.url, pathname }),
+										);
 
-														<span>{item.title}</span>
-														{item.items?.length && (
-															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+								return (
+									<Collapsible
+										key={item.title}
+										asChild
+										defaultOpen={isActive}
+										className="group/collapsible"
+									>
+										<SidebarMenuItem>
+											{isSingle ? (
+												<SidebarMenuButton
+													asChild
+													tooltip={item.title}
+													className={cn(isActive && "bg-border")}
+												>
+													<Link
+														href={item.url}
+														className="flex w-full items-center gap-2"
+													>
+														{item.icon && (
+															<item.icon
+																className={cn(isActive && "text-primary")}
+															/>
 														)}
-													</SidebarMenuButton>
-												</CollapsibleTrigger>
-												<CollapsibleContent>
-													<SidebarMenuSub>
-														{item.items?.map((subItem) => (
-															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton
-																	asChild
-																	className={cn(
-																		isActiveRoute(subItem.url) && "bg-border",
-																	)}
-																>
-																	<Link
-																		href={subItem.url}
-																		className="flex w-full items-center"
+														<span>{item.title}</span>
+													</Link>
+												</SidebarMenuButton>
+											) : (
+												<>
+													<CollapsibleTrigger asChild>
+														<SidebarMenuButton
+															tooltip={item.title}
+															isActive={isActive}
+														>
+															{item.icon && <item.icon />}
+
+															<span>{item.title}</span>
+															{item.items?.length && (
+																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+															)}
+														</SidebarMenuButton>
+													</CollapsibleTrigger>
+													<CollapsibleContent>
+														<SidebarMenuSub>
+															{item.items?.map((subItem) => (
+																<SidebarMenuSubItem key={subItem.title}>
+																	<SidebarMenuSubButton
+																		asChild
+																		className={cn(isActive && "bg-border")}
 																	>
-																		{subItem.icon && (
-																			<span className="mr-2">
-																				<subItem.icon
-																					className={cn(
-																						"h-4 w-4 text-muted-foreground",
-																						isActiveRoute(subItem.url) &&
-																							"text-primary",
-																					)}
-																				/>
-																			</span>
-																		)}
-																		<span>{subItem.title}</span>
-																	</Link>
-																</SidebarMenuSubButton>
-															</SidebarMenuSubItem>
-														))}
-													</SidebarMenuSub>
-												</CollapsibleContent>
-											</>
-										)}
-									</SidebarMenuItem>
-								</Collapsible>
-							))}
+																		<Link
+																			href={subItem.url}
+																			className="flex w-full items-center"
+																		>
+																			{subItem.icon && (
+																				<span className="mr-2">
+																					<subItem.icon
+																						className={cn(
+																							"h-4 w-4 text-muted-foreground",
+																							isActive && "text-primary",
+																						)}
+																					/>
+																				</span>
+																			)}
+																			<span>{subItem.title}</span>
+																		</Link>
+																	</SidebarMenuSubButton>
+																</SidebarMenuSubItem>
+															))}
+														</SidebarMenuSub>
+													</CollapsibleContent>
+												</>
+											)}
+										</SidebarMenuItem>
+									</Collapsible>
+								);
+							})}
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
 						<SidebarMenu className="gap-2">
-							{filteredSettings.map((item) => (
-								<Collapsible
-									key={item.title}
-									asChild
-									defaultOpen={item.isActive}
-									className="group/collapsible"
-								>
-									<SidebarMenuItem>
-										{item.isSingle ? (
-											<SidebarMenuButton
-												asChild
-												tooltip={item.title}
-												className={cn(isActiveRoute(item.url) && "bg-border")}
-											>
-												<Link
-													href={item.url}
-													className="flex w-full items-center gap-2"
-												>
-													<item.icon
-														className={cn(
-															isActiveRoute(item.url) && "text-primary",
-														)}
-													/>
-													<span>{item.title}</span>
-												</Link>
-											</SidebarMenuButton>
-										) : (
-											<>
-												<CollapsibleTrigger asChild>
-													<SidebarMenuButton
-														tooltip={item.title}
-														isActive={item.isActive}
-													>
-														{item.icon && <item.icon />}
+							{filteredSettings.map((item) => {
+								const isSingle = item.isSingle !== false;
+								const isActive = isSingle
+									? isActiveRoute({ itemUrl: item.url, pathname })
+									: item.items.some((item) =>
+											isActiveRoute({ itemUrl: item.url, pathname }),
+										);
 
-														<span>{item.title}</span>
-														{item.items?.length && (
-															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+								return (
+									<Collapsible
+										key={item.title}
+										asChild
+										defaultOpen={isActive}
+										className="group/collapsible"
+									>
+										<SidebarMenuItem>
+											{isSingle ? (
+												<SidebarMenuButton
+													asChild
+													tooltip={item.title}
+													className={cn(isActive && "bg-border")}
+												>
+													<Link
+														href={item.url}
+														className="flex w-full items-center gap-2"
+													>
+														{item.icon && (
+															<item.icon
+																className={cn(isActive && "text-primary")}
+															/>
 														)}
-													</SidebarMenuButton>
-												</CollapsibleTrigger>
-												<CollapsibleContent>
-													<SidebarMenuSub>
-														{item.items?.map((subItem) => (
-															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton
-																	asChild
-																	className={cn(
-																		isActiveRoute(subItem.url) && "bg-border",
-																	)}
-																>
-																	<Link
-																		href={subItem.url}
-																		className="flex w-full items-center"
+														<span>{item.title}</span>
+													</Link>
+												</SidebarMenuButton>
+											) : (
+												<>
+													<CollapsibleTrigger asChild>
+														<SidebarMenuButton
+															tooltip={item.title}
+															isActive={isActive}
+														>
+															{item.icon && <item.icon />}
+
+															<span>{item.title}</span>
+															{item.items?.length && (
+																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+															)}
+														</SidebarMenuButton>
+													</CollapsibleTrigger>
+													<CollapsibleContent>
+														<SidebarMenuSub>
+															{item.items?.map((subItem) => (
+																<SidebarMenuSubItem key={subItem.title}>
+																	<SidebarMenuSubButton
+																		asChild
+																		className={cn(isActive && "bg-border")}
 																	>
-																		{subItem.icon && (
-																			<span className="mr-2">
-																				<subItem.icon
-																					className={cn(
-																						"h-4 w-4 text-muted-foreground",
-																						isActiveRoute(subItem.url) &&
-																							"text-primary",
-																					)}
-																				/>
-																			</span>
-																		)}
-																		<span>{subItem.title}</span>
-																	</Link>
-																</SidebarMenuSubButton>
-															</SidebarMenuSubItem>
-														))}
-													</SidebarMenuSub>
-												</CollapsibleContent>
-											</>
-										)}
-									</SidebarMenuItem>
-								</Collapsible>
-							))}
+																		<Link
+																			href={subItem.url}
+																			className="flex w-full items-center"
+																		>
+																			{subItem.icon && (
+																				<span className="mr-2">
+																					<subItem.icon
+																						className={cn(
+																							"h-4 w-4 text-muted-foreground",
+																							isActive && "text-primary",
+																						)}
+																					/>
+																				</span>
+																			)}
+																			<span>{subItem.title}</span>
+																		</Link>
+																	</SidebarMenuSubButton>
+																</SidebarMenuSubItem>
+															))}
+														</SidebarMenuSub>
+													</CollapsibleContent>
+												</>
+											)}
+										</SidebarMenuItem>
+									</Collapsible>
+								);
+							})}
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 						<SidebarGroupLabel>Extra</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.help.map((item: ExternalLink) => (
+							{help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
 										<a
@@ -648,7 +783,7 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && (
+							{!isCloud && auth?.rol === "admin" && (
 								<SidebarMenuItem>
 									<SidebarMenuButton asChild>
 										<UpdateServerButton />
@@ -676,7 +811,7 @@ export default function Page({ children }: Props) {
 								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
-										<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbItem className="block">
 											<BreadcrumbLink asChild>
 												<Link
 													href={activeItem?.url || "/"}
@@ -686,7 +821,7 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="hidden md:block" />
+										<BreadcrumbSeparator className="block" />
 										<BreadcrumbItem>
 											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 										</BreadcrumbItem>

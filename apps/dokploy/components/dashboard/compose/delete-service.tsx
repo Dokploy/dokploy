@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import type { ServiceType } from "@dokploy/server/db/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
 import { Copy, Trash2 } from "lucide-react";
-import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -39,16 +40,42 @@ const deleteComposeSchema = z.object({
 type DeleteCompose = z.infer<typeof deleteComposeSchema>;
 
 interface Props {
-	composeId: string;
+	id: string;
+	type: ServiceType | "application";
 }
 
-export const DeleteCompose = ({ composeId }: Props) => {
+export const DeleteService = ({ id, type }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const { mutateAsync, isLoading } = api.compose.delete.useMutation();
-	const { data } = api.compose.one.useQuery(
-		{ composeId },
-		{ enabled: !!composeId },
-	);
+
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+
+	const mutationMap = {
+		postgres: () => api.postgres.remove.useMutation(),
+		redis: () => api.redis.remove.useMutation(),
+		mysql: () => api.mysql.remove.useMutation(),
+		mariadb: () => api.mariadb.remove.useMutation(),
+		application: () => api.application.delete.useMutation(),
+		mongo: () => api.mongo.remove.useMutation(),
+		compose: () => api.compose.delete.useMutation(),
+	};
+	const { mutateAsync, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.remove.useMutation();
 	const { push } = useRouter();
 	const form = useForm<DeleteCompose>({
 		defaultValues: {
@@ -62,14 +89,23 @@ export const DeleteCompose = ({ composeId }: Props) => {
 		const expectedName = `${data?.name}/${data?.appName}`;
 		if (formData.projectName === expectedName) {
 			const { deleteVolumes } = formData;
-			await mutateAsync({ composeId, deleteVolumes })
+			await mutateAsync({
+				mongoId: id || "",
+				postgresId: id || "",
+				redisId: id || "",
+				mysqlId: id || "",
+				mariadbId: id || "",
+				applicationId: id || "",
+				composeId: id || "",
+				deleteVolumes,
+			})
 				.then((result) => {
 					push(`/dashboard/project/${result?.projectId}`);
-					toast.success("Compose deleted successfully");
+					toast.success("deleted successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error deleting the compose");
+					toast.error("Error deleting the service");
 				});
 		} else {
 			form.setError("projectName", {
@@ -95,8 +131,8 @@ export const DeleteCompose = ({ composeId }: Props) => {
 					<DialogTitle>Are you absolutely sure?</DialogTitle>
 					<DialogDescription>
 						This action cannot be undone. This will permanently delete the
-						compose. If you are sure please enter the compose name to delete
-						this compose.
+						service. If you are sure please enter the service name to delete
+						this service.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
@@ -119,9 +155,7 @@ export const DeleteCompose = ({ composeId }: Props) => {
 													variant="outline"
 													onClick={() => {
 														if (data?.name && data?.appName) {
-															navigator.clipboard.writeText(
-																`${data.name}/${data.appName}`,
-															);
+															copy(`${data.name}/${data.appName}`);
 															toast.success("Copied to clipboard. Be careful!");
 														}
 													}}
@@ -142,27 +176,29 @@ export const DeleteCompose = ({ composeId }: Props) => {
 									</FormItem>
 								)}
 							/>
-							<FormField
-								control={form.control}
-								name="deleteVolumes"
-								render={({ field }) => (
-									<FormItem>
-										<div className="flex items-center">
-											<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
+							{type === "compose" && (
+								<FormField
+									control={form.control}
+									name="deleteVolumes"
+									render={({ field }) => (
+										<FormItem>
+											<div className="flex items-center">
+												<FormControl>
+													<Checkbox
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
 
-											<FormLabel className="ml-2">
-												Delete volumes associated with this compose
-											</FormLabel>
-										</div>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+												<FormLabel className="ml-2">
+													Delete volumes associated with this compose
+												</FormLabel>
+											</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 						</form>
 					</Form>
 				</div>

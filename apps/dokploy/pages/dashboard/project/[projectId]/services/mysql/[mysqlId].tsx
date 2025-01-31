@@ -2,6 +2,7 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
@@ -68,8 +69,6 @@ const MySql = (
 		},
 	);
 
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.mysql.remove.useMutation();
 	return (
 		<div className="pb-10">
 			<BreadcrumbSidebar
@@ -154,32 +153,7 @@ const MySql = (
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateMysql mysqlId={mysqlId} />
 										{(auth?.rol === "admin" || user?.canDeleteServices) && (
-											<DialogAction
-												title="Remove Mysql"
-												description="Are you sure you want to delete this mysql?"
-												type="destructive"
-												onClick={async () => {
-													await remove({ mysqlId })
-														.then(() => {
-															router.push(
-																`/dashboard/project/${data?.projectId}`,
-															);
-															toast.success("Mysql deleted successfully");
-														})
-														.catch(() => {
-															toast.error("Error deleting the mysql");
-														});
-												}}
-											>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="group hover:bg-red-500/10 "
-													isLoading={isRemoving}
-												>
-													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-												</Button>
-											</DialogAction>
+											<DeleteService id={mysqlId} type="mysql" />
 										)}
 									</div>
 								</div>

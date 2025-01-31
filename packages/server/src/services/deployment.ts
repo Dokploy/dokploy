@@ -98,6 +98,17 @@ export const createDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				applicationId: deployment.applicationId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
 		throw new TRPCError({
@@ -164,6 +175,17 @@ export const createDeploymentPreview = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				previewDeploymentId: deployment.previewDeploymentId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updatePreviewDeployment(deployment.previewDeploymentId, {
 			previewStatus: "error",
 		});
@@ -226,6 +248,17 @@ echo "Initializing deployment" >> ${logFilePath};
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				composeId: deployment.composeId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+			})
+			.returning();
 		await updateCompose(compose.composeId, {
 			composeStatus: "error",
 		});

@@ -13,6 +13,7 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -82,8 +83,6 @@ const Service = (
 		},
 	);
 
-	const { mutateAsync, isLoading: isRemoving } =
-		api.application.delete.useMutation();
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
@@ -177,34 +176,7 @@ const Service = (
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
 									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Delete Application"
-											description="Are you sure you want to delete this application?"
-											type="destructive"
-											onClick={async () => {
-												await mutateAsync({
-													applicationId: applicationId,
-												})
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Application deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting application");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>
 							</div>

@@ -80,6 +80,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const { data } = api.compose.templates.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: tags, isLoading: isLoadingTags } =
 		api.compose.getTags.useQuery();
@@ -114,26 +115,28 @@ export const AddTemplate = ({ projectId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="max-h-screen sm:max-w-[90vw] p-0">
 				<DialogHeader className="sticky top-0 z-10 bg-background p-6 border-b">
-					<div className="flex flex-col space-y-4">
-						<div className="flex items-center justify-between">
+					<div className="flex flex-col space-y-6">
+						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 							<div>
 								<DialogTitle>Create from Template</DialogTitle>
 								<DialogDescription>
 									Create an open source application from a template
 								</DialogDescription>
 							</div>
-							<div className="flex items-center gap-4">
+							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
 								<Input
 									placeholder="Search Template"
 									onChange={(e) => setQuery(e.target.value)}
-									className="w-[200px]"
+									className="w-full sm:w-[200px]"
 									value={query}
 								/>
 								<Popover modal={true}>
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
-											className={cn("w-[200px] justify-between !bg-input")}
+											className={cn(
+												"w-full sm:w-[200px] justify-between !bg-input",
+											)}
 										>
 											{isLoadingTags
 												? "Loading...."
@@ -224,7 +227,11 @@ export const AddTemplate = ({ projectId }: Props) => {
 
 				<ScrollArea className="h-[calc(98vh-8rem)]">
 					<div className="p-6">
-						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+						{isError && (
+							<AlertBlock type="error" className="mb-4">
+								{error?.message}
+							</AlertBlock>
+						)}
 
 						{templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
@@ -238,8 +245,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 								className={cn(
 									"grid gap-6",
 									viewMode === "detailed"
-										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6"
-										: "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8",
+										? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 								)}
 							>
 								{templates?.map((template, index) => (
@@ -302,7 +309,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										{/* Create Button */}
 										<div
 											className={cn(
-												"flex-none px-6 pb-6 pt-3 mt-auto",
+												"flex-none px-6 py-3 mt-auto",
 												viewMode === "detailed"
 													? "flex items-center justify-between bg-muted/30 border-t"
 													: "flex justify-center",
@@ -340,6 +347,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 											<AlertDialog>
 												<AlertDialogTrigger asChild>
 													<Button
+														variant="secondary"
 														size="sm"
 														className={cn(
 															"w-auto",
@@ -365,7 +373,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																			Select a Server (Optional)
+																			Select a Server{" "}
+																			{!isCloud ? "(Optional)" : ""}
 																			<HelpCircle className="size-4 text-muted-foreground" />
 																		</Label>
 																	</TooltipTrigger>
@@ -398,7 +407,12 @@ export const AddTemplate = ({ projectId }: Props) => {
 																				key={server.serverId}
 																				value={server.serverId}
 																			>
-																				{server.name}
+																				<span className="flex items-center gap-2 justify-between w-full">
+																					<span>{server.name}</span>
+																					<span className="text-muted-foreground text-xs self-center">
+																						{server.ipAddress}
+																					</span>
+																				</span>
 																			</SelectItem>
 																		))}
 																		<SelectLabel>

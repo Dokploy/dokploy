@@ -393,6 +393,41 @@
       "when": 1736669623831,
       "tag": "0055_next_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1736789918294,
+      "tag": "0056_majestic_skaar",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1737306063563,
+      "tag": "0057_tricky_living_tribunal",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1737612903012,
+      "tag": "0058_brown_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1737615160768,
+      "tag": "0059_striped_bill_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "6",
+      "when": 1737929896838,
+      "tag": "0060_disable-aggressive-cache",
+      "breakpoints": true
     }
   ]
 }

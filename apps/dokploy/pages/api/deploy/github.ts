@@ -71,6 +71,25 @@ export default async function handler(
 		return;
 	}
 
+	// skip workflow runs use keywords
+	// @link https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/skipping-workflow-runs
+	if (
+		[
+			"[skip ci]",
+			"[ci skip]",
+			"[no ci]",
+			"[skip actions]",
+			"[actions skip]",
+		].find((keyword) =>
+			extractCommitMessage(req.headers, req.body).includes(keyword),
+		)
+	) {
+		res.status(200).json({
+			message: "Deployment skipped: commit message contains skip keyword",
+		});
+		return;
+	}
+
 	if (req.headers["x-github-event"] === "push") {
 		try {
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
@@ -102,7 +121,7 @@ export default async function handler(
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
 					await deploy(jobData);
-					return true;
+					continue;
 				}
 				await myQueue.add(
 					"deployments",
@@ -137,7 +156,7 @@ export default async function handler(
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					await deploy(jobData);
-					return true;
+					continue;
 				}
 
 				await myQueue.add(
@@ -163,8 +182,9 @@ export default async function handler(
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
+		const action = githubBody?.action;
 
-		if (githubBody?.action === "closed") {
+		if (action === "closed") {
 			const previewDeploymentResult =
 				await findPreviewDeploymentsByPullRequestId(prId);
 
@@ -182,79 +202,86 @@ export default async function handler(
 			res.status(200).json({ message: "Preview Deployment Closed" });
 			return;
 		}
+
 		// opened or synchronize or reopened
-		const repository = githubBody?.repository?.name;
-		const deploymentHash = githubBody?.pull_request?.head?.sha;
-		const branch = githubBody?.pull_request?.base?.ref;
-		const owner = githubBody?.repository?.owner?.login;
+		if (
+			action === "opened" ||
+			action === "synchronize" ||
+			action === "reopened"
+		) {
+			const repository = githubBody?.repository?.name;
+			const deploymentHash = githubBody?.pull_request?.head?.sha;
+			const branch = githubBody?.pull_request?.base?.ref;
+			const owner = githubBody?.repository?.owner?.login;
 
-		const apps = await db.query.applications.findMany({
-			where: and(
-				eq(applications.sourceType, "github"),
-				eq(applications.repository, repository),
-				eq(applications.branch, branch),
-				eq(applications.isPreviewDeploymentsActive, true),
-				eq(applications.owner, owner),
-			),
-			with: {
-				previewDeployments: true,
-			},
-		});
-
-		const prBranch = githubBody?.pull_request?.head?.ref;
-
-		const prNumber = githubBody?.pull_request?.number;
-		const prTitle = githubBody?.pull_request?.title;
-		const prURL = githubBody?.pull_request?.html_url;
-
-		for (const app of apps) {
-			const previewLimit = app?.previewLimit || 0;
-			if (app?.previewDeployments?.length > previewLimit) {
-				continue;
-			}
-			const previewDeploymentResult =
-				await findPreviewDeploymentByApplicationId(app.applicationId, prId);
-
-			let previewDeploymentId =
-				previewDeploymentResult?.previewDeploymentId || "";
-
-			if (!previewDeploymentResult) {
-				const previewDeployment = await createPreviewDeployment({
-					applicationId: app.applicationId as string,
-					branch: prBranch,
-					pullRequestId: prId,
-					pullRequestNumber: prNumber,
-					pullRequestTitle: prTitle,
-					pullRequestURL: prURL,
-				});
-				previewDeploymentId = previewDeployment.previewDeploymentId;
-			}
-
-			const jobData: DeploymentJob = {
-				applicationId: app.applicationId as string,
-				titleLog: "Preview Deployment",
-				descriptionLog: `Hash: ${deploymentHash}`,
-				type: "deploy",
-				applicationType: "application-preview",
-				server: !!app.serverId,
-				previewDeploymentId,
-			};
-
-			if (IS_CLOUD && app.serverId) {
-				jobData.serverId = app.serverId;
-				await deploy(jobData);
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
+			const apps = await db.query.applications.findMany({
+				where: and(
+					eq(applications.sourceType, "github"),
+					eq(applications.repository, repository),
+					eq(applications.branch, branch),
+					eq(applications.isPreviewDeploymentsActive, true),
+					eq(applications.owner, owner),
+				),
+				with: {
+					previewDeployments: true,
 				},
-			);
+			});
+
+			const prBranch = githubBody?.pull_request?.head?.ref;
+
+			const prNumber = githubBody?.pull_request?.number;
+			const prTitle = githubBody?.pull_request?.title;
+			const prURL = githubBody?.pull_request?.html_url;
+
+			for (const app of apps) {
+				const previewLimit = app?.previewLimit || 0;
+				if (app?.previewDeployments?.length > previewLimit) {
+					continue;
+				}
+				const previewDeploymentResult =
+					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+
+				let previewDeploymentId =
+					previewDeploymentResult?.previewDeploymentId || "";
+
+				if (!previewDeploymentResult) {
+					const previewDeployment = await createPreviewDeployment({
+						applicationId: app.applicationId as string,
+						branch: prBranch,
+						pullRequestId: prId,
+						pullRequestNumber: prNumber,
+						pullRequestTitle: prTitle,
+						pullRequestURL: prURL,
+					});
+					previewDeploymentId = previewDeployment.previewDeploymentId;
+				}
+
+				const jobData: DeploymentJob = {
+					applicationId: app.applicationId as string,
+					titleLog: "Preview Deployment",
+					descriptionLog: `Hash: ${deploymentHash}`,
+					type: "deploy",
+					applicationType: "application-preview",
+					server: !!app.serverId,
+					previewDeploymentId,
+				};
+
+				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
+					await deploy(jobData);
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+			return res.status(200).json({ message: "Apps Deployed" });
 		}
-		return res.status(200).json({ message: "Apps Deployed" });
 	}
 
 	return res.status(400).json({ message: "No Actions matched" });

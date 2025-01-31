@@ -345,7 +345,7 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-	getUpdateData: adminProcedure.mutation(async () => {
+	getUpdateData: protectedProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return DEFAULT_UPDATE_DATA;
 		}
@@ -373,10 +373,10 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 
-	getDokployVersion: adminProcedure.query(() => {
+	getDokployVersion: protectedProcedure.query(() => {
 		return packageInfo.version;
 	}),
-	getReleaseTag: adminProcedure.query(() => {
+	getReleaseTag: protectedProcedure.query(() => {
 		return getDokployImageTag();
 	}),
 	readDirectories: protectedProcedure
