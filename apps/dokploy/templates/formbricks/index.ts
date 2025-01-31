@@ -15,7 +15,7 @@ export function generate(schema: Schema): Template {
 	const domains: DomainSchema[] = [
 		{
 			host: mainDomain,
-			port: 8080,
+			port: 3000,
 			serviceName: "formbricks",
 		},
 	];
