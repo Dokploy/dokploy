@@ -17,7 +17,7 @@ export function generate(schema: Schema): Template {
 	];
 
 	const envs = [
-		`# visit the page to setup your super admin user`,
+		"# visit the page to setup your super admin user",
 		"# check config.toml in Advanced / Volumes for more options",
 	];
 
