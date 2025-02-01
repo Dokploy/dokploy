@@ -76,16 +76,16 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 										className="flex w-full items-center justify-between gap-4 border p-4 md:px-6 rounded-lg flex-wrap"
 									>
 										<div className="md:basis-1/2 flex gap-6 w-full items-center">
-											<span className="opacity-50 text-center font-medium text-sm">
+											<span className="opacity-50 text-center font-medium text-sm whitespace-nowrap">
 												{item.serviceName}
 											</span>
 
 											<Link
-												className="flex gap-2 lg:gap-3 items-center hover:underline transition-all w-full max-w-[calc(100%-4rem)]"
+												className="flex gap-2 items-center hover:underline transition-all w-full max-w-[calc(100%-4rem)]"
 												target="_blank"
 												href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
 											>
-												<span className="truncate ">{item.host}</span>
+												<span className="truncate  text-sm">{item.host}</span>
 												<ExternalLink className="size-4 min-w-4" />
 											</Link>
 										</div>

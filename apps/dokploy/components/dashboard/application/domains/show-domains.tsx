@@ -76,11 +76,13 @@ export const ShowDomains = ({ applicationId }: Props) => {
 										className="flex w-full items-center justify-between gap-4 border p-4 md:px-6 rounded-lg flex-wrap"
 									>
 										<Link
-											className="md:basis-1/2 flex gap-2 lg:gap-3 items-center hover:underline transition-all w-full"
+											className="md:basis-1/2 flex gap-2  items-center hover:underline transition-all w-full"
 											target="_blank"
 											href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
 										>
-											<span className="truncate max-w-full">{item.host}</span>
+											<span className="truncate max-w-full text-sm">
+												{item.host}
+											</span>
 											<ExternalLink className="size-4 min-w-4" />
 										</Link>
 
