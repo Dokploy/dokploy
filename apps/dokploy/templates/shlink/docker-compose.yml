@@ -1,0 +1,29 @@
+services:
+  shlink:
+    image: shlinkio/shlink:stable
+    environment:
+      - INITIAL_API_KEY=${INITIAL_API_KEY}
+      - DEFAULT_DOMAIN=${DEFAULT_DOMAIN}
+      # Note: you should also update SHLINK_SERVER_URL in the shlink-web service.
+      - IS_HTTPS_ENABLED=false
+    volumes:
+      - shlink-data:/etc/shlink/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/rest/v3/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  shlink-web:
+    image: shlinkio/shlink-web-client
+    environment:
+      - SHLINK_SERVER_API_KEY=${INITIAL_API_KEY}
+      # Note: if you've set IS_HTTPS_ENABLED=true, change http to https.
+      - SHLINK_SERVER_URL=http://${DEFAULT_DOMAIN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  shlink-data:

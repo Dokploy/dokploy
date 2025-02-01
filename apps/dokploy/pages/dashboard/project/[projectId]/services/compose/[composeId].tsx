@@ -211,21 +211,17 @@ const Service = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
+												data?.serverId ? "md:grid-cols-7" : "md:grid-cols-7",
 												data?.composeType === "docker-compose"
 													? ""
-													: "md:grid-cols-6",
+													: "md:grid-cols-7",
 												data?.serverId && data?.composeType === "stack"
-													? "md:grid-cols-5"
+													? "md:grid-cols-6"
 													: "",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
-											{data?.composeType === "docker-compose" && (
-												<TabsTrigger value="environment">
-													Environment
-												</TabsTrigger>
-											)}
+											<TabsTrigger value="environment">Environment</TabsTrigger>
 											{!data?.serverId && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
