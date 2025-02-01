@@ -214,20 +214,15 @@ export const addDomainToCompose = async (
 			httpLabels.push(...httpsLabels);
 		}
 
+		let labels: DefinitionsService["labels"] = [];
 		if (compose.composeType === "docker-compose") {
 			if (!result.services[serviceName].labels) {
 				result.services[serviceName].labels = [];
 			}
 
-			const labels = result.services[serviceName].labels;
-
-			if (Array.isArray(labels)) {
-				if (!labels.includes("traefik.enable=true")) {
-					labels.push("traefik.enable=true");
-				}
-				labels.push(...httpLabels);
-			}
+			labels = result.services[serviceName].labels;
 		} else {
+			// Stack Case
 			if (!result.services[serviceName].deploy) {
 				result.services[serviceName].deploy = {};
 			}
@@ -235,14 +230,14 @@ export const addDomainToCompose = async (
 				result.services[serviceName].deploy.labels = [];
 			}
 
-			const labels = result.services[serviceName].deploy.labels;
+			labels = result.services[serviceName].deploy.labels;
+		}
 
-			if (Array.isArray(labels)) {
-				if (!labels.includes("traefik.enable=true")) {
-					labels.push("traefik.enable=true");
-				}
-				labels.push(...httpLabels);
+		if (Array.isArray(labels)) {
+			if (!labels.includes("traefik.enable=true")) {
+				labels.push("traefik.enable=true");
 			}
+			labels.push(...httpLabels);
 		}
 
 		// Add the dokploy-network to the service
