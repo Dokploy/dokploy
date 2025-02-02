@@ -32,6 +32,7 @@ import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
 import { SetupMonitoring } from "./setup-monitoring";
 import { ValidateServer } from "./validate-server";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	serverId: string;
@@ -49,7 +50,7 @@ export const SetupServer = ({ serverId }: Props) => {
 	);
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
-
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
@@ -113,12 +114,19 @@ export const SetupServer = ({ serverId }: Props) => {
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-6 w-[700px]">
+							<TabsList
+								className={cn(
+									"grid  w-[700px]",
+									isCloud ? "grid-cols-6" : "grid-cols-5",
+								)}
+							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
 								<TabsTrigger value="audit">Security</TabsTrigger>
-								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+								{isCloud && (
+									<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+								)}
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent

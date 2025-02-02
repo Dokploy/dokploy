@@ -81,6 +81,7 @@ const Service = (
 
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -224,18 +225,16 @@ const Service = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-7" : "md:grid-cols-7",
-												data?.composeType === "docker-compose"
-													? ""
-													: "md:grid-cols-7",
-												data?.serverId && data?.composeType === "stack"
-													? "md:grid-cols-6"
-													: "",
+												isCloud && data?.serverId
+													? "md:grid-cols-7"
+													: data?.serverId
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
+											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -255,10 +254,11 @@ const Service = (
 											<ShowEnvironment id={composeId} type="compose" />
 										</div>
 									</TabsContent>
+
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col border rounded-lg ">
-												{data?.serverId ? (
+												{data?.serverId && isCloud ? (
 													<ComposePaidMonitoring
 														serverId={data?.serverId || ""}
 														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
@@ -270,17 +270,19 @@ const Service = (
 													/>
 												) : (
 													<>
-														{monitoring?.enabledFeatures && (
-															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
-																<Label className="text-muted-foreground">
-																	Change Monitoring
-																</Label>
-																<Switch
-																	checked={toggleMonitoring}
-																	onCheckedChange={setToggleMonitoring}
-																/>
-															</div>
-														)}
+														{/* {monitoring?.enabledFeatures &&
+															isCloud &&
+															data?.serverId && (
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
+																	<Label className="text-muted-foreground">
+																		Change Monitoring
+																	</Label>
+																	<Switch
+																		checked={toggleMonitoring}
+																		onCheckedChange={setToggleMonitoring}
+																	/>
+																</div>
+															)}
 
 														{toggleMonitoring ? (
 															<ComposePaidMonitoring
@@ -291,17 +293,15 @@ const Service = (
 																}
 																appType={data?.composeType || "docker-compose"}
 															/>
-														) : (
-															<div>
-																<ComposeFreeMonitoring
-																	serverId={data?.serverId || ""}
-																	appName={data?.appName || ""}
-																	appType={
-																		data?.composeType || "docker-compose"
-																	}
-																/>
-															</div>
-														)}
+														) : ( */}
+														{/* <div> */}
+														<ComposeFreeMonitoring
+															serverId={data?.serverId || ""}
+															appName={data?.appName || ""}
+															appType={data?.composeType || "docker-compose"}
+														/>
+														{/* </div> */}
+														{/* )} */}
 													</>
 												)}
 											</div>

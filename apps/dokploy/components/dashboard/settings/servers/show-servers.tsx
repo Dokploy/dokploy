@@ -315,13 +315,16 @@ export const ShowServers = () => {
 																						<ShowDockerContainersModal
 																							serverId={server.serverId}
 																						/>
-																						<ShowMonitoringModal
-																							url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																							token={
-																								server?.metricsConfig?.server
-																									?.token
-																							}
-																						/>
+																						{isCloud && (
+																							<ShowMonitoringModal
+																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																								token={
+																									server?.metricsConfig?.server
+																										?.token
+																								}
+																							/>
+																						)}
+
 																						<ShowSwarmOverviewModal
 																							serverId={server.serverId}
 																						/>

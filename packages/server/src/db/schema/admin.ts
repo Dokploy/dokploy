@@ -68,7 +68,7 @@ export const admins = pgTable("admin", {
 		.default({
 			server: {
 				type: "Dokploy",
-				refreshRate: 20,
+				refreshRate: 60,
 				port: 4500,
 				token: "",
 				retentionDays: 2,
@@ -80,7 +80,7 @@ export const admins = pgTable("admin", {
 				},
 			},
 			containers: {
-				refreshRate: 20,
+				refreshRate: 60,
 				services: {
 					include: [],
 					exclude: [],

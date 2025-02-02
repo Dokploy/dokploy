@@ -70,6 +70,7 @@ const Postgresql = (
 		},
 	);
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -197,12 +198,18 @@ const Postgresql = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												"md:grid-cols-6",
+												isCloud && data?.serverId
+													? "md:grid-cols-6"
+													: data?.serverId
+														? "md:grid-cols-5"
+														: "md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											{((data?.serverId && isCloud) || !data?.server) && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											)}
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
@@ -228,7 +235,7 @@ const Postgresql = (
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId ? (
+												{data?.serverId && isCloud ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
 														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
@@ -238,7 +245,7 @@ const Postgresql = (
 													/>
 												) : (
 													<>
-														{monitoring?.enabledFeatures && (
+														{/* {monitoring?.enabledFeatures && (
 															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
 																<Label className="text-muted-foreground">
 																	Change Monitoring
@@ -259,12 +266,12 @@ const Postgresql = (
 																}
 															/>
 														) : (
-															<div>
-																<ContainerFreeMonitoring
-																	appName={data?.appName || ""}
-																/>
-															</div>
-														)}
+															<div> */}
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+														{/* </div> */}
+														{/* )} */}
 													</>
 												)}
 											</div>

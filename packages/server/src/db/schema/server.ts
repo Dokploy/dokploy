@@ -78,7 +78,7 @@ export const server = pgTable("server", {
 		.default({
 			server: {
 				type: "Remote",
-				refreshRate: 20,
+				refreshRate: 60,
 				port: 4500,
 				token: "",
 				urlCallback: "",
@@ -90,7 +90,7 @@ export const server = pgTable("server", {
 				},
 			},
 			containers: {
-				refreshRate: 20,
+				refreshRate: 60,
 				services: {
 					include: [],
 					exclude: [],

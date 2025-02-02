@@ -32,7 +32,7 @@ const Page = () => {
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl ">
+				{/* <Card className="h-full bg-sidebar  p-2.5 rounded-xl ">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="">
 							<CardTitle className="text-xl flex flex-row gap-2">
@@ -72,7 +72,7 @@ const Page = () => {
 						</CardContent>
 						{data?.enablePaidFeatures && <SetupMonitoring />}
 					</div>
-				</Card>
+				</Card> */}
 
 				{/* */}
 			</div>

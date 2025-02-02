@@ -85,6 +85,7 @@ const Service = (
 		},
 	);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
@@ -228,12 +229,18 @@ const Service = (
 										<TabsList
 											className={cn(
 												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
-												data?.serverId ? "md:grid-cols-7" : "md:grid-cols-8",
+												isCloud && data?.serverId
+													? "md:grid-cols-7"
+													: data?.serverId
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											{((data?.serverId && isCloud) || !data?.server) && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											)}
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="preview-deployments">
@@ -254,10 +261,11 @@ const Service = (
 											<ShowEnvironment applicationId={applicationId} />
 										</div>
 									</TabsContent>
+
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId ? (
+												{data?.serverId && isCloud ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
 														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
@@ -267,19 +275,21 @@ const Service = (
 													/>
 												) : (
 													<>
-														{monitoring?.enabledFeatures && (
-															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																<Label className="text-muted-foreground">
-																	Change Monitoring
-																</Label>
-																<Switch
-																	checked={toggleMonitoring}
-																	onCheckedChange={setToggleMonitoring}
-																/>
-															</div>
-														)}
+														{/* {monitoring?.enabledFeatures &&
+															isCloud &&
+															data?.serverId && (
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																	<Label className="text-muted-foreground">
+																		Change Monitoring
+																	</Label>
+																	<Switch
+																		checked={toggleMonitoring}
+																		onCheckedChange={setToggleMonitoring}
+																	/>
+																</div>
+															)} */}
 
-														{toggleMonitoring ? (
+														{/* {toggleMonitoring ? (
 															<ContainerPaidMonitoring
 																appName={data?.appName || ""}
 																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
@@ -287,13 +297,13 @@ const Service = (
 																	monitoring?.metricsConfig?.server?.token || ""
 																}
 															/>
-														) : (
-															<div>
-																<ContainerFreeMonitoring
-																	appName={data?.appName || ""}
-																/>
-															</div>
-														)}
+														) : ( */}
+														<div>
+															<ContainerFreeMonitoring
+																appName={data?.appName || ""}
+															/>
+														</div>
+														{/* )} */}
 													</>
 												)}
 											</div>
