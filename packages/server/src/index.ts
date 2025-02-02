@@ -112,7 +112,7 @@ export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./constants/index";
 
-export * from "./monitoring/utilts";
+export * from "./monitoring/utils";
 
 export * from "./db/validations/domain";
 export * from "./db/validations/index";

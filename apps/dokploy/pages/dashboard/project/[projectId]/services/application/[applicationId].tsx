@@ -41,6 +41,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -140,6 +141,13 @@ const Service = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
+										className="cursor-pointer"
+										onClick={() => {
+											if (data?.server?.ipAddress) {
+												copy(data.server.ipAddress);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"

@@ -18,8 +18,8 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,
-			inMB: item.value.inputMb.toFixed(2),
-			outMB: item.value.outputMb.toFixed(2),
+			inMB: item.value.inputMb,
+			outMB: item.value.outputMb,
 		};
 	});
 	return (
@@ -85,9 +85,11 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				<p>{`In MB Usage: ${payload[0].payload.inMB} MB`}</p>
-				<p>{`Out MB Usage: ${payload[0].payload.outMB} MB`}</p>
+				{payload[0].payload.time && (
+					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				)}
+				<p>{`In  Usage: ${payload[0].payload.inMB} `}</p>
+				<p>{`Out  Usage: ${payload[0].payload.outMB} `}</p>
 			</div>
 		);
 	}

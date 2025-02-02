@@ -6,7 +6,7 @@ import {
 	buildAppName,
 	cleanAppName,
 } from "@dokploy/server/db/schema";
-import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
+import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
 	buildApplication,
 	getBuildCommand,

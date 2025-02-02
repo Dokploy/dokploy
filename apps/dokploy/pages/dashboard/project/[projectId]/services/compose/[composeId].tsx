@@ -35,6 +35,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { CircuitBoard, ServerOff } from "lucide-react";
 import { HelpCircle } from "lucide-react";
 import type {
@@ -45,6 +46,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, useEffect, type ReactElement } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 
 type TabState =
@@ -135,6 +137,13 @@ const Service = (
 								<div className="flex flex-col h-fit w-fit gap-2">
 									<div className="flex flex-row h-fit w-fit gap-2">
 										<Badge
+											className="cursor-pointer"
+											onClick={() => {
+												if (data?.server?.ipAddress) {
+													copy(data.server.ipAddress);
+													toast.success("IP Address Copied!");
+												}
+											}}
 											variant={
 												!data?.serverId
 													? "default"
@@ -146,7 +155,7 @@ const Service = (
 											{data?.server?.name || "Dokploy Server"}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
-											<TooltipProvider delayDuration={0}>
+											<TooltipProvider>
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<Label className="break-all w-fit flex flex-row gap-1 items-center">
@@ -215,22 +224,20 @@ const Service = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												"md:grid-cols-7",
+												data?.serverId ? "md:grid-cols-7" : "md:grid-cols-7",
 												data?.composeType === "docker-compose"
 													? ""
-													: "md:grid-cols-6",
+													: "md:grid-cols-7",
 												data?.serverId && data?.composeType === "stack"
-													? "md:grid-cols-5"
+													? "md:grid-cols-6"
 													: "",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
-											{data?.composeType === "docker-compose" && (
-												<TabsTrigger value="environment">
-													Environment
-												</TabsTrigger>
+											<TabsTrigger value="environment">Environment</TabsTrigger>
+											{!data?.serverId && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
-											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
