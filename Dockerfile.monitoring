@@ -1,39 +1,41 @@
-FROM node:18-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Build stage
+FROM golang:1.21-alpine3.19 AS builder
 
-FROM base AS build
-COPY . /usr/src/app
-WORKDIR /usr/src/app
+# Instalar dependencias necesarias
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 
-RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm --filter=./apps/monitoring install --frozen-lockfile
-
-# Deploy only the monitoring app
-
-ENV NODE_ENV=production
-RUN pnpm --filter=./apps/monitoring run build
-
-RUN pnpm --filter=./apps/monitoring --prod deploy /prod/monitoring
-
-RUN cp -R /usr/src/app/apps/monitoring/dist /prod/monitoring/dist
-
-FROM base AS dokploy
+# Establecer el directorio de trabajo
 WORKDIR /app
 
-# Set production
-ENV NODE_ENV=production
+# Copiar todo el código fuente primero
+COPY . .
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Movernos al directorio de la aplicación golang
+WORKDIR /app/apps/monitoring
 
-RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh 
+# Descargar dependencias
+RUN go mod download
 
-# Copy only the necessary files
-COPY --from=build /prod/monitoring/dist ./dist
-COPY --from=build /prod/monitoring/package.json ./package.json
-COPY --from=build /prod/monitoring/node_modules ./node_modules
+# Compilar la aplicación
+RUN CGO_ENABLED=1 GOOS=linux go build -o main main.go
 
-CMD HOSTNAME=0.0.0.0 && pnpm start
+# Etapa final
+FROM alpine:3.19
+
+# Instalar SQLite y otras dependencias necesarias
+RUN apk add --no-cache sqlite-libs docker-cli
+
+WORKDIR /app
+
+# Copiar el binario compilado y el archivo monitor.go
+COPY --from=builder /app/apps/monitoring/main ./main
+COPY --from=builder /app/apps/monitoring/main.go ./monitor.go
+
+# COPY --from=builder /app/apps/golang/.env ./.env
+
+# Exponer el puerto
+ENV PORT=3001
+EXPOSE 3001
+
+# Ejecutar la aplicación
+CMD ["./main"]
