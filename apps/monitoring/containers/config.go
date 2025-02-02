@@ -3,7 +3,7 @@ package containers
 import (
 	"strings"
 
-	"github.com/mauriciogm/dokploy/apps/golang/config"
+	"github.com/mauriciogm/dokploy/apps/monitoring/config"
 )
 
 var monitorConfig *MonitoringConfig

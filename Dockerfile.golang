@@ -11,7 +11,7 @@ WORKDIR /app
 COPY . .
 
 # Movernos al directorio de la aplicación golang
-WORKDIR /app/apps/golang
+WORKDIR /app/apps/monitoring
 
 # Descargar dependencias
 RUN go mod download
@@ -28,10 +28,9 @@ RUN apk add --no-cache sqlite-libs docker-cli
 WORKDIR /app
 
 # Copiar el binario compilado y el archivo monitor.go
-COPY --from=builder /app/apps/golang/main ./main
-COPY --from=builder /app/apps/golang/main.go ./monitor.go
+COPY --from=builder /app/apps/monitoring/main ./main
+COPY --from=builder /app/apps/monitoring/main.go ./monitor.go
 
-# Copiar el archivo .env si existe
 # COPY --from=builder /app/apps/golang/.env ./.env
 
 # Exponer el puerto
