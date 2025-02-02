@@ -17,6 +17,7 @@ METRICS_CONFIG='{
   "server": {
     "refreshRate": 25,
     "port": 3001,
+    "type": "Remote | Dokploy",
     "token": "metrics",
     "urlCallback": "http://localhost:3000/api/trpc/notification.receiveNotification",
     "retentionDays": 7,
@@ -150,3 +151,4 @@ interface Notification {
   Timestamp: string;
   Token: string;
 }
+```

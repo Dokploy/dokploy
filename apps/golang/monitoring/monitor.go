@@ -44,12 +44,13 @@ type SystemMetrics struct {
 }
 
 type AlertPayload struct {
-	Type      string  `json:"Type"`
-	Value     float64 `json:"Value"`
-	Threshold float64 `json:"Threshold"`
-	Message   string  `json:"Message"`
-	Timestamp string  `json:"Timestamp"`
-	Token     string  `json:"Token"`
+	ServerType string  `json:"ServerType"`
+	Type       string  `json:"Type"`
+	Value      float64 `json:"Value"`
+	Threshold  float64 `json:"Threshold"`
+	Message    string  `json:"Message"`
+	Timestamp  string  `json:"Timestamp"`
+	Token      string  `json:"Token"`
 }
 
 func getRealOS() string {
@@ -201,12 +202,13 @@ func CheckThresholds(metrics database.ServerMetric) error {
 
 	if cpuThreshold > 0 && metrics.CPU > cpuThreshold {
 		alert := AlertPayload{
-			Type:      "CPU",
-			Value:     metrics.CPU,
-			Threshold: cpuThreshold,
-			Message:   fmt.Sprintf("CPU usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.CPU, cpuThreshold),
-			Timestamp: metrics.Timestamp,
-			Token:     metricsToken,
+			ServerType: cfg.Server.ServerType,
+			Type:       "CPU",
+			Value:      metrics.CPU,
+			Threshold:  cpuThreshold,
+			Message:    fmt.Sprintf("CPU usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.CPU, cpuThreshold),
+			Timestamp:  metrics.Timestamp,
+			Token:      metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {
 			return fmt.Errorf("failed to send CPU alert: %v", err)

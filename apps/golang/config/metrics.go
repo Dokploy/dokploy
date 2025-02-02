@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Server struct {
+		ServerType    string `json:"type"`
 		RefreshRate   int    `json:"refreshRate"`
 		Port          int    `json:"port"`
 		Token         string `json:"token"`

@@ -321,6 +321,7 @@ export const notificationRouter = createTRPCRouter({
 	receiveNotification: publicProcedure
 		.input(
 			z.object({
+				ServerType: z.enum(["Dokploy", "Remote"]).default("Dokploy"),
 				Type: z.enum(["Memory", "CPU"]),
 				Value: z.number(),
 				Threshold: z.number(),
@@ -331,24 +332,54 @@ export const notificationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
-				const tokenBuscado = input.Token;
-				const result = await db.query.admins.findFirst({
-					where: sql`jsonb_extract_path_text(${admins.metricsConfig}::jsonb, 'server', 'token') = ${tokenBuscado}`,
+				let adminId = "";
+				let ServerName = "";
+				if (input.ServerType === "Dokploy") {
+					const result = await db
+						.select()
+						.from(admins)
+						.where(
+							sql`${admins.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+						);
+
+					if (!result?.[0]?.adminId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Token not found",
+						});
+					}
+
+					adminId = result?.[0]?.adminId;
+					ServerName = "Dokploy";
+				} else {
+					const result = await db
+						.select()
+						.from(server)
+						.where(
+							sql`${server.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+						);
+
+					if (!result?.[0]?.adminId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Token not found",
+						});
+					}
+
+					adminId = result?.[0]?.adminId;
+					ServerName = "Remote";
+				}
+
+				await sendServerThresholdNotifications(adminId, {
+					...input,
+					ServerName,
 				});
-				const adminsConToken = await db
-					.select()
-					.from(admins)
-					.where(
-						sql`${admins.metricsConfig}::text LIKE ${`%${tokenBuscado}%`}`,
-					);
-
-				console.log(adminsConToken);
-
-				// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
-				// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
-				// console.log(adminsConToken);
 			} catch (error) {
-				// console.log(error);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error sending the notification",
+					cause: error,
+				});
 			}
 		}),
 	createGotify: adminProcedure
