@@ -122,7 +122,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					refreshRate: 20,
 					port: 4500,
 					token: "",
-					urlCallback: `${url}/api/notification.receiveNotification`,
+					urlCallback: `${url}/api/trpc/notification.receiveNotification`,
 					retentionDays: 7,
 					thresholds: {
 						cpu: 0,
@@ -151,7 +151,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 						token: data?.metricsConfig?.server?.token || generateToken(),
 						urlCallback:
 							data?.metricsConfig?.server?.urlCallback ||
-							`${url}/api/notification.receiveNotification`,
+							`${url}/api/trpc/notification.receiveNotification`,
 						retentionDays: data?.metricsConfig?.server?.retentionDays || 5,
 						thresholds: {
 							cpu: data?.metricsConfig?.server?.thresholds?.cpu,
