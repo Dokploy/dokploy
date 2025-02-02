@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
@@ -32,7 +33,6 @@ import { GPUSupport } from "./gpu-support";
 import { SecurityAudit } from "./security-audit";
 import { SetupMonitoring } from "./setup-monitoring";
 import { ValidateServer } from "./validate-server";
-import { cn } from "@/lib/utils";
 
 interface Props {
 	serverId: string;

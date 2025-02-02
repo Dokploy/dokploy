@@ -442,6 +442,13 @@
       "when": 1738482795112,
       "tag": "0062_slippery_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1738522845992,
+      "tag": "0063_panoramic_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }
