@@ -24,6 +24,7 @@ const baseAdmin: Admin = {
 			},
 		},
 		server: {
+			type: "Dokploy",
 			cronJob: "",
 			port: 4500,
 			refreshRate: 20,
