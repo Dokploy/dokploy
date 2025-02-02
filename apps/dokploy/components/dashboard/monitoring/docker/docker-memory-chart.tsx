@@ -9,6 +9,7 @@ import {
 	YAxis,
 } from "recharts";
 import type { DockerStatsJSON } from "./show";
+import { convertMemoryToBytes } from "./show";
 
 interface Props {
 	acummulativeData: DockerStatsJSON["memory"];
@@ -23,7 +24,8 @@ export const DockerMemoryChart = ({
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,
-			usage: (item.value.used / 1024 ** 3).toFixed(2),
+			// @ts-ignore
+			usage: (convertMemoryToBytes(item.value.used) / 1024 ** 3).toFixed(2),
 		};
 	});
 	return (
@@ -75,10 +77,13 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-	if (active && payload && payload.length && payload[0]) {
+	if (active && payload && payload.length && payload[0] && payload[0].payload) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				{payload[0].payload.time && (
+					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				)}
+
 				<p>{`Memory usage: ${payload[0].payload.usage} GB`}</p>
 			</div>
 		);

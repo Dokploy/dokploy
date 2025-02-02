@@ -19,7 +19,7 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 		return {
 			name: `Point ${index + 1}`,
 			time: item.time,
-			usage: item.value.toFixed(2),
+			usage: item.value.toString().split("%")[0],
 		};
 	});
 	return (
@@ -75,7 +75,9 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				{payload[0].payload.time && (
+					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				)}
 				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
 			</div>
 		);
