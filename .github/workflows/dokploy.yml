@@ -2,7 +2,7 @@ name: Dokploy Docker Build
 
 on:
   push:
-    branches: [main, canary, feat/github-runners]
+    branches: [main, canary, "feat/monitoring"]
 
 env:
   IMAGE_NAME: dokploy/dokploy

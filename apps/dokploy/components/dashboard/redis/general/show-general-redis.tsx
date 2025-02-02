@@ -168,6 +168,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 						setIsDrawerOpen(false);
 						setFilteredLogs([]);
 						setIsDeploying(false);
+						refetch();
 					}}
 					filteredLogs={filteredLogs}
 				/>

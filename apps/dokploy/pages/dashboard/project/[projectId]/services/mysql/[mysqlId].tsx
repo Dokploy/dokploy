@@ -4,7 +4,8 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-external-mysql-credentials";
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
@@ -13,10 +14,8 @@ import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -25,6 +24,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -54,12 +54,14 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const MySql = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
 	const { mysqlId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
 	const { data: auth } = api.auth.get.useQuery();
+	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -68,6 +70,8 @@ const MySql = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
+
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -195,15 +199,19 @@ const MySql = (
 										<div className="flex flex-row items-center justify-between  w-full gap-4">
 											<TabsList
 												className={cn(
-													"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-													data?.serverId ? "md:grid-cols-5" : "md:grid-cols-6",
+													"md:grid md:w-fit max-md:overflow-y-scroll justify-start ",
+													isCloud && data?.serverId
+														? "md:grid-cols-6"
+														: data?.serverId
+															? "md:grid-cols-5"
+															: "md:grid-cols-6",
 												)}
 											>
 												<TabsTrigger value="general">General</TabsTrigger>
 												<TabsTrigger value="environment">
 													Environment
 												</TabsTrigger>
-												{!data?.serverId && (
+												{((data?.serverId && isCloud) || !data?.server) && (
 													<TabsTrigger value="monitoring">
 														Monitoring
 													</TabsTrigger>
@@ -226,13 +234,51 @@ const MySql = (
 												<ShowEnvironment id={mysqlId} type="mysql" />
 											</div>
 										</TabsContent>
-										{!data?.serverId && (
-											<TabsContent value="monitoring">
-												<div className="flex flex-col gap-4 pt-2.5">
-													<DockerMonitoring appName={data?.appName || ""} />
+										<TabsContent value="monitoring">
+											<div className="pt-2.5">
+												<div className="flex flex-col gap-4 border rounded-lg p-6">
+													{data?.serverId && isCloud ? (
+														<ContainerPaidMonitoring
+															appName={data?.appName || ""}
+															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
+														/>
+													) : (
+														<>
+															{/* {monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={toggleMonitoring}
+																	onCheckedChange={setToggleMonitoring}
+																/>
+															</div>
+														)}
+
+														{toggleMonitoring ? (
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+															/>
+														) : (
+															<div> */}
+															<ContainerFreeMonitoring
+																appName={data?.appName || ""}
+															/>
+															{/* </div> */}
+															{/* )} */}
+														</>
+													)}
 												</div>
-											</TabsContent>
-										)}
+											</div>
+										</TabsContent>
 										<TabsContent value="logs">
 											<div className="flex flex-col gap-4  pt-2.5">
 												<ShowDockerLogs

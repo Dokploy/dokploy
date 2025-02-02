@@ -20,18 +20,22 @@ import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { DockerMonitoring } from "../../monitoring/docker/show";
+import { ContainerPaidMonitoring } from "./show-paid-container-monitoring";
 
 interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
+	baseUrl: string;
+	token: string;
 }
 
-export const ShowMonitoringCompose = ({
+export const ComposePaidMonitoring = ({
 	appName,
 	appType = "stack",
 	serverId,
+	baseUrl,
+	token,
 }: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
@@ -44,9 +48,9 @@ export const ShowMonitoringCompose = ({
 		},
 	);
 
-	const [containerAppName, setContainerAppName] = useState<
-		string | undefined
-	>();
+	const [containerAppName, setContainerAppName] = useState<string | undefined>(
+		"",
+	);
 
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -62,7 +66,7 @@ export const ShowMonitoringCompose = ({
 
 	return (
 		<div>
-			<Card className="bg-background">
+			<Card className="bg-background border-0">
 				<CardHeader>
 					<CardTitle className="text-xl">Monitoring</CardTitle>
 					<CardDescription>Watch the usage of your compose</CardDescription>
@@ -118,10 +122,13 @@ export const ShowMonitoringCompose = ({
 							Restart
 						</Button>
 					</div>
-					<DockerMonitoring
-						appName={containerAppName || ""}
-						appType={appType}
-					/>
+					<div className="flex flex-col gap-4">
+						<ContainerPaidMonitoring
+							appName={containerAppName || ""}
+							baseUrl={baseUrl}
+							token={token}
+						/>
+					</div>
 				</CardContent>
 			</Card>
 		</div>

@@ -8,20 +8,22 @@ import {
 	Tooltip,
 	YAxis,
 } from "recharts";
-import type { DockerStatsJSON } from "./show";
+import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["cpu"];
+	acummulativeData: DockerStatsJSON["block"];
 }
 
-export const DockerCpuChart = ({ acummulativeData }: Props) => {
+export const DockerBlockChart = ({ acummulativeData }: Props) => {
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
-			name: `Point ${index + 1}`,
 			time: item.time,
-			usage: item.value.toString().split("%")[0],
+			name: `Point ${index + 1}`,
+			readMb: item.value.readMb,
+			writeMb: item.value.writeMb,
 		};
 	});
+
 	return (
 		<div className="mt-6 w-full h-[10rem]">
 			<ResponsiveContainer>
@@ -37,27 +39,39 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 					<defs>
 						<linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
 							<stop offset="5%" stopColor="#27272A" stopOpacity={0.8} />
-							<stop offset="95%" stopColor="white" stopOpacity={0} />
+							<stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+						</linearGradient>
+						<linearGradient id="colorWrite" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
+							<stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
 						</linearGradient>
 					</defs>
-					<YAxis stroke="#A1A1AA" domain={[0, 100]} />
+					<YAxis stroke="#A1A1AA" />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
 					<Tooltip content={<CustomTooltip />} />
 					<Legend />
 					<Area
 						type="monotone"
-						dataKey="usage"
+						dataKey="readMb"
 						stroke="#27272A"
 						fillOpacity={1}
 						fill="url(#colorUv)"
+						name="Read Mb"
+					/>
+					<Area
+						type="monotone"
+						dataKey="writeMb"
+						stroke="#82ca9d"
+						fillOpacity={1}
+						fill="url(#colorWrite)"
+						name="Write Mb"
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
 		</div>
 	);
 };
-
 interface CustomTooltipProps {
 	active: boolean;
 	payload?: {
@@ -66,7 +80,8 @@ interface CustomTooltipProps {
 		value?: number;
 		payload: {
 			time: string;
-			usage: number;
+			readMb: number;
+			writeMb: number;
 		};
 	}[];
 }
@@ -78,7 +93,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 				{payload[0].payload.time && (
 					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
 				)}
-				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
+				<p>{`Read ${payload[0].payload.readMb} `}</p>
+				<p>{`Write: ${payload[0].payload.writeMb} `}</p>
 			</div>
 		);
 	}

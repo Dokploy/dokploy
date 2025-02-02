@@ -15,7 +15,7 @@ export const OnboardingLayout = ({ children }: Props) => {
 				<div className="absolute inset-0 bg-muted" />
 				<Link
 					href="https://dokploy.com"
-					className="relative z-20 flex items-center text-lg font-medium gap-4"
+					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
 					<Logo className="size-10" />
 					Dokploy

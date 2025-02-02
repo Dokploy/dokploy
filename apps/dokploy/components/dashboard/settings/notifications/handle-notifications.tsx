@@ -49,6 +49,7 @@ const notificationBaseSchema = z.object({
 	databaseBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -204,6 +205,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					channel: notification.slack?.channel || "",
 					name: notification.name,
 					type: notification.notificationType,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -216,6 +218,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					type: notification.notificationType,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -228,6 +231,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					decoration: notification.discord?.decoration || undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -244,6 +248,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
@@ -280,6 +285,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
+			serverThreshold,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -294,6 +300,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -307,6 +314,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -320,6 +328,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -337,6 +346,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
@@ -943,6 +953,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
 														Trigger the action when dokploy is restarted.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
+
+								{isCloud && (
+									<FormField
+										control={form.control}
+										name="serverThreshold"
+										render={({ field }) => (
+											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="space-y-0.5">
+													<FormLabel>Server Threshold</FormLabel>
+													<FormDescription>
+														Trigger the action when the server threshold is
+														reached.
 													</FormDescription>
 												</div>
 												<FormControl>

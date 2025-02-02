@@ -8,24 +8,18 @@ import {
 	Tooltip,
 	YAxis,
 } from "recharts";
-import type { DockerStatsJSON } from "./show";
-import { convertMemoryToBytes } from "./show";
+import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["memory"];
-	memoryLimitGB: number;
+	acummulativeData: DockerStatsJSON["cpu"];
 }
 
-export const DockerMemoryChart = ({
-	acummulativeData,
-	memoryLimitGB,
-}: Props) => {
+export const DockerCpuChart = ({ acummulativeData }: Props) => {
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
-			time: item.time,
 			name: `Point ${index + 1}`,
-			// @ts-ignore
-			usage: (convertMemoryToBytes(item.value.used) / 1024 ** 3).toFixed(2),
+			time: item.time,
+			usage: item.value.toString().split("%")[0],
 		};
 	});
 	return (
@@ -46,7 +40,7 @@ export const DockerMemoryChart = ({
 							<stop offset="95%" stopColor="white" stopOpacity={0} />
 						</linearGradient>
 					</defs>
-					<YAxis stroke="#A1A1AA" domain={[0, +memoryLimitGB.toFixed(2)]} />
+					<YAxis stroke="#A1A1AA" domain={[0, 100]} />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
 					<Tooltip content={<CustomTooltip />} />
@@ -63,6 +57,7 @@ export const DockerMemoryChart = ({
 		</div>
 	);
 };
+
 interface CustomTooltipProps {
 	active: boolean;
 	payload?: {
@@ -77,14 +72,13 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-	if (active && payload && payload.length && payload[0] && payload[0].payload) {
+	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
 					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
 				)}
-
-				<p>{`Memory usage: ${payload[0].payload.usage} GB`}</p>
+				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
 			</div>
 		);
 	}

@@ -6,6 +6,7 @@ import {
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
+	admins,
 	apiCreateDiscord,
 	apiCreateEmail,
 	apiCreateGotify,
@@ -23,6 +24,7 @@ import {
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
+	server,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -36,6 +38,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendServerThresholdNotifications,
 	sendSlackNotification,
 	sendTelegramNotification,
 	updateDiscordNotification,
@@ -45,7 +48,8 @@ import {
 	updateTelegramNotification,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 
 // TODO: Uncomment the validations when is cloud ready
 export const notificationRouter = createTRPCRouter({
@@ -314,6 +318,70 @@ export const notificationRouter = createTRPCRouter({
 			// TODO: Remove this line when the cloud version is ready
 		});
 	}),
+	receiveNotification: publicProcedure
+		.input(
+			z.object({
+				ServerType: z.enum(["Dokploy", "Remote"]).default("Dokploy"),
+				Type: z.enum(["Memory", "CPU"]),
+				Value: z.number(),
+				Threshold: z.number(),
+				Message: z.string(),
+				Timestamp: z.string(),
+				Token: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				let adminId = "";
+				let ServerName = "";
+				if (input.ServerType === "Dokploy") {
+					const result = await db
+						.select()
+						.from(admins)
+						.where(
+							sql`${admins.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+						);
+
+					if (!result?.[0]?.adminId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Token not found",
+						});
+					}
+
+					adminId = result?.[0]?.adminId;
+					ServerName = "Dokploy";
+				} else {
+					const result = await db
+						.select()
+						.from(server)
+						.where(
+							sql`${server.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+						);
+
+					if (!result?.[0]?.adminId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Token not found",
+						});
+					}
+
+					adminId = result?.[0]?.adminId;
+					ServerName = "Remote";
+				}
+
+				await sendServerThresholdNotifications(adminId, {
+					...input,
+					ServerName,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error sending the notification",
+					cause: error,
+				});
+			}
+		}),
 	createGotify: adminProcedure
 		.input(apiCreateGotify)
 		.mutation(async ({ input, ctx }) => {
