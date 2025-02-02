@@ -217,12 +217,13 @@ func CheckThresholds(metrics database.ServerMetric) error {
 
 	if memThreshold > 0 && metrics.MemUsed > memThreshold {
 		alert := AlertPayload{
-			Type:      "Memory",
-			Value:     metrics.MemUsed,
-			Threshold: memThreshold,
-			Message:   fmt.Sprintf("Memory usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.MemUsed, memThreshold),
-			Timestamp: metrics.Timestamp,
-			Token:     metricsToken,
+			ServerType: cfg.Server.ServerType,
+			Type:       "Memory",
+			Value:      metrics.MemUsed,
+			Threshold:  memThreshold,
+			Message:    fmt.Sprintf("Memory usage (%.2f%%) exceeded threshold (%.2f%%)", metrics.MemUsed, memThreshold),
+			Timestamp:  metrics.Timestamp,
+			Token:      metricsToken,
 		}
 		if err := sendAlert(callbackURL, alert); err != nil {
 			return fmt.Errorf("failed to send memory alert: %v", err)
@@ -236,7 +237,6 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 	if callbackURL == "" {
 		return fmt.Errorf("callback URL is not set")
 	}
-
 	wrappedPayload := map[string]interface{}{
 		"json": payload,
 	}
