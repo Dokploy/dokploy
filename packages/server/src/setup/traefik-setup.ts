@@ -68,9 +68,6 @@ export const initializeTraefik = async ({
 				Replicas: 1,
 			},
 		},
-		Labels: {
-			"traefik.enable": "true",
-		},
 		EndpointSpec: {
 			Ports: [
 				{
