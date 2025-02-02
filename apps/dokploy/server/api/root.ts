@@ -1,4 +1,4 @@
-import { authRouter } from "@/server/api/routers/auth";
+import { authRouter } from "./routers/auth";
 import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
 import { applicationRouter } from "./routers/application";
@@ -31,6 +31,7 @@ import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
+import { teamRouter } from "./routers/team-router";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
 
@@ -74,7 +75,8 @@ export const appRouter = createTRPCRouter({
 	github: githubRouter,
 	server: serverRouter,
 	stripe: stripeRouter,
-	swarm: swarmRouter,
+	team: teamRouter,
+  swarm: swarmRouter,
 });
 
 // export type definition of API

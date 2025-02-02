@@ -35,14 +35,18 @@ import { AddUser } from "./add-user";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Loader2 } from "lucide-react";
 
+import { ShowTeams } from "../teams/show-teams";
+import { AddToTeam } from "./add-to-team";
+
 export const ShowUsers = () => {
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.admin.removeUser.useMutation();
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+		<div className="w-full space-y-8">
+			<ShowTeams />
+			<Card className="bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -152,6 +156,8 @@ export const ShowUsers = () => {
 																				userId={user.userId}
 																			/>
 																		)}
+
+																		<AddToTeam userId={user.authId} />
 
 																		<DialogAction
 																			title="Delete User"
