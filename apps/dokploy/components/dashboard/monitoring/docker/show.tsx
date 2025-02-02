@@ -251,7 +251,9 @@ export const DockerMonitoring = ({
 									</span>
 									<Progress
 										value={
+											// @ts-ignore
 											(convertMemoryToBytes(currentData.memory.value.used) /
+												// @ts-ignore
 												convertMemoryToBytes(currentData.memory.value.total)) *
 											100
 										}
@@ -260,6 +262,7 @@ export const DockerMonitoring = ({
 									<DockerMemoryChart
 										acummulativeData={acummulativeData.memory}
 										memoryLimitGB={
+											// @ts-ignore
 											convertMemoryToBytes(currentData.memory.value.total) /
 											1024 ** 3
 										}
