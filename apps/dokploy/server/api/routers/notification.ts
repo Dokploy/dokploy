@@ -6,6 +6,7 @@ import {
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
+	admins,
 	apiCreateDiscord,
 	apiCreateEmail,
 	apiCreateGotify,
@@ -329,26 +330,26 @@ export const notificationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const result = await db.query.server.findFirst({
-				where: sql`${server.metricsConfig}::text LIKE '%"token": "%' || ${input.Token} || '%"%'`,
-			});
-			// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
-			// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
-			console.log(result);
-			if (!result) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Server not found",
+			try {
+				const tokenBuscado = input.Token;
+				const result = await db.query.admins.findFirst({
+					where: sql`jsonb_extract_path_text(${admins.metricsConfig}::jsonb, 'server', 'token') = ${tokenBuscado}`,
 				});
+				const adminsConToken = await db
+					.select()
+					.from(admins)
+					.where(
+						sql`${admins.metricsConfig}::text LIKE ${`%${tokenBuscado}%`}`,
+					);
+
+				console.log(adminsConToken);
+
+				// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
+				// b843ca953edda562f95e9dafe9c6dd4cf29163533cf5bf344b8f4371436bb979c2478a1b5eecc8f7e450f316231b1d27c9ce0b57c63f283ff992ceaf62558986
+				// console.log(adminsConToken);
+			} catch (error) {
+				// console.log(error);
 			}
-			const adminId = result.adminId;
-
-			await sendServerThresholdNotifications(adminId, {
-				...input,
-				ServerName: result.name,
-			});
-
-			return true;
 		}),
 	createGotify: adminProcedure
 		.input(apiCreateGotify)
