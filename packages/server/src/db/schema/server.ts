@@ -2,7 +2,7 @@ import { relations } from "drizzle-orm";
 import {
 	boolean,
 	integer,
-	json,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -51,7 +51,7 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
-	metricsConfig: json("metricsConfig")
+	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {
 				refreshRate: number;
