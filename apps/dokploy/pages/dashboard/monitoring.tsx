@@ -14,9 +14,10 @@ import type { GetServerSidePropsContext } from "next";
 import type React from "react";
 import type { ReactElement } from "react";
 
-const BASE_URL = "http://localhost:3001/metrics";
+const BASE_URL = "http://localhost:4500/metrics";
 
-const DEFAULT_TOKEN = "metrics";
+const DEFAULT_TOKEN =
+	"3d65ef83bd3106e0596c43622072b201723e509220152d266dcfe92801bd1e75f6e8b6504606f5726bb5bfde7cac2ee6d2fc7294b62270188258d04647130b5a";
 
 const Dashboard = () => {
 	const [toggleMonitoring, setToggleMonitoring] = useLocalStorage(

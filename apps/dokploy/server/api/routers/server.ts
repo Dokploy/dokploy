@@ -264,6 +264,7 @@ export const serverRouter = createTRPCRouter({
 				await updateServerById(input.serverId, {
 					metricsConfig: {
 						server: {
+							type: "Remote",
 							refreshRate: input.metricsConfig.server.refreshRate,
 							retentionDays: input.metricsConfig.server.retentionDays,
 							port: input.metricsConfig.server.port,

@@ -435,6 +435,13 @@
       "when": 1738481304953,
       "tag": "0061_many_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1738482795112,
+      "tag": "0062_slippery_white_tiger",
+      "breakpoints": true
     }
   ]
 }

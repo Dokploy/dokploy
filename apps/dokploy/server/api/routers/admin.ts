@@ -134,6 +134,7 @@ export const adminRouter = createTRPCRouter({
 				await updateAdminById(admin.adminId, {
 					metricsConfig: {
 						server: {
+							type: "Dokploy",
 							refreshRate: input.metricsConfig.server.refreshRate,
 							port: input.metricsConfig.server.port,
 							token: input.metricsConfig.server.token,

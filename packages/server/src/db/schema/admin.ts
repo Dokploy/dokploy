@@ -44,6 +44,7 @@ export const admins = pgTable("admin", {
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {
+				type: "Dokploy" | "Remote";
 				refreshRate: number;
 				port: number;
 				token: string;
@@ -66,6 +67,7 @@ export const admins = pgTable("admin", {
 		.notNull()
 		.default({
 			server: {
+				type: "Dokploy",
 				refreshRate: 20,
 				port: 4500,
 				token: "",
