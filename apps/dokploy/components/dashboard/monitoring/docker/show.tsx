@@ -22,8 +22,6 @@ const defaultData = {
 	memory: {
 		value: {
 			used: 0,
-			free: 0,
-			usedPercentage: 0,
 			total: 0,
 		},
 		time: "",
@@ -60,8 +58,6 @@ export interface DockerStats {
 	memory: {
 		value: {
 			used: number;
-			free: number;
-			usedPercentage: number;
 			total: number;
 		};
 		time: string;
@@ -98,6 +94,30 @@ export type DockerStatsJSON = {
 	block: DockerStats["block"][];
 	network: DockerStats["network"][];
 	disk: DockerStats["disk"][];
+};
+
+export const convertMemoryToBytes = (
+	memoryString: string | undefined,
+): number => {
+	if (!memoryString || typeof memoryString !== "string") {
+		return 0;
+	}
+
+	const value = Number.parseFloat(memoryString) || 0;
+	const unit = memoryString.replace(/[0-9.]/g, "").trim();
+
+	switch (unit) {
+		case "KiB":
+			return value * 1024;
+		case "MiB":
+			return value * 1024 * 1024;
+		case "GiB":
+			return value * 1024 * 1024 * 1024;
+		case "TiB":
+			return value * 1024 * 1024 * 1024 * 1024;
+		default:
+			return value;
+	}
 };
 
 export const DockerMonitoring = ({
@@ -208,7 +228,7 @@ export const DockerMonitoring = ({
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">
 									<span className="text-sm text-muted-foreground">
-										Used: {currentData.cpu.value.toFixed(2)}%
+										Used: {currentData.cpu.value}%
 									</span>
 									<Progress
 										value={currentData.cpu.value}
@@ -218,7 +238,6 @@ export const DockerMonitoring = ({
 								</div>
 							</CardContent>
 						</Card>
-
 						<Card className="bg-background">
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 								<CardTitle className="text-sm font-medium">
@@ -228,20 +247,29 @@ export const DockerMonitoring = ({
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">
 									<span className="text-sm text-muted-foreground">
-										{`Used:  ${(currentData.memory.value.used / 1024 ** 3).toFixed(2)} GB / Limit: ${(currentData.memory.value.total / 1024 ** 3).toFixed(2)} GB`}
+										{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
 									</span>
 									<Progress
-										value={currentData.memory.value.usedPercentage}
+										value={
+											// @ts-ignore
+											(convertMemoryToBytes(currentData.memory.value.used) /
+												// @ts-ignore
+												convertMemoryToBytes(currentData.memory.value.total)) *
+											100
+										}
 										className="w-[100%]"
 									/>
 									<DockerMemoryChart
 										acummulativeData={acummulativeData.memory}
-										memoryLimitGB={currentData.memory.value.total / 1024 ** 3}
+										memoryLimitGB={
+											// @ts-ignore
+											convertMemoryToBytes(currentData.memory.value.total) /
+											1024 ** 3
+										}
 									/>
 								</div>
 							</CardContent>
 						</Card>
-
 						{appName === "dokploy" && (
 							<Card className="bg-background">
 								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -274,17 +302,12 @@ export const DockerMonitoring = ({
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">
 									<span className="text-sm text-muted-foreground">
-										{`Read:  ${currentData.block.value.readMb.toFixed(
-											2,
-										)} MB / Write: ${currentData.block.value.writeMb.toFixed(
-											3,
-										)} MB`}
+										{`Read:  ${currentData.block.value.readMb}  / Write: ${currentData.block.value.writeMb} `}
 									</span>
 									<DockerBlockChart acummulativeData={acummulativeData.block} />
 								</div>
 							</CardContent>
 						</Card>
-
 						<Card className="bg-background">
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 								<CardTitle className="text-sm font-medium">
@@ -294,11 +317,7 @@ export const DockerMonitoring = ({
 							<CardContent>
 								<div className="flex flex-col gap-2 w-full">
 									<span className="text-sm text-muted-foreground">
-										{`In MB: ${currentData.network.value.inputMb.toFixed(
-											2,
-										)} MB / Out MB: ${currentData.network.value.outputMb.toFixed(
-											2,
-										)} MB`}
+										{`In MB: ${currentData.network.value.inputMb}  / Out MB: ${currentData.network.value.outputMb} `}
 									</span>
 									<DockerNetworkChart
 										acummulativeData={acummulativeData.network}

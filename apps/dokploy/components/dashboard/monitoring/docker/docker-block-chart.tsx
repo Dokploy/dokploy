@@ -90,9 +90,11 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				<p>{`Read ${payload[0].payload.readMb.toFixed(2)} MB`}</p>
-				<p>{`Write: ${payload[0].payload.writeMb.toFixed(3)} MB`}</p>
+				{payload[0].payload.time && (
+					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+				)}
+				<p>{`Read ${payload[0].payload.readMb} `}</p>
+				<p>{`Write: ${payload[0].payload.writeMb} `}</p>
 			</div>
 		);
 	}

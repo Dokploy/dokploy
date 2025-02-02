@@ -41,6 +41,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -52,7 +53,6 @@ import { useRouter } from "next/router";
 import React, { useState, useEffect, type ReactElement } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import copy from 'copy-to-clipboard';
 
 type TabState =
 	| "projects"
