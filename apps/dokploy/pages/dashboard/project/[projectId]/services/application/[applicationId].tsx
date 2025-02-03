@@ -14,13 +14,12 @@ import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -29,6 +28,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -41,6 +41,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -65,6 +66,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
 	const { applicationId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -83,7 +85,9 @@ const Service = (
 		},
 	);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.auth.get.useQuery();
+	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -139,6 +143,13 @@ const Service = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
+										className="cursor-pointer"
+										onClick={() => {
+											if (data?.server?.ipAddress) {
+												copy(data.server.ipAddress);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"
@@ -218,12 +229,16 @@ const Service = (
 										<TabsList
 											className={cn(
 												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
-												data?.serverId ? "md:grid-cols-7" : "md:grid-cols-8",
+												isCloud && data?.serverId
+													? "md:grid-cols-7"
+													: data?.serverId
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
+											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -246,13 +261,54 @@ const Service = (
 											<ShowEnvironment applicationId={applicationId} />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<DockerMonitoring appName={data?.appName || ""} />
+
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId && isCloud ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+													/>
+												) : (
+													<>
+														{/* {monitoring?.enabledFeatures &&
+															isCloud &&
+															data?.serverId && (
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																	<Label className="text-muted-foreground">
+																		Change Monitoring
+																	</Label>
+																	<Switch
+																		checked={toggleMonitoring}
+																		onCheckedChange={setToggleMonitoring}
+																	/>
+																</div>
+															)} */}
+
+														{/* {toggleMonitoring ? (
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+															/>
+														) : ( */}
+														<div>
+															<ContainerFreeMonitoring
+																appName={data?.appName || ""}
+															/>
+														</div>
+														{/* )} */}
+													</>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">
@@ -342,6 +398,8 @@ export async function getServerSideProps(
 			await helpers.application.one.fetch({
 				applicationId: params?.applicationId,
 			});
+
+			await helpers.settings.isCloud.prefetch();
 
 			return {
 				props: {

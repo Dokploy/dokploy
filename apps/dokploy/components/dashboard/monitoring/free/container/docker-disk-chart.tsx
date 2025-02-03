@@ -8,24 +8,24 @@ import {
 	Tooltip,
 	YAxis,
 } from "recharts";
-import type { DockerStatsJSON } from "./show";
+import type { DockerStatsJSON } from "./show-free-container-monitoring";
 
 interface Props {
-	acummulativeData: DockerStatsJSON["memory"];
-	memoryLimitGB: number;
+	acummulativeData: DockerStatsJSON["disk"];
+	diskTotal: number;
 }
 
-export const DockerMemoryChart = ({
-	acummulativeData,
-	memoryLimitGB,
-}: Props) => {
+export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
 			name: `Point ${index + 1}`,
-			usage: (item.value.used / 1024 ** 3).toFixed(2),
+			usedGb: +item.value.diskUsage,
+			totalGb: +item.value.diskTotal,
+			freeGb: item.value.diskFree,
 		};
 	});
+
 	return (
 		<div className="mt-6 w-full h-[10rem]">
 			<ResponsiveContainer>
@@ -39,22 +39,35 @@ export const DockerMemoryChart = ({
 					}}
 				>
 					<defs>
-						<linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-							<stop offset="5%" stopColor="#27272A" stopOpacity={0.8} />
-							<stop offset="95%" stopColor="white" stopOpacity={0} />
+						<linearGradient id="colorUsed" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="#6C28D9" stopOpacity={0.8} />
+							<stop offset="95%" stopColor="#6C28D9" stopOpacity={0} />
+						</linearGradient>
+						<linearGradient id="colorFree" x1="0" y1="0" x2="0" y2="1">
+							<stop offset="5%" stopColor="#6C28D9" stopOpacity={0.2} />
+							<stop offset="95%" stopColor="#6C28D9" stopOpacity={0} />
 						</linearGradient>
 					</defs>
-					<YAxis stroke="#A1A1AA" domain={[0, +memoryLimitGB.toFixed(2)]} />
+					<YAxis stroke="#A1A1AA" domain={[0, diskTotal]} />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
 					<Tooltip content={<CustomTooltip />} />
 					<Legend />
 					<Area
 						type="monotone"
-						dataKey="usage"
-						stroke="#27272A"
+						dataKey="usedGb"
+						stroke="#6C28D9"
 						fillOpacity={1}
-						fill="url(#colorUv)"
+						fill="url(#colorUsed)"
+						name="Used GB"
+					/>
+					<Area
+						type="monotone"
+						dataKey="freeGb"
+						stroke="#8884d8"
+						fillOpacity={1}
+						fill="url(#colorFree)"
+						name="Free GB"
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -69,7 +82,9 @@ interface CustomTooltipProps {
 		value?: number;
 		payload: {
 			time: string;
-			usage: number;
+			usedGb: number;
+			freeGb: number;
+			totalGb: number;
 		};
 	}[];
 }
@@ -79,7 +94,9 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				<p>{`Memory usage: ${payload[0].payload.usage} GB`}</p>
+				<p>{`Disk usage: ${payload[0].payload.usedGb} GB`}</p>
+				<p>{`Disk free: ${payload[0].payload.freeGb} GB`}</p>
+				<p>{`Total disk: ${payload[0].payload.totalGb} GB`}</p>
 			</div>
 		);
 	}

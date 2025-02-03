@@ -68,6 +68,8 @@ import React, { useMemo, useState, type ReactElement } from "react";
 import superjson from "superjson";
 
 export type Services = {
+	appName: string;
+	serverId?: string | null;
 	name: string;
 	type:
 		| "mariadb"
@@ -88,72 +90,86 @@ type Project = Awaited<ReturnType<typeof findProjectById>>;
 export const extractServices = (data: Project | undefined) => {
 	const applications: Services[] =
 		data?.applications.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "application",
 			id: item.applicationId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mariadb: Services[] =
 		data?.mariadb.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mariadb",
 			id: item.mariadbId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const postgres: Services[] =
 		data?.postgres.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "postgres",
 			id: item.postgresId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mongo: Services[] =
 		data?.mongo.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mongo",
 			id: item.mongoId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const redis: Services[] =
 		data?.redis.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "redis",
 			id: item.redisId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const mysql: Services[] =
 		data?.mysql.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "mysql",
 			id: item.mysqlId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	const compose: Services[] =
 		data?.compose.map((item) => ({
+			appName: item.appName,
 			name: item.name,
 			type: "compose",
 			id: item.composeId,
 			createdAt: item.createdAt,
 			status: item.composeStatus,
 			description: item.description,
+			serverId: item.serverId,
 		})) || [];
 
 	applications.push(

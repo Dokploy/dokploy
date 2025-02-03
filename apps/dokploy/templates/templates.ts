@@ -1240,6 +1240,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
 	{
+		id: "evolutionapi",
+		name: "Evolution API",
+		version: "v2.1.2",
+		description:
+			"Evolution API is a robust platform dedicated to empowering small businesses with limited resources, going beyond a simple messaging solution via WhatsApp.",
+		logo: "evolutionapi.png",
+		links: {
+			github: "https://github.com/EvolutionAPI/evolution-api",
+			docs: "https://doc.evolution-api.com/v2/en/get-started/introduction",
+			website: "https://evolution-api.com/opensource-whatsapp-api/",
+		},
+		tags: ["api", "whatsapp", "messaging"],
+		load: () => import("./evolutionapi/index").then((m) => m.generate),
+	},
+	{
 		id: "conduwuit",
 		name: "Conduwuit",
 		version: "latest",
@@ -1422,5 +1437,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["q&a", "self-hosted"],
 		load: () => import("./answer/index").then((m) => m.generate),
+	},
+	{
+		id: "shlink",
+		name: "Shlink",
+		version: "stable",
+		description:
+			"URL shortener that can be used to serve shortened URLs under your own domain.",
+		logo: "shlink.svg",
+		links: {
+			github: "https://github.com/shlinkio/shlink",
+			website: "https://shlink.io",
+			docs: "https://shlink.io/documentation",
+		},
+		tags: ["sharing", "shortener", "url"],
+		load: () => import("./shlink/index").then((m) => m.generate),
+	},
+	{
+		id: "formbricks",
+		name: "Formbricks",
+		version: "v3.1.3",
+		description:
+			"Formbricks is an open-source survey and form platform for collecting user data.",
+		logo: "formbricks.png",
+		links: {
+			github: "https://github.com/formbricks/formbricks",
+			website: "https://formbricks.com/",
+			docs: "https://formbricks.com/docs",
+		},
+		tags: ["forms", "analytics"],
+		load: () => import("./formbricks/index").then((m) => m.generate),
 	},
 ];

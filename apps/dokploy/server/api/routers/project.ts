@@ -197,6 +197,7 @@ export const projectRouter = createTRPCRouter({
 			orderBy: desc(projects.createdAt),
 		});
 	}),
+
 	remove: protectedProcedure
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {

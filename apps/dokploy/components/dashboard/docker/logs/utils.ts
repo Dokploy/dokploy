@@ -63,18 +63,10 @@ export function parseLogs(logString: string): LogLine[] {
 
 			if (!message?.trim()) return null;
 
-			// Delete other timestamps and keep only the one from --timestamps
-			const cleanedMessage = message
-				?.replace(
-					/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC/g,
-					"",
-				)
-				.trim();
-
 			return {
 				rawTimestamp: timestamp ?? null,
 				timestamp: timestamp ? new Date(timestamp.replace(" UTC", "Z")) : null,
-				message: cleanedMessage,
+				message: message.trim(),
 			};
 		})
 		.filter((log) => log !== null);

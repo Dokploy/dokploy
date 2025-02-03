@@ -7,8 +7,9 @@ import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
-import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
+import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -21,6 +22,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -33,6 +35,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { CircuitBoard, ServerOff } from "lucide-react";
 import { HelpCircle } from "lucide-react";
 import type {
@@ -43,6 +46,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useState, useEffect, type ReactElement } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 
 type TabState =
@@ -56,6 +60,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [toggleMonitoring, setToggleMonitoring] = useState(false);
 	const { composeId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -75,6 +80,8 @@ const Service = (
 	);
 
 	const { data: auth } = api.auth.get.useQuery();
+	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
 		{
 			authId: auth?.id || "",
@@ -131,6 +138,13 @@ const Service = (
 								<div className="flex flex-col h-fit w-fit gap-2">
 									<div className="flex flex-row h-fit w-fit gap-2">
 										<Badge
+											className="cursor-pointer"
+											onClick={() => {
+												if (data?.server?.ipAddress) {
+													copy(data.server.ipAddress);
+													toast.success("IP Address Copied!");
+												}
+											}}
 											variant={
 												!data?.serverId
 													? "default"
@@ -142,7 +156,7 @@ const Service = (
 											{data?.server?.name || "Dokploy Server"}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
-											<TooltipProvider delayDuration={0}>
+											<TooltipProvider>
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<Label className="break-all w-fit flex flex-row gap-1 items-center">
@@ -211,22 +225,16 @@ const Service = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
-												data?.composeType === "docker-compose"
-													? ""
-													: "md:grid-cols-6",
-												data?.serverId && data?.composeType === "stack"
-													? "md:grid-cols-5"
-													: "",
+												isCloud && data?.serverId
+													? "md:grid-cols-7"
+													: data?.serverId
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
-											{data?.composeType === "docker-compose" && (
-												<TabsTrigger value="environment">
-													Environment
-												</TabsTrigger>
-											)}
-											{!data?.serverId && (
+											<TabsTrigger value="environment">Environment</TabsTrigger>
+											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -246,17 +254,59 @@ const Service = (
 											<ShowEnvironment id={composeId} type="compose" />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowMonitoringCompose
-													serverId={data?.serverId || ""}
-													appName={data?.appName || ""}
-													appType={data?.composeType || "docker-compose"}
-												/>
+
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col border rounded-lg ">
+												{data?.serverId && isCloud ? (
+													<ComposePaidMonitoring
+														serverId={data?.serverId || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														appName={data?.appName || ""}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+														appType={data?.composeType || "docker-compose"}
+													/>
+												) : (
+													<>
+														{/* {monitoring?.enabledFeatures &&
+															isCloud &&
+															data?.serverId && (
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
+																	<Label className="text-muted-foreground">
+																		Change Monitoring
+																	</Label>
+																	<Switch
+																		checked={toggleMonitoring}
+																		onCheckedChange={setToggleMonitoring}
+																	/>
+																</div>
+															)}
+
+														{toggleMonitoring ? (
+															<ComposePaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+																appType={data?.composeType || "docker-compose"}
+															/>
+														) : ( */}
+														{/* <div> */}
+														<ComposeFreeMonitoring
+															serverId={data?.serverId || ""}
+															appName={data?.appName || ""}
+															appType={data?.composeType || "docker-compose"}
+														/>
+														{/* </div> */}
+														{/* )} */}
+													</>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4 pt-2.5">
@@ -344,7 +394,7 @@ export async function getServerSideProps(
 			await helpers.compose.one.fetch({
 				composeId: params?.composeId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

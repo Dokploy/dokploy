@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -44,6 +51,52 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	metricsConfig: jsonb("metricsConfig")
+		.$type<{
+			server: {
+				type: "Dokploy" | "Remote";
+				refreshRate: number;
+				port: number;
+				token: string;
+				urlCallback: string;
+				retentionDays: number;
+				cronJob: string;
+				thresholds: {
+					cpu: number;
+					memory: number;
+				};
+			};
+			containers: {
+				refreshRate: number;
+				services: {
+					include: string[];
+					exclude: string[];
+				};
+			};
+		}>()
+		.notNull()
+		.default({
+			server: {
+				type: "Remote",
+				refreshRate: 60,
+				port: 4500,
+				token: "",
+				urlCallback: "",
+				cronJob: "",
+				retentionDays: 2,
+				thresholds: {
+					cpu: 0,
+					memory: 0,
+				},
+			},
+			containers: {
+				refreshRate: 60,
+				services: {
+					include: [],
+					exclude: [],
+				},
+			},
+		}),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
@@ -108,4 +161,35 @@ export const apiUpdateServer = createSchema
 	.required()
 	.extend({
 		command: z.string().optional(),
+	});
+
+export const apiUpdateServerMonitoring = createSchema
+	.pick({
+		serverId: true,
+	})
+	.required()
+	.extend({
+		metricsConfig: z
+			.object({
+				server: z.object({
+					refreshRate: z.number().min(2),
+					port: z.number().min(1),
+					token: z.string(),
+					urlCallback: z.string().url(),
+					retentionDays: z.number().min(1),
+					cronJob: z.string().min(1),
+					thresholds: z.object({
+						cpu: z.number().min(0),
+						memory: z.number().min(0),
+					}),
+				}),
+				containers: z.object({
+					refreshRate: z.number().min(2),
+					services: z.object({
+						include: z.array(z.string()).optional(),
+						exclude: z.array(z.string()).optional(),
+					}),
+				}),
+			})
+			.required(),
 	});

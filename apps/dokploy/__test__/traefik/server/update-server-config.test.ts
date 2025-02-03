@@ -14,6 +14,29 @@ import {
 import { beforeEach, expect, test, vi } from "vitest";
 
 const baseAdmin: Admin = {
+	enablePaidFeatures: false,
+	metricsConfig: {
+		containers: {
+			refreshRate: 20,
+			services: {
+				include: [],
+				exclude: [],
+			},
+		},
+		server: {
+			type: "Dokploy",
+			cronJob: "",
+			port: 4500,
+			refreshRate: 20,
+			retentionDays: 2,
+			token: "",
+			thresholds: {
+				cpu: 0,
+				memory: 0,
+			},
+			urlCallback: "",
+		},
+	},
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,

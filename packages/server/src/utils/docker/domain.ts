@@ -203,9 +203,6 @@ export const addDomainToCompose = async (
 		if (!result?.services?.[serviceName]) {
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
-		if (!result.services[serviceName].labels) {
-			result.services[serviceName].labels = [];
-		}
 
 		const httpLabels = await createDomainLabels(appName, domain, "web");
 		if (https) {
@@ -217,7 +214,24 @@ export const addDomainToCompose = async (
 			httpLabels.push(...httpsLabels);
 		}
 
-		const labels = result.services[serviceName].labels;
+		let labels: DefinitionsService["labels"] = [];
+		if (compose.composeType === "docker-compose") {
+			if (!result.services[serviceName].labels) {
+				result.services[serviceName].labels = [];
+			}
+
+			labels = result.services[serviceName].labels;
+		} else {
+			// Stack Case
+			if (!result.services[serviceName].deploy) {
+				result.services[serviceName].deploy = {};
+			}
+			if (!result.services[serviceName].deploy.labels) {
+				result.services[serviceName].deploy.labels = [];
+			}
+
+			labels = result.services[serviceName].deploy.labels;
+		}
 
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {

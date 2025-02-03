@@ -219,8 +219,8 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 	const cleanupImages = "docker image prune --force";
 	const cleanupVolumes = "docker volume prune --force";
 	const cleanupContainers = "docker container prune --force";
-	const cleanupSystem = "docker system prune --all --force --volumes";
-	const cleanupBuilder = "docker builder prune --all --force";
+	const cleanupSystem = "docker system prune  --force --volumes";
+	const cleanupBuilder = "docker builder prune  --force";
 
 	try {
 		if (serverId) {

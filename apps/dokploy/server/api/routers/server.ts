@@ -6,6 +6,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerMonitoring,
 	applications,
 	compose,
 	mariadb,
@@ -29,6 +30,7 @@ import {
 	serverAudit,
 	serverSetup,
 	serverValidate,
+	setupMonitoring,
 	updateServerById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -245,6 +247,48 @@ export const serverRouter = createTRPCRouter({
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
 					cause: error as Error,
 				});
+			}
+		}),
+	setupMonitoring: protectedProcedure
+		.input(apiUpdateServerMonitoring)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const server = await findServerById(input.serverId);
+				if (server.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup this server",
+					});
+				}
+
+				await updateServerById(input.serverId, {
+					metricsConfig: {
+						server: {
+							type: "Remote",
+							refreshRate: input.metricsConfig.server.refreshRate,
+							retentionDays: input.metricsConfig.server.retentionDays,
+							port: input.metricsConfig.server.port,
+							token: input.metricsConfig.server.token,
+							urlCallback: input.metricsConfig.server.urlCallback,
+							cronJob: input.metricsConfig.server.cronJob,
+							thresholds: {
+								cpu: input.metricsConfig.server.thresholds.cpu,
+								memory: input.metricsConfig.server.thresholds.memory,
+							},
+						},
+						containers: {
+							refreshRate: input.metricsConfig.containers.refreshRate,
+							services: {
+								include: input.metricsConfig.containers.services.include || [],
+								exclude: input.metricsConfig.containers.services.exclude || [],
+							},
+						},
+					},
+				});
+				const currentServer = await setupMonitoring(input.serverId);
+				return currentServer;
+			} catch (error) {
+				throw error;
 			}
 		}),
 	remove: protectedProcedure

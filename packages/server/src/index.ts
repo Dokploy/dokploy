@@ -39,6 +39,7 @@ export * from "./setup/config-paths";
 export * from "./setup/postgres-setup";
 export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
+export * from "./setup/monitoring-setup";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";
@@ -57,6 +58,7 @@ export * from "./utils/notifications/database-backup";
 export * from "./utils/notifications/dokploy-restart";
 export * from "./utils/notifications/utils";
 export * from "./utils/notifications/docker-cleanup";
+export * from "./utils/notifications/server-threshold";
 
 export * from "./utils/builders/index";
 export * from "./utils/builders/compose";
@@ -110,7 +112,7 @@ export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./constants/index";
 
-export * from "./monitoring/utilts";
+export * from "./monitoring/utils";
 
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
