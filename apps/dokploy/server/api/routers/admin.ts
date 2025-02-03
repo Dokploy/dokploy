@@ -22,13 +22,13 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { z } from "zod";
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async ({ ctx }) => {

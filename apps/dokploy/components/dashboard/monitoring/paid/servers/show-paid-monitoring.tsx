@@ -5,6 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -12,7 +13,6 @@ import { CPUChart } from "./cpu-chart";
 import { DiskChart } from "./disk-chart";
 import { MemoryChart } from "./memory-chart";
 import { NetworkChart } from "./network-chart";
-import { api } from "@/utils/api";
 
 const REFRESH_INTERVALS = {
 	"5000": "5 Seconds",

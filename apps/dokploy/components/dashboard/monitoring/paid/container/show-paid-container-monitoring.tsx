@@ -6,13 +6,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { Cpu, HardDrive, Loader2, MemoryStick, Network } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ContainerBlockChart } from "./container-block-chart";
 import { ContainerCPUChart } from "./container-cpu-chart";
 import { ContainerMemoryChart } from "./container-memory-chart";
 import { ContainerNetworkChart } from "./container-network-chart";
-import { api } from "@/utils/api";
 
 const REFRESH_INTERVALS = {
 	"5000": "5 Seconds",
