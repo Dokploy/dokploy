@@ -1,10 +1,11 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
 import { findAdminById } from "../services/admin";
+import { getDokployImageTag } from "../services/settings";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
-import { getDokployImageTag } from "../services/settings";
+import { IS_CLOUD } from "../constants";
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
@@ -13,8 +14,9 @@ export const setupMonitoring = async (serverId: string) => {
 	let imageName = "dokploy/monitoring:latest";
 
 	if (
-		getDokployImageTag() !== "latest" ||
-		process.env.NODE_ENV === "development"
+		(getDokployImageTag() !== "latest" ||
+			process.env.NODE_ENV === "development") &&
+		!IS_CLOUD
 	) {
 		imageName = "dokploy/monitoring:canary";
 	}
@@ -85,8 +87,9 @@ export const setupWebMonitoring = async (adminId: string) => {
 	let imageName = "dokploy/monitoring:latest";
 
 	if (
-		getDokployImageTag() !== "latest" ||
-		process.env.NODE_ENV === "development"
+		(getDokployImageTag() !== "latest" ||
+			process.env.NODE_ENV === "development") &&
+		!IS_CLOUD
 	) {
 		imageName = "dokploy/monitoring:canary";
 	}
