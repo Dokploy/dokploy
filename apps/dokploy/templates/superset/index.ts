@@ -35,6 +35,11 @@ export function generate(schema: Schema): Template {
 		{
 			filePath: "./superset/superset_config.py",
 			content: `
+"""
+For more configuration options, see:
+- https://superset.apache.org/docs/configuration/configuring-superset
+"""
+
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -53,8 +58,12 @@ CACHE_CONFIG = {
 FILTER_STATE_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_filter_"}
 EXPLORE_FORM_DATA_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_explore_form_"}
 
-SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/{os.getenv('POSTGRES_DB')}"
 SQLALCHEMY_TRACK_MODIFICATIONS = True
+SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/{os.getenv('POSTGRES_DB')}"
+# Uncomment if you want to load example data (using "superset load_examples") at the
+# same location as your metadata postgresql instance. Otherwise, the default sqlite
+# will be used, which will not persist in volume when restarting superset by default.
+#SQLALCHEMY_EXAMPLES_URI = SQLALCHEMY_DATABASE_URI
 			`.trim(),
 		},
 	];
