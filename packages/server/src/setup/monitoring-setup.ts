@@ -4,12 +4,20 @@ import { findAdminById } from "../services/admin";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
+import { getDokployImageTag } from "../services/settings";
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
 
-	const containerName = "mauricio-monitoring";
-	const imageName = "dokploy/monitoring:canary";
+	const containerName = "dokploy-monitoring";
+	let imageName = "dokploy/monitoring:latest";
+
+	if (
+		getDokployImageTag() !== "latest" ||
+		process.env.NODE_ENV === "development"
+	) {
+		imageName = "dokploy/monitoring:canary";
+	}
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
@@ -73,8 +81,15 @@ export const setupMonitoring = async (serverId: string) => {
 export const setupWebMonitoring = async (adminId: string) => {
 	const admin = await findAdminById(adminId);
 
-	const containerName = "mauricio-monitoring";
-	const imageName = "dokploy/monitoring:canary";
+	const containerName = "dokploy-monitoring";
+	let imageName = "dokploy/monitoring:latest";
+
+	if (
+		getDokployImageTag() !== "latest" ||
+		process.env.NODE_ENV === "development"
+	) {
+		imageName = "dokploy/monitoring:canary";
+	}
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
