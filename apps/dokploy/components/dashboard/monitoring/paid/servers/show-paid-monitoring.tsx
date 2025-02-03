@@ -5,6 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -64,76 +65,56 @@ export const ShowPaidMonitoring = ({
 }: Props) => {
 	const [historicalData, setHistoricalData] = useState<SystemMetrics[]>([]);
 	const [metrics, setMetrics] = useState<SystemMetrics>({} as SystemMetrics);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [dataPoints, setDataPoints] =
 		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
 
-	const fetchMetrics = async () => {
-		try {
-			const url = new URL(BASE_URL);
-			url.searchParams.append("limit", dataPoints);
-			const response = await fetch(url.toString(), {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+	const {
+		data,
+		isLoading,
+		error: queryError,
+	} = api.admin.getServerMetrics.useQuery(
+		{
+			url: BASE_URL,
+			token,
+			dataPoints,
+		},
+		{
+			refetchInterval:
+				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
+			enabled: true,
+		},
+	);
 
-			if (!response.ok) {
-				throw new Error(
-					`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
-				);
-			}
+	useEffect(() => {
+		if (!data) return;
 
-			const data = await response.json();
-			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error(
-					[
-						"No monitoring data available. This could be because:",
-						"",
-						"1. You don't have setup the monitoring service, you can do in web server section.",
-						"2. If you already have setup the monitoring service, wait a few minutes and refresh the page.",
-					].join("\n"),
-				);
-			}
+		const formattedData = data.map((metric: SystemMetrics) => ({
+			timestamp: metric.timestamp,
+			cpu: Number.parseFloat(metric.cpu),
+			cpuModel: metric.cpuModel,
+			cpuCores: metric.cpuCores,
+			cpuPhysicalCores: metric.cpuPhysicalCores,
+			cpuSpeed: metric.cpuSpeed,
+			os: metric.os,
+			distro: metric.distro,
+			kernel: metric.kernel,
+			arch: metric.arch,
+			memUsed: Number.parseFloat(metric.memUsed),
+			memUsedGB: Number.parseFloat(metric.memUsedGB),
+			memTotal: Number.parseFloat(metric.memTotal),
+			networkIn: Number.parseFloat(metric.networkIn),
+			networkOut: Number.parseFloat(metric.networkOut),
+			diskUsed: Number.parseFloat(metric.diskUsed),
+			totalDisk: Number.parseFloat(metric.totalDisk),
+			uptime: metric.uptime,
+		}));
 
-			const formattedData = data.map((metric: SystemMetrics) => ({
-				timestamp: metric.timestamp,
-				cpu: Number.parseFloat(metric.cpu),
-				cpuModel: metric.cpuModel,
-				cpuCores: metric.cpuCores,
-				cpuPhysicalCores: metric.cpuPhysicalCores,
-				cpuSpeed: metric.cpuSpeed,
-				os: metric.os,
-				distro: metric.distro,
-				kernel: metric.kernel,
-				arch: metric.arch,
-				memUsed: Number.parseFloat(metric.memUsed),
-				memUsedGB: Number.parseFloat(metric.memUsedGB),
-				memTotal: Number.parseFloat(metric.memTotal),
-				networkIn: Number.parseFloat(metric.networkIn),
-				networkOut: Number.parseFloat(metric.networkOut),
-				diskUsed: Number.parseFloat(metric.diskUsed),
-				totalDisk: Number.parseFloat(metric.totalDisk),
-				uptime: metric.uptime,
-			}));
-
-			// @ts-ignore
-			setHistoricalData(formattedData);
-			// @ts-ignore
-			setMetrics(formattedData[formattedData.length - 1] || {});
-			setError(null);
-		} catch (err) {
-			setError(
-				err instanceof Error
-					? err.message
-					: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly.",
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+		// @ts-ignore
+		setHistoricalData(formattedData);
+		// @ts-ignore
+		setMetrics(formattedData[formattedData.length - 1] || {});
+	}, [data]);
 
 	const formatUptime = (seconds: number): string => {
 		const days = Math.floor(seconds / (24 * 60 * 60));
@@ -143,20 +124,6 @@ export const ShowPaidMonitoring = ({
 		return `${days}d ${hours}h ${minutes}m`;
 	};
 
-	useEffect(() => {
-		fetchMetrics();
-
-		if (dataPoints === "all") {
-			return;
-		}
-
-		const interval = setInterval(() => {
-			fetchMetrics();
-		}, Number(refreshInterval));
-
-		return () => clearInterval(interval);
-	}, [dataPoints, token, refreshInterval]);
-
 	if (isLoading) {
 		return (
 			<div className="flex h-[400px] w-full items-center justify-center">
@@ -165,7 +132,7 @@ export const ShowPaidMonitoring = ({
 		);
 	}
 
-	if (error) {
+	if (queryError) {
 		return (
 			<div className="flex min-h-[55vh] w-full items-center justify-center p-4">
 				<div className="max-w-xl text-center">
@@ -173,7 +140,9 @@ export const ShowPaidMonitoring = ({
 						Error fetching metrics{" "}
 					</p>
 					<p className="whitespace-pre-line text-sm text-destructive">
-						{error}
+						{queryError instanceof Error
+							? queryError.message
+							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
 					<p className=" text-sm text-muted-foreground">URL: {BASE_URL}</p>
 				</div>

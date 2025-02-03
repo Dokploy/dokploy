@@ -345,7 +345,7 @@ export async function getServerSideProps(
 			await helpers.mongo.one.fetch({
 				mongoId: params?.mongoId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

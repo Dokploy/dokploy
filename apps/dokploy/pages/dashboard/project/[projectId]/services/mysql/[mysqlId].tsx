@@ -350,7 +350,7 @@ export async function getServerSideProps(
 			await helpers.mysql.one.fetch({
 				mysqlId: params?.mysqlId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
