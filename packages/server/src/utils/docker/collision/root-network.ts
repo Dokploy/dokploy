@@ -1,5 +1,5 @@
-import type { ComposeSpecification, DefinitionsService } from "../types";
 import _ from "lodash";
+import type { ComposeSpecification, DefinitionsService } from "../types";
 
 export const addAppNameToRootNetwork = (
 	composeData: ComposeSpecification,

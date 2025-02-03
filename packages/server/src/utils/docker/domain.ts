@@ -26,6 +26,7 @@ import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
+import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
@@ -33,7 +34,6 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 import { encodeBase64 } from "./utils";
-import { randomizeDeployableSpecificationFile } from "./collision";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
