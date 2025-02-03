@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
 import { RandomizeCompose } from "./randomize-compose";
+import { RandomizeDeployable } from "./randomize-deployable";
 
 interface Props {
 	composeId: string;
@@ -126,6 +127,7 @@ services:
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
 					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
 						<RandomizeCompose composeId={composeId} />
+						<RandomizeDeployable composeId={composeId} />
 					</div>
 					<Button
 						type="submit"

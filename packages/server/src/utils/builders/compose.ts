@@ -34,6 +34,9 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
 
+		await execAsync(
+			`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}`,
+		);
 		const logContent = `
     App Name: ${appName}
     Build Compose 🐳
@@ -71,6 +74,10 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 					}),
 				},
 			},
+		);
+
+		await execAsync(
+			`docker network connect tes-umami-e842bc $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
 		);
 
 		writeStream.write("Docker Compose Deployed: ✅");

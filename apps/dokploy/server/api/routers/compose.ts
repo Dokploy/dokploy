@@ -46,6 +46,7 @@ import {
 	findServerById,
 	loadServices,
 	randomizeComposeFile,
+	randomizeDeployableComposeFile,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
@@ -215,6 +216,21 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			return await randomizeComposeFile(input.composeId, input.suffix);
+		}),
+	randomizeDeployableCompose: protectedProcedure
+		.input(apiRandomizeCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.adminId !== ctx.user.adminId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to randomize this compose",
+				});
+			}
+			return await randomizeDeployableComposeFile(
+				input.composeId,
+				input.suffix,
+			);
 		}),
 	getConvertedCompose: protectedProcedure
 		.input(apiFindCompose)

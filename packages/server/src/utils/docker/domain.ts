@@ -33,6 +33,7 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 import { encodeBase64 } from "./utils";
+import { randomizeDeployableSpecificationFile } from "./collision";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -190,7 +191,13 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (compose.randomize) {
+	if (compose.deployable) {
+		const randomized = randomizeDeployableSpecificationFile(
+			result,
+			compose.suffix || compose.appName,
+		);
+		result = randomized;
+	} else if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
@@ -240,14 +247,18 @@ export const addDomainToCompose = async (
 			labels.push(...httpLabels);
 		}
 
-		// Add the dokploy-network to the service
-		result.services[serviceName].networks = addDokployNetworkToService(
-			result.services[serviceName].networks,
-		);
+		if (!compose.deployable) {
+			// Add the dokploy-network to the service
+			result.services[serviceName].networks = addDokployNetworkToService(
+				result.services[serviceName].networks,
+			);
+		}
 	}
 
 	// Add dokploy-network to the root of the compose file
-	result.networks = addDokployNetworkToRoot(result.networks);
+	if (!compose.deployable) {
+		result.networks = addDokployNetworkToRoot(result.networks);
+	}
 
 	return result;
 };
