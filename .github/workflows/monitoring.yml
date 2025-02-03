@@ -39,6 +39,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.monitoring
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -57,7 +58,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set tag and version
+      - name: Set
         id: meta
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
@@ -73,6 +74,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.monitoring
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -96,7 +98,6 @@ jobs:
       - name: Create and push manifests
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
             TAG="latest"
 
             docker buildx imagetools create -t ${IMAGE_NAME}:${TAG} \

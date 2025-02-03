@@ -10,7 +10,6 @@ import { getRemoteDocker } from "../utils/servers/remote-docker";
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
 
-
 	const containerName = "dokploy-monitoring";
 	let imageName = "dokploy/monitoring:latest";
 
