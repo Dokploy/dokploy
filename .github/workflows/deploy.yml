@@ -77,26 +77,3 @@ jobs:
           tags: |
             siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
-
-  build-and-push-monitoring-image:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile.monitoring
-          push: true
-          tags: |
-            dokploy/monitoring:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
-          platforms: linux/amd64
