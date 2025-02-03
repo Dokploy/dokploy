@@ -131,54 +131,59 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	return (
 		<>
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between flex-wrap	 gap-2">
 				<h2 className="text-2xl font-bold tracking-tight">
 					Container Monitoring
 				</h2>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground">Data points:</span>
-					<Select
-						value={dataPoints}
-						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
-							setDataPoints(value)
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select points" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<span className="text-sm text-muted-foreground">
-						Refresh interval:
-					</span>
-					<Select
-						value={refreshInterval}
-						onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
-							setRefreshInterval(value)
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select interval" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+				<div className="flex items-center gap-4 flex-wrap">
+					<div>
+						<span className="text-sm text-muted-foreground">Data points:</span>
+						<Select
+							value={dataPoints}
+							onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
+								setDataPoints(value)
+							}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Select points" />
+							</SelectTrigger>
+							<SelectContent>
+								{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div>
+						<span className="text-sm text-muted-foreground">
+							Refresh interval:
+						</span>
+						<Select
+							value={refreshInterval}
+							onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
+								setRefreshInterval(value)
+							}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Select interval" />
+							</SelectTrigger>
+							<SelectContent>
+								{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid gap-4 md:grid-cols-4">
+			<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<Cpu className="h-4 w-4 text-muted-foreground" />
@@ -236,13 +241,13 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 					</div>
 					<div>
 						<h4 className="text-sm font-medium text-muted-foreground">Name</h4>
-						<p className="mt-1">{metrics.Name}</p>
+						<p className="mt-1 truncate">{metrics.Name}</p>
 					</div>
 				</div>
 			</Card>
 
 			{/* Charts Grid */}
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+			<div className="grid gap-4 grid-cols-1 md:grid-cols-1 xl:grid-cols-2">
 				<ContainerCPUChart data={historicalData} />
 				<ContainerMemoryChart data={historicalData} />
 				<ContainerBlockChart data={historicalData} />

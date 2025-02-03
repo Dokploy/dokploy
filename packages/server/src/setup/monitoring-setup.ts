@@ -1,11 +1,11 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
+import { IS_CLOUD } from "../constants";
 import { findAdminById } from "../services/admin";
 import { getDokployImageTag } from "../services/settings";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
-import { IS_CLOUD } from "../constants";
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
