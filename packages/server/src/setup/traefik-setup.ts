@@ -189,10 +189,12 @@ export const getDefaultTraefikConfig = () => {
 				: {
 						swarm: {
 							exposedByDefault: false,
-							watch: false,
+							watch: true,
 						},
 						docker: {
 							exposedByDefault: false,
+							watch: true,
+							network: "dokploy-network",
 						},
 					}),
 			file: {
@@ -243,10 +245,12 @@ export const getDefaultServerTraefikConfig = () => {
 		providers: {
 			swarm: {
 				exposedByDefault: false,
-				watch: false,
+				watch: true,
 			},
 			docker: {
 				exposedByDefault: false,
+				watch: true,
+				network: "dokploy-network",
 			},
 			file: {
 				directory: "/etc/dokploy/traefik/dynamic",

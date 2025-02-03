@@ -451,7 +451,7 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		const admin = await findAdminById(application.project.adminId);
@@ -564,7 +564,7 @@ export const deployRemotePreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
@@ -577,6 +577,8 @@ export const deployRemotePreviewApplication = async ({
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
 					...application,
+					appName: previewDeployment.appName,
+					branch: previewDeployment.branch,
 					serverId: application.serverId,
 					logPath: deployment.logPath,
 				});

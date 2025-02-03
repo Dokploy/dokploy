@@ -52,14 +52,15 @@ CACHE_CONFIG = {
   "CACHE_REDIS_HOST": "redis",
   "CACHE_REDIS_PORT": 6379,
   "CACHE_REDIS_DB": 1,
-  "CACHE_REDIS_URL": f"redis://:{os.getenv('REDIS_PASSWORD')}@redis:6379/1",
+  "CACHE_REDIS_URL": f"redis://:{os.getenv('REDIS_PASSWORD')}@{os.getenv('REDIS_HOST')}:6379/1",
 }
 
 FILTER_STATE_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_filter_"}
 EXPLORE_FORM_DATA_CACHE_CONFIG = {**CACHE_CONFIG, "CACHE_KEY_PREFIX": "superset_explore_form_"}
 
 SQLALCHEMY_TRACK_MODIFICATIONS = True
-SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/{os.getenv('POSTGRES_DB')}"
+SQLALCHEMY_DATABASE_URI = f"postgresql+psycopg2://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:5432/{os.getenv('POSTGRES_DB')}"
+
 # Uncomment if you want to load example data (using "superset load_examples") at the
 # same location as your metadata postgresql instance. Otherwise, the default sqlite
 # will be used, which will not persist in volume when restarting superset by default.
