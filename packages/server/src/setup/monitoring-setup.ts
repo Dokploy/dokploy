@@ -9,7 +9,7 @@ export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
 
 	const containerName = "mauricio-monitoring";
-	const imageName = "siumauricio/monitoring:canary";
+	const imageName = "dokploy/monitoring:canary";
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
@@ -74,7 +74,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 	const admin = await findAdminById(adminId);
 
 	const containerName = "mauricio-monitoring";
-	const imageName = "siumauricio/monitoring:canary";
+	const imageName = "dokploy/monitoring:canary";
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
