@@ -343,7 +343,7 @@ export async function getServerSideProps(
 			await helpers.mariadb.one.fetch({
 				mariadbId: params?.mariadbId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

@@ -394,7 +394,7 @@ export async function getServerSideProps(
 			await helpers.compose.one.fetch({
 				composeId: params?.composeId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
