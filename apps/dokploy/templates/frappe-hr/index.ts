@@ -24,6 +24,8 @@ export function generate(schema: Schema): Template {
 		`ADMIN_PASSWORD=${adminPassword}`,
 		`DB_ROOT_PASSWORD=${dbRootPassword}`,
 		"MIGRATE=1",
+		"ENABLE_DB=1",
+		"DB_HOST=db",
 		"CREATE_SITE=1",
 		"CONFIGURE=1",
 		"REGENERATE_APPS_TXT=1",
