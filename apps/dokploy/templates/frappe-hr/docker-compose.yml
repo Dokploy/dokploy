@@ -343,6 +343,10 @@ volumes:
   redis-queue-data:
   redis-socketio-data:
   sites:
+    driver_opts:
+      type: "${SITE_VOLUME_TYPE}"
+      o: "${SITE_VOLUME_OPTS}"
+      device: "${SITE_VOLUME_DEV}"
 
 networks:
   bench-network:
