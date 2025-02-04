@@ -210,7 +210,7 @@ services:
     entrypoint: ["bash", "-c"]
     command:
       - >
-        wait-for-it -t 120 db:3306;
+        wait-for-it -t 120 $$DB_HOST:$$DB_PORT;
         wait-for-it -t 120 redis-cache:6379;
         wait-for-it -t 120 redis-queue:6379;
         export start=`date +%s`;
@@ -231,10 +231,12 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     environment:
+      SITE_NAME: ${SITE_NAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: "${DB_PORT:-3306}"
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       INSTALL_APP_ARGS: ${INSTALL_APP_ARGS}
-      SITE_NAME: ${SITE_NAME}
     networks:
       - bench-network
 
