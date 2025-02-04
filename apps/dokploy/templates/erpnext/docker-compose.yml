@@ -189,7 +189,7 @@ services:
         bench set-config -g redis_socketio "redis://$$REDIS_QUEUE";
         bench set-config -gp socketio_port $$SOCKETIO_PORT;
     environment:
-      DB_HOST: db
+      DB_HOST: "${DB_HOST:-db}"
       DB_PORT: "3306"
       REDIS_CACHE: redis-cache:6379
       REDIS_QUEUE: redis-queue:6379
@@ -210,7 +210,7 @@ services:
     entrypoint: ["bash", "-c"]
     command:
       - >
-        wait-for-it -t 120 db:3306;
+        wait-for-it -t 120 $$DB_HOST:$$DB_PORT;
         wait-for-it -t 120 redis-cache:6379;
         wait-for-it -t 120 redis-queue:6379;
         export start=`date +%s`;
@@ -231,10 +231,12 @@ services:
     volumes:
       - sites:/home/frappe/frappe-bench/sites
     environment:
+      SITE_NAME: ${SITE_NAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: "${DB_PORT:-3306}"
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       INSTALL_APP_ARGS: ${INSTALL_APP_ARGS}
-      SITE_NAME: ${SITE_NAME}
     networks:
       - bench-network
 
@@ -262,6 +264,8 @@ services:
   db:
     image: mariadb:10.6
     deploy:
+      mode: replicated
+      replicas: ${ENABLE_DB:-0}
       restart_policy:
         condition: always
     healthcheck:
@@ -341,6 +345,10 @@ volumes:
   redis-queue-data:
   redis-socketio-data:
   sites:
+    driver_opts:
+      type: "${SITE_VOLUME_TYPE}"
+      o: "${SITE_VOLUME_OPTS}"
+      device: "${SITE_VOLUME_DEV}"
 
 networks:
   bench-network:
