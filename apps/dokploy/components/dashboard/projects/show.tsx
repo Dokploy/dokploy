@@ -1,5 +1,6 @@
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -176,8 +177,11 @@ export const ShowProjects = () => {
 																					<div key={app.applicationId}>
 																						<DropdownMenuSeparator />
 																						<DropdownMenuGroup>
-																							<DropdownMenuLabel className="font-normal capitalize text-xs">
+																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
 																								{app.name}
+																								<StatusTooltip
+																									status={app.applicationStatus}
+																								/>
 																							</DropdownMenuLabel>
 																							<DropdownMenuSeparator />
 																							{app.domains.map((domain) => (
@@ -209,8 +213,11 @@ export const ShowProjects = () => {
 																					<div key={comp.composeId}>
 																						<DropdownMenuSeparator />
 																						<DropdownMenuGroup>
-																							<DropdownMenuLabel className="font-normal capitalize text-xs">
+																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
 																								{comp.name}
+																								<StatusTooltip
+																									status={comp.composeStatus}
+																								/>
 																							</DropdownMenuLabel>
 																							<DropdownMenuSeparator />
 																							{comp.domains.map((domain) => (

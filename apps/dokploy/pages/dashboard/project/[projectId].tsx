@@ -13,6 +13,7 @@ import {
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -50,22 +52,27 @@ import type { findProjectById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
+	Ban,
+	Check,
+	CheckCircle2,
+	ChevronsUpDown,
 	CircuitBoard,
 	FolderInput,
 	GlobeIcon,
 	Loader2,
 	PlusIcon,
 	Search,
+	X,
 } from "lucide-react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import React, { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import superjson from "superjson";
+import { toast } from "sonner";
 
 export type Services = {
 	appName: string;
@@ -201,7 +208,7 @@ const Project = (
 			enabled: !!auth?.id && auth?.rol === "user",
 		},
 	);
-	const { data, isLoading } = api.project.one.useQuery({ projectId });
+	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
 	const router = useRouter();
 
 	const emptyServices =
@@ -228,6 +235,66 @@ const Project = (
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 	const [openCombobox, setOpenCombobox] = useState(false);
+	const [selectedServices, setSelectedServices] = useState<string[]>([]);
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+	const handleSelectAll = () => {
+		if (selectedServices.length === filteredServices.length) {
+			setSelectedServices([]);
+		} else {
+			setSelectedServices(filteredServices.map((service) => service.id));
+		}
+	};
+
+	const handleServiceSelect = (serviceId: string, event: React.MouseEvent) => {
+		event.stopPropagation();
+		setSelectedServices((prev) =>
+			prev.includes(serviceId)
+				? prev.filter((id) => id !== serviceId)
+				: [...prev, serviceId],
+		);
+	};
+
+	const composeActions = {
+		start: api.compose.start.useMutation(),
+		stop: api.compose.stop.useMutation(),
+	};
+
+	const handleBulkStart = async () => {
+		let success = 0;
+		for (const serviceId of selectedServices) {
+			try {
+				await composeActions.start.mutateAsync({ composeId: serviceId });
+				success++;
+			} catch (error) {
+				toast.error(`Error starting service ${serviceId}`);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services started successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+	};
+
+	const handleBulkStop = async () => {
+		let success = 0;
+		for (const serviceId of selectedServices) {
+			try {
+				await composeActions.stop.mutateAsync({ composeId: serviceId });
+				success++;
+			} catch (error) {
+				toast.error(`Error stopping service ${serviceId}`);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services stopped successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+	};
 
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
@@ -309,78 +376,150 @@ const Project = (
 								</div>
 							) : (
 								<>
-									<div className="flex flex-row gap-2 items-center">
-										<div className="w-full relative">
-											<Input
-												placeholder="Filter services..."
-												value={searchQuery}
-												onChange={(e) => setSearchQuery(e.target.value)}
-												className="pr-10"
-											/>
-											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+									<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+										<div className="flex items-center gap-4">
+											<div className="flex items-center gap-2">
+												<Checkbox
+													checked={selectedServices.length > 0}
+													className={cn(
+														"data-[state=checked]:bg-primary",
+														selectedServices.length > 0 &&
+															selectedServices.length <
+																filteredServices.length &&
+															"bg-primary/50",
+													)}
+													onCheckedChange={handleSelectAll}
+												/>
+												<span className="text-sm">
+													Select All{" "}
+													{selectedServices.length > 0 &&
+														`(${selectedServices.length}/${filteredServices.length})`}
+												</span>
+											</div>
+
+											<DropdownMenu
+												open={isDropdownOpen}
+												onOpenChange={setIsDropdownOpen}
+											>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="outline"
+														disabled={selectedServices.length === 0}
+													>
+														Bulk Actions
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuLabel>Actions</DropdownMenuLabel>
+													<DropdownMenuSeparator />
+													<DialogAction
+														title="Start Services"
+														description={`Are you sure you want to start ${selectedServices.length} services?`}
+														type="default"
+														onClick={handleBulkStart}
+													>
+														<Button
+															variant="ghost"
+															className="w-full justify-start"
+														>
+															<CheckCircle2 className="mr-2 h-4 w-4" />
+															Start
+														</Button>
+													</DialogAction>
+													<DialogAction
+														title="Stop Services"
+														description={`Are you sure you want to stop ${selectedServices.length} services?`}
+														type="destructive"
+														onClick={handleBulkStop}
+													>
+														<Button
+															variant="ghost"
+															className="w-full justify-start text-destructive"
+														>
+															<Ban className="mr-2 h-4 w-4" />
+															Stop
+														</Button>
+													</DialogAction>
+												</DropdownMenuContent>
+											</DropdownMenu>
 										</div>
-										<Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-											<PopoverTrigger asChild>
-												<Button
-													variant="outline"
-													aria-expanded={openCombobox}
-													className="min-w-[200px] justify-between"
-												>
-													{selectedTypes.length === 0
-														? "Select types..."
-														: `${selectedTypes.length} selected`}
-													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-												</Button>
-											</PopoverTrigger>
-											<PopoverContent className="w-[200px] p-0">
-												<Command>
-													<CommandInput placeholder="Search type..." />
-													<CommandEmpty>No type found.</CommandEmpty>
-													<CommandGroup>
-														{serviceTypes.map((type) => (
+
+										<div className="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center">
+											<div className="w-full relative">
+												<Input
+													placeholder="Filter services..."
+													value={searchQuery}
+													onChange={(e) => setSearchQuery(e.target.value)}
+													className="pr-10"
+												/>
+												<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+											</div>
+											<Popover
+												open={openCombobox}
+												onOpenChange={setOpenCombobox}
+											>
+												<PopoverTrigger asChild>
+													<Button
+														variant="outline"
+														aria-expanded={openCombobox}
+														className="min-w-[200px] justify-between"
+													>
+														{selectedTypes.length === 0
+															? "Select types..."
+															: `${selectedTypes.length} selected`}
+														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent className="w-[200px] p-0">
+													<Command>
+														<CommandInput placeholder="Search type..." />
+														<CommandEmpty>No type found.</CommandEmpty>
+														<CommandGroup>
+															{serviceTypes.map((type) => (
+																<CommandItem
+																	key={type.value}
+																	onSelect={() => {
+																		setSelectedTypes((prev) =>
+																			prev.includes(type.value)
+																				? prev.filter((t) => t !== type.value)
+																				: [...prev, type.value],
+																		);
+																		setOpenCombobox(false);
+																	}}
+																>
+																	<div className="flex flex-row">
+																		<Check
+																			className={cn(
+																				"mr-2 h-4 w-4",
+																				selectedTypes.includes(type.value)
+																					? "opacity-100"
+																					: "opacity-0",
+																			)}
+																		/>
+																		{type.icon && (
+																			<type.icon className="mr-2 h-4 w-4" />
+																		)}
+																		{type.label}
+																	</div>
+																</CommandItem>
+															))}
 															<CommandItem
-																key={type.value}
 																onSelect={() => {
-																	setSelectedTypes((prev) =>
-																		prev.includes(type.value)
-																			? prev.filter((t) => t !== type.value)
-																			: [...prev, type.value],
-																	);
+																	setSelectedTypes([]);
 																	setOpenCombobox(false);
 																}}
+																className="border-t"
 															>
-																<div className="flex flex-row">
-																	<Check
-																		className={cn(
-																			"mr-2 h-4 w-4",
-																			selectedTypes.includes(type.value)
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
-																	{type.icon && (
-																		<type.icon className="mr-2 h-4 w-4" />
-																	)}
-																	{type.label}
+																<div className="flex flex-row items-center">
+																	<X className="mr-2 h-4 w-4" />
+																	Clear filters
 																</div>
 															</CommandItem>
-														))}
-														<CommandItem
-															onSelect={() => {
-																setSelectedTypes([]);
-																setOpenCombobox(false);
-															}}
-															className="border-t"
-														>
-															<div className="flex flex-row items-center">
-																<X className="mr-2 h-4 w-4" />
-																Clear filters
-															</div>
-														</CommandItem>
-													</CommandGroup>
-												</Command>
-											</PopoverContent>
-										</Popover>
+														</CommandGroup>
+													</Command>
+												</PopoverContent>
+											</Popover>
+										</div>
 									</div>
 
 									<div className="flex w-full gap-8">
@@ -416,6 +555,27 @@ const Project = (
 														>
 															<div className="absolute -right-1 -top-2">
 																<StatusTooltip status={service.status} />
+															</div>
+
+															<div
+																className={cn(
+																	"absolute -left-3 -bottom-3 size-9 translate-y-1 rounded-full p-0 transition-all duration-200 z-10 bg-background border",
+																	selectedServices.includes(service.id)
+																		? "opacity-100 translate-y-0"
+																		: "opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
+																)}
+																onClick={(e) =>
+																	handleServiceSelect(service.id, e)
+																}
+															>
+																<div className="h-full w-full flex items-center justify-center">
+																	<Checkbox
+																		checked={selectedServices.includes(
+																			service.id,
+																		)}
+																		className="data-[state=checked]:bg-primary"
+																	/>
+																</div>
 															</div>
 
 															<CardHeader>
