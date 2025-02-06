@@ -34,9 +34,12 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
 
-		await execAsync(
-			`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}`,
-		);
+		if (compose.deployable) {
+			await execAsync(
+				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}`,
+			);
+		}
+
 		const logContent = `
     App Name: ${appName}
     Build Compose 🐳
@@ -76,9 +79,11 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 			},
 		);
 
-		await execAsync(
-			`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
-		);
+		if (compose.deployable) {
+			await execAsync(
+				`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
+			);
+		}
 
 		writeStream.write("Docker Compose Deployed: ✅");
 	} catch (error) {
@@ -135,9 +140,10 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-    ${exportEnvCommand}
-
+        ${exportEnvCommand}
+		${compose.deployable ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
+		${compose.deployable ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
 		echo "Docker Compose Deployed: ✅" >> "${logPath}"
 	} || {
