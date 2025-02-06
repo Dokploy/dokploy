@@ -36,6 +36,8 @@ services:
   app:
     restart: unless-stopped
     image: listmonk/listmonk:v4.1.0
+    networks:
+      - dokploy-network
     environment:
       - TZ=Etc/UTC
     depends_on:
