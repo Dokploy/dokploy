@@ -77,7 +77,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		);
 
 		await execAsync(
-			`docker network connect tes-umami-e842bc $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
+			`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
 		);
 
 		writeStream.write("Docker Compose Deployed: ✅");
