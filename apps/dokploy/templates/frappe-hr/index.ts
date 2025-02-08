@@ -29,8 +29,8 @@ export function generate(schema: Schema): Template {
 		"CREATE_SITE=1",
 		"CONFIGURE=1",
 		"REGENERATE_APPS_TXT=1",
-		"INSTALL_APP_ARGS=--install-app erpnext",
-		"IMAGE_NAME=docker.io/frappe/erpnext",
+		"INSTALL_APP_ARGS=--install-app hrms",
+		"IMAGE_NAME=ghcr.io/frappe/hrms",
 		"VERSION=version-15",
 		"FRAPPE_SITE_NAME_HEADER=",
 	];

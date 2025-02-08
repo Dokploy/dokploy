@@ -1,5 +1,5 @@
 x-custom-image: &custom_image
-  image: ${IMAGE_NAME:-docker.io/frappe/erpnext}:${VERSION:-version-15}
+  image: ${IMAGE_NAME:-ghcr.io/frappe/hrms}:${VERSION:-version-15}
   pull_policy: ${PULL_POLICY:-always}
   deploy:
     restart_policy:
