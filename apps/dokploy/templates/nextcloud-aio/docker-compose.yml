@@ -2,8 +2,7 @@ services:
   nextcloud:
     image: nextcloud:30.0.2
     restart: always
-    networks:
-      - dokploy-network
+
     ports:
       - 80
     volumes:
@@ -19,8 +18,7 @@ services:
   nextcloud_db:
     image: mariadb
     restart: always
-    networks:
-      - dokploy-network
+
     volumes:
       - nextcloud_db_data:/var/lib/mysql
     environment:

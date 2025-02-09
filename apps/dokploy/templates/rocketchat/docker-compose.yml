@@ -28,8 +28,7 @@ services:
       MONGODB_ADVERTISED_HOSTNAME: mongodb
       MONGODB_ENABLE_JOURNAL: true
       ALLOW_EMPTY_PASSWORD: yes
-    networks:
-      - dokploy-network
+
 
 volumes:
   mongodb_data: { driver: local }

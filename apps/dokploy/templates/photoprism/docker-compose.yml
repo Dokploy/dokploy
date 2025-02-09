@@ -7,8 +7,7 @@ services:
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined
-    networks:
-      - dokploy-network
+
     environment:
       PHOTOPRISM_ADMIN_USER: "admin"
       PHOTOPRISM_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
@@ -57,8 +56,7 @@ services:
     image: mariadb:11
     restart: unless-stopped
     stop_grace_period: 5s
-    networks:
-      - dokploy-network
+
     security_opt:
       - seccomp:unconfined
       - apparmor:unconfined

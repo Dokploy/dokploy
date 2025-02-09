@@ -9,8 +9,7 @@ services:
       - ROUNDCUBEMAIL_SKIN=elastic
       - ROUNDCUBEMAIL_DEFAULT_HOST=${DEFAULT_HOST}
       - ROUNDCUBEMAIL_SMTP_SERVER=${SMTP_SERVER}
-    networks:
-      - dokploy-network
+
 
 networks:
   dokploy-network:

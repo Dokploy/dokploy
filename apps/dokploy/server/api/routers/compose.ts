@@ -415,6 +415,7 @@ export const composeRouter = createTRPCRouter({
 				name: input.id,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
+				isolatedDeployment: true,
 			});
 
 			if (ctx.user.rol === "user") {

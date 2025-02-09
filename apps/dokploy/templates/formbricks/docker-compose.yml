@@ -18,8 +18,7 @@ services:
       - postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
-    networks:
-      - dokploy-network
+
 
   formbricks:
     restart: always

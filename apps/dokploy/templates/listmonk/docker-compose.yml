@@ -3,8 +3,7 @@ services:
     image: postgres:17-alpine
     ports:
       - 5432
-    networks:
-      - dokploy-network
+
     environment:
       - POSTGRES_PASSWORD=listmonk
       - POSTGRES_USER=listmonk
@@ -20,8 +19,7 @@ services:
 
   setup:
     image: listmonk/listmonk:v4.1.0
-    networks:
-      - dokploy-network
+
     volumes:
       - ../files/config.toml:/listmonk/config.toml
     depends_on:
