@@ -198,6 +198,7 @@ export const extractServices = (data: Project | undefined) => {
 const Project = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: user } = api.user.byAuthId.useQuery(
@@ -262,6 +263,7 @@ const Project = (
 
 	const handleBulkStart = async () => {
 		let success = 0;
+		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
 				await composeActions.start.mutateAsync({ composeId: serviceId });
@@ -274,12 +276,14 @@ const Project = (
 			toast.success(`${success} services started successfully`);
 			refetch();
 		}
+		setIsBulkActionLoading(false);
 		setSelectedServices([]);
 		setIsDropdownOpen(false);
 	};
 
 	const handleBulkStop = async () => {
 		let success = 0;
+		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
 				await composeActions.stop.mutateAsync({ composeId: serviceId });
@@ -294,6 +298,7 @@ const Project = (
 		}
 		setSelectedServices([]);
 		setIsDropdownOpen(false);
+		setIsBulkActionLoading(false);
 	};
 
 	const filteredServices = useMemo(() => {
@@ -405,6 +410,7 @@ const Project = (
 													<Button
 														variant="outline"
 														disabled={selectedServices.length === 0}
+														isLoading={isBulkActionLoading}
 													>
 														Bulk Actions
 													</Button>
