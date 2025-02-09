@@ -58,7 +58,11 @@ export const getContainers = async (serverId?: string | null) => {
 					serverId,
 				};
 			})
-			.filter((container) => !container.name.includes("dokploy"));
+			.filter(
+				(container) =>
+					!container.name.includes("dokploy") ||
+					container.name.includes("dokploy-monitoring"),
+			);
 
 		return containers;
 	} catch (error) {

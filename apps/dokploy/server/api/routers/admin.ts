@@ -22,6 +22,7 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -169,4 +170,121 @@ export const adminRouter = createTRPCRouter({
 			metricsConfig: admin?.metricsConfig,
 		};
 	}),
+
+	getServerMetrics: protectedProcedure
+		.input(
+			z.object({
+				url: z.string(),
+				token: z.string(),
+				dataPoints: z.string(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			try {
+				const url = new URL(input.url);
+				url.searchParams.append("limit", input.dataPoints);
+				const response = await fetch(url.toString(), {
+					headers: {
+						Authorization: `Bearer ${input.token}`,
+					},
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
+					);
+				}
+
+				const data = await response.json();
+				if (!Array.isArray(data) || data.length === 0) {
+					throw new Error(
+						[
+							"No monitoring data available. This could be because:",
+							"",
+							"1. You don't have setup the monitoring service, you can do in web server section.",
+							"2. If you already have setup the monitoring service, wait a few minutes and refresh the page.",
+						].join("\n"),
+					);
+				}
+				return data as {
+					cpu: string;
+					cpuModel: string;
+					cpuCores: number;
+					cpuPhysicalCores: number;
+					cpuSpeed: number;
+					os: string;
+					distro: string;
+					kernel: string;
+					arch: string;
+					memUsed: string;
+					memUsedGB: string;
+					memTotal: string;
+					uptime: number;
+					diskUsed: string;
+					totalDisk: string;
+					networkIn: string;
+					networkOut: string;
+					timestamp: string;
+				}[];
+			} catch (error) {
+				throw error;
+			}
+		}),
+	getContainerMetrics: protectedProcedure
+		.input(
+			z.object({
+				url: z.string(),
+				token: z.string(),
+				appName: z.string(),
+				dataPoints: z.string(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			try {
+				if (!input.appName) {
+					throw new Error(
+						[
+							"No Application Selected:",
+							"",
+							"Make Sure to select an application to monitor.",
+						].join("\n"),
+					);
+				}
+				const url = new URL(`${input.url}/metrics/containers`);
+				url.searchParams.append("limit", input.dataPoints);
+				url.searchParams.append("appName", input.appName);
+				const response = await fetch(url.toString(), {
+					headers: {
+						Authorization: `Bearer ${input.token}`,
+					},
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Error ${response.status}: ${response.statusText}. Please verify that the application "${input.appName}" is running and this service is included in the monitoring configuration.`,
+					);
+				}
+
+				const data = await response.json();
+				if (!Array.isArray(data) || data.length === 0) {
+					throw new Error(
+						[
+							`No monitoring data available for "${input.appName}". This could be because:`,
+							"",
+							"1. The container was recently started - wait a few minutes for data to be collected",
+							"2. The container is not running - verify its status",
+							"3. The service is not included in your monitoring configuration",
+						].join("\n"),
+					);
+				}
+				return data as {
+					containerId: string;
+					containerName: string;
+					containerImage: string;
+					containerLabels: string;
+					containerCommand: string;
+					containerCreated: string;
+				}[];
+			} catch (error) {
+				throw error;
+			}
+		}),
 });

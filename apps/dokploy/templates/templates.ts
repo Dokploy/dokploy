@@ -1454,6 +1454,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./shlink/index").then((m) => m.generate),
 	},
 	{
+		id: "frappe-hr",
+		name: "Frappe HR",
+		version: "version-15",
+		description:
+			"Feature rich HR & Payroll software. 100% FOSS and customizable.",
+		logo: "frappe-hr.svg",
+		links: {
+			github: "https://github.com/frappe/hrms",
+			docs: "https://docs.frappe.io/hr",
+			website: "https://frappe.io/hr",
+		},
+		tags: ["hrms", "payroll", "leaves", "expenses", "attendance", "performace"],
+		load: () => import("./frappe-hr/index").then((m) => m.generate),
+  },
+    {
 		id: "formbricks",
 		name: "Formbricks",
 		version: "v3.1.3",
@@ -1467,5 +1482,6 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forms", "analytics"],
 		load: () => import("./formbricks/index").then((m) => m.generate),
+
 	},
 ];

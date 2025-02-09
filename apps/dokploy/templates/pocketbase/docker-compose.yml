@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   pocketbase:
-    image: spectado/pocketbase:0.25.0
+    image: spectado/pocketbase:0.23.3
     restart: unless-stopped
     volumes:
       - /etc/dokploy/templates/${HASH}/data:/pb_data

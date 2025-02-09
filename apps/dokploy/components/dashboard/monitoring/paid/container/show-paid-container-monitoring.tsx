@@ -6,6 +6,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { api } from "@/utils/api";
 import { Cpu, HardDrive, Loader2, MemoryStick, Network } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ContainerBlockChart } from "./container-block-chart";
@@ -70,84 +71,36 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	const [metrics, setMetrics] = useState<ContainerMetric>(
 		{} as ContainerMetric,
 	);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [dataPoints, setDataPoints] =
 		useState<keyof typeof DATA_POINTS_OPTIONS>("50");
 	const [refreshInterval, setRefreshInterval] = useState<string>("5000");
 
-	const fetchMetrics = async () => {
-		try {
-			const url = new URL(`${baseUrl}/metrics/containers`);
-
-			// if (dataPoints !== "all") {
-			url.searchParams.append("limit", dataPoints);
-			// }
-
-			if (!appName) {
-				throw new Error(
-					[
-						"No Application Selected:",
-						"",
-						"Make Sure to select an application to monitor.",
-					].join("\n"),
-				);
-			}
-
-			url.searchParams.append("appName", appName);
-
-			const response = await fetch(url.toString(), {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`Error ${response.status}: ${response.statusText}. Please verify that the application "${appName}" is running and this service is included in the monitoring configuration.`,
-				);
-			}
-
-			const data = await response.json();
-			if (!Array.isArray(data) || data.length === 0) {
-				throw new Error(
-					[
-						`No monitoring data available for "${appName}". This could be because:`,
-						"",
-						"1. The container was recently started - wait a few minutes for data to be collected",
-						"2. The container is not running - verify its status",
-						"3. The service is not included in your monitoring configuration",
-					].join("\n"),
-				);
-			}
-
-			setHistoricalData(data);
-			setMetrics(data[data.length - 1]);
-			setError(null);
-		} catch (err) {
-			setError(
-				err instanceof Error
-					? err.message
-					: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly.",
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+	const {
+		data,
+		isLoading,
+		error: queryError,
+	} = api.admin.getContainerMetrics.useQuery(
+		{
+			url: baseUrl,
+			token,
+			dataPoints,
+			appName,
+		},
+		{
+			refetchInterval:
+				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
+			enabled: !!appName,
+		},
+	);
 
 	useEffect(() => {
-		fetchMetrics();
+		if (!data) return;
 
-		if (dataPoints === "all") {
-			return;
-		}
-
-		const interval = setInterval(() => {
-			fetchMetrics();
-		}, Number(refreshInterval));
-
-		return () => clearInterval(interval);
-	}, [dataPoints, appName, token, refreshInterval]);
+		// @ts-ignore
+		setHistoricalData(data);
+		// @ts-ignore
+		setMetrics(data[data.length - 1]);
+	}, [data]);
 
 	if (isLoading) {
 		return (
@@ -157,7 +110,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		);
 	}
 
-	if (error) {
+	if (queryError) {
 		return (
 			<div className="mt-5 flex min-h-[55vh] w-full items-center justify-center p-4">
 				<div className="max-w-xl text-center">
@@ -166,7 +119,9 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<strong className="text-primary">{appName}</strong>
 					</p>
 					<p className="whitespace-pre-line text-sm text-destructive">
-						{error}
+						{queryError instanceof Error
+							? queryError.message
+							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
 					<p className=" text-sm text-muted-foreground">URL: {baseUrl}</p>
 				</div>
@@ -176,54 +131,59 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 
 	return (
 		<>
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between flex-wrap	 gap-2">
 				<h2 className="text-2xl font-bold tracking-tight">
 					Container Monitoring
 				</h2>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground">Data points:</span>
-					<Select
-						value={dataPoints}
-						onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
-							setDataPoints(value)
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select points" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<span className="text-sm text-muted-foreground">
-						Refresh interval:
-					</span>
-					<Select
-						value={refreshInterval}
-						onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
-							setRefreshInterval(value)
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Select interval" />
-						</SelectTrigger>
-						<SelectContent>
-							{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
-								<SelectItem key={value} value={value}>
-									{label}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+				<div className="flex items-center gap-4 flex-wrap">
+					<div>
+						<span className="text-sm text-muted-foreground">Data points:</span>
+						<Select
+							value={dataPoints}
+							onValueChange={(value: keyof typeof DATA_POINTS_OPTIONS) =>
+								setDataPoints(value)
+							}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Select points" />
+							</SelectTrigger>
+							<SelectContent>
+								{Object.entries(DATA_POINTS_OPTIONS).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div>
+						<span className="text-sm text-muted-foreground">
+							Refresh interval:
+						</span>
+						<Select
+							value={refreshInterval}
+							onValueChange={(value: keyof typeof REFRESH_INTERVALS) =>
+								setRefreshInterval(value)
+							}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Select interval" />
+							</SelectTrigger>
+							<SelectContent>
+								{Object.entries(REFRESH_INTERVALS).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
 			</div>
 
 			{/* Stats Cards */}
-			<div className="grid gap-4 md:grid-cols-4">
+			<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
 				<Card className="p-6 bg-transparent">
 					<div className="flex items-center gap-2">
 						<Cpu className="h-4 w-4 text-muted-foreground" />
@@ -238,11 +198,11 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<h3 className="text-sm font-medium">Memory Usage</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
-						{metrics.Memory.percentage}%
+						{metrics?.Memory?.percentage}%
 					</p>
 					<p className="mt-1 text-sm text-muted-foreground">
-						{metrics.Memory.used} {metrics.Memory.unit} / {metrics.Memory.total}{" "}
-						{metrics.Memory.unit}
+						{metrics?.Memory?.used} {metrics?.Memory?.unit} /{" "}
+						{metrics?.Memory?.total} {metrics?.Memory?.unit}
 					</p>
 				</Card>
 
@@ -252,8 +212,8 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<h3 className="text-sm font-medium">Network I/O</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
-						{metrics.Network.input} {metrics.Network.inputUnit} /{" "}
-						{metrics.Network.output} {metrics.Network.outputUnit}
+						{metrics?.Network?.input} {metrics?.Network?.inputUnit} /{" "}
+						{metrics?.Network?.output} {metrics?.Network?.outputUnit}
 					</p>
 				</Card>
 
@@ -263,8 +223,8 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 						<h3 className="text-sm font-medium">Block I/O</h3>
 					</div>
 					<p className="mt-2 text-2xl font-bold">
-						{metrics.BlockIO.read} {metrics.BlockIO.readUnit} /{" "}
-						{metrics.BlockIO.write} {metrics.BlockIO.writeUnit}
+						{metrics?.BlockIO?.read} {metrics?.BlockIO?.readUnit} /{" "}
+						{metrics?.BlockIO?.write} {metrics?.BlockIO?.writeUnit}
 					</p>
 				</Card>
 			</div>
@@ -281,13 +241,13 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 					</div>
 					<div>
 						<h4 className="text-sm font-medium text-muted-foreground">Name</h4>
-						<p className="mt-1">{metrics.Name}</p>
+						<p className="mt-1 truncate">{metrics.Name}</p>
 					</div>
 				</div>
 			</Card>
 
 			{/* Charts Grid */}
-			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+			<div className="grid gap-4 grid-cols-1 md:grid-cols-1 xl:grid-cols-2">
 				<ContainerCPUChart data={historicalData} />
 				<ContainerMemoryChart data={historicalData} />
 				<ContainerBlockChart data={historicalData} />

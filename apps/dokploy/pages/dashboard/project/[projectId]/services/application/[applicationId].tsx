@@ -399,6 +399,8 @@ export async function getServerSideProps(
 				applicationId: params?.applicationId,
 			});
 
+			await helpers.settings.isCloud.prefetch();
+
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

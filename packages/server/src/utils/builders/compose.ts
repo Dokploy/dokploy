@@ -154,7 +154,6 @@ const sanitizeCommand = (command: string) => {
 
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
-
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
@@ -163,7 +162,9 @@ export const createCommand = (compose: ComposeNested) => {
 		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 	let command = "";
 
-	if (composeType === "stack") {
+	if (composeType === "docker-compose") {
+		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
+	} else if (composeType === "stack") {
 		command = `stack deploy -c ${path} ${appName} --prune`;
 	}
 
