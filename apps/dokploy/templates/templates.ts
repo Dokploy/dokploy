@@ -1095,7 +1095,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "unsend",
 		name: "Unsend",
-		version: "v1.2.4",
+		version: "v1.3.2",
 		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
 		logo: "unsend.png",
 		links: {
