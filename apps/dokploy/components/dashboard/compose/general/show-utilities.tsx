@@ -1,6 +1,4 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IsolatedDeployment } from "./isolated-deployment";
-import { RandomizeCompose } from "./randomize-compose";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,8 +7,10 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { IsolatedDeployment } from "./isolated-deployment";
+import { RandomizeCompose } from "./randomize-compose";
 
 interface Props {
 	composeId: string;

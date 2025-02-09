@@ -14,8 +14,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
-import { RandomizeCompose } from "./randomize-compose";
 import { RandomizeDeployable } from "./isolated-deployment";
+import { RandomizeCompose } from "./randomize-compose";
 import { ShowUtilities } from "./show-utilities";
 
 interface Props {
