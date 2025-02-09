@@ -82,7 +82,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		if (compose.isolatedDeployment) {
 			await execAsync(
 				`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
-			);
+			).catch(() => {});
 		}
 
 		writeStream.write("Docker Compose Deployed: ✅");
