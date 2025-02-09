@@ -4,8 +4,7 @@ services:
     restart: always
     volumes:
       - evolution-instances:/evolution/instances
-    networks:
-      - dokploy-network
+
     environment:
       - SERVER_URL=${SERVER_URL}
       - AUTHENTICATION_TYPE=${AUTHENTICATION_TYPE}
@@ -36,8 +35,7 @@ services:
     restart: always
     volumes:
       - evolution-postgres-data:/var/lib/postgresql/data
-    networks:
-      - dokploy-network
+
     environment:
       - POSTGRES_DB=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USERNAME}
@@ -48,8 +46,7 @@ services:
     restart: always
     volumes:
       - evolution-redis-data:/data
-    networks:
-      - dokploy-network
+
 
 networks:
   dokploy-network:

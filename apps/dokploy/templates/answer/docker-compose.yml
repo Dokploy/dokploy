@@ -17,8 +17,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - dokploy-network
+
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:

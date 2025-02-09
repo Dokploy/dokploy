@@ -3,8 +3,7 @@ version: '3.7'
 services:
   discourse-db:
     image: docker.io/bitnami/postgresql:17
-    networks:
-      - dokploy-network
+
     volumes:
       - discourse-postgresql-data:/bitnami/postgresql
     environment:
@@ -20,8 +19,7 @@ services:
 
   discourse-redis:
     image: docker.io/bitnami/redis:7.4
-    networks:
-      - dokploy-network
+
     volumes:
       - discourse-redis-data:/bitnami/redis
     environment:
@@ -35,8 +33,7 @@ services:
 
   discourse-app:
     image: docker.io/bitnami/discourse:3.3.2
-    networks:
-      - dokploy-network
+
     volumes:
       - discourse-data:/bitnami/discourse
     depends_on:
@@ -63,8 +60,7 @@ services:
 
   discourse-sidekiq:
     image: docker.io/bitnami/discourse:3.3.2
-    networks:
-      - dokploy-network
+
     volumes:
       - discourse-sidekiq-data:/bitnami/discourse
     depends_on:

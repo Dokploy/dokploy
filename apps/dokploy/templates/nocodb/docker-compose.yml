@@ -13,8 +13,7 @@ services:
   root_db:
     image: postgres:17
     restart: always
-    networks:
-      - dokploy-network
+
     environment:
       POSTGRES_DB: root_db
       POSTGRES_PASSWORD: password

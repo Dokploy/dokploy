@@ -29,8 +29,7 @@ services:
     restart: unless-stopped
     depends_on:
       - unifi-db
-    networks:
-      - dokploy-network
+
 
   unifi-db:
     image: mongo:4.4
@@ -40,8 +39,7 @@ services:
     ports:
       - 27017
     restart: unless-stopped
-    networks:
-      - dokploy-network
+
 
 networks:
   dokploy-network:

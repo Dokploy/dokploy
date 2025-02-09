@@ -12,8 +12,6 @@ services:
 
   db:
     image: mysql:5.7.34
-    networks:
-      - dokploy-network
     environment:
       MYSQL_DATABASE: exampledb
       MYSQL_USER: exampleuser

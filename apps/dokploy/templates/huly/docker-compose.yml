@@ -2,8 +2,7 @@ name: ${DOCKER_NAME}
 version: "3"
 services:
   nginx:
-    networks:
-      - dokploy-network
+
     image: "nginx:1.21.3"
     ports:
       - 80
@@ -12,8 +11,7 @@ services:
     restart: unless-stopped
 
   mongodb:
-    networks:
-      - dokploy-network
+
     image: "mongo:7-jammy"
     environment:
       - PUID=1000
@@ -23,8 +21,7 @@ services:
     restart: unless-stopped
 
   minio:
-    networks:
-      - dokploy-network
+
     image: "minio/minio:RELEASE.2024-11-07T00-52-20Z"
     command: server /data --address ":9000" --console-address ":9001"
     volumes:
@@ -32,8 +29,7 @@ services:
     restart: unless-stopped
 
   elastic:
-    networks:
-      - dokploy-network
+
     image: "elasticsearch:7.14.2"
     command: |
       /bin/sh -c "./bin/elasticsearch-plugin list | grep -q ingest-attachment || yes | ./bin/elasticsearch-plugin install --silent ingest-attachment;
@@ -54,8 +50,7 @@ services:
     restart: unless-stopped
 
   rekoni:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/rekoni-service:${HULY_VERSION}
     environment:
       - SECRET=${SECRET}
@@ -66,8 +61,7 @@ services:
     restart: unless-stopped
 
   transactor:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/transactor:${HULY_VERSION}
     environment:
       - SERVER_PORT=3333
@@ -84,8 +78,7 @@ services:
     restart: unless-stopped
 
   collaborator:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/collaborator:${HULY_VERSION}
     environment:
       - COLLABORATOR_PORT=3078
@@ -97,8 +90,7 @@ services:
     restart: unless-stopped
 
   account:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/account:${HULY_VERSION}
     environment:
       - SERVER_PORT=3000
@@ -115,8 +107,7 @@ services:
     restart: unless-stopped
 
   workspace:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/workspace:${HULY_VERSION}
     environment:
       - SERVER_SECRET=${SECRET}
@@ -130,8 +121,7 @@ services:
     restart: unless-stopped
 
   front:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/front:${HULY_VERSION}
     environment:
       - SERVER_PORT=8080
@@ -156,8 +146,7 @@ services:
     restart: unless-stopped
 
   fulltext:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/fulltext:${HULY_VERSION}
     environment:
       - SERVER_SECRET=${SECRET}
@@ -171,8 +160,7 @@ services:
     restart: unless-stopped
 
   stats:
-    networks:
-      - dokploy-network
+
     image: hardcoreeng/stats:${HULY_VERSION}
     environment:
       - PORT=4900

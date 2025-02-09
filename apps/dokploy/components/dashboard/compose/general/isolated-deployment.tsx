@@ -13,13 +13,12 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
-	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Dices } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,18 +29,16 @@ interface Props {
 }
 
 const schema = z.object({
-	suffix: z.string(),
-	randomize: z.boolean().optional(),
+	isolatedDeployment: z.boolean().optional(),
 });
 
 type Schema = z.infer<typeof schema>;
 
-export const RandomizeCompose = ({ composeId }: Props) => {
+export const IsolatedDeployment = ({ composeId }: Props) => {
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
-	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } =
-		api.compose.randomizeCompose.useMutation();
+		api.compose.isolatedDeployment.useMutation();
 
 	const { mutateAsync: updateCompose } = api.compose.update.useMutation();
 
@@ -50,22 +47,20 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
+	console.log(data);
+
 	const form = useForm<Schema>({
 		defaultValues: {
-			suffix: "",
-			randomize: false,
+			isolatedDeployment: false,
 		},
 		resolver: zodResolver(schema),
 	});
-
-	const suffix = form.watch("suffix");
 
 	useEffect(() => {
 		randomizeCompose();
 		if (data) {
 			form.reset({
-				suffix: data?.suffix || "",
-				randomize: data?.randomize || false,
+				isolatedDeployment: data?.isolatedDeployment || false,
 			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
@@ -73,8 +68,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 	const onSubmit = async (formData: Schema) => {
 		await updateCompose({
 			composeId,
-			suffix: formData?.suffix || "",
-			randomize: formData?.randomize || false,
+			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
 			.then(async (data) => {
 				randomizeCompose();
@@ -82,50 +76,52 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 				toast.success("Compose updated");
 			})
 			.catch(() => {
-				toast.error("Error randomizing the compose");
+				toast.error("Error updating the compose");
 			});
 	};
 
 	const randomizeCompose = async () => {
 		await mutateAsync({
 			composeId,
-			suffix,
+			suffix: data?.appName || "",
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
 				setCompose(data);
-				toast.success("Compose randomized");
+				toast.success("Compose Isolated");
 			})
 			.catch(() => {
-				toast.error("Error randomizing the compose");
+				toast.error("Error isolating the compose");
 			});
 	};
 
 	return (
-		<div className="w-full">
+		<>
 			<DialogHeader>
-				<DialogTitle>Randomize Compose (Experimental)</DialogTitle>
+				<DialogTitle>Isolate Deployment</DialogTitle>
 				<DialogDescription>
-					Use this in case you want to deploy the same compose file and you have
-					conflicts with some property like volumes, networks, etc.
+					Use this option to isolate the deployment of this compose file.
 				</DialogDescription>
 			</DialogHeader>
 			<div className="text-sm text-muted-foreground flex flex-col gap-2">
 				<span>
-					This will randomize the compose file and will add a suffix to the
-					property to avoid conflicts
+					This feature creates an isolated environment for your deployment by
+					adding unique prefixes to all resources. It establishes a dedicated
+					network based on your compose file's name, ensuring your services run
+					in isolation. This prevents conflicts when running multiple instances
+					of the same template or services with identical names.
 				</span>
-				<ul className="list-disc list-inside">
-					<li>volumes</li>
-					<li>networks</li>
-					<li>services</li>
-					<li>configs</li>
-					<li>secrets</li>
-				</ul>
-				<AlertBlock type="info">
-					When you activate this option, we will include a env `COMPOSE_PREFIX`
-					variable to the compose file so you can use it in your compose file.
-				</AlertBlock>
+				<div className="space-y-4">
+					<div>
+						<h4 className="font-medium mb-2">
+							Resources that will be isolated:
+						</h4>
+						<ul className="list-disc list-inside">
+							<li>Docker volumes</li>
+							<li>Docker networks</li>
+						</ul>
+					</div>
+				</div>
 			</div>
 			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 			<Form {...form}>
@@ -147,29 +143,13 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 						<div>
 							<FormField
 								control={form.control}
-								name="suffix"
-								render={({ field }) => (
-									<FormItem className="flex flex-col justify-center max-sm:items-center w-full mt-4">
-										<FormLabel>Suffix</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Enter a suffix (Optional, example: prod)"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-							<FormField
-								control={form.control}
-								name="randomize"
+								name="isolatedDeployment"
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Apply Randomize</FormLabel>
+											<FormLabel>Enable Randomize ({data?.appName})</FormLabel>
 											<FormDescription>
-												Apply randomize to the compose file.
+												Enable randomize to the compose file.
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -191,28 +171,21 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 							>
 								Save
 							</Button>
-							<Button
-								type="button"
-								variant="secondary"
-								onClick={async () => {
-									await randomizeCompose();
-								}}
-								className="lg:w-fit"
-							>
-								Random
-							</Button>
 						</div>
 					</div>
-					<pre>
-						<CodeEditor
-							value={compose || ""}
-							language="yaml"
-							readOnly
-							height="50rem"
-						/>
-					</pre>
+					<div className="flex flex-col gap-4">
+						<Label>Preview</Label>
+						<pre>
+							<CodeEditor
+								value={compose || ""}
+								language="yaml"
+								readOnly
+								height="50rem"
+							/>
+						</pre>
+					</div>
 				</form>
 			</Form>
-		</div>
+		</>
 	);
 };
