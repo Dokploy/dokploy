@@ -26,6 +26,7 @@ import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
+import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
@@ -190,7 +191,13 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (compose.randomize) {
+	if (compose.isolatedDeployment) {
+		const randomized = randomizeDeployableSpecificationFile(
+			result,
+			compose.suffix || compose.appName,
+		);
+		result = randomized;
+	} else if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
@@ -240,14 +247,18 @@ export const addDomainToCompose = async (
 			labels.push(...httpLabels);
 		}
 
-		// Add the dokploy-network to the service
-		result.services[serviceName].networks = addDokployNetworkToService(
-			result.services[serviceName].networks,
-		);
+		if (!compose.isolatedDeployment) {
+			// Add the dokploy-network to the service
+			result.services[serviceName].networks = addDokployNetworkToService(
+				result.services[serviceName].networks,
+			);
+		}
 	}
 
 	// Add dokploy-network to the root of the compose file
-	result.networks = addDokployNetworkToRoot(result.networks);
+	if (!compose.isolatedDeployment) {
+		result.networks = addDokployNetworkToRoot(result.networks);
+	}
 
 	return result;
 };

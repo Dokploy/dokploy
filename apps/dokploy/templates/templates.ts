@@ -1467,8 +1467,8 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["hrms", "payroll", "leaves", "expenses", "attendance", "performace"],
 		load: () => import("./frappe-hr/index").then((m) => m.generate),
-  },
-    {
+	},
+	{
 		id: "formbricks",
 		name: "Formbricks",
 		version: "v3.1.3",
@@ -1482,6 +1482,5 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forms", "analytics"],
 		load: () => import("./formbricks/index").then((m) => m.generate),
-
 	},
 ];

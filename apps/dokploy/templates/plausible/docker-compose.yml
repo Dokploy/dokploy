@@ -3,8 +3,7 @@ services:
   plausible_db:
     image: postgres:16-alpine
     restart: always
-    networks:
-      - dokploy-network
+
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
@@ -13,8 +12,7 @@ services:
   plausible_events_db:
     image: clickhouse/clickhouse-server:24.3.3.102-alpine
     restart: always
-    networks:
-      - dokploy-network
+
     volumes:
       - event-data:/var/lib/clickhouse
       - event-logs:/var/log/clickhouse-server

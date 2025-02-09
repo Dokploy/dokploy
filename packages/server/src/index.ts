@@ -73,6 +73,7 @@ export * from "./utils/builders/utils";
 export * from "./utils/cluster/upload";
 
 export * from "./utils/docker/compose";
+export * from "./utils/docker/collision";
 export * from "./utils/docker/domain";
 export * from "./utils/docker/utils";
 export * from "./utils/docker/types";

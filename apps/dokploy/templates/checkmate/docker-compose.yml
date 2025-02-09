@@ -9,8 +9,7 @@ services:
       - 443
     depends_on:
       - server
-    networks:
-      - dokploy-network
+
   server:
     image: bluewaveuptime/uptime_server:latest
     restart: always
@@ -22,8 +21,7 @@ services:
     environment:
       - DB_CONNECTION_STRING=mongodb://mongodb:27017/uptime_db
       - REDIS_HOST=redis
-    networks:
-      - dokploy-network
+
     # volumes:
     # - /var/run/docker.sock:/var/run/docker.sock:ro
   redis:
@@ -33,8 +31,7 @@ services:
       - 6379
     volumes:
       - ../files/redis/data:/data
-    networks:
-      - dokploy-network
+
   mongodb:
     image: bluewaveuptime/uptime_database_mongo:latest
     restart: always
@@ -43,5 +40,3 @@ services:
     command: ["mongod", "--quiet"]
     ports:
       - 27017
-    networks:
-      - dokploy-network

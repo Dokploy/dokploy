@@ -3,8 +3,7 @@ version: "3.8"
 services:
   slash-app:
     image: yourselfhosted/slash:latest
-    networks:
-      - dokploy-network
+
     volumes:
       - slash-app-data:/var/opt/slash
     environment:
@@ -17,8 +16,7 @@ services:
 
   slash-postgres:
     image: postgres:16-alpine
-    networks:
-      - dokploy-network
+
     volumes:
       - slash-postgres-data:/var/lib/postgresql/data
     environment:
