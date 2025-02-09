@@ -47,7 +47,7 @@ services:
     command: -c 'mkdir -p /data/unsend && minio server /data --console-address ":9001" --address ":9002"'
 
   unsend:
-    image: unsend/unsend:v1.2.5
+    image: unsend/unsend:v1.3.2
     networks:
       - dokploy-network
     restart: always
