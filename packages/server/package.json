@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "drizzle-dbml-generator":"0.10.0",
     "better-auth":"1.1.16",
     "rotating-file-stream": "3.2.3",
     "@faker-js/faker": "^8.4.1",

@@ -588,6 +588,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      drizzle-dbml-generator:
+        specifier: 0.10.0
+        version: 0.10.0(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))
       drizzle-orm:
         specifier: ^0.39.1
         version: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
@@ -4445,6 +4448,11 @@ packages:
   drange@1.1.1:
     resolution: {integrity: sha512-pYxfDYpued//QpnLIm4Avk7rsNtAtQkUES2cwAYSvD/wd2pKD71gN2Ebj3e7klzXwjocvE8c5vx/1fxwpqmSxA==}
     engines: {node: '>=4'}
+
+  drizzle-dbml-generator@0.10.0:
+    resolution: {integrity: sha512-cMZq9E3U3RlmE0uBeXyc6oWJ0royOkC6HiTlc9LDeMe+W87poZTzKoNYUyAxZrs4Q1RQtob+cGKiefV4ZoI8HA==}
+    peerDependencies:
+      drizzle-orm: '>=0.36.0'
 
   drizzle-kit@0.30.4:
     resolution: {integrity: sha512-B2oJN5UkvwwNHscPWXDG5KqAixu7AUzZ3qbe++KU9SsQ+cZWR4DXEPYcvWplyFAno0dhRJECNEhNxiDmFaPGyQ==}
@@ -11118,6 +11126,10 @@ snapshots:
   dotenv@16.4.5: {}
 
   drange@1.1.1: {}
+
+  drizzle-dbml-generator@0.10.0(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)):
+    dependencies:
+      drizzle-orm: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
 
   drizzle-kit@0.30.4:
     dependencies:

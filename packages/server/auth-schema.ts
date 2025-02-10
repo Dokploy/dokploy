@@ -64,6 +64,9 @@ export const organization = pgTable("organization", {
 	logo: text("logo"),
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
+	ownerId: text("owner_id")
+		.notNull()
+		.references(() => user.id),
 });
 
 export const member = pgTable("member", {

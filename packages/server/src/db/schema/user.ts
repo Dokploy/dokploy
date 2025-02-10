@@ -1,5 +1,12 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -22,18 +29,12 @@ export const user = pgTable("user", {
 	name: text("name").notNull().default(""),
 	token: text("token").notNull(),
 	isRegistered: boolean("isRegistered").notNull().default(false),
-	expirationDate: timestamp("expirationDate", {
-		precision: 3,
-		mode: "date",
-	})
+	expirationDate: text("expirationDate")
 		.notNull()
-		.$defaultFn(() => new Date()),
-	createdAt: timestamp("createdAt", {
-		precision: 3,
-		mode: "date",
-	})
+		.$defaultFn(() => new Date().toISOString()),
+	createdAt: text("createdAt")
 		.notNull()
-		.$defaultFn(() => new Date()),
+		.$defaultFn(() => new Date().toISOString()),
 	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
 	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
 	canCreateServices: boolean("canCreateServices").notNull().default(false),
@@ -132,6 +133,9 @@ export const user = pgTable("user", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
+	stripeCustomerId: text("stripeCustomerId"),
+	stripeSubscriptionId: text("stripeSubscriptionId"),
+	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
 export const usersRelations = relations(user, ({ one }) => ({
