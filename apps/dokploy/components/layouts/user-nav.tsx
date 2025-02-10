@@ -15,6 +15,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { authClient } from "@/lib/auth";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
@@ -24,7 +25,6 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
-import { authClient } from "@/lib/auth";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 

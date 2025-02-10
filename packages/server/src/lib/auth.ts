@@ -1,10 +1,10 @@
+import type { IncomingMessage } from "node:http";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, createAuthMiddleware, organization } from "better-auth/plugins";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import type { IncomingMessage } from "node:http";
-import { eq } from "drizzle-orm";
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",

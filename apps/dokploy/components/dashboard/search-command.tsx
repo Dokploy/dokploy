@@ -18,6 +18,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
+import { authClient } from "@/lib/auth";
 import {
 	type Services,
 	extractServices,
@@ -28,7 +29,6 @@ import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
-import { authClient } from "@/lib/auth";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
