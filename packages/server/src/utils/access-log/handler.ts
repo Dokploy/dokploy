@@ -23,27 +23,27 @@ class LogRotationManager {
 	}
 
 	private async initialize(): Promise<void> {
-		const isActive = await this.getStateFromDB();
-		if (isActive) {
-			await this.activateStream();
-		}
+		// const isActive = await this.getStateFromDB();
+		// if (isActive) {
+		// await this.activateStream();
+		// }
 	}
 
-	private async getStateFromDB(): Promise<boolean> {
-		const setting = await db.query.admins.findFirst({});
-		return setting?.enableLogRotation ?? false;
-	}
+	// private async getStateFromDB(): Promise<boolean> {
+	// 	const setting = await db.query.admins.findFirst({});
+	// 	return setting?.enableLogRotation ?? false;
+	// }
 
-	private async setStateInDB(active: boolean): Promise<void> {
-		const admin = await db.query.admins.findFirst({});
+	// private async setStateInDB(active: boolean): Promise<void> {
+	// 	const admin = await db.query.admins.findFirst({});
 
-		if (!admin) {
-			return;
-		}
-		await updateAdmin(admin?.authId, {
-			enableLogRotation: active,
-		});
-	}
+	// 	if (!admin) {
+	// 		return;
+	// 	}
+	// 	await updateAdmin(admin?.authId, {
+	// 		enableLogRotation: active,
+	// 	});
+	// }
 
 	private async activateStream(): Promise<void> {
 		const { DYNAMIC_TRAEFIK_PATH } = paths();
@@ -76,26 +76,26 @@ class LogRotationManager {
 	}
 
 	public async activate(): Promise<boolean> {
-		const currentState = await this.getStateFromDB();
-		if (currentState) {
-			return true;
-		}
+		// const currentState = await this.getStateFromDB();
+		// if (currentState) {
+		// 	return true;
+		// }
 
-		await this.setStateInDB(true);
-		await this.activateStream();
+		// await this.setStateInDB(true);
+		// await this.activateStream();
 		return true;
 	}
 
 	public async deactivate(): Promise<boolean> {
 		console.log("Deactivating log rotation...");
-		const currentState = await this.getStateFromDB();
-		if (!currentState) {
-			console.log("Log rotation is already inactive in DB");
-			return true;
-		}
+		// const currentState = await this.getStateFromDB();
+		// if (!currentState) {
+		// 	console.log("Log rotation is already inactive in DB");
+		// 	return true;
+		// }
 
-		await this.setStateInDB(false);
-		await this.deactivateStream();
+		// await this.setStateInDB(false);
+		// await this.deactivateStream();
 		console.log("Log rotation deactivated successfully");
 		return true;
 	}
@@ -115,8 +115,9 @@ class LogRotationManager {
 		}
 	}
 	public async getStatus(): Promise<boolean> {
-		const dbState = await this.getStateFromDB();
-		return dbState;
+		// const dbState = await this.getStateFromDB();
+		// return dbState;
+		return false;
 	}
 }
 export const logRotationManager = LogRotationManager.getInstance();

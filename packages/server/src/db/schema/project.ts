@@ -4,7 +4,7 @@ import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
+// import { admins } from "./admin";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { mariadb } from "./mariadb";
@@ -12,6 +12,7 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { users } from "./user";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
@@ -23,9 +24,9 @@ export const projects = pgTable("project", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users.id, { onDelete: "cascade" }),
 	env: text("env").notNull().default(""),
 });
 
@@ -37,9 +38,9 @@ export const projectRelations = relations(projects, ({ many, one }) => ({
 	mongo: many(mongo),
 	redis: many(redis),
 	compose: many(compose),
-	admin: one(admins, {
-		fields: [projects.adminId],
-		references: [admins.adminId],
+	user: one(users, {
+		fields: [projects.userId],
+		references: [users.id],
 	}),
 }));
 

@@ -1,10 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { admins } from "./admin";
 import { auth } from "./auth";
+import { certificateType } from "./shared";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -12,12 +13,13 @@ import { auth } from "./auth";
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
 
+// OLD TABLE
 export const users = pgTable("user", {
-	userId: text("userId")
+	id: text("id")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-
+	name: text("name").notNull().default(""),
 	token: text("token").notNull(),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: timestamp("expirationDate", {
@@ -48,31 +50,102 @@ export const users = pgTable("user", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
-	adminId: text("adminId")
+	// authId: text("authId")
+	// 	.notNull()
+	// 	.references(() => auth.id, { onDelete: "cascade" }),
+	// Auth
+	email: text("email").notNull().unique(),
+	emailVerified: boolean("email_verified").notNull(),
+	image: text("image"),
+	role: text("role"),
+	banned: boolean("banned"),
+	banReason: text("ban_reason"),
+	banExpires: timestamp("ban_expires"),
+	updatedAt: timestamp("updated_at").notNull(),
+	// Admin
+	serverIp: text("serverIp"),
+	certificateType: certificateType("certificateType").notNull().default("none"),
+	host: text("host"),
+	letsEncryptEmail: text("letsEncryptEmail"),
+	sshPrivateKey: text("sshPrivateKey"),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	enableLogRotation: boolean("enableLogRotation").notNull().default(false),
+	// Metrics
+	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
+	metricsConfig: jsonb("metricsConfig")
+		.$type<{
+			server: {
+				type: "Dokploy" | "Remote";
+				refreshRate: number;
+				port: number;
+				token: string;
+				urlCallback: string;
+				retentionDays: number;
+				cronJob: string;
+				thresholds: {
+					cpu: number;
+					memory: number;
+				};
+			};
+			containers: {
+				refreshRate: number;
+				services: {
+					include: string[];
+					exclude: string[];
+				};
+			};
+		}>()
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
-	authId: text("authId")
+		.default({
+			server: {
+				type: "Dokploy",
+				refreshRate: 60,
+				port: 4500,
+				token: "",
+				retentionDays: 2,
+				cronJob: "",
+				urlCallback: "",
+				thresholds: {
+					cpu: 0,
+					memory: 0,
+				},
+			},
+			containers: {
+				refreshRate: 60,
+				services: {
+					include: [],
+					exclude: [],
+				},
+			},
+		}),
+	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
-		.references(() => auth.id, { onDelete: "cascade" }),
+		.default(false),
+	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
+		.notNull()
+		.default(false),
+	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
+		.notNull()
+		.default(false),
 });
 
 export const usersRelations = relations(users, ({ one }) => ({
-	auth: one(auth, {
-		fields: [users.authId],
-		references: [auth.id],
-	}),
-	admin: one(admins, {
-		fields: [users.adminId],
-		references: [admins.adminId],
-	}),
+	// auth: one(auth, {
+	// 	fields: [users.authId],
+	// 	references: [auth.id],
+	// }),
+	// admin: one(admins, {
+	// 	fields: [users.adminId],
+	// 	references: [admins.adminId],
+	// }),
 }));
 
 const createSchema = createInsertSchema(users, {
-	userId: z.string().min(1),
-	authId: z.string().min(1),
+	id: z.string().min(1),
+	// authId: z.string().min(1),
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
-	adminId: z.string(),
+	// adminId: z.string(),
 	accessedProjects: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional(),
@@ -89,7 +162,7 @@ export const apiCreateUserInvitation = createSchema.pick({}).extend({
 
 export const apiRemoveUser = createSchema
 	.pick({
-		authId: true,
+		// authId: true,
 	})
 	.required();
 
@@ -101,7 +174,7 @@ export const apiFindOneToken = createSchema
 
 export const apiAssignPermissions = createSchema
 	.pick({
-		userId: true,
+		id: true,
 		canCreateProjects: true,
 		canCreateServices: true,
 		canDeleteProjects: true,
@@ -118,12 +191,12 @@ export const apiAssignPermissions = createSchema
 
 export const apiFindOneUser = createSchema
 	.pick({
-		userId: true,
+		id: true,
 	})
 	.required();
 
 export const apiFindOneUserByAuth = createSchema
 	.pick({
-		authId: true,
+		// authId: true,
 	})
 	.required();

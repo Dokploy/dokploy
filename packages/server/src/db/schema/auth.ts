@@ -4,7 +4,7 @@ import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
+// import { admins } from "./admin";
 import { users } from "./user";
 
 const randomImages = [
@@ -55,7 +55,7 @@ export const auth = pgTable("auth", {
 });
 
 export const authRelations = relations(auth, ({ many }) => ({
-	admins: many(admins),
+	// admins: many(admins),
 	users: many(users),
 }));
 const createSchema = createInsertSchema(auth, {

@@ -7,6 +7,7 @@ import { admins } from "./admin";
 import { bitbucket } from "./bitbucket";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
+import { users } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",
@@ -24,7 +25,7 @@ export const gitProvider = pgTable("git_provider", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	adminId: text("adminId").references(() => admins.adminId, {
+	userId: text("userId").references(() => users.id, {
 		onDelete: "cascade",
 	}),
 });
@@ -42,9 +43,9 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
-	admin: one(admins, {
-		fields: [gitProvider.adminId],
-		references: [admins.adminId],
+	user: one(users, {
+		fields: [gitProvider.userId],
+		references: [users.id],
 	}),
 }));
 

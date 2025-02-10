@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { admins } from "./admin";
 import { backups } from "./backups";
+import { users } from "./user";
 
 export const destinations = pgTable("destination", {
 	destinationId: text("destinationId")
@@ -19,18 +20,18 @@ export const destinations = pgTable("destination", {
 	region: text("region").notNull(),
 	//   maybe it can be null
 	endpoint: text("endpoint").notNull(),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users.id, { onDelete: "cascade" }),
 });
 
 export const destinationsRelations = relations(
 	destinations,
 	({ many, one }) => ({
 		backups: many(backups),
-		admin: one(admins, {
-			fields: [destinations.adminId],
-			references: [admins.adminId],
+		user: one(users, {
+			fields: [destinations.userId],
+			references: [users.id],
 		}),
 	}),
 );

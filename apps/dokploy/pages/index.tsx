@@ -201,51 +201,51 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	if (IS_CLOUD) {
-		try {
-			const { user } = await validateRequest(context.req, context.res);
+	// if (IS_CLOUD) {
+	// 	try {
+	// 		const { user } = await validateRequest(context.req, context.res);
 
-			if (user) {
-				return {
-					redirect: {
-						permanent: true,
-						destination: "/dashboard/projects",
-					},
-				};
-			}
-		} catch (error) {}
+	// 		if (user) {
+	// 			return {
+	// 				redirect: {
+	// 					permanent: true,
+	// 					destination: "/dashboard/projects",
+	// 				},
+	// 			};
+	// 		}
+	// 	} catch (error) {}
 
-		return {
-			props: {
-				IS_CLOUD: IS_CLOUD,
-			},
-		};
-	}
-	const hasAdmin = await isAdminPresent();
+	// 	return {
+	// 		props: {
+	// 			IS_CLOUD: IS_CLOUD,
+	// 		},
+	// 	};
+	// }
+	// const hasAdmin = await isAdminPresent();
 
-	if (!hasAdmin) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/register",
-			},
-		};
-	}
+	// if (!hasAdmin) {
+	// 	return {
+	// 		redirect: {
+	// 			permanent: true,
+	// 			destination: "/register",
+	// 		},
+	// 	};
+	// }
 
-	const { user } = await validateRequest(context.req, context.res);
+	// const { user } = await validateRequest(context.req, context.res);
 
-	if (user) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
-			},
-		};
-	}
+	// if (user) {
+	// 	return {
+	// 		redirect: {
+	// 			permanent: true,
+	// 			destination: "/dashboard/projects",
+	// 		},
+	// 	};
+	// }
 
 	return {
 		props: {
-			hasAdmin,
+			// hasAdmin,
 		},
 	};
 }

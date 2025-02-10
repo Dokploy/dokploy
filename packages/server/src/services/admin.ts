@@ -94,7 +94,9 @@ export const updateAdminById = async (
 };
 
 export const isAdminPresent = async () => {
-	const admin = await db.query.admins.findFirst();
+	const admin = await db.query.users.findFirst({
+		where: eq(users.role, "admin"),
+	});
 	if (!admin) {
 		return false;
 	}

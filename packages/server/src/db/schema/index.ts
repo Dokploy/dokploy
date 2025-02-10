@@ -30,3 +30,4 @@ export * from "./gitlab";
 export * from "./server";
 export * from "./utils";
 export * from "./preview-deployments";
+export * from "./account";

@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "better-auth":"1.1.16",
     "rotating-file-stream": "3.2.3",
     "@faker-js/faker": "^8.4.1",
     "@lucia-auth/adapter-drizzle": "1.0.7",
