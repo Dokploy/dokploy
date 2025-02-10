@@ -6,7 +6,7 @@ import {
 	apiRemoveUser,
 	apiUpdateAdmin,
 	apiUpdateWebServerMonitoring,
-	users,
+	user,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,

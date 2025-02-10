@@ -4,8 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { server } from "./server";
+import { user } from "./user";
 import { generateAppName } from "./utils";
-import { users } from "./user";
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")
@@ -20,7 +20,7 @@ export const certificates = pgTable("certificate", {
 		.$defaultFn(() => generateAppName("certificate"))
 		.unique(),
 	autoRenew: boolean("autoRenew"),
-	userId: text("userId").references(() => users.id, {
+	userId: text("userId").references(() => user.id, {
 		onDelete: "cascade",
 	}),
 	serverId: text("serverId").references(() => server.serverId, {
@@ -35,9 +35,9 @@ export const certificatesRelations = relations(
 			fields: [certificates.serverId],
 			references: [server.serverId],
 		}),
-		user: one(users, {
+		user: one(user, {
 			fields: [certificates.userId],
-			references: [users.id],
+			references: [user.id],
 		}),
 	}),
 );

@@ -1,5 +1,5 @@
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { users } from "./user";
+import { user } from "./user";
 
 export const account = pgTable("account", {
 	id: text("id").primaryKey(),
@@ -7,7 +7,7 @@ export const account = pgTable("account", {
 	providerId: text("provider_id").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	idToken: text("id_token"),

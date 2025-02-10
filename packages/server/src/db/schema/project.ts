@@ -12,7 +12,7 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-import { users } from "./user";
+import { user } from "./user";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
@@ -26,7 +26,7 @@ export const projects = pgTable("project", {
 		.$defaultFn(() => new Date().toISOString()),
 	userId: text("userId")
 		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 	env: text("env").notNull().default(""),
 });
 
@@ -38,9 +38,9 @@ export const projectRelations = relations(projects, ({ many, one }) => ({
 	mongo: many(mongo),
 	redis: many(redis),
 	compose: many(compose),
-	user: one(users, {
+	user: one(user, {
 		fields: [projects.userId],
-		references: [users.id],
+		references: [user.id],
 	}),
 }));
 

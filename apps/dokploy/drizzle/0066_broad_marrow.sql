@@ -90,7 +90,8 @@ UPDATE "user" SET token = '' WHERE token IS NULL;
 UPDATE "user" SET "expirationDate" = CURRENT_TIMESTAMP + INTERVAL '1 year' WHERE "expirationDate" IS NULL;
 UPDATE "user" SET "createdAt" = to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') WHERE "createdAt" IS NULL;
 UPDATE "user" SET "name" = '' WHERE "name" IS NULL;
-UPDATE "user" SET "email" = COALESCE("email", '') WHERE true;
+-- Generar emails únicos para registros vacíos
+UPDATE "user" SET "email" = CONCAT('user_', id, '@dokploy.local') WHERE "email" = '' OR "email" IS NULL;
 UPDATE "user" SET "email_verified" = COALESCE("email_verified", false) WHERE true;
 UPDATE "user" SET "role" = COALESCE("role", 'user') WHERE true;
 UPDATE "user" SET "banned" = COALESCE("banned", false) WHERE true;
@@ -125,6 +126,28 @@ SELECT
         WHEN rol = 'admin' THEN 'admin'
         ELSE 'user'
     END as role,
+    CAST("createdAt" AS timestamp) as updated_at
+FROM "auth";
+
+-- Migrar datos de auth a account
+INSERT INTO "account" (
+    id,
+    account_id,
+    provider_id,
+    user_id,
+    password,
+    "is2FAEnabled",
+    created_at,
+    updated_at
+)
+SELECT 
+    id as id,
+    id as account_id,
+    'credentials' as provider_id,
+    id as user_id,
+    password,
+    "is2FAEnabled",
+    CAST("createdAt" AS timestamp) as created_at,
     CAST("createdAt" AS timestamp) as updated_at
 FROM "auth";
 

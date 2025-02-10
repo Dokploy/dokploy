@@ -13,6 +13,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
@@ -65,8 +66,8 @@ export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
-			email: "",
-			password: "",
+			email: "siumauricio@hotmail.com",
+			password: "Password1234",
 		},
 		resolver: zodResolver(loginSchema),
 	});
@@ -76,25 +77,31 @@ export default function Home({ IS_CLOUD }: Props) {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Login) => {
-		await mutateAsync({
-			email: values.email.toLowerCase(),
+		const { data, error } = await authClient.signIn.email({
+			email: values.email,
 			password: values.password,
-		})
-			.then((data) => {
-				if (data.is2FAEnabled) {
-					setTemp(data);
-				} else {
-					toast.success("Successfully signed in", {
-						duration: 2000,
-					});
-					router.push("/dashboard/projects");
-				}
-			})
-			.catch(() => {
-				toast.error("Signin failed", {
-					duration: 2000,
-				});
-			});
+		});
+
+		console.log(data, error);
+		// await mutateAsync({
+		// 	email: values.email.toLowerCase(),
+		// 	password: values.password,
+		// })
+		// 	.then((data) => {
+		// 		if (data.is2FAEnabled) {
+		// 			setTemp(data);
+		// 		} else {
+		// 			toast.success("Successfully signed in", {
+		// 				duration: 2000,
+		// 			});
+		// 			router.push("/dashboard/projects");
+		// 		}
+		// 	})
+		// 	.catch(() => {
+		// 		toast.error("Signin failed", {
+		// 			duration: 2000,
+		// 		});
+		// 	});
 	};
 	return (
 		<>

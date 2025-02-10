@@ -22,8 +22,8 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
+import { user } from "./user";
 import { generateAppName } from "./utils";
-import { users } from "./user";
 
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
@@ -46,7 +46,7 @@ export const server = pgTable("server", {
 		.$defaultFn(() => new Date().toISOString()),
 	userId: text("userId")
 		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
@@ -101,9 +101,9 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	user: one(users, {
+	user: one(user, {
 		fields: [server.userId],
-		references: [users.id],
+		references: [user.id],
 	}),
 	deployments: many(deployments),
 	sshKey: one(sshKeys, {

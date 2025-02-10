@@ -1,15 +1,15 @@
 import { db } from "@dokploy/server/db";
-import { users } from "@dokploy/server/db/schema";
+import { user } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-export type User = typeof users.$inferSelect;
+export type User = typeof user.$inferSelect;
 
 export const findUserById = async (userId: string) => {
-	const user = await db.query.users.findFirst({
-		where: eq(users.userId, userId),
+	const userR = await db.query.user.findFirst({
+		where: eq(user.userId, userId),
 	});
-	if (!user) {
+	if (!userR) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "User not found",
@@ -19,8 +19,8 @@ export const findUserById = async (userId: string) => {
 };
 
 export const findUserByAuthId = async (authId: string) => {
-	const user = await db.query.users.findFirst({
-		where: eq(users.authId, authId),
+	const userR = await db.query.user.findFirst({
+		where: eq(user.authId, authId),
 		with: {
 			auth: true,
 		},
@@ -35,8 +35,8 @@ export const findUserByAuthId = async (authId: string) => {
 };
 
 export const findUsers = async (adminId: string) => {
-	const currentUsers = await db.query.users.findMany({
-		where: eq(users.adminId, adminId),
+	const currentUsers = await db.query.user.findMany({
+		where: eq(user.adminId, adminId),
 		with: {
 			auth: {
 				columns: {
@@ -49,24 +49,24 @@ export const findUsers = async (adminId: string) => {
 };
 
 export const addNewProject = async (authId: string, projectId: string) => {
-	const user = await findUserByAuthId(authId);
+	const userR = await findUserByAuthId(authId);
 
 	await db
-		.update(users)
+		.update(user)
 		.set({
-			accessedProjects: [...user.accessedProjects, projectId],
+			accessedProjects: [...userR.accessedProjects, projectId],
 		})
-		.where(eq(users.authId, authId));
+		.where(eq(user.authId, authId));
 };
 
 export const addNewService = async (authId: string, serviceId: string) => {
-	const user = await findUserByAuthId(authId);
+	const userR = await findUserByAuthId(authId);
 	await db
-		.update(users)
+		.update(user)
 		.set({
-			accessedServices: [...user.accessedServices, serviceId],
+			accessedServices: [...userR.accessedServices, serviceId],
 		})
-		.where(eq(users.authId, authId));
+		.where(eq(user.authId, authId));
 };
 
 export const canPerformCreationService = async (

@@ -14,7 +14,7 @@ import { certificateType } from "./shared";
  */
 
 // OLD TABLE
-export const users = pgTable("user", {
+export const user = pgTable("user", {
 	id: text("id")
 		.notNull()
 		.primaryKey()
@@ -129,7 +129,7 @@ export const users = pgTable("user", {
 		.default(false),
 });
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(user, ({ one }) => ({
 	// auth: one(auth, {
 	// 	fields: [users.authId],
 	// 	references: [auth.id],
@@ -140,7 +140,7 @@ export const usersRelations = relations(users, ({ one }) => ({
 	// }),
 }));
 
-const createSchema = createInsertSchema(users, {
+const createSchema = createInsertSchema(user, {
 	id: z.string().min(1),
 	// authId: z.string().min(1),
 	token: z.string().min(1),

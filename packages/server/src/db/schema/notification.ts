@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { admins } from "./admin";
-import { users } from "./user";
+import { user } from "./user";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -45,7 +45,7 @@ export const notifications = pgTable("notification", {
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => users.id, {
+	userId: text("userId").references(() => user.id, {
 		onDelete: "cascade",
 	}),
 });
@@ -122,9 +122,9 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.gotifyId],
 		references: [gotify.gotifyId],
 	}),
-	user: one(users, {
+	user: one(user, {
 		fields: [notifications.userId],
-		references: [users.id],
+		references: [user.id],
 	}),
 }));
 

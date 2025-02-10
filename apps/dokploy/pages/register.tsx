@@ -17,6 +17,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth";
 import { api } from "@/utils/api";
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,9 +80,9 @@ const Register = ({ isCloud }: Props) => {
 
 	const form = useForm<Register>({
 		defaultValues: {
-			email: "",
-			password: "",
-			confirmPassword: "",
+			email: "user5@yopmail.com",
+			password: "Password1234",
+			confirmPassword: "Password1234",
 		},
 		resolver: zodResolver(registerSchema),
 	});
@@ -91,19 +92,24 @@ const Register = ({ isCloud }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Register) => {
-		await mutateAsync({
-			email: values.email.toLowerCase(),
+		const { data, error } = await authClient.signUp.email({
+			email: values.email,
 			password: values.password,
-		})
-			.then(() => {
-				toast.success("User registered successfuly", {
-					duration: 2000,
-				});
-				if (!isCloud) {
-					router.push("/");
-				}
-			})
-			.catch((e) => e);
+			name: "Mauricio Siu",
+		});
+		// await mutateAsync({
+		// 	email: values.email.toLowerCase(),
+		// 	password: values.password,
+		// })
+		// 	.then(() => {
+		// 		toast.success("User registered successfuly", {
+		// 			duration: 2000,
+		// 		});
+		// 		if (!isCloud) {
+		// 			router.push("/");
+		// 		}
+		// 	})
+		// 	.catch((e) => e);
 	};
 	return (
 		<div className="">

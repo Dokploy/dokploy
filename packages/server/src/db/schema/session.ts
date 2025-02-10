@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { users } from "./user";
+import { user } from "./user";
 
 // OLD TABLE
 export const sessionTable = pgTable("session", {
@@ -12,6 +12,6 @@ export const sessionTable = pgTable("session", {
 	userAgent: text("user_agent"),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users.id),
+		.references(() => user.id),
 	impersonatedBy: text("impersonated_by"),
 });
