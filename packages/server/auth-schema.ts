@@ -26,7 +26,7 @@ export const session = pgTable("session", {
 	userAgent: text("user_agent"),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.userId),
 	activeOrganizationId: text("active_organization_id"),
 });
 
@@ -36,7 +36,7 @@ export const account = pgTable("account", {
 	providerId: text("provider_id").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.userId),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	idToken: text("id_token"),
@@ -66,7 +66,7 @@ export const organization = pgTable("organization", {
 	metadata: text("metadata"),
 	ownerId: text("owner_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.userId),
 });
 
 export const member = pgTable("member", {
@@ -76,7 +76,7 @@ export const member = pgTable("member", {
 		.references(() => organization.id),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.userId),
 	role: text("role").notNull(),
 	createdAt: timestamp("created_at").notNull(),
 });
@@ -92,5 +92,5 @@ export const invitation = pgTable("invitation", {
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")
 		.notNull()
-		.references(() => user.id),
+		.references(() => user.userId),
 });

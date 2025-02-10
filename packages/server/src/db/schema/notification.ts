@@ -45,7 +45,7 @@ export const notifications = pgTable("notification", {
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => user.id, {
+	userId: text("userId").references(() => user.userId, {
 		onDelete: "cascade",
 	}),
 });

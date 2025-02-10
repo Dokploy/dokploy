@@ -22,7 +22,7 @@ export const destinations = pgTable("destination", {
 	endpoint: text("endpoint").notNull(),
 	userId: text("userId")
 		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
+		.references(() => user.userId, { onDelete: "cascade" }),
 });
 
 export const destinationsRelations = relations(

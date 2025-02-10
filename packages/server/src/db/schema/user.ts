@@ -22,7 +22,7 @@ import { certificateType } from "./shared";
 
 // OLD TABLE
 export const user = pgTable("user", {
-	id: text("id")
+	userId: text("userId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),

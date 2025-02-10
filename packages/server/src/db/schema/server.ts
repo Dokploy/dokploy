@@ -46,7 +46,7 @@ export const server = pgTable("server", {
 		.$defaultFn(() => new Date().toISOString()),
 	userId: text("userId")
 		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
+		.references(() => user.userId, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {

@@ -25,7 +25,7 @@ export const gitProvider = pgTable("git_provider", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	userId: text("userId").references(() => user.id, {
+	userId: text("userId").references(() => user.userId, {
 		onDelete: "cascade",
 	}),
 });

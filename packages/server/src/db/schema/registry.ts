@@ -30,7 +30,7 @@ export const registry = pgTable("registry", {
 	registryType: registryType("selfHosted").notNull().default("cloud"),
 	userId: text("userId")
 		.notNull()
-		.references(() => user.id, { onDelete: "cascade" }),
+		.references(() => user.userId, { onDelete: "cascade" }),
 });
 
 export const registryRelations = relations(registry, ({ one, many }) => ({

@@ -22,7 +22,7 @@ export const sshKeys = pgTable("ssh-key", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	lastUsedAt: text("lastUsedAt"),
-	userId: text("userId").references(() => user.id, {
+	userId: text("userId").references(() => user.userId, {
 		onDelete: "cascade",
 	}),
 });

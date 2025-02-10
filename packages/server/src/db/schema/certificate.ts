@@ -20,7 +20,7 @@ export const certificates = pgTable("certificate", {
 		.$defaultFn(() => generateAppName("certificate"))
 		.unique(),
 	autoRenew: boolean("autoRenew"),
-	userId: text("userId").references(() => user.id, {
+	userId: text("userId").references(() => user.userId, {
 		onDelete: "cascade",
 	}),
 	serverId: text("serverId").references(() => server.serverId, {

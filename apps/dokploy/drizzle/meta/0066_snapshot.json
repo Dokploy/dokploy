@@ -1,5 +1,5 @@
 {
-  "id": "5963096c-1a97-4e26-9f3f-f8613a359596",
+  "id": "d76ab830-b647-4e53-b6cc-0cf515968758",
   "prevId": "1240ec96-1751-4de3-b64f-cef9cb716786",
   "version": "7",
   "dialect": "postgresql",
@@ -735,8 +735,8 @@
       "name": "user",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "userId": {
+          "name": "userId",
           "type": "text",
           "primaryKey": true,
           "notNull": true
@@ -1172,15 +1172,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_userId_user_id_fk": {
-          "name": "project_userId_user_id_fk",
+        "project_userId_user_userId_fk": {
+          "name": "project_userId_user_userId_fk",
           "tableFrom": "project",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2042,15 +2042,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "destination_userId_user_id_fk": {
-          "name": "destination_userId_user_id_fk",
+        "destination_userId_user_userId_fk": {
+          "name": "destination_userId_user_userId_fk",
           "tableFrom": "destination",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2456,15 +2456,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "certificate_userId_user_id_fk": {
-          "name": "certificate_userId_user_id_fk",
+        "certificate_userId_user_userId_fk": {
+          "name": "certificate_userId_user_userId_fk",
           "tableFrom": "certificate",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2513,12 +2513,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2564,30 +2558,22 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "session_user_id_user_id_fk": {
-          "name": "session_user_id_user_id_fk",
+        "session_user_id_user_userId_fk": {
+          "name": "session_user_id_user_userId_fk",
           "tableFrom": "session",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "session_token_unique": {
-          "name": "session_token_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3322,15 +3308,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "registry_userId_user_id_fk": {
-          "name": "registry_userId_user_id_fk",
+        "registry_userId_user_userId_fk": {
+          "name": "registry_userId_user_userId_fk",
           "tableFrom": "registry",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3647,15 +3633,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "notification_userId_user_id_fk": {
-          "name": "notification_userId_user_id_fk",
+        "notification_userId_user_userId_fk": {
+          "name": "notification_userId_user_userId_fk",
           "tableFrom": "notification",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3785,15 +3771,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "ssh-key_userId_user_id_fk": {
-          "name": "ssh-key_userId_user_id_fk",
+        "ssh-key_userId_user_userId_fk": {
+          "name": "ssh-key_userId_user_userId_fk",
           "tableFrom": "ssh-key",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3844,15 +3830,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "git_provider_userId_user_id_fk": {
-          "name": "git_provider_userId_user_id_fk",
+        "git_provider_userId_user_userId_fk": {
+          "name": "git_provider_userId_user_userId_fk",
           "tableFrom": "git_provider",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4187,15 +4173,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "server_userId_user_id_fk": {
-          "name": "server_userId_user_id_fk",
+        "server_userId_user_userId_fk": {
+          "name": "server_userId_user_userId_fk",
           "tableFrom": "server",
           "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4464,15 +4450,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "account_user_id_user_id_fk": {
-          "name": "account_user_id_user_id_fk",
+        "account_user_id_user_userId_fk": {
+          "name": "account_user_id_user_userId_fk",
           "tableFrom": "account",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -4546,15 +4532,15 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "invitation_inviter_id_user_id_fk": {
-          "name": "invitation_inviter_id_user_id_fk",
+        "invitation_inviter_id_user_userId_fk": {
+          "name": "invitation_inviter_id_user_userId_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
           "columnsFrom": [
             "inviter_id"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -4616,15 +4602,15 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "member_user_id_user_id_fk": {
-          "name": "member_user_id_user_id_fk",
+        "member_user_id_user_userId_fk": {
+          "name": "member_user_id_user_userId_fk",
           "tableFrom": "member",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -4685,15 +4671,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "organization_owner_id_user_id_fk": {
-          "name": "organization_owner_id_user_id_fk",
+        "organization_owner_id_user_userId_fk": {
+          "name": "organization_owner_id_user_userId_fk",
           "tableFrom": "organization",
           "tableTo": "user",
           "columnsFrom": [
             "owner_id"
           ],
           "columnsTo": [
-            "id"
+            "userId"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
