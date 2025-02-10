@@ -3,8 +3,7 @@ name: unsend-prod
 services:
   unsend-db-prod:
     image: postgres:16
-    networks:
-      - dokploy-network
+
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER:?err}
@@ -22,8 +21,7 @@ services:
 
   unsend-redis-prod:
     image: redis:7
-    networks:
-      - dokploy-network
+
     restart: always
     # ports:
     #   - "6379:6379"
@@ -33,8 +31,7 @@ services:
 
   unsend-storage-prod:
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
-    networks:
-      - dokploy-network
+
     ports:
       - 9002
       - 9001
@@ -47,9 +44,7 @@ services:
     command: -c 'mkdir -p /data/unsend && minio server /data --console-address ":9001" --address ":9002"'
 
   unsend:
-    image: unsend/unsend:v1.2.5
-    networks:
-      - dokploy-network
+    image: unsend/unsend:v1.3.2
     restart: always
     ports:
       - ${PORT:-3000}

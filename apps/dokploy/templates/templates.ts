@@ -1095,7 +1095,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "unsend",
 		name: "Unsend",
-		version: "v1.2.4",
+		version: "v1.3.2",
 		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
 		logo: "unsend.png",
 		links: {
@@ -1452,6 +1452,21 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["sharing", "shortener", "url"],
 		load: () => import("./shlink/index").then((m) => m.generate),
+	},
+	{
+		id: "frappe-hr",
+		name: "Frappe HR",
+		version: "version-15",
+		description:
+			"Feature rich HR & Payroll software. 100% FOSS and customizable.",
+		logo: "frappe-hr.svg",
+		links: {
+			github: "https://github.com/frappe/hrms",
+			docs: "https://docs.frappe.io/hr",
+			website: "https://frappe.io/hr",
+		},
+		tags: ["hrms", "payroll", "leaves", "expenses", "attendance", "performace"],
+		load: () => import("./frappe-hr/index").then((m) => m.generate),
 	},
 	{
 		id: "formbricks",

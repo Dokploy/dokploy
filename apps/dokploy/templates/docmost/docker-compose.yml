@@ -12,8 +12,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       - REDIS_URL=redis://redis:6379
     restart: unless-stopped
-    networks:
-      - dokploy-network
+
     volumes:
       - docmost:/app/data/storage
 
@@ -24,16 +23,14 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
     restart: unless-stopped
-    networks:
-      - dokploy-network
+
     volumes:
       - db_docmost_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7.2-alpine
     restart: unless-stopped
-    networks:
-      - dokploy-network
+
     volumes:
       - redis_docmost_data:/data
 

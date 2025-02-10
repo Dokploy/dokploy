@@ -3,8 +3,7 @@ version: '3.7'
 services:
   yourls-app:
     image: yourls:1.9.2
-    networks:
-      - dokploy-network
+
     environment:
       YOURLS_SITE: https://${YOURLS_HOST}
       YOURLS_USER: ${YOURLS_ADMIN_USER}
@@ -22,8 +21,7 @@ services:
 
   yourls-mysql:
     image: mysql:5.7
-    networks:
-      - dokploy-network
+
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: yourls

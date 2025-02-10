@@ -1,8 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    networks:
-      - dokploy-network
+
     volumes:
       - calcom-data:/var/lib/postgresql/data
     environment:

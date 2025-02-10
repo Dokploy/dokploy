@@ -41,8 +41,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    networks:
-      - dokploy-network
+
     healthcheck:
       test:
         [
@@ -58,8 +57,7 @@ services:
     environment:
       - TZ=${TIMEZONE}
       - PRISMA_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    networks:
-      - dokploy-network
+
     depends_on:
       teable-db:
         condition: service_healthy
