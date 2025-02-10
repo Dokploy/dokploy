@@ -58,7 +58,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		},
 		transformer: superjson,
 	});
-	if (user.rol === "user") {
+	if (user.role === "user") {
 		const result = await helpers.user.byAuthId.fetch({
 			authId: user.id,
 		});

@@ -28,6 +28,7 @@ import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
+import { authClient } from "@/lib/auth";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
@@ -35,8 +36,10 @@ export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-
-	const { data } = api.project.all.useQuery();
+	const { data: session } = authClient.getSession();
+	const { data } = api.project.all.useQuery(undefined, {
+		enabled: !!session,
+	});
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 
 	React.useEffect(() => {

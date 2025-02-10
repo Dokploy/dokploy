@@ -100,10 +100,11 @@ export const findAuthByEmail = async (email: string) => {
 };
 
 export const findAuthById = async (authId: string) => {
-	const result = await db.query.auth.findFirst({
-		where: eq(auth.id, authId),
+	const result = await db.query.user.findFirst({
+		where: eq(user.id, authId),
 		columns: {
-			password: false,
+			createdAt: false,
+			updatedAt: false,
 		},
 	});
 	if (!result) {

@@ -32,6 +32,9 @@ import { z } from "zod";
 
 const registerSchema = z
 	.object({
+		name: z.string().min(1, {
+			message: "Name is required",
+		}),
 		email: z
 			.string()
 			.min(1, {
@@ -80,6 +83,7 @@ const Register = ({ isCloud }: Props) => {
 
 	const form = useForm<Register>({
 		defaultValues: {
+			name: "Mauricio Siu",
 			email: "user5@yopmail.com",
 			password: "Password1234",
 			confirmPassword: "Password1234",
@@ -95,8 +99,17 @@ const Register = ({ isCloud }: Props) => {
 		const { data, error } = await authClient.signUp.email({
 			email: values.email,
 			password: values.password,
-			name: "Mauricio Siu",
+			name: values.name,
 		});
+
+		// const { data, error } = await authClient.admin.createUser({
+		// 	name: values.name,
+		// 	email: values.email,
+		// 	password: values.password,
+		// 	role: "superAdmin",
+		// });
+
+		// consol/e.log(data, error);
 		// await mutateAsync({
 		// 	email: values.email.toLowerCase(),
 		// 	password: values.password,
@@ -153,6 +166,19 @@ const Register = ({ isCloud }: Props) => {
 									className="grid gap-4"
 								>
 									<div className="space-y-4">
+										<FormField
+											control={form.control}
+											name="name"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Name</FormLabel>
+													<FormControl>
+														<Input placeholder="name" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 										<FormField
 											control={form.control}
 											name="email"

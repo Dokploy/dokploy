@@ -124,9 +124,10 @@ export const projectRouter = createTRPCRouter({
 			return project;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
+		// console.log(ctx.user);
 		if (ctx.user.rol === "user") {
 			const { accessedProjects, accessedServices } = await findUserByAuthId(
-				ctx.user.authId,
+				ctx.user.id,
 			);
 
 			if (accessedProjects.length === 0) {
@@ -139,7 +140,7 @@ export const projectRouter = createTRPCRouter({
 						accessedProjects.map((projectId) => sql`${projectId}`),
 						sql`, `,
 					)})`,
-					eq(projects.adminId, ctx.user.adminId),
+					eq(projects.userId, ctx.user.id),
 				),
 				with: {
 					applications: {
@@ -193,7 +194,7 @@ export const projectRouter = createTRPCRouter({
 					},
 				},
 			},
-			where: eq(projects.adminId, ctx.user.adminId),
+			where: eq(projects.userId, ctx.user.id),
 			orderBy: desc(projects.createdAt),
 		});
 	}),

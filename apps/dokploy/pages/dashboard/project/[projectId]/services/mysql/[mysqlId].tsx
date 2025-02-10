@@ -67,7 +67,7 @@ const MySql = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.rol === "user",
+			enabled: !!auth?.id && auth?.role === "user",
 		},
 	);
 
@@ -156,7 +156,7 @@ const MySql = (
 
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateMysql mysqlId={mysqlId} />
-										{(auth?.rol === "admin" || user?.canDeleteServices) && (
+										{(auth?.role === "admin" || user?.canDeleteServices) && (
 											<DeleteService id={mysqlId} type="mysql" />
 										)}
 									</div>

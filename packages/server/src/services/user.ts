@@ -20,18 +20,16 @@ export const findUserById = async (userId: string) => {
 
 export const findUserByAuthId = async (authId: string) => {
 	const userR = await db.query.user.findFirst({
-		where: eq(user.authId, authId),
-		with: {
-			auth: true,
-		},
+		where: eq(user.id, authId),
+		with: {},
 	});
-	if (!user) {
+	if (!userR) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "User not found",
 		});
 	}
-	return user;
+	return userR;
 };
 
 export const findUsers = async (adminId: string) => {

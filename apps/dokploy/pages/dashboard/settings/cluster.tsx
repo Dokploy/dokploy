@@ -34,7 +34,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { user, session } = await validateRequest(ctx.req, ctx.res);
-	if (!user || user.rol === "user") {
+	if (!user || user.role === "user") {
 		return {
 			redirect: {
 				permanent: true,

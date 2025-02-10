@@ -6,9 +6,9 @@ import { TimeSpan } from "lucia";
 import { Lucia } from "lucia/dist/core.js";
 import type { Session, User } from "lucia/dist/core.js";
 import { db } from "../db";
-import { type DatabaseUser, auth, sessionTable } from "../db/schema";
+import { type DatabaseUser, auth, session } from "../db/schema";
 
-export const adapter = new DrizzlePostgreSQLAdapter(db, sessionTable, auth);
+export const adapter = new DrizzlePostgreSQLAdapter(db, session, auth);
 
 export const lucia = new Lucia(adapter, {
 	sessionCookie: {
@@ -46,6 +46,7 @@ export async function validateRequest(
 	req: IncomingMessage,
 	res: ServerResponse,
 ): ReturnValidateToken {
+	console.log(session);
 	const sessionId = lucia.readSessionCookie(req.headers.cookie ?? "");
 
 	if (!sessionId) {

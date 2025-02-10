@@ -21,6 +21,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { authClient } from "@/lib/auth";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, SquarePen } from "lucide-react";
@@ -97,6 +98,18 @@ export const HandleProject = ({ projectId }: Props) => {
 				);
 			});
 	};
+	// useEffect(() => {
+	// 	const getUsers = async () => {
+	// 		const users = await authClient.admin.listUsers({
+	// 			query: {
+	// 				limit: 100,
+	// 			},
+	// 		});
+	// 		console.log(users);
+	// 	};
+
+	// 	getUsers();
+	// });
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -110,10 +123,26 @@ export const HandleProject = ({ projectId }: Props) => {
 						<span>Update</span>
 					</DropdownMenuItem>
 				) : (
-					<Button>
-						<PlusIcon className="h-4 w-4" />
-						Create Project
-					</Button>
+					<>
+						<Button>
+							<PlusIcon className="h-4 w-4" />
+							Create Project
+						</Button>
+						<Button
+							onClick={async () => {
+								const newUser = await authClient.admin.createUser({
+									name: "Test User",
+									email: "test4@example.com",
+									password: "password123",
+									role: "user",
+								});
+
+								console.log(newUser);
+							}}
+						>
+							Create user
+						</Button>
+					</>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">

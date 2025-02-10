@@ -24,6 +24,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
+import { authClient } from "@/lib/auth";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
@@ -40,7 +41,7 @@ export const UserNav = () => {
 		},
 	);
 	const { locale, setLocale } = useLocale();
-	const { mutateAsync } = api.auth.logout.useMutation();
+	// const { mutateAsync } = api.auth.logout.useMutation();
 
 	return (
 		<DropdownMenu>
@@ -178,9 +179,12 @@ export const UserNav = () => {
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={async () => {
-							await mutateAsync().then(() => {
+							await authClient.signOut().then(() => {
 								router.push("/");
 							});
+							// await mutateAsync().then(() => {
+							// 	router.push("/");
+							// });
 						}}
 					>
 						Log out

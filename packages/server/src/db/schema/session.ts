@@ -2,7 +2,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./user";
 
 // OLD TABLE
-export const sessionTable = pgTable("session", {
+export const session = pgTable("session", {
 	id: text("id").primaryKey(),
 	expiresAt: timestamp("expires_at").notNull(),
 	token: text("token").notNull().unique(),
@@ -14,4 +14,5 @@ export const sessionTable = pgTable("session", {
 		.notNull()
 		.references(() => user.id),
 	impersonatedBy: text("impersonated_by"),
+	activeOrganizationId: text("active_organization_id"),
 });

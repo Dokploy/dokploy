@@ -68,7 +68,7 @@ const Mongo = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.rol === "user",
+			enabled: !!auth?.id && auth?.role === "user",
 		},
 	);
 
@@ -156,7 +156,7 @@ const Mongo = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMongo mongoId={mongoId} />
-									{(auth?.rol === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "admin" || user?.canDeleteServices) && (
 										<DeleteService id={mongoId} type="mongo" />
 									)}
 								</div>

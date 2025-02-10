@@ -655,7 +655,7 @@ export const settingsRouter = createTRPCRouter({
 
 			return true;
 		}),
-	isCloud: protectedProcedure.query(async () => {
+	isCloud: publicProcedure.query(async () => {
 		return IS_CLOUD;
 	}),
 	health: publicProcedure.query(async () => {

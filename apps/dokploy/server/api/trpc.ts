@@ -9,7 +9,8 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db";
-import { validateBearerToken, validateRequest } from "@dokploy/server";
+import { validateBearerToken } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -18,7 +19,7 @@ import {
 	experimental_isMultipartFormDataRequest,
 	experimental_parseMultipartFormData,
 } from "@trpc/server/adapters/node-http/content-type/form-data";
-import type { Session, User } from "lucia";
+import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
 /**
@@ -30,7 +31,7 @@ import { ZodError } from "zod";
  */
 
 interface CreateContextOptions {
-	user: (User & { authId: string; adminId: string }) | null;
+	user: (User & { authId: string; rol: "admin" | "user" }) | null;
 	session: Session | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
@@ -65,10 +66,11 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
-	let { session, user } = await validateBearerToken(req);
+	// Get from the request
+	let { session, user } = await validateRequest(req);
 
 	if (!session) {
-		const cookieResult = await validateRequest(req, res);
+		const cookieResult = await validateRequest(req);
 		session = cookieResult.session;
 		user = cookieResult.user;
 	}
@@ -79,12 +81,10 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 		session: session,
 		...((user && {
 			user: {
-				authId: user.id,
+				authId: "Null",
 				email: user.email,
-				rol: user.rol,
+				rol: user.role,
 				id: user.id,
-				secret: user.secret,
-				adminId: user.adminId,
 			},
 		}) || {
 			user: null,

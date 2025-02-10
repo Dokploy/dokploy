@@ -16,8 +16,11 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
+import { auth, IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getSessionCookie, Session } from "better-auth";
+import { betterFetch } from "better-auth/react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -66,7 +69,7 @@ export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
-			email: "siumauricio@hotmail.com",
+			email: "user5@yopmail.com",
 			password: "Password1234",
 		},
 		resolver: zodResolver(loginSchema),
@@ -81,6 +84,17 @@ export default function Home({ IS_CLOUD }: Props) {
 			email: values.email,
 			password: values.password,
 		});
+
+		if (!error) {
+			// if (data) {
+			// 	setTemp(data);
+			// } else {
+			toast.success("Successfully signed in", {
+				duration: 2000,
+			});
+			// router.push("/dashboard/projects");
+			// }
+		}
 
 		console.log(data, error);
 		// await mutateAsync({
@@ -208,51 +222,51 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	// if (IS_CLOUD) {
-	// 	try {
-	// 		const { user } = await validateRequest(context.req, context.res);
+	if (IS_CLOUD) {
+		try {
+			const { user } = await validateRequest(context.req);
+			if (user) {
+				return {
+					redirect: {
+						permanent: true,
+						destination: "/dashboard/projects",
+					},
+				};
+			}
+		} catch (error) {}
 
-	// 		if (user) {
-	// 			return {
-	// 				redirect: {
-	// 					permanent: true,
-	// 					destination: "/dashboard/projects",
-	// 				},
-	// 			};
-	// 		}
-	// 	} catch (error) {}
+		return {
+			props: {
+				IS_CLOUD: IS_CLOUD,
+			},
+		};
+	}
+	const hasAdmin = await isAdminPresent();
 
-	// 	return {
-	// 		props: {
-	// 			IS_CLOUD: IS_CLOUD,
-	// 		},
-	// 	};
-	// }
-	// const hasAdmin = await isAdminPresent();
+	if (!hasAdmin) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/register",
+			},
+		};
+	}
 
-	// if (!hasAdmin) {
-	// 	return {
-	// 		redirect: {
-	// 			permanent: true,
-	// 			destination: "/register",
-	// 		},
-	// 	};
-	// }
+	const { user } = await validateRequest(context.req);
+	console.log("Response", user);
 
-	// const { user } = await validateRequest(context.req, context.res);
-
-	// if (user) {
-	// 	return {
-	// 		redirect: {
-	// 			permanent: true,
-	// 			destination: "/dashboard/projects",
-	// 		},
-	// 	};
-	// }
+	if (user) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
+			},
+		};
+	}
 
 	return {
 		props: {
-			// hasAdmin,
+			hasAdmin,
 		},
 	};
 }

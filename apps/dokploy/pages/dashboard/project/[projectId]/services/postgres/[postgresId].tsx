@@ -66,7 +66,7 @@ const Postgresql = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.rol === "user",
+			enabled: !!auth?.id && auth?.role === "user",
 		},
 	);
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
@@ -154,7 +154,7 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
-									{(auth?.rol === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "admin" || user?.canDeleteServices) && (
 										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>

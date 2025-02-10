@@ -36,7 +36,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.rol === "user") {
+	if (user.role === "user") {
 		return {
 			redirect: {
 				permanent: true,

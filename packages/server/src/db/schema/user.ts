@@ -24,11 +24,16 @@ export const user = pgTable("user", {
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: timestamp("expirationDate", {
 		precision: 3,
-		mode: "string",
-	}).notNull(),
-	createdAt: text("createdAt")
+		mode: "date",
+	})
 		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
+		.$defaultFn(() => new Date()),
+	createdAt: timestamp("createdAt", {
+		precision: 3,
+		mode: "date",
+	})
+		.notNull()
+		.$defaultFn(() => new Date()),
 	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
 	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
 	canCreateServices: boolean("canCreateServices").notNull().default(false),
