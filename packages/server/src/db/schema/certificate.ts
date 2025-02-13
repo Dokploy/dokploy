@@ -25,9 +25,9 @@ export const certificates = pgTable("certificate", {
 	// userId: text("userId").references(() => user.userId, {
 	// 	onDelete: "cascade",
 	// }),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -40,9 +40,9 @@ export const certificatesRelations = relations(
 			fields: [certificates.serverId],
 			references: [server.serverId],
 		}),
-		admin: one(admins, {
-			fields: [certificates.adminId],
-			references: [admins.adminId],
+		user: one(users_temp, {
+			fields: [certificates.userId],
+			references: [users_temp.id],
 		}),
 	}),
 );

@@ -7,6 +7,7 @@ import { admins } from "./admin";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { server } from "./server";
+import { users_temp } from "./user";
 // import { user } from "./user";
 
 export const sshKeys = pgTable("ssh-key", {
@@ -25,19 +26,19 @@ export const sshKeys = pgTable("ssh-key", {
 	// userId: text("userId").references(() => user.userId, {
 	// 	onDelete: "cascade",
 	// }),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const sshKeysRelations = relations(sshKeys, ({ many, one }) => ({
 	applications: many(applications),
 	compose: many(compose),
 	servers: many(server),
-	// user: one(user, {
-	// 	fields: [sshKeys.userId],
-	// 	references: [user.id],
-	// }),
+	user: one(users_temp, {
+		fields: [sshKeys.userId],
+		references: [users_temp.id],
+	}),
 }));
 
 const createSchema = createInsertSchema(

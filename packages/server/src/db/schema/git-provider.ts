@@ -29,9 +29,9 @@ export const gitProvider = pgTable("git_provider", {
 	// userId: text("userId").references(() => user.userId, {
 	// 	onDelete: "cascade",
 	// }),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({

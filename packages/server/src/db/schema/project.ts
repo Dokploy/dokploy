@@ -28,9 +28,9 @@ export const projects = pgTable("project", {
 	// userId: text("userId")
 	// 	.notNull()
 	// 	.references(() => user.userId, { onDelete: "cascade" }),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	env: text("env").notNull().default(""),
 });
 

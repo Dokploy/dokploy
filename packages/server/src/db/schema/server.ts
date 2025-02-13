@@ -47,9 +47,9 @@ export const server = pgTable("server", {
 	// userId: text("userId")
 	// 	.notNull()
 	// 	.references(() => user.userId, { onDelete: "cascade" }),
-	adminId: text("adminId")
+	userId: text("userId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {

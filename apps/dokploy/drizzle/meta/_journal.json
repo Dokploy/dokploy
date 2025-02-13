@@ -477,6 +477,13 @@
       "when": 1739427057545,
       "tag": "0067_migrate-data",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1739428942964,
+      "tag": "0068_sour_professor_monster",
+      "breakpoints": true
     }
   ]
 }

@@ -189,10 +189,10 @@ export const usersRelations = relations(users, ({ one }) => ({
 		fields: [users.authId],
 		references: [auth.id],
 	}),
-	admin: one(admins, {
-		fields: [users.adminId],
-		references: [admins.adminId],
-	}),
+	// admin: one(admins, {
+	// 	fields: [users.adminId],
+	// 	references: [admins.adminId],
+	// }),
 }));
 
 const createSchema = createInsertSchema(users, {
