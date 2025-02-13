@@ -1,5 +1,8 @@
-# Note: this is an UNOFFICIAL production docker image build for Superset:
+# This is an UNOFFICIAL production docker image build for Superset:
 # - https://github.com/amancevice/docker-superset
+
+ 
+# ## SETUP INSTRUCTIONS
 #
 # After deploying this image, you will need to run one of the two
 # commands below in a terminal within the superset container:
@@ -7,11 +10,30 @@
 #      $ superset-init     # Initialise database only
 #
 # You will be prompted to enter the credentials for the admin user.
+ 
+
+# ## NETWORK INSTRUCTIONS
+#
+# If you want to connect superset with other internal databases managed by
+# Dokploy (on dokploy-network) using internal hostnames, you will need to
+# uncomment the `networks` section, both for the superset container and
+# at the very bottom of this docker-compose template.
+#
+# Note that the `superset` service name/hostname will not be unique on the
+# global `dokploy-network`. If you plan to:
+#
+# 1. deploy a second instance of superset on dokploy-network, and
+# 2. have other containers on dokploy-network utilise the second instance's
+#    Superset API (https://superset.apache.org/docs/api)
+#
+# Please change the service name of the second instance.
 
 services:
   superset:
     image: amancevice/superset
     restart: always
+    #networks:
+    #  - dokploy-network
     depends_on:
       - superset_postgres
       - superset_redis
@@ -44,8 +66,7 @@ services:
       timeout: 10s
       retries: 3
 
-
-  superset_redis:
+superset_redis:
     image: redis
     restart: always
     volumes:
@@ -57,6 +78,9 @@ services:
       timeout: 10s
       retries: 3
 
+#networks:
+#  dokploy-network:
+#    external: true
 
 volumes:
   superset_postgres_data:
