@@ -49,9 +49,9 @@ export const notifications = pgTable("notification", {
 	// userId: text("userId").references(() => user.userId, {
 	// 	onDelete: "cascade",
 	// }),
-	userId: text("userId")
+	adminId: text("adminId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
 export const slack = pgTable("slack", {
@@ -126,10 +126,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.gotifyId],
 		references: [gotify.gotifyId],
 	}),
-	// user: one(user, {
-	// 	fields: [notifications.userId],
-	// 	references: [user.id],
-	// }),
+	admin: one(admins, {
+		fields: [notifications.adminId],
+		references: [admins.adminId],
+	}),
 }));
 
 export const notificationsSchema = createInsertSchema(notifications);

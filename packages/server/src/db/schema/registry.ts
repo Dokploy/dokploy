@@ -32,9 +32,9 @@ export const registry = pgTable("registry", {
 	// userId: text("userId")
 	// 	.notNull()
 	// 	.references(() => user.userId, { onDelete: "cascade" }),
-	userId: text("userId")
+	adminId: text("adminId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
 export const registryRelations = relations(registry, ({ one, many }) => ({

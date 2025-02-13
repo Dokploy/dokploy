@@ -29,9 +29,9 @@ export const gitProvider = pgTable("git_provider", {
 	// userId: text("userId").references(() => user.userId, {
 	// 	onDelete: "cascade",
 	// }),
-	userId: text("userId")
+	adminId: text("adminId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
@@ -47,10 +47,10 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
-	// user: one(user, {
-	// 	fields: [gitProvider.userId],
-	// 	references: [user.id],
-	// }),
+	admin: one(admins, {
+		fields: [gitProvider.adminId],
+		references: [admins.adminId],
+	}),
 }));
 
 const createSchema = createInsertSchema(gitProvider);
