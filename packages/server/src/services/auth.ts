@@ -5,7 +5,7 @@ import {
 	type apiCreateAdmin,
 	type apiCreateUser,
 	auth,
-	user,
+	users_temp,
 } from "@dokploy/server/db/schema";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";

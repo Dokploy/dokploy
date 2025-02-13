@@ -4,7 +4,7 @@ import {
 	admins,
 	type apiCreateUserInvitation,
 	auth,
-	user,
+	users_temp,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";

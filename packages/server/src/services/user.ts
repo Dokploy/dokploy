@@ -1,9 +1,9 @@
 import { db } from "@dokploy/server/db";
-import { user } from "@dokploy/server/db/schema";
+import type { users_temp } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
-export type User = typeof user.$inferSelect;
+export type User = typeof users_temp.$inferSelect;
 
 export const findUserById = async (userId: string) => {
 	const userR = await db.query.user.findFirst({

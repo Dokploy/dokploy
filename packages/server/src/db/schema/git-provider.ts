@@ -47,9 +47,9 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
-	admin: one(admins, {
-		fields: [gitProvider.adminId],
-		references: [admins.adminId],
+	user: one(users_temp, {
+		fields: [gitProvider.userId],
+		references: [users_temp.id],
 	}),
 }));
 
