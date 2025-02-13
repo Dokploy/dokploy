@@ -150,6 +150,32 @@ inserted_members AS (
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"
     RETURNING *
+),
+inserted_member_accounts AS (
+    -- Insertar cuentas para los usuarios miembros
+    INSERT INTO account (
+        id,
+        "account_id",
+        "provider_id",
+        "user_id",
+        password,
+        "is2FAEnabled",
+        "created_at",
+        "updated_at"
+    )
+    SELECT 
+        gen_random_uuid(),
+        gen_random_uuid(),
+        'credentials',
+        u."userId",
+        auth.password,
+        COALESCE(auth."is2FAEnabled", false),
+        NOW(),
+        NOW()
+    FROM "user" u
+    JOIN admin a ON u."adminId" = a."adminId"
+    JOIN auth ON auth.id = u."authId"
+    RETURNING *
 )
 -- Insertar miembros en las organizaciones
 INSERT INTO member (

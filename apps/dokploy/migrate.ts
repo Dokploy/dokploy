@@ -100,6 +100,15 @@ await db
 					.returning()
 					.then((userTemp) => userTemp[0]);
 
+				await db.insert(schema.account).values({
+					providerId: "credentials",
+					userId: member?.userId || "",
+					password: member.auth.password,
+					is2FAEnabled: member.auth.is2FAEnabled || false,
+					createdAt: new Date(member.auth.createdAt) || new Date(),
+					updatedAt: new Date(member.auth.createdAt) || new Date(),
+				});
+
 				await db.insert(schema.member).values({
 					organizationId: organization?.id || "",
 					userId: userTemp?.id || "",
