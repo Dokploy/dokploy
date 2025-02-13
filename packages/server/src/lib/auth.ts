@@ -18,15 +18,16 @@ export const auth = betterAuth({
 			if (ctx.path.startsWith("/sign-up")) {
 				const newSession = ctx.context.newSession;
 				await db
-					.update(schema.user)
+					.update(schema.users_temp)
 					.set({
 						role: "admin",
 					})
-					.where(eq(schema.user.id, newSession?.user?.id || ""));
+					.where(eq(schema.users_temp.id, newSession?.user?.id || ""));
 			}
 		}),
 	},
 	user: {
+		modelName: "users_temp",
 		additionalFields: {},
 	},
 	plugins: [organization()],

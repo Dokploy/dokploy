@@ -94,6 +94,10 @@ export default function Home({ IS_CLOUD }: Props) {
 			});
 			// router.push("/dashboard/projects");
 			// }
+		} else {
+			toast.error("Error to sign up", {
+				description: error.message,
+			});
 		}
 
 		console.log(data, error);
