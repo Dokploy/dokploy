@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { users_temp } from "./user";
 import { auth } from "./auth";
+import { users_temp } from "./user";
 
 // OLD TABLE
 export const session = pgTable("session_temp", {

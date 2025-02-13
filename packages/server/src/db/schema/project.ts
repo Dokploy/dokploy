@@ -4,6 +4,7 @@ import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { admins } from "./admin";
 // import { admins } from "./admin";
 import { applications } from "./application";
 import { compose } from "./compose";
@@ -13,7 +14,6 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { users, users_temp } from "./user";
-import { admins } from "./admin";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
