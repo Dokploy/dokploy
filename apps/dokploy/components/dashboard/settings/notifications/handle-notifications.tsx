@@ -65,6 +65,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("telegram"),
 			botToken: z.string().min(1, { message: "Bot Token is required" }),
 			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			messageThreadId: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -214,6 +215,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					botToken: notification.telegram?.botToken,
+					messageThreadId: notification.telegram?.messageThreadId || "",
 					chatId: notification.telegram?.chatId,
 					type: notification.notificationType,
 					name: notification.name,
@@ -309,6 +311,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				botToken: data.botToken,
+				messageThreadId: data.messageThreadId || "",
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
@@ -561,11 +564,25 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormControl>
 														<Input placeholder="431231869" {...field} />
 													</FormControl>
-
 													<FormMessage />
 												</FormItem>
 											)}
 										/>
+
+										<FormField
+											control={form.control}
+											name="messageThreadId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Message Thread ID</FormLabel>
+													<FormControl>
+														<Input placeholder="11" {...field} />
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											)}
+										/>										
 									</>
 								)}
 
@@ -1014,6 +1031,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testTelegramConnection({
 											botToken: form.getValues("botToken"),
 											chatId: form.getValues("chatId"),
+											messageThreadId: form.getValues("messageThreadId") || "",
 										});
 									} else if (type === "discord") {
 										await testDiscordConnection({

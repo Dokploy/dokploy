@@ -65,6 +65,7 @@ export const telegram = pgTable("telegram", {
 		.$defaultFn(() => nanoid()),
 	botToken: text("botToken").notNull(),
 	chatId: text("chatId").notNull(),
+	messageThreadId: text("messageThreadId"),
 });
 
 export const discord = pgTable("discord", {
@@ -169,6 +170,7 @@ export const apiCreateTelegram = notificationsSchema
 	.extend({
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
+		messageThreadId: z.string()
 	})
 	.required();
 
@@ -181,6 +183,7 @@ export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
 	botToken: true,
 	chatId: true,
+	messageThreadId: true,
 });
 
 export const apiCreateDiscord = notificationsSchema
