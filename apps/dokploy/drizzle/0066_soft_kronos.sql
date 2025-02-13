@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS "account" (
 );
 
 CREATE TABLE IF NOT EXISTS "organization" (
-    "id" text PRIMARY KEY NOT NULL,
+    "id" text PRIMARY KEY NOT NULL,mn cj.  
     "name" text NOT NULL,
     "slug" text,
     "logo" text,
@@ -79,11 +79,16 @@ ADD COLUMN IF NOT EXISTS "stripeCustomerId" text,
 ADD COLUMN IF NOT EXISTS "stripeSubscriptionId" text,
 ADD COLUMN IF NOT EXISTS "serversQuantity" integer DEFAULT 0;
 
+-- Migrate email from auth table to user table
+UPDATE "user" u
+SET "email" = a."email"
+FROM "auth" a
+WHERE a."id" = u."userId";
+
 -- Migrate admin users
 WITH admin_users AS (
     UPDATE "user" u
     SET 
-        "email" = a."email",
         "emailVerified" = true,
         "role" = 'admin',
         "token" = a."token",
@@ -105,7 +110,7 @@ WITH admin_users AS (
     FROM "auth" a
     INNER JOIN "admin" adm ON a."id" = adm."adminId"
     WHERE a."id" = u."userId"
-    RETURNING u."userId", a."email"
+    RETURNING u."userId", u."email"
 )
 INSERT INTO "account" ("id", "accountId", "providerId", "password", "userId", "createdAt", "updatedAt")
 SELECT 
@@ -135,7 +140,6 @@ WITH admin_orgs AS (
 -- Migrate regular users
 UPDATE "user" u
 SET 
-    "email" = a."email",
     "emailVerified" = true,
     "role" = 'user',
     "token" = a."token",
