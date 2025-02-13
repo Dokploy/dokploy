@@ -40,6 +40,11 @@ export const auth = betterAuth({
 	},
 	user: {
 		modelName: "users_temp",
+		additionalFields: {
+			role: {
+				type: "string",
+			},
+		},
 	},
 	plugins: [organization()],
 });
@@ -50,6 +55,8 @@ export const validateRequest = async (request: IncomingMessage) => {
 			cookie: request.headers.cookie || "",
 		}),
 	});
+
+	console.log(session);
 
 	if (!session?.session || !session.user) {
 		return {

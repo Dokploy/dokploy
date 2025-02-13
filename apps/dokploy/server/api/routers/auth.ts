@@ -169,7 +169,6 @@ export const authRouter = createTRPCRouter({
 	}),
 
 	get: protectedProcedure.query(async ({ ctx }) => {
-		console.log(ctx.user);
 		const auth = await findAuthById(ctx.user.id);
 		return auth;
 	}),
