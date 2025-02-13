@@ -5,7 +5,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 // import { admins } from "./admin";
-import { user } from "./user";
+import { users } from "./user";
 
 const randomImages = [
 	"/avatars/avatar-1.png",
@@ -56,7 +56,7 @@ export const auth = pgTable("auth", {
 
 export const authRelations = relations(auth, ({ many }) => ({
 	// admins: many(admins),
-	users: many(user),
+	users: many(users),
 }));
 const createSchema = createInsertSchema(auth, {
 	email: z.string().email(),

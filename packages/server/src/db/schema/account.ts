@@ -1,13 +1,18 @@
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { user } from "./user";
+import { users_temp } from "./user";
+import { nanoid } from "nanoid";
 
 export const account = pgTable("account", {
-	id: text("id").primaryKey(),
-	accountId: text("account_id").notNull(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	accountId: text("account_id")
+		.notNull()
+		.$defaultFn(() => nanoid()),
 	providerId: text("provider_id").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => users_temp.id),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	idToken: text("id_token"),
@@ -34,7 +39,9 @@ export const verification = pgTable("verification", {
 });
 
 export const organization = pgTable("organization", {
-	id: text("id").primaryKey(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	slug: text("slug").unique(),
 	logo: text("logo"),
@@ -42,17 +49,19 @@ export const organization = pgTable("organization", {
 	metadata: text("metadata"),
 	ownerId: text("owner_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => users_temp.id),
 });
 
 export const member = pgTable("member", {
-	id: text("id").primaryKey(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
 	organizationId: text("organization_id")
 		.notNull()
 		.references(() => organization.id),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => users_temp.id),
 	role: text("role").notNull(),
 	createdAt: timestamp("created_at").notNull(),
 });
@@ -68,5 +77,5 @@ export const invitation = pgTable("invitation", {
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => users_temp.id),
 });

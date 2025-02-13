@@ -26,7 +26,7 @@ export const session = pgTable("session", {
 	userAgent: text("user_agent"),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => user.id),
 	activeOrganizationId: text("active_organization_id"),
 });
 
@@ -36,7 +36,7 @@ export const account = pgTable("account", {
 	providerId: text("provider_id").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => user.userId),
+		.references(() => user.id),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	idToken: text("id_token"),

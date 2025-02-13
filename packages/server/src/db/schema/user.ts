@@ -21,8 +21,54 @@ import { certificateType } from "./shared";
  */
 
 // OLD TABLE
-export const user = pgTable("user", {
+
+export const users = pgTable("user", {
 	userId: text("userId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+
+	token: text("token").notNull(),
+	isRegistered: boolean("isRegistered").notNull().default(false),
+	expirationDate: timestamp("expirationDate", {
+		precision: 3,
+		mode: "string",
+	}).notNull(),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
+	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
+	canCreateServices: boolean("canCreateServices").notNull().default(false),
+	canDeleteProjects: boolean("canDeleteProjects").notNull().default(false),
+	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
+	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
+	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
+	canAccessToGitProviders: boolean("canAccessToGitProviders")
+		.notNull()
+		.default(false),
+	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
+		.notNull()
+		.default(false),
+	accessedProjects: text("accesedProjects")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	accessedServices: text("accesedServices")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	adminId: text("adminId")
+		.notNull()
+		.references(() => admins.adminId, { onDelete: "cascade" }),
+	authId: text("authId")
+		.notNull()
+		.references(() => auth.id, { onDelete: "cascade" }),
+});
+
+// TEMP
+export const users_temp = pgTable("user_temp", {
+	id: text("id")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
@@ -138,19 +184,19 @@ export const user = pgTable("user", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
-export const usersRelations = relations(user, ({ one }) => ({
-	// auth: one(auth, {
-	// 	fields: [users.authId],
-	// 	references: [auth.id],
-	// }),
-	// admin: one(admins, {
-	// 	fields: [users.adminId],
-	// 	references: [admins.adminId],
-	// }),
+export const usersRelations = relations(users, ({ one }) => ({
+	auth: one(auth, {
+		fields: [users.authId],
+		references: [auth.id],
+	}),
+	admin: one(admins, {
+		fields: [users.adminId],
+		references: [admins.adminId],
+	}),
 }));
 
-const createSchema = createInsertSchema(user, {
-	id: z.string().min(1),
+const createSchema = createInsertSchema(users, {
+	userId: z.string().min(1),
 	// authId: z.string().min(1),
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
@@ -183,7 +229,7 @@ export const apiFindOneToken = createSchema
 
 export const apiAssignPermissions = createSchema
 	.pick({
-		id: true,
+		userId: true,
 		canCreateProjects: true,
 		canCreateServices: true,
 		canDeleteProjects: true,
@@ -200,7 +246,7 @@ export const apiAssignPermissions = createSchema
 
 export const apiFindOneUser = createSchema
 	.pick({
-		id: true,
+		userId: true,
 	})
 	.required();
 

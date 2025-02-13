@@ -18,127 +18,128 @@ import { sshKeys } from "./ssh-key";
 import { users } from "./user";
 
 export const admins = pgTable("admin", {
-	// adminId: text("adminId")
-	// 	.notNull()
-	// 	.primaryKey()
-	// 	.$defaultFn(() => nanoid()),
-	// serverIp: text("serverIp"),
-	// certificateType: certificateType("certificateType").notNull().default("none"),
-	// host: text("host"),
-	// letsEncryptEmail: text("letsEncryptEmail"),
-	// sshPrivateKey: text("sshPrivateKey"),
-	// enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	// enableLogRotation: boolean("enableLogRotation").notNull().default(false),
-	// authId: text("authId")
-	// 	.notNull()
-	// 	.references(() => auth.id, { onDelete: "cascade" }),
-	// createdAt: text("createdAt")
-	// 	.notNull()
-	// 	.$defaultFn(() => new Date().toISOString()),
-	// stripeCustomerId: text("stripeCustomerId"),
-	// stripeSubscriptionId: text("stripeSubscriptionId"),
-	// serversQuantity: integer("serversQuantity").notNull().default(0),
-	// // Metrics
-	// enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
-	// metricsConfig: jsonb("metricsConfig")
-	// 	.$type<{
-	// 		server: {
-	// 			type: "Dokploy" | "Remote";
-	// 			refreshRate: number;
-	// 			port: number;
-	// 			token: string;
-	// 			urlCallback: string;
-	// 			retentionDays: number;
-	// 			cronJob: string;
-	// 			thresholds: {
-	// 				cpu: number;
-	// 				memory: number;
-	// 			};
-	// 		};
-	// 		containers: {
-	// 			refreshRate: number;
-	// 			services: {
-	// 				include: string[];
-	// 				exclude: string[];
-	// 			};
-	// 		};
-	// 	}>()
-	// 	.notNull()
-	// 	.default({
-	// 		server: {
-	// 			type: "Dokploy",
-	// 			refreshRate: 60,
-	// 			port: 4500,
-	// 			token: "",
-	// 			retentionDays: 2,
-	// 			cronJob: "",
-	// 			urlCallback: "",
-	// 			thresholds: {
-	// 				cpu: 0,
-	// 				memory: 0,
-	// 			},
-	// 		},
-	// 		containers: {
-	// 			refreshRate: 60,
-	// 			services: {
-	// 				include: [],
-	// 				exclude: [],
-	// 			},
-	// 		},
-	// 	}),
-	// cleanupCacheApplications: boolean("cleanupCacheApplications")
-	// 	.notNull()
-	// 	.default(false),
-	// cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
-	// 	.notNull()
-	// 	.default(false),
-	// cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
-	// 	.notNull()
-	// 	.default(false),
+	adminId: text("adminId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverIp: text("serverIp"),
+	certificateType: certificateType("certificateType").notNull().default("none"),
+	host: text("host"),
+	letsEncryptEmail: text("letsEncryptEmail"),
+	sshPrivateKey: text("sshPrivateKey"),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	enableLogRotation: boolean("enableLogRotation").notNull().default(false),
+	authId: text("authId")
+		.notNull()
+		.references(() => auth.id, { onDelete: "cascade" }),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	stripeCustomerId: text("stripeCustomerId"),
+	stripeSubscriptionId: text("stripeSubscriptionId"),
+	serversQuantity: integer("serversQuantity").notNull().default(0),
+
+	// Metrics
+	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
+	metricsConfig: jsonb("metricsConfig")
+		.$type<{
+			server: {
+				type: "Dokploy" | "Remote";
+				refreshRate: number;
+				port: number;
+				token: string;
+				urlCallback: string;
+				retentionDays: number;
+				cronJob: string;
+				thresholds: {
+					cpu: number;
+					memory: number;
+				};
+			};
+			containers: {
+				refreshRate: number;
+				services: {
+					include: string[];
+					exclude: string[];
+				};
+			};
+		}>()
+		.notNull()
+		.default({
+			server: {
+				type: "Dokploy",
+				refreshRate: 60,
+				port: 4500,
+				token: "",
+				retentionDays: 2,
+				cronJob: "",
+				urlCallback: "",
+				thresholds: {
+					cpu: 0,
+					memory: 0,
+				},
+			},
+			containers: {
+				refreshRate: 60,
+				services: {
+					include: [],
+					exclude: [],
+				},
+			},
+		}),
+	cleanupCacheApplications: boolean("cleanupCacheApplications")
+		.notNull()
+		.default(false),
+	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
+		.notNull()
+		.default(false),
+	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
+		.notNull()
+		.default(false),
 });
 
 export const adminsRelations = relations(admins, ({ one, many }) => ({
-	// auth: one(auth, {
-	// 	fields: [admins.authId],
-	// 	references: [auth.id],
-	// }),
-	// users: many(users),
-	// registry: many(registry),
-	// sshKeys: many(sshKeys),
-	// certificates: many(certificates),
+	auth: one(auth, {
+		fields: [admins.authId],
+		references: [auth.id],
+	}),
+	users: many(users),
+	registry: many(registry),
+	sshKeys: many(sshKeys),
+	certificates: many(certificates),
 }));
 
 const createSchema = createInsertSchema(admins, {
-	// adminId: z.string(),
-	// enableDockerCleanup: z.boolean().optional(),
-	// sshPrivateKey: z.string().optional(),
-	// certificateType: z.enum(["letsencrypt", "none"]).default("none"),
-	// serverIp: z.string().optional(),
-	// letsEncryptEmail: z.string().optional(),
+	adminId: z.string(),
+	enableDockerCleanup: z.boolean().optional(),
+	sshPrivateKey: z.string().optional(),
+	certificateType: z.enum(["letsencrypt", "none"]).default("none"),
+	serverIp: z.string().optional(),
+	letsEncryptEmail: z.string().optional(),
 });
 
 export const apiUpdateAdmin = createSchema.partial();
 
 export const apiSaveSSHKey = createSchema
 	.pick({
-		// sshPrivateKey: true,
+		sshPrivateKey: true,
 	})
 	.required();
 
 export const apiAssignDomain = createSchema
 	.pick({
-		// host: true,
-		// certificateType: true,
-		// letsEncryptEmail: true,
+		host: true,
+		certificateType: true,
+		letsEncryptEmail: true,
 	})
 	.required()
 	.partial({
-		// letsEncryptEmail: true,
+		letsEncryptEmail: true,
 	});
 
 export const apiUpdateDockerCleanup = createSchema
 	.pick({
-		// enableDockerCleanup: true,
+		enableDockerCleanup: true,
 	})
 	.required()
 	.extend({

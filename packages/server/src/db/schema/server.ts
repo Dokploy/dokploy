@@ -22,8 +22,9 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
-import { user } from "./user";
+// import { user } from "./user";
 import { generateAppName } from "./utils";
+import { users_temp } from "./user";
 
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
@@ -41,12 +42,14 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
+	createdAt: text("createdAt").notNull(),
+	// 	.$defaultFn(() => new Date().toISOString()),
+	// userId: text("userId")
+	// 	.notNull()
+	// 	.references(() => user.userId, { onDelete: "cascade" }),
 	userId: text("userId")
 		.notNull()
-		.references(() => user.userId, { onDelete: "cascade" }),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
@@ -101,10 +104,10 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	user: one(user, {
-		fields: [server.userId],
-		references: [user.id],
-	}),
+	// user: one(user, {
+	// 	fields: [server.userId],
+	// 	references: [user.id],
+	// }),
 	deployments: many(deployments),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],
