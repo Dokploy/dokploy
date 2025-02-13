@@ -582,7 +582,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormMessage />
 												</FormItem>
 											)}
-										/>										
+										/>
 									</>
 								)}
 

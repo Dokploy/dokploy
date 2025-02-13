@@ -70,9 +70,9 @@ import type {
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useMemo, useState, type ReactElement } from "react";
-import superjson from "superjson";
+import { type ReactElement, useMemo, useState } from "react";
 import { toast } from "sonner";
+import superjson from "superjson";
 
 export type Services = {
 	appName: string;

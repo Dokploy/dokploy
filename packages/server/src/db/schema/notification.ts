@@ -170,7 +170,7 @@ export const apiCreateTelegram = notificationsSchema
 	.extend({
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
-		messageThreadId: z.string()
+		messageThreadId: z.string(),
 	})
 	.required();
 
