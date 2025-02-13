@@ -5,6 +5,9 @@ import { admin, createAuthMiddleware, organization } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { Scrypt } from "lucia";
+const scrypt = new Scrypt();
+
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -12,6 +15,10 @@ export const auth = betterAuth({
 	}),
 	emailAndPassword: {
 		enabled: true,
+		password: {
+			hash: scrypt.hash,
+			verify: scrypt.verify,
+		},
 	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {

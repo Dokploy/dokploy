@@ -1,0 +1,1 @@
+ALTER TABLE "user_temp" ALTER COLUMN "token" SET DEFAULT '';

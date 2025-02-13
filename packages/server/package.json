@@ -28,6 +28,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@oslojs/encoding":"1.1.0",
+    "@oslojs/crypto":"1.0.1",
     "drizzle-dbml-generator":"0.10.0",
     "better-auth":"1.1.16",
     "rotating-file-stream": "3.2.3",

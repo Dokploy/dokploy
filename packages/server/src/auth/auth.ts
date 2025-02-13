@@ -16,6 +16,7 @@ export const lucia = new Lucia(adapter, {
 			secure: false,
 		},
 	},
+	
 	sessionExpiresIn: new TimeSpan(1, "d"),
 	getUserAttributes: (attributes) => {
 		return {

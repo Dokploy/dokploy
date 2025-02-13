@@ -73,14 +73,15 @@ export const users_temp = pgTable("user_temp", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull().default(""),
-	token: text("token").notNull(),
+	token: text("token").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	createdAt: text("createdAt")
+	createdAt2: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	createdAt: timestamp("created_at").defaultNow(),
 	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
 	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
 	canCreateServices: boolean("canCreateServices").notNull().default(false),
