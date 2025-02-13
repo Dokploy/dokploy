@@ -1,23 +1,28 @@
 import type { IncomingMessage } from "node:http";
+import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, createAuthMiddleware, organization } from "better-auth/plugins";
+import { createAuthMiddleware, organization } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { Scrypt } from "lucia";
-const scrypt = new Scrypt();
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
 	}),
+
 	emailAndPassword: {
 		enabled: true,
+
 		password: {
-			hash: scrypt.hash,
-			verify: scrypt.verify,
+			async hash(password) {
+				return bcrypt.hashSync(password, 10);
+			},
+			async verify({ hash, password }) {
+				return bcrypt.compareSync(password, hash);
+			},
 		},
 	},
 	hooks: {
@@ -35,7 +40,6 @@ export const auth = betterAuth({
 	},
 	user: {
 		modelName: "users_temp",
-		additionalFields: {},
 	},
 	plugins: [organization()],
 });

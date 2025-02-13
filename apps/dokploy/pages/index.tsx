@@ -69,8 +69,8 @@ export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
-			email: "user5@yopmail.com",
-			password: "Password1234",
+			email: "",
+			password: "",
 		},
 		resolver: zodResolver(loginSchema),
 	});

@@ -72,7 +72,7 @@ inserted_accounts AS (
     SELECT 
         gen_random_uuid(),
         gen_random_uuid(),
-        'credentials',
+        'credential',
         a."adminId",
         auth.password,
         COALESCE(auth."is2FAEnabled", false),
@@ -166,7 +166,7 @@ inserted_member_accounts AS (
     SELECT 
         gen_random_uuid(),
         gen_random_uuid(),
-        'credentials',
+        'credential',
         u."userId",
         auth.password,
         COALESCE(auth."is2FAEnabled", false),

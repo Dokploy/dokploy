@@ -54,7 +54,7 @@ await db
 				.then((user) => user[0]);
 
 			await db.insert(schema.account).values({
-				providerId: "credentials",
+				providerId: "credential",
 				userId: user?.id || "",
 				password: admin.auth.password,
 				is2FAEnabled: admin.auth.is2FAEnabled || false,
@@ -101,7 +101,7 @@ await db
 					.then((userTemp) => userTemp[0]);
 
 				await db.insert(schema.account).values({
-					providerId: "credentials",
+					providerId: "credential",
 					userId: member?.userId || "",
 					password: member.auth.password,
 					is2FAEnabled: member.auth.is2FAEnabled || false,
