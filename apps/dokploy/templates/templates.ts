@@ -34,7 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.4",
+		version: "v2.1.5",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
