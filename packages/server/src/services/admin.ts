@@ -51,6 +51,9 @@ export const createInvitation = async (
 export const findUserById = async (userId: string) => {
 	const user = await db.query.users_temp.findFirst({
 		where: eq(users_temp.id, userId),
+		// with: {
+		// 	account: true,
+		// },
 	});
 	if (!user) {
 		throw new TRPCError({

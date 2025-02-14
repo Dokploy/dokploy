@@ -38,7 +38,7 @@ export const mariadbRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -57,7 +57,7 @@ export const mariadbRouter = createTRPCRouter({
 				}
 				const newMariadb = await createMariadb(input);
 				if (ctx.user.rol === "user") {
-					await addNewService(ctx.user.authId, newMariadb.mariadbId);
+					await addNewService(ctx.user.id, newMariadb.mariadbId);
 				}
 
 				await createMount({
@@ -80,7 +80,7 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiFindOneMariaDB)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.mariadbId, "access");
+				await checkServiceAccess(ctx.user.id, input.mariadbId, "access");
 			}
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (mariadb.project.userId !== ctx.user.ownerId) {
@@ -202,7 +202,7 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.mariadbId, "delete");
+				await checkServiceAccess(ctx.user.id, input.mariadbId, "delete");
 			}
 
 			const mongo = await findMariadbById(input.mariadbId);

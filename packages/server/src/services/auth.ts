@@ -15,6 +15,7 @@ import encode from "hi-base32";
 import { TOTP } from "otpauth";
 import QRCode from "qrcode";
 import { IS_CLOUD } from "../constants";
+import { findUserById } from "./admin";
 
 export type Auth = typeof auth.$inferSelect;
 
@@ -131,14 +132,14 @@ export const updateAuthById = async (
 	return result[0];
 };
 
-export const generate2FASecret = async (authId: string) => {
-	const auth = await findAuthById(authId);
+export const generate2FASecret = async (userId: string) => {
+	const user = await findUserById(userId);
 
 	const base32_secret = generateBase32Secret();
 
 	const totp = new TOTP({
 		issuer: "Dokploy",
-		label: `${auth?.email}`,
+		label: `${user?.email}`,
 		algorithm: "SHA1",
 		digits: 6,
 		secret: base32_secret,

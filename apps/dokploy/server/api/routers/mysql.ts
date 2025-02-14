@@ -39,7 +39,7 @@ export const mysqlRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -59,7 +59,7 @@ export const mysqlRouter = createTRPCRouter({
 
 				const newMysql = await createMysql(input);
 				if (ctx.user.rol === "user") {
-					await addNewService(ctx.user.authId, newMysql.mysqlId);
+					await addNewService(ctx.user.id, newMysql.mysqlId);
 				}
 
 				await createMount({
@@ -86,7 +86,7 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiFindOneMySql)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.mysqlId, "access");
+				await checkServiceAccess(ctx.user.id, input.mysqlId, "access");
 			}
 			const mysql = await findMySqlById(input.mysqlId);
 			if (mysql.project.userId !== ctx.user.ownerId) {
@@ -241,7 +241,7 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.mysqlId, "delete");
+				await checkServiceAccess(ctx.user.id, input.mysqlId, "delete");
 			}
 			const mongo = await findMySqlById(input.mysqlId);
 			if (mongo.project.userId !== ctx.user.ownerId) {

@@ -44,6 +44,7 @@ import {
 	findDomainsByComposeId,
 	findProjectById,
 	findServerById,
+	findUserById,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -61,7 +62,7 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -80,7 +81,7 @@ export const composeRouter = createTRPCRouter({
 				const newService = await createCompose(input);
 
 				if (ctx.user.rol === "user") {
-					await addNewService(ctx.user.authId, newService.composeId);
+					await addNewService(ctx.user.id, newService.composeId);
 				}
 
 				return newService;
@@ -93,7 +94,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.composeId, "access");
+				await checkServiceAccess(ctx.user.id, input.composeId, "access");
 			}
 
 			const compose = await findComposeById(input.composeId);
@@ -122,7 +123,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.composeId, "delete");
+				await checkServiceAccess(ctx.user.id, input.composeId, "delete");
 			}
 			const composeResult = await findComposeById(input.composeId);
 
@@ -376,7 +377,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiCreateComposeByTemplate)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+				await checkServiceAccess(ctx.user.id, input.projectId, "create");
 			}
 
 			if (IS_CLOUD && !input.serverId) {
@@ -390,7 +391,7 @@ export const composeRouter = createTRPCRouter({
 
 			const generate = await loadTemplateModule(input.id as TemplatesKeys);
 
-			const admin = await findAdminById(ctx.user.adminId);
+			const admin = await findUserById(ctx.user.ownerId);
 			let serverIp = admin.serverIp || "127.0.0.1";
 
 			const project = await findProjectById(input.projectId);
@@ -419,7 +420,7 @@ export const composeRouter = createTRPCRouter({
 			});
 
 			if (ctx.user.rol === "user") {
-				await addNewService(ctx.user.authId, compose.composeId);
+				await addNewService(ctx.user.id, compose.composeId);
 			}
 
 			if (mounts && mounts?.length > 0) {

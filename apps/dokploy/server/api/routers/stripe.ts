@@ -120,8 +120,7 @@ export const stripeRouter = createTRPCRouter({
 
 	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
-		console.log(user);
-		// const servers = await findServersByUserId(user.id);
+		const servers = await findServersByUserId(user.id);
 
 		if (!IS_CLOUD) {
 			return true;

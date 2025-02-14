@@ -61,7 +61,7 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -81,7 +81,7 @@ export const applicationRouter = createTRPCRouter({
 				const newApplication = await createApplication(input);
 
 				if (ctx.user.rol === "user") {
-					await addNewService(ctx.user.authId, newApplication.applicationId);
+					await addNewService(ctx.user.id, newApplication.applicationId);
 				}
 				return newApplication;
 			} catch (error: unknown) {
@@ -99,11 +99,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(
-					ctx.user.authId,
-					input.applicationId,
-					"access",
-				);
+				await checkServiceAccess(ctx.user.id, input.applicationId, "access");
 			}
 			const application = await findApplicationById(input.applicationId);
 			if (application.project.userId !== ctx.user.ownerId) {
@@ -145,11 +141,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(
-					ctx.user.authId,
-					input.applicationId,
-					"delete",
-				);
+				await checkServiceAccess(ctx.user.id, input.applicationId, "delete");
 			}
 			const application = await findApplicationById(input.applicationId);
 

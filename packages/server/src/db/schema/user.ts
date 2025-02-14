@@ -13,6 +13,7 @@ import { z } from "zod";
 import { admins } from "./admin";
 import { auth } from "./auth";
 import { certificateType } from "./shared";
+import { account } from "./account";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -185,10 +186,14 @@ export const users_temp = pgTable("user_temp", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
-export const usersRelations = relations(users, ({ one }) => ({
-	auth: one(auth, {
-		fields: [users.authId],
-		references: [auth.id],
+export const usersRelations = relations(users_temp, ({ one }) => ({
+	// auth: one(auth, {
+	// 	fields: [users.authId],
+	// 	references: [auth.id],
+	// }),
+	account: one(account, {
+		fields: [users_temp.id],
+		references: [account.userId],
 	}),
 	// admin: one(admins, {
 	// 	fields: [users.adminId],

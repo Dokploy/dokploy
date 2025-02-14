@@ -45,7 +45,7 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkServiceAccess(ctx.user.authId, input.projectId, "create");
+					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -64,7 +64,7 @@ export const postgresRouter = createTRPCRouter({
 				}
 				const newPostgres = await createPostgres(input);
 				if (ctx.user.rol === "user") {
-					await addNewService(ctx.user.authId, newPostgres.postgresId);
+					await addNewService(ctx.user.id, newPostgres.postgresId);
 				}
 
 				await createMount({
@@ -91,7 +91,7 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.postgresId, "access");
+				await checkServiceAccess(ctx.user.id, input.postgresId, "access");
 			}
 
 			const postgres = await findPostgresById(input.postgresId);
@@ -222,7 +222,7 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.authId, input.postgresId, "delete");
+				await checkServiceAccess(ctx.user.id, input.postgresId, "delete");
 			}
 			const postgres = await findPostgresById(input.postgresId);
 

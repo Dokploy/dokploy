@@ -14,6 +14,7 @@ export const createServer = async (
 		.values({
 			...input,
 			userId: userId,
+			createdAt: new Date().toISOString(),
 		})
 		.returning()
 		.then((value) => value[0]);

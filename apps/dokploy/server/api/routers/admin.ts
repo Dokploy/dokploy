@@ -16,6 +16,7 @@ import {
 	removeUserById,
 	setupWebMonitoring,
 	updateAdminById,
+	updateUser,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -101,6 +102,9 @@ export const adminRouter = createTRPCRouter({
 						message: "You are not allowed to assign permissions",
 					});
 				}
+				await updateUser(user.id, {
+					...input,
+				});
 				// await db
 				// 	.update(users)
 				// 	.set({
@@ -130,32 +134,33 @@ export const adminRouter = createTRPCRouter({
 					});
 				}
 
-				// await updateAdminById(admin.adminId, {
-				// 	metricsConfig: {
-				// 		server: {
-				// 			type: "Dokploy",
-				// 			refreshRate: input.metricsConfig.server.refreshRate,
-				// 			port: input.metricsConfig.server.port,
-				// 			token: input.metricsConfig.server.token,
-				// 			cronJob: input.metricsConfig.server.cronJob,
-				// 			urlCallback: input.metricsConfig.server.urlCallback,
-				// 			retentionDays: input.metricsConfig.server.retentionDays,
-				// 			thresholds: {
-				// 				cpu: input.metricsConfig.server.thresholds.cpu,
-				// 				memory: input.metricsConfig.server.thresholds.memory,
-				// 			},
-				// 		},
-				// 		containers: {
-				// 			refreshRate: input.metricsConfig.containers.refreshRate,
-				// 			services: {
-				// 				include: input.metricsConfig.containers.services.include || [],
-				// 				exclude: input.metricsConfig.containers.services.exclude || [],
-				// 			},
-				// 		},
-				// 	},
-				// });
-				// const currentServer = await setupWebMonitoring(admin.adminId);
-				// return currentServer;
+				await updateUser(user.id, {
+					metricsConfig: {
+						server: {
+							type: "Dokploy",
+							refreshRate: input.metricsConfig.server.refreshRate,
+							port: input.metricsConfig.server.port,
+							token: input.metricsConfig.server.token,
+							cronJob: input.metricsConfig.server.cronJob,
+							urlCallback: input.metricsConfig.server.urlCallback,
+							retentionDays: input.metricsConfig.server.retentionDays,
+							thresholds: {
+								cpu: input.metricsConfig.server.thresholds.cpu,
+								memory: input.metricsConfig.server.thresholds.memory,
+							},
+						},
+						containers: {
+							refreshRate: input.metricsConfig.containers.refreshRate,
+							services: {
+								include: input.metricsConfig.containers.services.include || [],
+								exclude: input.metricsConfig.containers.services.exclude || [],
+							},
+						},
+					},
+				});
+
+				const currentServer = await setupWebMonitoring(user.id);
+				return currentServer;
 			} catch (error) {
 				throw error;
 			}

@@ -25,9 +25,9 @@ import {
 	checkProjectAccess,
 	createProject,
 	deleteProject,
-	findAdminById,
 	findProjectById,
 	findUserByAuthId,
+	findUserById,
 	updateProjectById,
 } from "@dokploy/server";
 
@@ -37,10 +37,10 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkProjectAccess(ctx.user.authId, "create");
+					await checkProjectAccess(ctx.user.id, "create");
 				}
 
-				const admin = await findAdminById(ctx.user.adminId);
+				const admin = await findUserById(ctx.user.ownerId);
 
 				if (admin.serversQuantity === 0 && IS_CLOUD) {
 					throw new TRPCError({
@@ -49,9 +49,9 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await createProject(input, ctx.user.adminId);
+				const project = await createProject(input, ctx.user.ownerId);
 				if (ctx.user.rol === "user") {
-					await addNewProject(ctx.user.authId, project.projectId);
+					await addNewProject(ctx.user.id, project.projectId);
 				}
 
 				return project;
@@ -68,9 +68,9 @@ export const projectRouter = createTRPCRouter({
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "user") {
-				const { accessedServices } = await findUserByAuthId(ctx.user.authId);
+				const { accessedServices } = await findUserByAuthId(ctx.user.id);
 
-				await checkProjectAccess(ctx.user.authId, "access", input.projectId);
+				await checkProjectAccess(ctx.user.id, "access", input.projectId);
 
 				const project = await db.query.projects.findFirst({
 					where: and(
@@ -126,7 +126,7 @@ export const projectRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		// console.log(ctx.user);
 		if (ctx.user.rol === "user") {
-			const { accessedProjects, accessedServices } = await findUserByAuthId(
+			const { accessedProjects, accessedServices } = await findUserById(
 				ctx.user.id,
 			);
 
@@ -204,7 +204,7 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "user") {
-					await checkProjectAccess(ctx.user.authId, "delete");
+					await checkProjectAccess(ctx.user.id, "delete");
 				}
 				const currentProject = await findProjectById(input.projectId);
 				if (currentProject.userId !== ctx.user.ownerId) {

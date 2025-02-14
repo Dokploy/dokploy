@@ -16,6 +16,7 @@ import {
 	createUser,
 	findAuthByEmail,
 	findAuthById,
+	findUserById,
 	generate2FASecret,
 	getUserByToken,
 	lucia,
@@ -24,6 +25,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	updateAuthById,
+	updateUser,
 	validateRequest,
 	verify2FA,
 } from "@dokploy/server";
@@ -252,19 +254,18 @@ export const authRouter = createTRPCRouter({
 		}),
 
 	generateToken: protectedProcedure.mutation(async ({ ctx, input }) => {
-		const auth = await findAuthById(ctx.user.authId);
+		const auth = await findUserById(ctx.user.id);
+		console.log(auth);
 
 		if (auth.token) {
 			await luciaToken.invalidateSession(auth.token);
 		}
-		const session = await luciaToken.createSession(auth?.id || "", {
-			expiresIn: 60 * 60 * 24 * 30,
-		});
-
-		await updateAuthById(auth.id, {
-			token: session.id,
-		});
-
+		// const session = await luciaToken.createSession(auth?.id || "", {
+		// 	expiresIn: 60 * 60 * 24 * 30,
+		// });
+		// await updateUser(auth.id, {
+		// 	token: session.id,
+		// });
 		return auth;
 	}),
 	verifyToken: protectedProcedure.mutation(async () => {
@@ -276,7 +277,7 @@ export const authRouter = createTRPCRouter({
 	}),
 
 	generate2FASecret: protectedProcedure.query(async ({ ctx }) => {
-		return await generate2FASecret(ctx.user.authId);
+		return await generate2FASecret(ctx.user.id);
 	}),
 	verify2FASetup: protectedProcedure
 		.input(apiVerify2FA)
