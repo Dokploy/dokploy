@@ -580,7 +580,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													</FormControl>
 
 													<FormMessage />
-													<FormDescription>Optional. Use it when you want to send notifications to a specific topic in a group.</FormDescription>
+													<FormDescription>
+														Optional. Use it when you want to send notifications
+														to a specific topic in a group.
+													</FormDescription>
 												</FormItem>
 											)}
 										/>
