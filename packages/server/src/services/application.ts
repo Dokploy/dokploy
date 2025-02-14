@@ -40,7 +40,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { findAdminById, getDokployUrl } from "./admin";
+import { findAdminById, findUserById, getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
@@ -185,7 +185,7 @@ export const deployApplication = async ({
 	});
 
 	try {
-		const admin = await findAdminById(application.project.adminId);
+		const admin = await findUserById(application.project.userId);
 
 		if (admin.cleanupCacheApplications) {
 			await cleanupFullDocker(application?.serverId);
@@ -220,7 +220,7 @@ export const deployApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			userId: application.project.userId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -233,7 +233,7 @@ export const deployApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: application.project.adminId,
+			userId: application.project.userId,
 		});
 
 		throw error;
@@ -260,7 +260,7 @@ export const rebuildApplication = async ({
 	});
 
 	try {
-		const admin = await findAdminById(application.project.adminId);
+		const admin = await findUserById(application.project.userId);
 
 		if (admin.cleanupCacheApplications) {
 			await cleanupFullDocker(application?.serverId);
@@ -309,7 +309,7 @@ export const deployRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			const admin = await findAdminById(application.project.adminId);
+			const admin = await findUserById(application.project.userId);
 
 			if (admin.cleanupCacheApplications) {
 				await cleanupFullDocker(application?.serverId);
@@ -352,7 +352,7 @@ export const deployRemoteApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			userId: application.project.userId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -376,7 +376,7 @@ export const deployRemoteApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: application.project.adminId,
+			userId: application.project.userId,
 		});
 
 		throw error;
@@ -454,7 +454,7 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain}`;
 		application.buildArgs = application.previewBuildArgs;
 
-		const admin = await findAdminById(application.project.adminId);
+		const admin = await findUserById(application.project.userId);
 
 		if (admin.cleanupCacheOnPreviews) {
 			await cleanupFullDocker(application?.serverId);
@@ -568,7 +568,7 @@ export const deployRemotePreviewApplication = async ({
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
-			const admin = await findAdminById(application.project.adminId);
+			const admin = await findUserById(application.project.userId);
 
 			if (admin.cleanupCacheOnPreviews) {
 				await cleanupFullDocker(application?.serverId);
@@ -637,7 +637,7 @@ export const rebuildRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			const admin = await findAdminById(application.project.adminId);
+			const admin = await findUserById(application.project.userId);
 
 			if (admin.cleanupCacheApplications) {
 				await cleanupFullDocker(application?.serverId);

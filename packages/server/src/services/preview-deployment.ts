@@ -13,7 +13,7 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findAdminById } from "./admin";
+import { findAdminById, findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import {
 	removeDeployments,
@@ -158,7 +158,7 @@ export const createPreviewDeployment = async (
 		application.previewWildcard || "*.traefik.me",
 		appName,
 		application.server?.ipAddress || "",
-		application.project.adminId,
+		application.project.userId,
 	);
 
 	const octokit = authGithub(application?.github as Github);
@@ -250,7 +250,7 @@ const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
-	adminId: string,
+	userId: string,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
 		throw new Error('The base domain must start with "*."');
@@ -268,7 +268,7 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const admin = await findAdminById(adminId);
+			const admin = await findUserById(userId);
 			ip = admin?.serverIp || "";
 		}
 

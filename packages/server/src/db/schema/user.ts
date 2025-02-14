@@ -10,10 +10,10 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { account } from "./account";
 import { admins } from "./admin";
 import { auth } from "./auth";
 import { certificateType } from "./shared";
-import { account } from "./account";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.

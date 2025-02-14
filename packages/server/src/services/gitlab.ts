@@ -13,14 +13,14 @@ export type Gitlab = typeof gitlab.$inferSelect;
 
 export const createGitlab = async (
 	input: typeof apiCreateGitlab._type,
-	adminId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "gitlab",
-				adminId: adminId,
+				userId: userId,
 				name: input.name,
 			})
 			.returning()

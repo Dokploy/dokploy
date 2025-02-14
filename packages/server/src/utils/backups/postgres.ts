@@ -49,7 +49,7 @@ export const runPostgresBackup = async (
 			projectName: project.name,
 			databaseType: "postgres",
 			type: "success",
-			adminId: project.adminId,
+			userId: project.userId,
 		});
 	} catch (error) {
 		await sendDatabaseBackupNotifications({
@@ -59,7 +59,7 @@ export const runPostgresBackup = async (
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
-			adminId: project.adminId,
+			userId: project.userId,
 		});
 
 		throw error;

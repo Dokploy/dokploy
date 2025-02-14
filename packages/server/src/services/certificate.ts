@@ -33,13 +33,13 @@ export const findCertificateById = async (certificateId: string) => {
 
 export const createCertificate = async (
 	certificateData: z.infer<typeof apiCreateCertificate>,
-	adminId: string,
+	userId: string,
 ) => {
 	const certificate = await db
 		.insert(certificates)
 		.values({
 			...certificateData,
-			adminId: adminId,
+			userId: userId,
 		})
 		.returning();
 

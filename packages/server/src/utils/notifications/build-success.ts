@@ -18,7 +18,7 @@ interface Props {
 	applicationName: string;
 	applicationType: string;
 	buildLink: string;
-	adminId: string;
+	userId: string;
 	domains: Domain[];
 }
 
@@ -27,7 +27,7 @@ export const sendBuildSuccessNotifications = async ({
 	applicationName,
 	applicationType,
 	buildLink,
-	adminId,
+	userId,
 	domains,
 }: Props) => {
 	const date = new Date();
@@ -35,7 +35,7 @@ export const sendBuildSuccessNotifications = async ({
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appDeploy, true),
-			eq(notifications.adminId, adminId),
+			eq(notifications.userId, userId),
 		),
 		with: {
 			email: true,

@@ -46,7 +46,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "success",
-			adminId: project.adminId,
+			userId: project.userId,
 		});
 	} catch (error) {
 		console.log(error);
@@ -57,7 +57,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
-			adminId: project.adminId,
+			userId: project.userId,
 		});
 		throw error;
 	}
