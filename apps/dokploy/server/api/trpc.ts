@@ -31,7 +31,7 @@ import { ZodError } from "zod";
  */
 
 interface CreateContextOptions {
-	user: (User & { authId: string; rol: "admin" | "user" }) | null;
+	user: (User & { rol: "admin" | "user"; ownerId: string }) | null;
 	session: Session | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
@@ -81,10 +81,10 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 		session: session,
 		...((user && {
 			user: {
-				authId: "Null",
 				email: user.email,
 				rol: user.role,
 				id: user.id,
+				ownerId: user.ownerId,
 			},
 		}) || {
 			user: null,

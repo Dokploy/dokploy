@@ -23,7 +23,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createBitbucket(input, ctx.user.adminId);
+				return await createBitbucket(input, ctx.user.ownerId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -38,7 +38,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.adminId !== ctx.user.adminId
+				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -61,7 +61,7 @@ export const bitbucketRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			// TODO: mAyBe a rEfaCtoR 🤫
 			result = result.filter(
-				(provider) => provider.gitProvider.adminId === ctx.user.adminId,
+				(provider) => provider.gitProvider.userId === ctx.user.ownerId,
 			);
 		}
 		return result;
@@ -73,7 +73,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.adminId !== ctx.user.adminId
+				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -91,7 +91,7 @@ export const bitbucketRouter = createTRPCRouter({
 			);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.adminId !== ctx.user.adminId
+				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -108,7 +108,7 @@ export const bitbucketRouter = createTRPCRouter({
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 				if (
 					IS_CLOUD &&
-					bitbucketProvider.gitProvider.adminId !== ctx.user.adminId
+					bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
 				) {
 					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
@@ -132,7 +132,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.adminId !== ctx.user.adminId
+				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -142,7 +142,7 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 			return await updateBitbucket(input.bitbucketId, {
 				...input,
-				adminId: ctx.user.adminId,
+				userId: ctx.user.ownerId,
 			});
 		}),
 });

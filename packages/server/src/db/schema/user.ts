@@ -196,8 +196,8 @@ export const usersRelations = relations(users, ({ one }) => ({
 	// }),
 }));
 
-const createSchema = createInsertSchema(users, {
-	userId: z.string().min(1),
+const createSchema = createInsertSchema(users_temp, {
+	id: z.string().min(1),
 	// authId: z.string().min(1),
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
@@ -218,7 +218,7 @@ export const apiCreateUserInvitation = createSchema.pick({}).extend({
 
 export const apiRemoveUser = createSchema
 	.pick({
-		// authId: true,
+		id: true,
 	})
 	.required();
 
@@ -230,7 +230,7 @@ export const apiFindOneToken = createSchema
 
 export const apiAssignPermissions = createSchema
 	.pick({
-		userId: true,
+		id: true,
 		canCreateProjects: true,
 		canCreateServices: true,
 		canDeleteProjects: true,
@@ -247,7 +247,7 @@ export const apiAssignPermissions = createSchema
 
 export const apiFindOneUser = createSchema
 	.pick({
-		userId: true,
+		id: true,
 	})
 	.required();
 

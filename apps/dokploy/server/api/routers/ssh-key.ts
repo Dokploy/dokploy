@@ -24,9 +24,10 @@ export const sshRouter = createTRPCRouter({
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				console.log(ctx.user.ownerId);
 				await createSshKey({
 					...input,
-					adminId: ctx.user.adminId,
+					userId: ctx.user.ownerId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -41,7 +42,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
+				if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -59,7 +60,7 @@ export const sshRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
 
-			if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
+			if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -70,7 +71,7 @@ export const sshRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
-			...(IS_CLOUD && { where: eq(sshKeys.adminId, ctx.user.adminId) }),
+			...(IS_CLOUD && { where: eq(sshKeys.userId, ctx.user.ownerId) }),
 			orderBy: desc(sshKeys.createdAt),
 		});
 		// TODO: Remove this line when the cloud version is ready
@@ -85,7 +86,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
+				if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

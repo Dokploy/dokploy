@@ -11,7 +11,7 @@ import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 
-export type Admin = typeof admins.$inferSelect;
+export type Admin = typeof users_temp.$inferSelect;
 export const createInvitation = async (
 	input: typeof apiCreateUserInvitation._type,
 	adminId: string,
@@ -48,33 +48,30 @@ export const createInvitation = async (
 	});
 };
 
-export const findAdminById = async (adminId: string) => {
-	const admin = await db.query.admins.findFirst({
-		where: eq(admins.adminId, adminId),
+export const findUserById = async (userId: string) => {
+	const user = await db.query.users_temp.findFirst({
+		where: eq(users_temp.id, userId),
 	});
-	if (!admin) {
+	if (!user) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "Admin not found",
+			message: "User not found",
 		});
 	}
-	return admin;
+	return user;
 };
 
-export const updateAdmin = async (
-	authId: string,
-	adminData: Partial<Admin>,
-) => {
-	const admin = await db
-		.update(admins)
+export const updateUser = async (userId: string, userData: Partial<Admin>) => {
+	const user = await db
+		.update(users_temp)
 		.set({
-			...adminData,
+			...userData,
 		})
-		.where(eq(admins.authId, authId))
+		.where(eq(users_temp.id, userId))
 		.returning()
 		.then((res) => res[0]);
 
-	return admin;
+	return user;
 };
 
 export const updateAdminById = async (
@@ -90,6 +87,13 @@ export const updateAdminById = async (
 		.returning()
 		.then((res) => res[0]);
 
+	return admin;
+};
+
+export const findAdminById = async (userId: string) => {
+	const admin = await db.query.admins.findFirst({
+		where: eq(admins.userId, userId),
+	});
 	return admin;
 };
 
@@ -154,10 +158,10 @@ export const getUserByToken = async (token: string) => {
 	};
 };
 
-export const removeUserByAuthId = async (authId: string) => {
+export const removeUserById = async (userId: string) => {
 	await db
-		.delete(auth)
-		.where(eq(auth.id, authId))
+		.delete(users_temp)
+		.where(eq(users_temp.id, userId))
 		.returning()
 		.then((res) => res[0]);
 };
@@ -170,7 +174,7 @@ export const removeAdminByAuthId = async (authId: string) => {
 	const users = admin.users;
 
 	for (const user of users) {
-		await removeUserByAuthId(user.authId);
+		await removeUserById(user.id);
 	}
 	// Then delete the auth record which will cascade delete the admin
 	return await db

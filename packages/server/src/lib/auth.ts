@@ -44,6 +44,9 @@ export const auth = betterAuth({
 			role: {
 				type: "string",
 			},
+			ownerId: {
+				type: "string",
+			},
 		},
 	},
 	plugins: [organization()],
@@ -56,7 +59,20 @@ export const validateRequest = async (request: IncomingMessage) => {
 		}),
 	});
 
-	console.log(session);
+	if (session?.user.role === "user") {
+		const owner = await db.query.member.findFirst({
+			where: eq(schema.member.userId, session.user.id),
+			with: {
+				organization: true,
+			},
+		});
+
+		if (owner) {
+			session.user.ownerId = owner.organization.ownerId;
+		}
+	} else {
+		session.user.ownerId = session?.user.id;
+	}
 
 	if (!session?.session || !session.user) {
 		return {

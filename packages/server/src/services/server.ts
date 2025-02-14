@@ -7,13 +7,13 @@ export type Server = typeof server.$inferSelect;
 
 export const createServer = async (
 	input: typeof apiCreateServer._type,
-	adminId: string,
+	userId: string,
 ) => {
 	const newServer = await db
 		.insert(server)
 		.values({
 			...input,
-			adminId: adminId,
+			userId: userId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -45,9 +45,9 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
-export const findServersByAdminId = async (adminId: string) => {
+export const findServersByUserId = async (userId: string) => {
 	const servers = await db.query.server.findMany({
-		where: eq(server.adminId, adminId),
+		where: eq(server.userId, userId),
 		orderBy: desc(server.createdAt),
 	});
 

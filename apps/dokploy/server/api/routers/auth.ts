@@ -21,7 +21,6 @@ import {
 	lucia,
 	luciaToken,
 	removeAdminByAuthId,
-	removeUserByAuthId,
 	sendDiscordNotification,
 	sendEmailNotification,
 	updateAuthById,

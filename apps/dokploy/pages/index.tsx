@@ -60,17 +60,18 @@ interface Props {
 	IS_CLOUD: boolean;
 }
 export default function Home({ IS_CLOUD }: Props) {
+	const [isLoading, setIsLoading] = useState(false);
+	const [isError, setIsError] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [temp, setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading, error, isError } =
-		api.auth.login.useMutation();
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
-			email: "",
-			password: "",
+			email: "siumauricio@hotmail.com",
+			password: "Password123",
 		},
 		resolver: zodResolver(loginSchema),
 	});
@@ -80,6 +81,7 @@ export default function Home({ IS_CLOUD }: Props) {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Login) => {
+		setIsLoading(true);
 		const { data, error } = await authClient.signIn.email({
 			email: values.email,
 			password: values.password,
@@ -92,15 +94,17 @@ export default function Home({ IS_CLOUD }: Props) {
 			toast.success("Successfully signed in", {
 				duration: 2000,
 			});
-			// router.push("/dashboard/projects");
+			router.push("/dashboard/projects");
 			// }
 		} else {
+			setIsError(true);
+			setError(error.message ?? "Error to signup");
 			toast.error("Error to sign up", {
 				description: error.message,
 			});
 		}
 
-		console.log(data, error);
+		setIsLoading(false);
 		// await mutateAsync({
 		// 	email: values.email.toLowerCase(),
 		// 	password: values.password,
@@ -136,7 +140,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			</div>
 			{isError && (
 				<AlertBlock type="error" className="my-2">
-					<span>{error?.message}</span>
+					<span>{error}</span>
 				</AlertBlock>
 			)}
 			<CardContent className="p-0">

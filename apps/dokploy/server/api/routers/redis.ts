@@ -48,7 +48,7 @@ export const redisRouter = createTRPCRouter({
 				}
 
 				const project = await findProjectById(input.projectId);
-				if (project.adminId !== ctx.user.adminId) {
+				if (project.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
@@ -80,7 +80,7 @@ export const redisRouter = createTRPCRouter({
 			}
 
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this Redis",
@@ -93,7 +93,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to start this Redis",
@@ -115,7 +115,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiResetRedis)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to reload this Redis",
@@ -145,7 +145,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to stop this Redis",
@@ -166,7 +166,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiSaveExternalPortRedis)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findRedisById(input.redisId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this external port",
@@ -182,7 +182,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiDeployRedis)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this Redis",
@@ -202,7 +202,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiDeployRedis)
 		.subscription(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this Redis",
@@ -218,7 +218,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiChangeRedisStatus)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findRedisById(input.redisId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to change this Redis status",
@@ -238,7 +238,7 @@ export const redisRouter = createTRPCRouter({
 
 			const redis = await findRedisById(input.redisId);
 
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to delete this Redis",
@@ -261,7 +261,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiSaveEnvironmentVariablesRedis)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
-			if (redis.project.adminId !== ctx.user.adminId) {
+			if (redis.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this environment",

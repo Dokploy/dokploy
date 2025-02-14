@@ -12,14 +12,14 @@ export type Bitbucket = typeof bitbucket.$inferSelect;
 
 export const createBitbucket = async (
 	input: typeof apiCreateBitbucket._type,
-	adminId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "bitbucket",
-				adminId: adminId,
+				userId: userId,
 				name: input.name,
 			})
 			.returning()
@@ -74,12 +74,12 @@ export const updateBitbucket = async (
 			.where(eq(bitbucket.bitbucketId, bitbucketId))
 			.returning();
 
-		if (input.name || input.adminId) {
+		if (input.name || input.userId) {
 			await tx
 				.update(gitProvider)
 				.set({
 					name: input.name,
-					adminId: input.adminId,
+					userId: input.userId,
 				})
 				.where(eq(gitProvider.gitProviderId, input.gitProviderId))
 				.returning();

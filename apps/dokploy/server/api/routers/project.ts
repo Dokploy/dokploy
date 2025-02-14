@@ -75,7 +75,7 @@ export const projectRouter = createTRPCRouter({
 				const project = await db.query.projects.findFirst({
 					where: and(
 						eq(projects.projectId, input.projectId),
-						eq(projects.adminId, ctx.user.adminId),
+						eq(projects.userId, ctx.user.ownerId),
 					),
 					with: {
 						compose: {
@@ -115,7 +115,7 @@ export const projectRouter = createTRPCRouter({
 			}
 			const project = await findProjectById(input.projectId);
 
-			if (project.adminId !== ctx.user.adminId) {
+			if (project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this project",
@@ -207,7 +207,7 @@ export const projectRouter = createTRPCRouter({
 					await checkProjectAccess(ctx.user.authId, "delete");
 				}
 				const currentProject = await findProjectById(input.projectId);
-				if (currentProject.adminId !== ctx.user.adminId) {
+				if (currentProject.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this project",
@@ -225,7 +225,7 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentProject = await findProjectById(input.projectId);
-				if (currentProject.adminId !== ctx.user.adminId) {
+				if (currentProject.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this project",

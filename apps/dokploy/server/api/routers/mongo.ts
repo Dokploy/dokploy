@@ -48,7 +48,7 @@ export const mongoRouter = createTRPCRouter({
 				}
 
 				const project = await findProjectById(input.projectId);
-				if (project.adminId !== ctx.user.adminId) {
+				if (project.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
@@ -87,7 +87,7 @@ export const mongoRouter = createTRPCRouter({
 			}
 
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this mongo",
@@ -101,7 +101,7 @@ export const mongoRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMongoById(input.mongoId);
 
-			if (service.project.adminId !== ctx.user.adminId) {
+			if (service.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to start this mongo",
@@ -124,7 +124,7 @@ export const mongoRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to stop this mongo",
@@ -146,7 +146,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiSaveExternalPortMongo)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this external port",
@@ -162,7 +162,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiDeployMongo)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this mongo",
@@ -182,7 +182,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiDeployMongo)
 		.subscription(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this mongo",
@@ -199,7 +199,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiChangeMongoStatus)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to change this mongo status",
@@ -214,7 +214,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiResetMongo)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to reload this mongo",
@@ -248,7 +248,7 @@ export const mongoRouter = createTRPCRouter({
 
 			const mongo = await findMongoById(input.mongoId);
 
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to delete this mongo",
@@ -274,7 +274,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiSaveEnvironmentVariablesMongo)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this environment",
@@ -298,7 +298,7 @@ export const mongoRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { mongoId, ...rest } = input;
 			const mongo = await findMongoById(mongoId);
-			if (mongo.project.adminId !== ctx.user.adminId) {
+			if (mongo.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to update this mongo",

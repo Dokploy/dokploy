@@ -123,26 +123,10 @@ export const HandleProject = ({ projectId }: Props) => {
 						<span>Update</span>
 					</DropdownMenuItem>
 				) : (
-					<>
-						<Button>
-							<PlusIcon className="h-4 w-4" />
-							Create Project
-						</Button>
-						<Button
-							onClick={async () => {
-								const newUser = await authClient.admin.createUser({
-									name: "Test User",
-									email: "test4@example.com",
-									password: "password123",
-									role: "user",
-								});
-
-								console.log(newUser);
-							}}
-						>
-							Create user
-						</Button>
-					</>
+					<Button>
+						<PlusIcon className="h-4 w-4" />
+						Create Project
+					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">

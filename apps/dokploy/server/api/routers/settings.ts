@@ -47,7 +47,6 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-	updateAdmin,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,

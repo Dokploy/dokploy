@@ -12,14 +12,14 @@ export type Registry = typeof registry.$inferSelect;
 
 export const createRegistry = async (
 	input: typeof apiCreateRegistry._type,
-	adminId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newRegistry = await tx
 			.insert(registry)
 			.values({
 				...input,
-				adminId: adminId,
+				userId: userId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -135,9 +135,9 @@ export const findRegistryById = async (registryId: string) => {
 	return registryResponse;
 };
 
-export const findAllRegistryByAdminId = async (adminId: string) => {
+export const findAllRegistryByUserId = async (userId: string) => {
 	const registryResponse = await db.query.registry.findMany({
-		where: eq(registry.adminId, adminId),
+		where: eq(registry.userId, userId),
 	});
 	return registryResponse;
 };

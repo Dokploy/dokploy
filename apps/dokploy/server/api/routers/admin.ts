@@ -6,18 +6,15 @@ import {
 	apiRemoveUser,
 	apiUpdateAdmin,
 	apiUpdateWebServerMonitoring,
-	user,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
 	createInvitation,
-	findAdminById,
 	findUserByAuthId,
 	findUserById,
 	getUserByToken,
-	removeUserByAuthId,
+	removeUserById,
 	setupWebMonitoring,
-	updateAdmin,
 	updateAdminById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -32,7 +29,7 @@ import {
 
 export const adminRouter = createTRPCRouter({
 	one: adminProcedure.query(async ({ ctx }) => {
-		const { sshPrivateKey, ...rest } = await findAdminById(ctx.user.adminId);
+		const { sshPrivateKey, ...rest } = await findUserById(ctx.user.id);
 		return {
 			haveSSH: !!sshPrivateKey,
 			...rest,
@@ -47,15 +44,15 @@ export const adminRouter = createTRPCRouter({
 					message: "You are not allowed to update this admin",
 				});
 			}
-			const { authId } = await findAdminById(ctx.user.adminId);
+			const { id } = await findUserById(ctx.user.id);
 			// @ts-ignore
-			return updateAdmin(authId, input);
+			return updateAdmin(id, input);
 		}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				await createInvitation(input, ctx.user.adminId);
+				await createInvitation(input, ctx.user.id);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -69,15 +66,16 @@ export const adminRouter = createTRPCRouter({
 		.input(apiRemoveUser)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const user = await findUserByAuthId(input.authId);
+				const user = await findUserById(input.id);
 
-				if (user.adminId !== ctx.user.adminId) {
+				if (user.id !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this user",
 					});
 				}
-				return await removeUserByAuthId(input.authId);
+
+				return await removeUserById(input.id);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -95,20 +93,20 @@ export const adminRouter = createTRPCRouter({
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const user = await findUserById(input.userId);
+				const user = await findUserById(input.id);
 
-				if (user.adminId !== ctx.user.adminId) {
+				if (user.id !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to assign permissions",
 					});
 				}
-				await db
-					.update(users)
-					.set({
-						...input,
-					})
-					.where(eq(users.userId, input.userId));
+				// await db
+				// 	.update(users)
+				// 	.set({
+				// 		...input,
+				// 	})
+				// 	.where(eq(users.userId, input.userId));
 			} catch (error) {
 				throw error;
 			}
@@ -124,50 +122,50 @@ export const adminRouter = createTRPCRouter({
 						message: "Feature disabled on cloud",
 					});
 				}
-				const admin = await findAdminById(ctx.user.adminId);
-				if (admin.adminId !== ctx.user.adminId) {
+				const user = await findUserById(ctx.user.ownerId);
+				if (user.id !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
 					});
 				}
 
-				await updateAdminById(admin.adminId, {
-					metricsConfig: {
-						server: {
-							type: "Dokploy",
-							refreshRate: input.metricsConfig.server.refreshRate,
-							port: input.metricsConfig.server.port,
-							token: input.metricsConfig.server.token,
-							cronJob: input.metricsConfig.server.cronJob,
-							urlCallback: input.metricsConfig.server.urlCallback,
-							retentionDays: input.metricsConfig.server.retentionDays,
-							thresholds: {
-								cpu: input.metricsConfig.server.thresholds.cpu,
-								memory: input.metricsConfig.server.thresholds.memory,
-							},
-						},
-						containers: {
-							refreshRate: input.metricsConfig.containers.refreshRate,
-							services: {
-								include: input.metricsConfig.containers.services.include || [],
-								exclude: input.metricsConfig.containers.services.exclude || [],
-							},
-						},
-					},
-				});
-				const currentServer = await setupWebMonitoring(admin.adminId);
-				return currentServer;
+				// await updateAdminById(admin.adminId, {
+				// 	metricsConfig: {
+				// 		server: {
+				// 			type: "Dokploy",
+				// 			refreshRate: input.metricsConfig.server.refreshRate,
+				// 			port: input.metricsConfig.server.port,
+				// 			token: input.metricsConfig.server.token,
+				// 			cronJob: input.metricsConfig.server.cronJob,
+				// 			urlCallback: input.metricsConfig.server.urlCallback,
+				// 			retentionDays: input.metricsConfig.server.retentionDays,
+				// 			thresholds: {
+				// 				cpu: input.metricsConfig.server.thresholds.cpu,
+				// 				memory: input.metricsConfig.server.thresholds.memory,
+				// 			},
+				// 		},
+				// 		containers: {
+				// 			refreshRate: input.metricsConfig.containers.refreshRate,
+				// 			services: {
+				// 				include: input.metricsConfig.containers.services.include || [],
+				// 				exclude: input.metricsConfig.containers.services.exclude || [],
+				// 			},
+				// 		},
+				// 	},
+				// });
+				// const currentServer = await setupWebMonitoring(admin.adminId);
+				// return currentServer;
 			} catch (error) {
 				throw error;
 			}
 		}),
 	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
-		const admin = await findAdminById(ctx.user.adminId);
+		const user = await findUserById(ctx.user.ownerId);
 		return {
-			serverIp: admin.serverIp,
-			enabledFeatures: admin.enablePaidFeatures,
-			metricsConfig: admin?.metricsConfig,
+			serverIp: user.serverIp,
+			enabledFeatures: user.enablePaidFeatures,
+			metricsConfig: user?.metricsConfig,
 		};
 	}),
 

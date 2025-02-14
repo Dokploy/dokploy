@@ -10,7 +10,7 @@ import {
 	createRegistry,
 	execAsync,
 	execAsyncRemote,
-	findAllRegistryByAdminId,
+	findAllRegistryByUserId,
 	findRegistryById,
 	removeRegistry,
 	updateRegistry,
@@ -22,13 +22,13 @@ export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input, ctx.user.adminId);
+			return await createRegistry(input, ctx.user.ownerId);
 		}),
 	remove: adminProcedure
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.adminId !== ctx.user.adminId) {
+			if (registry.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to delete this registry",
@@ -41,7 +41,7 @@ export const registryRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
 			const registry = await findRegistryById(registryId);
-			if (registry.adminId !== ctx.user.adminId) {
+			if (registry.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to update this registry",
@@ -61,13 +61,13 @@ export const registryRouter = createTRPCRouter({
 			return true;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		return await findAllRegistryByAdminId(ctx.user.adminId);
+		return await findAllRegistryByUserId(ctx.user.ownerId);
 	}),
 	one: adminProcedure
 		.input(apiFindOneRegistry)
 		.query(async ({ input, ctx }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.adminId !== ctx.user.adminId) {
+			if (registry.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this registry",

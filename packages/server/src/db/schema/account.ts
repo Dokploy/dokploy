@@ -1,6 +1,7 @@
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { users_temp } from "./user";
+import { relations } from "drizzle-orm";
 
 export const account = pgTable("account", {
 	id: text("id")
@@ -29,6 +30,13 @@ export const account = pgTable("account", {
 	confirmationExpiresAt: text("confirmationExpiresAt"),
 });
 
+export const accountRelations = relations(account, ({ one }) => ({
+	user: one(users_temp, {
+		fields: [account.userId],
+		references: [users_temp.id],
+	}),
+}));
+
 export const verification = pgTable("verification", {
 	id: text("id").primaryKey(),
 	identifier: text("identifier").notNull(),
@@ -52,6 +60,13 @@ export const organization = pgTable("organization", {
 		.references(() => users_temp.id),
 });
 
+export const organizationRelations = relations(organization, ({ one }) => ({
+	owner: one(users_temp, {
+		fields: [organization.ownerId],
+		references: [users_temp.id],
+	}),
+}));
+
 export const member = pgTable("member", {
 	id: text("id")
 		.primaryKey()
@@ -66,6 +81,17 @@ export const member = pgTable("member", {
 	createdAt: timestamp("created_at").notNull(),
 });
 
+export const memberRelations = relations(member, ({ one }) => ({
+	organization: one(organization, {
+		fields: [member.organizationId],
+		references: [organization.id],
+	}),
+	user: one(users_temp, {
+		fields: [member.userId],
+		references: [users_temp.id],
+	}),
+}));
+
 export const invitation = pgTable("invitation", {
 	id: text("id").primaryKey(),
 	organizationId: text("organization_id")
@@ -79,3 +105,10 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => users_temp.id),
 });
+
+export const invitationRelations = relations(invitation, ({ one }) => ({
+	organization: one(organization, {
+		fields: [invitation.organizationId],
+		references: [organization.id],
+	}),
+}));

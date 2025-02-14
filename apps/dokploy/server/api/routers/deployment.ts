@@ -19,7 +19,7 @@ export const deploymentRouter = createTRPCRouter({
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (application.project.adminId !== ctx.user.adminId) {
+			if (application.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -32,7 +32,7 @@ export const deploymentRouter = createTRPCRouter({
 		.input(apiFindAllByCompose)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
-			if (compose.project.adminId !== ctx.user.adminId) {
+			if (compose.project.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -44,7 +44,7 @@ export const deploymentRouter = createTRPCRouter({
 		.input(apiFindAllByServer)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
-			if (server.adminId !== ctx.user.adminId) {
+			if (server.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this server",

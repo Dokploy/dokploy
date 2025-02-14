@@ -18,7 +18,7 @@ export const gitProviderRouter = createTRPCRouter({
 				github: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
-			...(IS_CLOUD && { where: eq(gitProvider.adminId, ctx.user.adminId) }),
+			...(IS_CLOUD && { where: eq(gitProvider.userId, ctx.user.ownerId) }),
 			//TODO: Remove this line when the cloud version is ready
 		});
 	}),
@@ -28,7 +28,7 @@ export const gitProviderRouter = createTRPCRouter({
 			try {
 				const gitProvider = await findGitProviderById(input.gitProviderId);
 
-				if (IS_CLOUD && gitProvider.adminId !== ctx.user.adminId) {
+				if (IS_CLOUD && gitProvider.userId !== ctx.user.ownerId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

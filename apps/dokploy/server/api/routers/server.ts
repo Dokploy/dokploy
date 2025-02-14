@@ -21,9 +21,9 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
-	findAdminById,
 	findServerById,
-	findServersByAdminId,
+	findServersByUserId,
+	findUserById,
 	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
@@ -42,15 +42,15 @@ export const serverRouter = createTRPCRouter({
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const admin = await findAdminById(ctx.user.adminId);
-				const servers = await findServersByAdminId(admin.adminId);
-				if (IS_CLOUD && servers.length >= admin.serversQuantity) {
+				const user = await findUserById(ctx.user.ownerId);
+				const servers = await findServersByUserId(user.id);
+				if (IS_CLOUD && servers.length >= user.serversQuantity) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "You cannot create more servers",
 					});
 				}
-				const project = await createServer(input, ctx.user.adminId);
+				const project = await createServer(input, ctx.user.ownerId);
 				return project;
 			} catch (error) {
 				throw new TRPCError({
@@ -65,7 +65,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
-			if (server.adminId !== ctx.user.adminId) {
+			if (server.userId !== ctx.user.ownerId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this server",
@@ -93,7 +93,7 @@ export const serverRouter = createTRPCRouter({
 			.leftJoin(mongo, eq(mongo.serverId, server.serverId))
 			.leftJoin(mysql, eq(mysql.serverId, server.serverId))
 			.leftJoin(postgres, eq(postgres.serverId, server.serverId))
-			.where(eq(server.adminId, ctx.user.adminId))
+			.where(eq(server.userId, ctx.user.ownerId))
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
@@ -105,10 +105,10 @@ export const serverRouter = createTRPCRouter({
 			where: IS_CLOUD
 				? and(
 						isNotNull(server.sshKeyId),
-						eq(server.adminId, ctx.user.adminId),
+						eq(server.userId, ctx.user.ownerId),
 						eq(server.serverStatus, "active"),
 					)
-				: and(isNotNull(server.sshKeyId), eq(server.adminId, ctx.user.adminId)),
+				: and(isNotNull(server.sshKeyId), eq(server.userId, ctx.user.ownerId)),
 		});
 		return result;
 	}),
@@ -117,7 +117,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -142,7 +142,7 @@ export const serverRouter = createTRPCRouter({
 		.subscription(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -162,7 +162,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -204,7 +204,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -254,7 +254,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -296,7 +296,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this server",
@@ -315,12 +315,9 @@ export const serverRouter = createTRPCRouter({
 				await deleteServer(input.serverId);
 
 				if (IS_CLOUD) {
-					const admin = await findAdminById(ctx.user.adminId);
+					const admin = await findUserById(ctx.user.ownerId);
 
-					await updateServersBasedOnQuantity(
-						admin.adminId,
-						admin.serversQuantity,
-					);
+					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
 				return currentServer;
@@ -333,7 +330,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.userId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this server",
