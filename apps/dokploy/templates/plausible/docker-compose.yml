@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   plausible_db:
     image: postgres:16-alpine
@@ -24,7 +23,7 @@ services:
         hard: 262144
 
   plausible:
-    image: ghcr.io/plausible/community-edition:v2.1.4
+    image: ghcr.io/plausible/community-edition:v2.1.5
     restart: always
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
