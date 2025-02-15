@@ -2,7 +2,7 @@ services:
   trilium:
     image: zadam/trilium:latest
     ports:
-      - 8080:8080
+      - 8080
     networks:
       - dokploy-network
     restart: always
