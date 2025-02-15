@@ -8,78 +8,80 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 
 export const auth = betterAuth({
-	database: drizzleAdapter(db, {
-		provider: "pg",
-		schema: schema,
-	}),
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: schema,
+  }),
 
-	emailAndPassword: {
-		enabled: true,
+  emailAndPassword: {
+    enabled: true,
 
-		password: {
-			async hash(password) {
-				return bcrypt.hashSync(password, 10);
-			},
-			async verify({ hash, password }) {
-				return bcrypt.compareSync(password, hash);
-			},
-		},
-	},
-	hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			if (ctx.path.startsWith("/sign-up")) {
-				const newSession = ctx.context.newSession;
-				await db
-					.update(schema.users_temp)
-					.set({
-						role: "admin",
-					})
-					.where(eq(schema.users_temp.id, newSession?.user?.id || ""));
-			}
-		}),
-	},
-	user: {
-		modelName: "users_temp",
-		additionalFields: {
-			role: {
-				type: "string",
-			},
-			ownerId: {
-				type: "string",
-			},
-		},
-	},
-	plugins: [organization()],
+    password: {
+      async hash(password) {
+        return bcrypt.hashSync(password, 10);
+      },
+      async verify({ hash, password }) {
+        return bcrypt.compareSync(password, hash);
+      },
+    },
+  },
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path.startsWith("/sign-up")) {
+        const newSession = ctx.context.newSession;
+        await db
+          .update(schema.users_temp)
+          .set({
+            role: "admin",
+          })
+          .where(eq(schema.users_temp.id, newSession?.user?.id || ""));
+      }
+    }),
+  },
+  user: {
+    modelName: "users_temp",
+    additionalFields: {
+      role: {
+        type: "string",
+      },
+      ownerId: {
+        type: "string",
+      },
+    },
+  },
+  plugins: [organization()],
 });
 
 export const validateRequest = async (request: IncomingMessage) => {
-	const session = await auth.api.getSession({
-		headers: new Headers({
-			cookie: request.headers.cookie || "",
-		}),
-	});
+  const session = await auth.api.getSession({
+    headers: new Headers({
+      cookie: request.headers.cookie || "",
+    }),
+  });
 
-	if (session?.user.role === "user") {
-		const owner = await db.query.member.findFirst({
-			where: eq(schema.member.userId, session.user.id),
-			with: {
-				organization: true,
-			},
-		});
+  if (!session?.session || !session.user) {
+    return {
+      session: null,
+      user: null,
+    };
+  }
 
-		if (owner) {
-			session.user.ownerId = owner.organization.ownerId;
-		}
-	} else {
-		session.user.ownerId = session?.user.id;
-	}
+  if (session?.user) {
+    if (session?.user.role === "user") {
+      const owner = await db.query.member.findFirst({
+        where: eq(schema.member.userId, session.user.id),
+        with: {
+          organization: true,
+        },
+      });
 
-	if (!session?.session || !session.user) {
-		return {
-			session: null,
-			user: null,
-		};
-	}
+      if (owner) {
+        session.user.ownerId = owner.organization.ownerId;
+      }
+    } else {
+      session.user.ownerId = session?.user?.id || "";
+    }
+  }
 
-	return session;
+  return session;
 };
