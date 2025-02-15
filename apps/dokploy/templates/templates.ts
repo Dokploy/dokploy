@@ -34,7 +34,7 @@ export const templates: TemplateData[] = [
   {
     id: "plausible",
     name: "Plausible",
-    version: "v2.1.4",
+    version: "v2.1.5",
     description:
       "Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
     logo: "plausible.svg",
@@ -1482,6 +1482,21 @@ export const templates: TemplateData[] = [
     },
     tags: ["forms", "analytics"],
     load: () => import("./formbricks/index").then((m) => m.generate),
+  },
+  {
+    id: "trilium",
+    name: "Trilium",
+    description:
+      "Trilium Notes is a hierarchical note taking application with focus on building large personal knowledge bases.",
+    logo: "trilium.png",
+    version: "latest",
+    links: {
+      github: "https://github.com/zadam/trilium",
+      website: "https://github.com/zadam/trilium",
+      docs: "https://github.com/zadam/trilium/wiki/",
+    },
+    tags: ["self-hosted", "productivity", "personal-use"],
+    load: () => import("./trilium/index").then((m) => m.generate),
   },
   {
     id: "convex",
