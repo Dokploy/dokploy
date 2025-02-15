@@ -2,6 +2,21 @@ import type { TemplateData } from "./types/templates-data.type";
 
 export const templates: TemplateData[] = [
 	{
+		id: "outline",
+		name: "Outline",
+		version: "0.81.0",
+		description:
+			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
+		links: {
+			github: "https://github.com/outline/outline",
+			website: "https://outline.com/",
+			docs: "https://docs.outline.com/",
+		},
+		logo: "outline.svg",
+		load: () => import("./outline/index").then((m) => m.generate),
+		tags: ["documentation", "knowledge-base", "self-hosted"],
+	},
+	{
 		id: "supabase",
 		name: "SupaBase",
 		version: "1.24.07",
