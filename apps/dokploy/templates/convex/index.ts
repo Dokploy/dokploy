@@ -29,9 +29,9 @@ export function generate(schema: Schema): Template {
   ];
 
   const envs = [
-    `NEXT_PUBLIC_DEPLOYMENT_URL=${backendDomain}`,
-    `CONVEX_CLOUD_ORIGIN=${backendDomain}`,
-    `CONVEX_SITE_ORIGIN=${actionsDomain}`,
+    `NEXT_PUBLIC_DEPLOYMENT_URL=http://${backendDomain}`,
+    `CONVEX_CLOUD_ORIGIN=http://${backendDomain}`,
+    `CONVEX_SITE_ORIGIN=http://${actionsDomain}`,
   ];
 
   return { envs, domains };
