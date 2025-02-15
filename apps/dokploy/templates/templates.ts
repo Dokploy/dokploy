@@ -1498,4 +1498,19 @@ export const templates: TemplateData[] = [
 		tags: ["self-hosted", "productivity", "personal-use"],
 		load: () => import("./trilium/index").then((m) => m.generate),
 	},
+	{
+		id: "convex",
+		name: "Convex",
+		version: "latest",
+		description:
+			"Convex is an open-source reactive database designed to make life easy for web app developers.",
+		logo: "convex.svg",
+		links: {
+			github: "https://github.com/get-convex/convex",
+			website: "https://www.convex.dev/",
+			docs: "https://www.convex.dev/docs",
+		},
+		tags: ["backend", "database", "api"],
+		load: () => import("./convex/index").then((m) => m.generate),
+	},
 ];
