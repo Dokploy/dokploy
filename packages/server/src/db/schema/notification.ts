@@ -3,8 +3,8 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { users_temp } from "./user";
 import { organization } from "./account";
+import { users_temp } from "./user";
 // import { user } from "./user";
 
 export const notificationType = pgEnum("notificationType", [

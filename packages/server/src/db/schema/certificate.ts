@@ -3,12 +3,12 @@ import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { organization } from "./account";
 import { admins } from "./admin";
 import { server } from "./server";
 import { users_temp } from "./user";
 // import { user } from "./user";
 import { generateAppName } from "./utils";
-import { organization } from "./account";
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")
