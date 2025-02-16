@@ -14,21 +14,15 @@ import superjson from "superjson";
 
 const Page = () => {
 	const { data } = api.auth.get.useQuery();
-	const { data: user } = api.user.get.useQuery(
-		{
-			authId: data?.id || "",
-		},
-		{
-			enabled: !!data?.id && data?.role === "member",
-		},
-	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(user?.canAccessToAPI || data?.role === "owner") && <GenerateToken />}
+				{(data?.user?.canAccessToAPI || data?.role === "owner") && (
+					<GenerateToken />
+				)}
 
 				{isCloud && <RemoveSelfAccount />}
 			</div>

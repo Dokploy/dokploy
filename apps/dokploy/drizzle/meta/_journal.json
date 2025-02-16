@@ -512,6 +512,13 @@
       "when": 1739672367223,
       "tag": "0072_lazy_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1739735739336,
+      "tag": "0073_brave_wolfpack",
+      "breakpoints": true
     }
   ]
 }

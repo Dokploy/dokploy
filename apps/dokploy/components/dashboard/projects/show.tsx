@@ -52,14 +52,6 @@ export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
 	const { mutateAsync } = api.project.remove.useMutation();
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -91,7 +83,7 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 
-							{(auth?.role === "owner" || user?.canCreateProjects) && (
+							{(auth?.role === "owner" || auth?.user?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -294,7 +286,7 @@ export const ShowProjects = () => {
 																					onClick={(e) => e.stopPropagation()}
 																				>
 																					{(auth?.role === "owner" ||
-																						user?.canDeleteProjects) && (
+																						auth?.user?.canDeleteProjects) && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem

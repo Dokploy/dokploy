@@ -5,7 +5,7 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { Admin, FileConfig, User } from "@dokploy/server";
+import type { FileConfig, User } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
@@ -13,7 +13,7 @@ import {
 } from "@dokploy/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
-const baseAdmin: Partial<User> = {
+const baseAdmin: User = {
 	enablePaidFeatures: false,
 	metricsConfig: {
 		containers: {
@@ -51,6 +51,30 @@ const baseAdmin: Partial<User> = {
 	serversQuantity: 0,
 	stripeCustomerId: "",
 	stripeSubscriptionId: "",
+	accessedProjects: [],
+	accessedServices: [],
+	banExpires: new Date(),
+	banned: true,
+	banReason: "",
+	canAccessToAPI: false,
+	canCreateProjects: false,
+	canDeleteProjects: false,
+	canDeleteServices: false,
+	canAccessToDocker: false,
+	canAccessToSSHKeys: false,
+	canCreateServices: false,
+	canAccessToTraefikFiles: false,
+	canAccessToGitProviders: false,
+	email: "",
+	expirationDate: "",
+	id: "",
+	isRegistered: false,
+	name: "",
+	createdAt2: new Date().toISOString(),
+	emailVerified: false,
+	image: "",
+	token: "",
+	updatedAt: new Date(),
 };
 
 beforeEach(() => {
