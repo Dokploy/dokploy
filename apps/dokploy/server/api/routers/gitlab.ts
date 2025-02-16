@@ -39,7 +39,10 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (IS_CLOUD && gitlabProvider.gitProvider.userId !== ctx.user.ownerId) {
+			if (
+				gitlabProvider.gitProvider.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -58,7 +61,9 @@ export const gitlabRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			// TODO: mAyBe a rEfaCtoR 🤫
 			result = result.filter(
-				(provider) => provider.gitProvider.userId === ctx.user.ownerId,
+				(provider) =>
+					provider.gitProvider.organizationId ===
+					ctx.session.activeOrganizationId,
 			);
 		}
 		const filtered = result
@@ -78,7 +83,10 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (IS_CLOUD && gitlabProvider.gitProvider.userId !== ctx.user.ownerId) {
+			if (
+				gitlabProvider.gitProvider.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -92,7 +100,10 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindGitlabBranches)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId || "");
-			if (IS_CLOUD && gitlabProvider.gitProvider.userId !== ctx.user.ownerId) {
+			if (
+				gitlabProvider.gitProvider.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -107,8 +118,8 @@ export const gitlabRouter = createTRPCRouter({
 			try {
 				const gitlabProvider = await findGitlabById(input.gitlabId || "");
 				if (
-					IS_CLOUD &&
-					gitlabProvider.gitProvider.userId !== ctx.user.ownerId
+					gitlabProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
@@ -130,7 +141,10 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (IS_CLOUD && gitlabProvider.gitProvider.userId !== ctx.user.ownerId) {
+			if (
+				gitlabProvider.gitProvider.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -140,7 +154,7 @@ export const gitlabRouter = createTRPCRouter({
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 
 				await updateGitlab(input.gitlabId, {

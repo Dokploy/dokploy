@@ -28,7 +28,7 @@ export const registryRouter = createTRPCRouter({
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.userId !== ctx.user.ownerId) {
+			if (registry.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to delete this registry",
@@ -41,7 +41,7 @@ export const registryRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
 			const registry = await findRegistryById(registryId);
-			if (registry.userId !== ctx.user.ownerId) {
+			if (registry.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to update this registry",
@@ -67,7 +67,7 @@ export const registryRouter = createTRPCRouter({
 		.input(apiFindOneRegistry)
 		.query(async ({ input, ctx }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.userId !== ctx.user.ownerId) {
+			if (registry.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this registry",

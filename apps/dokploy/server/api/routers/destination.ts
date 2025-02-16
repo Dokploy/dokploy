@@ -84,7 +84,7 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiFindOneDestination)
 		.query(async ({ input, ctx }) => {
 			const destination = await findDestinationById(input.destinationId);
-			if (destination.userId !== ctx.user.ownerId) {
+			if (destination.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this destination",
@@ -94,7 +94,7 @@ export const destinationRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.destinations.findMany({
-			where: eq(destinations.userId, ctx.user.ownerId),
+			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 	remove: adminProcedure
@@ -103,7 +103,7 @@ export const destinationRouter = createTRPCRouter({
 			try {
 				const destination = await findDestinationById(input.destinationId);
 
-				if (destination.userId !== ctx.user.ownerId) {
+				if (destination.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this destination",
@@ -122,7 +122,7 @@ export const destinationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
-				if (destination.userId !== ctx.user.ownerId) {
+				if (destination.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to update this destination",
@@ -130,7 +130,7 @@ export const destinationRouter = createTRPCRouter({
 				}
 				return await updateDestinationById(input.destinationId, {
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw error;

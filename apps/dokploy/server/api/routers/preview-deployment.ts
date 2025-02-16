@@ -14,7 +14,9 @@ export const previewDeploymentRouter = createTRPCRouter({
 		.input(apiFindAllByApplication)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (application.project.userId !== ctx.user.ownerId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -28,7 +30,10 @@ export const previewDeploymentRouter = createTRPCRouter({
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,
 			);
-			if (previewDeployment.application.project.userId !== ctx.user.ownerId) {
+			if (
+				previewDeployment.application.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to delete this preview deployment",
@@ -43,7 +48,10 @@ export const previewDeploymentRouter = createTRPCRouter({
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,
 			);
-			if (previewDeployment.application.project.userId !== ctx.user.ownerId) {
+			if (
+				previewDeployment.application.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this preview deployment",

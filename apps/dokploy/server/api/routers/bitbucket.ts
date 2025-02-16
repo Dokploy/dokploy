@@ -38,7 +38,8 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
+				bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -61,7 +62,9 @@ export const bitbucketRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			// TODO: mAyBe a rEfaCtoR 🤫
 			result = result.filter(
-				(provider) => provider.gitProvider.userId === ctx.user.ownerId,
+				(provider) =>
+					provider.gitProvider.organizationId ===
+					ctx.session.activeOrganizationId,
 			);
 		}
 		return result;
@@ -73,7 +76,8 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
+				bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -91,7 +95,8 @@ export const bitbucketRouter = createTRPCRouter({
 			);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
+				bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -108,7 +113,8 @@ export const bitbucketRouter = createTRPCRouter({
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 				if (
 					IS_CLOUD &&
-					bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
+					bitbucketProvider.gitProvider.organizationId !==
+						ctx.session.activeOrganizationId
 				) {
 					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
@@ -132,7 +138,8 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				IS_CLOUD &&
-				bitbucketProvider.gitProvider.userId !== ctx.user.ownerId
+				bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({

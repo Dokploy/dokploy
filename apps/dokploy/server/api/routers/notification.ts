@@ -71,7 +71,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -122,7 +122,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -174,7 +174,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -234,7 +234,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -276,7 +276,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -295,7 +295,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiFindOneNotification)
 		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
-			if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+			if (notification.organizationId !== ctx.session.activeOrganizationId) {
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -314,7 +314,12 @@ export const notificationRouter = createTRPCRouter({
 				gotify: true,
 			},
 			orderBy: desc(notifications.createdAt),
-			...(IS_CLOUD && { where: eq(notifications.userId, ctx.user.ownerId) }),
+			...(IS_CLOUD && {
+				where: eq(
+					notifications.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			}),
 			// TODO: Remove this line when the cloud version is ready
 		});
 	}),
@@ -400,7 +405,10 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.userId !== ctx.user.ownerId) {
+				if (
+					IS_CLOUD &&
+					notification.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",

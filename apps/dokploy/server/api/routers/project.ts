@@ -75,7 +75,7 @@ export const projectRouter = createTRPCRouter({
 				const project = await db.query.projects.findFirst({
 					where: and(
 						eq(projects.projectId, input.projectId),
-						eq(projects.userId, ctx.user.ownerId),
+						eq(projects.organizationId, ctx.session.activeOrganizationId),
 					),
 					with: {
 						compose: {
@@ -115,7 +115,7 @@ export const projectRouter = createTRPCRouter({
 			}
 			const project = await findProjectById(input.projectId);
 
-			if (project.userId !== ctx.user.ownerId) {
+			if (project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this project",
@@ -140,7 +140,7 @@ export const projectRouter = createTRPCRouter({
 						accessedProjects.map((projectId) => sql`${projectId}`),
 						sql`, `,
 					)})`,
-					eq(projects.userId, ctx.user.id),
+					eq(projects.organizationId, ctx.session.activeOrganizationId),
 				),
 				with: {
 					applications: {
@@ -194,7 +194,7 @@ export const projectRouter = createTRPCRouter({
 					},
 				},
 			},
-			where: eq(projects.userId, ctx.user.id),
+			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(projects.createdAt),
 		});
 	}),
@@ -207,7 +207,9 @@ export const projectRouter = createTRPCRouter({
 					await checkProjectAccess(ctx.user.id, "delete");
 				}
 				const currentProject = await findProjectById(input.projectId);
-				if (currentProject.userId !== ctx.user.ownerId) {
+				if (
+					currentProject.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this project",
@@ -225,7 +227,9 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentProject = await findProjectById(input.projectId);
-				if (currentProject.userId !== ctx.user.ownerId) {
+				if (
+					currentProject.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this project",

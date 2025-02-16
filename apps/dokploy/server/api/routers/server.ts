@@ -65,7 +65,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
-			if (server.userId !== ctx.user.ownerId) {
+			if (server.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this server",
@@ -93,7 +93,7 @@ export const serverRouter = createTRPCRouter({
 			.leftJoin(mongo, eq(mongo.serverId, server.serverId))
 			.leftJoin(mysql, eq(mysql.serverId, server.serverId))
 			.leftJoin(postgres, eq(postgres.serverId, server.serverId))
-			.where(eq(server.userId, ctx.user.ownerId))
+			.where(eq(server.organizationId, ctx.session.activeOrganizationId))
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
@@ -105,10 +105,13 @@ export const serverRouter = createTRPCRouter({
 			where: IS_CLOUD
 				? and(
 						isNotNull(server.sshKeyId),
-						eq(server.userId, ctx.user.ownerId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
 						eq(server.serverStatus, "active"),
 					)
-				: and(isNotNull(server.sshKeyId), eq(server.userId, ctx.user.ownerId)),
+				: and(
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+					),
 		});
 		return result;
 	}),
@@ -117,7 +120,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -142,7 +145,7 @@ export const serverRouter = createTRPCRouter({
 		.subscription(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -162,7 +165,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -204,7 +207,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -254,7 +257,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -296,7 +299,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this server",
@@ -330,7 +333,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.userId !== ctx.user.ownerId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this server",

@@ -27,7 +27,7 @@ export const sshRouter = createTRPCRouter({
 				console.log(ctx.user.ownerId);
 				await createSshKey({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -42,7 +42,10 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
+				if (
+					IS_CLOUD &&
+					sshKey.organizationId !== ctx.session.activeOrganizationId
+				) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -60,7 +63,10 @@ export const sshRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
 
-			if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
+			if (
+				IS_CLOUD &&
+				sshKey.organizationId !== ctx.session.activeOrganizationId
+			) {
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -71,7 +77,9 @@ export const sshRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
-			...(IS_CLOUD && { where: eq(sshKeys.userId, ctx.user.ownerId) }),
+			...(IS_CLOUD && {
+				where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
+			}),
 			orderBy: desc(sshKeys.createdAt),
 		});
 		// TODO: Remove this line when the cloud version is ready
@@ -86,7 +94,10 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.userId !== ctx.user.ownerId) {
+				if (
+					IS_CLOUD &&
+					sshKey.organizationId !== ctx.session.activeOrganizationId
+				) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

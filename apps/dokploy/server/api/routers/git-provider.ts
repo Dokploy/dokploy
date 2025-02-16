@@ -1,11 +1,7 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	findGitProviderById,
-	removeGitProvider,
-} from "@dokploy/server";
+import { findGitProviderById, removeGitProvider } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 
@@ -18,8 +14,7 @@ export const gitProviderRouter = createTRPCRouter({
 				github: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
-			...(IS_CLOUD && { where: eq(gitProvider.userId, ctx.user.ownerId) }),
-			//TODO: Remove this line when the cloud version is ready
+			where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 	remove: protectedProcedure
@@ -28,8 +23,7 @@ export const gitProviderRouter = createTRPCRouter({
 			try {
 				const gitProvider = await findGitProviderById(input.gitProviderId);
 
-				if (IS_CLOUD && gitProvider.userId !== ctx.user.ownerId) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (gitProvider.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this Git provider",

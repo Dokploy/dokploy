@@ -30,7 +30,9 @@ export const domainRouter = createTRPCRouter({
 			try {
 				if (input.domainType === "compose" && input.composeId) {
 					const compose = await findComposeById(input.composeId);
-					if (compose.project.userId !== ctx.user.ownerId) {
+					if (
+						compose.project.organizationId !== ctx.session.activeOrganizationId
+					) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "You are not authorized to access this compose",
@@ -38,7 +40,10 @@ export const domainRouter = createTRPCRouter({
 					}
 				} else if (input.domainType === "application" && input.applicationId) {
 					const application = await findApplicationById(input.applicationId);
-					if (application.project.userId !== ctx.user.ownerId) {
+					if (
+						application.project.organizationId !==
+						ctx.session.activeOrganizationId
+					) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "You are not authorized to access this application",
@@ -58,7 +63,9 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (application.project.userId !== ctx.user.ownerId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -70,7 +77,7 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
-			if (compose.project.userId !== ctx.user.ownerId) {
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -95,7 +102,9 @@ export const domainRouter = createTRPCRouter({
 
 			if (currentDomain.applicationId) {
 				const newApp = await findApplicationById(currentDomain.applicationId);
-				if (newApp.project.userId !== ctx.user.ownerId) {
+				if (
+					newApp.project.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this application",
@@ -103,7 +112,9 @@ export const domainRouter = createTRPCRouter({
 				}
 			} else if (currentDomain.composeId) {
 				const newCompose = await findComposeById(currentDomain.composeId);
-				if (newCompose.project.userId !== ctx.user.ownerId) {
+				if (
+					newCompose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this compose",
@@ -114,7 +125,8 @@ export const domainRouter = createTRPCRouter({
 					currentDomain.previewDeploymentId,
 				);
 				if (
-					newPreviewDeployment.application.project.userId !== ctx.user.ownerId
+					newPreviewDeployment.application.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -143,7 +155,9 @@ export const domainRouter = createTRPCRouter({
 		const domain = await findDomainById(input.domainId);
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
-			if (application.project.userId !== ctx.user.ownerId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -151,7 +165,7 @@ export const domainRouter = createTRPCRouter({
 			}
 		} else if (domain.composeId) {
 			const compose = await findComposeById(domain.composeId);
-			if (compose.project.userId !== ctx.user.ownerId) {
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -166,7 +180,10 @@ export const domainRouter = createTRPCRouter({
 			const domain = await findDomainById(input.domainId);
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
-				if (application.project.userId !== ctx.user.ownerId) {
+				if (
+					application.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this application",
@@ -174,7 +191,9 @@ export const domainRouter = createTRPCRouter({
 				}
 			} else if (domain.composeId) {
 				const compose = await findComposeById(domain.composeId);
-				if (compose.project.userId !== ctx.user.ownerId) {
+				if (
+					compose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this compose",

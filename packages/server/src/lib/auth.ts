@@ -83,6 +83,7 @@ export const auth = betterAuth({
 			},
 		},
 	},
+
 	plugins: [organization()],
 });
 
