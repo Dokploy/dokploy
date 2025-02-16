@@ -73,9 +73,9 @@ export const ProfileForm = () => {
 
 	const form = useForm<Profile>({
 		defaultValues: {
-			email: data?.email || "",
+			email: data?.user?.email || "",
 			password: "",
-			image: data?.image || "",
+			image: data?.user?.image || "",
 			currentPassword: "",
 		},
 		resolver: zodResolver(profileSchema),
@@ -84,14 +84,14 @@ export const ProfileForm = () => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				email: data?.email || "",
+				email: data?.user?.email || "",
 				password: "",
-				image: data?.image || "",
+				image: data?.user?.image || "",
 				currentPassword: "",
 			});
 
-			if (data.email) {
-				generateSHA256Hash(data.email).then((hash) => {
+			if (data.user.email) {
+				generateSHA256Hash(data.user.email).then((hash) => {
 					setGravatarHash(hash);
 				});
 			}

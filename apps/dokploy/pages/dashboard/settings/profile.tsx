@@ -19,7 +19,7 @@ const Page = () => {
 			authId: data?.id || "",
 		},
 		{
-			enabled: !!data?.id && data?.role === "member",
+			enabled: !!data?.id && data?.role === "user",
 		},
 	);
 
@@ -62,7 +62,7 @@ export async function getServerSideProps(
 
 	await helpers.settings.isCloud.prefetch();
 	await helpers.auth.get.prefetch();
-	if (user?.role === "member") {
+	if (user?.role === "user") {
 		await helpers.user.byAuthId.prefetch({
 			authId: user.authId,
 		});

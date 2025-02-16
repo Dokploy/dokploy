@@ -51,12 +51,15 @@ export const UserNav = () => {
 					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage src={data?.image || ""} alt={data?.image || ""} />
+						<AvatarImage
+							src={data?.user?.image || ""}
+							alt={data?.user?.image || ""}
+						/>
 						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
 						<span className="truncate font-semibold">Account</span>
-						<span className="truncate text-xs">{data?.email}</span>
+						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
 				</SidebarMenuButton>
@@ -71,7 +74,7 @@ export const UserNav = () => {
 					<DropdownMenuLabel className="flex flex-col">
 						My Account
 						<span className="text-xs font-normal text-muted-foreground">
-							{data?.email}
+							{data?.user?.email}
 						</span>
 					</DropdownMenuLabel>
 					<ModeToggle />

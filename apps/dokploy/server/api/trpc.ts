@@ -31,7 +31,7 @@ import { ZodError } from "zod";
  */
 
 interface CreateContextOptions {
-	user: (User & { rol: "admin" | "user"; ownerId: string }) | null;
+	user: (User & { rol: "member" | "admin" | "owner"; ownerId: string }) | null;
 	session: (Session & { activeOrganizationId?: string }) | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
@@ -91,7 +91,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 			? {
 					...user,
 					email: user.email,
-					rol: user.role as "admin" | "user",
+					rol: user.role as "owner" | "member" | "admin",
 					id: user.id,
 					ownerId: user.ownerId,
 				}
@@ -188,7 +188,7 @@ export const uploadProcedure = async (opts: any) => {
 };
 
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({
@@ -202,7 +202,7 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({

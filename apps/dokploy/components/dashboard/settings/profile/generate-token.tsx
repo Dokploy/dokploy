@@ -51,7 +51,7 @@ export const GenerateToken = () => {
 									<Label>Token</Label>
 									<ToggleVisibilityInput
 										placeholder="Token"
-										value={data?.token || ""}
+										value={data?.user?.token || ""}
 										disabled
 									/>
 								</div>
