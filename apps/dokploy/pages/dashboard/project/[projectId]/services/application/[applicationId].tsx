@@ -40,7 +40,6 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
-// import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
 import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
@@ -89,14 +88,6 @@ const Service = (
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
 
 	return (
 		<div className="pb-10">
@@ -187,7 +178,8 @@ const Service = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
-									{(auth?.role === "owner" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.user?.canDeleteServices) && (
 										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>
@@ -387,8 +379,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

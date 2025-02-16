@@ -2,9 +2,7 @@ import { randomBytes } from "node:crypto";
 import { db } from "@dokploy/server/db";
 import {
 	account,
-	admins,
 	type apiCreateUserInvitation,
-	auth,
 	member,
 	organization,
 	users_temp,

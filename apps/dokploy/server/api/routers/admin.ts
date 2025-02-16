@@ -4,7 +4,6 @@ import {
 	apiCreateUserInvitation,
 	apiFindOneToken,
 	apiRemoveUser,
-	apiUpdateAdmin,
 	apiUpdateWebServerMonitoring,
 } from "@/server/db/schema";
 import {
@@ -36,19 +35,17 @@ export const adminRouter = createTRPCRouter({
 			...rest,
 		};
 	}),
-	update: adminProcedure
-		.input(apiUpdateAdmin)
-		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to update this admin",
-				});
-			}
-			const { id } = await findUserById(ctx.user.id);
-			// @ts-ignore
-			return updateAdmin(id, input);
-		}),
+	update: adminProcedure.mutation(async ({ input, ctx }) => {
+		if (ctx.user.rol === "member") {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not allowed to update this admin",
+			});
+		}
+		const { id } = await findUserById(ctx.user.id);
+		// @ts-ignore
+		return updateAdmin(id, input);
+	}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
 		.mutation(async ({ input, ctx }) => {

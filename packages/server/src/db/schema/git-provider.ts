@@ -4,12 +4,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { admins } from "./admin";
 import { bitbucket } from "./bitbucket";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
-import { users_temp } from "./user";
-// import { user } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",

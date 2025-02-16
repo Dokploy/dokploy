@@ -11,8 +11,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { account, organization } from "./account";
-import { admins } from "./admin";
-import { auth } from "./auth";
 import { projects } from "./project";
 import { certificateType } from "./shared";
 /**
@@ -23,50 +21,6 @@ import { certificateType } from "./shared";
  */
 
 // OLD TABLE
-
-export const users = pgTable("user", {
-	userId: text("userId")
-		.notNull()
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-
-	token: text("token").notNull(),
-	isRegistered: boolean("isRegistered").notNull().default(false),
-	expirationDate: timestamp("expirationDate", {
-		precision: 3,
-		mode: "string",
-	}).notNull(),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
-	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
-	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
-	canCreateServices: boolean("canCreateServices").notNull().default(false),
-	canDeleteProjects: boolean("canDeleteProjects").notNull().default(false),
-	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
-	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
-	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
-	canAccessToGitProviders: boolean("canAccessToGitProviders")
-		.notNull()
-		.default(false),
-	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
-		.notNull()
-		.default(false),
-	accessedProjects: text("accesedProjects")
-		.array()
-		.notNull()
-		.default(sql`ARRAY[]::text[]`),
-	accessedServices: text("accesedServices")
-		.array()
-		.notNull()
-		.default(sql`ARRAY[]::text[]`),
-	adminId: text("adminId")
-		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
-	authId: text("authId")
-		.notNull()
-		.references(() => auth.id, { onDelete: "cascade" }),
-});
 
 // TEMP
 export const users_temp = pgTable("user_temp", {
@@ -187,19 +141,11 @@ export const users_temp = pgTable("user_temp", {
 });
 
 export const usersRelations = relations(users_temp, ({ one, many }) => ({
-	// auth: one(auth, {
-	// 	fields: [users.authId],
-	// 	references: [auth.id],
-	// }),
 	account: one(account, {
 		fields: [users_temp.id],
 		references: [account.userId],
 	}),
 	organizations: many(organization),
-	// admin: one(admins, {
-	// 	fields: [users.adminId],
-	// 	references: [admins.adminId],
-	// }),
 	projects: many(projects),
 }));
 
@@ -263,3 +209,91 @@ export const apiFindOneUserByAuth = createSchema
 		// authId: true,
 	})
 	.required();
+export const apiSaveSSHKey = createSchema
+	.pick({
+		sshPrivateKey: true,
+	})
+	.required();
+
+export const apiAssignDomain = createSchema
+	.pick({
+		host: true,
+		certificateType: true,
+		letsEncryptEmail: true,
+	})
+	.required()
+	.partial({
+		letsEncryptEmail: true,
+	});
+
+export const apiUpdateDockerCleanup = createSchema
+	.pick({
+		enableDockerCleanup: true,
+	})
+	.required()
+	.extend({
+		serverId: z.string().optional(),
+	});
+
+export const apiTraefikConfig = z.object({
+	traefikConfig: z.string().min(1),
+});
+
+export const apiModifyTraefikConfig = z.object({
+	path: z.string().min(1),
+	traefikConfig: z.string().min(1),
+	serverId: z.string().optional(),
+});
+export const apiReadTraefikConfig = z.object({
+	path: z.string().min(1),
+	serverId: z.string().optional(),
+});
+
+export const apiEnableDashboard = z.object({
+	enableDashboard: z.boolean().optional(),
+	serverId: z.string().optional(),
+});
+
+export const apiServerSchema = z
+	.object({
+		serverId: z.string().optional(),
+	})
+	.optional();
+
+export const apiReadStatsLogs = z.object({
+	page: z
+		.object({
+			pageIndex: z.number(),
+			pageSize: z.number(),
+		})
+		.optional(),
+	status: z.string().array().optional(),
+	search: z.string().optional(),
+	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
+});
+
+export const apiUpdateWebServerMonitoring = z.object({
+	metricsConfig: z
+		.object({
+			server: z.object({
+				refreshRate: z.number().min(2),
+				port: z.number().min(1),
+				token: z.string(),
+				urlCallback: z.string().url(),
+				retentionDays: z.number().min(1),
+				cronJob: z.string().min(1),
+				thresholds: z.object({
+					cpu: z.number().min(0),
+					memory: z.number().min(0),
+				}),
+			}),
+			containers: z.object({
+				refreshRate: z.number().min(2),
+				services: z.object({
+					include: z.array(z.string()).optional(),
+					exclude: z.array(z.string()).optional(),
+				}),
+			}),
+		})
+		.required(),
+});

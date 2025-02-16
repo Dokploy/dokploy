@@ -1,30 +1,23 @@
 import {
-	apiCreateAdmin,
-	apiCreateUser,
-	apiFindOneAuth,
-	apiLogin,
-	apiUpdateAuth,
-	apiVerify2FA,
-	apiVerifyLogin2FA,
-	auth,
+	// apiCreateAdmin,
+	// apiCreateUser,
+	// apiFindOneAuth,
+	// apiLogin,
+	// apiUpdateAuth,
+	// apiVerify2FA,
+	// apiVerifyLogin2FA,
+	// auth,
 	member,
 } from "@/server/db/schema";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
-	type Auth,
 	IS_CLOUD,
-	createAdmin,
-	createUser,
-	findAuthByEmail,
 	findAuthById,
 	findUserById,
 	generate2FASecret,
 	getUserByToken,
-	removeAdminByAuthId,
 	sendDiscordNotification,
 	sendEmailNotification,
-	updateAuthById,
-	updateUser,
 	validateRequest,
 	verify2FA,
 } from "@dokploy/server";
@@ -43,81 +36,77 @@ import {
 } from "../trpc";
 
 export const authRouter = createTRPCRouter({
-	createAdmin: publicProcedure
-		.input(apiCreateAdmin)
-		.mutation(async ({ ctx, input }) => {
-			try {
-				if (!IS_CLOUD) {
-					const admin = await db.query.admins.findFirst({});
-					if (admin) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Admin already exists",
-						});
-					}
+	createAdmin: publicProcedure.mutation(async ({ ctx, input }) => {
+		try {
+			if (!IS_CLOUD) {
+				const admin = await db.query.admins.findFirst({});
+				if (admin) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Admin already exists",
+					});
 				}
-				const newAdmin = await createAdmin(input);
+			}
+			const newAdmin = await createAdmin(input);
 
-				if (IS_CLOUD) {
-					await sendDiscordNotificationWelcome(newAdmin);
-					await sendVerificationEmail(newAdmin.id);
-					return {
-						status: "success",
-						type: "cloud",
-					};
-				}
-				// const session = await lucia.createSession(newAdmin.id || "", {});
-				// ctx.res.appendHeader(
-				// 	"Set-Cookie",
-				// 	lucia.createSessionCookie(session.id).serialize(),
-				// );
+			if (IS_CLOUD) {
+				await sendDiscordNotificationWelcome(newAdmin);
+				await sendVerificationEmail(newAdmin.id);
 				return {
 					status: "success",
-					type: "selfhosted",
+					type: "cloud",
 				};
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					// @ts-ignore
-					message: `Error: ${error?.code === "23505" ? "Email already exists" : "Error creating admin"}`,
-					cause: error,
-				});
 			}
-		}),
-	createUser: publicProcedure
-		.input(apiCreateUser)
-		.mutation(async ({ ctx, input }) => {
-			try {
-				const token = await getUserByToken(input.token);
-				// if (token.isExpired) {
-				// 	throw new TRPCError({
-				// 		code: "BAD_REQUEST",
-				// 		message: "Invalid token",
-				// 	});
-				// }
+			// const session = await lucia.createSession(newAdmin.id || "", {});
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
+			return {
+				status: "success",
+				type: "selfhosted",
+			};
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				// @ts-ignore
+				message: `Error: ${error?.code === "23505" ? "Email already exists" : "Error creating admin"}`,
+				cause: error,
+			});
+		}
+	}),
+	createUser: publicProcedure.mutation(async ({ ctx, input }) => {
+		try {
+			const token = await getUserByToken(input.token);
+			// if (token.isExpired) {
+			// 	throw new TRPCError({
+			// 		code: "BAD_REQUEST",
+			// 		message: "Invalid token",
+			// 	});
+			// }
 
-				// const newUser = await createUser(input);
+			// const newUser = await createUser(input);
 
-				// if (IS_CLOUD) {
-				// 	await sendVerificationEmail(token.authId);
-				// 	return true;
-				// }
-				// const session = await lucia.createSession(newUser?.authId || "", {});
-				// ctx.res.appendHeader(
-				// 	"Set-Cookie",
-				// 	lucia.createSessionCookie(session.id).serialize(),
-				// );
-				return true;
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error creating the user",
-					cause: error,
-				});
-			}
-		}),
+			// if (IS_CLOUD) {
+			// 	await sendVerificationEmail(token.authId);
+			// 	return true;
+			// }
+			// const session = await lucia.createSession(newUser?.authId || "", {});
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
+			return true;
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the user",
+				cause: error,
+			});
+		}
+	}),
 
-	login: publicProcedure.input(apiLogin).mutation(async ({ ctx, input }) => {
+	login: publicProcedure.mutation(async ({ ctx, input }) => {
 		try {
 			const auth = await findAuthByEmail(input.email);
 
@@ -192,33 +181,31 @@ export const authRouter = createTRPCRouter({
 		return true;
 	}),
 
-	update: protectedProcedure
-		.input(apiUpdateAuth)
-		.mutation(async ({ ctx, input }) => {
-			const currentAuth = await findAuthByEmail(ctx.user.email);
+	update: protectedProcedure.mutation(async ({ ctx, input }) => {
+		const currentAuth = await findAuthByEmail(ctx.user.email);
 
-			if (input.currentPassword || input.password) {
-				const correctPassword = bcrypt.compareSync(
-					input.currentPassword || "",
-					currentAuth?.password || "",
-				);
-				if (!correctPassword) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Current password is incorrect",
-					});
-				}
+		if (input.currentPassword || input.password) {
+			const correctPassword = bcrypt.compareSync(
+				input.currentPassword || "",
+				currentAuth?.password || "",
+			);
+			if (!correctPassword) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Current password is incorrect",
+				});
 			}
-			// const auth = await updateAuthById(ctx.user.authId, {
-			// 	...(input.email && { email: input.email.toLowerCase() }),
-			// 	...(input.password && {
-			// 		password: bcrypt.hashSync(input.password, 10),
-			// 	}),
-			// 	...(input.image && { image: input.image }),
-			// });
+		}
+		// const auth = await updateAuthById(ctx.user.authId, {
+		// 	...(input.email && { email: input.email.toLowerCase() }),
+		// 	...(input.password && {
+		// 		password: bcrypt.hashSync(input.password, 10),
+		// 	}),
+		// 	...(input.image && { image: input.image }),
+		// });
 
-			return auth;
-		}),
+		return auth;
+	}),
 	removeSelfAccount: protectedProcedure
 		.input(
 			z.object({
@@ -279,7 +266,7 @@ export const authRouter = createTRPCRouter({
 	verifyToken: protectedProcedure.mutation(async () => {
 		return true;
 	}),
-	one: adminProcedure.input(apiFindOneAuth).query(async ({ input }) => {
+	one: adminProcedure.query(async ({ input }) => {
 		const auth = await findAuthById(input.id);
 		return auth;
 	}),
@@ -287,34 +274,30 @@ export const authRouter = createTRPCRouter({
 	generate2FASecret: protectedProcedure.query(async ({ ctx }) => {
 		return await generate2FASecret(ctx.user.id);
 	}),
-	verify2FASetup: protectedProcedure
-		.input(apiVerify2FA)
-		.mutation(async ({ ctx, input }) => {
-			// const auth = await findAuthById(ctx.user.authId);
-			// await verify2FA(auth, input.secret, input.pin);
-			// await updateAuthById(auth.id, {
-			// 	is2FAEnabled: true,
-			// 	secret: input.secret,
-			// });
-			// return auth;
-		}),
+	verify2FASetup: protectedProcedure.mutation(async ({ ctx, input }) => {
+		// const auth = await findAuthById(ctx.user.authId);
+		// await verify2FA(auth, input.secret, input.pin);
+		// await updateAuthById(auth.id, {
+		// 	is2FAEnabled: true,
+		// 	secret: input.secret,
+		// });
+		// return auth;
+	}),
 
-	verifyLogin2FA: publicProcedure
-		.input(apiVerifyLogin2FA)
-		.mutation(async ({ ctx, input }) => {
-			// const auth = await findAuthById(input.id);
+	verifyLogin2FA: publicProcedure.mutation(async ({ ctx, input }) => {
+		// const auth = await findAuthById(input.id);
 
-			// await verify2FA(auth, auth.secret || "", input.pin);
+		// await verify2FA(auth, auth.secret || "", input.pin);
 
-			// const session = await lucia.createSession(auth.id, {});
+		// const session = await lucia.createSession(auth.id, {});
 
-			// ctx.res.appendHeader(
-			// 	"Set-Cookie",
-			// 	lucia.createSessionCookie(session.id).serialize(),
-			// );
+		// ctx.res.appendHeader(
+		// 	"Set-Cookie",
+		// 	lucia.createSessionCookie(session.id).serialize(),
+		// );
 
-			return true;
-		}),
+		return true;
+	}),
 	disable2FA: protectedProcedure.mutation(async ({ ctx }) => {
 		// const auth = await findAuthById(ctx.user.authId);
 		// await updateAuthById(auth.id, {

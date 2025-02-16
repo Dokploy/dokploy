@@ -61,14 +61,7 @@ const Postgresql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.postgres.one.useQuery({ postgresId });
 	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
+
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -154,7 +147,8 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
-									{(auth?.role === "owner" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.user?.canDeleteServices) && (
 										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>
@@ -335,8 +329,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

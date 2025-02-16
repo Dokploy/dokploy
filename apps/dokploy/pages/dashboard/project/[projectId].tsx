@@ -201,14 +201,7 @@ const Project = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
 	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
+
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
 	const router = useRouter();
 
@@ -335,7 +328,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || user?.canCreateServices) && (
+							{(auth?.role === "owner" || auth?.user?.canCreateServices) && (
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>

@@ -4,10 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { admins } from "./admin";
 import { applications } from "./application";
-import { users_temp } from "./user";
-// import { user } from "./user";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -36,10 +33,6 @@ export const registry = pgTable("registry", {
 });
 
 export const registryRelations = relations(registry, ({ one, many }) => ({
-	// user: one(user, {
-	// 	fields: [registry.userId],
-	// 	references: [user.id],
-	// }),
 	applications: many(applications),
 }));
 

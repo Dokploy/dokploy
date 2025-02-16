@@ -1,12 +1,9 @@
 import { relations } from "drizzle-orm";
-
 import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { admins } from "./admin";
-// import { admins } from "./admin";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { mariadb } from "./mariadb";
@@ -14,7 +11,6 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-import { users, users_temp } from "./user";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")

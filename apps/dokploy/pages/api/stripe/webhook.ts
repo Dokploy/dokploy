@@ -1,6 +1,6 @@
 import { buffer } from "node:stream/consumers";
 import { db } from "@/server/db";
-import { admins, server, users_temp } from "@/server/db/schema";
+import { server, users_temp } from "@/server/db/schema";
 import { findAdminById, findUserById } from "@dokploy/server";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";

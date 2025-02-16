@@ -5,7 +5,7 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { Admin, FileConfig } from "@dokploy/server";
+import type { Admin, FileConfig, User } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
@@ -13,7 +13,7 @@ import {
 } from "@dokploy/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
-const baseAdmin: Admin = {
+const baseAdmin: Partial<User> = {
 	enablePaidFeatures: false,
 	metricsConfig: {
 		containers: {
@@ -40,9 +40,7 @@ const baseAdmin: Admin = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
-	createdAt: "",
-	authId: "",
-	adminId: "string",
+	createdAt: new Date(),
 	serverIp: null,
 	certificateType: "none",
 	host: null,

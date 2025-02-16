@@ -4,10 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { admins } from "./admin";
 import { backups } from "./backups";
-import { users_temp } from "./user";
-// import { user } from "./user";
 
 export const destinations = pgTable("destination", {
 	destinationId: text("destinationId")
@@ -20,7 +17,6 @@ export const destinations = pgTable("destination", {
 	secretAccessKey: text("secretAccessKey").notNull(),
 	bucket: text("bucket").notNull(),
 	region: text("region").notNull(),
-	//   maybe it can be null
 	endpoint: text("endpoint").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -35,10 +31,6 @@ export const destinationsRelations = relations(
 			fields: [destinations.organizationId],
 			references: [organization.id],
 		}),
-		// user: one(user, {
-		// 	fields: [destinations.userId],
-		// 	references: [user.id],
-		// }),
 	}),
 );
 

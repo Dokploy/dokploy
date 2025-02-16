@@ -62,14 +62,6 @@ const Redis = (
 
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -155,7 +147,8 @@ const Redis = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
-									{(auth?.role === "owner" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.user?.canDeleteServices) && (
 										<DeleteService id={redisId} type="redis" />
 									)}
 								</div>
@@ -327,8 +320,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

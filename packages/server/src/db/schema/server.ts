@@ -10,9 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-
 import { organization } from "./account";
-import { admins } from "./admin";
 import { applications } from "./application";
 import { certificates } from "./certificate";
 import { compose } from "./compose";
@@ -23,8 +21,6 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
-import { users_temp } from "./user";
-// import { user } from "./user";
 import { generateAppName } from "./utils";
 
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
@@ -101,10 +97,6 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	// user: one(user, {
-	// 	fields: [server.userId],
-	// 	references: [user.id],
-	// }),
 	deployments: many(deployments),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],

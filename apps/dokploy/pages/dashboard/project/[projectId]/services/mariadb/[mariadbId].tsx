@@ -63,14 +63,7 @@ const Mariadb = (
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.auth.get.useQuery();
 	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
+
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
@@ -154,7 +147,8 @@ const Mariadb = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.role === "owner" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.user?.canDeleteServices) && (
 										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>
@@ -332,8 +326,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

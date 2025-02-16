@@ -4,8 +4,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { users_temp } from "./user";
-// import { user } from "./user";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
