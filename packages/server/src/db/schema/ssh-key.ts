@@ -8,6 +8,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { server } from "./server";
 import { users_temp } from "./user";
+import { organization } from "./account";
 // import { user } from "./user";
 
 export const sshKeys = pgTable("ssh-key", {
@@ -23,21 +24,18 @@ export const sshKeys = pgTable("ssh-key", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	lastUsedAt: text("lastUsedAt"),
-	// userId: text("userId").references(() => user.userId, {
-	// 	onDelete: "cascade",
-	// }),
-	userId: text("userId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const sshKeysRelations = relations(sshKeys, ({ many, one }) => ({
 	applications: many(applications),
 	compose: many(compose),
 	servers: many(server),
-	user: one(users_temp, {
-		fields: [sshKeys.userId],
-		references: [users_temp.id],
+	organization: one(organization, {
+		fields: [sshKeys.organizationId],
+		references: [organization.id],
 	}),
 }));
 
@@ -53,7 +51,7 @@ export const apiCreateSshKey = createSchema
 		description: true,
 		privateKey: true,
 		publicKey: true,
-		userId: true,
+		organizationId: true,
 	})
 	.merge(sshKeyCreate.pick({ privateKey: true }));
 

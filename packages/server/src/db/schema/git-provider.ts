@@ -8,6 +8,7 @@ import { bitbucket } from "./bitbucket";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { users_temp } from "./user";
+import { organization } from "./account";
 // import { user } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
@@ -26,12 +27,9 @@ export const gitProvider = pgTable("git_provider", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	// userId: text("userId").references(() => user.userId, {
-	// 	onDelete: "cascade",
-	// }),
-	userId: text("userId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
@@ -47,9 +45,9 @@ export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
-	user: one(users_temp, {
-		fields: [gitProvider.userId],
-		references: [users_temp.id],
+	organization: one(organization, {
+		fields: [gitProvider.organizationId],
+		references: [organization.id],
 	}),
 }));
 

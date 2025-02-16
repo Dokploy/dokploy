@@ -1,6 +1,6 @@
 {
-  "id": "11cb27c0-0f5a-4ec9-98be-5b6f7c5e7799",
-  "prevId": "8e8626de-fb34-4c11-b9d0-b7a958993fb7",
+  "id": "4eb71c0e-5bdb-427b-b198-39b1059dcd16",
+  "prevId": "11cb27c0-0f5a-4ec9-98be-5b6f7c5e7799",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -464,103 +464,103 @@
         "application_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
           "name": "application_customGitSSHKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "application",
+          "tableTo": "ssh-key",
           "columnsFrom": [
             "customGitSSHKeyId"
           ],
-          "tableTo": "ssh-key",
           "columnsTo": [
             "sshKeyId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_registryId_registry_registryId_fk": {
           "name": "application_registryId_registry_registryId_fk",
           "tableFrom": "application",
+          "tableTo": "registry",
           "columnsFrom": [
             "registryId"
           ],
-          "tableTo": "registry",
           "columnsTo": [
             "registryId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_projectId_project_projectId_fk": {
           "name": "application_projectId_project_projectId_fk",
           "tableFrom": "application",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "application_githubId_github_githubId_fk": {
           "name": "application_githubId_github_githubId_fk",
           "tableFrom": "application",
+          "tableTo": "github",
           "columnsFrom": [
             "githubId"
           ],
-          "tableTo": "github",
           "columnsTo": [
             "githubId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_gitlabId_gitlab_gitlabId_fk": {
           "name": "application_gitlabId_gitlab_gitlabId_fk",
           "tableFrom": "application",
+          "tableTo": "gitlab",
           "columnsFrom": [
             "gitlabId"
           ],
-          "tableTo": "gitlab",
           "columnsTo": [
             "gitlabId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_bitbucketId_bitbucket_bitbucketId_fk": {
           "name": "application_bitbucketId_bitbucket_bitbucketId_fk",
           "tableFrom": "application",
+          "tableTo": "bitbucket",
           "columnsFrom": [
             "bitbucketId"
           ],
-          "tableTo": "bitbucket",
           "columnsTo": [
             "bitbucketId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_serverId_server_serverId_fk": {
           "name": "application_serverId_server_serverId_fk",
           "tableFrom": "application",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "application_appName_unique": {
           "name": "application_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -693,38 +693,38 @@
         "postgres_projectId_project_projectId_fk": {
           "name": "postgres_projectId_project_projectId_fk",
           "tableFrom": "postgres",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "postgres_serverId_server_serverId_fk": {
           "name": "postgres_serverId_server_serverId_fk",
           "tableFrom": "postgres",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "postgres_appName_unique": {
           "name": "postgres_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -861,28 +861,28 @@
         "user_adminId_admin_adminId_fk": {
           "name": "user_adminId_admin_adminId_fk",
           "tableFrom": "user",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_authId_auth_id_fk": {
           "name": "user_authId_auth_id_fk",
           "tableFrom": "user",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1167,10 +1167,10 @@
       "uniqueConstraints": {
         "user_temp_email_unique": {
           "name": "user_temp_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1305,15 +1305,15 @@
         "admin_authId_auth_id_fk": {
           "name": "admin_authId_auth_id_fk",
           "tableFrom": "admin",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1413,10 +1413,10 @@
       "uniqueConstraints": {
         "auth_email_unique": {
           "name": "auth_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1451,17 +1451,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "env": {
           "name": "env",
@@ -1473,31 +1467,18 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_userId_user_temp_id_fk": {
-          "name": "project_userId_user_temp_id_fk",
-          "tableFrom": "project",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "project_organizationId_organization_id_fk": {
           "name": "project_organizationId_organization_id_fk",
           "tableFrom": "project",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1601,41 +1582,41 @@
         "domain_composeId_compose_composeId_fk": {
           "name": "domain_composeId_compose_composeId_fk",
           "tableFrom": "domain",
+          "tableTo": "compose",
           "columnsFrom": [
             "composeId"
           ],
-          "tableTo": "compose",
           "columnsTo": [
             "composeId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "domain_applicationId_application_applicationId_fk": {
           "name": "domain_applicationId_application_applicationId_fk",
           "tableFrom": "domain",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "domain_previewDeploymentId_preview_deployments_previewDeploymentId_fk": {
           "name": "domain_previewDeploymentId_preview_deployments_previewDeploymentId_fk",
           "tableFrom": "domain",
+          "tableTo": "preview_deployments",
           "columnsFrom": [
             "previewDeploymentId"
           ],
-          "tableTo": "preview_deployments",
           "columnsTo": [
             "previewDeploymentId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1776,38 +1757,38 @@
         "mariadb_projectId_project_projectId_fk": {
           "name": "mariadb_projectId_project_projectId_fk",
           "tableFrom": "mariadb",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mariadb_serverId_server_serverId_fk": {
           "name": "mariadb_serverId_server_serverId_fk",
           "tableFrom": "mariadb",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mariadb_appName_unique": {
           "name": "mariadb_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1941,38 +1922,38 @@
         "mongo_projectId_project_projectId_fk": {
           "name": "mongo_projectId_project_projectId_fk",
           "tableFrom": "mongo",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mongo_serverId_server_serverId_fk": {
           "name": "mongo_serverId_server_serverId_fk",
           "tableFrom": "mongo",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mongo_appName_unique": {
           "name": "mongo_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2111,38 +2092,38 @@
         "mysql_projectId_project_projectId_fk": {
           "name": "mysql_projectId_project_projectId_fk",
           "tableFrom": "mysql",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mysql_serverId_server_serverId_fk": {
           "name": "mysql_serverId_server_serverId_fk",
           "tableFrom": "mysql",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mysql_appName_unique": {
           "name": "mysql_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2226,67 +2207,67 @@
         "backup_destinationId_destination_destinationId_fk": {
           "name": "backup_destinationId_destination_destinationId_fk",
           "tableFrom": "backup",
+          "tableTo": "destination",
           "columnsFrom": [
             "destinationId"
           ],
-          "tableTo": "destination",
           "columnsTo": [
             "destinationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_postgresId_postgres_postgresId_fk": {
           "name": "backup_postgresId_postgres_postgresId_fk",
           "tableFrom": "backup",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mariadbId_mariadb_mariadbId_fk": {
           "name": "backup_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "backup",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mysqlId_mysql_mysqlId_fk": {
           "name": "backup_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "backup",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mongoId_mongo_mongoId_fk": {
           "name": "backup_mongoId_mongo_mongoId_fk",
           "tableFrom": "backup",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2347,46 +2328,27 @@
           "primaryKey": false,
           "notNull": true
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "destination_userId_user_temp_id_fk": {
-          "name": "destination_userId_user_temp_id_fk",
-          "tableFrom": "destination",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "destination_organizationId_organization_id_fk": {
           "name": "destination_organizationId_organization_id_fk",
           "tableFrom": "destination",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2480,54 +2442,54 @@
         "deployment_applicationId_application_applicationId_fk": {
           "name": "deployment_applicationId_application_applicationId_fk",
           "tableFrom": "deployment",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "deployment_composeId_compose_composeId_fk": {
           "name": "deployment_composeId_compose_composeId_fk",
           "tableFrom": "deployment",
+          "tableTo": "compose",
           "columnsFrom": [
             "composeId"
           ],
-          "tableTo": "compose",
           "columnsTo": [
             "composeId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "deployment_serverId_server_serverId_fk": {
           "name": "deployment_serverId_server_serverId_fk",
           "tableFrom": "deployment",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "deployment_previewDeploymentId_preview_deployments_previewDeploymentId_fk": {
           "name": "deployment_previewDeploymentId_preview_deployments_previewDeploymentId_fk",
           "tableFrom": "deployment",
+          "tableTo": "preview_deployments",
           "columnsFrom": [
             "previewDeploymentId"
           ],
-          "tableTo": "preview_deployments",
           "columnsTo": [
             "previewDeploymentId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2639,93 +2601,93 @@
         "mount_applicationId_application_applicationId_fk": {
           "name": "mount_applicationId_application_applicationId_fk",
           "tableFrom": "mount",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_postgresId_postgres_postgresId_fk": {
           "name": "mount_postgresId_postgres_postgresId_fk",
           "tableFrom": "mount",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mariadbId_mariadb_mariadbId_fk": {
           "name": "mount_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "mount",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mongoId_mongo_mongoId_fk": {
           "name": "mount_mongoId_mongo_mongoId_fk",
           "tableFrom": "mount",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mysqlId_mysql_mysqlId_fk": {
           "name": "mount_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "mount",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_redisId_redis_redisId_fk": {
           "name": "mount_redisId_redis_redisId_fk",
           "tableFrom": "mount",
+          "tableTo": "redis",
           "columnsFrom": [
             "redisId"
           ],
-          "tableTo": "redis",
           "columnsTo": [
             "redisId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_composeId_compose_composeId_fk": {
           "name": "mount_composeId_compose_composeId_fk",
           "tableFrom": "mount",
+          "tableTo": "compose",
           "columnsFrom": [
             "composeId"
           ],
-          "tableTo": "compose",
           "columnsTo": [
             "composeId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2774,17 +2736,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "serverId": {
           "name": "serverId",
@@ -2795,54 +2751,41 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "certificate_userId_user_temp_id_fk": {
-          "name": "certificate_userId_user_temp_id_fk",
-          "tableFrom": "certificate",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "certificate_organizationId_organization_id_fk": {
           "name": "certificate_organizationId_organization_id_fk",
           "tableFrom": "certificate",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "certificate_serverId_server_serverId_fk": {
           "name": "certificate_serverId_server_serverId_fk",
           "tableFrom": "certificate",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "certificate_certificatePath_unique": {
           "name": "certificate_certificatePath_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "certificatePath"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2919,25 +2862,25 @@
         "session_temp_user_id_user_temp_id_fk": {
           "name": "session_temp_user_id_user_temp_id_fk",
           "tableFrom": "session_temp",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_temp_token_unique": {
           "name": "session_temp_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2972,15 +2915,15 @@
         "session_user_id_auth_id_fk": {
           "name": "session_user_id_auth_id_fk",
           "tableFrom": "session",
+          "tableTo": "auth",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3042,15 +2985,15 @@
         "redirect_applicationId_application_applicationId_fk": {
           "name": "redirect_applicationId_application_applicationId_fk",
           "tableFrom": "redirect",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3099,26 +3042,26 @@
         "security_applicationId_application_applicationId_fk": {
           "name": "security_applicationId_application_applicationId_fk",
           "tableFrom": "security",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "security_username_applicationId_unique": {
           "name": "security_username_applicationId_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "username",
             "applicationId"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -3166,15 +3109,15 @@
         "port_applicationId_application_applicationId_fk": {
           "name": "port_applicationId_application_applicationId_fk",
           "tableFrom": "port",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3297,38 +3240,38 @@
         "redis_projectId_project_projectId_fk": {
           "name": "redis_projectId_project_projectId_fk",
           "tableFrom": "redis",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "redis_serverId_server_serverId_fk": {
           "name": "redis_serverId_server_serverId_fk",
           "tableFrom": "redis",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "redis_appName_unique": {
           "name": "redis_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -3573,80 +3516,80 @@
         "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
           "name": "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "compose",
+          "tableTo": "ssh-key",
           "columnsFrom": [
             "customGitSSHKeyId"
           ],
-          "tableTo": "ssh-key",
           "columnsTo": [
             "sshKeyId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "compose_projectId_project_projectId_fk": {
           "name": "compose_projectId_project_projectId_fk",
           "tableFrom": "compose",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "compose_githubId_github_githubId_fk": {
           "name": "compose_githubId_github_githubId_fk",
           "tableFrom": "compose",
+          "tableTo": "github",
           "columnsFrom": [
             "githubId"
           ],
-          "tableTo": "github",
           "columnsTo": [
             "githubId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "compose_gitlabId_gitlab_gitlabId_fk": {
           "name": "compose_gitlabId_gitlab_gitlabId_fk",
           "tableFrom": "compose",
+          "tableTo": "gitlab",
           "columnsFrom": [
             "gitlabId"
           ],
-          "tableTo": "gitlab",
           "columnsTo": [
             "gitlabId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "compose_bitbucketId_bitbucket_bitbucketId_fk": {
           "name": "compose_bitbucketId_bitbucket_bitbucketId_fk",
           "tableFrom": "compose",
+          "tableTo": "bitbucket",
           "columnsFrom": [
             "bitbucketId"
           ],
-          "tableTo": "bitbucket",
           "columnsTo": [
             "bitbucketId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "compose_serverId_server_serverId_fk": {
           "name": "compose_serverId_server_serverId_fk",
           "tableFrom": "compose",
+          "tableTo": "server",
           "columnsFrom": [
             "serverId"
           ],
-          "tableTo": "server",
           "columnsTo": [
             "serverId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3710,46 +3653,27 @@
           "notNull": true,
           "default": "'cloud'"
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "registry_userId_user_temp_id_fk": {
-          "name": "registry_userId_user_temp_id_fk",
-          "tableFrom": "registry",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "registry_organizationId_organization_id_fk": {
           "name": "registry_organizationId_organization_id_fk",
           "tableFrom": "registry",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3989,17 +3913,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -4007,93 +3925,80 @@
         "notification_slackId_slack_slackId_fk": {
           "name": "notification_slackId_slack_slackId_fk",
           "tableFrom": "notification",
+          "tableTo": "slack",
           "columnsFrom": [
             "slackId"
           ],
-          "tableTo": "slack",
           "columnsTo": [
             "slackId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "notification_telegramId_telegram_telegramId_fk": {
           "name": "notification_telegramId_telegram_telegramId_fk",
           "tableFrom": "notification",
+          "tableTo": "telegram",
           "columnsFrom": [
             "telegramId"
           ],
-          "tableTo": "telegram",
           "columnsTo": [
             "telegramId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "notification_discordId_discord_discordId_fk": {
           "name": "notification_discordId_discord_discordId_fk",
           "tableFrom": "notification",
+          "tableTo": "discord",
           "columnsFrom": [
             "discordId"
           ],
-          "tableTo": "discord",
           "columnsTo": [
             "discordId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "notification_emailId_email_emailId_fk": {
           "name": "notification_emailId_email_emailId_fk",
           "tableFrom": "notification",
+          "tableTo": "email",
           "columnsFrom": [
             "emailId"
           ],
-          "tableTo": "email",
           "columnsTo": [
             "emailId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "notification_gotifyId_gotify_gotifyId_fk": {
           "name": "notification_gotifyId_gotify_gotifyId_fk",
           "tableFrom": "notification",
-          "columnsFrom": [
-            "gotifyId"
-          ],
           "tableTo": "gotify",
+          "columnsFrom": [
+            "gotifyId"
+          ],
           "columnsTo": [
             "gotifyId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
-        "notification_userId_user_temp_id_fk": {
-          "name": "notification_userId_user_temp_id_fk",
-          "tableFrom": "notification",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "notification_organizationId_organization_id_fk": {
           "name": "notification_organizationId_organization_id_fk",
           "tableFrom": "notification",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4211,46 +4116,27 @@
           "primaryKey": false,
           "notNull": false
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "ssh-key_userId_user_temp_id_fk": {
-          "name": "ssh-key_userId_user_temp_id_fk",
-          "tableFrom": "ssh-key",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "ssh-key_organizationId_organization_id_fk": {
           "name": "ssh-key_organizationId_organization_id_fk",
           "tableFrom": "ssh-key",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4289,46 +4175,27 @@
           "primaryKey": false,
           "notNull": true
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "git_provider_userId_user_temp_id_fk": {
-          "name": "git_provider_userId_user_temp_id_fk",
-          "tableFrom": "git_provider",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "git_provider_organizationId_organization_id_fk": {
           "name": "git_provider_organizationId_organization_id_fk",
           "tableFrom": "git_provider",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4377,15 +4244,15 @@
         "bitbucket_gitProviderId_git_provider_gitProviderId_fk": {
           "name": "bitbucket_gitProviderId_git_provider_gitProviderId_fk",
           "tableFrom": "bitbucket",
+          "tableTo": "git_provider",
           "columnsFrom": [
             "gitProviderId"
           ],
-          "tableTo": "git_provider",
           "columnsTo": [
             "gitProviderId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4458,15 +4325,15 @@
         "github_gitProviderId_git_provider_gitProviderId_fk": {
           "name": "github_gitProviderId_git_provider_gitProviderId_fk",
           "tableFrom": "github",
+          "tableTo": "git_provider",
           "columnsFrom": [
             "gitProviderId"
           ],
-          "tableTo": "git_provider",
           "columnsTo": [
             "gitProviderId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4546,15 +4413,15 @@
         "gitlab_gitProviderId_git_provider_gitProviderId_fk": {
           "name": "gitlab_gitProviderId_git_provider_gitProviderId_fk",
           "tableFrom": "gitlab",
+          "tableTo": "git_provider",
           "columnsFrom": [
             "gitProviderId"
           ],
-          "tableTo": "git_provider",
           "columnsTo": [
             "gitProviderId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4623,17 +4490,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "serverStatus": {
           "name": "serverStatus",
@@ -4666,44 +4527,31 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "server_userId_user_temp_id_fk": {
-          "name": "server_userId_user_temp_id_fk",
-          "tableFrom": "server",
-          "columnsFrom": [
-            "userId"
-          ],
-          "tableTo": "user_temp",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
         "server_organizationId_organization_id_fk": {
           "name": "server_organizationId_organization_id_fk",
           "tableFrom": "server",
+          "tableTo": "organization",
           "columnsFrom": [
             "organizationId"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "server_sshKeyId_ssh-key_sshKeyId_fk": {
           "name": "server_sshKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "server",
+          "tableTo": "ssh-key",
           "columnsFrom": [
             "sshKeyId"
           ],
-          "tableTo": "ssh-key",
           "columnsTo": [
             "sshKeyId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4802,38 +4650,38 @@
         "preview_deployments_applicationId_application_applicationId_fk": {
           "name": "preview_deployments_applicationId_application_applicationId_fk",
           "tableFrom": "preview_deployments",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "preview_deployments_domainId_domain_domainId_fk": {
           "name": "preview_deployments_domainId_domain_domainId_fk",
           "tableFrom": "preview_deployments",
+          "tableTo": "domain",
           "columnsFrom": [
             "domainId"
           ],
-          "tableTo": "domain",
           "columnsTo": [
             "domainId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "preview_deployments_appName_unique": {
           "name": "preview_deployments_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -4959,15 +4807,15 @@
         "account_user_id_user_temp_id_fk": {
           "name": "account_user_id_user_temp_id_fk",
           "tableFrom": "account",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -5028,28 +4876,28 @@
         "invitation_organization_id_organization_id_fk": {
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
+          "tableTo": "organization",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "invitation_inviter_id_user_temp_id_fk": {
           "name": "invitation_inviter_id_user_temp_id_fk",
           "tableFrom": "invitation",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "inviter_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -5098,28 +4946,28 @@
         "member_organization_id_organization_id_fk": {
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
+          "tableTo": "organization",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "member_user_id_user_temp_id_fk": {
           "name": "member_user_id_user_temp_id_fk",
           "tableFrom": "member",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -5180,25 +5028,25 @@
         "organization_owner_id_user_temp_id_fk": {
           "name": "organization_owner_id_user_temp_id_fk",
           "tableFrom": "organization",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "owner_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "organization_slug_unique": {
           "name": "organization_slug_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -5420,10 +5268,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

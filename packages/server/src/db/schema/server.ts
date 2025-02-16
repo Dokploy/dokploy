@@ -25,6 +25,7 @@ import { sshKeys } from "./ssh-key";
 import { users_temp } from "./user";
 // import { user } from "./user";
 import { generateAppName } from "./utils";
+import { organization } from "./account";
 
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
@@ -43,13 +44,9 @@ export const server = pgTable("server", {
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	createdAt: text("createdAt").notNull(),
-	// 	.$defaultFn(() => new Date().toISOString()),
-	// userId: text("userId")
-	// 	.notNull()
-	// 	.references(() => user.userId, { onDelete: "cascade" }),
-	userId: text("userId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {

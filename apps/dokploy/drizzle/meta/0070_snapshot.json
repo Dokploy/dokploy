@@ -1,5 +1,5 @@
 {
-  "id": "cd06dbbf-61cb-4aba-b096-49a1850ff32b",
+  "id": "8e8626de-fb34-4c11-b9d0-b7a958993fb7",
   "prevId": "e0842a94-530d-4a3c-a6b1-16cf37618b8b",
   "version": "7",
   "dialect": "postgresql",
@@ -2352,6 +2352,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2362,6 +2368,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "destination_organizationId_organization_id_fk": {
+          "name": "destination_organizationId_organization_id_fk",
+          "tableFrom": "destination",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -2761,6 +2780,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "serverId": {
           "name": "serverId",
           "type": "text",
@@ -2776,6 +2801,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "certificate_organizationId_organization_id_fk": {
+          "name": "certificate_organizationId_organization_id_fk",
+          "tableFrom": "certificate",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -3677,6 +3715,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3687,6 +3731,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "registry_organizationId_organization_id_fk": {
+          "name": "registry_organizationId_organization_id_fk",
+          "tableFrom": "registry",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -3937,6 +3994,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -4012,6 +4075,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_organizationId_organization_id_fk": {
+          "name": "notification_organizationId_organization_id_fk",
+          "tableFrom": "notification",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -4140,6 +4216,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -4150,6 +4232,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ssh-key_organizationId_organization_id_fk": {
+          "name": "ssh-key_organizationId_organization_id_fk",
+          "tableFrom": "ssh-key",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -4199,6 +4294,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -4209,6 +4310,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "git_provider_organizationId_organization_id_fk": {
+          "name": "git_provider_organizationId_organization_id_fk",
+          "tableFrom": "git_provider",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"
@@ -4515,6 +4629,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "serverStatus": {
           "name": "serverStatus",
           "type": "serverStatus",
@@ -4552,6 +4672,19 @@
           "tableTo": "user_temp",
           "columnsFrom": [
             "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "server_organizationId_organization_id_fk": {
+          "name": "server_organizationId_organization_id_fk",
+          "tableFrom": "server",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
           ],
           "columnsTo": [
             "id"

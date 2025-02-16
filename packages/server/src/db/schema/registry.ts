@@ -6,6 +6,7 @@ import { z } from "zod";
 import { admins } from "./admin";
 import { applications } from "./application";
 import { users_temp } from "./user";
+import { organization } from "./account";
 // import { user } from "./user";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -29,12 +30,9 @@ export const registry = pgTable("registry", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	registryType: registryType("selfHosted").notNull().default("cloud"),
-	// userId: text("userId")
-	// 	.notNull()
-	// 	.references(() => user.userId, { onDelete: "cascade" }),
-	userId: text("userId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const registryRelations = relations(registry, ({ one, many }) => ({
@@ -50,7 +48,7 @@ const createSchema = createInsertSchema(registry, {
 	username: z.string().min(1),
 	password: z.string().min(1),
 	registryUrl: z.string(),
-	userId: z.string().min(1),
+	organizationId: z.string().min(1),
 	registryId: z.string().min(1),
 	registryType: z.enum(["cloud"]),
 	imagePrefix: z.string().nullable().optional(),

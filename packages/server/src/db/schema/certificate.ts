@@ -8,6 +8,7 @@ import { server } from "./server";
 import { users_temp } from "./user";
 // import { user } from "./user";
 import { generateAppName } from "./utils";
+import { organization } from "./account";
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")
@@ -22,12 +23,9 @@ export const certificates = pgTable("certificate", {
 		.$defaultFn(() => generateAppName("certificate"))
 		.unique(),
 	autoRenew: boolean("autoRenew"),
-	// userId: text("userId").references(() => user.userId, {
-	// 	onDelete: "cascade",
-	// }),
-	userId: text("userId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -40,9 +38,9 @@ export const certificatesRelations = relations(
 			fields: [certificates.serverId],
 			references: [server.serverId],
 		}),
-		user: one(users_temp, {
-			fields: [certificates.userId],
-			references: [users_temp.id],
+		organization: one(organization, {
+			fields: [certificates.organizationId],
+			references: [organization.id],
 		}),
 	}),
 );
