@@ -1,1 +1,0 @@
-ALTER TABLE "user_temp" ADD COLUMN "created_at" timestamp DEFAULT now();

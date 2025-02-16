@@ -1028,12 +1028,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "banned": {
           "name": "banned",
           "type": "boolean",

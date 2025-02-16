@@ -1,5 +1,5 @@
 {
-  "id": "82a6a31d-7611-410d-8a32-31a36ab369c5",
+  "id": "e0842a94-530d-4a3c-a6b1-16cf37618b8b",
   "prevId": "c2e134de-9865-4892-a24d-048aa5be22e8",
   "version": "7",
   "dialect": "postgresql",
@@ -912,7 +912,8 @@
           "name": "token",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "''"
         },
         "isRegistered": {
           "name": "isRegistered",
@@ -1031,12 +1032,6 @@
         },
         "image": {
           "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "role": {
-          "name": "role",
           "type": "text",
           "primaryKey": false,
           "notNull": false

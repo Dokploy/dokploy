@@ -8,7 +8,6 @@ WITH inserted_users AS (
         token,
         "email_verified",
         "updated_at",
-        role,
         "serverIp",
         image,
         "certificateType",
@@ -34,7 +33,6 @@ WITH inserted_users AS (
         COALESCE(auth.token, ''),
         true,
         CURRENT_TIMESTAMP,
-        'admin',
         a."serverIp",
         auth.image,
         a."certificateType",
@@ -109,7 +107,6 @@ inserted_members AS (
         token,
         "email_verified",
         "updated_at",
-        role,
         image,
         "createdAt",
         "canAccessToAPI",
@@ -131,7 +128,6 @@ inserted_members AS (
         COALESCE(u.token, ''),
         true,
         CURRENT_TIMESTAMP,
-        'user',
         auth.image,
         NOW(),
         COALESCE(u."canAccessToAPI", false),
@@ -176,8 +172,27 @@ inserted_member_accounts AS (
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"
     RETURNING *
+),
+inserted_admin_members AS (
+    -- Insertar miembros en las organizaciones (admins como owners)
+    INSERT INTO member (
+        id,
+        "organization_id",
+        "user_id",
+        role,
+        "created_at"
+    )
+    SELECT 
+        gen_random_uuid(),
+        o.id,
+        a."adminId",
+        'owner',
+        NOW()
+    FROM admin a
+    JOIN inserted_orgs o ON o."owner_id" = a."adminId"
+    RETURNING *
 )
--- Insertar miembros en las organizaciones
+-- Insertar miembros regulares en las organizaciones
 INSERT INTO member (
     id,
     "organization_id",
@@ -189,7 +204,7 @@ SELECT
     gen_random_uuid(),
     o.id,
     u."userId",
-    'admin',
+    'member',
     NOW()
 FROM "user" u
 JOIN admin a ON u."adminId" = a."adminId"

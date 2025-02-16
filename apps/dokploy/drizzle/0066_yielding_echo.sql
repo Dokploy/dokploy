@@ -19,7 +19,6 @@ CREATE TABLE "user_temp" (
 	"email" text NOT NULL,
 	"email_verified" boolean NOT NULL,
 	"image" text,
-	"role" text,
 	"banned" boolean,
 	"ban_reason" text,
 	"ban_expires" timestamp,
