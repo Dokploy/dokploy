@@ -1,6 +1,7 @@
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { IS_CLOUD } from "@dokploy/server/constants";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import * as React from "react";
@@ -22,7 +23,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user } = await validateRequest(ctx.req, ctx.res);
+	const { user } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {

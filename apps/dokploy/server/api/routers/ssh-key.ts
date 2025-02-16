@@ -41,10 +41,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (
-					IS_CLOUD &&
-					sshKey.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -62,11 +59,7 @@ export const sshRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
 
-			if (
-				IS_CLOUD &&
-				sshKey.organizationId !== ctx.session.activeOrganizationId
-			) {
-				// TODO: Remove isCloud in the next versions of dokploy
+			if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this SSH key",
@@ -76,12 +69,9 @@ export const sshRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
-			...(IS_CLOUD && {
-				where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
-			}),
+			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
-		// TODO: Remove this line when the cloud version is ready
 	}),
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)
@@ -93,11 +83,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (
-					IS_CLOUD &&
-					sshKey.organizationId !== ctx.session.activeOrganizationId
-				) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to update this SSH key",

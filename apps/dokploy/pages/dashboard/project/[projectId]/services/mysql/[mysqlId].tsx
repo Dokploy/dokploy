@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
 import type {
@@ -323,7 +323,7 @@ export async function getServerSideProps(
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
 
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {

@@ -270,7 +270,7 @@ export const apiCreateGotify = notificationsSchema
 export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
 	gotifyId: z.string().min(1),
-	userId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestGotifyConnection = apiCreateGotify

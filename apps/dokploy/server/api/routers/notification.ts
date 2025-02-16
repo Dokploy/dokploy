@@ -57,7 +57,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createSlackNotification(input, ctx.user.ownerId);
+				return await createSlackNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -80,7 +83,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateSlackNotification({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw error;
@@ -131,7 +134,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateTelegramNotification({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -183,7 +186,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateDiscordNotification({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -243,7 +246,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateEmailNotification({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -314,13 +317,7 @@ export const notificationRouter = createTRPCRouter({
 				gotify: true,
 			},
 			orderBy: desc(notifications.createdAt),
-			...(IS_CLOUD && {
-				where: eq(
-					notifications.organizationId,
-					ctx.session.activeOrganizationId,
-				),
-			}),
-			// TODO: Remove this line when the cloud version is ready
+			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 	receiveNotification: publicProcedure
@@ -337,7 +334,7 @@ export const notificationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
-				let userId = "";
+				let organizationId = "";
 				let ServerName = "";
 				if (input.ServerType === "Dokploy") {
 					const result = await db
@@ -354,7 +351,7 @@ export const notificationRouter = createTRPCRouter({
 						});
 					}
 
-					userId = result?.[0]?.id;
+					organizationId = result?.[0]?.id;
 					ServerName = "Dokploy";
 				} else {
 					const result = await db
@@ -364,18 +361,18 @@ export const notificationRouter = createTRPCRouter({
 							sql`${server.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
-					if (!result?.[0]?.userId) {
+					if (!result?.[0]?.organizationId) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Token not found",
 						});
 					}
 
-					userId = result?.[0]?.userId;
+					organizationId = result?.[0]?.organizationId;
 					ServerName = "Remote";
 				}
 
-				await sendServerThresholdNotifications(userId, {
+				await sendServerThresholdNotifications(organizationId, {
 					...input,
 					ServerName,
 				});
@@ -416,7 +413,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateGotifyNotification({
 					...input,
-					userId: ctx.user.ownerId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw error;

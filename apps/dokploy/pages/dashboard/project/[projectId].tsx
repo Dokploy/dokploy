@@ -49,7 +49,7 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import type { findProjectById } from "@dokploy/server";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
 	Ban,
@@ -658,7 +658,7 @@ export async function getServerSideProps(
 	const { params } = ctx;
 
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {

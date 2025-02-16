@@ -49,7 +49,10 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await createProject(input, ctx.user.ownerId);
+				const project = await createProject(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 				if (ctx.user.rol === "member") {
 					await addNewProject(ctx.user.id, project.projectId);
 				}

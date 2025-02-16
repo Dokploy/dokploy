@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/index";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type React from "react";
@@ -104,7 +104,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user } = await validateRequest(ctx.req, ctx.res);
+	const { user } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
