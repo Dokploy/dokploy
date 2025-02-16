@@ -36,7 +36,7 @@ export const redisRouter = createTRPCRouter({
 		.input(apiCreateRedis)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
@@ -55,7 +55,7 @@ export const redisRouter = createTRPCRouter({
 					});
 				}
 				const newRedis = await createRedis(input);
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await addNewService(ctx.user.id, newRedis.redisId);
 				}
 
@@ -75,7 +75,7 @@ export const redisRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneRedis)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.redisId, "access");
 			}
 
@@ -232,7 +232,7 @@ export const redisRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.redisId, "delete");
 			}
 

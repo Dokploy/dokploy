@@ -53,7 +53,7 @@ export async function getServerSideProps(
 		await helpers.project.all.prefetch();
 		const auth = await helpers.auth.get.fetch();
 
-		if (auth.role === "user") {
+		if (auth.role === "member") {
 			const user = await helpers.user.byAuthId.fetch({
 				authId: auth.id,
 			});

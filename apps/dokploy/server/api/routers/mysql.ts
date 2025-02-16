@@ -38,7 +38,7 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
@@ -58,7 +58,7 @@ export const mysqlRouter = createTRPCRouter({
 				}
 
 				const newMysql = await createMysql(input);
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await addNewService(ctx.user.id, newMysql.mysqlId);
 				}
 
@@ -85,7 +85,7 @@ export const mysqlRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMySql)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.mysqlId, "access");
 			}
 			const mysql = await findMySqlById(input.mysqlId);
@@ -240,7 +240,7 @@ export const mysqlRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.mysqlId, "delete");
 			}
 			const mongo = await findMySqlById(input.mysqlId);

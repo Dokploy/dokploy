@@ -176,6 +176,9 @@ export const authRouter = createTRPCRouter({
 				eq(member.userId, ctx.user.id),
 				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
 			),
+			with: {
+				user: true,
+			},
 		});
 
 		return memberResult;
@@ -251,7 +254,7 @@ export const authRouter = createTRPCRouter({
 			await lucia.invalidateSession(session.id);
 			res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
 
-			if (ctx.user.rol === "admin") {
+			if (ctx.user.rol === "owner") {
 				await removeAdminByAuthId(ctx.user.authId);
 			} else {
 				await removeUserByAuthId(ctx.user.authId);

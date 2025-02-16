@@ -68,7 +68,7 @@ const Mariadb = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -154,7 +154,7 @@ const Mariadb = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.role === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" || user?.canDeleteServices) && (
 										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>

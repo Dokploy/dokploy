@@ -60,7 +60,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await checkServiceAccess(ctx.user.id, input.projectId, "create");
 				}
 
@@ -80,7 +80,7 @@ export const applicationRouter = createTRPCRouter({
 				}
 				const newApplication = await createApplication(input);
 
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await addNewService(ctx.user.id, newApplication.applicationId);
 				}
 				return newApplication;
@@ -98,7 +98,7 @@ export const applicationRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.applicationId, "access");
 			}
 			const application = await findApplicationById(input.applicationId);
@@ -140,7 +140,7 @@ export const applicationRouter = createTRPCRouter({
 	delete: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				await checkServiceAccess(ctx.user.id, input.applicationId, "delete");
 			}
 			const application = await findApplicationById(input.applicationId);

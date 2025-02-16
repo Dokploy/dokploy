@@ -67,7 +67,7 @@ const Redis = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 
@@ -155,7 +155,7 @@ const Redis = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
-									{(auth?.role === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" || user?.canDeleteServices) && (
 										<DeleteService id={redisId} type="redis" />
 									)}
 								</div>

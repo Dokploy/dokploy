@@ -93,7 +93,7 @@ const Service = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 
@@ -186,7 +186,7 @@ const Service = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
-									{(auth?.role === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" || user?.canDeleteServices) && (
 										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>

@@ -32,7 +32,7 @@ import { ZodError } from "zod";
 
 interface CreateContextOptions {
 	user: (User & { rol: "admin" | "user"; ownerId: string }) | null;
-	session: (Session & { activeOrganizationId: string }) | null;
+	session: (Session & { activeOrganizationId?: string }) | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
 }
@@ -67,31 +67,35 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
 	// Get from the request
-	let { session, user } = await validateRequest(req);
+	const { session, user } = await validateRequest(req);
 
-	if (!session) {
-		const cookieResult = await validateRequest(req);
-		session = cookieResult.session;
-		user = cookieResult.user;
-	}
+	// if (!session) {
+	// 	const cookieResult = await validateRequest(req);
+	// 	session = cookieResult.session;
+	// 	user = cookieResult.user;
+	// }
 
-	console.log("session", { session, user });
+	console.log("session", session);
+	console.log("user", user);
 
 	return createInnerTRPCContext({
 		req,
 		res,
-		session: session,
-		...((user && {
-			user: {
-				...user,
-				email: user.email,
-				rol: user.role,
-				id: user.id,
-				ownerId: user.ownerId,
-			},
-		}) || {
-			user: null,
-		}),
+		session: session
+			? {
+					...session,
+					activeOrganizationId: session.activeOrganizationId ?? undefined,
+				}
+			: null,
+		user: user
+			? {
+					...user,
+					email: user.email,
+					rol: user.role as "admin" | "user",
+					id: user.id,
+					ownerId: user.ownerId,
+				}
+			: null,
 	});
 };
 

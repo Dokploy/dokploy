@@ -39,7 +39,7 @@ export const adminRouter = createTRPCRouter({
 	update: adminProcedure
 		.input(apiUpdateAdmin)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to update this admin",

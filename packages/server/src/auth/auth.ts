@@ -71,10 +71,10 @@ export async function validateRequest(
 	}
 	if (result.user) {
 		try {
-			if (result.user?.rol === "admin") {
+			if (result.user?.rol === "owner") {
 				const admin = await findAdminByAuthId(result.user.id);
 				result.user.adminId = admin.adminId;
-			} else if (result.user?.rol === "user") {
+			} else if (result.user?.rol === "member") {
 				const userResult = await findUserByAuthId(result.user.id);
 				result.user.adminId = userResult.adminId;
 			}

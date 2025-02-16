@@ -19,7 +19,7 @@ const Page = () => {
 			authId: data?.id || "",
 		},
 		{
-			enabled: !!data?.id && data?.role === "user",
+			enabled: !!data?.id && data?.role === "member",
 		},
 	);
 
@@ -28,7 +28,7 @@ const Page = () => {
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(user?.canAccessToAPI || data?.role === "admin") && <GenerateToken />}
+				{(user?.canAccessToAPI || data?.role === "owner") && <GenerateToken />}
 
 				{isCloud && <RemoveSelfAccount />}
 			</div>
@@ -62,7 +62,7 @@ export async function getServerSideProps(
 
 	await helpers.settings.isCloud.prefetch();
 	await helpers.auth.get.prefetch();
-	if (user?.role === "user") {
+	if (user?.role === "member") {
 		await helpers.user.byAuthId.prefetch({
 			authId: user.authId,
 		});

@@ -75,9 +75,11 @@ export const auth = betterAuth({
 		additionalFields: {
 			role: {
 				type: "string",
+				required: true,
 			},
 			ownerId: {
 				type: "string",
+				required: true,
 			},
 		},
 	},

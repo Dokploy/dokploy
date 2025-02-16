@@ -37,7 +37,7 @@ export const UserNav = () => {
 			authId: data?.id || "",
 		},
 		{
-			enabled: !!data?.id && data?.rol === "user",
+			enabled: !!data?.id && data?.role === "member",
 		},
 	);
 	const { locale, setLocale } = useLocale();
@@ -96,7 +96,7 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" || user?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -106,7 +106,7 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.rol === "admin" || user?.canAccessToDocker) && (
+							{(data?.role === "owner" || user?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -119,7 +119,7 @@ export const UserNav = () => {
 								</DropdownMenuItem>
 							)}
 
-							{data?.rol === "admin" && (
+							{data?.role === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -140,7 +140,7 @@ export const UserNav = () => {
 							>
 								Profile
 							</DropdownMenuItem>
-							{data?.rol === "admin" && (
+							{data?.role === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -151,7 +151,7 @@ export const UserNav = () => {
 								</DropdownMenuItem>
 							)}
 
-							{data?.rol === "admin" && (
+							{data?.role === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -164,7 +164,7 @@ export const UserNav = () => {
 						</>
 					)}
 				</DropdownMenuGroup>
-				{isCloud && data?.rol === "admin" && (
+				{isCloud && data?.role === "owner" && (
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => {

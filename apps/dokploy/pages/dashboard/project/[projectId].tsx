@@ -206,7 +206,7 @@ const Project = (
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
@@ -335,7 +335,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "admin" || user?.canCreateServices) && (
+							{(auth?.role === "owner" || user?.canCreateServices) && (
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>

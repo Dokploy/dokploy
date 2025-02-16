@@ -42,7 +42,7 @@ export default async function handler(
 		const auth = await findAuthById(value as string);
 
 		let adminId = "";
-		if (auth.role === "admin") {
+		if (auth.role === "owner") {
 			const admin = await findAdminByAuthId(auth.id);
 			adminId = admin.adminId;
 		} else {

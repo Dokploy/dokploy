@@ -155,7 +155,7 @@ const MENU: Menu = {
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
 				!!(
-					(auth?.role === "admin" || user?.canAccessToTraefikFiles) &&
+					(auth?.role === "owner" || user?.canAccessToTraefikFiles) &&
 					!isCloud
 				),
 		},
@@ -166,7 +166,7 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "admin" || user?.canAccessToDocker) && !isCloud),
+				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -175,7 +175,7 @@ const MENU: Menu = {
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "admin" || user?.canAccessToDocker) && !isCloud),
+				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -184,7 +184,7 @@ const MENU: Menu = {
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "admin" || user?.canAccessToDocker) && !isCloud),
+				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -252,7 +252,7 @@ const MENU: Menu = {
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "admin" && !isCloud),
+				!!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -266,7 +266,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -274,7 +274,7 @@ const MENU: Menu = {
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -283,7 +283,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
 			isEnabled: ({ auth, user }) =>
-				!!(auth?.role === "admin" || user?.canAccessToSSHKeys),
+				!!(auth?.role === "owner" || user?.canAccessToSSHKeys),
 		},
 		{
 			isSingle: true,
@@ -292,7 +292,7 @@ const MENU: Menu = {
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
 			isEnabled: ({ auth, user }) =>
-				!!(auth?.role === "admin" || user?.canAccessToGitProviders),
+				!!(auth?.role === "owner" || user?.canAccessToGitProviders),
 		},
 		{
 			isSingle: true,
@@ -300,7 +300,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -308,7 +308,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 
 		{
@@ -317,7 +317,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -326,7 +326,7 @@ const MENU: Menu = {
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "admin" && !isCloud),
+				!!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -334,7 +334,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "admin"),
+			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -343,7 +343,7 @@ const MENU: Menu = {
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "admin" && isCloud),
+				!!(auth?.role === "owner" && isCloud),
 		},
 	],
 
@@ -537,7 +537,7 @@ export default function Page({ children }: Props) {
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 
@@ -557,7 +557,7 @@ export default function Page({ children }: Props) {
 
 	// const showProjectsButton =
 	//   currentPath === "/dashboard/projects" &&
-	//   (auth?.rol === "admin" || user?.canCreateProjects);
+	//   (auth?.rol === "owner" || user?.canCreateProjects);
 
 	return (
 		<SidebarProvider
@@ -783,7 +783,7 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && auth?.role === "admin" && (
+							{!isCloud && auth?.role === "owner" && (
 								<SidebarMenuItem>
 									<SidebarMenuButton asChild>
 										<UpdateServerButton />

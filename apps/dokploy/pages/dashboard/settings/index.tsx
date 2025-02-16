@@ -190,7 +190,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "user") {
+	if (user.role === "member") {
 		return {
 			redirect: {
 				permanent: true,

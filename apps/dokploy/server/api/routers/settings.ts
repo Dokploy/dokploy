@@ -382,7 +382,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 					if (!canAccess) {
@@ -400,7 +400,7 @@ export const settingsRouter = createTRPCRouter({
 	updateTraefikFile: protectedProcedure
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 				if (!canAccess) {
@@ -418,7 +418,7 @@ export const settingsRouter = createTRPCRouter({
 	readTraefikFile: protectedProcedure
 		.input(apiReadTraefikConfig)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 				if (!canAccess) {

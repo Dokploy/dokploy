@@ -268,7 +268,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		if (groupName) {
 			return full_path.toLowerCase().includes(groupName) && kind === "group";
 		}
-		return kind === "user";
+		return kind === "member";
 	});
 	const mappedRepositories = filteredRepos.map((repo: any) => {
 		return {
@@ -442,7 +442,7 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return full_path.toLowerCase().includes(groupName) && kind === "group";
 		}
-		return kind === "user";
+		return kind === "member";
 	});
 
 	return filteredRepos.length;

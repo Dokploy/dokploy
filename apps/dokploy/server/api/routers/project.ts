@@ -36,7 +36,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await checkProjectAccess(ctx.user.id, "create");
 				}
 
@@ -50,7 +50,7 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				const project = await createProject(input, ctx.user.ownerId);
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await addNewProject(ctx.user.id, project.projectId);
 				}
 
@@ -67,7 +67,7 @@ export const projectRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "user") {
+			if (ctx.user.rol === "member") {
 				const { accessedServices } = await findUserByAuthId(ctx.user.id);
 
 				await checkProjectAccess(ctx.user.id, "access", input.projectId);
@@ -125,7 +125,7 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		// console.log(ctx.user);
-		if (ctx.user.rol === "user") {
+		if (ctx.user.rol === "member") {
 			const { accessedProjects, accessedServices } = await findUserById(
 				ctx.user.id,
 			);
@@ -203,7 +203,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "user") {
+				if (ctx.user.rol === "member") {
 					await checkProjectAccess(ctx.user.id, "delete");
 				}
 				const currentProject = await findProjectById(input.projectId);
