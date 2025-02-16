@@ -143,27 +143,26 @@ export const findAdmin = async () => {
 };
 
 export const getUserByToken = async (token: string) => {
-	const user = await db.query.users.findFirst({
-		where: eq(users.token, token),
-		with: {
-			auth: {
-				columns: {
-					password: false,
-				},
-			},
-		},
-	});
-
-	if (!user) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Invitation not found",
-		});
-	}
-	return {
-		...user,
-		isExpired: user.isRegistered,
-	};
+	// const user = await db.query.users.findFirst({
+	// 	where: eq(users.token, token),
+	// 	with: {
+	// 		auth: {
+	// 			columns: {
+	// 				password: false,
+	// 			},
+	// 		},
+	// 	},
+	// });
+	// if (!user) {
+	// 	throw new TRPCError({
+	// 		code: "NOT_FOUND",
+	// 		message: "Invitation not found",
+	// 	});
+	// }
+	// return {
+	// 	...user,
+	// 	isExpired: user.isRegistered,
+	// };
 };
 
 export const removeUserById = async (userId: string) => {
@@ -181,9 +180,9 @@ export const removeAdminByAuthId = async (authId: string) => {
 	// First delete all associated users
 	const users = admin.users;
 
-	for (const user of users) {
-		await removeUserById(user.id);
-	}
+	// for (const user of users) {
+	// 	await removeUserById(user.id);
+	// }
 	// Then delete the auth record which will cascade delete the admin
 	return await db
 		.delete(auth)

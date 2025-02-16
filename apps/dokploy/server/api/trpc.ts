@@ -75,8 +75,8 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	// 	user = cookieResult.user;
 	// }
 
-	console.log("session", session);
-	console.log("user", user);
+	// console.log("session", session);
+	// console.log("user", user);
 
 	return createInnerTRPCContext({
 		req,

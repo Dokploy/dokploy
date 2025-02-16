@@ -1,5 +1,4 @@
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
-import { updateAdmin } from "@dokploy/server/services/admin";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
 import { db } from "../../db";
 import { execAsync } from "../process/execAsync";
@@ -23,27 +22,27 @@ class LogRotationManager {
 	}
 
 	private async initialize(): Promise<void> {
-		// const isActive = await this.getStateFromDB();
-		// if (isActive) {
-		// await this.activateStream();
-		// }
+		const isActive = await this.getStateFromDB();
+		if (isActive) {
+			await this.activateStream();
+		}
 	}
 
-	// private async getStateFromDB(): Promise<boolean> {
-	// 	const setting = await db.query.admins.findFirst({});
-	// 	return setting?.enableLogRotation ?? false;
-	// }
+	private async getStateFromDB(): Promise<boolean> {
+		const setting = await db.query.admins.findFirst({});
+		return setting?.enableLogRotation ?? false;
+	}
 
-	// private async setStateInDB(active: boolean): Promise<void> {
-	// 	const admin = await db.query.admins.findFirst({});
+	private async setStateInDB(active: boolean): Promise<void> {
+		const admin = await db.query.admins.findFirst({});
 
-	// 	if (!admin) {
-	// 		return;
-	// 	}
-	// 	await updateAdmin(admin?.authId, {
-	// 		enableLogRotation: active,
-	// 	});
-	// }
+		if (!admin) {
+			return;
+		}
+		// await updateAdmin(admin?.authId, {
+		// 	enableLogRotation: active,
+		// });
+	}
 
 	private async activateStream(): Promise<void> {
 		const { DYNAMIC_TRAEFIK_PATH } = paths();

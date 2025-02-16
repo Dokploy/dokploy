@@ -19,13 +19,13 @@ export const sendDatabaseBackupNotifications = async ({
 	databaseType,
 	type,
 	errorMessage,
-	userId,
+	organizationId,
 }: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
 	type: "error" | "success";
-	userId: string;
+	organizationId: string;
 	errorMessage?: string;
 }) => {
 	const date = new Date();
@@ -33,7 +33,7 @@ export const sendDatabaseBackupNotifications = async ({
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.databaseBackup, true),
-			eq(notifications.userId, userId),
+			eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,

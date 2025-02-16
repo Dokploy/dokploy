@@ -1,5 +1,5 @@
 import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
-import { findUserByAuthId, findUserById, findUsers } from "@dokploy/server";
+import { findUserByAuthId, findUserById } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { member } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -31,16 +31,16 @@ export const userRouter = createTRPCRouter({
 			// }
 			return user;
 		}),
-	byUserId: protectedProcedure
-		.input(apiFindOneUser)
-		.query(async ({ input, ctx }) => {
-			const user = await findUserById(input.userId);
-			if (user.adminId !== ctx.user.adminId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this user",
-				});
-			}
-			return user;
-		}),
+	// byUserId: protectedProcedure
+	// 	.input(apiFindOneUser)
+	// 	.query(async ({ input, ctx }) => {
+	// 		const user = await findUserById(input.userId);
+	// 		if (user.adminId !== ctx.user.adminId) {
+	// 			throw new TRPCError({
+	// 				code: "UNAUTHORIZED",
+	// 				message: "You are not allowed to access this user",
+	// 			});
+	// 		}
+	// 		return user;
+	// 	}),
 });

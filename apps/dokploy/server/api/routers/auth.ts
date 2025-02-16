@@ -20,8 +20,6 @@ import {
 	findUserById,
 	generate2FASecret,
 	getUserByToken,
-	lucia,
-	luciaToken,
 	removeAdminByAuthId,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -68,11 +66,11 @@ export const authRouter = createTRPCRouter({
 						type: "cloud",
 					};
 				}
-				const session = await lucia.createSession(newAdmin.id || "", {});
-				ctx.res.appendHeader(
-					"Set-Cookie",
-					lucia.createSessionCookie(session.id).serialize(),
-				);
+				// const session = await lucia.createSession(newAdmin.id || "", {});
+				// ctx.res.appendHeader(
+				// 	"Set-Cookie",
+				// 	lucia.createSessionCookie(session.id).serialize(),
+				// );
 				return {
 					status: "success",
 					type: "selfhosted",
@@ -91,24 +89,24 @@ export const authRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				const token = await getUserByToken(input.token);
-				if (token.isExpired) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Invalid token",
-					});
-				}
+				// if (token.isExpired) {
+				// 	throw new TRPCError({
+				// 		code: "BAD_REQUEST",
+				// 		message: "Invalid token",
+				// 	});
+				// }
 
-				const newUser = await createUser(input);
+				// const newUser = await createUser(input);
 
-				if (IS_CLOUD) {
-					await sendVerificationEmail(token.authId);
-					return true;
-				}
-				const session = await lucia.createSession(newUser?.authId || "", {});
-				ctx.res.appendHeader(
-					"Set-Cookie",
-					lucia.createSessionCookie(session.id).serialize(),
-				);
+				// if (IS_CLOUD) {
+				// 	await sendVerificationEmail(token.authId);
+				// 	return true;
+				// }
+				// const session = await lucia.createSession(newUser?.authId || "", {});
+				// ctx.res.appendHeader(
+				// 	"Set-Cookie",
+				// 	lucia.createSessionCookie(session.id).serialize(),
+				// );
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -151,12 +149,12 @@ export const authRouter = createTRPCRouter({
 				};
 			}
 
-			const session = await lucia.createSession(auth?.id || "", {});
+			// const session = await lucia.createSession(auth?.id || "", {});
 
-			ctx.res.appendHeader(
-				"Set-Cookie",
-				lucia.createSessionCookie(session.id).serialize(),
-			);
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
 			return {
 				is2FAEnabled: false,
 				authId: auth?.id,
@@ -186,11 +184,11 @@ export const authRouter = createTRPCRouter({
 
 	logout: protectedProcedure.mutation(async ({ ctx }) => {
 		const { req, res } = ctx;
-		const { session } = await validateRequest(req, res);
+		const { session } = await validateRequest(req);
 		if (!session) return false;
 
-		await lucia.invalidateSession(session.id);
-		res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+		// await lucia.invalidateSession(session.id);
+		// res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
 		return true;
 	}),
 
@@ -211,13 +209,13 @@ export const authRouter = createTRPCRouter({
 					});
 				}
 			}
-			const auth = await updateAuthById(ctx.user.authId, {
-				...(input.email && { email: input.email.toLowerCase() }),
-				...(input.password && {
-					password: bcrypt.hashSync(input.password, 10),
-				}),
-				...(input.image && { image: input.image }),
-			});
+			// const auth = await updateAuthById(ctx.user.authId, {
+			// 	...(input.email && { email: input.email.toLowerCase() }),
+			// 	...(input.password && {
+			// 		password: bcrypt.hashSync(input.password, 10),
+			// 	}),
+			// 	...(input.image && { image: input.image }),
+			// });
 
 			return auth;
 		}),
@@ -248,17 +246,17 @@ export const authRouter = createTRPCRouter({
 				});
 			}
 			const { req, res } = ctx;
-			const { session } = await validateRequest(req, res);
+			const { session } = await validateRequest(req);
 			if (!session) return false;
 
-			await lucia.invalidateSession(session.id);
-			res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
+			// await lucia.invalidateSession(session.id);
+			// res.setHeader("Set-Cookie", lucia.createBlankSessionCookie().serialize());
 
-			if (ctx.user.rol === "owner") {
-				await removeAdminByAuthId(ctx.user.authId);
-			} else {
-				await removeUserByAuthId(ctx.user.authId);
-			}
+			// if (ctx.user.rol === "owner") {
+			// 	await removeAdminByAuthId(ctx.user.authId);
+			// } else {
+			// 	await removeUserByAuthId(ctx.user.authId);
+			// }
 
 			return true;
 		}),
@@ -267,9 +265,9 @@ export const authRouter = createTRPCRouter({
 		const auth = await findUserById(ctx.user.id);
 		console.log(auth);
 
-		if (auth.token) {
-			await luciaToken.invalidateSession(auth.token);
-		}
+		// if (auth.token) {
+		// 	await luciaToken.invalidateSession(auth.token);
+		// }
 		// const session = await luciaToken.createSession(auth?.id || "", {
 		// 	expiresIn: 60 * 60 * 24 * 30,
 		// });
@@ -292,39 +290,38 @@ export const authRouter = createTRPCRouter({
 	verify2FASetup: protectedProcedure
 		.input(apiVerify2FA)
 		.mutation(async ({ ctx, input }) => {
-			const auth = await findAuthById(ctx.user.authId);
-
-			await verify2FA(auth, input.secret, input.pin);
-			await updateAuthById(auth.id, {
-				is2FAEnabled: true,
-				secret: input.secret,
-			});
-			return auth;
+			// const auth = await findAuthById(ctx.user.authId);
+			// await verify2FA(auth, input.secret, input.pin);
+			// await updateAuthById(auth.id, {
+			// 	is2FAEnabled: true,
+			// 	secret: input.secret,
+			// });
+			// return auth;
 		}),
 
 	verifyLogin2FA: publicProcedure
 		.input(apiVerifyLogin2FA)
 		.mutation(async ({ ctx, input }) => {
-			const auth = await findAuthById(input.id);
+			// const auth = await findAuthById(input.id);
 
-			await verify2FA(auth, auth.secret || "", input.pin);
+			// await verify2FA(auth, auth.secret || "", input.pin);
 
-			const session = await lucia.createSession(auth.id, {});
+			// const session = await lucia.createSession(auth.id, {});
 
-			ctx.res.appendHeader(
-				"Set-Cookie",
-				lucia.createSessionCookie(session.id).serialize(),
-			);
+			// ctx.res.appendHeader(
+			// 	"Set-Cookie",
+			// 	lucia.createSessionCookie(session.id).serialize(),
+			// );
 
 			return true;
 		}),
 	disable2FA: protectedProcedure.mutation(async ({ ctx }) => {
-		const auth = await findAuthById(ctx.user.authId);
-		await updateAuthById(auth.id, {
-			is2FAEnabled: false,
-			secret: null,
-		});
-		return auth;
+		// const auth = await findAuthById(ctx.user.authId);
+		// await updateAuthById(auth.id, {
+		// 	is2FAEnabled: false,
+		// 	secret: null,
+		// });
+		// return auth;
 	}),
 	sendResetPasswordEmail: publicProcedure
 		.input(

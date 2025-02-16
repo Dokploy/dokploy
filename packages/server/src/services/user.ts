@@ -33,20 +33,6 @@ export const findUserByAuthId = async (authId: string) => {
 	// return userR;
 };
 
-export const findUsers = async (adminId: string) => {
-	const currentUsers = await db.query.user.findMany({
-		where: eq(user.adminId, adminId),
-		with: {
-			auth: {
-				columns: {
-					secret: false,
-				},
-			},
-		},
-	});
-	return currentUsers;
-};
-
 export const addNewProject = async (userId: string, projectId: string) => {
 	const userR = await findUserById(userId);
 
