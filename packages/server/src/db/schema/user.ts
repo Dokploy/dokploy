@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { account } from "./account";
+import { account, organization } from "./account";
 import { admins } from "./admin";
 import { auth } from "./auth";
 import { certificateType } from "./shared";
@@ -185,7 +185,7 @@ export const users_temp = pgTable("user_temp", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
-export const usersRelations = relations(users_temp, ({ one }) => ({
+export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	// auth: one(auth, {
 	// 	fields: [users.authId],
 	// 	references: [auth.id],
@@ -194,6 +194,7 @@ export const usersRelations = relations(users_temp, ({ one }) => ({
 		fields: [users_temp.id],
 		references: [account.userId],
 	}),
+	organizations: many(organization),
 	// admin: one(admins, {
 	// 	fields: [users.adminId],
 	// 	references: [admins.adminId],

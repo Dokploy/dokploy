@@ -7,6 +7,7 @@ import {
 	apiVerify2FA,
 	apiVerifyLogin2FA,
 	auth,
+	member,
 } from "@/server/db/schema";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
@@ -32,7 +33,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { isBefore } from "date-fns";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "../../db";
@@ -170,8 +171,14 @@ export const authRouter = createTRPCRouter({
 	}),
 
 	get: protectedProcedure.query(async ({ ctx }) => {
-		const auth = await findAuthById(ctx.user.id);
-		return auth;
+		const memberResult = await db.query.member.findFirst({
+			where: and(
+				eq(member.userId, ctx.user.id),
+				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+			),
+		});
+
+		return memberResult;
 	}),
 
 	logout: protectedProcedure.mutation(async ({ ctx }) => {

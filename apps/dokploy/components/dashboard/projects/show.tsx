@@ -57,7 +57,7 @@ export const ShowProjects = () => {
 			authId: auth?.id || "",
 		},
 		{
-			enabled: !!auth?.id && auth?.role === "user",
+			enabled: !!auth?.id && auth?.role === "member",
 		},
 	);
 	const { mutateAsync } = api.project.remove.useMutation();
@@ -91,7 +91,7 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 
-							{(auth?.role === "admin" || user?.canCreateProjects) && (
+							{(auth?.role === "owner" || user?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -293,7 +293,7 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.role === "admin" ||
+																					{(auth?.role === "owner" ||
 																						user?.canDeleteProjects) && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">

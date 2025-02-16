@@ -77,7 +77,7 @@ export const member = pgTable("member", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users_temp.id),
-	role: text("role").notNull(),
+	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
 	createdAt: timestamp("created_at").notNull(),
 });
 
@@ -98,7 +98,7 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => organization.id),
 	email: text("email").notNull(),
-	role: text("role"),
+	role: text("role").$type<"owner" | "member" | "admin">(),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")

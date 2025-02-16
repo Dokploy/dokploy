@@ -261,7 +261,6 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	}
 
 	const { user } = await validateRequest(context.req);
-	console.log("Response", user);
 
 	if (user) {
 		return {

@@ -32,7 +32,7 @@ import { ZodError } from "zod";
 
 interface CreateContextOptions {
 	user: (User & { rol: "admin" | "user"; ownerId: string }) | null;
-	session: Session | null;
+	session: (Session & { activeOrganizationId: string }) | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
 }
@@ -75,12 +75,15 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 		user = cookieResult.user;
 	}
 
+	console.log("session", { session, user });
+
 	return createInnerTRPCContext({
 		req,
 		res,
 		session: session,
 		...((user && {
 			user: {
+				...user,
 				email: user.email,
 				rol: user.role,
 				id: user.id,
