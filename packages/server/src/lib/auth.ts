@@ -2,7 +2,11 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { createAuthMiddleware, organization } from "better-auth/plugins";
+import {
+	createAuthMiddleware,
+	organization,
+	twoFactor,
+} from "better-auth/plugins";
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -85,6 +89,7 @@ export const auth = betterAuth({
 	},
 
 	plugins: [
+		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, request) {
 				const inviteLink = `https://example.com/accept-invitation/${data.id}`;

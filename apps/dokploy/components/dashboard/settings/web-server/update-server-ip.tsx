@@ -1,5 +1,4 @@
 import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -47,11 +46,11 @@ interface Props {
 export const UpdateServerIp = ({ children, serverId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data } = api.admin.one.useQuery();
+	const { data } = api.user.get.useQuery();
 	const { data: ip } = api.server.publicIp.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
-		api.admin.update.useMutation();
+		api.user.update.useMutation();
 
 	const form = useForm<Schema>({
 		defaultValues: {

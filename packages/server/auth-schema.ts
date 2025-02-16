@@ -1,9 +1,9 @@
 import {
-	boolean,
-	integer,
 	pgTable,
 	text,
+	integer,
 	timestamp,
+	boolean,
 } from "drizzle-orm/pg-core";
 
 export const users_temp = pgTable("users_temp", {
@@ -14,6 +14,7 @@ export const users_temp = pgTable("users_temp", {
 	image: text("image"),
 	createdAt: timestamp("created_at").notNull(),
 	updatedAt: timestamp("updated_at").notNull(),
+	twoFactorEnabled: boolean("two_factor_enabled"),
 	role: text("role").notNull(),
 	ownerId: text("owner_id").notNull(),
 });
@@ -57,6 +58,15 @@ export const verification = pgTable("verification", {
 	expiresAt: timestamp("expires_at").notNull(),
 	createdAt: timestamp("created_at"),
 	updatedAt: timestamp("updated_at"),
+});
+
+export const twoFactor = pgTable("two_factor", {
+	id: text("id").primaryKey(),
+	secret: text("secret").notNull(),
+	backupCodes: text("backup_codes").notNull(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const organization = pgTable("organization", {

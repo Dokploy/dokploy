@@ -266,10 +266,13 @@ export const authRouter = createTRPCRouter({
 	verifyToken: protectedProcedure.mutation(async () => {
 		return true;
 	}),
-	one: adminProcedure.query(async ({ input }) => {
-		const auth = await findAuthById(input.id);
-		return auth;
-	}),
+	one: adminProcedure
+		.input(z.object({ userId: z.string().min(1) }))
+		.query(async ({ input }) => {
+			// TODO: Check if the user is admin or member
+			const user = await findUserById(input.userId);
+			return user;
+		}),
 
 	generate2FASecret: protectedProcedure.query(async ({ ctx }) => {
 		return await generate2FASecret(ctx.user.id);

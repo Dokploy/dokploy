@@ -119,3 +119,12 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 		references: [organization.id],
 	}),
 }));
+
+export const twoFactor = pgTable("two_factor", {
+	id: text("id").primaryKey(),
+	secret: text("secret").notNull(),
+	backupCodes: text("backup_codes").notNull(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users_temp.id, { onDelete: "cascade" }),
+});

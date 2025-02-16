@@ -16,6 +16,7 @@ CREATE TABLE "user_temp" (
 	"canAccessToTraefikFiles" boolean DEFAULT false NOT NULL,
 	"accesedProjects" text[] DEFAULT ARRAY[]::text[] NOT NULL,
 	"accesedServices" text[] DEFAULT ARRAY[]::text[] NOT NULL,
+	"two_factor_enabled" boolean DEFAULT false NOT NULL,
 	"email" text NOT NULL,
 	"email_verified" boolean NOT NULL,
 	"image" text,
@@ -113,6 +114,13 @@ CREATE TABLE "verification" (
 	"created_at" timestamp,
 	"updated_at" timestamp
 );
+
+CREATE TABLE "two_factor" (
+	"id" text PRIMARY KEY NOT NULL,
+	"secret" text NOT NULL,
+	"backup_codes" text NOT NULL,
+	"user_id" text NOT NULL
+);
 --> statement-breakpoint
 ALTER TABLE "certificate" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "notification" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
@@ -125,3 +133,4 @@ ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_user_temp_id_fk" 
 ALTER TABLE "member" ADD CONSTRAINT "member_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization" ADD CONSTRAINT "organization_owner_id_user_temp_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

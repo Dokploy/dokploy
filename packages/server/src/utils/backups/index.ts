@@ -1,4 +1,3 @@
-import { findAdmin } from "@dokploy/server/services/admin";
 import { getAllServers } from "@dokploy/server/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";

@@ -104,9 +104,9 @@ export const ShowUsers = () => {
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.user.is2FAEnabled
+																{/* {user.user.is2FAEnabled
 																	? "2FA Enabled"
-																	: "2FA Not Enabled"}
+																	: "2FA Not Enabled"} */}
 															</TableCell>
 															{/* <TableCell className="text-right">
 																<span className="text-sm text-muted-foreground">
@@ -156,7 +156,7 @@ export const ShowUsers = () => {
 																			/>
 																		)} */}
 
-																		{user.role !== "owner" && (
+																		{/* {user.role !== "owner" && (
 																			<DialogAction
 																				title="Delete User"
 																				description="Are you sure you want to delete this user?"
@@ -185,7 +185,7 @@ export const ShowUsers = () => {
 																					Delete User
 																				</DropdownMenuItem>
 																			</DialogAction>
-																		)}
+																		)} */}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

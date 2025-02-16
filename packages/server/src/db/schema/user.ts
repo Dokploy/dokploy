@@ -59,10 +59,12 @@ export const users_temp = pgTable("user_temp", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
+
 	// authId: text("authId")
 	// 	.notNull()
 	// 	.references(() => auth.id, { onDelete: "cascade" }),
 	// Auth
+	twoFactorEnabled: boolean("two_factor_enabled"),
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").notNull(),
 	image: text("image"),
@@ -151,10 +153,8 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 
 const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
-	// authId: z.string().min(1),
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
-	// adminId: z.string(),
 	accessedProjects: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional(),
@@ -296,4 +296,31 @@ export const apiUpdateWebServerMonitoring = z.object({
 			}),
 		})
 		.required(),
+});
+
+export const apiUpdateUser = createSchema.partial().extend({
+	metricsConfig: z
+		.object({
+			server: z.object({
+				type: z.enum(["Dokploy", "Remote"]),
+				refreshRate: z.number(),
+				port: z.number(),
+				token: z.string(),
+				urlCallback: z.string(),
+				retentionDays: z.number(),
+				cronJob: z.string(),
+				thresholds: z.object({
+					cpu: z.number(),
+					memory: z.number(),
+				}),
+			}),
+			containers: z.object({
+				refreshRate: z.number(),
+				services: z.object({
+					include: z.array(z.string()),
+					exclude: z.array(z.string()),
+				}),
+			}),
+		})
+		.optional(),
 });

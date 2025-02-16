@@ -1,5 +1,5 @@
 {
-  "id": "07170d9f-4d67-48f5-890f-393043396973",
+  "id": "e357a19a-dd1e-4843-b567-0c0243ade7a8",
   "prevId": "4eb71c0e-5bdb-427b-b198-39b1059dcd16",
   "version": "7",
   "dialect": "postgresql",
@@ -857,6 +857,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "ARRAY[]::text[]"
+        },
+        "two_factor_enabled": {
+          "name": "two_factor_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
         },
         "email": {
           "name": "email",
@@ -4598,6 +4604,57 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.two_factor": {
+      "name": "two_factor",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "backup_codes": {
+          "name": "backup_codes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "two_factor_user_id_user_temp_id_fk": {
+          "name": "two_factor_user_id_user_temp_id_fk",
+          "tableFrom": "two_factor",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

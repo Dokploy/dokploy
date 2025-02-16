@@ -38,7 +38,7 @@ const Home: NextPage = () => {
 export default Home;
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	const { req, res } = context;
-	const { user, session } = await validateRequest(context.req, context.res);
+	const { user, session } = await validateRequest(context.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -53,17 +53,17 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
 	if (user.role === "member") {
-		const result = await helpers.user.byAuthId.fetch({
-			authId: user.id,
+		const userR = await helpers.user.one.fetch({
+			userId: user.id,
 		});
 
-		if (!result.canAccessToAPI) {
+		if (!userR.canAccessToAPI) {
 			return {
 				redirect: {
 					permanent: true,

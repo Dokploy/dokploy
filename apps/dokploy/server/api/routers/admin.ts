@@ -35,17 +35,22 @@ export const adminRouter = createTRPCRouter({
 			...rest,
 		};
 	}),
-	update: adminProcedure.mutation(async ({ input, ctx }) => {
-		if (ctx.user.rol === "member") {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "You are not allowed to update this admin",
-			});
-		}
-		const { id } = await findUserById(ctx.user.id);
-		// @ts-ignore
-		return updateAdmin(id, input);
-	}),
+	update: adminProcedure
+		.input(
+			z.object({
+				enableDockerCleanup: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (ctx.user.rol === "member") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this admin",
+				});
+			}
+			const user = await findUserById(ctx.user.ownerId);
+			return updateUser(user.id, {});
+		}),
 	createUserInvitation: adminProcedure
 		.input(apiCreateUserInvitation)
 		.mutation(async ({ input, ctx }) => {

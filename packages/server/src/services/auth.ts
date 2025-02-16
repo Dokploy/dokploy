@@ -10,6 +10,7 @@ import { TOTP } from "otpauth";
 import QRCode from "qrcode";
 import { IS_CLOUD } from "../constants";
 import { findUserById } from "./admin";
+import type { User } from "./user";
 
 export const findAuthById = async (authId: string) => {
 	const result = await db.query.users_temp.findFirst({
@@ -51,11 +52,7 @@ export const generate2FASecret = async (userId: string) => {
 	};
 };
 
-export const verify2FA = async (
-	auth: Omit<Auth, "password">,
-	secret: string,
-	pin: string,
-) => {
+export const verify2FA = async (auth: User, secret: string, pin: string) => {
 	const totp = new TOTP({
 		issuer: "Dokploy",
 		label: `${auth?.email}`,

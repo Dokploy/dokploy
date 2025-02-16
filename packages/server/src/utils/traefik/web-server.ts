@@ -1,11 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import type { User } from "@dokploy/server/services/user";
 import { dump, load } from "js-yaml";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
-import type { User } from "@dokploy/server/services/user";
 
 export const updateServerTraefik = (
 	user: User | null,
