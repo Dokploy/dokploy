@@ -1,10 +1,10 @@
-import { adminProcedure, createTRPCRouter } from "../trpc";
-import { z } from "zod";
 import { db } from "@/server/db";
 import { member, organization } from "@/server/db/schema";
-import { nanoid } from "nanoid";
-import { desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { adminProcedure, createTRPCRouter } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(

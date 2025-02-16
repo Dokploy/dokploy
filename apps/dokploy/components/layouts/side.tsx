@@ -495,11 +495,11 @@ import {
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { authClient } from "@/lib/auth";
+import { toast } from "sonner";
+import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Button } from "../ui/button";
-import { toast } from "sonner";
 const data = {
 	user: {
 		name: "shadcn",
