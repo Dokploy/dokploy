@@ -14,12 +14,12 @@ import superjson from "superjson";
 
 const Page = () => {
 	const { data } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
+	const { data: user } = api.user.get.useQuery(
 		{
 			authId: data?.id || "",
 		},
 		{
-			enabled: !!data?.id && data?.role === "user",
+			enabled: !!data?.id && data?.role === "member",
 		},
 	);
 
@@ -46,7 +46,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const locale = getLocale(req.cookies);
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -54,18 +54,21 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
 
 	await helpers.settings.isCloud.prefetch();
 	await helpers.auth.get.prefetch();
-	if (user?.role === "user") {
-		await helpers.user.byAuthId.prefetch({
-			authId: user.authId,
-		});
+	if (user?.role === "member") {
+		// const userR = await helpers.user.get.fetch({
+		// 	userId: user.id,
+		// });
+		// await helpers.user.byAuthId.prefetch({
+		// 	authId: user.authId,
+		// });
 	}
 
 	if (!user) {

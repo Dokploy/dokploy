@@ -1,9 +1,9 @@
 import type http from "node:http";
+import { validateRequest } from "@dokploy/server/index";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
 import { createTRPCContext } from "../api/trpc";
-import { validateRequest } from "@dokploy/server/index";
 
 export const setupDrawerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

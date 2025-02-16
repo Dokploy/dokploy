@@ -58,7 +58,7 @@ export const AddUser = () => {
 	const onSubmit = async (data: AddUser) => {
 		const result = await authClient.organization.inviteMember({
 			email: data.email.toLowerCase(),
-			role: "user",
+			role: "member",
 			organizationId: activeOrganization?.id,
 		});
 		console.log(result);

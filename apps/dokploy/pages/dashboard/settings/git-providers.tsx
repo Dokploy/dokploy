@@ -24,7 +24,7 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -40,8 +40,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -49,14 +49,12 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 		await helpers.settings.isCloud.prefetch();
-		const auth = await helpers.auth.get.fetch();
-
-		if (auth.role === "member") {
-			const user = await helpers.user.byAuthId.fetch({
-				authId: auth.id,
+		if (user.role === "member") {
+			const userR = await helpers.user.get.fetch({
+				userId: user.id,
 			});
 
-			if (!user.canAccessToGitProviders) {
+			if (!userR.canAccessToGitProviders) {
 				return {
 					redirect: {
 						permanent: true,

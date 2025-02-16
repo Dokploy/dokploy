@@ -98,7 +98,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -122,8 +122,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

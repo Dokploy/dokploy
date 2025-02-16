@@ -27,7 +27,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const locale = await getLocale(req.cookies);
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -51,8 +51,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});

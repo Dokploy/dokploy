@@ -274,7 +274,7 @@ Register.getLayout = (page: ReactElement) => {
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
-		const { user } = await validateRequest(context.req, context.res);
+		const { user } = await validateRequest(context.req);
 
 		if (user) {
 			return {
