@@ -124,3 +124,27 @@ await db
 	.catch((error) => {
 		console.error(error);
 	});
+
+await db
+	.transaction(async (db) => {
+		const projects = await db.query.projects.findMany({
+			with: {
+				user: {
+					with: {
+						organizations: true,
+					},
+				},
+			},
+		});
+		for (const project of projects) {
+			const user = await db.update(schema.projects).set({
+				organizationId: project.user.organizations[0]?.id || "",
+			});
+		}
+	})
+	.then(() => {
+		console.log("Migration finished");
+	})
+	.catch((error) => {
+		console.error(error);
+	});

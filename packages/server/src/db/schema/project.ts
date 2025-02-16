@@ -14,6 +14,7 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { users, users_temp } from "./user";
+import { organization } from "./account";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
@@ -31,6 +32,9 @@ export const projects = pgTable("project", {
 	userId: text("userId")
 		.notNull()
 		.references(() => users_temp.id, { onDelete: "cascade" }),
+	organizationId: text("organizationId")
+		// .notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 	env: text("env").notNull().default(""),
 });
 
@@ -42,6 +46,10 @@ export const projectRelations = relations(projects, ({ many, one }) => ({
 	mongo: many(mongo),
 	redis: many(redis),
 	compose: many(compose),
+	user: one(users_temp, {
+		fields: [projects.userId],
+		references: [users_temp.id],
+	}),
 	// user: one(user, {
 	// 	fields: [projects.userId],
 	// 	references: [user.id],
