@@ -1440,6 +1440,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./spacedrive/index").then((m) => m.generate),
 	},
 	{
+		id: "registry",
+		name: "Docker Registry",
+		version: "2",
+		description:
+			"Distribution implementation for storing and distributing of Docker container images and artifacts.",
+		links: {
+			github: "https://github.com/distribution/distribution",
+			website: "https://hub.docker.com/_/registry",
+			docs: "https://distribution.github.io/distribution/",
+		},
+		logo: "registry.png",
+		tags: ["registry", "docker", "self-hosted"],
+		load: () => import("./registry/index").then((m) => m.generate),
+	},
+	{
 		id: "alist",
 		name: "AList",
 		version: "v3.41.0",

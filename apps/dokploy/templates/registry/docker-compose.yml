@@ -1,0 +1,19 @@
+services:
+  registry:
+    restart: always
+    image: registry:2
+    ports:
+      - 5000
+    volumes:
+      - ../files/auth/registry.password:/auth/registry.password
+      - registry-data:/var/lib/registry
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: true
+      REGISTRY_HEALTH_STORAGEDRIVER_ENABLED: false
+      REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET}
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/registry.password
+
+volumes:
+  registry-data:
