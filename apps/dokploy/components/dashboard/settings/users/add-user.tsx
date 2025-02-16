@@ -19,6 +19,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
@@ -40,6 +41,7 @@ export const AddUser = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
+	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { mutateAsync, isError, error, isLoading } =
 		api.admin.createUserInvitation.useMutation();
 
@@ -54,17 +56,23 @@ export const AddUser = () => {
 	}, [form, form.formState.isSubmitSuccessful, form.reset]);
 
 	const onSubmit = async (data: AddUser) => {
-		await mutateAsync({
+		const result = await authClient.organization.inviteMember({
 			email: data.email.toLowerCase(),
-		})
-			.then(async () => {
-				toast.success("Invitation created");
-				await utils.user.all.invalidate();
-				setOpen(false);
-			})
-			.catch(() => {
-				toast.error("Error creating the invitation");
-			});
+			role: "user",
+			organizationId: activeOrganization?.id,
+		});
+		console.log(result);
+		// await mutateAsync({
+		// 	email: data.email.toLowerCase(),
+		// })
+		// 	.then(async () => {
+		// 		toast.success("Invitation created");
+		// 		await utils.user.all.invalidate();
+		// 		setOpen(false);
+		// 	})
+		// 	.catch(() => {
+		// 		toast.error("Error creating the invitation");
+		// 	});
 	};
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

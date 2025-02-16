@@ -6,7 +6,6 @@ import {
 	apiUpdateGithub,
 } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	findGithubById,
 	getGithubBranches,
 	getGithubRepositories,
@@ -24,7 +23,6 @@ export const githubRouter = createTRPCRouter({
 				githubProvider.gitProvider.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
@@ -40,7 +38,6 @@ export const githubRouter = createTRPCRouter({
 				githubProvider.gitProvider.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
@@ -71,14 +68,11 @@ export const githubRouter = createTRPCRouter({
 			},
 		});
 
-		if (IS_CLOUD) {
-			// TODO: mAyBe a rEfaCtoR 🤫
-			result = result.filter(
-				(provider) =>
-					provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId,
-			);
-		}
+		result = result.filter(
+			(provider) =>
+				provider.gitProvider.organizationId ===
+				ctx.session.activeOrganizationId,
+		);
 
 		const filtered = result
 			.filter((provider) => haveGithubRequirements(provider))
@@ -100,11 +94,9 @@ export const githubRouter = createTRPCRouter({
 			try {
 				const githubProvider = await findGithubById(input.githubId);
 				if (
-					IS_CLOUD &&
 					githubProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId
 				) {
-					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this github provider",
@@ -124,11 +116,9 @@ export const githubRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
 			if (
-				IS_CLOUD &&
 				githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",

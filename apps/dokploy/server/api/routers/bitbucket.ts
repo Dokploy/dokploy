@@ -8,7 +8,6 @@ import {
 	apiUpdateBitbucket,
 } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	createBitbucket,
 	findBitbucketById,
 	getBitbucketBranches,
@@ -37,11 +36,9 @@ export const bitbucketRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				IS_CLOUD &&
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -59,14 +56,11 @@ export const bitbucketRouter = createTRPCRouter({
 			},
 		});
 
-		if (IS_CLOUD) {
-			// TODO: mAyBe a rEfaCtoR 🤫
-			result = result.filter(
-				(provider) =>
-					provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId,
-			);
-		}
+		result = result.filter(
+			(provider) =>
+				provider.gitProvider.organizationId ===
+				ctx.session.activeOrganizationId,
+		);
 		return result;
 	}),
 
@@ -75,11 +69,9 @@ export const bitbucketRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				IS_CLOUD &&
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -94,11 +86,9 @@ export const bitbucketRouter = createTRPCRouter({
 				input.bitbucketId || "",
 			);
 			if (
-				IS_CLOUD &&
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -112,11 +102,9 @@ export const bitbucketRouter = createTRPCRouter({
 			try {
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 				if (
-					IS_CLOUD &&
 					bitbucketProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId
 				) {
-					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this bitbucket provider",
@@ -137,11 +125,9 @@ export const bitbucketRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				IS_CLOUD &&
 				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+				ctx.session.activeOrganizationId
 			) {
-				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -149,7 +135,7 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 			return await updateBitbucket(input.bitbucketId, {
 				...input,
-				userId: ctx.user.ownerId,
+				organizationId: ctx.session.activeOrganizationId,
 			});
 		}),
 });

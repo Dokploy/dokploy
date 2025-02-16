@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
 	deployments,
+	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -154,11 +155,14 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, application.project.organizationId),
+	});
 	const generateDomain = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",
 		appName,
 		application.server?.ipAddress || "",
-		application.project.userId,
+		org?.ownerId || "",
 	);
 
 	const octokit = authGithub(application?.github as Github);

@@ -34,14 +34,14 @@ void app.prepare().then(async () => {
 		});
 
 		// WEBSOCKET
-		// setupDrawerLogsWebSocketServer(server);
-		// setupDeploymentLogsWebSocketServer(server);
-		// setupDockerContainerLogsWebSocketServer(server);
-		// setupDockerContainerTerminalWebSocketServer(server);
-		// setupTerminalWebSocketServer(server);
-		// if (!IS_CLOUD) {
-		// 	setupDockerStatsMonitoringSocketServer(server);
-		// }
+		setupDrawerLogsWebSocketServer(server);
+		setupDeploymentLogsWebSocketServer(server);
+		setupDockerContainerLogsWebSocketServer(server);
+		setupDockerContainerTerminalWebSocketServer(server);
+		setupTerminalWebSocketServer(server);
+		if (!IS_CLOUD) {
+			setupDockerStatsMonitoringSocketServer(server);
+		}
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();

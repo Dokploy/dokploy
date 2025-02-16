@@ -20,17 +20,17 @@ export type User = typeof users_temp.$inferSelect;
 // };
 
 export const findUserByAuthId = async (authId: string) => {
-	const userR = await db.query.user.findFirst({
-		where: eq(user.id, authId),
-		with: {},
-	});
-	if (!userR) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "User not found",
-		});
-	}
-	return userR;
+	// const userR = await db.query.user.findFirst({
+	// 	where: eq(user.id, authId),
+	// 	with: {},
+	// });
+	// if (!userR) {
+	// 	throw new TRPCError({
+	// 		code: "NOT_FOUND",
+	// 		message: "User not found",
+	// 	});
+	// }
+	// return userR;
 };
 
 export const findUsers = async (adminId: string) => {

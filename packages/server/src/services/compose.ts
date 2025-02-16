@@ -217,10 +217,10 @@ export const deployCompose = async ({
 	});
 
 	try {
-		const admin = await findUserById(compose.project.userId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.sourceType === "github") {
 			await cloneGithubRepository({
 				...compose,
@@ -247,7 +247,7 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			userId: compose.project.userId,
+			organizationId: compose.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -262,7 +262,7 @@ export const deployCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			userId: compose.project.userId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -286,10 +286,10 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		const admin = await findUserById(compose.project.userId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		} else {
@@ -332,10 +332,10 @@ export const deployRemoteCompose = async ({
 	});
 	try {
 		if (compose.serverId) {
-			const admin = await findUserById(compose.project.userId);
-			if (admin.cleanupCacheOnCompose) {
-				await cleanupFullDocker(compose?.serverId);
-			}
+			// const admin = await findUserById(compose.project.userId);
+			// if (admin.cleanupCacheOnCompose) {
+			// 	await cleanupFullDocker(compose?.serverId);
+			// }
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
@@ -381,7 +381,7 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			userId: compose.project.userId,
+			organizationId: compose.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -406,7 +406,7 @@ export const deployRemoteCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			userId: compose.project.userId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -430,10 +430,10 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
-		const admin = await findUserById(compose.project.userId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}

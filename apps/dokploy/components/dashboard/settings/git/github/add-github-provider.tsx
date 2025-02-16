@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { authClient } from "@/lib/auth";
 import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
+	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { data } = api.auth.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
@@ -25,7 +27,7 @@ export const AddGithubProvider = () => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/setup?authId=${data?.id}`,
+				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}`,
 				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
 				url: origin,
 				hook_attributes: {
@@ -93,8 +95,8 @@ export const AddGithubProvider = () => {
 							<form
 								action={
 									isOrganization
-										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${data?.id}`
-										: `https://github.com/settings/apps/new?state=gh_init:${data?.id}`
+										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}`
+										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}`
 								}
 								method="post"
 							>

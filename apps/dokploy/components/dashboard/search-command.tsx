@@ -36,7 +36,7 @@ export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-	const { data: session } = authClient.getSession();
+	const { data: session } = authClient.useSession();
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});

@@ -84,7 +84,22 @@ export const auth = betterAuth({
 		},
 	},
 
-	plugins: [organization()],
+	plugins: [
+		organization({
+			async sendInvitationEmail(data, request) {
+				const inviteLink = `https://example.com/accept-invitation/${data.id}`;
+				// https://example.com/accept-invitation/8jlBi9Tb9isDb8mc8Sb85u1BaJYklKB2
+				// sendOrganizationInvitation({
+				// 		email: data.email,
+				// 		invitedByUsername: data.inviter.user.name,
+				// 		invitedByEmail: data.inviter.user.email,
+				// 		teamName: data.organization.name,
+				// 		inviteLink
+				// 	})
+				console.log("Invitation link", inviteLink);
+			},
+		}),
+	],
 });
 
 export const validateRequest = async (request: IncomingMessage) => {

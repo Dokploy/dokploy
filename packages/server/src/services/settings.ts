@@ -5,8 +5,6 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { findAdminById } from "./admin";
-// import packageInfo from "../../../package.json";
 
 export interface IUpdateData {
 	latestVersion: string | null;

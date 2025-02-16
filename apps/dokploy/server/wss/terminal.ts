@@ -1,9 +1,5 @@
 import type http from "node:http";
-import {
-	IS_CLOUD,
-	findServerById,
-	validateWebSocketRequest,
-} from "@dokploy/server";
+import { IS_CLOUD, findServerById, validateRequest } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -71,7 +67,7 @@ export const setupTerminalWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 		if (!user || !session || !serverId) {
 			ws.close();
 			return;

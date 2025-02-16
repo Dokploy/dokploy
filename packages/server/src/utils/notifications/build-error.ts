@@ -18,7 +18,7 @@ interface Props {
 	applicationType: string;
 	errorMessage: string;
 	buildLink: string;
-	userId: string;
+	organizationId: string;
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -27,14 +27,14 @@ export const sendBuildErrorNotifications = async ({
 	applicationType,
 	errorMessage,
 	buildLink,
-	userId,
+	organizationId,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.appBuildError, true),
-			eq(notifications.userId, userId),
+			eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,

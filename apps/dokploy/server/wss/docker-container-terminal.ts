@@ -1,5 +1,5 @@
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import { findServerById, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -32,7 +32,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");

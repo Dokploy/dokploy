@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import { findServerById, validateRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 
@@ -29,7 +29,7 @@ export const setupDeploymentLogsWebSocketServer = (
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const logPath = url.searchParams.get("logPath");
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 
 		if (!logPath) {
 			console.log("logPath no provided");
