@@ -1,6 +1,7 @@
 "use client";
 import {
 	Activity,
+	AudioWaveform,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
@@ -8,6 +9,7 @@ import {
 	Boxes,
 	ChevronRight,
 	CircleHelp,
+	Command,
 	CreditCard,
 	Database,
 	Folder,
@@ -16,11 +18,13 @@ import {
 	GitBranch,
 	HeartIcon,
 	KeyRound,
+	Loader2,
 	type LucideIcon,
 	Package,
 	PieChart,
 	Server,
 	ShieldCheck,
+	Trash2,
 	User,
 	Users,
 } from "lucide-react";
@@ -480,37 +484,207 @@ interface Props {
 function LogoWrapper() {
 	return <SidebarLogo />;
 }
+import { ChevronsUpDown, Plus } from "lucide-react";
 
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AddOrganization } from "../dashboard/organization/handle-organization";
+import { authClient } from "@/lib/auth";
+import { DialogAction } from "../shared/dialog-action";
+import { Button } from "../ui/button";
+import { toast } from "sonner";
+const data = {
+	user: {
+		name: "shadcn",
+		email: "m@example.com",
+		avatar: "/avatars/shadcn.jpg",
+	},
+	teams: [
+		{
+			name: "Acme Inc",
+			logo: GalleryVerticalEnd,
+			plan: "Enterprise",
+		},
+		{
+			name: "Acme Corp.",
+			logo: AudioWaveform,
+			plan: "Startup",
+		},
+		{
+			name: "Evil Corp.",
+			logo: Command,
+			plan: "Free",
+		},
+	],
+};
+
+const teams = data.teams;
 function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const {
+		data: organizations,
+		refetch,
+		isLoading,
+	} = api.organization.all.useQuery();
+	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
+		api.organization.delete.useMutation();
+	const { isMobile } = useSidebar();
+	const { data: activeOrganization } = authClient.useActiveOrganization();
+
+	const [activeTeam, setActiveTeam] = useState<
+		typeof activeOrganization | null
+	>(null);
+
+	useEffect(() => {
+		if (activeOrganization) {
+			setActiveTeam(activeOrganization);
+		}
+	}, [activeOrganization]);
 
 	return (
-		<Link
-			href="/dashboard/projects"
-			className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
-		>
-			<div
-				className={cn(
-					"flex aspect-square items-center justify-center rounded-lg transition-all",
-					state === "collapsed" ? "size-6" : "size-10",
-				)}
+		<>
+			{isLoading ? (
+				<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[5vh] pt-4">
+					<span>Loading...</span>
+					<Loader2 className="animate-spin size-4" />
+				</div>
+			) : (
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<SidebarMenuButton
+									size="lg"
+									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+								>
+									{/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"> */}
+									<div
+										className={cn(
+											"flex aspect-square items-center justify-center rounded-lg transition-all",
+											state === "collapsed" ? "size-6" : "size-10",
+										)}
+									>
+										<Logo
+											className={cn(
+												"transition-all",
+												state === "collapsed" ? "size-6" : "size-10",
+											)}
+										/>
+									</div>
+									<div className="grid flex-1 text-left text-sm leading-tight">
+										<span className="truncate font-semibold">
+											{activeTeam?.name}
+										</span>
+									</div>
+									<ChevronsUpDown className="ml-auto" />
+								</SidebarMenuButton>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+								align="start"
+								side={isMobile ? "bottom" : "right"}
+								sideOffset={4}
+							>
+								<DropdownMenuLabel className="text-xs text-muted-foreground">
+									Organizations
+								</DropdownMenuLabel>
+								{organizations?.map((org, index) => (
+									<div className="flex flex-row justify-between" key={org.name}>
+										<DropdownMenuItem
+											onClick={async () => {
+												await authClient.organization.setActive({
+													organizationId: org.id,
+												});
+
+												window.location.reload();
+											}}
+											className="w-full gap-2 p-2"
+										>
+											<div className="flex size-6 items-center justify-center rounded-sm border">
+												<Logo
+													className={cn(
+														"transition-all",
+														state === "collapsed" ? "size-6" : "size-10",
+													)}
+												/>
+											</div>
+											{org.name}
+											{/* <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut> */}
+										</DropdownMenuItem>
+										{/* <DropdownMenuSeparator /> */}
+										<div className="flex flex-row gap-2">
+											<AddOrganization organizationId={org.id} />
+											<DialogAction
+												title="Delete Organization"
+												description="Are you sure you want to delete this organization?"
+												type="destructive"
+												onClick={async () => {
+													await deleteOrganization({
+														organizationId: org.id,
+													})
+														.then(() => {
+															refetch();
+															toast.success("Port deleted successfully");
+														})
+														.catch(() => {
+															toast.error("Error deleting port");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10 "
+													isLoading={isRemoving}
+												>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
+										</div>
+									</div>
+								))}
+								<DropdownMenuSeparator />
+								<AddOrganization />
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			)}
+
+			{/* <Link
+				href="/dashboard/projects"
+				className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
 			>
-				<Logo
+				<div
 					className={cn(
-						"transition-all",
+						"flex aspect-square items-center justify-center rounded-lg transition-all",
 						state === "collapsed" ? "size-6" : "size-10",
 					)}
-				/>
-			</div>
+				>
+					<Logo
+						className={cn(
+							"transition-all",
+							state === "collapsed" ? "size-6" : "size-10",
+						)}
+					/>
+				</div>
 
-			<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
-				<p className="truncate font-semibold">Dokploy</p>
-				<p className="truncate text-xs text-muted-foreground">
-					{dokployVersion}
-				</p>
-			</div>
-		</Link>
+				<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
+					<p className="truncate font-semibold">Dokploy</p>
+					<p className="truncate text-xs text-muted-foreground">
+						{dokployVersion}
+					</p>
+				</div>
+			</Link> */}
+		</>
 	);
 }
 
@@ -577,12 +751,12 @@ export default function Page({ children }: Props) {
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
-					<SidebarMenuButton
+					{/* <SidebarMenuButton
 						className="group-data-[collapsible=icon]:!p-0"
 						size="lg"
-					>
-						<LogoWrapper />
-					</SidebarMenuButton>
+					> */}
+					<LogoWrapper />
+					{/* </SidebarMenuButton> */}
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>

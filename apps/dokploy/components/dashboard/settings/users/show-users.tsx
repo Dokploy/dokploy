@@ -76,10 +76,11 @@ export const ShowUsers = () => {
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Status</TableHead>
+													<TableHead className="text-center">Role</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
+													{/* <TableHead className="text-center">Status</TableHead> */}
 													<TableHead className="text-center">
-														Expiration
+														Created At
 													</TableHead>
 													<TableHead className="text-right">Actions</TableHead>
 												</TableRow>
@@ -89,30 +90,32 @@ export const ShowUsers = () => {
 													return (
 														<TableRow key={user.userId}>
 															<TableCell className="w-[100px]">
-																{user.auth.email}
+																{user.user.email}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		user.isRegistered ? "default" : "secondary"
+																		user.role === "owner"
+																			? "default"
+																			: "secondary"
 																	}
 																>
-																	{user.isRegistered
-																		? "Registered"
-																		: "Not Registered"}
+																	{user.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.auth.is2FAEnabled
+																{user.user.is2FAEnabled
 																	? "2FA Enabled"
 																	: "2FA Not Enabled"}
 															</TableCell>
+															{/* <TableCell className="text-right">
+																<span className="text-sm text-muted-foreground">
+																	{format(new Date(user.createdAt), "PPpp")}
+																</span>
+															</TableCell> */}
 															<TableCell className="text-right">
 																<span className="text-sm text-muted-foreground">
-																	{format(
-																		new Date(user.expirationDate),
-																		"PPpp",
-																	)}
+																	{format(new Date(user.createdAt), "PPpp")}
 																</span>
 															</TableCell>
 
@@ -131,7 +134,7 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{!user.isRegistered && (
+																		{/* {!user.isRegistered && (
 																			<DropdownMenuItem
 																				className="w-full cursor-pointer"
 																				onSelect={(e) => {
@@ -145,42 +148,44 @@ export const ShowUsers = () => {
 																			>
 																				Copy Invitation
 																			</DropdownMenuItem>
-																		)}
+																		)} */}
 
-																		{user.isRegistered && (
+																		{/* {user.isRegistered && (
 																			<AddUserPermissions
 																				userId={user.userId}
 																			/>
-																		)}
+																		)} */}
 
-																		<DialogAction
-																			title="Delete User"
-																			description="Are you sure you want to delete this user?"
-																			type="destructive"
-																			onClick={async () => {
-																				await mutateAsync({
-																					authId: user.authId,
-																				})
-																					.then(() => {
-																						toast.success(
-																							"User deleted successfully",
-																						);
-																						refetch();
+																		{user.role !== "owner" && (
+																			<DialogAction
+																				title="Delete User"
+																				description="Are you sure you want to delete this user?"
+																				type="destructive"
+																				onClick={async () => {
+																					await mutateAsync({
+																						userId: user.userId,
 																					})
-																					.catch(() => {
-																						toast.error(
-																							"Error deleting destination",
-																						);
-																					});
-																			}}
-																		>
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																				onSelect={(e) => e.preventDefault()}
+																						.then(() => {
+																							toast.success(
+																								"User deleted successfully",
+																							);
+																							refetch();
+																						})
+																						.catch(() => {
+																							toast.error(
+																								"Error deleting destination",
+																							);
+																						});
+																				}}
 																			>
-																				Delete User
-																			</DropdownMenuItem>
-																		</DialogAction>
+																				<DropdownMenuItem
+																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																					onSelect={(e) => e.preventDefault()}
+																				>
+																					Delete User
+																				</DropdownMenuItem>
+																			</DialogAction>
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

@@ -24,7 +24,6 @@ export const sshRouter = createTRPCRouter({
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				console.log(ctx.user.ownerId);
 				await createSshKey({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,

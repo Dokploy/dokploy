@@ -150,7 +150,7 @@ export const apiCreateSlack = notificationsSchema
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
-	userId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -177,7 +177,7 @@ export const apiCreateTelegram = notificationsSchema
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
-	userId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
@@ -204,7 +204,7 @@ export const apiCreateDiscord = notificationsSchema
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
-	userId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord
@@ -238,7 +238,7 @@ export const apiCreateEmail = notificationsSchema
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
-	userId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({

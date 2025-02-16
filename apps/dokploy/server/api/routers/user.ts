@@ -2,10 +2,17 @@ import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
 import { findUserByAuthId, findUserById, findUsers } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-
+import { eq } from "drizzle-orm";
+import { member } from "@dokploy/server/db/schema";
+import { db } from "@dokploy/server/db";
 export const userRouter = createTRPCRouter({
 	all: adminProcedure.query(async ({ ctx }) => {
-		return await findUsers(ctx.user.adminId);
+		return await db.query.member.findMany({
+			where: eq(member.organizationId, ctx.session.activeOrganizationId),
+			with: {
+				user: true,
+			},
+		});
 	}),
 	byAuthId: protectedProcedure
 		.input(apiFindOneUserByAuth)

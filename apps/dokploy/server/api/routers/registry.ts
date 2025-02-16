@@ -16,8 +16,8 @@ import {
 	updateRegistry,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 import { eq } from "drizzle-orm";
+import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure

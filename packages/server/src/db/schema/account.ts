@@ -2,6 +2,8 @@ import { relations } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { users_temp } from "./user";
+import { server } from "./server";
+import { projects } from "./project";
 
 export const account = pgTable("account", {
 	id: text("id")
@@ -60,12 +62,17 @@ export const organization = pgTable("organization", {
 		.references(() => users_temp.id),
 });
 
-export const organizationRelations = relations(organization, ({ one }) => ({
-	owner: one(users_temp, {
-		fields: [organization.ownerId],
-		references: [users_temp.id],
+export const organizationRelations = relations(
+	organization,
+	({ one, many }) => ({
+		owner: one(users_temp, {
+			fields: [organization.ownerId],
+			references: [users_temp.id],
+		}),
+		servers: many(server),
+		projects: many(projects),
 	}),
-}));
+);
 
 export const member = pgTable("member", {
 	id: text("id")

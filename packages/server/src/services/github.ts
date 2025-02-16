@@ -12,14 +12,14 @@ import { updatePreviewDeployment } from "./preview-deployment";
 export type Github = typeof github.$inferSelect;
 export const createGithub = async (
 	input: typeof apiCreateGithub._type,
-	userId: string,
+	organizationId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "github",
-				userId: userId,
+				organizationId: organizationId,
 				name: input.name,
 			})
 			.returning()

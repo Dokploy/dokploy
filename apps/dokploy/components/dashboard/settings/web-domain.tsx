@@ -52,7 +52,7 @@ type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
-	const { data: user, refetch } = api.admin.one.useQuery();
+	const { data, refetch } = api.auth.get.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
 
@@ -65,14 +65,14 @@ export const WebDomain = () => {
 		resolver: zodResolver(addServerDomain),
 	});
 	useEffect(() => {
-		if (user) {
+		if (data) {
 			form.reset({
-				domain: user?.host || "",
-				certificateType: user?.certificateType,
-				letsEncryptEmail: user?.letsEncryptEmail || "",
+				domain: data?.user?.host || "",
+				certificateType: data?.user?.certificateType,
+				letsEncryptEmail: data?.user?.letsEncryptEmail || "",
 			});
 		}
-	}, [form, form.reset, user]);
+	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: AddServerDomain) => {
 		await mutateAsync({

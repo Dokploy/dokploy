@@ -118,6 +118,10 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mysql: many(mysql),
 	postgres: many(postgres),
 	certificates: many(certificates),
+	organization: one(organization, {
+		fields: [server.organizationId],
+		references: [organization.id],
+	}),
 }));
 
 const createSchema = createInsertSchema(server, {

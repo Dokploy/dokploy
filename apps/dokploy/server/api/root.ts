@@ -33,7 +33,7 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
-
+import { organizationRouter } from "./routers/organization";
 /**
  * This is the primary router for your server.
  *
@@ -75,6 +75,7 @@ export const appRouter = createTRPCRouter({
 	server: serverRouter,
 	stripe: stripeRouter,
 	swarm: swarmRouter,
+	organization: organizationRouter,
 });
 
 // export type definition of API

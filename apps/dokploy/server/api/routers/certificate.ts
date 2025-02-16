@@ -32,10 +32,7 @@ export const certificateRouter = createTRPCRouter({
 		.input(apiFindCertificate)
 		.query(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
-			if (
-				IS_CLOUD &&
-				certificates.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (certificates.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this certificate",
@@ -47,10 +44,7 @@ export const certificateRouter = createTRPCRouter({
 		.input(apiFindCertificate)
 		.mutation(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
-			if (
-				IS_CLOUD &&
-				certificates.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (certificates.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to delete this certificate",
@@ -61,13 +55,7 @@ export const certificateRouter = createTRPCRouter({
 		}),
 	all: adminProcedure.query(async ({ ctx }) => {
 		return await db.query.certificates.findMany({
-			// TODO: Remove this line when the cloud version is ready
-			...(IS_CLOUD && {
-				where: eq(
-					certificates.organizationId,
-					ctx.session.activeOrganizationId,
-				),
-			}),
+			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 });
