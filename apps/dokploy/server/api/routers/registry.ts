@@ -4,25 +4,26 @@ import {
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiUpdateRegistry,
+	registry,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
 	createRegistry,
 	execAsync,
 	execAsyncRemote,
-	findAllRegistryByUserId,
 	findRegistryById,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+import { eq } from "drizzle-orm";
 
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input, ctx.user.ownerId);
+			return await createRegistry(input, ctx.session.activeOrganizationId);
 		}),
 	remove: adminProcedure
 		.input(apiRemoveRegistry)
@@ -61,7 +62,10 @@ export const registryRouter = createTRPCRouter({
 			return true;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		return await findAllRegistryByUserId(ctx.user.ownerId);
+		const registryResponse = await db.query.registry.findMany({
+			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
+		});
+		return registryResponse;
 	}),
 	one: adminProcedure
 		.input(apiFindOneRegistry)

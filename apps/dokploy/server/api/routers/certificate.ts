@@ -25,7 +25,7 @@ export const certificateRouter = createTRPCRouter({
 					message: "Please set a server to create a certificate",
 				});
 			}
-			return await createCertificate(input, ctx.user.ownerId);
+			return await createCertificate(input, ctx.session.activeOrganizationId);
 		}),
 
 	one: adminProcedure
