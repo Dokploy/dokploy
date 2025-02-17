@@ -519,6 +519,13 @@
       "when": 1739740193879,
       "tag": "0073_polite_miss_america",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1739773539709,
+      "tag": "0074_lowly_jack_power",
+      "breakpoints": true
     }
   ]
 }

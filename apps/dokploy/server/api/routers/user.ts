@@ -2,11 +2,13 @@ import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
 import {
 	findUserByAuthId,
 	findUserById,
+	IS_CLOUD,
+	removeUserById,
 	updateUser,
 	verify2FA,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { apiUpdateUser, member } from "@dokploy/server/db/schema";
+import { account, apiUpdateUser, member } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -44,19 +46,17 @@ export const userRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			return await updateUser(ctx.user.id, input);
 		}),
-	verify2FASetup: protectedProcedure
+
+	remove: protectedProcedure
 		.input(
 			z.object({
-				secret: z.string(),
-				pin: z.string(),
+				userId: z.string(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const user = await findUserById(ctx.user.id);
-			await verify2FA(user, input.secret, input.pin);
-			await updateUser(user.id, {
-				secret: input.secret,
-			});
-			return user;
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			return await removeUserById(input.userId);
 		}),
 });

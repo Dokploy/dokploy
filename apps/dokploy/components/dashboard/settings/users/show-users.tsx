@@ -27,18 +27,16 @@ import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
-import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
-import { AddUser } from "./add-user";
-
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Loader2 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 export const ShowUsers = () => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
-		api.admin.removeUser.useMutation();
+	const { mutateAsync, isLoading: isRemoving } = api.user.remove.useMutation();
 
 	return (
 		<div className="w-full">
@@ -67,7 +65,6 @@ export const ShowUsers = () => {
 										<span className="text-base text-muted-foreground">
 											Invite users to your Dokploy account
 										</span>
-										<AddUser />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -88,36 +85,37 @@ export const ShowUsers = () => {
 												</TableRow>
 											</TableHeader>
 											<TableBody>
-												{data?.map((user) => {
+												{data?.map((member) => {
 													return (
-														<TableRow key={user.userId}>
+														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
-																{user.user.email}
+																{member.user.email}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		user.role === "owner"
+																		member.role === "owner"
 																			? "default"
 																			: "secondary"
 																	}
 																>
-																	{user.role}
+																	{member.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.user.twoFactorEnabled
+																{member.user.twoFactorEnabled
 																	? "Enabled"
 																	: "Disabled"}
 															</TableCell>
 															<TableCell className="text-center">
-																{user.user.isRegistered || user.role === "owner"
+																{member.user.isRegistered ||
+																member.role === "owner"
 																	? "Registered"
 																	: "Not Registered"}
 															</TableCell>
 															<TableCell className="text-right">
 																<span className="text-sm text-muted-foreground">
-																	{format(new Date(user.createdAt), "PPpp")}
+																	{format(new Date(member.createdAt), "PPpp")}
 																</span>
 															</TableCell>
 
@@ -136,13 +134,13 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{!user.user.isRegistered &&
-																			user.role !== "owner" && (
+																		{!member.user.isRegistered &&
+																			member.role !== "owner" && (
 																				<DropdownMenuItem
 																					className="w-full cursor-pointer"
 																					onSelect={(e) => {
 																						copy(
-																							`${origin}/invitation?token=${user.user.token}`,
+																							`${origin}/invitation?token=${member.user.token}`,
 																						);
 																						toast.success(
 																							"Invitation Copied to clipboard",
@@ -153,32 +151,53 @@ export const ShowUsers = () => {
 																				</DropdownMenuItem>
 																			)}
 
-																		{user.role !== "owner" && (
+																		{member.role !== "owner" && (
 																			<AddUserPermissions
-																				userId={user.userId}
+																				userId={member.user.id}
 																			/>
 																		)}
 
-																		{user.role !== "owner" && (
+																		{member.role !== "owner" && (
 																			<DialogAction
 																				title="Delete User"
 																				description="Are you sure you want to delete this user?"
 																				type="destructive"
 																				onClick={async () => {
-																					await mutateAsync({
-																						userId: user.userId,
-																					})
-																						.then(() => {
+																					if (isCloud) {
+																						const { error } =
+																							await authClient.organization.removeMember(
+																								{
+																									memberIdOrEmail:
+																										member.user.id,
+																								},
+																							);
+
+																						if (!error) {
 																							toast.success(
 																								"User deleted successfully",
 																							);
 																							refetch();
-																						})
-																						.catch(() => {
+																						} else {
 																							toast.error(
-																								"Error deleting destination",
+																								"Error deleting user",
 																							);
-																						});
+																						}
+																					} else {
+																						await mutateAsync({
+																							userId: member.user.id,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"User deleted successfully",
+																								);
+																								refetch();
+																							})
+																							.catch(() => {
+																								toast.error(
+																									"Error deleting destination",
+																								);
+																							});
+																					}
 																				}}
 																			>
 																				<DropdownMenuItem
@@ -197,10 +216,6 @@ export const ShowUsers = () => {
 												})}
 											</TableBody>
 										</Table>
-
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddUser />
-										</div>
 									</div>
 								)}
 							</>

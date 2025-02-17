@@ -15,7 +15,7 @@ export const account = pgTable("account", {
 	providerId: text("provider_id").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users_temp.id),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	accessToken: text("access_token"),
 	refreshToken: text("refresh_token"),
 	idToken: text("id_token"),
@@ -59,7 +59,7 @@ export const organization = pgTable("organization", {
 	metadata: text("metadata"),
 	ownerId: text("owner_id")
 		.notNull()
-		.references(() => users_temp.id),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const organizationRelations = relations(
@@ -80,10 +80,10 @@ export const member = pgTable("member", {
 		.$defaultFn(() => nanoid()),
 	organizationId: text("organization_id")
 		.notNull()
-		.references(() => organization.id),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users_temp.id),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
 	createdAt: timestamp("created_at").notNull(),
 });
@@ -103,14 +103,14 @@ export const invitation = pgTable("invitation", {
 	id: text("id").primaryKey(),
 	organizationId: text("organization_id")
 		.notNull()
-		.references(() => organization.id),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	email: text("email").notNull(),
 	role: text("role").$type<"owner" | "member" | "admin">(),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")
 		.notNull()
-		.references(() => users_temp.id),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
