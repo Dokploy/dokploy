@@ -20,7 +20,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "outline",
 		name: "Outline",
-		version: "0.81.0",
+		version: "0.82.0",
 		description:
 			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
 		links: {
@@ -28,7 +28,7 @@ export const templates: TemplateData[] = [
 			website: "https://outline.com/",
 			docs: "https://docs.outline.com/",
 		},
-		logo: "outline.svg",
+		logo: "outline.png",
 		load: () => import("./outline/index").then((m) => m.generate),
 		tags: ["documentation", "knowledge-base", "self-hosted"],
 	},
@@ -1438,6 +1438,21 @@ export const templates: TemplateData[] = [
 		logo: "spacedrive.png",
 		tags: ["file-manager", "vdfs", "storage"],
 		load: () => import("./spacedrive/index").then((m) => m.generate),
+	},
+	{
+		id: "registry",
+		name: "Docker Registry",
+		version: "2",
+		description:
+			"Distribution implementation for storing and distributing of Docker container images and artifacts.",
+		links: {
+			github: "https://github.com/distribution/distribution",
+			website: "https://hub.docker.com/_/registry",
+			docs: "https://distribution.github.io/distribution/",
+		},
+		logo: "registry.png",
+		tags: ["registry", "docker", "self-hosted"],
+		load: () => import("./registry/index").then((m) => m.generate),
 	},
 	{
 		id: "alist",
