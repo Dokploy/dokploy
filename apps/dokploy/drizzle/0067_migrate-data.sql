@@ -26,7 +26,6 @@ WITH inserted_users AS (
         "serversQuantity",
         "expirationDate",
         "createdAt",
-        "two_factor_enabled",
         "isRegistered"
     )
     SELECT 
@@ -53,28 +52,9 @@ WITH inserted_users AS (
         a."serversQuantity",
         NOW() + INTERVAL '1 year',
         NOW(),
-        COALESCE(auth."is2FAEnabled", false),
         true
     FROM admin a
     JOIN auth ON auth.id = a."authId"
-    RETURNING *
-),
-inserted_two_factor_admin AS (
-    -- Insertar registros en two_factor para admins con 2FA habilitado
-    INSERT INTO two_factor (
-        id,
-        secret,
-        backup_codes,
-        user_id
-    )
-    SELECT 
-        gen_random_uuid(),
-        auth.secret,
-        gen_random_uuid()::text,
-        a."adminId"
-    FROM admin a
-    JOIN auth ON auth.id = a."authId"
-    WHERE auth."is2FAEnabled" = true
     RETURNING *
 ),
 inserted_accounts AS (
@@ -85,7 +65,6 @@ inserted_accounts AS (
         "provider_id",
         "user_id",
         password,
-        "is2FAEnabled",
         "created_at",
         "updated_at"
     )
@@ -95,7 +74,6 @@ inserted_accounts AS (
         'credential',
         a."adminId",
         auth.password,
-        COALESCE(auth."is2FAEnabled", false),
         NOW(),
         NOW()
     FROM admin a
@@ -143,7 +121,6 @@ inserted_members AS (
         "accesedProjects",
         "accesedServices",
         "expirationDate",
-        "two_factor_enabled",
         "isRegistered"
     )
     SELECT 
@@ -166,7 +143,6 @@ inserted_members AS (
         COALESCE(u."accesedProjects", '{}'),
         COALESCE(u."accesedServices", '{}'),
         NOW() + INTERVAL '1 year',
-        COALESCE(auth."is2FAEnabled", false),
         COALESCE(u."isRegistered", false)
     FROM "user" u
     JOIN admin a ON u."adminId" = a."adminId"
@@ -181,7 +157,6 @@ inserted_member_accounts AS (
         "provider_id",
         "user_id",
         password,
-        "is2FAEnabled",
         "created_at",
         "updated_at"
     )
@@ -191,31 +166,11 @@ inserted_member_accounts AS (
         'credential',
         u."userId",
         auth.password,
-        COALESCE(auth."is2FAEnabled", false),
         NOW(),
         NOW()
     FROM "user" u
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"
-    RETURNING *
-),
-inserted_two_factor_members AS (
-    -- Insertar registros en two_factor para miembros con 2FA habilitado
-    INSERT INTO two_factor (
-        id,
-        secret,
-        backup_codes,
-        user_id
-    )
-    SELECT 
-        gen_random_uuid(),
-        auth.secret,
-        gen_random_uuid()::text,
-        u."userId"
-    FROM "user" u
-    JOIN admin a ON u."adminId" = a."adminId"
-    JOIN auth ON auth.id = u."authId"
-    WHERE auth."is2FAEnabled" = true
     RETURNING *
 ),
 inserted_admin_members AS (
