@@ -549,6 +549,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@better-auth/utils':
+        specifier: 0.2.3
+        version: 0.2.3
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1

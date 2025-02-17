@@ -3,17 +3,24 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
+import { CardContent, CardDescription } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { IS_CLOUD, auth, isAdminPresent } from "@dokploy/server";
@@ -21,110 +28,118 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Session, getSessionCookie } from "better-auth";
 import { betterFetch } from "better-auth/react";
+import base32 from "hi-base32";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { TOTP } from "otpauth";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const loginSchema = z.object({
-	email: z
-		.string()
-		.min(1, {
-			message: "Email is required",
-		})
-		.email({
-			message: "Email must be a valid email",
-		}),
-
-	password: z
-		.string()
-		.min(1, {
-			message: "Password is required",
-		})
-		.min(8, {
-			message: "Password must be at least 8 characters",
-		}),
+const LoginSchema = z.object({
+	email: z.string().email(),
+	password: z.string().min(8),
 });
 
-type Login = z.infer<typeof loginSchema>;
+const TwoFactorSchema = z.object({
+	code: z.string().min(6),
+});
 
-type AuthResponse = {
-	is2FAEnabled: boolean;
-	authId: string;
-};
+type LoginForm = z.infer<typeof LoginSchema>;
+type TwoFactorForm = z.infer<typeof TwoFactorSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
 }
 export default function Home({ IS_CLOUD }: Props) {
-	const [isLoading, setIsLoading] = useState(false);
-	const [isError, setIsError] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [temp, setTemp] = useState<AuthResponse>({
-		is2FAEnabled: false,
-		authId: "",
-	});
 	const router = useRouter();
-	const form = useForm<Login>({
+	const [isLoginLoading, setIsLoginLoading] = useState(false);
+	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
+	const [isTwoFactor, setIsTwoFactor] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [twoFactorCode, setTwoFactorCode] = useState("");
+
+	const loginForm = useForm<LoginForm>({
+		resolver: zodResolver(LoginSchema),
 		defaultValues: {
 			email: "siumauricio@hotmail.com",
 			password: "Password123",
 		},
-		resolver: zodResolver(loginSchema),
 	});
 
-	useEffect(() => {
-		form.reset();
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
-
-	const onSubmit = async (values: Login) => {
-		setIsLoading(true);
-		const { data, error } = await authClient.signIn.email({
-			email: values.email,
-			password: values.password,
-		});
-
-		if (!error) {
-			// if (data) {
-			// 	setTemp(data);
-			// } else {
-			toast.success("Successfully signed in", {
-				duration: 2000,
+	const onSubmit = async (values: LoginForm) => {
+		setIsLoginLoading(true);
+		try {
+			const { data, error } = await authClient.signIn.email({
+				email: values.email,
+				password: values.password,
 			});
+
+			if (error) {
+				toast.error(error.message);
+				setError(error.message || "An error occurred while logging in");
+				return;
+			}
+
+			if (data?.twoFactorRedirect as boolean) {
+				setTwoFactorCode("");
+				setIsTwoFactor(true);
+				toast.info("Please enter your 2FA code");
+				return;
+			}
+
+			toast.success("Logged in successfully");
 			router.push("/dashboard/projects");
-			// }
-		} else {
-			setIsError(true);
-			setError(error.message ?? "Error to signup");
-			toast.error("Error to sign up", {
-				description: error.message,
-			});
+		} catch (error) {
+			toast.error("An error occurred while logging in");
+		} finally {
+			setIsLoginLoading(false);
+		}
+	};
+
+	const onTwoFactorSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (twoFactorCode.length !== 6) {
+			toast.error("Please enter a valid 6-digit code");
+			return;
 		}
 
-		setIsLoading(false);
-		// await mutateAsync({
-		// 	email: values.email.toLowerCase(),
-		// 	password: values.password,
-		// })
-		// 	.then((data) => {
-		// 		if (data.is2FAEnabled) {
-		// 			setTemp(data);
-		// 		} else {
-		// 			toast.success("Successfully signed in", {
-		// 				duration: 2000,
-		// 			});
-		// 			router.push("/dashboard/projects");
-		// 		}
-		// 	})
-		// 	.catch(() => {
-		// 		toast.error("Signin failed", {
-		// 			duration: 2000,
-		// 		});
-		// 	});
+		setIsTwoFactorLoading(true);
+		try {
+			const { data, error } = await authClient.twoFactor.verifyTotp({
+				code: twoFactorCode.replace(/\s/g, ""),
+			});
+
+			if (error) {
+				toast.error(error.message);
+				setError(error.message || "An error occurred while verifying 2FA code");
+				return;
+			}
+
+			toast.success("Logged in successfully");
+			router.push("/dashboard/projects");
+		} catch (error) {
+			toast.error("An error occurred while verifying 2FA code");
+		} finally {
+			setIsTwoFactorLoading(false);
+		}
 	};
+
+	const convertBase32ToHex = (base32Secret: string) => {
+		try {
+			// Usar asBytes() para obtener los bytes directamente
+			const bytes = base32.decode.asBytes(base32Secret.toUpperCase());
+			// Convertir bytes a hex
+			return Buffer.from(bytes).toString("hex");
+		} catch (error) {
+			console.error("Error converting base32 to hex:", error);
+			return base32Secret; // Fallback al valor original si hay error
+		}
+	};
+
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
@@ -138,55 +153,109 @@ export default function Home({ IS_CLOUD }: Props) {
 					Enter your email and password to sign in
 				</p>
 			</div>
-			{isError && (
+			{error && (
 				<AlertBlock type="error" className="my-2">
 					<span>{error}</span>
 				</AlertBlock>
 			)}
 			<CardContent className="p-0">
-				{!temp.is2FAEnabled ? (
-					<Form {...form}>
-						<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-							<div className="space-y-4">
-								<FormField
-									control={form.control}
-									name="email"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Email</FormLabel>
-											<FormControl>
-												<Input placeholder="Email" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="password"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Password</FormLabel>
-											<FormControl>
-												<Input
-													type="password"
-													placeholder="Password"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<Button type="submit" isLoading={isLoading} className="w-full">
-									Login
-								</Button>
-							</div>
+				{!isTwoFactor ? (
+					<Form {...loginForm}>
+						<form
+							onSubmit={loginForm.handleSubmit(onSubmit)}
+							className="space-y-4"
+							id="login-form"
+						>
+							<FormField
+								control={loginForm.control}
+								name="email"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Email</FormLabel>
+										<FormControl>
+											<Input placeholder="john@example.com" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={loginForm.control}
+								name="password"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Password</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="Enter your password"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								className="w-full"
+								type="submit"
+								isLoading={isLoginLoading}
+							>
+								Login
+							</Button>
 						</form>
 					</Form>
 				) : (
-					<Login2FA authId={temp.authId} />
+					<form
+						onSubmit={onTwoFactorSubmit}
+						className="space-y-4"
+						id="two-factor-form"
+						autoComplete="off"
+					>
+						<div className="flex flex-col gap-2">
+							<Label>2FA Code</Label>
+							<InputOTP
+								value={twoFactorCode}
+								onChange={setTwoFactorCode}
+								maxLength={6}
+								pattern={REGEXP_ONLY_DIGITS}
+								autoComplete="off"
+							>
+								<InputOTPGroup>
+									<InputOTPSlot index={0} className="border-border" />
+									<InputOTPSlot index={1} className="border-border" />
+									<InputOTPSlot index={2} className="border-border" />
+									<InputOTPSlot index={3} className="border-border" />
+									<InputOTPSlot index={4} className="border-border" />
+									<InputOTPSlot index={5} className="border-border" />
+								</InputOTPGroup>
+							</InputOTP>
+							<CardDescription>
+								Enter the 6-digit code from your authenticator app
+							</CardDescription>
+						</div>
+
+						<div className="flex gap-4">
+							<Button
+								variant="outline"
+								className="w-full"
+								type="button"
+								onClick={() => {
+									setIsTwoFactor(false);
+									setTwoFactorCode("");
+								}}
+							>
+								Back
+							</Button>
+							<Button
+								className="w-full"
+								type="submit"
+								isLoading={isTwoFactorLoading}
+							>
+								Verify
+							</Button>
+						</div>
+					</form>
 				)}
 
 				<div className="flex flex-row justify-between flex-wrap">

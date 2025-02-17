@@ -23,20 +23,17 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
 import { format } from "date-fns";
-import { MoreHorizontal, Users } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { AddUserPermissions } from "./add-permissions";
-import { AddUser } from "./add-user";
-
-import { DialogAction } from "@/components/shared/dialog-action";
+import { Mail, MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { AddInvitation } from "./add-invitation";
 
-export const ShowUsers = () => {
-	const { data, isLoading, refetch } = api.user.all.useQuery();
+export const ShowInvitations = () => {
+	const { data, isLoading, refetch } =
+		api.organization.allInvitations.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.admin.removeUser.useMutation();
 
@@ -46,11 +43,11 @@ export const ShowUsers = () => {
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
-							<Users className="size-6 text-muted-foreground self-center" />
-							Users
+							<Mail className="size-6 text-muted-foreground self-center" />
+							Invitations
 						</CardTitle>
 						<CardDescription>
-							Add your users to your Dokploy account.
+							Create invitations to your organization.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -65,60 +62,58 @@ export const ShowUsers = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your Dokploy account
+											Invite users to your organization
 										</span>
-										<AddUser />
+										<AddInvitation />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>
-											<TableCaption>See all users</TableCaption>
+											<TableCaption>See all invitations</TableCaption>
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">2FA</TableHead>
+													<TableHead className="text-center">Status</TableHead>
 													<TableHead className="text-center">
-														Is Registered
-													</TableHead>
-													<TableHead className="text-center">
-														Created At
+														Expires At
 													</TableHead>
 													<TableHead className="text-right">Actions</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
-												{data?.map((user) => {
+												{data?.map((invitation) => {
 													return (
-														<TableRow key={user.userId}>
+														<TableRow key={invitation.id}>
 															<TableCell className="w-[100px]">
-																{user.user.email}
+																{invitation.email}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		user.role === "owner"
+																		invitation.role === "owner"
 																			? "default"
 																			: "secondary"
 																	}
 																>
-																	{user.role}
+																	{invitation.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.user.twoFactorEnabled
-																	? "Enabled"
-																	: "Disabled"}
+																<Badge
+																	variant={
+																		invitation.status === "pending"
+																			? "default"
+																			: invitation.status === "canceled"
+																				? "destructive"
+																				: "secondary"
+																	}
+																>
+																	{invitation.status}
+																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.user.isRegistered || user.role === "owner"
-																	? "Registered"
-																	: "Not Registered"}
-															</TableCell>
-															<TableCell className="text-right">
-																<span className="text-sm text-muted-foreground">
-																	{format(new Date(user.createdAt), "PPpp")}
-																</span>
+																{format(new Date(invitation.expiresAt), "PPpp")}
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
@@ -136,58 +131,41 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{!user.user.isRegistered &&
-																			user.role !== "owner" && (
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer"
-																					onSelect={(e) => {
-																						copy(
-																							`${origin}/invitation?token=${user.user.token}`,
-																						);
-																						toast.success(
-																							"Invitation Copied to clipboard",
-																						);
-																					}}
-																				>
-																					Copy Invitation
-																				</DropdownMenuItem>
-																			)}
 
-																		{user.role !== "owner" && (
-																			<AddUserPermissions
-																				userId={user.userId}
-																			/>
-																		)}
+																		{/* <DropdownMenuItem
+																			className="w-full cursor-pointer"
+																			onSelect={(e) => {
+																				copy(
+																					`${origin}/invitation?token=${user.user.token}`,
+																				);
+																				toast.success(
+																					"Invitation Copied to clipboard",
+																				);
+																			}}
+																		>
+																			Copy Invitation
+																		</DropdownMenuItem> */}
+																		{invitation.status === "pending" && (
+																			<DropdownMenuItem
+																				className="w-full cursor-pointer"
+																				onSelect={async (e) => {
+																					const result =
+																						await authClient.organization.cancelInvitation(
+																							{
+																								invitationId: invitation.id,
+																							},
+																						);
 
-																		{user.role !== "owner" && (
-																			<DialogAction
-																				title="Delete User"
-																				description="Are you sure you want to delete this user?"
-																				type="destructive"
-																				onClick={async () => {
-																					await mutateAsync({
-																						userId: user.userId,
-																					})
-																						.then(() => {
-																							toast.success(
-																								"User deleted successfully",
-																							);
-																							refetch();
-																						})
-																						.catch(() => {
-																							toast.error(
-																								"Error deleting destination",
-																							);
-																						});
+																					if (result.error) {
+																						toast.error(result.error.message);
+																					} else {
+																						toast.success("Invitation deleted");
+																						refetch();
+																					}
 																				}}
 																			>
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																					onSelect={(e) => e.preventDefault()}
-																				>
-																					Delete User
-																				</DropdownMenuItem>
-																			</DialogAction>
+																				Cancel Invitation
+																			</DropdownMenuItem>
 																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
@@ -199,7 +177,7 @@ export const ShowUsers = () => {
 										</Table>
 
 										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddUser />
+											<AddInvitation />
 										</div>
 									</div>
 								)}

@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { member, organization } from "@/server/db/schema";
+import { invitation, member, organization } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -83,4 +83,10 @@ export const organizationRouter = createTRPCRouter({
 				.where(eq(organization.id, input.organizationId));
 			return result;
 		}),
+	allInvitations: adminProcedure.query(async ({ ctx }) => {
+		return await db.query.invitation.findMany({
+			where: eq(invitation.organizationId, ctx.session.activeOrganizationId),
+			orderBy: [desc(invitation.status)],
+		});
+	}),
 });

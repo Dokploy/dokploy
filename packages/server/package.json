@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@better-auth/utils":"0.2.3",
     "@oslojs/encoding":"1.1.0",
     "@oslojs/crypto":"1.0.1",
     "drizzle-dbml-generator":"0.10.0",

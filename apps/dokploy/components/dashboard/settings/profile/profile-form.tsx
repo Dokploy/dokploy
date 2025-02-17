@@ -1,4 +1,5 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { authClient } from "@/lib/auth-client";
 import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,6 +56,9 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
+	const utils = api.useUtils();
+	const { mutateAsync: disable2FA, isLoading: isDisabling } =
+		api.auth.disable2FA.useMutation();
 	const { data, refetch, isLoading } = api.auth.get.useQuery();
 	const {
 		mutateAsync,
@@ -130,7 +135,7 @@ export const ProfileForm = () => {
 								{t("settings.profile.description")}
 							</CardDescription>
 						</div>
-						{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
+						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Disable2FA />}
 					</CardHeader>
 
 					<CardContent className="space-y-2 py-8 border-t">

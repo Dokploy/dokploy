@@ -15,7 +15,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { authClient } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";

@@ -26,7 +26,8 @@ WITH inserted_users AS (
         "serversQuantity",
         "expirationDate",
         "createdAt",
-        "two_factor_enabled"
+        "two_factor_enabled",
+        "isRegistered"
     )
     SELECT 
         a."adminId",
@@ -52,7 +53,8 @@ WITH inserted_users AS (
         a."serversQuantity",
         NOW() + INTERVAL '1 year',
         NOW(),
-        COALESCE(auth."is2FAEnabled", false)
+        COALESCE(auth."is2FAEnabled", false),
+        true
     FROM admin a
     JOIN auth ON auth.id = a."authId"
     RETURNING *
@@ -141,7 +143,8 @@ inserted_members AS (
         "accesedProjects",
         "accesedServices",
         "expirationDate",
-        "two_factor_enabled"
+        "two_factor_enabled",
+        "isRegistered"
     )
     SELECT 
         u."userId",
@@ -163,7 +166,8 @@ inserted_members AS (
         COALESCE(u."accesedProjects", '{}'),
         COALESCE(u."accesedServices", '{}'),
         NOW() + INTERVAL '1 year',
-        COALESCE(auth."is2FAEnabled", false)
+        COALESCE(auth."is2FAEnabled", false),
+        COALESCE(u."isRegistered", false)
     FROM "user" u
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"

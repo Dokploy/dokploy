@@ -16,6 +16,7 @@ export const auth = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
+	appName: "Dokploy",
 	socialProviders: {
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,

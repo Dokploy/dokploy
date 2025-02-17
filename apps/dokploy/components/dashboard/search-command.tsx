@@ -18,7 +18,7 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
-import { authClient } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
 import {
 	type Services,
 	extractServices,

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { authClient } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";

@@ -26,8 +26,8 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 import superjson from "superjson";
+import { z } from "zod";
 
 const registerSchema = z
 	.object({
