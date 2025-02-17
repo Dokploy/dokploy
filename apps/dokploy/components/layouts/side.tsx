@@ -78,7 +78,6 @@ import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["auth"]["get"];
-type UserQueryOutput = inferRouterOutputs<AppRouter>["user"]["byAuthId"];
 
 type SingleNavItem = {
 	isSingle?: true;
@@ -87,7 +86,6 @@ type SingleNavItem = {
 	icon?: LucideIcon;
 	isEnabled?: (opts: {
 		auth?: AuthQueryOutput;
-		user?: UserQueryOutput;
 		isCloud: boolean;
 	}) => boolean;
 };
@@ -105,7 +103,6 @@ type NavItem =
 			items: SingleNavItem[];
 			isEnabled?: (opts: {
 				auth?: AuthQueryOutput;
-				user?: UserQueryOutput;
 				isCloud: boolean;
 			}) => boolean;
 	  };
@@ -118,7 +115,6 @@ type ExternalLink = {
 	icon: React.ComponentType<{ className?: string }>;
 	isEnabled?: (opts: {
 		auth?: AuthQueryOutput;
-		user?: UserQueryOutput;
 		isCloud: boolean;
 	}) => boolean;
 };
@@ -149,7 +145,7 @@ const MENU: Menu = {
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) => !isCloud,
+			isEnabled: ({ auth, isCloud }) => !isCloud,
 		},
 		{
 			isSingle: true,
@@ -157,9 +153,9 @@ const MENU: Menu = {
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
+			isEnabled: ({ auth, isCloud }) =>
 				!!(
-					(auth?.role === "owner" || user?.canAccessToTraefikFiles) &&
+					(auth?.role === "owner" || auth?.user?.canAccessToTraefikFiles) &&
 					!isCloud
 				),
 		},
@@ -169,8 +165,11 @@ const MENU: Menu = {
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 		{
 			isSingle: true,
@@ -178,8 +177,11 @@ const MENU: Menu = {
 			url: "/dashboard/swarm",
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 		{
 			isSingle: true,
@@ -187,8 +189,11 @@ const MENU: Menu = {
 			url: "/dashboard/requests",
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!((auth?.role === "owner" || user?.canAccessToDocker) && !isCloud),
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -255,8 +260,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -270,7 +274,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -278,7 +282,7 @@ const MENU: Menu = {
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -286,8 +290,8 @@ const MENU: Menu = {
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
-			isEnabled: ({ auth, user }) =>
-				!!(auth?.role === "owner" || user?.canAccessToSSHKeys),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.user?.canAccessToSSHKeys),
 		},
 		{
 			isSingle: true,
@@ -295,8 +299,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
-			isEnabled: ({ auth, user }) =>
-				!!(auth?.role === "owner" || user?.canAccessToGitProviders),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.user?.canAccessToGitProviders),
 		},
 		{
 			isSingle: true,
@@ -304,7 +308,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -312,7 +316,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 
 		{
@@ -321,7 +325,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -329,8 +333,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -338,7 +341,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for admins
-			isEnabled: ({ auth, user, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -346,8 +349,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
-			isEnabled: ({ auth, user, isCloud }) =>
-				!!(auth?.role === "owner" && isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
 		},
 	],
 
@@ -383,7 +385,6 @@ const MENU: Menu = {
  */
 function createMenuForAuthUser(opts: {
 	auth?: AuthQueryOutput;
-	user?: UserQueryOutput;
 	isCloud: boolean;
 }): Menu {
 	return {
@@ -394,7 +395,6 @@ function createMenuForAuthUser(opts: {
 				? true
 				: item.isEnabled({
 						auth: opts.auth,
-						user: opts.user,
 						isCloud: opts.isCloud,
 					}),
 		),
@@ -405,7 +405,6 @@ function createMenuForAuthUser(opts: {
 				? true
 				: item.isEnabled({
 						auth: opts.auth,
-						user: opts.user,
 						isCloud: opts.isCloud,
 					}),
 		),
@@ -416,7 +415,6 @@ function createMenuForAuthUser(opts: {
 				? true
 				: item.isEnabled({
 						auth: opts.auth,
-						user: opts.user,
 						isCloud: opts.isCloud,
 					}),
 		),
@@ -525,10 +523,12 @@ const data = {
 	],
 };
 
-const teams = data.teams;
 function SidebarLogo() {
 	const { state } = useSidebar();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: user } = api.auth.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: session } = authClient.useSession();
 	const {
 		data: organizations,
 		refetch,
@@ -617,42 +617,51 @@ function SidebarLogo() {
 												/>
 											</div>
 											{org.name}
-											{/* <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut> */}
 										</DropdownMenuItem>
-										{/* <DropdownMenuSeparator /> */}
-										<div className="flex flex-row gap-2">
-											<AddOrganization organizationId={org.id} />
-											<DialogAction
-												title="Delete Organization"
-												description="Are you sure you want to delete this organization?"
-												type="destructive"
-												onClick={async () => {
-													await deleteOrganization({
-														organizationId: org.id,
-													})
-														.then(() => {
-															refetch();
-															toast.success("Port deleted successfully");
+										{(org.ownerId === session?.user?.id || isCloud) && (
+											<div className="flex items-center gap-2">
+												<AddOrganization organizationId={org.id} />
+												<DialogAction
+													title="Delete Organization"
+													description="Are you sure you want to delete this organization?"
+													type="destructive"
+													onClick={async () => {
+														await deleteOrganization({
+															organizationId: org.id,
 														})
-														.catch(() => {
-															toast.error("Error deleting port");
-														});
-												}}
-											>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="group hover:bg-red-500/10 "
-													isLoading={isRemoving}
+															.then(() => {
+																refetch();
+																toast.success(
+																	"Organization deleted successfully",
+																);
+															})
+															.catch((error) => {
+																toast.error(
+																	error?.message ||
+																		"Error deleting organization",
+																);
+															});
+													}}
 												>
-													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-												</Button>
-											</DialogAction>
-										</div>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="group hover:bg-red-500/10"
+														isLoading={isRemoving}
+													>
+														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+													</Button>
+												</DialogAction>
+											</div>
+										)}
 									</div>
 								))}
-								<DropdownMenuSeparator />
-								<AddOrganization />
+								{!isCloud && user?.role === "owner" && (
+									<>
+										<DropdownMenuSeparator />
+										<AddOrganization />
+									</>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>
@@ -706,14 +715,6 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const currentPath = router.pathname;
 	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.role === "member",
-		},
-	);
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
@@ -722,7 +723,7 @@ export default function Page({ children }: Props) {
 		home: filteredHome,
 		settings: filteredSettings,
 		help,
-	} = createMenuForAuthUser({ auth, user, isCloud: !!isCloud });
+	} = createMenuForAuthUser({ auth, isCloud: !!isCloud });
 
 	const activeItem = findActiveNavItem(
 		[...filteredHome, ...filteredSettings],

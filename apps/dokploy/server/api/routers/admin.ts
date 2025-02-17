@@ -9,7 +9,7 @@ import {
 import {
 	IS_CLOUD,
 	createInvitation,
-	findUserByAuthId,
+	findOrganizationById,
 	findUserById,
 	getUserByToken,
 	removeUserById,
@@ -98,21 +98,20 @@ export const adminRouter = createTRPCRouter({
 			try {
 				const user = await findUserById(input.id);
 
-				if (user.id !== ctx.user.ownerId) {
+				const organization = await findOrganizationById(
+					ctx.session?.activeOrganizationId || "",
+				);
+
+				if (organization?.ownerId !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to assign permissions",
 					});
 				}
+
 				await updateUser(user.id, {
 					...input,
 				});
-				// await db
-				// 	.update(users)
-				// 	.set({
-				// 		...input,
-				// 	})
-				// 	.where(eq(users.userId, input.userId));
 			} catch (error) {
 				throw error;
 			}

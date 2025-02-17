@@ -32,14 +32,7 @@ export const UserNav = () => {
 	const router = useRouter();
 	const { data } = api.auth.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: data?.id || "",
-		},
-		{
-			enabled: !!data?.id && data?.role === "member",
-		},
-	);
+
 	const { locale, setLocale } = useLocale();
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
@@ -99,7 +92,8 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || user?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" ||
+								data?.user?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -109,7 +103,7 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" || user?.canAccessToDocker) && (
+							{(data?.role === "owner" || data?.user?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {

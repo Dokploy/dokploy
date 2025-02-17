@@ -137,76 +137,76 @@ export const symmetricDecrypt = async ({ key, data }) => {
 	const chacha = managedNonce(xchacha20poly1305)(new Uint8Array(keyAsBytes));
 	return new TextDecoder().decode(chacha.decrypt(dataAsBytes));
 };
-export const migrateExistingSecret = async (
-	existingBase32Secret: string,
-	encryptionKey: string,
-) => {
-	try {
-		// 1. Primero asegurarnos que el secreto base32 tenga el padding correcto
-		let paddedSecret = existingBase32Secret;
-		while (paddedSecret.length % 8 !== 0) {
-			paddedSecret += "=";
-		}
+// export const migrateExistingSecret = async (
+// 	existingBase32Secret: string,
+// 	encryptionKey: string,
+// ) => {
+// 	try {
+// 		// 1. Primero asegurarnos que el secreto base32 tenga el padding correcto
+// 		let paddedSecret = existingBase32Secret;
+// 		while (paddedSecret.length % 8 !== 0) {
+// 			paddedSecret += "=";
+// 		}
 
-		// 2. Decodificar el base32 a bytes usando hi-base32
-		const bytes = encode.decode.asBytes(paddedSecret.toUpperCase());
+// 		// 2. Decodificar el base32 a bytes usando hi-base32
+// 		const bytes = encode.decode.asBytes(paddedSecret.toUpperCase());
 
-		// 3. Convertir los bytes a hex
-		const hexSecret = Buffer.from(bytes).toString("hex");
+// 		// 3. Convertir los bytes a hex
+// 		const hexSecret = Buffer.from(bytes).toString("hex");
 
-		// 4. Encriptar el secreto hex usando Better Auth
-		const encryptedSecret = await symmetricEncrypt({
-			key: encryptionKey,
-			data: hexSecret,
-		});
+// 		// 4. Encriptar el secreto hex usando Better Auth
+// 		const encryptedSecret = await symmetricEncrypt({
+// 			key: encryptionKey,
+// 			data: hexSecret,
+// 		});
 
-		// 5. Crear TOTP con el secreto original para validación
-		const originalTotp = new TOTP({
-			issuer: "Dokploy",
-			label: "migration-test",
-			algorithm: "SHA1",
-			digits: 6,
-			secret: existingBase32Secret,
-		});
+// 		// 5. Crear TOTP con el secreto original para validación
+// 		const originalTotp = new TOTP({
+// 			issuer: "Dokploy",
+// 			label: "migration-test",
+// 			algorithm: "SHA1",
+// 			digits: 6,
+// 			secret: existingBase32Secret,
+// 		});
 
-		// 6. Generar un código de prueba con el secreto original
-		const testCode = originalTotp.generate();
+// 		// 6. Generar un código de prueba con el secreto original
+// 		const testCode = originalTotp.generate();
 
-		// 7. Validar que el código funcione con el secreto original
-		const isValid = originalTotp.validate({ token: testCode }) !== null;
+// 		// 7. Validar que el código funcione con el secreto original
+// 		const isValid = originalTotp.validate({ token: testCode }) !== null;
 
-		return {
-			originalSecret: existingBase32Secret,
-			hexSecret,
-			encryptedSecret, // Este es el valor que debes guardar en la base de datos
-			isValid,
-			testCode,
-			secretLength: hexSecret.length,
-		};
-	} catch (error: unknown) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
-		console.error("Error durante la migración:", errorMessage);
-		throw new Error(`Error al migrar el secreto: ${errorMessage}`);
-	}
-};
+// 		return {
+// 			originalSecret: existingBase32Secret,
+// 			hexSecret,
+// 			encryptedSecret, // Este es el valor que debes guardar en la base de datos
+// 			isValid,
+// 			testCode,
+// 			secretLength: hexSecret.length,
+// 		};
+// 	} catch (error: unknown) {
+// 		const errorMessage =
+// 			error instanceof Error ? error.message : "Unknown error";
+// 		console.error("Error durante la migración:", errorMessage);
+// 		throw new Error(`Error al migrar el secreto: ${errorMessage}`);
+// 	}
+// };
 
-// // Ejemplo de uso con el secreto de prueba
-// const testMigration = await migrateExistingSecret(
-// 	"46JMUCG4NJ3CIU6LQAIVFWUW",
-// 	process.env.BETTER_AUTH_SECRET || "your-encryption-key",
-// );
-// console.log("\nPrueba de migración:");
-// console.log("Secreto original (base32):", testMigration.originalSecret);
-// console.log("Secreto convertido (hex):", testMigration.hexSecret);
-// console.log("Secreto encriptado:", testMigration.encryptedSecret);
-// console.log("Longitud del secreto hex:", testMigration.secretLength);
-// console.log("¿Conversión válida?:", testMigration.isValid);
-// console.log("Código de prueba:", testMigration.testCode);
-const secret = "46JMUCG4NJ3CIU6LQAIVFWUW";
-const isValid = createOTP(secret, {
-	digits: 6,
-	period: 30,
-}).verify("123456");
+// // // Ejemplo de uso con el secreto de prueba
+// // const testMigration = await migrateExistingSecret(
+// // 	"46JMUCG4NJ3CIU6LQAIVFWUW",
+// // 	process.env.BETTER_AUTH_SECRET || "your-encryption-key",
+// // );
+// // console.log("\nPrueba de migración:");
+// // console.log("Secreto original (base32):", testMigration.originalSecret);
+// // console.log("Secreto convertido (hex):", testMigration.hexSecret);
+// // console.log("Secreto encriptado:", testMigration.encryptedSecret);
+// // console.log("Longitud del secreto hex:", testMigration.secretLength);
+// // console.log("¿Conversión válida?:", testMigration.isValid);
+// // console.log("Código de prueba:", testMigration.testCode);
+// const secret = "46JMUCG4NJ3CIU6LQAIVFWUW";
+// const isValid = createOTP(secret, {
+// 	digits: 6,
+// 	period: 30,
+// }).verify("123456");
 
-console.log(isValid.then((isValid) => console.log(isValid)));
+// console.log(isValid.then((isValid) => console.log(isValid)));

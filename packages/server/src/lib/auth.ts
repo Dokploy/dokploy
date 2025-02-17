@@ -7,7 +7,7 @@ import {
 	organization,
 	twoFactor,
 } from "better-auth/plugins";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
 
@@ -43,22 +43,25 @@ export const auth = betterAuth({
 		after: createAuthMiddleware(async (ctx) => {
 			if (ctx.path.startsWith("/sign-up")) {
 				const newSession = ctx.context.newSession;
-				const organization = await db
-					.insert(schema.organization)
-					.values({
-						name: "My Organization",
-						ownerId: newSession?.user?.id || "",
-						createdAt: new Date(),
-					})
-					.returning()
-					.then((res) => res[0]);
+				if (ctx.headers?.get("x-dokploy-token")) {
+				} else {
+					const organization = await db
+						.insert(schema.organization)
+						.values({
+							name: "My Organization",
+							ownerId: newSession?.user?.id || "",
+							createdAt: new Date(),
+						})
+						.returning()
+						.then((res) => res[0]);
 
-				await db.insert(schema.member).values({
-					userId: newSession?.user?.id || "",
-					organizationId: organization?.id || "",
-					role: "owner",
-					createdAt: new Date(),
-				});
+					await db.insert(schema.member).values({
+						userId: newSession?.user?.id || "",
+						organizationId: organization?.id || "",
+						role: "owner",
+						createdAt: new Date(),
+					});
+				}
 			}
 		}),
 	},
@@ -89,11 +92,13 @@ export const auth = betterAuth({
 		additionalFields: {
 			role: {
 				type: "string",
-				required: true,
+				// required: true,
+				input: false,
 			},
 			ownerId: {
 				type: "string",
-				required: true,
+				// required: true,
+				input: false,
 			},
 		},
 	},
@@ -133,7 +138,13 @@ export const validateRequest = async (request: IncomingMessage) => {
 
 	if (session?.user) {
 		const member = await db.query.member.findFirst({
-			where: eq(schema.member.userId, session.user.id),
+			where: and(
+				eq(schema.member.userId, session.user.id),
+				eq(
+					schema.member.organizationId,
+					session.session.activeOrganizationId || "",
+				),
+			),
 			with: {
 				organization: true,
 			},

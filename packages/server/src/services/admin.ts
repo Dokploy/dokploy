@@ -3,6 +3,7 @@ import { db } from "@dokploy/server/db";
 import {
 	account,
 	type apiCreateUserInvitation,
+	invitation,
 	member,
 	organization,
 	users_temp,
@@ -64,6 +65,13 @@ export const findUserById = async (userId: string) => {
 	return user;
 };
 
+export const findOrganizationById = async (organizationId: string) => {
+	const organizationResult = await db.query.organization.findFirst({
+		where: eq(organization.id, organizationId),
+	});
+	return organizationResult;
+};
+
 export const updateUser = async (userId: string, userData: Partial<User>) => {
 	const user = await db
 		.update(users_temp)
@@ -106,24 +114,34 @@ export const isAdminPresent = async () => {
 };
 
 export const getUserByToken = async (token: string) => {
-	const user = await db.query.users_temp.findFirst({
-		where: eq(users_temp.token, token),
+	const user = await db.query.invitation.findFirst({
+		where: eq(invitation.id, token),
 		columns: {
 			id: true,
 			email: true,
-			token: true,
-			isRegistered: true,
+			status: true,
+			expiresAt: true,
+			role: true,
+			inviterId: true,
 		},
 	});
+
 	if (!user) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Invitation not found",
 		});
 	}
+
+	const userAlreadyExists = await db.query.users_temp.findFirst({
+		where: eq(users_temp.email, user?.email || ""),
+	});
+
+	const { expiresAt, ...rest } = user;
 	return {
-		...user,
-		isExpired: user.isRegistered,
+		...rest,
+		isExpired: user.expiresAt < new Date(),
+		userAlreadyExists: !!userAlreadyExists,
 	};
 };
 

@@ -526,6 +526,13 @@
       "when": 1739773539709,
       "tag": "0074_lowly_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1739781534192,
+      "tag": "0075_heavy_metal_master",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,15 +24,14 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Loader2 } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -167,8 +167,7 @@ export const ShowUsers = () => {
 																						const { error } =
 																							await authClient.organization.removeMember(
 																								{
-																									memberIdOrEmail:
-																										member.user.id,
+																									memberIdOrEmail: member.id,
 																								},
 																							);
 

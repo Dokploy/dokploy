@@ -1,8 +1,8 @@
 import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
 import {
+	IS_CLOUD,
 	findUserByAuthId,
 	findUserById,
-	IS_CLOUD,
 	removeUserById,
 	updateUser,
 	verify2FA,

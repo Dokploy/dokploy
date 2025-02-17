@@ -71,6 +71,7 @@ export const organizationRelations = relations(
 		}),
 		servers: many(server),
 		projects: many(projects),
+		members: many(member),
 	}),
 );
 

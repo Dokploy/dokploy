@@ -14,6 +14,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import copy from "copy-to-clipboard";
 import {
 	Table,
 	TableBody,
@@ -132,19 +133,22 @@ export const ShowInvitations = () => {
 																			Actions
 																		</DropdownMenuLabel>
 
-																		{/* <DropdownMenuItem
-																			className="w-full cursor-pointer"
-																			onSelect={(e) => {
-																				copy(
-																					`${origin}/invitation?token=${user.user.token}`,
-																				);
-																				toast.success(
-																					"Invitation Copied to clipboard",
-																				);
-																			}}
-																		>
-																			Copy Invitation
-																		</DropdownMenuItem> */}
+																		{invitation.status === "pending" && (
+																			<DropdownMenuItem
+																				className="w-full cursor-pointer"
+																				onSelect={(e) => {
+																					copy(
+																						`${origin}/invitation?token=${invitation.id}`,
+																					);
+																					toast.success(
+																						"Invitation Copied to clipboard",
+																					);
+																				}}
+																			>
+																				Copy Invitation
+																			</DropdownMenuItem>
+																		)}
+
 																		{invitation.status === "pending" && (
 																			<DropdownMenuItem
 																				className="w-full cursor-pointer"

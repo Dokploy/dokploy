@@ -12,7 +12,7 @@ export const session = pgTable("session_temp", {
 	userAgent: text("user_agent"),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users_temp.id),
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 	impersonatedBy: text("impersonated_by"),
 	activeOrganizationId: text("active_organization_id"),
 });
