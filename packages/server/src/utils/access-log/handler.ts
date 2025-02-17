@@ -29,16 +29,15 @@ class LogRotationManager {
 	}
 
 	private async getStateFromDB(): Promise<boolean> {
-		const setting = await db.query.admins.findFirst({});
-		return setting?.enableLogRotation ?? false;
+		// const setting = await db.query.admins.findFirst({});
+		// return setting?.enableLogRotation ?? false;
 	}
 
 	private async setStateInDB(active: boolean): Promise<void> {
-		const admin = await db.query.admins.findFirst({});
-
-		if (!admin) {
-			return;
-		}
+		// const admin = await db.query.admins.findFirst({});
+		// if (!admin) {
+		// 	return;
+		// }
 		// await updateAdmin(admin?.authId, {
 		// 	enableLogRotation: active,
 		// });

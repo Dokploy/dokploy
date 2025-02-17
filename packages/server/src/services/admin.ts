@@ -106,26 +106,25 @@ export const isAdminPresent = async () => {
 };
 
 export const getUserByToken = async (token: string) => {
-	// const user = await db.query.users.findFirst({
-	// 	where: eq(users.token, token),
-	// 	with: {
-	// 		auth: {
-	// 			columns: {
-	// 				password: false,
-	// 			},
-	// 		},
-	// 	},
-	// });
-	// if (!user) {
-	// 	throw new TRPCError({
-	// 		code: "NOT_FOUND",
-	// 		message: "Invitation not found",
-	// 	});
-	// }
-	// return {
-	// 	...user,
-	// 	isExpired: user.isRegistered,
-	// };
+	const user = await db.query.users_temp.findFirst({
+		where: eq(users_temp.token, token),
+		columns: {
+			id: true,
+			email: true,
+			token: true,
+			isRegistered: true,
+		},
+	});
+	if (!user) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Invitation not found",
+		});
+	}
+	return {
+		...user,
+		isExpired: user.isRegistered,
+	};
 };
 
 export const removeUserById = async (userId: string) => {

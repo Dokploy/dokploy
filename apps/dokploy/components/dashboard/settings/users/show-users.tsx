@@ -78,7 +78,9 @@ export const ShowUsers = () => {
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
-													{/* <TableHead className="text-center">Status</TableHead> */}
+													<TableHead className="text-center">
+														Is Registered
+													</TableHead>
 													<TableHead className="text-center">
 														Created At
 													</TableHead>
@@ -104,15 +106,15 @@ export const ShowUsers = () => {
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{/* {user.user.is2FAEnabled
-																	? "2FA Enabled"
-																	: "2FA Not Enabled"} */}
+																{user.user.twoFactorEnabled
+																	? "Enabled"
+																	: "Disabled"}
 															</TableCell>
-															{/* <TableCell className="text-right">
-																<span className="text-sm text-muted-foreground">
-																	{format(new Date(user.createdAt), "PPpp")}
-																</span>
-															</TableCell> */}
+															<TableCell className="text-center">
+																{user.user.isRegistered || user.role === "owner"
+																	? "Registered"
+																	: "Not Registered"}
+															</TableCell>
 															<TableCell className="text-right">
 																<span className="text-sm text-muted-foreground">
 																	{format(new Date(user.createdAt), "PPpp")}
@@ -134,29 +136,30 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{/* {!user.isRegistered && (
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer"
-																				onSelect={(e) => {
-																					copy(
-																						`${origin}/invitation?token=${user.token}`,
-																					);
-																					toast.success(
-																						"Invitation Copied to clipboard",
-																					);
-																				}}
-																			>
-																				Copy Invitation
-																			</DropdownMenuItem>
-																		)} */}
+																		{!user.user.isRegistered &&
+																			user.role !== "owner" && (
+																				<DropdownMenuItem
+																					className="w-full cursor-pointer"
+																					onSelect={(e) => {
+																						copy(
+																							`${origin}/invitation?token=${user.user.token}`,
+																						);
+																						toast.success(
+																							"Invitation Copied to clipboard",
+																						);
+																					}}
+																				>
+																					Copy Invitation
+																				</DropdownMenuItem>
+																			)}
 
-																		{/* {user.isRegistered && (
+																		{user.user.isRegistered && (
 																			<AddUserPermissions
 																				userId={user.userId}
 																			/>
-																		)} */}
+																		)}
 
-																		{/* {user.role !== "owner" && (
+																		{user.role !== "owner" && (
 																			<DialogAction
 																				title="Delete User"
 																				description="Are you sure you want to delete this user?"
@@ -185,7 +188,7 @@ export const ShowUsers = () => {
 																					Delete User
 																				</DropdownMenuItem>
 																			</DialogAction>
-																		)} */}
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

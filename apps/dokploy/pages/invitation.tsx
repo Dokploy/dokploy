@@ -27,6 +27,7 @@ import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import superjson from "superjson";
 
 const registerSchema = z
 	.object({
@@ -98,9 +99,9 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data?.auth?.email) {
+		if (data?.email) {
 			form.reset({
-				email: data?.auth?.email || "",
+				email: data?.email || "",
 				password: "",
 				confirmPassword: "",
 			});
@@ -109,7 +110,7 @@ const Invitation = ({ token, invitation, isCloud }: Props) => {
 
 	const onSubmit = async (values: Register) => {
 		await mutateAsync({
-			id: data?.authId,
+			id: data?.id,
 			password: values.password,
 			token: token,
 		})
@@ -254,6 +255,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { query } = ctx;
 
 	const token = query.token;
+	console.log("query", query);
 
 	if (typeof token !== "string") {
 		return {
@@ -266,6 +268,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 	try {
 		const invitation = await getUserByToken(token);
+		console.log("invitation", invitation);
 
 		if (invitation.isExpired) {
 			return {

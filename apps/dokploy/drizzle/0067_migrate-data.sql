@@ -25,7 +25,8 @@ WITH inserted_users AS (
         "stripeSubscriptionId",
         "serversQuantity",
         "expirationDate",
-        "createdAt"
+        "createdAt",
+        "two_factor_enabled"
     )
     SELECT 
         a."adminId",
@@ -50,9 +51,28 @@ WITH inserted_users AS (
         a."stripeSubscriptionId",
         a."serversQuantity",
         NOW() + INTERVAL '1 year',
-        NOW()
+        NOW(),
+        COALESCE(auth."is2FAEnabled", false)
     FROM admin a
     JOIN auth ON auth.id = a."authId"
+    RETURNING *
+),
+inserted_two_factor_admin AS (
+    -- Insertar registros en two_factor para admins con 2FA habilitado
+    INSERT INTO two_factor (
+        id,
+        secret,
+        backup_codes,
+        user_id
+    )
+    SELECT 
+        gen_random_uuid(),
+        auth.secret,
+        gen_random_uuid()::text,
+        a."adminId"
+    FROM admin a
+    JOIN auth ON auth.id = a."authId"
+    WHERE auth."is2FAEnabled" = true
     RETURNING *
 ),
 inserted_accounts AS (
@@ -120,7 +140,8 @@ inserted_members AS (
         "canDeleteServices",
         "accesedProjects",
         "accesedServices",
-        "expirationDate"
+        "expirationDate",
+        "two_factor_enabled"
     )
     SELECT 
         u."userId",
@@ -141,7 +162,8 @@ inserted_members AS (
         COALESCE(u."canDeleteServices", false),
         COALESCE(u."accesedProjects", '{}'),
         COALESCE(u."accesedServices", '{}'),
-        NOW() + INTERVAL '1 year'
+        NOW() + INTERVAL '1 year',
+        COALESCE(auth."is2FAEnabled", false)
     FROM "user" u
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"
@@ -171,6 +193,25 @@ inserted_member_accounts AS (
     FROM "user" u
     JOIN admin a ON u."adminId" = a."adminId"
     JOIN auth ON auth.id = u."authId"
+    RETURNING *
+),
+inserted_two_factor_members AS (
+    -- Insertar registros en two_factor para miembros con 2FA habilitado
+    INSERT INTO two_factor (
+        id,
+        secret,
+        backup_codes,
+        user_id
+    )
+    SELECT 
+        gen_random_uuid(),
+        auth.secret,
+        gen_random_uuid()::text,
+        u."userId"
+    FROM "user" u
+    JOIN admin a ON u."adminId" = a."adminId"
+    JOIN auth ON auth.id = u."authId"
+    WHERE auth."is2FAEnabled" = true
     RETURNING *
 ),
 inserted_admin_members AS (
