@@ -1,8 +1,12 @@
 services:
   glance:
-    image: glanceapp/glance
+    image: glanceapp/glance:latest
     volumes:
-      - ../files/app/glance.yml:/app/glance.yml
+      - ../files/app/config/glance.yml:/app/config/glance.yml
+      - ../files/app/config/home.yml:/app/config/home.yml
+      - ../assets:/app/assets
+      # Optionally, also mount docker socket if you want to use the docker containers widget
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - 8080
-    restart: unless-stopped
+    env_file: .env
