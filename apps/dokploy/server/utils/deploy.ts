@@ -20,6 +20,9 @@ export const deploy = async (jobData: DeploymentJob) => {
 		const data = await result.json();
 		return data;
 	} catch (error) {
+		if (error instanceof Error) {
+			throw new Error(`Deployment failed: ${error.message}`);
+		}
 		throw error;
 	}
 };

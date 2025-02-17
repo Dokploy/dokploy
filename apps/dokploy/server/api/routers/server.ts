@@ -123,7 +123,11 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to setup this server",
 					});
 				}
-				const currentServer = await serverSetup(input.serverId);
+				const currentServer = await serverSetup(input.serverId, (log) => {
+					if (log.includes("sudo password prompt")) {
+						throw new Error("Sudo password prompt detected. Please configure sudo to not require a password for this user.");
+					}
+				});
 				return currentServer;
 			} catch (error) {
 				throw error;
@@ -150,7 +154,11 @@ export const serverRouter = createTRPCRouter({
 				}
 				return observable<string>((emit) => {
 					serverSetup(input.serverId, (log) => {
-						emit.next(log);
+						if (log.includes("sudo password prompt")) {
+							emit.error(new Error("Sudo password prompt detected. Please configure sudo to not require a password for this user."));
+						} else {
+							emit.next(log);
+						}
 					});
 				});
 			} catch (error) {
