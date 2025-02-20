@@ -110,7 +110,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createTelegramNotification(input, ctx.user.ownerId);
+				return await createTelegramNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -162,7 +165,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDiscordNotification(input, ctx.user.ownerId);
+				return await createDiscordNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -223,7 +229,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createEmailNotification(input, ctx.user.ownerId);
+				return await createEmailNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -388,7 +397,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGotifyNotification(input, ctx.user.ownerId);
+				return await createGotifyNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

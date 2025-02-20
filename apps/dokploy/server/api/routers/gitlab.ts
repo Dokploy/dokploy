@@ -25,7 +25,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiCreateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitlab(input, ctx.user.ownerId);
+				return await createGitlab(input, ctx.session.activeOrganizationId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

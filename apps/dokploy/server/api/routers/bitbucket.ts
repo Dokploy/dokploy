@@ -22,7 +22,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createBitbucket(input, ctx.user.ownerId);
+				return await createBitbucket(input, ctx.session.activeOrganizationId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

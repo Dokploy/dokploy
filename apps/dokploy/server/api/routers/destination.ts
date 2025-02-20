@@ -28,7 +28,10 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDestintation(input, ctx.user.ownerId);
+				return await createDestintation(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -111,7 +114,7 @@ export const destinationRouter = createTRPCRouter({
 				}
 				return await removeDestinationById(
 					input.destinationId,
-					ctx.user.ownerId,
+					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
 				throw error;

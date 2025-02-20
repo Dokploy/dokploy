@@ -14,7 +14,6 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import copy from "copy-to-clipboard";
 import {
 	Table,
 	TableBody,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { Mail, MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";

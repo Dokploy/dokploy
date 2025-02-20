@@ -9,7 +9,6 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db";
-import { validateBearerToken } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
