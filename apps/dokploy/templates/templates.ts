@@ -394,6 +394,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./open-webui/index").then((m) => m.generate),
 	},
 	{
+		id: "mailpit",
+		name: "Mailpit",
+		version: "v1.22.3",
+		description:
+			"Mailpit is a tiny, self-contained, and secure email & SMTP testing tool with API for developers.",
+		logo: "mailpit.svg",
+		links: {
+			github: "https://github.com/axllent/mailpit",
+			website: "https://mailpit.axllent.org/",
+			docs: "https://mailpit.axllent.org/docs/",
+		},
+		tags: ["email", "smtp"],
+		load: () => import("./mailpit/index").then((m) => m.generate),
+	},
+	{
 		id: "listmonk",
 		name: "Listmonk",
 		version: "v3.0.0",
