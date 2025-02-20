@@ -17,7 +17,7 @@ export function generate(schema: Schema): Template {
 
 	const mounts: Template["mounts"] = [
 		{
-			filePath: "/app/glance.yml",
+			filePath: "/app/config/glance.yml",
 			content: `
 branding:
   hide-footer: true
