@@ -35,6 +35,7 @@ type PasswordForm = z.infer<typeof PasswordSchema>;
 
 export const Disable2FA = () => {
 	const utils = api.useUtils();
+	const [isOpen, setIsOpen] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<PasswordForm>({
@@ -72,7 +73,7 @@ export const Disable2FA = () => {
 	};
 
 	return (
-		<AlertDialog>
+		<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive">Disable 2FA</Button>
 			</AlertDialogTrigger>
@@ -116,6 +117,7 @@ export const Disable2FA = () => {
 								variant="outline"
 								onClick={() => {
 									form.reset();
+									setIsOpen(false);
 								}}
 							>
 								Cancel

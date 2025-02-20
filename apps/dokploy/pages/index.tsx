@@ -20,16 +20,23 @@ import {
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { IS_CLOUD, auth, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Session, getSessionCookie } from "better-auth";
-import { betterFetch } from "better-auth/react";
 import base32 from "hi-base32";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -48,8 +55,14 @@ const TwoFactorSchema = z.object({
 	code: z.string().min(6),
 });
 
+const BackupCodeSchema = z.object({
+	code: z.string().min(8, {
+		message: "Backup code must be at least 8 characters",
+	}),
+});
+
 type LoginForm = z.infer<typeof LoginSchema>;
-type TwoFactorForm = z.infer<typeof TwoFactorSchema>;
+type BackupCodeForm = z.infer<typeof BackupCodeSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
@@ -58,9 +71,12 @@ export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
+	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
 	const [isTwoFactor, setIsTwoFactor] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [twoFactorCode, setTwoFactorCode] = useState("");
+	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
+	const [backupCode, setBackupCode] = useState("");
 
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
@@ -128,15 +144,33 @@ export default function Home({ IS_CLOUD }: Props) {
 		}
 	};
 
-	const convertBase32ToHex = (base32Secret: string) => {
+	const onBackupCodeSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (backupCode.length < 8) {
+			toast.error("Please enter a valid backup code");
+			return;
+		}
+
+		setIsBackupCodeLoading(true);
 		try {
-			// Usar asBytes() para obtener los bytes directamente
-			const bytes = base32.decode.asBytes(base32Secret.toUpperCase());
-			// Convertir bytes a hex
-			return Buffer.from(bytes).toString("hex");
+			const { data, error } = await authClient.twoFactor.verifyBackupCode({
+				code: backupCode.trim(),
+			});
+
+			if (error) {
+				toast.error(error.message);
+				setError(
+					error.message || "An error occurred while verifying backup code",
+				);
+				return;
+			}
+
+			toast.success("Logged in successfully");
+			router.push("/dashboard/projects");
 		} catch (error) {
-			console.error("Error converting base32 to hex:", error);
-			return base32Secret; // Fallback al valor original si hay error
+			toast.error("An error occurred while verifying backup code");
+		} finally {
+			setIsBackupCodeLoading(false);
 		}
 	};
 
@@ -206,56 +240,116 @@ export default function Home({ IS_CLOUD }: Props) {
 						</form>
 					</Form>
 				) : (
-					<form
-						onSubmit={onTwoFactorSubmit}
-						className="space-y-4"
-						id="two-factor-form"
-						autoComplete="off"
-					>
-						<div className="flex flex-col gap-2">
-							<Label>2FA Code</Label>
-							<InputOTP
-								value={twoFactorCode}
-								onChange={setTwoFactorCode}
-								maxLength={6}
-								pattern={REGEXP_ONLY_DIGITS}
-								autoComplete="off"
-							>
-								<InputOTPGroup>
-									<InputOTPSlot index={0} className="border-border" />
-									<InputOTPSlot index={1} className="border-border" />
-									<InputOTPSlot index={2} className="border-border" />
-									<InputOTPSlot index={3} className="border-border" />
-									<InputOTPSlot index={4} className="border-border" />
-									<InputOTPSlot index={5} className="border-border" />
-								</InputOTPGroup>
-							</InputOTP>
-							<CardDescription>
-								Enter the 6-digit code from your authenticator app
-							</CardDescription>
-						</div>
+					<>
+						<form
+							onSubmit={onTwoFactorSubmit}
+							className="space-y-4"
+							id="two-factor-form"
+							autoComplete="off"
+						>
+							<div className="flex flex-col gap-2">
+								<Label>2FA Code</Label>
+								<InputOTP
+									value={twoFactorCode}
+									onChange={setTwoFactorCode}
+									maxLength={6}
+									pattern={REGEXP_ONLY_DIGITS}
+									autoComplete="off"
+								>
+									<InputOTPGroup>
+										<InputOTPSlot index={0} className="border-border" />
+										<InputOTPSlot index={1} className="border-border" />
+										<InputOTPSlot index={2} className="border-border" />
+										<InputOTPSlot index={3} className="border-border" />
+										<InputOTPSlot index={4} className="border-border" />
+										<InputOTPSlot index={5} className="border-border" />
+									</InputOTPGroup>
+								</InputOTP>
+								<CardDescription>
+									Enter the 6-digit code from your authenticator app
+								</CardDescription>
+								<button
+									type="button"
+									onClick={() => setIsBackupCodeModalOpen(true)}
+									className="text-sm text-muted-foreground hover:underline self-start mt-2"
+								>
+									Lost access to your authenticator app?
+								</button>
+							</div>
 
-						<div className="flex gap-4">
-							<Button
-								variant="outline"
-								className="w-full"
-								type="button"
-								onClick={() => {
-									setIsTwoFactor(false);
-									setTwoFactorCode("");
-								}}
-							>
-								Back
-							</Button>
-							<Button
-								className="w-full"
-								type="submit"
-								isLoading={isTwoFactorLoading}
-							>
-								Verify
-							</Button>
-						</div>
-					</form>
+							<div className="flex gap-4">
+								<Button
+									variant="outline"
+									className="w-full"
+									type="button"
+									onClick={() => {
+										setIsTwoFactor(false);
+										setTwoFactorCode("");
+									}}
+								>
+									Back
+								</Button>
+								<Button
+									className="w-full"
+									type="submit"
+									isLoading={isTwoFactorLoading}
+								>
+									Verify
+								</Button>
+							</div>
+						</form>
+
+						<Dialog
+							open={isBackupCodeModalOpen}
+							onOpenChange={setIsBackupCodeModalOpen}
+						>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>Enter Backup Code</DialogTitle>
+									<DialogDescription>
+										Enter one of your backup codes to access your account
+									</DialogDescription>
+								</DialogHeader>
+
+								<form onSubmit={onBackupCodeSubmit} className="space-y-4">
+									<div className="flex flex-col gap-2">
+										<Label>Backup Code</Label>
+										<Input
+											value={backupCode}
+											onChange={(e) => setBackupCode(e.target.value)}
+											placeholder="Enter your backup code"
+											className="font-mono"
+										/>
+										<CardDescription>
+											Enter one of the backup codes you received when setting up
+											2FA
+										</CardDescription>
+									</div>
+
+									<div className="flex gap-4">
+										<Button
+											variant="outline"
+											className="w-full"
+											type="button"
+											onClick={() => {
+												setIsBackupCodeModalOpen(false);
+												setBackupCode("");
+											}}
+										>
+											Cancel
+										</Button>
+										<Button
+											className="w-full"
+											type="submit"
+											isLoading={isBackupCodeLoading}
+										>
+											Verify
+										</Button>
+									</div>
+								</form>
+							</DialogContent>
+						</Dialog>
+					</>
 				)}
 
 				<div className="flex flex-row justify-between flex-wrap">
