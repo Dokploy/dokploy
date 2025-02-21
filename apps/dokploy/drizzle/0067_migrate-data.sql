@@ -109,17 +109,6 @@ inserted_members AS (
         "updated_at",
         image,
         "createdAt",
-        "canAccessToAPI",
-        "canAccessToDocker",
-        "canAccessToGitProviders",
-        "canAccessToSSHKeys",
-        "canAccessToTraefikFiles",
-        "canCreateProjects",
-        "canCreateServices",
-        "canDeleteProjects",
-        "canDeleteServices",
-        "accesedProjects",
-        "accesedServices",
         "expirationDate",
         "isRegistered"
     )
@@ -131,17 +120,6 @@ inserted_members AS (
         CURRENT_TIMESTAMP,
         auth.image,
         NOW(),
-        COALESCE(u."canAccessToAPI", false),
-        COALESCE(u."canAccessToDocker", false),
-        COALESCE(u."canAccessToGitProviders", false),
-        COALESCE(u."canAccessToSSHKeys", false),
-        COALESCE(u."canAccessToTraefikFiles", false),
-        COALESCE(u."canCreateProjects", false),
-        COALESCE(u."canCreateServices", false),
-        COALESCE(u."canDeleteProjects", false),
-        COALESCE(u."canDeleteServices", false),
-        COALESCE(u."accesedProjects", '{}'),
-        COALESCE(u."accesedServices", '{}'),
         NOW() + INTERVAL '1 year',
         COALESCE(u."isRegistered", false)
     FROM "user" u
@@ -180,14 +158,36 @@ inserted_admin_members AS (
         "organization_id",
         "user_id",
         role,
-        "created_at"
+        "created_at",
+        "canAccessToAPI",
+        "canAccessToDocker",
+        "canAccessToGitProviders",
+        "canAccessToSSHKeys",
+        "canAccessToTraefikFiles",
+        "canCreateProjects",
+        "canCreateServices",
+        "canDeleteProjects",
+        "canDeleteServices",
+        "accesedProjects",
+        "accesedServices"
     )
     SELECT 
         gen_random_uuid(),
         o.id,
         a."adminId",
         'owner',
-        NOW()
+        NOW(),
+        true, -- Los admins tienen todos los permisos por defecto
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        '{}',
+        '{}'
     FROM admin a
     JOIN inserted_orgs o ON o."owner_id" = a."adminId"
     RETURNING *
@@ -198,14 +198,36 @@ INSERT INTO member (
     "organization_id",
     "user_id",
     role,
-    "created_at"
+    "created_at",
+    "canAccessToAPI",
+    "canAccessToDocker",
+    "canAccessToGitProviders",
+    "canAccessToSSHKeys",
+    "canAccessToTraefikFiles",
+    "canCreateProjects",
+    "canCreateServices",
+    "canDeleteProjects",
+    "canDeleteServices",
+    "accesedProjects",
+    "accesedServices"
 )
 SELECT 
     gen_random_uuid(),
     o.id,
     u."userId",
     'member',
-    NOW()
+    NOW(),
+    COALESCE(u."canAccessToAPI", false),
+    COALESCE(u."canAccessToDocker", false),
+    COALESCE(u."canAccessToGitProviders", false),
+    COALESCE(u."canAccessToSSHKeys", false),
+    COALESCE(u."canAccessToTraefikFiles", false),
+    COALESCE(u."canCreateProjects", false),
+    COALESCE(u."canCreateServices", false),
+    COALESCE(u."canDeleteProjects", false),
+    COALESCE(u."canDeleteServices", false),
+    COALESCE(u."accesedProjects", '{}'),
+    COALESCE(u."accesedServices", '{}')
 FROM "user" u
 JOIN admin a ON u."adminId" = a."adminId"
 JOIN inserted_orgs o ON o."owner_id" = a."adminId";

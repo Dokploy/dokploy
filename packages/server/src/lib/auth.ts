@@ -10,6 +10,7 @@ import {
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { ac } from "./permissions";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {

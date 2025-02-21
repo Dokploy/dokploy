@@ -1,9 +1,9 @@
 import {
-	boolean,
-	integer,
 	pgTable,
 	text,
+	integer,
 	timestamp,
+	boolean,
 } from "drizzle-orm/pg-core";
 
 export const users_temp = pgTable("users_temp", {
@@ -15,8 +15,8 @@ export const users_temp = pgTable("users_temp", {
 	createdAt: timestamp("created_at").notNull(),
 	updatedAt: timestamp("updated_at").notNull(),
 	twoFactorEnabled: boolean("two_factor_enabled"),
-	role: text("role").notNull(),
-	ownerId: text("owner_id").notNull(),
+	role: text("role"),
+	ownerId: text("owner_id"),
 });
 
 export const session = pgTable("session", {
@@ -66,7 +66,7 @@ export const twoFactor = pgTable("two_factor", {
 	backupCodes: text("backup_codes").notNull(),
 	userId: text("user_id")
 		.notNull()
-		.references(() => users_temp.id, { onDelete: "cascade" }),
+		.references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const organization = pgTable("organization", {

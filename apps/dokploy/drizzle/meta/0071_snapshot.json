@@ -941,83 +941,6 @@
           "notNull": false,
           "default": "now()"
         },
-        "canCreateProjects": {
-          "name": "canCreateProjects",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToSSHKeys": {
-          "name": "canAccessToSSHKeys",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canCreateServices": {
-          "name": "canCreateServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteProjects": {
-          "name": "canDeleteProjects",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteServices": {
-          "name": "canDeleteServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToDocker": {
-          "name": "canAccessToDocker",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToAPI": {
-          "name": "canAccessToAPI",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToGitProviders": {
-          "name": "canAccessToGitProviders",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToTraefikFiles": {
-          "name": "canAccessToTraefikFiles",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "accesedProjects": {
-          "name": "accesedProjects",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "accesedServices": {
-          "name": "accesedServices",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
         "two_factor_enabled": {
           "name": "two_factor_enabled",
           "type": "boolean",
@@ -5097,6 +5020,83 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
+        },
+        "canCreateProjects": {
+          "name": "canCreateProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToSSHKeys": {
+          "name": "canAccessToSSHKeys",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canCreateServices": {
+          "name": "canCreateServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteProjects": {
+          "name": "canDeleteProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteServices": {
+          "name": "canDeleteServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToDocker": {
+          "name": "canAccessToDocker",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToAPI": {
+          "name": "canAccessToAPI",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToGitProviders": {
+          "name": "canAccessToGitProviders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToTraefikFiles": {
+          "name": "canAccessToTraefikFiles",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "accesedProjects": {
+          "name": "accesedProjects",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "accesedServices": {
+          "name": "accesedServices",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
         }
       },
       "indexes": {},
@@ -5104,28 +5104,28 @@
         "member_organization_id_organization_id_fk": {
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
+          "tableTo": "organization",
           "columnsFrom": [
             "organization_id"
           ],
-          "tableTo": "organization",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "member_user_id_user_temp_id_fk": {
           "name": "member_user_id_user_temp_id_fk",
           "tableFrom": "member",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "user_temp",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},

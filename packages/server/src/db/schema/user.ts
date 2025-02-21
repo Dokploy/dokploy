@@ -38,31 +38,6 @@ export const users_temp = pgTable("user_temp", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	createdAt: timestamp("created_at").defaultNow(),
-	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
-	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
-	canCreateServices: boolean("canCreateServices").notNull().default(false),
-	canDeleteProjects: boolean("canDeleteProjects").notNull().default(false),
-	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
-	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
-	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
-	canAccessToGitProviders: boolean("canAccessToGitProviders")
-		.notNull()
-		.default(false),
-	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
-		.notNull()
-		.default(false),
-	accessedProjects: text("accesedProjects")
-		.array()
-		.notNull()
-		.default(sql`ARRAY[]::text[]`),
-	accessedServices: text("accesedServices")
-		.array()
-		.notNull()
-		.default(sql`ARRAY[]::text[]`),
-
-	// authId: text("authId")
-	// 	.notNull()
-	// 	.references(() => auth.id, { onDelete: "cascade" }),
 	// Auth
 	twoFactorEnabled: boolean("two_factor_enabled"),
 	email: text("email").notNull().unique(),
@@ -155,14 +130,14 @@ const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
 	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
-	accessedProjects: z.array(z.string()).optional(),
-	accessedServices: z.array(z.string()).optional(),
-	canCreateProjects: z.boolean().optional(),
-	canCreateServices: z.boolean().optional(),
-	canDeleteProjects: z.boolean().optional(),
-	canDeleteServices: z.boolean().optional(),
-	canAccessToDocker: z.boolean().optional(),
-	canAccessToTraefikFiles: z.boolean().optional(),
+	// accessedProjects: z.array(z.string()).optional(),
+	// accessedServices: z.array(z.string()).optional(),
+	// canCreateProjects: z.boolean().optional(),
+	// canCreateServices: z.boolean().optional(),
+	// canDeleteProjects: z.boolean().optional(),
+	// canDeleteServices: z.boolean().optional(),
+	// canAccessToDocker: z.boolean().optional(),
+	// canAccessToTraefikFiles: z.boolean().optional(),
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -184,17 +159,17 @@ export const apiFindOneToken = createSchema
 export const apiAssignPermissions = createSchema
 	.pick({
 		id: true,
-		canCreateProjects: true,
-		canCreateServices: true,
-		canDeleteProjects: true,
-		canDeleteServices: true,
-		accessedProjects: true,
-		accessedServices: true,
-		canAccessToTraefikFiles: true,
-		canAccessToDocker: true,
-		canAccessToAPI: true,
-		canAccessToSSHKeys: true,
-		canAccessToGitProviders: true,
+		// canCreateProjects: true,
+		// canCreateServices: true,
+		// canDeleteProjects: true,
+		// canDeleteServices: true,
+		// accessedProjects: true,
+		// accessedServices: true,
+		// canAccessToTraefikFiles: true,
+		// canAccessToDocker: true,
+		// canAccessToAPI: true,
+		// canAccessToSSHKeys: true,
+		// canAccessToGitProviders: true,
 	})
 	.required();
 

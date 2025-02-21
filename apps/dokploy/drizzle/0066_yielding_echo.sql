@@ -5,17 +5,6 @@ CREATE TABLE "user_temp" (
 	"isRegistered" boolean DEFAULT false NOT NULL,
 	"expirationDate" text NOT NULL,
 	"createdAt" text NOT NULL,
-	"canCreateProjects" boolean DEFAULT false NOT NULL,
-	"canAccessToSSHKeys" boolean DEFAULT false NOT NULL,
-	"canCreateServices" boolean DEFAULT false NOT NULL,
-	"canDeleteProjects" boolean DEFAULT false NOT NULL,
-	"canDeleteServices" boolean DEFAULT false NOT NULL,
-	"canAccessToDocker" boolean DEFAULT false NOT NULL,
-	"canAccessToAPI" boolean DEFAULT false NOT NULL,
-	"canAccessToGitProviders" boolean DEFAULT false NOT NULL,
-	"canAccessToTraefikFiles" boolean DEFAULT false NOT NULL,
-	"accesedProjects" text[] DEFAULT ARRAY[]::text[] NOT NULL,
-	"accesedServices" text[] DEFAULT ARRAY[]::text[] NOT NULL,
 	"two_factor_enabled" boolean DEFAULT false NOT NULL,
 	"email" text NOT NULL,
 	"email_verified" boolean NOT NULL,
@@ -92,7 +81,18 @@ CREATE TABLE "member" (
 	"organization_id" text NOT NULL,
 	"user_id" text NOT NULL,
 	"role" text NOT NULL,
-	"created_at" timestamp NOT NULL
+	"created_at" timestamp NOT NULL,
+	"canCreateProjects" boolean DEFAULT false NOT NULL,
+	"canAccessToSSHKeys" boolean DEFAULT false NOT NULL,
+	"canCreateServices" boolean DEFAULT false NOT NULL,
+	"canDeleteProjects" boolean DEFAULT false NOT NULL,
+	"canDeleteServices" boolean DEFAULT false NOT NULL,
+	"canAccessToDocker" boolean DEFAULT false NOT NULL,
+	"canAccessToAPI" boolean DEFAULT false NOT NULL,
+	"canAccessToGitProviders" boolean DEFAULT false NOT NULL,
+	"canAccessToTraefikFiles" boolean DEFAULT false NOT NULL,
+	"accesedProjects" text[] DEFAULT ARRAY[]::text[] NOT NULL,
+	"accesedServices" text[] DEFAULT ARRAY[]::text[] NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "organization" (

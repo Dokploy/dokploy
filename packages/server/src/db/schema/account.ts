@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { projects } from "./project";
@@ -87,6 +87,29 @@ export const member = pgTable("member", {
 		.references(() => users_temp.id, { onDelete: "cascade" }),
 	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
 	createdAt: timestamp("created_at").notNull(),
+
+	// Permissions
+	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
+	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
+	canCreateServices: boolean("canCreateServices").notNull().default(false),
+	canDeleteProjects: boolean("canDeleteProjects").notNull().default(false),
+	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
+	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
+	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
+	canAccessToGitProviders: boolean("canAccessToGitProviders")
+		.notNull()
+		.default(false),
+	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
+		.notNull()
+		.default(false),
+	accessedProjects: text("accesedProjects")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	accessedServices: text("accesedServices")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 });
 
 export const memberRelations = relations(member, ({ one }) => ({
