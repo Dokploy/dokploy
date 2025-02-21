@@ -63,7 +63,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			userId: user.id,
 		});
 
-		if (!userR.canAccessToAPI) {
+		if (!userR?.canAccessToAPI) {
 			return {
 				redirect: {
 					permanent: true,

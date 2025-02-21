@@ -83,7 +83,7 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 
-							{(auth?.role === "owner" || auth?.user?.canCreateProjects) && (
+							{(auth?.role === "owner" || auth?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
 								</div>
@@ -286,7 +286,7 @@ export const ShowProjects = () => {
 																					onClick={(e) => e.stopPropagation()}
 																				>
 																					{(auth?.role === "owner" ||
-																						auth?.user?.canDeleteProjects) && (
+																						auth?.canDeleteProjects) && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem

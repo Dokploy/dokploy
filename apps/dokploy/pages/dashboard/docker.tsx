@@ -58,7 +58,7 @@ export async function getServerSideProps(
 				userId: user.id,
 			});
 
-			if (!userR.canAccessToDocker) {
+			if (!userR?.canAccessToDocker) {
 				return {
 					redirect: {
 						permanent: true,

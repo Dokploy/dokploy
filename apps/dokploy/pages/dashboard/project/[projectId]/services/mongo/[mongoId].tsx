@@ -148,8 +148,7 @@ const Mongo = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMongo mongoId={mongoId} />
-									{(auth?.role === "owner" ||
-										auth?.user?.canDeleteServices) && (
+									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={mongoId} type="mongo" />
 									)}
 								</div>

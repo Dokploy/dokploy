@@ -8,6 +8,7 @@ import {
 	applications,
 	compose,
 	mariadb,
+	member,
 	mongo,
 	mysql,
 	postgres,
@@ -29,8 +30,8 @@ import {
 	findUserByAuthId,
 	findUserById,
 	updateProjectById,
+	findMemberById,
 } from "@dokploy/server";
-
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateProject)
@@ -71,7 +72,10 @@ export const projectRouter = createTRPCRouter({
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				const { accessedServices } = await findUserById(ctx.user.id);
+				const { accessedServices } = await findMemberById(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
 
 				await checkProjectAccess(ctx.user.id, "access", input.projectId);
 
@@ -129,8 +133,9 @@ export const projectRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		// console.log(ctx.user);
 		if (ctx.user.rol === "member") {
-			const { accessedProjects, accessedServices } = await findUserById(
+			const { accessedProjects, accessedServices } = await findMemberById(
 				ctx.user.id,
+				ctx.session.activeOrganizationId,
 			);
 
 			if (accessedProjects.length === 0) {

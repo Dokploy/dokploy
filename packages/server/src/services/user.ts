@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
-import type { users_temp } from "@dokploy/server/db/schema";
+import { type users_temp, member } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { findUserById } from "./admin";
 
 export type User = typeof users_temp.$inferSelect;
@@ -190,4 +190,27 @@ export const checkProjectAccess = async (
 			message: "Permission denied",
 		});
 	}
+};
+
+export const findMemberById = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const result = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, userId),
+			eq(member.organizationId, organizationId),
+		),
+		with: {
+			user: true,
+		},
+	});
+
+	if (!result) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+	return result;
 };

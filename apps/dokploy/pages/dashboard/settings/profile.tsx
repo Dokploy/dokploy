@@ -20,9 +20,7 @@ const Page = () => {
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(data?.user?.canAccessToAPI || data?.role === "owner") && (
-					<GenerateToken />
-				)}
+				{(data?.canAccessToAPI || data?.role === "owner") && <GenerateToken />}
 
 				{isCloud && <RemoveSelfAccount />}
 			</div>

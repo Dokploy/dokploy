@@ -54,7 +54,7 @@ export async function getServerSideProps(
 				userId: user.id,
 			});
 
-			if (!userR.canAccessToGitProviders) {
+			if (!userR?.canAccessToGitProviders) {
 				return {
 					redirect: {
 						permanent: true,

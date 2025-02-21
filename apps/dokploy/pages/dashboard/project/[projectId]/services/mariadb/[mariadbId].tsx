@@ -147,8 +147,7 @@ const Mariadb = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.role === "owner" ||
-										auth?.user?.canDeleteServices) && (
+									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>

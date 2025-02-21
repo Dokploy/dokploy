@@ -58,7 +58,7 @@ export async function getServerSideProps(
 				userId: user.id,
 			});
 
-			if (!userR.canAccessToTraefikFiles) {
+			if (!userR?.canAccessToTraefikFiles) {
 				return {
 					redirect: {
 						permanent: true,

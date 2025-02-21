@@ -328,7 +328,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || auth?.user?.canCreateServices) && (
+							{(auth?.role === "owner" || auth?.canCreateServices) && (
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>

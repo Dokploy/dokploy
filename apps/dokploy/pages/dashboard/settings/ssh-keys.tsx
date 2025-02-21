@@ -55,7 +55,7 @@ export async function getServerSideProps(
 				userId: user.id,
 			});
 
-			if (!userR.canAccessToSSHKeys) {
+			if (!userR?.canAccessToSSHKeys) {
 				return {
 					redirect: {
 						permanent: true,
