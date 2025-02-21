@@ -526,7 +526,7 @@ const data = {
 function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: user } = api.auth.get.useQuery();
+	const { data: user } = api.user.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: session } = authClient.useSession();
 	const {
@@ -714,7 +714,7 @@ export default function Page({ children }: Props) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const currentPath = router.pathname;
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();

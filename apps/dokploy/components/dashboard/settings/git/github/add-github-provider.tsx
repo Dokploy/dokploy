@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
 	const [organizationName, setOrganization] = useState("");

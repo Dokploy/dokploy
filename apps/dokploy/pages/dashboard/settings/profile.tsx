@@ -13,7 +13,7 @@ import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (

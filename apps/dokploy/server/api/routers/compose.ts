@@ -39,7 +39,6 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
-	findAdminById,
 	findComposeById,
 	findDomainsByComposeId,
 	findProjectById,

@@ -10,7 +10,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 
 export const ShowWelcomeDokploy = () => {
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 	const [open, setOpen] = useState(false);
 
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();

@@ -62,7 +62,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	);
 
 	const { mutateAsync, isError, error, isLoading } =
-		api.admin.assignPermissions.useMutation();
+		api.user.assignPermissions.useMutation();
 
 	const form = useForm<AddPermissions>({
 		defaultValues: {

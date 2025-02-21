@@ -53,7 +53,7 @@ export const AddBitbucketProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 	const router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {

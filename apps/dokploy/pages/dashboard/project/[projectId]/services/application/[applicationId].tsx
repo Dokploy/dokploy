@@ -86,8 +86,8 @@ const Service = (
 	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: auth } = api.user.get.useQuery();
+	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	return (
 		<div className="pb-10">

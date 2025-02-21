@@ -60,8 +60,8 @@ const MySql = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: auth } = api.user.get.useQuery();
+	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 

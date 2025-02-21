@@ -91,7 +91,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					enabled: !!serverId,
 				},
 			)
-		: api.admin.one.useQuery();
+		: api.user.get.useQuery();
 
 	const url = useUrl();
 

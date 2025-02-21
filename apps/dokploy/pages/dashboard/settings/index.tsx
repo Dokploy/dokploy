@@ -42,9 +42,9 @@ const settings = z.object({
 type SettingsType = z.infer<typeof settings>;
 
 const Page = () => {
-	const { data, refetch } = api.admin.one.useQuery();
+	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading, isError, error } =
-		api.admin.update.useMutation();
+		api.user.update.useMutation();
 	const form = useForm<SettingsType>({
 		defaultValues: {
 			cleanCacheOnApplications: false,
@@ -55,9 +55,9 @@ const Page = () => {
 	});
 	useEffect(() => {
 		form.reset({
-			cleanCacheOnApplications: data?.cleanupCacheApplications || false,
-			cleanCacheOnCompose: data?.cleanupCacheOnCompose || false,
-			cleanCacheOnPreviews: data?.cleanupCacheOnPreviews || false,
+			cleanCacheOnApplications: data?.user.cleanupCacheApplications || false,
+			cleanCacheOnCompose: data?.user.cleanupCacheOnCompose || false,
+			cleanCacheOnPreviews: data?.user.cleanupCacheOnPreviews || false,
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 

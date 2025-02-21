@@ -5,6 +5,14 @@ import { Logo } from "@/components/shared/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardContent, CardDescription } from "@/components/ui/card";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -20,14 +28,6 @@ import {
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";

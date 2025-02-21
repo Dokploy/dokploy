@@ -54,7 +54,7 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			serverIp: data?.serverIp || "",
+			serverIp: data?.user.serverIp || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -62,7 +62,7 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				serverIp: data.serverIp || "",
+				serverIp: data.user.serverIp || "",
 			});
 		}
 	}, [form, form.reset, data]);

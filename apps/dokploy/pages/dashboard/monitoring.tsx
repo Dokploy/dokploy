@@ -25,7 +25,7 @@ const Dashboard = () => {
 		false,
 	);
 
-	const { data: monitoring, isLoading } = api.admin.getMetricsToken.useQuery();
+	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>

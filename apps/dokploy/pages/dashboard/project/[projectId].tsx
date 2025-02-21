@@ -200,7 +200,7 @@ const Project = (
 ) => {
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
 	const router = useRouter();

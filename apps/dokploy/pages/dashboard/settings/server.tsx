@@ -2,19 +2,7 @@ import { SetupMonitoring } from "@/components/dashboard/settings/servers/setup-m
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-
 import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -25,8 +13,6 @@ import { toast } from "sonner";
 import superjson from "superjson";
 
 const Page = () => {
-	const { data, refetch } = api.admin.one.useQuery();
-	const { mutateAsync: update } = api.admin.update.useMutation();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">

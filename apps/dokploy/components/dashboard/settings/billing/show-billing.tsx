@@ -39,7 +39,7 @@ export const calculatePrice = (count: number, isAnnual = false) => {
 };
 export const ShowBilling = () => {
 	const { data: servers } = api.server.all.useQuery(undefined);
-	const { data: admin } = api.admin.one.useQuery();
+	const { data: admin } = api.user.get.useQuery();
 	const { data, isLoading } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
@@ -70,7 +70,7 @@ export const ShowBilling = () => {
 		return isAnnual ? interval === "year" : interval === "month";
 	});
 
-	const maxServers = admin?.serversQuantity ?? 1;
+	const maxServers = admin?.user.serversQuantity ?? 1;
 	const percentage = ((servers?.length ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
 
@@ -98,17 +98,17 @@ export const ShowBilling = () => {
 									<TabsTrigger value="annual">Annual</TabsTrigger>
 								</TabsList>
 							</Tabs>
-							{admin?.stripeSubscriptionId && (
+							{admin?.user.stripeSubscriptionId && (
 								<div className="space-y-2 flex flex-col">
 									<h3 className="text-lg font-medium">Servers Plan</h3>
 									<p className="text-sm text-muted-foreground">
 										You have {servers?.length} server on your plan of{" "}
-										{admin?.serversQuantity} servers
+										{admin?.user.serversQuantity} servers
 									</p>
 									<div>
 										<Progress value={safePercentage} className="max-w-lg" />
 									</div>
-									{admin && admin.serversQuantity! <= servers?.length! && (
+									{admin && admin.user.serversQuantity! <= servers?.length! && (
 										<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
 											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 											<span className="text-sm text-yellow-600 dark:text-yellow-400">
@@ -279,7 +279,7 @@ export const ShowBilling = () => {
 																"flex flex-row  items-center gap-2 mt-4",
 															)}
 														>
-															{admin?.stripeCustomerId && (
+															{admin?.user.stripeCustomerId && (
 																<Button
 																	variant="secondary"
 																	className="w-full"

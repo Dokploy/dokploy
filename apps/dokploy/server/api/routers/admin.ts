@@ -1,4 +1,3 @@
-import { db } from "@/server/db";
 import {
 	apiAssignPermissions,
 	apiCreateUserInvitation,
@@ -14,11 +13,9 @@ import {
 	getUserByToken,
 	removeUserById,
 	setupWebMonitoring,
-	updateAdminById,
 	updateUser,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
 	adminProcedure,
@@ -131,7 +128,7 @@ export const adminRouter = createTRPCRouter({
 				if (user.id !== ctx.user.ownerId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not authorized to setup this server",
+						message: "You are not authorized to setup the monitoring",
 					});
 				}
 

@@ -51,7 +51,7 @@ import { ProjectEnvironment } from "./project-environment";
 export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const { data, isLoading } = api.project.all.useQuery();
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 	const [searchQuery, setSearchQuery] = useState("");
 

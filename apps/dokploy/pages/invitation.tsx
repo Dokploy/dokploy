@@ -85,7 +85,7 @@ const Invitation = ({
 	userAlreadyExists,
 }: Props) => {
 	const router = useRouter();
-	const { data } = api.admin.getUserByToken.useQuery(
+	const { data } = api.user.getUserByToken.useQuery(
 		{
 			token,
 		},

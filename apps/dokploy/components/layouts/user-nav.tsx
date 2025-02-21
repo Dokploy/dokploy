@@ -30,7 +30,7 @@ const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UserNav = () => {
 	const router = useRouter();
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { locale, setLocale } = useLocale();

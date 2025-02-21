@@ -26,7 +26,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
 import { Mail, MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -35,8 +35,6 @@ import { AddInvitation } from "./add-invitation";
 export const ShowInvitations = () => {
 	const { data, isLoading, refetch } =
 		api.organization.allInvitations.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
-		api.admin.removeUser.useMutation();
 
 	return (
 		<div className="w-full">
@@ -84,6 +82,9 @@ export const ShowInvitations = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((invitation) => {
+													const isExpired = isPast(
+														new Date(invitation.expiresAt),
+													);
 													return (
 														<TableRow key={invitation.id}>
 															<TableCell className="w-[100px]">
@@ -104,17 +105,22 @@ export const ShowInvitations = () => {
 																<Badge
 																	variant={
 																		invitation.status === "pending"
-																			? "default"
+																			? "secondary"
 																			: invitation.status === "canceled"
 																				? "destructive"
-																				: "secondary"
+																				: "default"
 																	}
 																>
 																	{invitation.status}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{format(new Date(invitation.expiresAt), "PPpp")}
+																{format(new Date(invitation.expiresAt), "PPpp")}{" "}
+																{isExpired ? (
+																	<span className="text-muted-foreground">
+																		(Expired)
+																	</span>
+																) : null}
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
@@ -132,44 +138,51 @@ export const ShowInvitations = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
+																		{!isExpired && (
+																			<>
+																				{invitation.status === "pending" && (
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer"
+																						onSelect={(e) => {
+																							copy(
+																								`${origin}/invitation?token=${invitation.id}`,
+																							);
+																							toast.success(
+																								"Invitation Copied to clipboard",
+																							);
+																						}}
+																					>
+																						Copy Invitation
+																					</DropdownMenuItem>
+																				)}
 
-																		{invitation.status === "pending" && (
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer"
-																				onSelect={(e) => {
-																					copy(
-																						`${origin}/invitation?token=${invitation.id}`,
-																					);
-																					toast.success(
-																						"Invitation Copied to clipboard",
-																					);
-																				}}
-																			>
-																				Copy Invitation
-																			</DropdownMenuItem>
-																		)}
+																				{invitation.status === "pending" && (
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer"
+																						onSelect={async (e) => {
+																							const result =
+																								await authClient.organization.cancelInvitation(
+																									{
+																										invitationId: invitation.id,
+																									},
+																								);
 
-																		{invitation.status === "pending" && (
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer"
-																				onSelect={async (e) => {
-																					const result =
-																						await authClient.organization.cancelInvitation(
-																							{
-																								invitationId: invitation.id,
-																							},
-																						);
-
-																					if (result.error) {
-																						toast.error(result.error.message);
-																					} else {
-																						toast.success("Invitation deleted");
-																						refetch();
-																					}
-																				}}
-																			>
-																				Cancel Invitation
-																			</DropdownMenuItem>
+																							if (result.error) {
+																								toast.error(
+																									result.error.message,
+																								);
+																							} else {
+																								toast.success(
+																									"Invitation deleted",
+																								);
+																								refetch();
+																							}
+																						}}
+																					>
+																						Cancel Invitation
+																					</DropdownMenuItem>
+																				)}
+																			</>
 																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>

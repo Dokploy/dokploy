@@ -59,7 +59,7 @@ export const ProfileForm = () => {
 	const utils = api.useUtils();
 	const { mutateAsync: disable2FA, isLoading: isDisabling } =
 		api.auth.disable2FA.useMutation();
-	const { data, refetch, isLoading } = api.auth.get.useQuery();
+	const { data, refetch, isLoading } = api.user.get.useQuery();
 	const {
 		mutateAsync,
 		isLoading: isUpdating,

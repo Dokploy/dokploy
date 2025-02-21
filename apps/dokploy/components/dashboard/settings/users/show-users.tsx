@@ -75,9 +75,7 @@ export const ShowUsers = () => {
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
-													<TableHead className="text-center">
-														Is Registered
-													</TableHead>
+
 													<TableHead className="text-center">
 														Created At
 													</TableHead>
@@ -108,12 +106,6 @@ export const ShowUsers = () => {
 																	: "Disabled"}
 															</TableCell>
 															<TableCell className="text-center">
-																{member.user.isRegistered ||
-																member.role === "owner"
-																	? "Registered"
-																	: "Not Registered"}
-															</TableCell>
-															<TableCell className="text-right">
 																<span className="text-sm text-muted-foreground">
 																	{format(new Date(member.createdAt), "PPpp")}
 																</span>
@@ -134,22 +126,6 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{!member.user.isRegistered &&
-																			member.role !== "owner" && (
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer"
-																					onSelect={(e) => {
-																						copy(
-																							`${origin}/invitation?token=${member.user.token}`,
-																						);
-																						toast.success(
-																							"Invitation Copied to clipboard",
-																						);
-																					}}
-																				>
-																					Copy Invitation
-																				</DropdownMenuItem>
-																			)}
 
 																		{member.role !== "owner" && (
 																			<AddUserPermissions

@@ -60,9 +60,9 @@ const Postgresql = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.postgres.one.useQuery({ postgresId });
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 
-	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
+	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (

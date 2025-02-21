@@ -35,7 +35,7 @@ const profileSchema = z.object({
 type Profile = z.infer<typeof profileSchema>;
 
 export const RemoveSelfAccount = () => {
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.auth.removeSelfAccount.useMutation();
 	const { t } = useTranslation("settings");

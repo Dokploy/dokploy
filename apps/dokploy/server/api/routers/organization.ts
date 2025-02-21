@@ -1,11 +1,6 @@
 import { db } from "@/server/db";
-import {
-	invitation,
-	member,
-	organization,
-	users_temp,
-} from "@/server/db/schema";
-import { IS_CLOUD, auth } from "@dokploy/server/index";
+import { invitation, member, organization } from "@/server/db/schema";
+import { IS_CLOUD } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -45,7 +40,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const memberResult = await db.insert(member).values({
+			await db.insert(member).values({
 				organizationId: result.id,
 				role: "owner",
 				createdAt: new Date(),
@@ -142,7 +137,7 @@ export const organizationRouter = createTRPCRouter({
 	allInvitations: adminProcedure.query(async ({ ctx }) => {
 		return await db.query.invitation.findMany({
 			where: eq(invitation.organizationId, ctx.session.activeOrganizationId),
-			orderBy: [desc(invitation.status)],
+			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
 	acceptInvitation: adminProcedure

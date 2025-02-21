@@ -14,7 +14,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 export const GenerateToken = () => {
-	const { data, refetch } = api.auth.get.useQuery();
+	const { data, refetch } = api.user.get.useQuery();
 
 	const { mutateAsync: generateToken, isLoading: isLoadingToken } =
 		api.auth.generateToken.useMutation();
