@@ -748,13 +748,6 @@
           "notNull": true,
           "default": "''"
         },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
         "isRegistered": {
           "name": "isRegistered",
           "type": "boolean",
@@ -4494,6 +4487,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "ARRAY[]::text[]"
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
         }
       },
       "indexes": {},

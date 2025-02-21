@@ -1,7 +1,6 @@
 CREATE TABLE "user_temp" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text DEFAULT '' NOT NULL,
-	"token" text NOT NULL,
 	"isRegistered" boolean DEFAULT false NOT NULL,
 	"expirationDate" text NOT NULL,
 	"createdAt" text NOT NULL,
@@ -82,6 +81,7 @@ CREATE TABLE "member" (
 	"user_id" text NOT NULL,
 	"role" text NOT NULL,
 	"created_at" timestamp NOT NULL,
+    "token" text NOT NULL,
 	"canCreateProjects" boolean DEFAULT false NOT NULL,
 	"canAccessToSSHKeys" boolean DEFAULT false NOT NULL,
 	"canCreateServices" boolean DEFAULT false NOT NULL,
@@ -148,7 +148,6 @@ WITH inserted_users AS (
     INSERT INTO user_temp (
         id,
         email,
-        token,
         "email_verified",
         "updated_at",
         "serverIp",
@@ -174,7 +173,6 @@ WITH inserted_users AS (
     SELECT 
         a."adminId",
         auth.email,
-        COALESCE(auth.token, ''),
         true,
         CURRENT_TIMESTAMP,
         a."serverIp",
@@ -247,7 +245,6 @@ inserted_members AS (
     INSERT INTO user_temp (
         id,
         email,
-        token,
         "email_verified",
         "updated_at",
         image,
@@ -258,7 +255,6 @@ inserted_members AS (
     SELECT 
         u."userId",
         auth.email,
-        COALESCE(u.token, ''),
         true,
         CURRENT_TIMESTAMP,
         auth.image,
@@ -302,6 +298,7 @@ inserted_admin_members AS (
         "user_id",
         role,
         "created_at",
+        "token",
         "canAccessToAPI",
         "canAccessToDocker",
         "canAccessToGitProviders",
@@ -320,6 +317,7 @@ inserted_admin_members AS (
         a."adminId",
         'owner',
         NOW(),
+        COALESCE(auth.token, ''),
         true, -- Los admins tienen todos los permisos por defecto
         true,
         true,
@@ -333,6 +331,7 @@ inserted_admin_members AS (
         '{}'
     FROM admin a
     JOIN inserted_orgs o ON o."owner_id" = a."adminId"
+    JOIN auth ON auth.id = a."authId"
     RETURNING *
 )
 -- Insertar miembros regulares en las organizaciones
@@ -342,6 +341,7 @@ INSERT INTO member (
     "user_id",
     role,
     "created_at",
+    "token",
     "canAccessToAPI",
     "canAccessToDocker",
     "canAccessToGitProviders",
@@ -360,6 +360,7 @@ SELECT
     u."userId",
     'member',
     NOW(),
+    COALESCE(auth.token, ''),
     COALESCE(u."canAccessToAPI", false),
     COALESCE(u."canAccessToDocker", false),
     COALESCE(u."canAccessToGitProviders", false),
@@ -373,7 +374,8 @@ SELECT
     COALESCE(u."accesedServices", '{}')
 FROM "user" u
 JOIN admin a ON u."adminId" = a."adminId"
-JOIN inserted_orgs o ON o."owner_id" = a."adminId";
+JOIN inserted_orgs o ON o."owner_id" = a."adminId"
+JOIN auth ON auth.id = u."authId";
 
 -- Migration tables foreign keys 
 
@@ -411,7 +413,7 @@ ALTER TABLE "git_provider" ADD CONSTRAINT "git_provider_userId_user_temp_id_fk" 
 ALTER TABLE "server" ADD CONSTRAINT "server_userId_user_temp_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user_temp"("id") ON DELETE cascade ON UPDATE no action;
 
 
-ALTER TABLE "user_temp" ALTER COLUMN "token" SET DEFAULT '';--> statement-breakpoint
+ALTER TABLE "member" ALTER COLUMN "token" SET DEFAULT '';--> statement-breakpoint
 ALTER TABLE "user_temp" ADD COLUMN "created_at" timestamp DEFAULT now();
 
 

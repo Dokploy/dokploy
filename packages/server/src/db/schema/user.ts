@@ -29,7 +29,6 @@ export const users_temp = pgTable("user_temp", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull().default(""),
-	token: text("token").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
@@ -128,16 +127,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 
 const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
-	token: z.string().min(1),
 	isRegistered: z.boolean().optional(),
-	// accessedProjects: z.array(z.string()).optional(),
-	// accessedServices: z.array(z.string()).optional(),
-	// canCreateProjects: z.boolean().optional(),
-	// canCreateServices: z.boolean().optional(),
-	// canDeleteProjects: z.boolean().optional(),
-	// canDeleteServices: z.boolean().optional(),
-	// canAccessToDocker: z.boolean().optional(),
-	// canAccessToTraefikFiles: z.boolean().optional(),
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -150,11 +140,7 @@ export const apiRemoveUser = createSchema
 	})
 	.required();
 
-export const apiFindOneToken = createSchema
-	.pick({
-		token: true,
-	})
-	.required();
+export const apiFindOneToken = createSchema.pick({}).required();
 
 export const apiAssignPermissions = createSchema
 	.pick({
@@ -170,6 +156,19 @@ export const apiAssignPermissions = createSchema
 		// canAccessToAPI: true,
 		// canAccessToSSHKeys: true,
 		// canAccessToGitProviders: true,
+	})
+	.extend({
+		accessedProjects: z.array(z.string()).optional(),
+		accessedServices: z.array(z.string()).optional(),
+		canCreateProjects: z.boolean().optional(),
+		canCreateServices: z.boolean().optional(),
+		canDeleteProjects: z.boolean().optional(),
+		canDeleteServices: z.boolean().optional(),
+		canAccessToDocker: z.boolean().optional(),
+		canAccessToTraefikFiles: z.boolean().optional(),
+		canAccessToAPI: z.boolean().optional(),
+		canAccessToSSHKeys: z.boolean().optional(),
+		canAccessToGitProviders: z.boolean().optional(),
 	})
 	.required();
 

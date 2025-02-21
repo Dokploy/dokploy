@@ -18,7 +18,7 @@ import {
 	member,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
 	adminProcedure,
@@ -33,6 +33,7 @@ export const userRouter = createTRPCRouter({
 			with: {
 				user: true,
 			},
+			orderBy: [asc(member.createdAt)],
 		});
 	}),
 	one: protectedProcedure
@@ -42,14 +43,17 @@ export const userRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			const user = await findUserById(input.userId);
-			// if (user.adminId !== ctx.user.adminId) {
-			// 	throw new TRPCError({
-			// 		code: "UNAUTHORIZED",
-			// 		message: "You are not allowed to access this user",
-			// 	});
-			// }
-			return user;
+			const memberResult = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, input.userId),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+				with: {
+					user: true,
+				},
+			});
+
+			return memberResult;
 		}),
 	get: protectedProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
@@ -111,9 +115,12 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				await updateUser(user.id, {
-					...input,
-				});
+				await db
+					.update(member)
+					.set({
+						...input,
+					})
+					.where(eq(member.userId, input.id));
 			} catch (error) {
 				throw error;
 			}

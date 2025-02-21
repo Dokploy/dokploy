@@ -52,7 +52,7 @@ interface Props {
 export const AddUserPermissions = ({ userId }: Props) => {
 	const { data: projects } = api.project.all.useQuery();
 
-	const { data, refetch } = api.auth.one.useQuery(
+	const { data, refetch } = api.user.one.useQuery(
 		{
 			userId,
 		},
