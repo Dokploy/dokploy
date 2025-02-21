@@ -38,7 +38,11 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkProjectAccess(ctx.user.id, "create");
+					await checkProjectAccess(
+						ctx.user.id,
+						"create",
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				const admin = await findUserById(ctx.user.ownerId);
@@ -55,7 +59,11 @@ export const projectRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 				if (ctx.user.rol === "member") {
-					await addNewProject(ctx.user.id, project.projectId);
+					await addNewProject(
+						ctx.user.id,
+						project.projectId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				return project;
@@ -77,7 +85,12 @@ export const projectRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 
-				await checkProjectAccess(ctx.user.id, "access", input.projectId);
+				await checkProjectAccess(
+					ctx.user.id,
+					"access",
+					ctx.session.activeOrganizationId,
+					input.projectId,
+				);
 
 				const project = await db.query.projects.findFirst({
 					where: and(
@@ -212,7 +225,11 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkProjectAccess(ctx.user.id, "delete");
+					await checkProjectAccess(
+						ctx.user.id,
+						"delete",
+						ctx.session.activeOrganizationId,
+					);
 				}
 				const currentProject = await findProjectById(input.projectId);
 				if (

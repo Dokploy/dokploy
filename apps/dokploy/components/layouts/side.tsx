@@ -155,7 +155,7 @@ const MENU: Menu = {
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
 				!!(
-					(auth?.role === "owner" || auth?.user?.canAccessToTraefikFiles) &&
+					(auth?.role === "owner" || auth?.canAccessToTraefikFiles) &&
 					!isCloud
 				),
 		},
@@ -166,10 +166,7 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -178,10 +175,7 @@ const MENU: Menu = {
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -190,10 +184,7 @@ const MENU: Menu = {
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" || auth?.user?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -291,7 +282,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.user?.canAccessToSSHKeys),
+				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
 		},
 		{
 			isSingle: true,
@@ -300,7 +291,7 @@ const MENU: Menu = {
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.user?.canAccessToGitProviders),
+				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
 		},
 		{
 			isSingle: true,

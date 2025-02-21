@@ -33,32 +33,48 @@ export const findUserByAuthId = async (authId: string) => {
 	// return userR;
 };
 
-export const addNewProject = async (userId: string, projectId: string) => {
-	const userR = await findUserById(userId);
+export const addNewProject = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	const userR = await findMemberById(userId, organizationId);
 
-	// await db
-	// 	.update(user)
-	// 	.set({
-	// 		accessedProjects: [...userR.accessedProjects, projectId],
-	// 	})
-	// 	.where(eq(user.authId, authId));
+	await db
+		.update(member)
+		.set({
+			accessedProjects: [...userR.accessedProjects, projectId],
+		})
+		.where(
+			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
+		);
 };
 
-export const addNewService = async (userId: string, serviceId: string) => {
-	const userR = await findUserById(userId);
-	// await db
-	// 	.update(user)
-	// 	.set({
-	// 		accessedServices: [...userR.accessedServices, serviceId],
-	// 	})
-	// 	.where(eq(user.userId, userId));
+export const addNewService = async (
+	userId: string,
+	serviceId: string,
+	organizationId: string,
+) => {
+	const userR = await findMemberById(userId, organizationId);
+	await db
+		.update(member)
+		.set({
+			accessedServices: [...userR.accessedServices, serviceId],
+		})
+		.where(
+			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
+		);
 };
 
 export const canPerformCreationService = async (
 	userId: string,
 	projectId: string,
+	organizationId: string,
 ) => {
-	const { accessedProjects, canCreateServices } = await findUserById(userId);
+	const { accessedProjects, canCreateServices } = await findMemberById(
+		userId,
+		organizationId,
+	);
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canCreateServices && haveAccessToProject) {
@@ -71,8 +87,9 @@ export const canPerformCreationService = async (
 export const canPerformAccessService = async (
 	userId: string,
 	serviceId: string,
+	organizationId: string,
 ) => {
-	const { accessedServices } = await findUserById(userId);
+	const { accessedServices } = await findMemberById(userId, organizationId);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (haveAccessToService) {
@@ -85,8 +102,12 @@ export const canPerformAccessService = async (
 export const canPeformDeleteService = async (
 	userId: string,
 	serviceId: string,
+	organizationId: string,
 ) => {
-	const { accessedServices, canDeleteServices } = await findUserById(userId);
+	const { accessedServices, canDeleteServices } = await findMemberById(
+		userId,
+		organizationId,
+	);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (canDeleteServices && haveAccessToService) {
@@ -96,8 +117,11 @@ export const canPeformDeleteService = async (
 	return false;
 };
 
-export const canPerformCreationProject = async (userId: string) => {
-	const { canCreateProjects } = await findUserById(userId);
+export const canPerformCreationProject = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const { canCreateProjects } = await findMemberById(userId, organizationId);
 
 	if (canCreateProjects) {
 		return true;
@@ -106,8 +130,11 @@ export const canPerformCreationProject = async (userId: string) => {
 	return false;
 };
 
-export const canPerformDeleteProject = async (userId: string) => {
-	const { canDeleteProjects } = await findUserById(userId);
+export const canPerformDeleteProject = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const { canDeleteProjects } = await findMemberById(userId, organizationId);
 
 	if (canDeleteProjects) {
 		return true;
@@ -119,8 +146,9 @@ export const canPerformDeleteProject = async (userId: string) => {
 export const canPerformAccessProject = async (
 	userId: string,
 	projectId: string,
+	organizationId: string,
 ) => {
-	const { accessedProjects } = await findUserById(userId);
+	const { accessedProjects } = await findMemberById(userId, organizationId);
 
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
@@ -130,26 +158,45 @@ export const canPerformAccessProject = async (
 	return false;
 };
 
-export const canAccessToTraefikFiles = async (userId: string) => {
-	const { canAccessToTraefikFiles } = await findUserById(userId);
+export const canAccessToTraefikFiles = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const { canAccessToTraefikFiles } = await findMemberById(
+		userId,
+		organizationId,
+	);
 	return canAccessToTraefikFiles;
 };
 
 export const checkServiceAccess = async (
 	userId: string,
 	serviceId: string,
+	organizationId: string,
 	action = "access" as "access" | "create" | "delete",
 ) => {
 	let hasPermission = false;
 	switch (action) {
 		case "create":
-			hasPermission = await canPerformCreationService(userId, serviceId);
+			hasPermission = await canPerformCreationService(
+				userId,
+				serviceId,
+				organizationId,
+			);
 			break;
 		case "access":
-			hasPermission = await canPerformAccessService(userId, serviceId);
+			hasPermission = await canPerformAccessService(
+				userId,
+				serviceId,
+				organizationId,
+			);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(userId, serviceId);
+			hasPermission = await canPeformDeleteService(
+				userId,
+				serviceId,
+				organizationId,
+			);
 			break;
 		default:
 			hasPermission = false;
@@ -165,6 +212,7 @@ export const checkServiceAccess = async (
 export const checkProjectAccess = async (
 	authId: string,
 	action: "create" | "delete" | "access",
+	organizationId: string,
 	projectId?: string,
 ) => {
 	let hasPermission = false;
@@ -173,13 +221,14 @@ export const checkProjectAccess = async (
 			hasPermission = await canPerformAccessProject(
 				authId,
 				projectId as string,
+				organizationId,
 			);
 			break;
 		case "create":
-			hasPermission = await canPerformCreationProject(authId);
+			hasPermission = await canPerformCreationProject(authId, organizationId);
 			break;
 		case "delete":
-			hasPermission = await canPerformDeleteProject(authId);
+			hasPermission = await canPerformDeleteProject(authId, organizationId);
 			break;
 		default:
 			hasPermission = false;
