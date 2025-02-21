@@ -1,6 +1,6 @@
 {
-  "id": "67140673-fcd1-4c33-8dd1-bb7a34bdae23",
-  "prevId": "1240ec96-1751-4de3-b64f-cef9cb716786",
+  "id": "c5e17a87-0aa3-4178-be24-cfa7cde0f75d",
+  "prevId": "9cb79f1e-14c2-4deb-b1ab-a1d038f72356",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -731,166 +731,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user": {
-      "name": "user",
-      "schema": "",
-      "columns": {
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "isRegistered": {
-          "name": "isRegistered",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "expirationDate": {
-          "name": "expirationDate",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "canCreateProjects": {
-          "name": "canCreateProjects",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToSSHKeys": {
-          "name": "canAccessToSSHKeys",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canCreateServices": {
-          "name": "canCreateServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteProjects": {
-          "name": "canDeleteProjects",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteServices": {
-          "name": "canDeleteServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToDocker": {
-          "name": "canAccessToDocker",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToAPI": {
-          "name": "canAccessToAPI",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToGitProviders": {
-          "name": "canAccessToGitProviders",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToTraefikFiles": {
-          "name": "canAccessToTraefikFiles",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "accesedProjects": {
-          "name": "accesedProjects",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "accesedServices": {
-          "name": "accesedServices",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "adminId": {
-          "name": "adminId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "authId": {
-          "name": "authId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_adminId_admin_adminId_fk": {
-          "name": "user_adminId_admin_adminId_fk",
-          "tableFrom": "user",
-          "tableTo": "admin",
-          "columnsFrom": [
-            "adminId"
-          ],
-          "columnsTo": [
-            "adminId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_authId_auth_id_fk": {
-          "name": "user_authId_auth_id_fk",
-          "tableFrom": "user",
-          "tableTo": "auth",
-          "columnsFrom": [
-            "authId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.user_temp": {
       "name": "user_temp",
       "schema": "",
@@ -912,7 +752,8 @@
           "name": "token",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "''"
         },
         "isRegistered": {
           "name": "isRegistered",
@@ -932,6 +773,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
         },
         "two_factor_enabled": {
           "name": "two_factor_enabled",
@@ -1098,252 +946,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.admin": {
-      "name": "admin",
-      "schema": "",
-      "columns": {
-        "adminId": {
-          "name": "adminId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "serverIp": {
-          "name": "serverIp",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "certificateType": {
-          "name": "certificateType",
-          "type": "certificateType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'none'"
-        },
-        "host": {
-          "name": "host",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "letsEncryptEmail": {
-          "name": "letsEncryptEmail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sshPrivateKey": {
-          "name": "sshPrivateKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enableDockerCleanup": {
-          "name": "enableDockerCleanup",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "enableLogRotation": {
-          "name": "enableLogRotation",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "authId": {
-          "name": "authId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stripeCustomerId": {
-          "name": "stripeCustomerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stripeSubscriptionId": {
-          "name": "stripeSubscriptionId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "serversQuantity": {
-          "name": "serversQuantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "enablePaidFeatures": {
-          "name": "enablePaidFeatures",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "metricsConfig": {
-          "name": "metricsConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{\"server\":{\"type\":\"Dokploy\",\"refreshRate\":60,\"port\":4500,\"token\":\"\",\"retentionDays\":2,\"cronJob\":\"\",\"urlCallback\":\"\",\"thresholds\":{\"cpu\":0,\"memory\":0}},\"containers\":{\"refreshRate\":60,\"services\":{\"include\":[],\"exclude\":[]}}}'::jsonb"
-        },
-        "cleanupCacheApplications": {
-          "name": "cleanupCacheApplications",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "cleanupCacheOnPreviews": {
-          "name": "cleanupCacheOnPreviews",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "cleanupCacheOnCompose": {
-          "name": "cleanupCacheOnCompose",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "admin_authId_auth_id_fk": {
-          "name": "admin_authId_auth_id_fk",
-          "tableFrom": "admin",
-          "tableTo": "auth",
-          "columnsFrom": [
-            "authId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.auth": {
-      "name": "auth",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password": {
-          "name": "password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rol": {
-          "name": "rol",
-          "type": "Roles",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is2FAEnabled": {
-          "name": "is2FAEnabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resetPasswordToken": {
-          "name": "resetPasswordToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "resetPasswordExpiresAt": {
-          "name": "resetPasswordExpiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confirmationToken": {
-          "name": "confirmationToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confirmationExpiresAt": {
-          "name": "confirmationExpiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "auth_email_unique": {
-          "name": "auth_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.project": {
       "name": "project",
       "schema": "",
@@ -1372,8 +974,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1388,15 +990,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_adminId_admin_adminId_fk": {
-          "name": "project_adminId_admin_adminId_fk",
+        "project_organizationId_organization_id_fk": {
+          "name": "project_organizationId_organization_id_fk",
           "tableFrom": "project",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2249,8 +1851,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2258,15 +1860,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "destination_adminId_admin_adminId_fk": {
-          "name": "destination_adminId_admin_adminId_fk",
+        "destination_organizationId_organization_id_fk": {
+          "name": "destination_organizationId_organization_id_fk",
           "tableFrom": "destination",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2657,8 +2259,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2672,15 +2274,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "certificate_adminId_admin_adminId_fk": {
-          "name": "certificate_adminId_admin_adminId_fk",
+        "certificate_organizationId_organization_id_fk": {
+          "name": "certificate_organizationId_organization_id_fk",
           "tableFrom": "certificate",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2790,7 +2392,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -2804,51 +2406,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.session": {
-      "name": "session",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "session_user_id_auth_id_fk": {
-          "name": "session_user_id_auth_id_fk",
-          "tableFrom": "session",
-          "tableTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3574,8 +3131,8 @@
           "notNull": true,
           "default": "'cloud'"
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3583,15 +3140,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "registry_adminId_admin_adminId_fk": {
-          "name": "registry_adminId_admin_adminId_fk",
+        "registry_organizationId_organization_id_fk": {
+          "name": "registry_organizationId_organization_id_fk",
           "tableFrom": "registry",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3834,8 +3391,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3908,15 +3465,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "notification_adminId_admin_adminId_fk": {
-          "name": "notification_adminId_admin_adminId_fk",
+        "notification_organizationId_organization_id_fk": {
+          "name": "notification_organizationId_organization_id_fk",
           "tableFrom": "notification",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4037,8 +3594,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4046,15 +3603,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "ssh-key_adminId_admin_adminId_fk": {
-          "name": "ssh-key_adminId_admin_adminId_fk",
+        "ssh-key_organizationId_organization_id_fk": {
+          "name": "ssh-key_organizationId_organization_id_fk",
           "tableFrom": "ssh-key",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4096,8 +3653,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4105,15 +3662,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "git_provider_adminId_admin_adminId_fk": {
-          "name": "git_provider_adminId_admin_adminId_fk",
+        "git_provider_organizationId_organization_id_fk": {
+          "name": "git_provider_organizationId_organization_id_fk",
           "tableFrom": "git_provider",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4411,8 +3968,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4448,15 +4005,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "server_adminId_admin_adminId_fk": {
-          "name": "server_adminId_admin_adminId_fk",
+        "server_organizationId_organization_id_fk": {
+          "name": "server_organizationId_organization_id_fk",
           "tableFrom": "server",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4735,7 +4292,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -4804,7 +4361,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "invitation_inviter_id_user_temp_id_fk": {
@@ -4817,7 +4374,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -5033,7 +4590,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -5174,14 +4731,6 @@
         "gitlab",
         "bitbucket",
         "drop"
-      ]
-    },
-    "public.Roles": {
-      "name": "Roles",
-      "schema": "public",
-      "values": [
-        "admin",
-        "user"
       ]
     },
     "public.domainType": {

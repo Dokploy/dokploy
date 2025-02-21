@@ -470,69 +470,6 @@
       "when": 1739426913392,
       "tag": "0066_yielding_echo",
       "breakpoints": true
-    },
-    {
-      "idx": 67,
-      "version": "7",
-      "when": 1739427057545,
-      "tag": "0067_migrate-data",
-      "breakpoints": true
-    },
-    {
-      "idx": 68,
-      "version": "7",
-      "when": 1739428942964,
-      "tag": "0068_sour_professor_monster",
-      "breakpoints": true
-    },
-    {
-      "idx": 69,
-      "version": "7",
-      "when": 1739664410814,
-      "tag": "0069_broad_ken_ellis",
-      "breakpoints": true
-    },
-    {
-      "idx": 70,
-      "version": "7",
-      "when": 1739671869809,
-      "tag": "0070_nervous_vivisector",
-      "breakpoints": true
-    },
-    {
-      "idx": 71,
-      "version": "7",
-      "when": 1739671878698,
-      "tag": "0071_migrate-data-projects",
-      "breakpoints": true
-    },
-    {
-      "idx": 72,
-      "version": "7",
-      "when": 1739672367223,
-      "tag": "0072_lazy_pixie",
-      "breakpoints": true
-    },
-    {
-      "idx": 73,
-      "version": "7",
-      "when": 1739740193879,
-      "tag": "0073_polite_miss_america",
-      "breakpoints": true
-    },
-    {
-      "idx": 74,
-      "version": "7",
-      "when": 1739773539709,
-      "tag": "0074_lowly_jack_power",
-      "breakpoints": true
-    },
-    {
-      "idx": 75,
-      "version": "7",
-      "when": 1739781534192,
-      "tag": "0075_heavy_metal_master",
-      "breakpoints": true
     }
   ]
 }
