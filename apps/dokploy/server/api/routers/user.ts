@@ -15,10 +15,11 @@ import {
 	apiAssignPermissions,
 	apiFindOneToken,
 	apiUpdateUser,
+	invitation,
 	member,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import {
 	adminProcedure,
@@ -115,14 +116,34 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
+				const { id, ...rest } = input;
+
+				console.log(rest);
 				await db
 					.update(member)
 					.set({
-						...input,
+						...rest,
 					})
-					.where(eq(member.userId, input.id));
+					.where(
+						and(
+							eq(member.userId, input.id),
+							eq(
+								member.organizationId,
+								ctx.session?.activeOrganizationId || "",
+							),
+						),
+					);
 			} catch (error) {
 				throw error;
 			}
 		}),
+	getInvitations: protectedProcedure.query(async ({ ctx }) => {
+		return await db.query.invitation.findMany({
+			where: and(
+				eq(invitation.email, ctx.user.email),
+				gt(invitation.expiresAt, new Date()),
+				eq(invitation.status, "pending"),
+			),
+		});
+	}),
 });

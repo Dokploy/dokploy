@@ -56,7 +56,11 @@ export const mongoRouter = createTRPCRouter({
 				}
 				const newMongo = await createMongo(input);
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newMongo.mongoId);
+					await addNewService(
+						ctx.user.id,
+						newMongo.mongoId,
+						project.organizationId,
+					);
 				}
 
 				await createMount({

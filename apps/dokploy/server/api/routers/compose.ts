@@ -80,7 +80,11 @@ export const composeRouter = createTRPCRouter({
 				const newService = await createCompose(input);
 
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newService.composeId);
+					await addNewService(
+						ctx.user.id,
+						newService.composeId,
+						project.organizationId,
+					);
 				}
 
 				return newService;
@@ -424,7 +428,11 @@ export const composeRouter = createTRPCRouter({
 			});
 
 			if (ctx.user.rol === "member") {
-				await addNewService(ctx.user.id, compose.composeId);
+				await addNewService(
+					ctx.user.id,
+					compose.composeId,
+					project.organizationId,
+				);
 			}
 
 			if (mounts && mounts?.length > 0) {

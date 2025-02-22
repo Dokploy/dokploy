@@ -57,7 +57,11 @@ export const mariadbRouter = createTRPCRouter({
 				}
 				const newMariadb = await createMariadb(input);
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newMariadb.mariadbId);
+					await addNewService(
+						ctx.user.id,
+						newMariadb.mariadbId,
+						project.organizationId,
+					);
 				}
 
 				await createMount({

@@ -81,7 +81,11 @@ export const applicationRouter = createTRPCRouter({
 				const newApplication = await createApplication(input);
 
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newApplication.applicationId);
+					await addNewService(
+						ctx.user.id,
+						newApplication.applicationId,
+						project.organizationId,
+					);
 				}
 				return newApplication;
 			} catch (error: unknown) {

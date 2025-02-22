@@ -59,7 +59,11 @@ export const mysqlRouter = createTRPCRouter({
 
 				const newMysql = await createMysql(input);
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newMysql.mysqlId);
+					await addNewService(
+						ctx.user.id,
+						newMysql.mysqlId,
+						project.organizationId,
+					);
 				}
 
 				await createMount({

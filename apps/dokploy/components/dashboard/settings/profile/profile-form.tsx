@@ -65,7 +65,7 @@ export const ProfileForm = () => {
 		isLoading: isUpdating,
 		isError,
 		error,
-	} = api.auth.update.useMutation();
+	} = api.user.update.useMutation();
 	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 

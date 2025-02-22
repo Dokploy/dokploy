@@ -64,7 +64,11 @@ export const postgresRouter = createTRPCRouter({
 				}
 				const newPostgres = await createPostgres(input);
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newPostgres.postgresId);
+					await addNewService(
+						ctx.user.id,
+						newPostgres.postgresId,
+						project.organizationId,
+					);
 				}
 
 				await createMount({

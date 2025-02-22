@@ -56,7 +56,11 @@ export const redisRouter = createTRPCRouter({
 				}
 				const newRedis = await createRedis(input);
 				if (ctx.user.rol === "member") {
-					await addNewService(ctx.user.id, newRedis.redisId);
+					await addNewService(
+						ctx.user.id,
+						newRedis.redisId,
+						project.organizationId,
+					);
 				}
 
 				await createMount({

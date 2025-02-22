@@ -27,6 +27,8 @@ import {
 	Trash2,
 	User,
 	Users,
+	ChevronsUpDown,
+	Plus,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
@@ -75,6 +77,20 @@ import { useRouter } from "next/router";
 import { Logo } from "../shared/logo";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { AddOrganization } from "../dashboard/organization/handle-organization";
+import { DialogAction } from "../shared/dialog-action";
+import { Button } from "../ui/button";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["auth"]["get"];
@@ -473,46 +489,6 @@ interface Props {
 function LogoWrapper() {
 	return <SidebarLogo />;
 }
-import { ChevronsUpDown, Plus } from "lucide-react";
-
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
-import { AddOrganization } from "../dashboard/organization/handle-organization";
-import { DialogAction } from "../shared/dialog-action";
-import { Button } from "../ui/button";
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Acme Inc",
-			logo: GalleryVerticalEnd,
-			plan: "Enterprise",
-		},
-		{
-			name: "Acme Corp.",
-			logo: AudioWaveform,
-			plan: "Startup",
-		},
-		{
-			name: "Evil Corp.",
-			logo: Command,
-			plan: "Free",
-		},
-	],
-};
 
 function SidebarLogo() {
 	const { state } = useSidebar();
@@ -529,6 +505,10 @@ function SidebarLogo() {
 		api.organization.delete.useMutation();
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const utils = api.useUtils();
+
+	const { data: invitations, refetch: refetchInvitations } =
+		api.user.getInvitations.useQuery();
 
 	const [activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
@@ -549,31 +529,27 @@ function SidebarLogo() {
 				</div>
 			) : (
 				<SidebarMenu>
-					<SidebarMenuItem>
+					<SidebarMenuItem className="flex items-center gap-2">
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
 									size="lg"
 									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 								>
-									{/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"> */}
-									<div
-										className={cn(
-											"flex aspect-square items-center justify-center rounded-lg transition-all",
-											state === "collapsed" ? "size-6" : "size-10",
-										)}
-									>
-										<Logo
-											className={cn(
-												"transition-all",
-												state === "collapsed" ? "size-6" : "size-10",
-											)}
-										/>
-									</div>
-									<div className="grid flex-1 text-left text-sm leading-tight">
-										<span className="truncate font-semibold">
-											{activeTeam?.name}
-										</span>
+									<div className="flex items-center gap-2">
+										<div className="flex size-6 items-center justify-center rounded-sm border">
+											<Logo
+												className={cn(
+													"transition-all",
+													state === "collapsed" ? "size-6" : "size-10",
+												)}
+											/>
+										</div>
+										<div className="flex flex-col items-start">
+											<p className="text-sm font-medium leading-none">
+												{activeOrganization?.name}
+											</p>
+										</div>
 									</div>
 									<ChevronsUpDown className="ml-auto" />
 								</SidebarMenuButton>
@@ -587,14 +563,13 @@ function SidebarLogo() {
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
 									Organizations
 								</DropdownMenuLabel>
-								{organizations?.map((org, index) => (
+								{organizations?.map((org) => (
 									<div className="flex flex-row justify-between" key={org.name}>
 										<DropdownMenuItem
 											onClick={async () => {
 												await authClient.organization.setActive({
 													organizationId: org.id,
 												});
-
 												window.location.reload();
 											}}
 											className="w-full gap-2 p-2"
@@ -655,35 +630,76 @@ function SidebarLogo() {
 								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
+
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" size="icon" className="relative">
+									<Bell className="h-5 w-5" />
+									{invitations && invitations.length > 0 && (
+										<span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+											{invitations.length}
+										</span>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="start"
+								side={"right"}
+								className="w-80"
+							>
+								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								{invitations && invitations.length > 0 ? (
+									invitations.map((invitation) => (
+										<div key={invitation.id} className="flex flex-col gap-2">
+											<DropdownMenuItem
+												className="flex flex-col items-start gap-1 p-3"
+												onSelect={(e) => e.preventDefault()}
+											>
+												<div className="font-medium">{invitation.email}</div>
+												<div className="text-xs text-muted-foreground">
+													Expires:{" "}
+													{new Date(invitation.expiresAt).toLocaleDateString()}
+												</div>
+												<div className="text-xs text-muted-foreground">
+													Role: {invitation.role}
+												</div>
+											</DropdownMenuItem>
+											<DialogAction
+												title="Accept Invitation"
+												description="Are you sure you want to accept this invitation?"
+												type="default"
+												onClick={async () => {
+													const { error } =
+														await authClient.organization.acceptInvitation({
+															invitationId: invitation.id,
+														});
+
+													if (error) {
+														toast.error(
+															error.message || "Error accepting invitation",
+														);
+													} else {
+														toast.success("Invitation accepted successfully");
+														await refetchInvitations();
+													}
+												}}
+											>
+												<Button size="sm" variant="secondary">
+													Accept Invitation
+												</Button>
+											</DialogAction>
+										</div>
+									))
+								) : (
+									<DropdownMenuItem disabled>
+										No pending invitations
+									</DropdownMenuItem>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</SidebarMenuItem>
 				</SidebarMenu>
 			)}
-
-			{/* <Link
-				href="/dashboard/projects"
-				className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
-			>
-				<div
-					className={cn(
-						"flex aspect-square items-center justify-center rounded-lg transition-all",
-						state === "collapsed" ? "size-6" : "size-10",
-					)}
-				>
-					<Logo
-						className={cn(
-							"transition-all",
-							state === "collapsed" ? "size-6" : "size-10",
-						)}
-					/>
-				</div>
-
-				<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
-					<p className="truncate font-semibold">Dokploy</p>
-					<p className="truncate text-xs text-muted-foreground">
-						{dokployVersion}
-					</p>
-				</div>
-			</Link> */}
 		</>
 	);
 }
