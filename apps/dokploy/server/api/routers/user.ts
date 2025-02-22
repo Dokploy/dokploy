@@ -144,6 +144,9 @@ export const userRouter = createTRPCRouter({
 				gt(invitation.expiresAt, new Date()),
 				eq(invitation.status, "pending"),
 			),
+			with: {
+				organization: true,
+			},
 		});
 	}),
 });

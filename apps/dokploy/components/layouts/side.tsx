@@ -555,7 +555,7 @@ function SidebarLogo() {
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+								className="w-[--radix-dropdown-menu-trigger-width] min-w-64 rounded-lg"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
@@ -634,9 +634,9 @@ function SidebarLogo() {
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="ghost" size="icon" className="relative">
-									<Bell className="h-5 w-5" />
+									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
 											{invitations.length}
 										</span>
 									)}
@@ -648,53 +648,58 @@ function SidebarLogo() {
 								className="w-80"
 							>
 								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
-								{invitations && invitations.length > 0 ? (
-									invitations.map((invitation) => (
-										<div key={invitation.id} className="flex flex-col gap-2">
-											<DropdownMenuItem
-												className="flex flex-col items-start gap-1 p-3"
-												onSelect={(e) => e.preventDefault()}
-											>
-												<div className="font-medium">{invitation.email}</div>
-												<div className="text-xs text-muted-foreground">
-													Expires:{" "}
-													{new Date(invitation.expiresAt).toLocaleDateString()}
-												</div>
-												<div className="text-xs text-muted-foreground">
-													Role: {invitation.role}
-												</div>
-											</DropdownMenuItem>
-											<DialogAction
-												title="Accept Invitation"
-												description="Are you sure you want to accept this invitation?"
-												type="default"
-												onClick={async () => {
-													const { error } =
-														await authClient.organization.acceptInvitation({
-															invitationId: invitation.id,
-														});
+								<div className="flex flex-col gap-2">
+									{invitations && invitations.length > 0 ? (
+										invitations.map((invitation) => (
+											<div key={invitation.id} className="flex flex-col gap-2">
+												<DropdownMenuItem
+													className="flex flex-col items-start gap-1 p-3"
+													onSelect={(e) => e.preventDefault()}
+												>
+													<div className="font-medium">
+														{invitation?.organization?.name}
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Expires:{" "}
+														{new Date(invitation.expiresAt).toLocaleString()}
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Role: {invitation.role}
+													</div>
+												</DropdownMenuItem>
+												<DialogAction
+													title="Accept Invitation"
+													description="Are you sure you want to accept this invitation?"
+													type="default"
+													onClick={async () => {
+														const { error } =
+															await authClient.organization.acceptInvitation({
+																invitationId: invitation.id,
+															});
 
-													if (error) {
-														toast.error(
-															error.message || "Error accepting invitation",
-														);
-													} else {
-														toast.success("Invitation accepted successfully");
-														await refetchInvitations();
-													}
-												}}
-											>
-												<Button size="sm" variant="secondary">
-													Accept Invitation
-												</Button>
-											</DialogAction>
-										</div>
-									))
-								) : (
-									<DropdownMenuItem disabled>
-										No pending invitations
-									</DropdownMenuItem>
-								)}
+														if (error) {
+															toast.error(
+																error.message || "Error accepting invitation",
+															);
+														} else {
+															toast.success("Invitation accepted successfully");
+															await refetchInvitations();
+															await refetch();
+														}
+													}}
+												>
+													<Button size="sm" variant="secondary">
+														Accept Invitation
+													</Button>
+												</DialogAction>
+											</div>
+										))
+									) : (
+										<DropdownMenuItem disabled>
+											No pending invitations
+										</DropdownMenuItem>
+									)}
+								</div>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</SidebarMenuItem>

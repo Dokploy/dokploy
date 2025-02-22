@@ -140,7 +140,12 @@ export const apiRemoveUser = createSchema
 	})
 	.required();
 
-export const apiFindOneToken = createSchema.pick({}).required();
+export const apiFindOneToken = createSchema
+	.pick({})
+	.required()
+	.extend({
+		token: z.string().min(1),
+	});
 
 export const apiAssignPermissions = createSchema
 	.pick({
