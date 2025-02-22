@@ -1,0 +1,38 @@
+version: '3.5'
+services:
+  wiki:
+    image: ghcr.io/requarks/wiki:2.5
+    restart: unless-stopped
+    ports:
+      # Change 5000 to the desired port
+      - "5000:3000"
+    environment:
+      - DB_TYPE
+      - DB_HOST
+      - DB_PORT
+      - DB_USER
+      - DB_PASS
+      - DB_NAME
+    depends_on:
+      - db
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.constraint-label-stack=wikijs
+  db:
+    image: postgres:14
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    volumes:
+      - wiki-db-data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+networks:
+  dokploy-network:
+    external: true
+volumes:
+  wiki-db-data:

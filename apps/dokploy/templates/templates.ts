@@ -1559,4 +1559,18 @@ export const templates: TemplateData[] = [
 		tags: ["backend", "database", "api"],
 		load: () => import("./convex/index").then((m) => m.generate),
 	},
+	{
+		id: "wikijs",
+		name: "Wiki.js",
+		version: "2.5",
+		description: "The most powerful and extensible open source Wiki software.",
+		logo: "wikijs.svg",
+		links: {
+			github: "https://github.com/requarks/wiki",
+			website: "https://js.wiki/",
+			docs: "https://docs.requarks.io/",
+		},
+		tags: ["knowledge-base", "self-hosted", "documentation"],
+		load: () => import("./wikijs/index").then((m) => m.generate),
+	},
 ];
