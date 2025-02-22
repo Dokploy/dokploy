@@ -50,7 +50,10 @@ export const serverRouter = createTRPCRouter({
 						message: "You cannot create more servers",
 					});
 				}
-				const project = await createServer(input, ctx.user.ownerId);
+				const project = await createServer(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 				return project;
 			} catch (error) {
 				throw new TRPCError({
