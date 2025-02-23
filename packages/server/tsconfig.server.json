@@ -6,7 +6,7 @@
 		"target": "ESNext",
 		"isolatedModules": false,
 		"noEmit": false,
-		"declaration": true,
+		"declaration": false,
 		"moduleResolution": "Node",
 		"rootDir": "./src",
 		"baseUrl": ".",
