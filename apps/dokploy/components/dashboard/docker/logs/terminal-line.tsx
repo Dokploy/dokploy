@@ -35,45 +35,34 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 			})
 		: "--- No time found ---";
 
-	const highlightMessage = (text: string, term: string) => {
-		if (!term) {
+		const highlightMessage = (text: string, term: string) => {
+			if (!term) {
+				return (
+					<span
+						className="transition-colors"
+						dangerouslySetInnerHTML={{
+							__html: fancyAnsi.toHtml(text),
+						}}
+					/>
+				);
+			}
+	
+			const htmlContent = fancyAnsi.toHtml(text);
+			const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+	
+			const modifiedContent = htmlContent.replace(
+				searchRegex,
+				(match) =>
+					`<span class="bg-orange-200/80 dark:bg-orange-900/80 font-bold">${match}</span>`,
+			);
+	
 			return (
 				<span
 					className="transition-colors"
-					dangerouslySetInnerHTML={{
-						__html: fancyAnsi.toHtml(text),
-					}}
+					dangerouslySetInnerHTML={{ __html: modifiedContent }}
 				/>
 			);
-		}
-
-		const htmlContent = fancyAnsi.toHtml(text);
-		const modifiedContent = htmlContent.replace(
-			/<span([^>]*)>([^<]*)<\/span>/g,
-			(match, attrs, content) => {
-				const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
-				if (!content.match(searchRegex)) return match;
-
-				const segments = content.split(searchRegex);
-				const wrappedSegments = segments
-					.map((segment: string) =>
-						segment.toLowerCase() === term.toLowerCase()
-							? `<span${attrs} class="bg-yellow-200/50 dark:bg-yellow-900/50">${segment}</span>`
-							: segment,
-					)
-					.join("");
-
-				return `<span${attrs}>${wrappedSegments}</span>`;
-			},
-		);
-
-		return (
-			<span
-				className="transition-colors"
-				dangerouslySetInnerHTML={{ __html: modifiedContent }}
-			/>
-		);
-	};
+		};
 
 	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
