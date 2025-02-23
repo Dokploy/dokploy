@@ -52,7 +52,7 @@ export async function getServerSideProps(
 	});
 
 	await helpers.settings.isCloud.prefetch();
-	await helpers.auth.get.prefetch();
+	await helpers.user.get.prefetch();
 	if (!user) {
 		return {
 			redirect: {

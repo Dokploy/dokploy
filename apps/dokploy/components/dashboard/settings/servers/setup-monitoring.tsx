@@ -89,7 +89,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					enabled: !!serverId,
 				},
 			)
-		: api.user.get.useQuery();
+		: api.user.getServerMetrics.useQuery();
 
 	const url = useUrl();
 

@@ -6,7 +6,7 @@ import { organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { sendVerificationEmail } from "../verification/send-verification-email";
+import { sendEmail } from "../verification/send-verification-email";
 import { IS_CLOUD } from "../constants";
 
 export const auth = betterAuth({
@@ -30,7 +30,11 @@ export const auth = betterAuth({
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			console.log("Sending verification email to", user.email);
-			await sendVerificationEmail(user.email, url);
+			await sendEmail({
+				email: user.email,
+				subject: "Verify your email",
+				text: `Click the link to verify your email: ${url}`,
+			});
 		},
 	},
 	emailAndPassword: {
@@ -44,6 +48,13 @@ export const auth = betterAuth({
 			async verify({ hash, password }) {
 				return bcrypt.compareSync(password, hash);
 			},
+		},
+		sendResetPassword: async ({ user, url }) => {
+			await sendEmail({
+				email: user.email,
+				subject: "Reset your password",
+				text: `Click the link to reset your password: ${url}`,
+			});
 		},
 	},
 	databaseHooks: {

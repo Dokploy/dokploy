@@ -65,6 +65,19 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
+	getServerMetrics: protectedProcedure.query(async ({ ctx }) => {
+		const memberResult = await db.query.member.findFirst({
+			where: and(
+				eq(member.userId, ctx.user.id),
+				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+			),
+			with: {
+				user: true,
+			},
+		});
+
+		return memberResult?.user;
+	}),
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
@@ -112,7 +125,6 @@ export const userRouter = createTRPCRouter({
 
 				const { id, ...rest } = input;
 
-				console.log(rest);
 				await db
 					.update(member)
 					.set({
@@ -202,4 +214,8 @@ export const userRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+
+	generateToken: protectedProcedure.mutation(async () => {
+		return "token";
+	}),
 });

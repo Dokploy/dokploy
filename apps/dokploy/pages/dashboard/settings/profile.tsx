@@ -1,6 +1,5 @@
 import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
-import { RemoveSelfAccount } from "@/components/dashboard/settings/profile/remove-self-account";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
@@ -15,14 +14,14 @@ import superjson from "superjson";
 const Page = () => {
 	const { data } = api.user.get.useQuery();
 
-	const { data: isCloud } = api.settings.isCloud.useQuery();
+	// const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
 				{(data?.canAccessToAPI || data?.role === "owner") && <GenerateToken />}
 
-				{isCloud && <RemoveSelfAccount />}
+				{/* {isCloud && <RemoveSelfAccount />} */}
 			</div>
 		</div>
 	);
@@ -53,15 +52,7 @@ export async function getServerSideProps(
 	});
 
 	await helpers.settings.isCloud.prefetch();
-	await helpers.auth.get.prefetch();
-	if (user?.role === "member") {
-		// const userR = await helpers.user.one.fetch({
-		// 	userId: user.id,
-		// });
-		// await helpers.user.byAuthId.prefetch({
-		// 	authId: user.authId,
-		// });
-	}
+	await helpers.user.get.prefetch();
 
 	if (!user) {
 		return {

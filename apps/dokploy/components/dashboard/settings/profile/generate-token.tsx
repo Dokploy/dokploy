@@ -17,7 +17,7 @@ export const GenerateToken = () => {
 	const { data, refetch } = api.user.get.useQuery();
 
 	const { mutateAsync: generateToken, isLoading: isLoadingToken } =
-		api.auth.generateToken.useMutation();
+		api.user.generateToken.useMutation();
 
 	return (
 		<div className="w-full">
@@ -51,7 +51,7 @@ export const GenerateToken = () => {
 									<Label>Token</Label>
 									<ToggleVisibilityInput
 										placeholder="Token"
-										value={data?.user?.token || ""}
+										value={data || ""}
 										disabled
 									/>
 								</div>

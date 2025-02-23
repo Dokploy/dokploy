@@ -1,6 +1,5 @@
 import { db } from "@dokploy/server/db";
 import {
-	type apiCreateUserInvitation,
 	invitation,
 	member,
 	organization,
@@ -9,42 +8,6 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
-
-export type User = typeof users_temp.$inferSelect;
-export const createInvitation = async (
-	_input: typeof apiCreateUserInvitation._type,
-	_adminId: string,
-) => {
-	// await db.transaction(async (tx) => {
-	// 	const result = await tx
-	// 		.insert(auth)
-	// 		.values({
-	// 			email: input.email.toLowerCase(),
-	// 			rol: "user",
-	// 			password: bcrypt.hashSync("01231203012312", 10),
-	// 		})
-	// 		.returning()
-	// 		.then((res) => res[0]);
-	// 	if (!result) {
-	// 		throw new TRPCError({
-	// 			code: "BAD_REQUEST",
-	// 			message: "Error creating the user",
-	// 		});
-	// 	}
-	// 	const expiresIn24Hours = new Date();
-	// 	expiresIn24Hours.setDate(expiresIn24Hours.getDate() + 1);
-	// const token = randomBytes(32).toString("hex");
-	// await tx
-	// 	.insert(users)
-	// 	.values({
-	// 		adminId: adminId,
-	// 		authId: result.id,
-	// 		token,
-	// 		expirationDate: expiresIn24Hours.toISOString(),
-	// 	})
-	// 	.returning();
-	// });
-};
 
 export const findUserById = async (userId: string) => {
 	const user = await db.query.users_temp.findFirst({
@@ -67,34 +30,6 @@ export const findOrganizationById = async (organizationId: string) => {
 		where: eq(organization.id, organizationId),
 	});
 	return organizationResult;
-};
-
-export const updateUser = async (userId: string, userData: Partial<User>) => {
-	const user = await db
-		.update(users_temp)
-		.set({
-			...userData,
-		})
-		.where(eq(users_temp.id, userId))
-		.returning()
-		.then((res) => res[0]);
-
-	return user;
-};
-
-export const updateAdminById = async (
-	_adminId: string,
-	_adminData: Partial<User>,
-) => {
-	// const admin = await db
-	// 	.update(admins)
-	// 	.set({
-	// 		...adminData,
-	// 	})
-	// 	.where(eq(admins.adminId, adminId))
-	// 	.returning()
-	// 	.then((res) => res[0]);
-	// return admin;
 };
 
 export const isAdminPresent = async () => {

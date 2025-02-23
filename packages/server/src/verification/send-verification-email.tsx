@@ -2,7 +2,15 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 } from "../utils/notifications/utils";
-export const sendVerificationEmail = async (email: string, url: string) => {
+export const sendEmail = async ({
+	email,
+	subject,
+	text,
+}: {
+	email: string;
+	subject: string;
+	text: string;
+}) => {
 	await sendEmailNotification(
 		{
 			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
@@ -12,14 +20,8 @@ export const sendVerificationEmail = async (email: string, url: string) => {
 			username: process.env.SMTP_USERNAME || "",
 			password: process.env.SMTP_PASSWORD || "",
 		},
-		"Confirm your email | Dokploy",
-		`
-		Welcome to Dokploy!
-		Please confirm your email by clicking the link below:
-		<a href="${url}">
-			Confirm Email
-		</a>
-	`,
+		subject,
+		text,
 	);
 
 	return true;

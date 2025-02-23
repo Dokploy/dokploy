@@ -1,5 +1,5 @@
 import { db } from "@dokploy/server/db";
-import { member, type users_temp } from "@dokploy/server/db/schema";
+import { member, users_temp } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
@@ -234,4 +234,17 @@ export const findMemberById = async (
 		});
 	}
 	return result;
+};
+
+export const updateUser = async (userId: string, userData: Partial<User>) => {
+	const user = await db
+		.update(users_temp)
+		.set({
+			...userData,
+		})
+		.where(eq(users_temp.id, userId))
+		.returning()
+		.then((res) => res[0]);
+
+	return user;
 };

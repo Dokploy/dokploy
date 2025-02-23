@@ -61,7 +61,7 @@ export const Disable2FA = () => {
 			}
 
 			toast.success("2FA disabled successfully");
-			utils.auth.get.invalidate();
+			utils.user.get.invalidate();
 			setIsOpen(false);
 		} catch (_error) {
 			form.setError("password", {

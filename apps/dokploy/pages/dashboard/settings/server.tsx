@@ -110,7 +110,7 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-	await helpers.auth.get.prefetch();
+	await helpers.user.get.prefetch();
 
 	return {
 		props: {

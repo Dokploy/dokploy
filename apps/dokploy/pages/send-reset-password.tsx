@@ -12,7 +12,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
+import { authClient } from "@/lib/auth-client";
 import { IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
@@ -46,8 +46,9 @@ export default function Home() {
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading, isError, error } =
-		api.auth.sendResetPasswordEmail.useMutation();
+
+	const [error, setError] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
 	const _router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
@@ -61,19 +62,20 @@ export default function Home() {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Login) => {
-		await mutateAsync({
+		setIsLoading(true);
+		const { error } = await authClient.forgetPassword({
 			email: values.email,
-		})
-			.then((_data) => {
-				toast.success("Email sent", {
-					duration: 2000,
-				});
-			})
-			.catch(() => {
-				toast.error("Error sending email", {
-					duration: 2000,
-				});
+			redirectTo: "/reset-password",
+		});
+		if (error) {
+			setError(error.message || "An error occurred");
+			setIsLoading(false);
+		} else {
+			toast.success("Email sent", {
+				duration: 2000,
 			});
+		}
+		setIsLoading(false);
 	};
 	return (
 		<div className="flex w-full items-center justify-center ">
@@ -89,9 +91,9 @@ export default function Home() {
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
 					<CardContent className="p-0">
-						{isError && (
+						{error && (
 							<AlertBlock type="error" className="my-2">
-								{error?.message}
+								{error}
 							</AlertBlock>
 						)}
 						{!temp.is2FAEnabled ? (

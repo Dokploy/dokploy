@@ -125,7 +125,7 @@ export const Enable2FA = () => {
 			}
 
 			toast.success("2FA configured successfully");
-			utils.auth.get.invalidate();
+			utils.user.get.invalidate();
 			setIsDialogOpen(false);
 		} catch (error) {
 			if (error instanceof Error) {

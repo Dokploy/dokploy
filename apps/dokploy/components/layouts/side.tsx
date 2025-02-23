@@ -89,7 +89,7 @@ import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
-type AuthQueryOutput = inferRouterOutputs<AppRouter>["auth"]["get"];
+type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
 
 type SingleNavItem = {
 	isSingle?: true;
