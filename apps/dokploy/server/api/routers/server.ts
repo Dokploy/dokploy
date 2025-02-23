@@ -79,7 +79,7 @@ export const serverRouter = createTRPCRouter({
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindOneServer)
-		.query(async ({ input, ctx }) => {
+		.query(async () => {
 			return defaultCommand();
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
@@ -358,7 +358,7 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	publicIp: protectedProcedure.query(async ({ ctx }) => {
+	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return "";
 		}

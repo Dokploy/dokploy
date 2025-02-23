@@ -24,7 +24,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -37,7 +36,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -45,8 +44,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
-import { toast } from "sonner";
+import { type ReactElement, useState } from "react";
 import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";

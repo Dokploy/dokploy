@@ -87,36 +87,34 @@ export const stripeRouter = createTRPCRouter({
 
 			return { sessionId: session.id };
 		}),
-	createCustomerPortalSession: adminProcedure.mutation(
-		async ({ ctx, input }) => {
-			const user = await findUserById(ctx.user.ownerId);
+	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
+		const user = await findUserById(ctx.user.ownerId);
 
-			if (!user.stripeCustomerId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Stripe Customer ID not found",
-				});
-			}
-			const stripeCustomerId = user.stripeCustomerId;
+		if (!user.stripeCustomerId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Stripe Customer ID not found",
+			});
+		}
+		const stripeCustomerId = user.stripeCustomerId;
 
-			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-				apiVersion: "2024-09-30.acacia",
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+			apiVersion: "2024-09-30.acacia",
+		});
+
+		try {
+			const session = await stripe.billingPortal.sessions.create({
+				customer: stripeCustomerId,
+				return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
-			try {
-				const session = await stripe.billingPortal.sessions.create({
-					customer: stripeCustomerId,
-					return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
-				});
-
-				return { url: session.url };
-			} catch (error) {
-				return {
-					url: "",
-				};
-			}
-		},
-	),
+			return { url: session.url };
+		} catch (_) {
+			return {
+				url: "",
+			};
+		}
+	}),
 
 	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);

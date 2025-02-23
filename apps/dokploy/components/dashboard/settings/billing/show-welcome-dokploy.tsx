@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import type React from "react";
 import { useEffect, useState } from "react";
 
 export const ShowWelcomeDokploy = () => {

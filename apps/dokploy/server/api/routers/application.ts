@@ -61,7 +61,12 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkServiceAccess(ctx.user.id, input.projectId, "create");
+					await checkServiceAccess(
+						ctx.user.id,
+						input.projectId,
+						ctx.session.activeOrganizationId,
+						"create",
+					);
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -103,7 +108,12 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.applicationId, "access");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+					"access",
+				);
 			}
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -149,7 +159,12 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.applicationId, "delete");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
 			}
 			const application = await findApplicationById(input.applicationId);
 
@@ -186,7 +201,7 @@ export const applicationRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (error) {}
+				} catch (_) {}
 			}
 
 			return result[0];
@@ -642,7 +657,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	readAppMonitoring: protectedProcedure
 		.input(apiFindMonitoringStats)
-		.query(async ({ input, ctx }) => {
+		.query(async ({ input }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

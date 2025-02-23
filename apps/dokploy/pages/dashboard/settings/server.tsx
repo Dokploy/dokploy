@@ -1,4 +1,3 @@
-import { SetupMonitoring } from "@/components/dashboard/settings/servers/setup-monitoring";
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -6,10 +5,8 @@ import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { LayoutDashboardIcon } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import React, { type ReactElement } from "react";
-import { toast } from "sonner";
+import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {

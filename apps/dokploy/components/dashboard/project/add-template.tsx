@@ -57,7 +57,6 @@ import {
 	BookText,
 	CheckIcon,
 	ChevronsUpDown,
-	Code,
 	Github,
 	Globe,
 	HelpCircle,

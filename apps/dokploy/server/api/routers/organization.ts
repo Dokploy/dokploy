@@ -71,7 +71,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 			}),
 		)
-		.query(async ({ ctx, input }) => {
+		.query(async ({ input }) => {
 			return await db.query.organization.findFirst({
 				where: eq(organization.id, input.organizationId),
 			});
@@ -140,12 +140,4 @@ export const organizationRouter = createTRPCRouter({
 			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
-	acceptInvitation: adminProcedure
-		.input(z.object({ invitationId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			// const result = await auth.api.acceptInvitation({
-			// 	invitationId: input.invitationId,
-			// });
-			// return result;
-		}),
 });

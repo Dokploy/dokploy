@@ -4,7 +4,7 @@ import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
-import { findAdmin, findAdminById, findUserById } from "./admin";
+import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { findServerById } from "./server";
 

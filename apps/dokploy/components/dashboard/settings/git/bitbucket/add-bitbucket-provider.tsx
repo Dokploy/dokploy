@@ -1,8 +1,4 @@
-import {
-	BitbucketIcon,
-	GithubIcon,
-	GitlabIcon,
-} from "@/components/icons/data-tools-icons";
+import { BitbucketIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";

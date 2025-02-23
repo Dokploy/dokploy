@@ -6,7 +6,7 @@ import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import React, { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {

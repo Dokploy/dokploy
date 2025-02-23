@@ -377,7 +377,10 @@ export const settingsRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					const canAccess = await canAccessToTraefikFiles(ctx.user.id);
+					const canAccess = await canAccessToTraefikFiles(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
 
 					if (!canAccess) {
 						throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -395,7 +398,10 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				const canAccess = await canAccessToTraefikFiles(ctx.user.id);
+				const canAccess = await canAccessToTraefikFiles(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (!canAccess) {
 					throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -413,7 +419,10 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiReadTraefikConfig)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				const canAccess = await canAccessToTraefikFiles(ctx.user.id);
+				const canAccess = await canAccessToTraefikFiles(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (!canAccess) {
 					throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -708,7 +717,12 @@ export const settingsRouter = createTRPCRouter({
 			try {
 				return await checkGPUStatus(input.serverId || "");
 			} catch (error) {
-				throw new Error("Failed to check GPU status");
+				const message =
+					error instanceof Error ? error.message : "Failed to check GPU status";
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message,
+				});
 			}
 		}),
 	updateTraefikPorts: adminProcedure

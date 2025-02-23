@@ -17,7 +17,6 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
-	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { appRouter } from "@/server/api/root";
@@ -27,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { Settings } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import React, { useEffect, type ReactElement } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import superjson from "superjson";

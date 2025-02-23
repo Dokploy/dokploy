@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
@@ -18,7 +19,6 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
-import { db } from "@/server/db";
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)

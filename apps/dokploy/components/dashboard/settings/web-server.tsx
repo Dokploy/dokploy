@@ -5,11 +5,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ServerIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import React from "react";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";

@@ -112,9 +112,11 @@ export const updateRegistry = async (
 
 		return response;
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error updating this registry";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error updating this registry",
+			message,
 		});
 	}
 };

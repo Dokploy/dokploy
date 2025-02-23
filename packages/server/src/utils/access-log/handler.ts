@@ -1,6 +1,5 @@
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
-import { db } from "../../db";
 import { execAsync } from "../process/execAsync";
 
 class LogRotationManager {

@@ -12,14 +12,11 @@ import {
 import { WEBSITE_URL } from "@/server/utils/stripe";
 import {
 	IS_CLOUD,
-	findAuthById,
 	findUserById,
-	generate2FASecret,
 	getUserByToken,
 	sendDiscordNotification,
 	sendEmailNotification,
 	validateRequest,
-	verify2FA,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
@@ -273,42 +270,6 @@ export const authRouter = createTRPCRouter({
 			const user = await findUserById(input.userId);
 			return user;
 		}),
-
-	generate2FASecret: protectedProcedure.query(async ({ ctx }) => {
-		return await generate2FASecret(ctx.user.id);
-	}),
-	verify2FASetup: protectedProcedure.mutation(async ({ ctx, input }) => {
-		// const auth = await findAuthById(ctx.user.authId);
-		// await verify2FA(auth, input.secret, input.pin);
-		// await updateAuthById(auth.id, {
-		// 	is2FAEnabled: true,
-		// 	secret: input.secret,
-		// });
-		// return auth;
-	}),
-
-	verifyLogin2FA: publicProcedure.mutation(async ({ ctx, input }) => {
-		// const auth = await findAuthById(input.id);
-
-		// await verify2FA(auth, auth.secret || "", input.pin);
-
-		// const session = await lucia.createSession(auth.id, {});
-
-		// ctx.res.appendHeader(
-		// 	"Set-Cookie",
-		// 	lucia.createSessionCookie(session.id).serialize(),
-		// );
-
-		return true;
-	}),
-	disable2FA: protectedProcedure.mutation(async ({ ctx }) => {
-		// const auth = await findAuthById(ctx.user.authId);
-		// await updateAuthById(auth.id, {
-		// 	is2FAEnabled: false,
-		// 	secret: null,
-		// });
-		// return auth;
-	}),
 	sendResetPasswordEmail: publicProcedure
 		.input(
 			z.object({

@@ -13,7 +13,6 @@ import { CardTitle } from "@/components/ui/card";
 import {
 	InputOTP,
 	InputOTPGroup,
-	InputOTPSeparator,
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { api } from "@/utils/api";

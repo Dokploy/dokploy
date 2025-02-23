@@ -37,7 +37,12 @@ export const redisRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkServiceAccess(ctx.user.id, input.projectId, "create");
+					await checkServiceAccess(
+						ctx.user.id,
+						input.projectId,
+						ctx.session.activeOrganizationId,
+						"create",
+					);
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -80,7 +85,12 @@ export const redisRouter = createTRPCRouter({
 		.input(apiFindOneRedis)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.redisId, "access");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.redisId,
+					ctx.session.activeOrganizationId,
+					"access",
+				);
 			}
 
 			const redis = await findRedisById(input.redisId);
@@ -237,7 +247,12 @@ export const redisRouter = createTRPCRouter({
 		.input(apiFindOneRedis)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.redisId, "delete");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.redisId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
 			}
 
 			const redis = await findRedisById(input.redisId);
@@ -256,7 +271,7 @@ export const redisRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (error) {}
+				} catch (_) {}
 			}
 
 			return redis;

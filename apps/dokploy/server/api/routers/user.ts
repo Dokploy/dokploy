@@ -1,17 +1,13 @@
-import { apiFindOneUser, apiFindOneUserByAuth } from "@/server/db/schema";
 import {
 	IS_CLOUD,
 	findOrganizationById,
-	findUserByAuthId,
 	findUserById,
 	getUserByToken,
 	removeUserById,
 	updateUser,
-	verify2FA,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
-	account,
 	apiAssignPermissions,
 	apiFindOneToken,
 	apiUpdateUser,
@@ -19,7 +15,7 @@ import {
 	member,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import {
 	adminProcedure,
@@ -93,7 +89,7 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
@@ -103,8 +99,6 @@ export const userRouter = createTRPCRouter({
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const user = await findUserById(input.id);
-
 				const organization = await findOrganizationById(
 					ctx.session?.activeOrganizationId || "",
 				);

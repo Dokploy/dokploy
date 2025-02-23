@@ -7,19 +7,15 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { slugify } from "../setup/server-setup";
-import { generatePassword, generateRandomDomain } from "../templates/utils";
+import { generatePassword } from "../templates/utils";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findAdminById, findUserById } from "./admin";
+import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
-import {
-	removeDeployments,
-	removeDeploymentsByPreviewDeploymentId,
-} from "./deployment";
+import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
 
@@ -111,9 +107,13 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		}
 		return deployment[0];
 	} catch (error) {
+		const message =
+			error instanceof Error
+				? error.message
+				: "Error deleting this preview deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error deleting this preview deployment",
+			message,
 		});
 	}
 };

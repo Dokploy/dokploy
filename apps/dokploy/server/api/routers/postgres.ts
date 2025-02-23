@@ -1,9 +1,4 @@
-import { EventEmitter } from "node:events";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -35,9 +30,6 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
-
-const ee = new EventEmitter();
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -45,7 +37,12 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkServiceAccess(ctx.user.id, input.projectId, "create");
+					await checkServiceAccess(
+						ctx.user.id,
+						input.projectId,
+						ctx.session.activeOrganizationId,
+						"create",
+					);
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -95,7 +92,12 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.postgresId, "access");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.postgresId,
+					ctx.session.activeOrganizationId,
+					"access",
+				);
 			}
 
 			const postgres = await findPostgresById(input.postgresId);
@@ -238,7 +240,12 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.postgresId, "delete");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.postgresId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
 			}
 			const postgres = await findPostgresById(input.postgresId);
 

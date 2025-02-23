@@ -1,7 +1,5 @@
-import { randomBytes } from "node:crypto";
 import { db } from "@dokploy/server/db";
 import {
-	account,
 	type apiCreateUserInvitation,
 	invitation,
 	member,
@@ -9,7 +7,6 @@ import {
 	users_temp,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 

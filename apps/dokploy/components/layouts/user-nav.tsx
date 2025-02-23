@@ -20,9 +20,7 @@ import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
 import { ChevronsUpDown } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 

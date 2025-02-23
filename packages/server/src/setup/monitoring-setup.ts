@@ -1,7 +1,7 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
 import { IS_CLOUD } from "../constants";
-import { findAdminById, findUserById } from "../services/admin";
+import { findUserById } from "../services/admin";
 import { getDokployImageTag } from "../services/settings";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";

@@ -1,8 +1,7 @@
-import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription } from "@/components/ui/card";
 import {
 	Dialog,
@@ -10,12 +9,10 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -29,19 +26,14 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
-import { IS_CLOUD, auth, isAdminPresent } from "@dokploy/server";
+import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import base32 from "hi-base32";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
-import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { TOTP } from "otpauth";
-import { type ReactElement, useEffect, useState } from "react";
+import { type ReactElement, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";

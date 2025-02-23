@@ -9,7 +9,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

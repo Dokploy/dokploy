@@ -2,12 +2,7 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -27,7 +22,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
 const registerSchema = z

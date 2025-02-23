@@ -2,7 +2,6 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
@@ -30,7 +29,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { extractServices } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";

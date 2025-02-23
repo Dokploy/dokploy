@@ -8,7 +8,6 @@ import {
 	applications,
 	compose,
 	mariadb,
-	member,
 	mongo,
 	mysql,
 	postgres,
@@ -16,22 +15,20 @@ import {
 	redis,
 } from "@/server/db/schema";
 
-import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
-
 import {
 	IS_CLOUD,
 	addNewProject,
 	checkProjectAccess,
 	createProject,
 	deleteProject,
+	findMemberById,
 	findProjectById,
-	findUserByAuthId,
 	findUserById,
 	updateProjectById,
-	findMemberById,
 } from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateProject)

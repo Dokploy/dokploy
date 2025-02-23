@@ -169,7 +169,6 @@ echo "$json_output"
 		const result = JSON.parse(stdout);
 		return result;
 	}
-	const items = readdirSync(dirPath, { withFileTypes: true });
 
 	const stack = [dirPath];
 	const result: TreeDataItem[] = [];

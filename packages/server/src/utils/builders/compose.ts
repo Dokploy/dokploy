@@ -2,7 +2,6 @@ import {
 	createWriteStream,
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";

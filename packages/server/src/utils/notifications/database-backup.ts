@@ -1,4 +1,3 @@
-import { error } from "node:console";
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";

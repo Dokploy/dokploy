@@ -23,7 +23,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -44,8 +43,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
-import { toast } from "sonner";
+import { type ReactElement, useState } from "react";
 import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "advanced";

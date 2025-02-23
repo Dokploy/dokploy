@@ -28,7 +28,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -42,7 +41,7 @@ import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -50,7 +49,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, useEffect, type ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
 

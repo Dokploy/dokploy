@@ -44,10 +44,9 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { findAdminById, findUserById, getDokployUrl } from "./admin";
+import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { cleanupFullDocker } from "./settings";
 
 export type Compose = typeof compose.$inferSelect;
 

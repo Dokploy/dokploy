@@ -297,9 +297,13 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await removeNotificationById(input.notificationId);
 			} catch (error) {
+				const message =
+					error instanceof Error
+						? error.message
+						: "Error deleting this notification";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error deleting this notification",
+					message,
 				});
 			}
 		}),

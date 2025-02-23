@@ -9,7 +9,6 @@ import {
 	sshKeys,
 } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	createSshKey,
 	findSSHKeyById,
 	generateSSHKey,

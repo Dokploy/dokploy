@@ -1,15 +1,14 @@
 "use client";
 import {
 	Activity,
-	AudioWaveform,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
 	BookIcon,
 	Boxes,
 	ChevronRight,
+	ChevronsUpDown,
 	CircleHelp,
-	Command,
 	CreditCard,
 	Database,
 	Folder,
@@ -27,8 +26,6 @@ import {
 	Trash2,
 	User,
 	Users,
-	ChevronsUpDown,
-	Plus,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
@@ -47,6 +44,14 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
 	SIDEBAR_COOKIE_NAME,
@@ -68,29 +73,20 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Logo } from "../shared/logo";
-import { UpdateServerButton } from "./update-server";
-import { UserNav } from "./user-nav";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
+import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+import { UpdateServerButton } from "./update-server";
+import { UserNav } from "./user-nav";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["auth"]["get"];

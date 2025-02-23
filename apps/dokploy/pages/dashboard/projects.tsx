@@ -6,7 +6,6 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import dynamic from "next/dynamic";
-import type React from "react";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 

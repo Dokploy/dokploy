@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GlobeIcon, ServerIcon, User } from "lucide-react";
+import { GlobeIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";

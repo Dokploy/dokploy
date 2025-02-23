@@ -12,7 +12,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -278,9 +278,11 @@ export const removeDeployment = async (deploymentId: string) => {
 			.returning();
 		return deployment[0];
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error deleting this deployment",
+			message,
 		});
 	}
 };
@@ -535,9 +537,11 @@ export const createServerDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
+			message,
 		});
 	}
 };

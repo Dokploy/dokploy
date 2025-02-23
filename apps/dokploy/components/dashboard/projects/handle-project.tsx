@@ -21,7 +21,6 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, SquarePen } from "lucide-react";

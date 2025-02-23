@@ -4,7 +4,6 @@ import {
 	type apiCreateApplication,
 	applications,
 	buildAppName,
-	cleanAppName,
 } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
@@ -28,7 +27,6 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
-	authGithub,
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -40,7 +38,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { findAdminById, findUserById, getDokployUrl } from "./admin";
+import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
@@ -58,7 +56,6 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
-import { cleanupFullDocker } from "./settings";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (

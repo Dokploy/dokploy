@@ -61,7 +61,12 @@ export const composeRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkServiceAccess(ctx.user.id, input.projectId, "create");
+					await checkServiceAccess(
+						ctx.user.id,
+						input.projectId,
+						ctx.session.activeOrganizationId,
+						"create",
+					);
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -97,7 +102,12 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.composeId, "access");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.composeId,
+					ctx.session.activeOrganizationId,
+					"access",
+				);
 			}
 
 			const compose = await findComposeById(input.composeId);
@@ -126,7 +136,12 @@ export const composeRouter = createTRPCRouter({
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.composeId, "delete");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.composeId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
 			}
 			const composeResult = await findComposeById(input.composeId);
 
@@ -155,7 +170,7 @@ export const composeRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (error) {}
+				} catch (_) {}
 			}
 
 			return result[0];
@@ -385,7 +400,12 @@ export const composeRouter = createTRPCRouter({
 		.input(apiCreateComposeByTemplate)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.projectId, "create");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.projectId,
+					ctx.session.activeOrganizationId,
+					"create",
+				);
 			}
 
 			if (IS_CLOUD && !input.serverId) {
@@ -476,7 +496,7 @@ export const composeRouter = createTRPCRouter({
 		return templatesData;
 	}),
 
-	getTags: protectedProcedure.query(async ({ input }) => {
+	getTags: protectedProcedure.query(async () => {
 		const allTags = templates.flatMap((template) => template.tags);
 		const uniqueTags = _.uniq(allTags);
 		return uniqueTags;

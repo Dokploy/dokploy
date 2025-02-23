@@ -37,7 +37,12 @@ export const mongoRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.rol === "member") {
-					await checkServiceAccess(ctx.user.id, input.projectId, "create");
+					await checkServiceAccess(
+						ctx.user.id,
+						input.projectId,
+						ctx.session.activeOrganizationId,
+						"create",
+					);
 				}
 
 				if (IS_CLOUD && !input.serverId) {
@@ -87,7 +92,12 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiFindOneMongo)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.mongoId, "access");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.mongoId,
+					ctx.session.activeOrganizationId,
+					"access",
+				);
 			}
 
 			const mongo = await findMongoById(input.mongoId);
@@ -247,7 +257,12 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.rol === "member") {
-				await checkServiceAccess(ctx.user.id, input.mongoId, "delete");
+				await checkServiceAccess(
+					ctx.user.id,
+					input.mongoId,
+					ctx.session.activeOrganizationId,
+					"delete",
+				);
 			}
 
 			const mongo = await findMongoById(input.mongoId);
@@ -269,7 +284,7 @@ export const mongoRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (error) {}
+				} catch (_) {}
 			}
 
 			return mongo;

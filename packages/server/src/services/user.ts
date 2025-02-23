@@ -1,37 +1,9 @@
 import { db } from "@dokploy/server/db";
-import { type users_temp, member } from "@dokploy/server/db/schema";
+import { member, type users_temp } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
-import { findUserById } from "./admin";
 
 export type User = typeof users_temp.$inferSelect;
-
-// export const findUserById = async (userId: string) => {
-// 	// const userR = await db.query.user.findFirst({
-// 	// 	where: eq(user.userId, userId),
-// 	// });
-// 	// if (!userR) {
-// 	// 	throw new TRPCError({
-// 	// 		code: "NOT_FOUND",
-// 	// 		message: "User not found",
-// 	// 	});
-// 	// }
-// 	// return user;
-// };
-
-export const findUserByAuthId = async (authId: string) => {
-	// const userR = await db.query.user.findFirst({
-	// 	where: eq(user.id, authId),
-	// 	with: {},
-	// });
-	// if (!userR) {
-	// 	throw new TRPCError({
-	// 		code: "NOT_FOUND",
-	// 		message: "User not found",
-	// 	});
-	// }
-	// return userR;
-};
 
 export const addNewProject = async (
 	userId: string,

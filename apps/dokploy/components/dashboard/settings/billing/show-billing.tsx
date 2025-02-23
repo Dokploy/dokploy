@@ -23,7 +23,7 @@ import {
 	PlusIcon,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useState } from "react";
 
 const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,

@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { Ban, CheckCircle2, Hammer, RefreshCcw, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
-import React from "react";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 interface Props {

@@ -1,5 +1,4 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { nanoid } from "nanoid";
 import postgres from "postgres";
 import * as schema from "./server/db/schema";

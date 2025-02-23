@@ -3,12 +3,7 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,

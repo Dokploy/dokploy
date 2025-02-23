@@ -126,8 +126,6 @@ test("Should not touch config without host", () => {
 });
 
 test("Should remove websecure if https rollback to http", () => {
-	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
-
 	updateServerTraefik(
 		{ ...baseAdmin, certificateType: "letsencrypt" },
 		"example.com",

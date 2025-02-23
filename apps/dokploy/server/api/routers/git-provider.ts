@@ -31,9 +31,13 @@ export const gitProviderRouter = createTRPCRouter({
 				}
 				return await removeGitProvider(input.gitProviderId);
 			} catch (error) {
+				const message =
+					error instanceof Error
+						? error.message
+						: "Error deleting this Git provider";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error deleting this Git provider",
+					message,
 				});
 			}
 		}),

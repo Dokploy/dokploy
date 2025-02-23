@@ -1,9 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateGitlab,
-	type bitbucket,
 	gitProvider,
-	type github,
 	gitlab,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";

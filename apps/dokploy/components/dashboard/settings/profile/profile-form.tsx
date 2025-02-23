@@ -1,5 +1,4 @@
 import { AlertBlock } from "@/components/shared/alert-block";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { authClient } from "@/lib/auth-client";
 import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";

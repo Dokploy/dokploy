@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { Boxes, HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
-import React from "react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";

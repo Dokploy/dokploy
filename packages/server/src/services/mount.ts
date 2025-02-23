@@ -123,8 +123,8 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	return await db.transaction(async (transaction) => {
-		const mount = await db
+	return await db.transaction(async (tx) => {
+		const mount = await tx
 			.update(mounts)
 			.set({
 				...mountData,

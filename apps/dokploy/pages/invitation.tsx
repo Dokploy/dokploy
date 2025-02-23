@@ -2,12 +2,7 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -21,7 +16,7 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { IS_CLOUD, getUserByToken } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";

@@ -6,7 +6,7 @@ import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import React, { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {

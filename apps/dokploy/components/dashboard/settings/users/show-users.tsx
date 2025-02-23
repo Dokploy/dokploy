@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -134,12 +133,45 @@ export const ShowUsers = () => {
 																		)}
 
 																		{member.role !== "owner" && (
-																			<DialogAction
-																				title="Delete User"
-																				description="Are you sure you want to delete this user?"
-																				type="destructive"
-																				onClick={async () => {
-																					if (isCloud) {
+																			<>
+																				{!isCloud && (
+																					<DialogAction
+																						title="Delete User"
+																						description="Are you sure you want to delete this user?"
+																						type="destructive"
+																						onClick={async () => {
+																							await mutateAsync({
+																								userId: member.user.id,
+																							})
+																								.then(() => {
+																									toast.success(
+																										"User deleted successfully",
+																									);
+																									refetch();
+																								})
+																								.catch(() => {
+																									toast.error(
+																										"Error deleting destination",
+																									);
+																								});
+																						}}
+																					>
+																						<DropdownMenuItem
+																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																							onSelect={(e) =>
+																								e.preventDefault()
+																							}
+																						>
+																							Delete User
+																						</DropdownMenuItem>
+																					</DialogAction>
+																				)}
+
+																				<DialogAction
+																					title="Unlink User"
+																					description="Are you sure you want to unlink this user?"
+																					type="destructive"
+																					onClick={async () => {
 																						const { error } =
 																							await authClient.organization.removeMember(
 																								{
@@ -149,39 +181,24 @@ export const ShowUsers = () => {
 
 																						if (!error) {
 																							toast.success(
-																								"User deleted successfully",
+																								"User unlinked successfully",
 																							);
 																							refetch();
 																						} else {
 																							toast.error(
-																								"Error deleting user",
+																								"Error unlinking user",
 																							);
 																						}
-																					} else {
-																						await mutateAsync({
-																							userId: member.user.id,
-																						})
-																							.then(() => {
-																								toast.success(
-																									"User deleted successfully",
-																								);
-																								refetch();
-																							})
-																							.catch(() => {
-																								toast.error(
-																									"Error deleting destination",
-																								);
-																							});
-																					}
-																				}}
-																			>
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																					onSelect={(e) => e.preventDefault()}
+																					}}
 																				>
-																					Delete User
-																				</DropdownMenuItem>
-																			</DialogAction>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						Unlink User
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			</>
 																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>

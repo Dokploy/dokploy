@@ -5,7 +5,7 @@ import {
 	server,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export type Server = typeof server.$inferSelect;
 

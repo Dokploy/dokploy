@@ -1,5 +1,4 @@
 export * from "./auth/random-password";
-// export * from "./db";
 export * from "./services/admin";
 export * from "./services/user";
 export * from "./services/project";
@@ -28,7 +27,6 @@ export * from "./services/ssh-key";
 export * from "./services/git-provider";
 export * from "./services/bitbucket";
 export * from "./services/github";
-export * from "./services/auth";
 export * from "./services/gitlab";
 export * from "./services/server";
 export * from "./services/application";

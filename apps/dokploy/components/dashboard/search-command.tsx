@@ -7,9 +7,7 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { Badge } from "@/components/ui/badge";
 import {
-	Command,
 	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
