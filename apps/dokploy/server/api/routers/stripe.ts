@@ -56,7 +56,7 @@ export const stripeRouter = createTRPCRouter({
 			});
 
 			const items = getStripeItems(input.serverQuantity, input.isAnnual);
-			const user = await findUserById(ctx.user.ownerId);
+			const user = await findUserById(ctx.user.id);
 
 			let stripeCustomerId = user.stripeCustomerId;
 
@@ -78,7 +78,7 @@ export const stripeRouter = createTRPCRouter({
 					customer: stripeCustomerId,
 				}),
 				metadata: {
-					ownerId: user.id,
+					adminId: user.id,
 				},
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
@@ -88,7 +88,7 @@ export const stripeRouter = createTRPCRouter({
 			return { sessionId: session.id };
 		}),
 	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
+		const user = await findUserById(ctx.user.id);
 
 		if (!user.stripeCustomerId) {
 			throw new TRPCError({

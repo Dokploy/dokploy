@@ -103,7 +103,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					projectId,
 				});
 			})
-			.catch((e) => {
+			.catch((_e) => {
 				toast.error("Error creating the service");
 			});
 	};

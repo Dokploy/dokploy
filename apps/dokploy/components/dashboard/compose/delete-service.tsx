@@ -60,7 +60,7 @@ export const DeleteService = ({ id, type }: Props) => {
 		compose: () =>
 			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
 	};
-	const { data, refetch } = queryMap[type]
+	const { data } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 

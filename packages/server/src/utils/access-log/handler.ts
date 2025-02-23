@@ -32,7 +32,7 @@ class LogRotationManager {
 		// return setting?.enableLogRotation ?? false;
 	}
 
-	private async setStateInDB(active: boolean): Promise<void> {
+	private async setStateInDB(_active: boolean): Promise<void> {
 		// const admin = await db.query.admins.findFirst({});
 		// if (!admin) {
 		// 	return;

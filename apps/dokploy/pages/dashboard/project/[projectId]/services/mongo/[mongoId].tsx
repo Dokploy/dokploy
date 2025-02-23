@@ -52,7 +52,7 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const Mongo = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { mongoId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -60,7 +60,6 @@ const Mongo = (
 	const { data } = api.mongo.one.useQuery({ mongoId });
 
 	const { data: auth } = api.user.get.useQuery();
-	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -343,7 +342,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

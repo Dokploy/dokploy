@@ -12,6 +12,7 @@ import {
 	mariadb,
 	mongo,
 	mysql,
+	organization,
 	postgres,
 	redis,
 	server,
@@ -101,6 +102,18 @@ export const serverRouter = createTRPCRouter({
 			.groupBy(server.serverId);
 
 		return result;
+	}),
+	count: protectedProcedure.query(async ({ ctx }) => {
+		const organizations = await db.query.organization.findMany({
+			where: eq(organization.ownerId, ctx.user.id),
+			with: {
+				servers: true,
+			},
+		});
+
+		const servers = organizations.flatMap((org) => org.servers);
+
+		return servers.length ?? 0;
 	}),
 	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db.query.server.findMany({

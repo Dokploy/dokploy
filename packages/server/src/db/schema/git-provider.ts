@@ -29,7 +29,7 @@ export const gitProvider = pgTable("git_provider", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
-export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
+export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 	github: one(github, {
 		fields: [gitProvider.gitProviderId],
 		references: [github.gitProviderId],

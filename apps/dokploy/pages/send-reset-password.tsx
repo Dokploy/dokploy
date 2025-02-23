@@ -43,13 +43,13 @@ type AuthResponse = {
 };
 
 export default function Home() {
-	const [temp, setTemp] = useState<AuthResponse>({
+	const [temp, _setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
 	});
 	const { mutateAsync, isLoading, isError, error } =
 		api.auth.sendResetPasswordEmail.useMutation();
-	const router = useRouter();
+	const _router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
 			email: "",
@@ -65,7 +65,7 @@ export default function Home() {
 		await mutateAsync({
 			email: values.email,
 		})
-			.then((data) => {
+			.then((_data) => {
 				toast.success("Email sent", {
 					duration: 2000,
 				});
@@ -150,7 +150,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(context: GetServerSidePropsContext) {
+export async function getServerSideProps(_context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {

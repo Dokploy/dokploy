@@ -52,7 +52,7 @@ export const initializeRedis = async () => {
 			...settings,
 		});
 		console.log("Redis Started ✅");
-	} catch (error) {
+	} catch (_error) {
 		await docker.createService(settings);
 		console.log("Redis Not Found: Starting ✅");
 	}

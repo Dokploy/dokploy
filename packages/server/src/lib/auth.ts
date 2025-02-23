@@ -2,14 +2,12 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-	createAuthMiddleware,
-	organization,
-	twoFactor,
-} from "better-auth/plugins";
+import { organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { sendVerificationEmail } from "../verification/send-verification-email";
+import { IS_CLOUD } from "../constants";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
@@ -27,9 +25,18 @@ export const auth = betterAuth({
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
 		},
 	},
+	emailVerification: {
+		sendOnSignUp: true,
+		autoSignInAfterVerification: true,
+		sendVerificationEmail: async ({ user, url }) => {
+			console.log("Sending verification email to", user.email);
+			await sendVerificationEmail(user.email, url);
+		},
+	},
 	emailAndPassword: {
 		enabled: true,
-
+		autoSignIn: !IS_CLOUD,
+		requireEmailVerification: IS_CLOUD,
 		password: {
 			async hash(password) {
 				return bcrypt.hashSync(password, 10);
@@ -39,33 +46,37 @@ export const auth = betterAuth({
 			},
 		},
 	},
-	hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			if (ctx.path.startsWith("/sign-up")) {
-				const newSession = ctx.context.newSession;
-				if (ctx.headers?.get("x-dokploy-token")) {
-				} else {
-					const organization = await db
-						.insert(schema.organization)
-						.values({
-							name: "My Organization",
-							ownerId: newSession?.user?.id || "",
-							createdAt: new Date(),
-						})
-						.returning()
-						.then((res) => res[0]);
-
-					await db.insert(schema.member).values({
-						userId: newSession?.user?.id || "",
-						organizationId: organization?.id || "",
-						role: "owner",
-						createdAt: new Date(),
-					});
-				}
-			}
-		}),
-	},
 	databaseHooks: {
+		user: {
+			create: {
+				after: async (user) => {
+					const isAdminPresent = await db.query.member.findFirst({
+						where: eq(schema.member.role, "owner"),
+					});
+
+					if (IS_CLOUD || !isAdminPresent) {
+						await db.transaction(async (tx) => {
+							const organization = await tx
+								.insert(schema.organization)
+								.values({
+									name: "My Organization",
+									ownerId: user.id,
+									createdAt: new Date(),
+								})
+								.returning()
+								.then((res) => res[0]);
+
+							await tx.insert(schema.member).values({
+								userId: user.id,
+								organizationId: organization?.id || "",
+								role: "owner",
+								createdAt: new Date(),
+							});
+						});
+					}
+				},
+			},
+		},
 		session: {
 			create: {
 				before: async (session) => {
@@ -106,7 +117,7 @@ export const auth = betterAuth({
 	plugins: [
 		twoFactor(),
 		organization({
-			async sendInvitationEmail(data, request) {
+			async sendInvitationEmail(data, _request) {
 				const inviteLink = `https://example.com/accept-invitation/${data.id}`;
 				// https://example.com/accept-invitation/8jlBi9Tb9isDb8mc8Sb85u1BaJYklKB2
 				// sendOrganizationInvitation({

@@ -33,7 +33,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { req, res, resolvedUrl } = ctx;
+	const { req, res } = ctx;
 	const helpers = createServerSideHelpers({
 		router: appRouter,
 		ctx: {
@@ -69,7 +69,7 @@ export async function getServerSideProps(
 				trpcState: helpers.dehydrate(),
 			},
 		};
-	} catch (error) {
+	} catch (_error) {
 		return {
 			props: {},
 		};

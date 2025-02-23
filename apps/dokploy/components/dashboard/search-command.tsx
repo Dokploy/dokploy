@@ -22,13 +22,10 @@ import {
 	extractServices,
 } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
-import type { findProjectById } from "@dokploy/server/services/project";
 import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
-
-type Project = Awaited<ReturnType<typeof findProjectById>>;
 
 export const SearchCommand = () => {
 	const router = useRouter();
@@ -38,7 +35,7 @@ export const SearchCommand = () => {
 	const { data } = api.project.all.useQuery(undefined, {
 		enabled: !!session,
 	});
-	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {

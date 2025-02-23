@@ -35,7 +35,7 @@ import { AddUserPermissions } from "./add-permissions";
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
-	const { mutateAsync, isLoading: isRemoving } = api.user.remove.useMutation();
+	const { mutateAsync } = api.user.remove.useMutation();
 
 	return (
 		<div className="w-full">

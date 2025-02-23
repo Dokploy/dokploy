@@ -43,7 +43,7 @@ interface Props {
 	serverId?: string;
 }
 
-export const UpdateServerIp = ({ children, serverId }: Props) => {
+export const UpdateServerIp = ({ children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data } = api.user.get.useQuery();

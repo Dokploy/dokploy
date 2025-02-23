@@ -43,7 +43,7 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 	return (
 		<Sheet
 			open={!!isOpen}
-			onOpenChange={(open) => {
+			onOpenChange={(_open) => {
 				onClose();
 			}}
 		>

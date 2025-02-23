@@ -80,7 +80,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
-	const { data, isLoading } = serverId
+	const { data } = serverId
 		? api.server.one.useQuery(
 				{
 					serverId: serverId || "",

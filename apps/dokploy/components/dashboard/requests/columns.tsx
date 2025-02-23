@@ -24,7 +24,7 @@ export const getStatusColor = (status: number) => {
 export const columns: ColumnDef<LogEntry>[] = [
 	{
 		accessorKey: "level",
-		header: ({ column }) => {
+		header: () => {
 			return <Button variant="ghost">Level</Button>;
 		},
 		cell: ({ row }) => {

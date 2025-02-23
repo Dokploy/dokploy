@@ -1,7 +1,7 @@
 import { buffer } from "node:stream/consumers";
 import { db } from "@/server/db";
-import { server, users_temp } from "@/server/db/schema";
-import { findUserById } from "@dokploy/server";
+import { organization, server, users_temp } from "@/server/db/schema";
+import { findUserById, type Server } from "@dokploy/server";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -172,11 +172,11 @@ export default async function handler(
 			}
 
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					serversQuantity: suscription?.items?.data?.[0]?.quantity ?? 0,
 				})
-				.where(eq(admins.stripeCustomerId, suscription.customer as string));
+				.where(eq(users_temp.stripeCustomerId, suscription.customer as string));
 
 			const admin = await findUserByStripeCustomerId(
 				suscription.customer as string,
@@ -205,11 +205,13 @@ export default async function handler(
 					return res.status(400).send("Webhook Error: Admin not found");
 				}
 				await db
-					.update(admins)
+					.update(users_temp)
 					.set({
 						serversQuantity: 0,
 					})
-					.where(eq(admins.stripeCustomerId, newInvoice.customer as string));
+					.where(
+						eq(users_temp.stripeCustomerId, newInvoice.customer as string),
+					);
 
 				await disableServers(admin.id);
 			}
@@ -245,12 +247,18 @@ export default async function handler(
 }
 
 const disableServers = async (userId: string) => {
-	await db
-		.update(server)
-		.set({
-			serverStatus: "inactive",
-		})
-		.where(eq(server.userId, userId));
+	const organizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+	});
+
+	for (const org of organizations) {
+		await db
+			.update(server)
+			.set({
+				serverStatus: "inactive",
+			})
+			.where(eq(server.organizationId, org.id));
+	}
 };
 
 const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
@@ -275,10 +283,18 @@ const deactivateServer = async (serverId: string) => {
 };
 
 export const findServersByUserIdSorted = async (userId: string) => {
-	const servers = await db.query.server.findMany({
-		where: eq(server.userId, userId),
-		orderBy: asc(server.createdAt),
+	const organizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
 	});
+
+	const servers: Server[] = [];
+	for (const org of organizations) {
+		const serversByOrg = await db.query.server.findMany({
+			where: eq(server.organizationId, org.id),
+			orderBy: asc(server.createdAt),
+		});
+		servers.push(...serversByOrg);
+	}
 
 	return servers;
 };

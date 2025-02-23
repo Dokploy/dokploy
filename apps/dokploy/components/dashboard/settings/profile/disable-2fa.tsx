@@ -63,7 +63,7 @@ export const Disable2FA = () => {
 			toast.success("2FA disabled successfully");
 			utils.auth.get.invalidate();
 			setIsOpen(false);
-		} catch (error) {
+		} catch (_error) {
 			form.setError("password", {
 				message: "Connection error. Please try again.",
 			});

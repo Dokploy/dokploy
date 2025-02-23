@@ -32,7 +32,7 @@ export const setupDrawerLogsWebSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const _url = new URL(req.url || "", `http://${req.headers.host}`);
 		const { user, session } = await validateRequest(req);
 
 		if (!user || !session) {

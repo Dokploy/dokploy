@@ -77,7 +77,7 @@ export default function Home({ token }: Props) {
 			resetPasswordToken: token,
 			password: values.password,
 		})
-			.then((data) => {
+			.then((_data) => {
 				toast.success("Password reset successfully", {
 					duration: 2000,
 				});

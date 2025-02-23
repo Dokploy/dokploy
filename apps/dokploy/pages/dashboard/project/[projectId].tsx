@@ -261,7 +261,7 @@ const Project = (
 			try {
 				await composeActions.start.mutateAsync({ composeId: serviceId });
 				success++;
-			} catch (error) {
+			} catch (_error) {
 				toast.error(`Error starting service ${serviceId}`);
 			}
 		}
@@ -281,7 +281,7 @@ const Project = (
 			try {
 				await composeActions.stop.mutateAsync({ composeId: serviceId });
 				success++;
-			} catch (error) {
+			} catch (_error) {
 				toast.error(`Error stopping service ${serviceId}`);
 			}
 		}
@@ -685,7 +685,7 @@ export async function getServerSideProps(
 					projectId: params?.projectId,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

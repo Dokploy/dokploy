@@ -136,7 +136,7 @@ await db
 			},
 		});
 		for (const project of projects) {
-			const user = await db.update(schema.projects).set({
+			const _user = await db.update(schema.projects).set({
 				organizationId: project.user.organizations[0]?.id || "",
 			});
 		}

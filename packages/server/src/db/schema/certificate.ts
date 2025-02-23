@@ -28,19 +28,16 @@ export const certificates = pgTable("certificate", {
 	}),
 });
 
-export const certificatesRelations = relations(
-	certificates,
-	({ one, many }) => ({
-		server: one(server, {
-			fields: [certificates.serverId],
-			references: [server.serverId],
-		}),
-		organization: one(organization, {
-			fields: [certificates.organizationId],
-			references: [organization.id],
-		}),
+export const certificatesRelations = relations(certificates, ({ one }) => ({
+	server: one(server, {
+		fields: [certificates.serverId],
+		references: [server.serverId],
 	}),
-);
+	organization: one(organization, {
+		fields: [certificates.organizationId],
+		references: [organization.id],
+	}),
+}));
 
 export const apiCreateCertificate = createInsertSchema(certificates, {
 	name: z.string().min(1),

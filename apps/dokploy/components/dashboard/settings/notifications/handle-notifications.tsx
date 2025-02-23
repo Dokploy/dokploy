@@ -136,7 +136,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { data: notification, refetch } = api.notification.one.useQuery(
+	const { data: notification } = api.notification.one.useQuery(
 		{
 			notificationId: notificationId || "",
 		},
@@ -1038,7 +1038,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									}
 									toast.success("Connection Success");
-								} catch (err) {
+								} catch (_err) {
 									toast.error("Error testing the provider");
 								}
 							}}

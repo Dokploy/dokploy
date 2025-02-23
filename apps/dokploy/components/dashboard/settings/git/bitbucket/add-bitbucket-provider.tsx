@@ -47,10 +47,10 @@ type Schema = z.infer<typeof Schema>;
 export const AddBitbucketProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const url = useUrl();
+	const _url = useUrl();
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
 	const { data: auth } = api.user.get.useQuery();
-	const router = useRouter();
+	const _router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {
 			username: "",

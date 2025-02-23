@@ -33,7 +33,7 @@ import {
 } from "../trpc";
 
 export const authRouter = createTRPCRouter({
-	createAdmin: publicProcedure.mutation(async ({ ctx, input }) => {
+	createAdmin: publicProcedure.mutation(async ({ input }) => {
 		try {
 			if (!IS_CLOUD) {
 				const admin = await db.query.admins.findFirst({});
@@ -72,9 +72,9 @@ export const authRouter = createTRPCRouter({
 			});
 		}
 	}),
-	createUser: publicProcedure.mutation(async ({ ctx, input }) => {
+	createUser: publicProcedure.mutation(async ({ input }) => {
 		try {
-			const token = await getUserByToken(input.token);
+			const _token = await getUserByToken(input.token);
 			// if (token.isExpired) {
 			// 	throw new TRPCError({
 			// 		code: "BAD_REQUEST",
@@ -103,7 +103,7 @@ export const authRouter = createTRPCRouter({
 		}
 	}),
 
-	login: publicProcedure.mutation(async ({ ctx, input }) => {
+	login: publicProcedure.mutation(async ({ input }) => {
 		try {
 			const auth = await findAuthByEmail(input.email);
 
@@ -169,7 +169,7 @@ export const authRouter = createTRPCRouter({
 	}),
 
 	logout: protectedProcedure.mutation(async ({ ctx }) => {
-		const { req, res } = ctx;
+		const { req } = ctx;
 		const { session } = await validateRequest(req);
 		if (!session) return false;
 
@@ -229,7 +229,7 @@ export const authRouter = createTRPCRouter({
 					message: "Password is incorrect",
 				});
 			}
-			const { req, res } = ctx;
+			const { req } = ctx;
 			const { session } = await validateRequest(req);
 			if (!session) return false;
 
@@ -245,7 +245,7 @@ export const authRouter = createTRPCRouter({
 			return true;
 		}),
 
-	generateToken: protectedProcedure.mutation(async ({ ctx, input }) => {
+	generateToken: protectedProcedure.mutation(async ({ ctx }) => {
 		const auth = await findUserById(ctx.user.id);
 		console.log(auth);
 
@@ -276,7 +276,7 @@ export const authRouter = createTRPCRouter({
 				email: z.string().min(1).email(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -329,7 +329,7 @@ export const authRouter = createTRPCRouter({
 				password: z.string().min(1),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -373,7 +373,7 @@ export const authRouter = createTRPCRouter({
 				confirmationToken: z.string().min(1),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({
 					code: "NOT_FOUND",

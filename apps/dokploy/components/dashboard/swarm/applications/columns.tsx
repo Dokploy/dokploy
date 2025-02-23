@@ -214,7 +214,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 	{
 		accessorKey: "Logs",
 		accessorFn: (row) => row.Error,
-		header: ({ column }) => {
+		header: () => {
 			return <span>Logs</span>;
 		},
 		cell: ({ row }) => {

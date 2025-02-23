@@ -98,8 +98,7 @@ export const getBuildComposeCommand = async (
 	logPath: string,
 ) => {
 	const { COMPOSE_PATH } = paths(true);
-	const { sourceType, appName, mounts, composeType, domains, composePath } =
-		compose;
+	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");

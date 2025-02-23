@@ -43,18 +43,11 @@ const LoginSchema = z.object({
 	password: z.string().min(8),
 });
 
-const TwoFactorSchema = z.object({
+const _TwoFactorSchema = z.object({
 	code: z.string().min(6),
 });
 
-const BackupCodeSchema = z.object({
-	code: z.string().min(8, {
-		message: "Backup code must be at least 8 characters",
-	}),
-});
-
 type LoginForm = z.infer<typeof LoginSchema>;
-type BackupCodeForm = z.infer<typeof BackupCodeSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
@@ -101,7 +94,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 			toast.success("Logged in successfully");
 			router.push("/dashboard/projects");
-		} catch (error) {
+		} catch (_error) {
 			toast.error("An error occurred while logging in");
 		} finally {
 			setIsLoginLoading(false);
@@ -117,7 +110,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 		setIsTwoFactorLoading(true);
 		try {
-			const { data, error } = await authClient.twoFactor.verifyTotp({
+			const { error } = await authClient.twoFactor.verifyTotp({
 				code: twoFactorCode.replace(/\s/g, ""),
 			});
 
@@ -129,7 +122,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 			toast.success("Logged in successfully");
 			router.push("/dashboard/projects");
-		} catch (error) {
+		} catch (_error) {
 			toast.error("An error occurred while verifying 2FA code");
 		} finally {
 			setIsTwoFactorLoading(false);
@@ -145,7 +138,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 		setIsBackupCodeLoading(true);
 		try {
-			const { data, error } = await authClient.twoFactor.verifyBackupCode({
+			const { error } = await authClient.twoFactor.verifyBackupCode({
 				code: backupCode.trim(),
 			});
 
@@ -159,7 +152,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 			toast.success("Logged in successfully");
 			router.push("/dashboard/projects");
-		} catch (error) {
+		} catch (_error) {
 			toast.error("An error occurred while verifying backup code");
 		} finally {
 			setIsBackupCodeLoading(false);
@@ -396,7 +389,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 					},
 				};
 			}
-		} catch (error) {}
+		} catch (_error) {}
 
 		return {
 			props: {

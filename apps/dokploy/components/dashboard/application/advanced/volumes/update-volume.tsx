@@ -77,7 +77,7 @@ export const UpdateVolume = ({
 	serviceType,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
 		{
 			mountId,

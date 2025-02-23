@@ -211,7 +211,7 @@ export const deleteFileMount = async (mountId: string) => {
 		} else {
 			await removeFileOrDirectory(fullPath);
 		}
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getBaseFilesPath = async (mountId: string) => {

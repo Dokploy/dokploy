@@ -47,20 +47,8 @@ const PinSchema = z.object({
 type PasswordForm = z.infer<typeof PasswordSchema>;
 type PinForm = z.infer<typeof PinSchema>;
 
-type TwoFactorEnableResponse = {
-	totpURI: string;
-	backupCodes: string[];
-};
-
-type TwoFactorSetupData = {
-	qrCodeUrl: string;
-	secret: string;
-	totpURI: string;
-};
-
 export const Enable2FA = () => {
 	const utils = api.useUtils();
-	const { data: session } = authClient.useSession();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);

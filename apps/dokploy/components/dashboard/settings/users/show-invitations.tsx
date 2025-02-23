@@ -143,7 +143,7 @@ export const ShowInvitations = () => {
 																				{invitation.status === "pending" && (
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer"
-																						onSelect={(e) => {
+																						onSelect={(_e) => {
 																							copy(
 																								`${origin}/invitation?token=${invitation.id}`,
 																							);
@@ -159,7 +159,7 @@ export const ShowInvitations = () => {
 																				{invitation.status === "pending" && (
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer"
-																						onSelect={async (e) => {
+																						onSelect={async (_e) => {
 																							const result =
 																								await authClient.organization.cancelInvitation(
 																									{

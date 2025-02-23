@@ -56,7 +56,7 @@ export const initializePostgres = async () => {
 		});
 
 		console.log("Postgres Started ✅");
-	} catch (error) {
+	} catch (_error) {
 		await docker.createService(settings);
 		console.log("Postgres Not Found: Starting ✅");
 	}

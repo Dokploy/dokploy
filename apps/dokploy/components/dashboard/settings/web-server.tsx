@@ -14,10 +14,7 @@ import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
 
-interface Props {
-	className?: string;
-}
-export const WebServer = ({ className }: Props) => {
+export const WebServer = () => {
 	const { t } = useTranslation("settings");
 	const { data } = api.user.get.useQuery();
 

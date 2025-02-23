@@ -52,7 +52,7 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const Mariadb = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 
 	const { mariadbId, activeTab } = props;
 	const router = useRouter();
@@ -60,7 +60,6 @@ const Mariadb = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.user.get.useQuery();
-	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -342,7 +341,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

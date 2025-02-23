@@ -54,9 +54,7 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
-	const utils = api.useUtils();
-	const { mutateAsync: disable2FA, isLoading: isDisabling } =
-		api.auth.disable2FA.useMutation();
+	const _utils = api.useUtils();
 	const { data, refetch, isLoading } = api.user.get.useQuery();
 	const {
 		mutateAsync,

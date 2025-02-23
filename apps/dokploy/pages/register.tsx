@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { api } from "@/utils/api";
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 const registerSchema = z
@@ -72,15 +72,16 @@ interface Props {
 
 const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
-	const { mutateAsync, error, isError, data } =
-		api.auth.createAdmin.useMutation();
+	const [isError, setIsError] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [data, setData] = useState<any>(null);
 
 	const form = useForm<Register>({
 		defaultValues: {
 			name: "Mauricio Siu",
 			email: "user5@yopmail.com",
-			password: "Password1234",
-			confirmPassword: "Password1234",
+			password: "Password123",
+			confirmPassword: "Password123",
 		},
 		resolver: zodResolver(registerSchema),
 	});
@@ -96,27 +97,19 @@ const Register = ({ isCloud }: Props) => {
 			name: values.name,
 		});
 
-		// const { data, error } = await authClient.admin.createUser({
-		// 	name: values.name,
-		// 	email: values.email,
-		// 	password: values.password,
-		// 	role: "superAdmin",
-		// });
-
-		// consol/e.log(data, error);
-		// await mutateAsync({
-		// 	email: values.email.toLowerCase(),
-		// 	password: values.password,
-		// })
-		// 	.then(() => {
-		// 		toast.success("User registered successfuly", {
-		// 			duration: 2000,
-		// 		});
-		// 		if (!isCloud) {
-		// 			router.push("/");
-		// 		}
-		// 	})
-		// 	.catch((e) => e);
+		if (error) {
+			setIsError(true);
+			setError(error.message || "An error occurred");
+		} else {
+			toast.success("User registered successfuly", {
+				duration: 2000,
+			});
+			if (!isCloud) {
+				router.push("/");
+			} else {
+				setData(data);
+			}
+		}
 	};
 	return (
 		<div className="">
@@ -138,15 +131,15 @@ const Register = ({ isCloud }: Props) => {
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
-							<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+							<div className=" my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
 								<span className="text-sm text-red-600 dark:text-red-400">
-									{error?.message}
+									{error}
 								</span>
 							</div>
 						)}
-						{data?.type === "cloud" && (
-							<AlertBlock type="success" className="mx-4 my-2">
+						{isCloud && data && (
+							<AlertBlock type="success" className="my-2">
 								<span>
 									Registered successfully, please check your inbox or spam
 									folder to confirm your account.

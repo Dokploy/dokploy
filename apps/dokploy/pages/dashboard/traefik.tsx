@@ -72,7 +72,7 @@ export async function getServerSideProps(
 				trpcState: helpers.dehydrate(),
 			},
 		};
-	} catch (error) {
+	} catch (_error) {
 		return {
 			props: {},
 		};

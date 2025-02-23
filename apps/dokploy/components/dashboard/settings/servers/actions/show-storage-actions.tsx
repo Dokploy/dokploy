@@ -26,7 +26,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 		isLoading: cleanDockerBuilderIsLoading,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
-	const { mutateAsync: cleanMonitoring, isLoading: cleanMonitoringIsLoading } =
+	const { mutateAsync: cleanMonitoring } =
 		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,

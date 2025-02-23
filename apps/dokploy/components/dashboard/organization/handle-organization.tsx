@@ -20,7 +20,7 @@ interface Props {
 	organizationId?: string;
 	children?: React.ReactNode;
 }
-export function AddOrganization({ organizationId, children }: Props) {
+export function AddOrganization({ organizationId }: Props) {
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
 		{

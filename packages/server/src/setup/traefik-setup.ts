@@ -127,7 +127,7 @@ export const initializeTraefik = async ({
 		});
 
 		console.log("Traefik Started ✅");
-	} catch (error) {
+	} catch (_error) {
 		await docker.createService(settings);
 		console.log("Traefik Not Found: Starting ✅");
 	}

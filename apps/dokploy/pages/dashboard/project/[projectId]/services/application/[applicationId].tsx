@@ -65,7 +65,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { applicationId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -86,7 +86,6 @@ const Service = (
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
-	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -399,7 +398,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

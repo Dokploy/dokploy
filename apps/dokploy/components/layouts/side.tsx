@@ -157,7 +157,7 @@ const MENU: Menu = {
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ auth, isCloud }) => !isCloud,
+			isEnabled: ({ isCloud }) => !isCloud,
 		},
 		{
 			isSingle: true,
@@ -277,7 +277,7 @@ const MENU: Menu = {
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
@@ -490,8 +490,9 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
-	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	// const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: session } = authClient.useSession();
+
 	const {
 		data: organizations,
 		refetch,
@@ -501,12 +502,12 @@ function SidebarLogo() {
 		api.organization.delete.useMutation();
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
 
-	const [activeTeam, setActiveTeam] = useState<
+	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
 	>(null);
 
@@ -543,7 +544,7 @@ function SidebarLogo() {
 										</div>
 										<div className="flex flex-col items-start">
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name}
+												{activeOrganization?.name ?? "Select Organization"}
 											</p>
 										</div>
 									</div>
@@ -551,7 +552,7 @@ function SidebarLogo() {
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="w-[--radix-dropdown-menu-trigger-width] min-w-64 rounded-lg"
+								className="  rounded-lg"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
@@ -570,6 +571,7 @@ function SidebarLogo() {
 											}}
 											className="w-full gap-2 p-2"
 										>
+											<div className="flex flex-col gap-4">{org.name}</div>
 											<div className="flex size-6 items-center justify-center rounded-sm border">
 												<Logo
 													className={cn(
@@ -578,9 +580,8 @@ function SidebarLogo() {
 													)}
 												/>
 											</div>
-											{org.name}
 										</DropdownMenuItem>
-										{(org.ownerId === session?.user?.id || isCloud) && (
+										{org.ownerId === session?.user?.id && (
 											<div className="flex items-center gap-2">
 												<AddOrganization organizationId={org.id} />
 												<DialogAction
@@ -618,7 +619,7 @@ function SidebarLogo() {
 										)}
 									</div>
 								))}
-								{!isCloud && user?.role === "owner" && (
+								{(user?.role === "owner" || isCloud) && (
 									<>
 										<DropdownMenuSeparator />
 										<AddOrganization />
@@ -721,11 +722,11 @@ export default function Page({ children }: Props) {
 
 	const router = useRouter();
 	const pathname = usePathname();
-	const currentPath = router.pathname;
+	const _currentPath = router.pathname;
 	const { data: auth } = api.user.get.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
-	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const {
 		home: filteredHome,

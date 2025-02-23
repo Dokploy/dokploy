@@ -51,7 +51,7 @@ type TabState = "projects" | "monitoring" | "settings" | "advanced";
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { redisId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -59,7 +59,6 @@ const Redis = (
 	const { data } = api.redis.one.useQuery({ redisId });
 
 	const { data: auth } = api.user.get.useQuery();
-	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -335,7 +334,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

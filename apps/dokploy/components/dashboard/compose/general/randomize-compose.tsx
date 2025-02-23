@@ -39,7 +39,7 @@ type Schema = z.infer<typeof schema>;
 export const RandomizeCompose = ({ composeId }: Props) => {
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
-	const [isOpen, setIsOpen] = useState(false);
+	const [_isOpen, _setIsOpen] = useState(false);
 	const { mutateAsync, error, isError } =
 		api.compose.randomizeCompose.useMutation();
 
@@ -76,7 +76,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			suffix: formData?.suffix || "",
 			randomize: formData?.randomize || false,
 		})
-			.then(async (data) => {
+			.then(async (_data) => {
 				randomizeCompose();
 				refetch();
 				toast.success("Compose updated");

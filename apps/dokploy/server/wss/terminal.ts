@@ -144,8 +144,8 @@ export const setupTerminalWebSocketServer = (
 		}
 
 		const conn = new Client();
-		let stdout = "";
-		let stderr = "";
+		let _stdout = "";
+		let _stderr = "";
 
 		ws.send("Connecting...\n");
 
@@ -158,16 +158,16 @@ export const setupTerminalWebSocketServer = (
 					if (err) throw err;
 
 					stream
-						.on("close", (code: number, signal: string) => {
+						.on("close", (code: number, _signal: string) => {
 							ws.send(`\nContainer closed with code: ${code}\n`);
 							conn.end();
 						})
 						.on("data", (data: string) => {
-							stdout += data.toString();
+							_stdout += data.toString();
 							ws.send(data.toString());
 						})
 						.stderr.on("data", (data) => {
-							stderr += data.toString();
+							_stderr += data.toString();
 							ws.send(data.toString());
 							console.error("Error: ", data.toString());
 						});

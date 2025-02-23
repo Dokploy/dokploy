@@ -16,7 +16,6 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { IS_CLOUD, getUserByToken } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -90,9 +89,6 @@ const Invitation = ({
 		},
 	);
 
-	const { mutateAsync, error, isError, isSuccess } =
-		api.auth.createUser.useMutation();
-
 	const form = useForm<Register>({
 		defaultValues: {
 			name: "",
@@ -115,7 +111,7 @@ const Invitation = ({
 
 	const onSubmit = async (values: Register) => {
 		try {
-			const { data, error } = await authClient.signUp.email({
+			const { error } = await authClient.signUp.email({
 				email: values.email,
 				password: values.password,
 				name: values.name,
@@ -131,13 +127,13 @@ const Invitation = ({
 				return;
 			}
 
-			const result = await authClient.organization.acceptInvitation({
+			const _result = await authClient.organization.acceptInvitation({
 				invitationId: token,
 			});
 
 			toast.success("Account created successfully");
 			router.push("/dashboard/projects");
-		} catch (error) {
+		} catch (_error) {
 			toast.error("An error occurred while creating your account");
 		}
 	};
@@ -180,14 +176,14 @@ const Invitation = ({
 							<div className="w-full">
 								<div className="p-3" />
 
-								{isError && (
+								{/* {isError && (
 									<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 										<AlertTriangle className="text-red-600 dark:text-red-400" />
 										<span className="text-sm text-red-600 dark:text-red-400">
 											{error?.message}
 										</span>
 									</div>
-								)}
+								)} */}
 
 								<CardContent className="p-0">
 									<Form {...form}>
@@ -313,7 +309,6 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { query } = ctx;
 
 	const token = query.token;
-	console.log("query", query);
 
 	if (typeof token !== "string") {
 		return {

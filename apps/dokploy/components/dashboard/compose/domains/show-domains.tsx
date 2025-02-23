@@ -118,7 +118,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 														await deleteDomain({
 															domainId: item.domainId,
 														})
-															.then((data) => {
+															.then((_data) => {
 																refetch();
 																toast.success("Domain deleted successfully");
 															})

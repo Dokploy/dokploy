@@ -36,7 +36,7 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 				await refetch();
 			}
 			toast.success("Docker Cleanup updated");
-		} catch (error) {
+		} catch (_error) {
 			toast.error("Docker Cleanup Error");
 		}
 	};

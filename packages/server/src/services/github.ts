@@ -119,7 +119,7 @@ export const issueCommentExists = async ({
 			comment_id: comment_id,
 		});
 		return true;
-	} catch (error) {
+	} catch (_error) {
 		return false;
 	}
 };

@@ -103,7 +103,7 @@ export const setupDeploymentLogsWebSocketServer = (
 					ws.close();
 				});
 			}
-		} catch (error) {
+		} catch (_error) {
 			// @ts-ignore
 			// const errorMessage = error?.message as unknown as string;
 			// ws.send(errorMessage);

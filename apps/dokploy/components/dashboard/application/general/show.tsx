@@ -27,8 +27,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.application.stop.useMutation();
 
-	const { mutateAsync: deploy, isLoading: isDeploying } =
-		api.application.deploy.useMutation();
+	const { mutateAsync: deploy } = api.application.deploy.useMutation();
 
 	const { mutateAsync: reload, isLoading: isReloading } =
 		api.application.reload.useMutation();

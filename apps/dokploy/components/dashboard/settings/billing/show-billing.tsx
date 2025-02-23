@@ -38,7 +38,7 @@ export const calculatePrice = (count: number, isAnnual = false) => {
 	return count * 3.5;
 };
 export const ShowBilling = () => {
-	const { data: servers } = api.server.all.useQuery(undefined);
+	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
 	const { data, isLoading } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
@@ -71,7 +71,7 @@ export const ShowBilling = () => {
 	});
 
 	const maxServers = admin?.user.serversQuantity ?? 1;
-	const percentage = ((servers?.length ?? 0) / maxServers) * 100;
+	const percentage = ((servers ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
 
 	return (
@@ -102,13 +102,13 @@ export const ShowBilling = () => {
 								<div className="space-y-2 flex flex-col">
 									<h3 className="text-lg font-medium">Servers Plan</h3>
 									<p className="text-sm text-muted-foreground">
-										You have {servers?.length} server on your plan of{" "}
+										You have {servers} server on your plan of{" "}
 										{admin?.user.serversQuantity} servers
 									</p>
 									<div>
 										<Progress value={safePercentage} className="max-w-lg" />
 									</div>
-									{admin && admin.user.serversQuantity! <= servers?.length! && (
+									{admin && admin.user.serversQuantity! <= (servers ?? 0) && (
 										<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
 											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 											<span className="text-sm text-yellow-600 dark:text-yellow-400">

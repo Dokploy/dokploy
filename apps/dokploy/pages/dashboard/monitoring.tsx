@@ -15,8 +15,7 @@ const BASE_URL = "http://localhost:3001/metrics";
 const DEFAULT_TOKEN = "metrics";
 
 const Dashboard = () => {
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const [toggleMonitoring, setToggleMonitoring] = useLocalStorage(
+	const [toggleMonitoring, _setToggleMonitoring] = useLocalStorage(
 		"monitoring-enabled",
 		false,
 	);

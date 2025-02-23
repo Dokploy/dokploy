@@ -53,7 +53,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 		mongo: () => api.mongo.update.useMutation(),
 	};
 
-	const { mutateAsync, isLoading } = mutationMap[type]
+	const { mutateAsync } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 

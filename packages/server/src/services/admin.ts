@@ -12,8 +12,8 @@ import { IS_CLOUD } from "../constants";
 
 export type User = typeof users_temp.$inferSelect;
 export const createInvitation = async (
-	input: typeof apiCreateUserInvitation._type,
-	adminId: string,
+	_input: typeof apiCreateUserInvitation._type,
+	_adminId: string,
 ) => {
 	// await db.transaction(async (tx) => {
 	// 	const result = await tx
@@ -83,8 +83,8 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 };
 
 export const updateAdminById = async (
-	adminId: string,
-	adminData: Partial<User>,
+	_adminId: string,
+	_adminData: Partial<User>,
 ) => {
 	// const admin = await db
 	// 	.update(admins)
@@ -101,8 +101,6 @@ export const isAdminPresent = async () => {
 	const admin = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
 	});
-
-	console.log("admin", admin);
 
 	if (!admin) {
 		return false;

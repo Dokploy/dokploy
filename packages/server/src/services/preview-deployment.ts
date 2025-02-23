@@ -103,7 +103,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch (error) {}
+			} catch (_error) {}
 		}
 		return deployment[0];
 	} catch (error) {
