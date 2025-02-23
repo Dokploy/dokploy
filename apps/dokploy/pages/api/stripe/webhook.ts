@@ -1,7 +1,7 @@
 import { buffer } from "node:stream/consumers";
 import { db } from "@/server/db";
 import { organization, server, users_temp } from "@/server/db/schema";
-import { findUserById, type Server } from "@dokploy/server";
+import { type Server, findUserById } from "@dokploy/server";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";

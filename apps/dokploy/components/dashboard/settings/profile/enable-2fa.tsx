@@ -44,6 +44,12 @@ const PinSchema = z.object({
 	}),
 });
 
+type TwoFactorSetupData = {
+	qrCodeUrl: string;
+	secret: string;
+	totpURI: string;
+};
+
 type PasswordForm = z.infer<typeof PasswordSchema>;
 type PinForm = z.infer<typeof PinSchema>;
 

@@ -80,7 +80,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Server IP Updated");
-				await utils.admin.one.invalidate();
+				await utils.user.get.invalidate();
 				setIsOpen(false);
 			})
 			.catch(() => {

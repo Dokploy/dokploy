@@ -72,7 +72,7 @@ export const ShowPaidMonitoring = ({
 		data,
 		isLoading,
 		error: queryError,
-	} = api.user.getServerMetrics.useQuery(
+	} = api.server.getServerMetrics.useQuery(
 		{
 			url: BASE_URL,
 			token,

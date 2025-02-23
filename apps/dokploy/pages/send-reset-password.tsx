@@ -1,4 +1,3 @@
-import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
@@ -126,9 +125,7 @@ export default function Home() {
 									</div>
 								</form>
 							</Form>
-						) : (
-							<Login2FA authId={temp.authId} />
-						)}
+						) : null}
 
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">

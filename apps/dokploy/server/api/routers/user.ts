@@ -143,4 +143,63 @@ export const userRouter = createTRPCRouter({
 			},
 		});
 	}),
+
+	getContainerMetrics: protectedProcedure
+		.input(
+			z.object({
+				url: z.string(),
+				token: z.string(),
+				appName: z.string(),
+				dataPoints: z.string(),
+			}),
+		)
+		.query(async ({ input }) => {
+			try {
+				if (!input.appName) {
+					throw new Error(
+						[
+							"No Application Selected:",
+							"",
+							"Make Sure to select an application to monitor.",
+						].join("\n"),
+					);
+				}
+				const url = new URL(`${input.url}/metrics/containers`);
+				url.searchParams.append("limit", input.dataPoints);
+				url.searchParams.append("appName", input.appName);
+				const response = await fetch(url.toString(), {
+					headers: {
+						Authorization: `Bearer ${input.token}`,
+					},
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Error ${response.status}: ${response.statusText}. Please verify that the application "${input.appName}" is running and this service is included in the monitoring configuration.`,
+					);
+				}
+
+				const data = await response.json();
+				if (!Array.isArray(data) || data.length === 0) {
+					throw new Error(
+						[
+							`No monitoring data available for "${input.appName}". This could be because:`,
+							"",
+							"1. The container was recently started - wait a few minutes for data to be collected",
+							"2. The container is not running - verify its status",
+							"3. The service is not included in your monitoring configuration",
+						].join("\n"),
+					);
+				}
+				return data as {
+					containerId: string;
+					containerName: string;
+					containerImage: string;
+					containerLabels: string;
+					containerCommand: string;
+					containerCreated: string;
+				}[];
+			} catch (error) {
+				throw error;
+			}
+		}),
 });

@@ -14,13 +14,11 @@ import {
 	IS_CLOUD,
 	findUserById,
 	getUserByToken,
-	sendDiscordNotification,
 	sendEmailNotification,
 	validateRequest,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { isBefore } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -321,157 +319,64 @@ export const authRouter = createTRPCRouter({
 			`,
 			);
 		}),
-
-	resetPassword: publicProcedure
-		.input(
-			z.object({
-				resetPasswordToken: z.string().min(1),
-				password: z.string().min(1),
-			}),
-		)
-		.mutation(async ({ input }) => {
-			if (!IS_CLOUD) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "This feature is only available in the cloud version",
-				});
-			}
-			const authR = await db.query.auth.findFirst({
-				where: eq(auth.resetPasswordToken, input.resetPasswordToken),
-			});
-
-			if (!authR || authR.resetPasswordExpiresAt === null) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Token not found",
-				});
-			}
-
-			const isExpired = isBefore(
-				new Date(authR.resetPasswordExpiresAt),
-				new Date(),
-			);
-
-			if (isExpired) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Token expired",
-				});
-			}
-
-			await updateAuthById(authR.id, {
-				resetPasswordExpiresAt: null,
-				resetPasswordToken: null,
-				password: bcrypt.hashSync(input.password, 10),
-			});
-
-			return true;
-		}),
-	confirmEmail: adminProcedure
-		.input(
-			z.object({
-				confirmationToken: z.string().min(1),
-			}),
-		)
-		.mutation(async ({ input }) => {
-			if (!IS_CLOUD) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Functionality not available in cloud version",
-				});
-			}
-			const authR = await db.query.auth.findFirst({
-				where: eq(auth.confirmationToken, input.confirmationToken),
-			});
-			if (!authR || authR.confirmationExpiresAt === null) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Token not found",
-				});
-			}
-			if (authR.confirmationToken !== input.confirmationToken) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Confirmation Token not found",
-				});
-			}
-
-			const isExpired = isBefore(
-				new Date(authR.confirmationExpiresAt),
-				new Date(),
-			);
-
-			if (isExpired) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Confirmation Token expired",
-				});
-			}
-			1;
-			await updateAuthById(authR.id, {
-				confirmationToken: null,
-				confirmationExpiresAt: null,
-			});
-			return true;
-		}),
 });
 
-export const sendVerificationEmail = async (authId: string) => {
-	const token = nanoid();
-	const result = await updateAuthById(authId, {
-		confirmationToken: token,
-		confirmationExpiresAt: new Date(
-			new Date().getTime() + 24 * 60 * 60 * 1000,
-		).toISOString(),
-	});
+// export const sendVerificationEmail = async (authId: string) => {
+// 	const token = nanoid();
+// 	const result = await updateAuthById(authId, {
+// 		confirmationToken: token,
+// 		confirmationExpiresAt: new Date(
+// 			new Date().getTime() + 24 * 60 * 60 * 1000,
+// 		).toISOString(),
+// 	});
 
-	if (!result) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "User not found",
-		});
-	}
-	await sendEmailNotification(
-		{
-			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
-			toAddresses: [result?.email],
-			smtpServer: process.env.SMTP_SERVER || "",
-			smtpPort: Number(process.env.SMTP_PORT),
-			username: process.env.SMTP_USERNAME || "",
-			password: process.env.SMTP_PASSWORD || "",
-		},
-		"Confirm your email | Dokploy",
-		`
-		Welcome to Dokploy!
-		Please confirm your email by clicking the link below:
-		<a href="${WEBSITE_URL}/confirm-email?token=${result?.confirmationToken}">
-			Confirm Email
-		</a>
-	`,
-	);
+// 	if (!result) {
+// 		throw new TRPCError({
+// 			code: "BAD_REQUEST",
+// 			message: "User not found",
+// 		});
+// 	}
+// 	await sendEmailNotification(
+// 		{
+// 			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
+// 			toAddresses: [result?.email],
+// 			smtpServer: process.env.SMTP_SERVER || "",
+// 			smtpPort: Number(process.env.SMTP_PORT),
+// 			username: process.env.SMTP_USERNAME || "",
+// 			password: process.env.SMTP_PASSWORD || "",
+// 		},
+// 		"Confirm your email | Dokploy",
+// 		`
+// 		Welcome to Dokploy!
+// 		Please confirm your email by clicking the link below:
+// 		<a href="${WEBSITE_URL}/confirm-email?token=${result?.confirmationToken}">
+// 			Confirm Email
+// 		</a>
+// 	`,
+// 	);
 
-	return true;
-};
+// 	return true;
+// };
 
-export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
-	await sendDiscordNotification(
-		{
-			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
-		},
-		{
-			title: "New User Registered",
-			color: 0x00ff00,
-			fields: [
-				{
-					name: "Email",
-					value: newAdmin.email,
-					inline: true,
-				},
-			],
-			timestamp: newAdmin.createdAt,
-			footer: {
-				text: "Dokploy User Registration Notification",
-			},
-		},
-	);
-};
+// export const sendDiscordNotificationWelcome = async (newAdmin: Auth) => {
+// 	await sendDiscordNotification(
+// 		{
+// 			webhookUrl: process.env.DISCORD_WEBHOOK_URL || "",
+// 		},
+// 		{
+// 			title: "New User Registered",
+// 			color: 0x00ff00,
+// 			fields: [
+// 				{
+// 					name: "Email",
+// 					value: newAdmin.email,
+// 					inline: true,
+// 				},
+// 			],
+// 			timestamp: newAdmin.createdAt,
+// 			footer: {
+// 				text: "Dokploy User Registration Notification",
+// 			},
+// 		},
+// 	);
+// };

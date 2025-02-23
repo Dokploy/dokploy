@@ -108,6 +108,23 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
+export const findAdmin = async () => {
+	const admin = await db.query.member.findFirst({
+		where: eq(member.role, "owner"),
+		with: {
+			user: true,
+		},
+	});
+
+	if (!admin) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Admin not found",
+		});
+	}
+	return admin;
+};
+
 export const getUserByToken = async (token: string) => {
 	const user = await db.query.invitation.findFirst({
 		where: eq(invitation.id, token),
@@ -154,8 +171,8 @@ export const getDokployUrl = async () => {
 	}
 	const admin = await findAdmin();
 
-	if (admin.host) {
-		return `https://${admin.host}`;
+	if (admin.user.host) {
+		return `https://${admin.user.host}`;
 	}
-	return `http://${admin.serverIp}:${process.env.PORT}`;
+	return `http://${admin.user.serverIp}:${process.env.PORT}`;
 };
