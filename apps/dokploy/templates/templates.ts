@@ -678,6 +678,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./hi-events/index").then((m) => m.generate),
 	},
 	{
+		id: "hoarder",
+		name: "Hoarder",
+		version: "0.22.0",
+		description:
+			'Hoarder is an open source "Bookmark Everything" app that uses AI for automatically tagging the content you throw at it.',
+		logo: "hoarder.svg",
+		links: {
+			github: "https://github.com/hoarder/hoarder",
+			website: "https://hoarder.app/",
+			docs: "https://docs.hoarder.app/",
+		},
+		tags: ["self-hosted", "bookmarks", "link-sharing"],
+		load: () => import("./hoarder/index").then((m) => m.generate),
+	},
+	{
 		id: "windows",
 		name: "Windows (dockerized)",
 		version: "4.00",
