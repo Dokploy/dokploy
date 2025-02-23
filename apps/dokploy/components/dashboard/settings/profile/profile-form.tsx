@@ -103,9 +103,9 @@ export const ProfileForm = () => {
 	const onSubmit = async (values: Profile) => {
 		await mutateAsync({
 			email: values.email.toLowerCase(),
-			password: values.password,
+			password: values.password || undefined,
 			image: values.image,
-			currentPassword: values.currentPassword,
+			currentPassword: values.currentPassword || undefined,
 		})
 			.then(async () => {
 				await refetch();

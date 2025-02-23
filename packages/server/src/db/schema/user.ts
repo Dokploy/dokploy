@@ -278,6 +278,8 @@ export const apiUpdateWebServerMonitoring = z.object({
 });
 
 export const apiUpdateUser = createSchema.partial().extend({
+	password: z.string().optional(),
+	currentPassword: z.string().optional(),
 	metricsConfig: z
 		.object({
 			server: z.object({

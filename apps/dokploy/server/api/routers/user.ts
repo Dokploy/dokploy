@@ -8,12 +8,14 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
+	account,
 	apiAssignPermissions,
 	apiFindOneToken,
 	apiUpdateUser,
 	invitation,
 	member,
 } from "@dokploy/server/db/schema";
+import * as bcrypt from "bcrypt";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
@@ -81,6 +83,35 @@ export const userRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
+			if (input.password || input.currentPassword) {
+				const currentAuth = await db.query.account.findFirst({
+					where: eq(account.userId, ctx.user.id),
+				});
+				const correctPassword = bcrypt.compareSync(
+					input.currentPassword || "",
+					currentAuth?.password || "",
+				);
+
+				if (!correctPassword) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Current password is incorrect",
+					});
+				}
+
+				if (!input.password) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "New password is required",
+					});
+				}
+				await db
+					.update(account)
+					.set({
+						password: bcrypt.hashSync(input.password, 10),
+					})
+					.where(eq(account.userId, ctx.user.id));
+			}
 			return await updateUser(ctx.user.id, input);
 		}),
 	getUserByToken: publicProcedure
