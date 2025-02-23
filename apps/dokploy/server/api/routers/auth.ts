@@ -1,34 +1,4 @@
-import {
-	// apiCreateAdmin,
-	// apiCreateUser,
-	// apiFindOneAuth,
-	// apiLogin,
-	// apiUpdateAuth,
-	// apiVerify2FA,
-	// apiVerifyLogin2FA,
-	// auth,
-	member,
-} from "@/server/db/schema";
-import { WEBSITE_URL } from "@/server/utils/stripe";
-import {
-	IS_CLOUD,
-	findUserById,
-	getUserByToken,
-	sendEmailNotification,
-	validateRequest,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import * as bcrypt from "bcrypt";
-import { and, eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
-import { z } from "zod";
-import { db } from "../../db";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "../trpc";
+import { createTRPCRouter } from "../trpc";
 
 export const authRouter = createTRPCRouter({
 	// createAdmin: publicProcedure.mutation(async ({ input }) => {
