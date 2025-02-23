@@ -678,6 +678,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./vaultwarden/index").then((m) => m.generate),
 	},
 	{
+		id: "linkwarden",
+		name: "Linkwarden",
+		version: "2.9.3",
+		description:
+			"Self-hosted, open-source collaborative bookmark manager to collect, organize and archive webpages.",
+		logo: "linkwarden.png",
+		links: {
+			github: "https://github.com/linkwarden/linkwarden",
+			website: "https://linkwarden.app/",
+			docs: "https://docs.linkwarden.app/",
+		},
+		tags: ["bookmarks", "link-sharing"],
+		load: () => import("./linkwarden/index").then((m) => m.generate),
+	},
+	{
 		id: "hi-events",
 		name: "Hi.events",
 		version: "0.8.0-beta.1",
