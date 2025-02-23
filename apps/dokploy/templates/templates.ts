@@ -1124,6 +1124,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
 	{
+		id: "pocket-id",
+		name: "Pocket ID",
+		version: "0.35.1",
+		description:
+			"A simple and easy-to-use OIDC provider that allows users to authenticate with their passkeys to your services.",
+		logo: "pocket-id.svg",
+		links: {
+			github: "https://github.com/pocket-id/pocket-id",
+			website: "https://pocket-id.org/",
+			docs: "https://pocket-id.org/docs",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./pocket-id/index").then((m) => m.generate),
+	},
+	{
 		id: "penpot",
 		name: "Penpot",
 		version: "2.3.2",
