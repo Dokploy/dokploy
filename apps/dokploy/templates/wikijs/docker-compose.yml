@@ -12,8 +12,6 @@ services:
       - DB_NAME
     depends_on:
       - db
-    networks:
-      - dokploy-network
     labels:
       - traefik.enable=true
       - traefik.constraint-label-stack=wikijs
