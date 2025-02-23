@@ -9,7 +9,7 @@ import * as schema from "../db/schema";
 import { sendEmail } from "../verification/send-verification-email";
 import { IS_CLOUD } from "../constants";
 
-export const auth = betterAuth({
+const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -144,8 +144,12 @@ export const auth = betterAuth({
 	],
 });
 
+export const auth = {
+	handler,
+};
+
 export const validateRequest = async (request: IncomingMessage) => {
-	const session = await auth.api.getSession({
+	const session = await api.getSession({
 		headers: new Headers({
 			cookie: request.headers.cookie || "",
 		}),
