@@ -1,3 +1,5 @@
+import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	CardContent,
@@ -95,7 +97,10 @@ export const ComposeFreeMonitoring = ({
 										key={container.containerId}
 										value={container.name}
 									>
-										{container.name} ({container.containerId}) {container.state}
+										{container.name} ({container.containerId}){" "}
+										<Badge variant={badgeStateColor(container.state)}>
+											{container.state}
+										</Badge>
 									</SelectItem>
 								))}
 								<SelectLabel>Containers ({data?.length})</SelectLabel>

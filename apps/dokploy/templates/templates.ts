@@ -2,6 +2,37 @@ import type { TemplateData } from "./types/templates-data.type";
 
 export const templates: TemplateData[] = [
 	{
+		id: "appwrite",
+		name: "Appwrite",
+		version: "1.6.0",
+		description:
+			"Appwrite is an end-to-end backend server for Web, Mobile, Native, or Backend apps. Appwrite abstracts the complexity and repetitiveness required to build a modern backend API from scratch and allows you to build secure apps faster.\n" +
+			"Using Appwrite, you can easily integrate your app with user authentication and multiple sign-in methods, a database for storing and querying users and team data, storage and file management, image manipulation, Cloud Functions, messaging, and more services.",
+		links: {
+			github: "https://github.com/appwrite/appwrite",
+			website: "https://appwrite.io/",
+			docs: "https://appwrite.io/docs",
+		},
+		logo: "appwrite.svg",
+		tags: ["database", "firebase", "postgres"],
+		load: () => import("./appwrite/index").then((m) => m.generate),
+	},
+	{
+		id: "outline",
+		name: "Outline",
+		version: "0.82.0",
+		description:
+			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
+		links: {
+			github: "https://github.com/outline/outline",
+			website: "https://outline.com/",
+			docs: "https://docs.outline.com/",
+		},
+		logo: "outline.png",
+		load: () => import("./outline/index").then((m) => m.generate),
+		tags: ["documentation", "knowledge-base", "self-hosted"],
+	},
+	{
 		id: "supabase",
 		name: "SupaBase",
 		version: "1.24.07",
@@ -34,7 +65,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.4",
+		version: "v2.1.5",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -170,7 +201,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "wordpress",
 		name: "Wordpress",
-		version: "5.8.3",
+		version: "6.7.1",
 		description:
 			"Wordpress is a free and open source content management system (CMS) for publishing and managing websites.",
 		logo: "wordpress.png",
@@ -1409,6 +1440,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./spacedrive/index").then((m) => m.generate),
 	},
 	{
+		id: "registry",
+		name: "Docker Registry",
+		version: "2",
+		description:
+			"Distribution implementation for storing and distributing of Docker container images and artifacts.",
+		links: {
+			github: "https://github.com/distribution/distribution",
+			website: "https://hub.docker.com/_/registry",
+			docs: "https://distribution.github.io/distribution/",
+		},
+		logo: "registry.png",
+		tags: ["registry", "docker", "self-hosted"],
+		load: () => import("./registry/index").then((m) => m.generate),
+	},
+	{
 		id: "alist",
 		name: "AList",
 		version: "v3.41.0",
@@ -1482,5 +1528,35 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forms", "analytics"],
 		load: () => import("./formbricks/index").then((m) => m.generate),
+	},
+	{
+		id: "trilium",
+		name: "Trilium",
+		description:
+			"Trilium Notes is a hierarchical note taking application with focus on building large personal knowledge bases.",
+		logo: "trilium.png",
+		version: "latest",
+		links: {
+			github: "https://github.com/zadam/trilium",
+			website: "https://github.com/zadam/trilium",
+			docs: "https://github.com/zadam/trilium/wiki/",
+		},
+		tags: ["self-hosted", "productivity", "personal-use"],
+		load: () => import("./trilium/index").then((m) => m.generate),
+	},
+	{
+		id: "convex",
+		name: "Convex",
+		version: "latest",
+		description:
+			"Convex is an open-source reactive database designed to make life easy for web app developers.",
+		logo: "convex.svg",
+		links: {
+			github: "https://github.com/get-convex/convex",
+			website: "https://www.convex.dev/",
+			docs: "https://www.convex.dev/docs",
+		},
+		tags: ["backend", "database", "api"],
+		load: () => import("./convex/index").then((m) => m.generate),
 	},
 ];
