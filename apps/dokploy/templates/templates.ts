@@ -25,8 +25,8 @@ export const templates: TemplateData[] = [
 			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
 		links: {
 			github: "https://github.com/outline/outline",
-			website: "https://outline.com/",
-			docs: "https://docs.outline.com/",
+			website: "https://getoutline.com/",
+			docs: "https://docs.getoutline.com/s/guide",
 		},
 		logo: "outline.png",
 		load: () => import("./outline/index").then((m) => m.generate),
@@ -394,6 +394,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./open-webui/index").then((m) => m.generate),
 	},
 	{
+		id: "mailpit",
+		name: "Mailpit",
+		version: "v1.22.3",
+		description:
+			"Mailpit is a tiny, self-contained, and secure email & SMTP testing tool with API for developers.",
+		logo: "mailpit.svg",
+		links: {
+			github: "https://github.com/axllent/mailpit",
+			website: "https://mailpit.axllent.org/",
+			docs: "https://mailpit.axllent.org/docs/",
+		},
+		tags: ["email", "smtp"],
+		load: () => import("./mailpit/index").then((m) => m.generate),
+	},
+	{
 		id: "listmonk",
 		name: "Listmonk",
 		version: "v3.0.0",
@@ -426,7 +441,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.14.0",
+		version: "v2.16.1",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -1574,3 +1589,4 @@ export const templates: TemplateData[] = [
 		load: () => import("./wikijs/index").then((m) => m.generate),
 	},
 ];
+
