@@ -25,8 +25,8 @@ export const templates: TemplateData[] = [
 			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
 		links: {
 			github: "https://github.com/outline/outline",
-			website: "https://outline.com/",
-			docs: "https://docs.outline.com/",
+			website: "https://getoutline.com/",
+			docs: "https://docs.getoutline.com/s/guide",
 		},
 		logo: "outline.png",
 		load: () => import("./outline/index").then((m) => m.generate),
