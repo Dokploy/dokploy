@@ -3,9 +3,6 @@ services:
   wiki:
     image: ghcr.io/requarks/wiki:2.5
     restart: unless-stopped
-    ports:
-      # Change 5000 to the desired port
-      - "5000:3000"
     environment:
       - DB_TYPE
       - DB_HOST
