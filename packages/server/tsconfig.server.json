@@ -7,16 +7,13 @@
 		"isolatedModules": false,
 		"noEmit": false,
 		"declaration": true,
-		"declarationMap": true,
 		"moduleResolution": "Node",
 		"rootDir": "./src",
 		"baseUrl": ".",
 		"jsx": "react-jsx",
 		"paths": {
 			"@dokploy/server/*": ["./src/*"]
-		},
-		"skipLibCheck": true,
-		"noImplicitAny": false
+		}
 	},
 	"include": ["next-env.d.ts", "./src/**/*"],
 	"exclude": ["**/dist", "tsup.ts"],
