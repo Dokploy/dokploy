@@ -426,7 +426,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.14.0",
+		version: "v2.16.1",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
