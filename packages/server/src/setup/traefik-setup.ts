@@ -22,6 +22,7 @@ interface TraefikOptions {
 		targetPort: number;
 		publishedPort: number;
 		publishMode?: "ingress" | "host";
+		Protocol?: "tcp" | "udp";
 	}[];
 }
 
@@ -74,6 +75,13 @@ export const initializeTraefik = async ({
 					TargetPort: 443,
 					PublishedPort: TRAEFIK_SSL_PORT,
 					PublishMode: "host",
+					Protocol: "udp",
+				},
+				{
+					TargetPort: 443,
+					PublishedPort: TRAEFIK_SSL_PORT,
+					PublishMode: "host",
+					Protocol: "tcp",
 				},
 				{
 					TargetPort: 80,
