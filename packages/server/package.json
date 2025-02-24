@@ -28,7 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "rotating-file-stream": "3.2.3",
+    "@duckdb/node-api": "1.2.0-alpha.15",
     "@faker-js/faker": "^8.4.1",
     "@lucia-auth/adapter-drizzle": "1.0.7",
     "@octokit/auth-app": "^6.0.4",
@@ -41,7 +41,7 @@
     "date-fns": "3.6.0",
     "dockerode": "4.0.2",
     "dotenv": "16.4.5",
-   "drizzle-orm": "^0.39.1",
+    "drizzle-orm": "^0.39.1",
     "drizzle-zod": "0.5.1",
     "hi-base32": "^0.5.1",
     "js-yaml": "4.1.0",
@@ -59,16 +59,13 @@
     "qrcode": "^1.5.3",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "rotating-file-stream": "3.2.3",
     "slugify": "^1.6.6",
+    "ssh2": "1.15.0",
     "ws": "8.16.0",
-    "zod": "^3.23.4",
-    "ssh2": "1.15.0"
+    "zod": "^3.23.4"
   },
   "devDependencies": {
-    "esbuild-plugin-alias": "0.2.1",
-    "tailwindcss": "^3.4.1",
-    "tsx": "^4.7.1",
-    "tsc-alias": "1.8.10",
     "@types/adm-zip": "^0.5.5",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",
@@ -81,11 +78,15 @@
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "@types/ssh2": "1.15.1",
     "@types/ws": "8.5.10",
     "drizzle-kit": "^0.30.4",
     "esbuild": "0.20.2",
+    "esbuild-plugin-alias": "0.2.1",
     "postcss": "^8.4.31",
-    "typescript": "^5.4.2",
-    "@types/ssh2": "1.15.1"
+    "tailwindcss": "^3.4.1",
+    "tsc-alias": "1.8.10",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
   }
 }
