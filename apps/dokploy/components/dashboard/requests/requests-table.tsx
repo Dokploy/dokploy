@@ -51,36 +51,37 @@ import { toast } from "sonner";
 import { columns, getStatusColor } from "./columns";
 import type { LogEntry } from "./show-requests";
 import { DataTableFacetedFilter } from "./status-request-filter";
+import {RequestStatusEnum, RequestStatuses} from "@dokploy/server/db/schema";
 
 export const priorities = [
 	{
 		label: "100 - 199",
-		value: "info",
+		value: RequestStatuses.enum.info,
 		icon: InfoIcon,
 	},
 	{
 		label: "200 - 299",
-		value: "success",
+		value: RequestStatuses.enum.success,
 		icon: CheckCircle2Icon,
 	},
 	{
 		label: "300 - 399",
-		value: "redirect",
+		value: RequestStatuses.enum.redirect,
 		icon: TrendingUpIcon,
 	},
 	{
 		label: "400 - 499",
-		value: "client",
+		value: RequestStatuses.enum.client,
 		icon: Globe,
 	},
 	{
 		label: "500 - 599",
-		value: "server",
+		value: RequestStatuses.enum.server,
 		icon: Server,
 	},
 ];
 export const RequestsTable = () => {
-	const [statusFilter, setStatusFilter] = useState<string[]>([]);
+	const [statusFilter, setStatusFilter] = useState<RequestStatusEnum[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
 	const [sorting, setSorting] = useState<SortingState>([]);
