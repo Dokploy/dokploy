@@ -1619,4 +1619,3 @@ export const templates: TemplateData[] = [
 		load: () => import("./wikijs/index").then((m) => m.generate),
 	},
 ];
-
