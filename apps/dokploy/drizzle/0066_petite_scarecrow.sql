@@ -1,0 +1,1 @@
+ALTER TABLE "telegram" ADD COLUMN "messageThreadId" text;

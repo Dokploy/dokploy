@@ -122,6 +122,7 @@ export const createTelegramNotification = async (
 			.values({
 				botToken: input.botToken,
 				chatId: input.chatId,
+				messageThreadId: input.messageThreadId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -193,6 +194,7 @@ export const updateTelegramNotification = async (
 			.set({
 				botToken: input.botToken,
 				chatId: input.chatId,
+				messageThreadId: input.messageThreadId,
 			})
 			.where(eq(telegram.telegramId, input.telegramId))
 			.returning()
