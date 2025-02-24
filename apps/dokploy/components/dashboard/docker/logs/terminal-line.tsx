@@ -35,34 +35,34 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 			})
 		: "--- No time found ---";
 
-		const highlightMessage = (text: string, term: string) => {
-			if (!term) {
-				return (
-					<span
-						className="transition-colors"
-						dangerouslySetInnerHTML={{
-							__html: fancyAnsi.toHtml(text),
-						}}
-					/>
-				);
-			}
-	
-			const htmlContent = fancyAnsi.toHtml(text);
-			const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
-	
-			const modifiedContent = htmlContent.replace(
-				searchRegex,
-				(match) =>
-					`<span class="bg-orange-200/80 dark:bg-orange-900/80 font-bold">${match}</span>`,
-			);
-	
+	const highlightMessage = (text: string, term: string) => {
+		if (!term) {
 			return (
 				<span
 					className="transition-colors"
-					dangerouslySetInnerHTML={{ __html: modifiedContent }}
+					dangerouslySetInnerHTML={{
+						__html: fancyAnsi.toHtml(text),
+					}}
 				/>
 			);
-		};
+		}
+
+		const htmlContent = fancyAnsi.toHtml(text);
+		const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+
+		const modifiedContent = htmlContent.replace(
+			searchRegex,
+			(match) =>
+				`<span class="bg-orange-200/80 dark:bg-orange-900/80 font-bold">${match}</span>`,
+		);
+
+		return (
+			<span
+				className="transition-colors"
+				dangerouslySetInnerHTML={{ __html: modifiedContent }}
+			/>
+		);
+	};
 
 	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
