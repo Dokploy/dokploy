@@ -9,18 +9,39 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const organizationSchema = z.object({
+	name: z.string().min(1, {
+		message: "Organization name is required",
+	}),
+	logo: z.string().optional(),
+});
+
+type OrganizationFormValues = z.infer<typeof organizationSchema>;
 
 interface Props {
 	organizationId?: string;
 	children?: React.ReactNode;
 }
+
 export function AddOrganization({ organizationId }: Props) {
+	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
 		{
@@ -33,24 +54,37 @@ export function AddOrganization({ organizationId }: Props) {
 	const { mutateAsync, isLoading } = organizationId
 		? api.organization.update.useMutation()
 		: api.organization.create.useMutation();
-	const [open, setOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [logo, setLogo] = useState("");
+
+	const form = useForm<OrganizationFormValues>({
+		resolver: zodResolver(organizationSchema),
+		defaultValues: {
+			name: "",
+			logo: "",
+		},
+	});
 
 	useEffect(() => {
 		if (organization) {
-			setName(organization.name);
-			setLogo(organization.logo || "");
+			form.reset({
+				name: organization.name,
+				logo: organization.logo || "",
+			});
 		}
-	}, [organization]);
-	const handleSubmit = async () => {
-		await mutateAsync({ name, logo, organizationId: organizationId ?? "" })
+	}, [organization, form]);
+
+	const onSubmit = async (values: OrganizationFormValues) => {
+		await mutateAsync({
+			name: values.name,
+			logo: values.logo,
+			organizationId: organizationId ?? "",
+		})
 			.then(() => {
-				setOpen(false);
+				form.reset();
 				toast.success(
 					`Organization ${organizationId ? "updated" : "created"} successfully`,
 				);
 				utils.organization.all.invalidate();
+				setOpen(false);
 			})
 			.catch((error) => {
 				console.error(error);
@@ -59,6 +93,7 @@ export function AddOrganization({ organizationId }: Props) {
 				);
 			});
 	};
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
@@ -67,14 +102,11 @@ export function AddOrganization({ organizationId }: Props) {
 						className="group cursor-pointer hover:bg-blue-500/10"
 						onSelect={(e) => e.preventDefault()}
 					>
-						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 					</DropdownMenuItem>
 				) : (
 					<DropdownMenuItem
 						className="gap-2 p-2"
-						onClick={() => {
-							setOpen(true);
-						}}
 						onSelect={(e) => e.preventDefault()}
 					>
 						<div className="flex size-6 items-center justify-center rounded-md border bg-background">
@@ -97,36 +129,53 @@ export function AddOrganization({ organizationId }: Props) {
 							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
-				<div className="grid gap-4 py-4">
-					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="name" className="text-right">
-							Name
-						</Label>
-						<Input
-							id="name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							className="col-span-3"
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="grid gap-4 py-4"
+					>
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem className="tems-center gap-4">
+									<FormLabel className="text-right">Name</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="Organization name"
+											{...field}
+											className="col-span-3"
+										/>
+									</FormControl>
+									<FormMessage className="" />
+								</FormItem>
+							)}
 						/>
-					</div>
-					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="logo" className="text-right">
-							Logo URL
-						</Label>
-						<Input
-							id="logo"
-							value={logo}
-							onChange={(e) => setLogo(e.target.value)}
-							placeholder="https://example.com/logo.png"
-							className="col-span-3"
+						<FormField
+							control={form.control}
+							name="logo"
+							render={({ field }) => (
+								<FormItem className=" gap-4">
+									<FormLabel className="text-right">Logo URL</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="https://example.com/logo.png"
+											{...field}
+											value={field.value || ""}
+											className="col-span-3"
+										/>
+									</FormControl>
+									<FormMessage className="col-span-3 col-start-2" />
+								</FormItem>
+							)}
 						/>
-					</div>
-				</div>
-				<DialogFooter>
-					<Button type="submit" onClick={handleSubmit} isLoading={isLoading}>
-						{organizationId ? "Update organization" : "Create organization"}
-					</Button>
-				</DialogFooter>
+						<DialogFooter className="mt-4">
+							<Button type="submit" isLoading={isLoading}>
+								{organizationId ? "Update organization" : "Create organization"}
+							</Button>
+						</DialogFooter>
+					</form>
+				</Form>
 			</DialogContent>
 		</Dialog>
 	);

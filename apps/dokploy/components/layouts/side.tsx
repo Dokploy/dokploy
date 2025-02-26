@@ -534,7 +534,7 @@ function SidebarLogo() {
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem>
+					<SidebarMenuItem className={"w-full"}>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
@@ -562,7 +562,7 @@ function SidebarLogo() {
 													"transition-all",
 													state === "collapsed" ? "size-4" : "size-5",
 												)}
-												logoUrl={activeOrganization?.logo}
+												logoUrl={activeOrganization?.logo || undefined}
 											/>
 										</div>
 										<div

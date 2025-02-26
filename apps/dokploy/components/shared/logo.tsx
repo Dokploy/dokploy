@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 interface Props {
 	className?: string;
 	logoUrl?: string;
@@ -9,8 +11,7 @@ export const Logo = ({ className = "size-14", logoUrl }: Props) => {
 			<img
 				src={logoUrl}
 				alt="Organization Logo"
-				className={className}
-				style={{ objectFit: "contain" }}
+				className={cn(className, "object-contain rounded-sm")}
 			/>
 		);
 	}
