@@ -525,34 +525,63 @@ function SidebarLogo() {
 					<Loader2 className="animate-spin size-4" />
 				</div>
 			) : (
-				<SidebarMenu>
-					<SidebarMenuItem className="flex items-center gap-2">
+				<SidebarMenu
+					className={cn(
+						"flex gap-2",
+						state === "collapsed"
+							? "flex-col"
+							: "flex-row justify-between items-center",
+					)}
+				>
+					{/* Organization Logo and Selector */}
+					<SidebarMenuItem>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<SidebarMenuButton
-									size="lg"
-									className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+									size={state === "collapsed" ? "sm" : "lg"}
+									className={cn(
+										"data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+										state === "collapsed" &&
+											"flex justify-center items-center p-2 h-10 w-10 mx-auto",
+									)}
 								>
-									<div className="flex items-center gap-2">
-										<div className="flex size-6 items-center justify-center rounded-sm border">
+									<div
+										className={cn(
+											"flex items-center gap-2",
+											state === "collapsed" && "justify-center",
+										)}
+									>
+										<div
+											className={cn(
+												"flex items-center justify-center rounded-sm border",
+												"size-6",
+											)}
+										>
 											<Logo
 												className={cn(
 													"transition-all",
-													state === "collapsed" ? "size-6" : "size-10",
+													state === "collapsed" ? "size-4" : "size-5",
 												)}
 											/>
 										</div>
-										<div className="flex flex-col items-start">
+										<div
+											className={cn(
+												"flex flex-col items-start",
+												state === "collapsed" && "hidden",
+											)}
+										>
 											<p className="text-sm font-medium leading-none">
 												{activeOrganization?.name ?? "Select Organization"}
 											</p>
 										</div>
 									</div>
-									<ChevronsUpDown className="ml-auto" />
+									<ChevronsUpDown
+										className={cn("ml-auto", state === "collapsed" && "hidden")}
+									/>
 								</SidebarMenuButton>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent
-								className="  rounded-lg"
+								className="rounded-lg"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
@@ -627,10 +656,20 @@ function SidebarLogo() {
 								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
+					</SidebarMenuItem>
 
+					{/* Notification Bell */}
+					<SidebarMenuItem className={cn(state === "collapsed" && "mt-2")}>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" size="icon" className="relative">
+								<Button
+									variant="ghost"
+									size="icon"
+									className={cn(
+										"relative",
+										state === "collapsed" && "h-8 w-8 p-1.5 mx-auto",
+									)}
+								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
 										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
