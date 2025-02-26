@@ -35,14 +35,16 @@ export function AddOrganization({ organizationId }: Props) {
 		: api.organization.create.useMutation();
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
+	const [logo, setLogo] = useState("");
 
 	useEffect(() => {
 		if (organization) {
 			setName(organization.name);
+			setLogo(organization.logo || "");
 		}
 	}, [organization]);
 	const handleSubmit = async () => {
-		await mutateAsync({ name, organizationId: organizationId ?? "" })
+		await mutateAsync({ name, logo, organizationId: organizationId ?? "" })
 			.then(() => {
 				setOpen(false);
 				toast.success(
@@ -91,7 +93,7 @@ export function AddOrganization({ organizationId }: Props) {
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? "Update the organization name"
+							? "Update the organization name and logo"
 							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
@@ -104,6 +106,18 @@ export function AddOrganization({ organizationId }: Props) {
 							id="name"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
+							className="col-span-3"
+						/>
+					</div>
+					<div className="grid grid-cols-4 items-center gap-4">
+						<Label htmlFor="logo" className="text-right">
+							Logo URL
+						</Label>
+						<Input
+							id="logo"
+							value={logo}
+							onChange={(e) => setLogo(e.target.value)}
+							placeholder="https://example.com/logo.png"
 							className="col-span-3"
 						/>
 					</div>

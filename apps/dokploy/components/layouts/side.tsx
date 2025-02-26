@@ -562,6 +562,7 @@ function SidebarLogo() {
 													"transition-all",
 													state === "collapsed" ? "size-4" : "size-5",
 												)}
+												logoUrl={activeOrganization?.logo}
 											/>
 										</div>
 										<div
@@ -607,6 +608,7 @@ function SidebarLogo() {
 														"transition-all",
 														state === "collapsed" ? "size-6" : "size-10",
 													)}
+													logoUrl={org.logo ?? undefined}
 												/>
 											</div>
 										</DropdownMenuItem>

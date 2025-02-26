@@ -11,6 +11,7 @@ export const organizationRouter = createTRPCRouter({
 		.input(
 			z.object({
 				name: z.string(),
+				logo: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -81,6 +82,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				organizationId: z.string(),
 				name: z.string(),
+				logo: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -92,7 +94,10 @@ export const organizationRouter = createTRPCRouter({
 			}
 			const result = await db
 				.update(organization)
-				.set({ name: input.name })
+				.set({
+					name: input.name,
+					logo: input.logo,
+				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
 			return result[0];

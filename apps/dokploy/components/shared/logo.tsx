@@ -1,8 +1,20 @@
 interface Props {
 	className?: string;
+	logoUrl?: string;
 }
 
-export const Logo = ({ className = "size-14" }: Props) => {
+export const Logo = ({ className = "size-14", logoUrl }: Props) => {
+	if (logoUrl) {
+		return (
+			<img
+				src={logoUrl}
+				alt="Organization Logo"
+				className={className}
+				style={{ objectFit: "contain" }}
+			/>
+		);
+	}
+
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
