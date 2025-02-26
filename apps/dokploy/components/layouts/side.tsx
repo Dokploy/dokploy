@@ -521,7 +521,6 @@ function SidebarLogo() {
 		<>
 			{isLoading ? (
 				<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[5vh] pt-4">
-					<span>Loading...</span>
 					<Loader2 className="animate-spin size-4" />
 				</div>
 			) : (
