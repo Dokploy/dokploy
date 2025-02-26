@@ -751,6 +751,7 @@ export default function Page({ children }: Props) {
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
 	);
+	const [isLoaded, setIsLoaded] = useState(false);
 
 	useEffect(() => {
 		const cookieValue = document.cookie
@@ -759,6 +760,7 @@ export default function Page({ children }: Props) {
 			?.split("=")[1];
 
 		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+		setIsLoaded(true);
 	}, []);
 
 	const router = useRouter();
@@ -780,9 +782,9 @@ export default function Page({ children }: Props) {
 		pathname,
 	);
 
-	// const showProjectsButton =
-	//   currentPath === "/dashboard/projects" &&
-	//   (auth?.rol === "owner" || user?.canCreateProjects);
+	if (!isLoaded) {
+		return <div className="w-full h-screen bg-background" />; // Placeholder mientras se carga
+	}
 
 	return (
 		<SidebarProvider
