@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { ContainerTaskSpec, CreateServiceOptions } from "dockerode";
+import type { ContainerCreateOptions } from "dockerode";
 import { dump } from "js-yaml";
 import { paths } from "../constants";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
@@ -34,68 +34,53 @@ export const initializeTraefik = async ({
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
-	const settings: CreateServiceOptions = {
-		Name: containerName,
-		TaskTemplate: {
-			ContainerSpec: {
-				Image: imageName,
-				Env: env,
-				Mounts: [
+	const settings: ContainerCreateOptions = {
+		name: containerName,
+		Image: imageName,
+		NetworkingConfig: {
+			EndpointsConfig: {
+				"dokploy-network": {},
+			},
+		},
+		HostConfig: {
+			RestartPolicy: {
+				Name: "always",
+			},
+			Binds: [
+				`${MAIN_TRAEFIK_PATH}/traefik.yml:/etc/traefik/traefik.yml`,
+				`${DYNAMIC_TRAEFIK_PATH}:/etc/dokploy/traefik/dynamic`,
+				"/var/run/docker.sock:/var/run/docker.sock",
+			],
+			PortBindings: {
+				[`${TRAEFIK_SSL_PORT}/tcp`]: [
 					{
-						Type: "bind",
-						Source: `${MAIN_TRAEFIK_PATH}/traefik.yml`,
-						Target: "/etc/traefik/traefik.yml",
-					},
-					{
-						Type: "bind",
-						Source: DYNAMIC_TRAEFIK_PATH,
-						Target: "/etc/dokploy/traefik/dynamic",
-					},
-					{
-						Type: "bind",
-						Source: "/var/run/docker.sock",
-						Target: "/var/run/docker.sock",
+						HostPort: TRAEFIK_SSL_PORT.toString(),
 					},
 				],
-			},
-			Networks: [{ Target: "dokploy-network" }],
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
-		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
-		EndpointSpec: {
-			Ports: [
-				{
-					TargetPort: 443,
-					PublishedPort: TRAEFIK_SSL_PORT,
-					PublishMode: "host",
-				},
-				{
-					TargetPort: 80,
-					PublishedPort: TRAEFIK_PORT,
-					PublishMode: "host",
-				},
-				...(enableDashboard
-					? [
+				[`${TRAEFIK_PORT}/tcp`]: [
+					{
+						HostPort: TRAEFIK_PORT.toString(),
+					},
+				],
+				...(enableDashboard && {
+					[`${8080}/tcp`]: [
+						{
+							HostPort: "8080",
+						},
+					],
+				}),
+				...additionalPorts.map((port) => {
+					return {
+						[`${port.targetPort}/tcp`]: [
 							{
-								TargetPort: 8080,
-								PublishedPort: 8080,
-								PublishMode: "host" as const,
+								HostPort: port.publishedPort.toString(),
 							},
-						]
-					: []),
-				...additionalPorts.map((port) => ({
-					TargetPort: port.targetPort,
-					PublishedPort: port.publishedPort,
-					PublishMode: port.publishMode || ("host" as const),
-				})),
-			],
+						],
+					};
+				}),
+			},
 		},
+		Env: env,
 	};
 	const docker = await getRemoteDocker(serverId);
 	try {
@@ -105,38 +90,28 @@ export const initializeTraefik = async ({
 			await pullImage(imageName);
 		}
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
+		const container = docker.getContainer(containerName);
+		try {
+			const inspect = await container.inspect();
+			if (inspect.State.Status === "running") {
+				console.log("Traefik already running");
+				return;
+			}
 
-		const existingEnv = inspect.Spec.TaskTemplate.ContainerSpec.Env || [];
-		const updatedEnv = !env ? existingEnv : env;
+			await container.remove({ force: true });
+			console.log("Removed existing container");
+		} catch (error) {
+			console.log("Traefik Not Found: Starting1 ✅");
+			console.log(error);
+		}
 
-		const updatedSettings = {
-			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ContainerSpec: {
-					...(settings?.TaskTemplate as ContainerTaskSpec).ContainerSpec,
-					Env: updatedEnv,
-				},
-			},
-		};
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...updatedSettings,
-		});
+		await docker.createContainer(settings);
+		const newContainer = docker.getContainer(containerName);
+		await newContainer.start();
 
 		console.log("Traefik Started ✅");
 	} catch (error) {
-		try {
-			await docker.createService(settings);
-		} catch (error: any) {
-			if (error?.statusCode !== 409) {
-				throw error;
-			}
-			console.log("Traefik service already exists, continuing...");
-		}
-		console.log("Traefik Not Found: Starting ✅");
+		console.log("Traefik Not Found: Starting2 ✅", error);
 	}
 };
 

@@ -281,13 +281,19 @@ export const getServiceContainersByAppName = async (
 
 export const getContainersByAppLabel = async (
 	appName: string,
+	type: "standalone" | "swarm",
 	serverId?: string,
 ) => {
 	try {
 		let stdout = "";
 		let stderr = "";
 
-		const command = `docker ps --filter "label=com.docker.swarm.service.name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`;
+		const command =
+			type === "swarm"
+				? `docker ps --filter "label=com.docker.swarm.service.name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`
+				: type === "standalone"
+					? `docker ps --filter "name=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`
+					: `docker ps --filter "label=com.docker.compose.project=${appName}" --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'`;
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
 			stdout = result.stdout;
