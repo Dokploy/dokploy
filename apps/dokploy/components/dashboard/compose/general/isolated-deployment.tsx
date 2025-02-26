@@ -70,7 +70,7 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 			composeId,
 			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
-			.then(async (data) => {
+			.then(async (_data) => {
 				randomizeCompose();
 				refetch();
 				toast.success("Compose updated");

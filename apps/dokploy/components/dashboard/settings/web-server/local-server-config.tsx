@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 

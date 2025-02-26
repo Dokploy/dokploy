@@ -8,7 +8,7 @@ import {
 
 export function generate(schema: Schema): Template {
 	const mainDomain = generateRandomDomain(schema);
-	const secretKeyBase = generateBase64(64);
+	const _secretKeyBase = generateBase64(64);
 
 	const domains: DomainSchema[] = [
 		{

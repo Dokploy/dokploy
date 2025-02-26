@@ -9,7 +9,6 @@ import {
 	Preview,
 	Text,
 } from "@react-email/components";
-import * as React from "react";
 
 interface NotionMagicLinkEmailProps {
 	loginCode?: string;

@@ -1,6 +1,6 @@
 import type { Schema, Template } from "../utils";
 
-export function generate(schema: Schema): Template {
+export function generate(_schema: Schema): Template {
 	const mounts: Template["mounts"] = [
 		{
 			filePath: "init-mongo.sh",

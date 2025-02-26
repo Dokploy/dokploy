@@ -1,16 +1,10 @@
-import bc from "bcrypt";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { users } from "./schema";
 
 const connectionString = process.env.DATABASE_URL!;
 
 const pg = postgres(connectionString, { max: 1 });
-const db = drizzle(pg);
-
-function password(txt: string) {
-	return bc.hashSync(txt, 10);
-}
+const _db = drizzle(pg);
 
 async function seed() {
 	console.log("> Seed:", process.env.DATABASE_PATH, "\n");

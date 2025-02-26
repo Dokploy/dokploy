@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import React from "react";
 
 // https://worldvectorlogo.com/downloaded/redis Ref
 

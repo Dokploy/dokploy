@@ -9,7 +9,6 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "../ui/button";
 
 interface Props {
 	title?: string | React.ReactNode;

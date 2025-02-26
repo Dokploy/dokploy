@@ -95,7 +95,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 		}
 		const config = load(stdout) as FileConfig;
 		return config;
-	} catch (error) {
+	} catch (_) {
 		throw new Error(`File not found: ${configPath}`);
 	}
 };

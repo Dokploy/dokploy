@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
-import { GitBranch, LockIcon, UploadCloud } from "lucide-react";
+import { GitBranch, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { SaveBitbucketProvider } from "./save-bitbucket-provider";

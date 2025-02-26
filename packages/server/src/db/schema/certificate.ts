@@ -3,7 +3,7 @@ import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
+import { organization } from "./account";
 import { server } from "./server";
 import { generateAppName } from "./utils";
 
@@ -20,27 +20,24 @@ export const certificates = pgTable("certificate", {
 		.$defaultFn(() => generateAppName("certificate"))
 		.unique(),
 	autoRenew: boolean("autoRenew"),
-	adminId: text("adminId").references(() => admins.adminId, {
-		onDelete: "cascade",
-	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
 });
 
-export const certificatesRelations = relations(
-	certificates,
-	({ one, many }) => ({
-		server: one(server, {
-			fields: [certificates.serverId],
-			references: [server.serverId],
-		}),
-		admin: one(admins, {
-			fields: [certificates.adminId],
-			references: [admins.adminId],
-		}),
+export const certificatesRelations = relations(certificates, ({ one }) => ({
+	server: one(server, {
+		fields: [certificates.serverId],
+		references: [server.serverId],
 	}),
-);
+	organization: one(organization, {
+		fields: [certificates.organizationId],
+		references: [organization.id],
+	}),
+}));
 
 export const apiCreateCertificate = createInsertSchema(certificates, {
 	name: z.string().min(1),

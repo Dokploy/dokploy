@@ -2,8 +2,6 @@ import {
 	type DomainSchema,
 	type Schema,
 	type Template,
-	generateBase64,
-	generatePassword,
 	generateRandomDomain,
 } from "../utils";
 

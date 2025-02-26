@@ -22,7 +22,6 @@ import {
 	RocketIcon,
 	Trash2,
 } from "lucide-react";
-import React from "react";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
 import { AddPreviewDomain } from "./add-preview-domain";

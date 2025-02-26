@@ -5,23 +5,18 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ServerIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import React from "react";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
 
-interface Props {
-	className?: string;
-}
-export const WebServer = ({ className }: Props) => {
+export const WebServer = () => {
 	const { t } = useTranslation("settings");
-	const { data } = api.admin.one.useQuery();
+	const { data } = api.user.get.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
@@ -58,7 +53,7 @@ export const WebServer = ({ className }: Props) => {
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
 							<span className="text-sm text-muted-foreground">
-								Server IP: {data?.serverIp}
+								Server IP: {data?.user.serverIp}
 							</span>
 							<span className="text-sm text-muted-foreground">
 								Version: {dokployVersion}

@@ -76,9 +76,11 @@ export const deleteSecurityById = async (securityId: string) => {
 		await removeSecurityMiddleware(application, result);
 		return result;
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error removing this security";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error removing this security",
+			message,
 		});
 	}
 };
@@ -98,9 +100,11 @@ export const updateSecurityById = async (
 
 		return response[0];
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error updating this security";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error updating this security",
+			message,
 		});
 	}
 };

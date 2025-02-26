@@ -11,7 +11,6 @@ import {
 import { type RouterOutputs, api } from "@/utils/api";
 import { ArrowDownUp } from "lucide-react";
 import Link from "next/link";
-import * as React from "react";
 import { toast } from "sonner";
 import { RequestDistributionChart } from "./request-distribution-chart";
 import { RequestsTable } from "./requests-table";

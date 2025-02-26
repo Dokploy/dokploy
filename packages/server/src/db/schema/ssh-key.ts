@@ -3,7 +3,7 @@ import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { sshKeyCreate, sshKeyType } from "../validations";
-import { admins } from "./admin";
+import { organization } from "./account";
 import { applications } from "./application";
 import { compose } from "./compose";
 import { server } from "./server";
@@ -21,18 +21,18 @@ export const sshKeys = pgTable("ssh-key", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	lastUsedAt: text("lastUsedAt"),
-	adminId: text("adminId").references(() => admins.adminId, {
-		onDelete: "cascade",
-	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const sshKeysRelations = relations(sshKeys, ({ many, one }) => ({
 	applications: many(applications),
 	compose: many(compose),
 	servers: many(server),
-	admin: one(admins, {
-		fields: [sshKeys.adminId],
-		references: [admins.adminId],
+	organization: one(organization, {
+		fields: [sshKeys.organizationId],
+		references: [organization.id],
 	}),
 }));
 
@@ -48,7 +48,7 @@ export const apiCreateSshKey = createSchema
 		description: true,
 		privateKey: true,
 		publicKey: true,
-		adminId: true,
+		organizationId: true,
 	})
 	.merge(sshKeyCreate.pick({ privateKey: true }));
 

@@ -109,7 +109,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = load(stdout) as ComposeSpecification;
 		return parsedConfig;
-	} catch (err) {
+	} catch (_err) {
 		return null;
 	}
 };

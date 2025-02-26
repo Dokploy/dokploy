@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, Pencil } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -77,7 +77,7 @@ export const UpdateVolume = ({
 	serviceType,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
 		{
 			mountId,

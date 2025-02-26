@@ -44,10 +44,9 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
-import { findAdminById, getDokployUrl } from "./admin";
+import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
-import { cleanupFullDocker } from "./settings";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -217,10 +216,10 @@ export const deployCompose = async ({
 	});
 
 	try {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.sourceType === "github") {
 			await cloneGithubRepository({
 				...compose,
@@ -247,7 +246,7 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -262,7 +261,7 @@ export const deployCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -286,10 +285,10 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		} else {
@@ -332,10 +331,10 @@ export const deployRemoteCompose = async ({
 	});
 	try {
 		if (compose.serverId) {
-			const admin = await findAdminById(compose.project.adminId);
-			if (admin.cleanupCacheOnCompose) {
-				await cleanupFullDocker(compose?.serverId);
-			}
+			// const admin = await findUserById(compose.project.userId);
+			// if (admin.cleanupCacheOnCompose) {
+			// 	await cleanupFullDocker(compose?.serverId);
+			// }
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
@@ -381,7 +380,7 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -406,7 +405,7 @@ export const deployRemoteCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -430,10 +429,10 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
-		const admin = await findAdminById(compose.project.adminId);
-		if (admin.cleanupCacheOnCompose) {
-			await cleanupFullDocker(compose?.serverId);
-		}
+		// const admin = await findUserById(compose.project.userId);
+		// if (admin.cleanupCacheOnCompose) {
+		// 	await cleanupFullDocker(compose?.serverId);
+		// }
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}

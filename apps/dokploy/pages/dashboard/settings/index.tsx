@@ -17,7 +17,6 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
-	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { appRouter } from "@/server/api/root";
@@ -27,7 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { Settings } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import React, { useEffect, type ReactElement } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import superjson from "superjson";
@@ -42,9 +41,9 @@ const settings = z.object({
 type SettingsType = z.infer<typeof settings>;
 
 const Page = () => {
-	const { data, refetch } = api.admin.one.useQuery();
+	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading, isError, error } =
-		api.admin.update.useMutation();
+		api.user.update.useMutation();
 	const form = useForm<SettingsType>({
 		defaultValues: {
 			cleanCacheOnApplications: false,
@@ -55,9 +54,9 @@ const Page = () => {
 	});
 	useEffect(() => {
 		form.reset({
-			cleanCacheOnApplications: data?.cleanupCacheApplications || false,
-			cleanCacheOnCompose: data?.cleanupCacheOnCompose || false,
-			cleanCacheOnPreviews: data?.cleanupCacheOnPreviews || false,
+			cleanCacheOnApplications: data?.user.cleanupCacheApplications || false,
+			cleanCacheOnCompose: data?.user.cleanupCacheOnCompose || false,
+			cleanCacheOnPreviews: data?.user.cleanupCacheOnPreviews || false,
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -181,7 +180,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(ctx.req, ctx.res);
+	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -190,7 +189,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.rol === "user") {
+	if (user.role === "member") {
 		return {
 			redirect: {
 				permanent: true,
@@ -205,12 +204,12 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
-	await helpers.auth.get.prefetch();
+	await helpers.user.get.prefetch();
 
 	return {
 		props: {

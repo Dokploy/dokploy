@@ -2,7 +2,6 @@ import {
 	type BackupScheduleList,
 	IS_CLOUD,
 	removeScheduleBackup,
-	scheduleBackup,
 } from "@dokploy/server/index";
 
 type QueueJob =

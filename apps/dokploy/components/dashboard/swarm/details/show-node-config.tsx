@@ -17,7 +17,7 @@ interface Props {
 }
 
 export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
-	const { data, isLoading } = api.swarm.getNodeInfo.useQuery({
+	const { data } = api.swarm.getNodeInfo.useQuery({
 		nodeId,
 		serverId,
 	});

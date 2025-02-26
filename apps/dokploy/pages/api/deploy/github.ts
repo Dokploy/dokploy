@@ -3,9 +3,7 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { generateRandomDomain } from "@/templates/utils";
 import {
-	type Domain,
 	IS_CLOUD,
 	createPreviewDeployment,
 	findPreviewDeploymentByApplicationId,

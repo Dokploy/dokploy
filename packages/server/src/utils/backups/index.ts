@@ -1,4 +1,3 @@
-import { findAdmin } from "@dokploy/server/services/admin";
 import { getAllServers } from "@dokploy/server/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -12,13 +11,14 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { findAdmin } from "../../services/admin";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
 	const admin = await findAdmin();
 
-	if (admin?.enableDockerCleanup) {
+	if (admin?.user.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
@@ -26,7 +26,7 @@ export const initCronJobs = async () => {
 			await cleanUpUnusedImages();
 			await cleanUpDockerBuilder();
 			await cleanUpSystemPrune();
-			await sendDockerCleanupNotifications(admin.adminId);
+			await sendDockerCleanupNotifications(admin.user.id);
 		});
 	}
 
@@ -43,7 +43,7 @@ export const initCronJobs = async () => {
 				await cleanUpDockerBuilder(serverId);
 				await cleanUpSystemPrune(serverId);
 				await sendDockerCleanupNotifications(
-					admin.adminId,
+					admin.user.id,
 					`Docker cleanup for Server ${name} (${serverId})`,
 				);
 			});

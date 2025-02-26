@@ -4,7 +4,7 @@ import {
 	execAsync,
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
-	validateWebSocketRequest,
+	validateRequest,
 } from "@dokploy/server";
 import { WebSocketServer } from "ws";
 
@@ -36,7 +36,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "application"
 			| "stack"
 			| "docker-compose";
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 
 		if (!appName) {
 			ws.close(4000, "appName no provided");

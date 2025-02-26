@@ -18,7 +18,9 @@ export const securityRouter = createTRPCRouter({
 		.input(apiCreateSecurity)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (application.project.adminId !== ctx.user.adminId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -31,7 +33,9 @@ export const securityRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
-			if (application.project.adminId !== ctx.user.adminId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -44,7 +48,9 @@ export const securityRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
-			if (application.project.adminId !== ctx.user.adminId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -57,7 +63,9 @@ export const securityRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
-			if (application.project.adminId !== ctx.user.adminId) {
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",

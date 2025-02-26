@@ -45,7 +45,7 @@ const baseApp: ApplicationNested = {
 	previewWildcard: "",
 	project: {
 		env: "",
-		adminId: "",
+		organizationId: "",
 		name: "",
 		description: "",
 		createdAt: "",

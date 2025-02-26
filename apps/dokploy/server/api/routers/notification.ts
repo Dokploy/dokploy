@@ -6,7 +6,6 @@ import {
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
-	admins,
 	apiCreateDiscord,
 	apiCreateEmail,
 	apiCreateGotify,
@@ -25,6 +24,7 @@ import {
 	apiUpdateTelegram,
 	notifications,
 	server,
+	users_temp,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -57,7 +57,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createSlackNotification(input, ctx.user.adminId);
+				return await createSlackNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -71,7 +74,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -80,7 +83,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateSlackNotification({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw error;
@@ -107,7 +110,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createTelegramNotification(input, ctx.user.adminId);
+				return await createTelegramNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -122,7 +128,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -131,7 +137,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateTelegramNotification({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -159,7 +165,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDiscordNotification(input, ctx.user.adminId);
+				return await createDiscordNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -174,7 +183,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -183,7 +192,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateDiscordNotification({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -220,7 +229,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createEmailNotification(input, ctx.user.adminId);
+				return await createEmailNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -234,7 +246,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -243,7 +255,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateEmailNotification({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -276,7 +288,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -285,9 +297,13 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await removeNotificationById(input.notificationId);
 			} catch (error) {
+				const message =
+					error instanceof Error
+						? error.message
+						: "Error deleting this notification";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error deleting this notification",
+					message,
 				});
 			}
 		}),
@@ -295,7 +311,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiFindOneNotification)
 		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
-			if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+			if (notification.organizationId !== ctx.session.activeOrganizationId) {
 				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -314,8 +330,7 @@ export const notificationRouter = createTRPCRouter({
 				gotify: true,
 			},
 			orderBy: desc(notifications.createdAt),
-			...(IS_CLOUD && { where: eq(notifications.adminId, ctx.user.adminId) }),
-			// TODO: Remove this line when the cloud version is ready
+			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
 	receiveNotification: publicProcedure
@@ -332,24 +347,24 @@ export const notificationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
-				let adminId = "";
+				let organizationId = "";
 				let ServerName = "";
 				if (input.ServerType === "Dokploy") {
 					const result = await db
 						.select()
-						.from(admins)
+						.from(users_temp)
 						.where(
-							sql`${admins.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+							sql`${users_temp.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
-					if (!result?.[0]?.adminId) {
+					if (!result?.[0]?.id) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Token not found",
 						});
 					}
 
-					adminId = result?.[0]?.adminId;
+					organizationId = result?.[0]?.id;
 					ServerName = "Dokploy";
 				} else {
 					const result = await db
@@ -359,18 +374,18 @@ export const notificationRouter = createTRPCRouter({
 							sql`${server.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
-					if (!result?.[0]?.adminId) {
+					if (!result?.[0]?.organizationId) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Token not found",
 						});
 					}
 
-					adminId = result?.[0]?.adminId;
+					organizationId = result?.[0]?.organizationId;
 					ServerName = "Remote";
 				}
 
-				await sendServerThresholdNotifications(adminId, {
+				await sendServerThresholdNotifications(organizationId, {
 					...input,
 					ServerName,
 				});
@@ -386,7 +401,10 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiCreateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGotifyNotification(input, ctx.user.adminId);
+				return await createGotifyNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -400,7 +418,10 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (IS_CLOUD && notification.adminId !== ctx.user.adminId) {
+				if (
+					IS_CLOUD &&
+					notification.organizationId !== ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -408,7 +429,7 @@ export const notificationRouter = createTRPCRouter({
 				}
 				return await updateGotifyNotification({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw error;

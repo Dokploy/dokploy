@@ -104,7 +104,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (error) {
+	} catch (_error) {
 		await docker.createService(settings);
 	}
 };

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { api } from "@/utils/api";

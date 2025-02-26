@@ -90,7 +90,7 @@ export default function Custom404({ statusCode, error }: Props) {
 }
 
 // @ts-ignore
-Error.getInitialProps = ({ res, err, ...rest }: NextPageContext) => {
+Error.getInitialProps = ({ res, err }: NextPageContext) => {
 	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
 	return { statusCode, error: err };
 };

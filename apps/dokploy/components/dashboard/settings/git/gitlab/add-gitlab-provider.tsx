@@ -55,7 +55,7 @@ export const AddGitlabProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
-	const { data: auth } = api.auth.get.useQuery();
+	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync, error, isError } = api.gitlab.create.useMutation();
 	const webhookUrl = `${url}/api/providers/gitlab/callback`;
 

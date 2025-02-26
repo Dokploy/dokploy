@@ -52,7 +52,7 @@ interface Props {
 export const AddUserPermissions = ({ userId }: Props) => {
 	const { data: projects } = api.project.all.useQuery();
 
-	const { data, refetch } = api.user.byUserId.useQuery(
+	const { data, refetch } = api.user.one.useQuery(
 		{
 			userId,
 		},
@@ -62,7 +62,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	);
 
 	const { mutateAsync, isError, error, isLoading } =
-		api.admin.assignPermissions.useMutation();
+		api.user.assignPermissions.useMutation();
 
 	const form = useForm<AddPermissions>({
 		defaultValues: {
@@ -92,7 +92,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 
 	const onSubmit = async (data: AddPermissions) => {
 		await mutateAsync({
-			userId,
+			id: userId,
 			canCreateServices: data.canCreateServices,
 			canCreateProjects: data.canCreateProjects,
 			canDeleteServices: data.canDeleteServices,

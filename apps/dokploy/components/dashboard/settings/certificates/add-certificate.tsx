@@ -86,6 +86,7 @@ export const AddCertificate = () => {
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
 			serverId: data.serverId,
+			organizationId: "",
 		})
 			.then(async () => {
 				toast.success("Certificate Created");

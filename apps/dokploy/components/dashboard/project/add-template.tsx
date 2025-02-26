@@ -57,7 +57,6 @@ import {
 	BookText,
 	CheckIcon,
 	ChevronsUpDown,
-	Code,
 	Github,
 	Globe,
 	HelpCircle,
@@ -435,14 +434,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
-																	success: (data) => {
+																	success: (_data) => {
 																		utils.project.one.invalidate({
 																			projectId,
 																		});
 																		setOpen(false);
 																		return `${template.name} template created successfully`;
 																	},
-																	error: (err) => {
+																	error: (_err) => {
 																		return `An error ocurred deploying ${template.name} template`;
 																	},
 																});

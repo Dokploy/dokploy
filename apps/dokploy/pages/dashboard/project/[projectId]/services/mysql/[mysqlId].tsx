@@ -24,7 +24,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -35,9 +34,9 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -45,8 +44,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
-import { toast } from "sonner";
+import { type ReactElement, useState } from "react";
 import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
@@ -54,22 +52,13 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const MySql = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { mysqlId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -156,7 +145,7 @@ const MySql = (
 
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateMysql mysqlId={mysqlId} />
-										{(auth?.rol === "admin" || user?.canDeleteServices) && (
+										{(auth?.role === "owner" || auth?.canDeleteServices) && (
 											<DeleteService id={mysqlId} type="mysql" />
 										)}
 									</div>
@@ -323,7 +312,7 @@ export async function getServerSideProps(
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
 
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -339,8 +328,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -358,7 +347,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

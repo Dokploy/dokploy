@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ArrowUpDown } from "lucide-react";
-import * as React from "react";
 import type { LogEntry } from "./show-requests";
 
 export const getStatusColor = (status: number) => {
@@ -25,7 +24,7 @@ export const getStatusColor = (status: number) => {
 export const columns: ColumnDef<LogEntry>[] = [
 	{
 		accessorKey: "level",
-		header: ({ column }) => {
+		header: () => {
 			return <Button variant="ghost">Level</Button>;
 		},
 		cell: ({ row }) => {

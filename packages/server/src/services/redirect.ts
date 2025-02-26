@@ -6,7 +6,7 @@ import {
 	updateRedirectMiddleware,
 } from "@dokploy/server/utils/traefik/redirect";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { findApplicationById } from "./application";
 export type Redirect = typeof redirects.$inferSelect;
@@ -114,9 +114,11 @@ export const updateRedirectById = async (
 
 		return redirect;
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error updating this redirect";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error updating this redirect",
+			message,
 		});
 	}
 };
