@@ -146,15 +146,6 @@ export const SecurityAudit = ({ serverId }: Props) => {
 											}
 										/>
 										<StatusRow
-											label="Permit Root Login"
-											isEnabled={data?.ssh.permitRootLogin === "no"}
-											description={
-												data?.ssh.permitRootLogin === "no"
-													? "Disabled (Recommended)"
-													: `Enabled: ${data?.ssh.permitRootLogin} (Root Login should be disabled)`
-											}
-										/>
-										<StatusRow
 											label="Use PAM"
 											isEnabled={data?.ssh.usePam === "no"}
 											description={

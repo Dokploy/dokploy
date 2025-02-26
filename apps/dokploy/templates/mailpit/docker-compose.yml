@@ -1,0 +1,25 @@
+services:
+  mailpit:
+    image: axllent/mailpit:v1.22.3
+    restart: unless-stopped
+    ports:
+      - '1025:1025'
+    volumes:
+      - 'mailpit-data:/data'
+    environment:
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+      - MP_MAX_MESSAGES=5000
+      - MP_DATABASE=/data/mailpit.db
+      - MP_UI_AUTH=${MP_UI_AUTH}
+      - MP_SMTP_AUTH=${MP_SMTP_AUTH}
+    healthcheck:
+      test:
+        - CMD
+        - /mailpit
+        - readyz
+      interval: 5s
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mailpit-data:
