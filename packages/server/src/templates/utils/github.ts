@@ -1,13 +1,11 @@
-import { execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Octokit } from "@octokit/rest";
-import * as esbuild from "esbuild";
 import { load } from "js-yaml";
 import { templateConfig } from "../config";
-import type { Template } from "./index";
+import type { Schema, Template, DomainSchema } from "./index";
 import {
 	generateBase64,
 	generateHash,
@@ -21,20 +19,179 @@ const octokit = new Octokit({
 });
 
 /**
- * Interface for template metadata
+ * Complete template interface that includes both metadata and configuration
  */
-export interface TemplateMetadata {
-	id: string;
-	name: string;
-	version: string;
-	description: string;
-	logo: string;
-	links: {
-		github?: string;
-		website?: string;
-		docs?: string;
+export interface CompleteTemplate {
+	metadata: {
+		id: string;
+		name: string;
+		description: string;
+		tags: string[];
+		version: string;
+		logo: string;
+		links: {
+			github: string;
+			website?: string;
+			docs?: string;
+		};
 	};
-	tags: string[];
+	variables: {
+		[key: string]: string;
+	};
+	config: {
+		domains: Array<{
+			serviceName: string;
+			port: number;
+			path?: string;
+			host?: string;
+		}>;
+		env: Record<string, string>;
+		mounts?: Array<{
+			filePath: string;
+			content: string;
+		}>;
+	};
+}
+
+/**
+ * Utility functions that can be used in template values
+ */
+const TEMPLATE_FUNCTIONS = {
+	$randomDomain: () => true,
+	$password: (length = 16) => `$password(${length})`,
+	$base64: (bytes = 32) => `$base64(${bytes})`,
+	$base32: (bytes = 32) => `$base32(${bytes})`,
+	$hash: (length = 8) => `$hash(${length})`,
+} as const;
+
+/**
+ * Process a string value and replace variables
+ */
+function processValue(
+	value: string,
+	variables: Record<string, string>,
+	schema: Schema,
+): string {
+	// First replace utility functions
+	let processedValue = value.replace(/\${([^}]+)}/g, (match, varName) => {
+		// Handle utility functions
+		if (varName === "randomDomain") {
+			return generateRandomDomain(schema);
+		}
+		if (varName.startsWith("base64:")) {
+			const length = Number.parseInt(varName.split(":")[1], 10) || 32;
+			return generateBase64(length);
+		}
+		if (varName.startsWith("base32:")) {
+			const length = Number.parseInt(varName.split(":")[1], 10) || 32;
+			return Buffer.from(randomBytes(length))
+				.toString("base64")
+				.substring(0, length);
+		}
+		if (varName.startsWith("password:")) {
+			const length = Number.parseInt(varName.split(":")[1], 10) || 16;
+			return generatePassword(length);
+		}
+		if (varName.startsWith("hash:")) {
+			const length = Number.parseInt(varName.split(":")[1], 10) || 8;
+			return generateHash(length);
+		}
+		// If not a utility function, try to get from variables
+		return variables[varName] || match;
+	});
+
+	// Then replace any remaining ${var} with their values from variables
+	processedValue = processedValue.replace(/\${([^}]+)}/g, (match, varName) => {
+		return variables[varName] || match;
+	});
+
+	return processedValue;
+}
+
+/**
+ * Processes a template configuration and returns the generated template
+ */
+export function processTemplate(
+	config: CompleteTemplate,
+	schema: Schema,
+): Template {
+	const result: Template = {
+		envs: [],
+		domains: [],
+		mounts: [],
+	};
+
+	// First pass: Process variables that don't depend on domains
+	const variables: Record<string, string> = {};
+	for (const [key, value] of Object.entries(config.variables)) {
+		if (value === "${randomDomain}") {
+			variables[key] = generateRandomDomain(schema);
+		} else if (value.startsWith("${base64:")) {
+			const match = value.match(/\${base64:(\d+)}/);
+			const length = match?.[1] ? Number.parseInt(match[1], 10) : 32;
+			variables[key] = generateBase64(length);
+		} else if (value.startsWith("${base32:")) {
+			const match = value.match(/\${base32:(\d+)}/);
+			const length = match?.[1] ? Number.parseInt(match[1], 10) : 32;
+			variables[key] = Buffer.from(randomBytes(length))
+				.toString("base64")
+				.substring(0, length);
+		} else if (value.startsWith("${password:")) {
+			const match = value.match(/\${password:(\d+)}/);
+			const length = match?.[1] ? Number.parseInt(match[1], 10) : 16;
+			variables[key] = generatePassword(length);
+		} else if (value.startsWith("${hash:")) {
+			const match = value.match(/\${hash:(\d+)}/);
+			const length = match?.[1] ? Number.parseInt(match[1], 10) : 8;
+			variables[key] = generateHash(length);
+		} else {
+			variables[key] = value;
+		}
+	}
+
+	console.log(variables);
+
+	// Process domains and add them to variables
+	for (const domain of config.config.domains) {
+		// If host is specified, process it with variables, otherwise generate random domain
+		const host = domain.host
+			? processValue(domain.host, variables, schema)
+			: generateRandomDomain(schema);
+
+		result.domains.push({
+			host,
+			...domain,
+		});
+		// Add domain to variables for reference
+		variables[`domain:${domain.serviceName}`] = host;
+	}
+
+	// Process environment variables with access to all variables
+	for (const [key, value] of Object.entries(config.config.env)) {
+		const processedValue = processValue(value, variables, schema);
+		result.envs.push(`${key}=${processedValue}`);
+	}
+
+	// Process mounts with access to all variables
+	if (config.config.mounts) {
+		for (const mount of config.config.mounts) {
+			result.mounts.push({
+				filePath: mount.filePath,
+				content: processValue(mount.content, variables, schema),
+			});
+		}
+	}
+
+	return result;
+}
+
+/**
+ * GitHub tree item with required fields
+ */
+interface GitTreeItem {
+	path: string;
+	type: string;
+	sha: string;
 }
 
 /**
@@ -44,62 +201,54 @@ export async function fetchTemplatesList(
 	owner = templateConfig.owner,
 	repo = templateConfig.repo,
 	branch = templateConfig.branch,
-): Promise<TemplateMetadata[]> {
+): Promise<CompleteTemplate[]> {
 	try {
-		// Fetch templates directory content
-		const { data: dirContent } = await octokit.repos.getContent({
+		// First get the tree SHA for the branch
+		const { data: ref } = await octokit.git.getRef({
 			owner,
 			repo,
-			path: "templates",
-			ref: branch,
+			ref: `heads/${branch}`,
 		});
 
-		console.log("DIR CONTENT", dirContent);
+		// Get the full tree recursively
+		const { data: tree } = await octokit.git.getTree({
+			owner,
+			repo,
+			tree_sha: ref.object.sha,
+			recursive: "true",
+		});
 
-		if (!Array.isArray(dirContent)) {
-			throw new Error("Templates directory not found or is not a directory");
-		}
+		// Filter for template.yml files in the templates directory
+		const templateFiles = tree.tree.filter((item): item is GitTreeItem => {
+			return (
+				item.type === "blob" &&
+				typeof item.path === "string" &&
+				typeof item.sha === "string" &&
+				item.path.startsWith("templates/") &&
+				item.path.endsWith("/template.yml")
+			);
+		});
 
-		// Filter for directories only (each directory is a template)
-		const templateDirs = dirContent.filter((item) => item.type === "dir");
-
-		// Fetch metadata for each template
+		// Fetch and parse each template.yml
 		const templates = await Promise.all(
-			templateDirs.map(async (dir) => {
+			templateFiles.map(async (file) => {
 				try {
-					// Try to fetch metadata.json for each template
-					const { data: metadataFile } = await octokit.repos.getContent({
+					const { data: content } = await octokit.git.getBlob({
 						owner,
 						repo,
-						path: `templates/${dir.name}/metadata.json`,
-						ref: branch,
+						file_sha: file.sha,
 					});
 
-					if ("content" in metadataFile && metadataFile.encoding === "base64") {
-						const content = Buffer.from(
-							metadataFile.content,
-							"base64",
-						).toString();
-						return JSON.parse(content) as TemplateMetadata;
-					}
+					const decoded = Buffer.from(content.content, "base64").toString();
+					return load(decoded) as CompleteTemplate;
 				} catch (error) {
-					// If metadata.json doesn't exist, create a basic metadata object
-					return {
-						id: dir.name,
-						name: dir.name.charAt(0).toUpperCase() + dir.name.slice(1),
-						version: "latest",
-						description: `${dir.name} template`,
-						logo: "default.svg",
-						links: {},
-						tags: [],
-					};
+					console.warn(`Failed to load template from ${file.path}:`, error);
+					return null;
 				}
-
-				return null;
 			}),
 		);
 
-		return templates.filter(Boolean) as TemplateMetadata[];
+		return templates.filter(Boolean) as CompleteTemplate[];
 	} catch (error) {
 		console.error("Error fetching templates list:", error);
 		throw error;
@@ -114,32 +263,73 @@ export async function fetchTemplateFiles(
 	owner = templateConfig.owner,
 	repo = templateConfig.repo,
 	branch = templateConfig.branch,
-): Promise<{ indexTs: string; dockerCompose: string }> {
+): Promise<{ config: CompleteTemplate; dockerCompose: string }> {
 	try {
-		// Fetch index.ts
-		const { data: indexFile } = await octokit.repos.getContent({
+		// Get the tree SHA for the branch
+		const { data: ref } = await octokit.git.getRef({
 			owner,
 			repo,
-			path: `templates/${templateId}/index.ts`,
-			ref: branch,
+			ref: `heads/${branch}`,
 		});
 
-		// Fetch docker-compose.yml
-		const { data: composeFile } = await octokit.repos.getContent({
+		// Get the full tree recursively
+		const { data: tree } = await octokit.git.getTree({
 			owner,
 			repo,
-			path: `templates/${templateId}/docker-compose.yml`,
-			ref: branch,
+			tree_sha: ref.object.sha,
+			recursive: "true",
 		});
 
-		if (!("content" in indexFile) || !("content" in composeFile)) {
+		// Find the template.yml and docker-compose.yml files
+		const templateYml = tree.tree
+			.filter((item): item is GitTreeItem => {
+				return (
+					item.type === "blob" &&
+					typeof item.path === "string" &&
+					typeof item.sha === "string"
+				);
+			})
+			.find((item) => item.path === `templates/${templateId}/template.yml`);
+
+		const dockerComposeYml = tree.tree
+			.filter((item): item is GitTreeItem => {
+				return (
+					item.type === "blob" &&
+					typeof item.path === "string" &&
+					typeof item.sha === "string"
+				);
+			})
+			.find(
+				(item) => item.path === `templates/${templateId}/docker-compose.yml`,
+			);
+
+		if (!templateYml || !dockerComposeYml) {
 			throw new Error("Template files not found");
 		}
 
-		const indexTs = Buffer.from(indexFile.content, "base64").toString();
-		const dockerCompose = Buffer.from(composeFile.content, "base64").toString();
+		// Fetch both files in parallel
+		const [templateContent, composeContent] = await Promise.all([
+			octokit.git.getBlob({
+				owner,
+				repo,
+				file_sha: templateYml.sha,
+			}),
+			octokit.git.getBlob({
+				owner,
+				repo,
+				file_sha: dockerComposeYml.sha,
+			}),
+		]);
 
-		return { indexTs, dockerCompose };
+		const config = load(
+			Buffer.from(templateContent.data.content, "base64").toString(),
+		) as CompleteTemplate;
+		const dockerCompose = Buffer.from(
+			composeContent.data.content,
+			"base64",
+		).toString();
+
+		return { config, dockerCompose };
 	} catch (error) {
 		console.error(`Error fetching template ${templateId}:`, error);
 		throw error;
@@ -147,179 +337,11 @@ export async function fetchTemplateFiles(
 }
 
 /**
- * Executes the template's index.ts code dynamically
- * Uses a template-based approach that's safer and more efficient
+ * Loads and processes a template
  */
-export async function executeTemplateCode(
-	indexTsCode: string,
-	schema: { serverIp: string; projectName: string },
-): Promise<Template> {
-	try {
-		// Create a temporary directory for the template
-		const cwd = process.cwd();
-		const tempId = randomBytes(8).toString("hex");
-		const tempDir = join(cwd, ".next", "temp", tempId);
-
-		if (!existsSync(tempDir)) {
-			await mkdir(tempDir, { recursive: true });
-		}
-
-		// Extract the generate function body
-		// This approach assumes templates follow a standard structure with a generate function
-		const generateFunctionMatch = indexTsCode.match(
-			/export\s+function\s+generate\s*\([^)]*\)\s*{([\s\S]*?)return\s+{([\s\S]*?)};?\s*}/,
-		);
-
-		if (!generateFunctionMatch) {
-			throw new Error("Could not extract generate function from template");
-		}
-
-		const functionBody = generateFunctionMatch[1];
-		const returnStatement = generateFunctionMatch[2];
-
-		// Create a simplified template that doesn't require imports
-		const templateCode = `
-			// Utility functions provided to the template
-			function generateRandomDomain(schema) {
-				const hash = Math.random().toString(36).substring(2, 8);
-				const slugIp = schema.serverIp.replaceAll(".", "-");
-				return \`\${schema.projectName}-\${hash}\${slugIp === "" ? "" : \`-\${slugIp}\`}.traefik.me\`;
-			}
-			
-			function generateHash(projectName, quantity = 3) {
-				const hash = Math.random().toString(36).substring(2, 2 + quantity);
-				return \`\${projectName}-\${hash}\`;
-			}
-			
-			function generatePassword(quantity = 16) {
-				const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-				let password = "";
-				for (let i = 0; i < quantity; i++) {
-					password += characters.charAt(Math.floor(Math.random() * characters.length));
-				}
-				return password.toLowerCase();
-			}
-			
-			function generateBase64(bytes = 32) {
-				return Math.random().toString(36).substring(2, 2 + bytes);
-			}
-			
-			// Template execution
-			function execute(schema) {
-				${functionBody}
-				return {
-					${returnStatement}
-				};
-			}
-			
-			// Run with the provided schema and output the result
-			const result = execute(${JSON.stringify(schema)});
-			console.log(JSON.stringify(result));
-		`;
-
-		// Write the template code to a file
-		const templatePath = join(tempDir, "template.js");
-		await writeFile(templatePath, templateCode, "utf8");
-
-		// Execute the template using Node.js
-		const output = execSync(`node ${templatePath}`, {
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "pipe"],
-		});
-
-		// Parse the output as JSON
-		return JSON.parse(output);
-	} catch (error) {
-		console.error("Error executing template code:", error);
-
-		// Fallback to a simpler approach if the template extraction fails
-		return fallbackExecuteTemplate(indexTsCode, schema);
-	}
-}
-
-/**
- * Fallback method to execute templates that don't follow the standard structure
- */
-async function fallbackExecuteTemplate(
-	indexTsCode: string,
-	schema: { serverIp: string; projectName: string },
-): Promise<Template> {
-	try {
-		// Create a temporary directory
-		const cwd = process.cwd();
-		const tempId = randomBytes(8).toString("hex");
-		const tempDir = join(cwd, ".next", "temp", tempId);
-
-		if (!existsSync(tempDir)) {
-			await mkdir(tempDir, { recursive: true });
-		}
-
-		// Create a simplified version of the template code
-		// Remove TypeScript types and imports
-		const simplifiedCode = indexTsCode
-			.replace(/import\s+.*?from\s+['"].*?['"]\s*;?/g, "")
-			.replace(/export\s+interface\s+.*?{[\s\S]*?}/g, "")
-			.replace(/:\s*Schema/g, "")
-			.replace(/:\s*DomainSchema/g, "")
-			.replace(/:\s*Template/g, "")
-			.replace(/:\s*string/g, "")
-			.replace(/:\s*number/g, "")
-			.replace(/:\s*boolean/g, "")
-			.replace(/:\s*any/g, "")
-			.replace(/:\s*unknown/g, "")
-			.replace(/<.*?>/g, "");
-
-		// Create a wrapper with all necessary utilities
-		const wrapperCode = `
-			// Utility functions
-			function generateRandomDomain(schema) {
-				const hash = Math.random().toString(36).substring(2, 8);
-				const slugIp = schema.serverIp.replaceAll(".", "-");
-				return \`\${schema.projectName}-\${hash}\${slugIp === "" ? "" : \`-\${slugIp}\`}.traefik.me\`;
-			}
-			
-			function generateHash(projectName, quantity = 3) {
-				const hash = Math.random().toString(36).substring(2, 2 + quantity);
-				return \`\${projectName}-\${hash}\`;
-			}
-			
-			function generatePassword(quantity = 16) {
-				const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-				let password = "";
-				for (let i = 0; i < quantity; i++) {
-					password += characters.charAt(Math.floor(Math.random() * characters.length));
-				}
-				return password.toLowerCase();
-			}
-			
-			function generateBase64(bytes = 32) {
-				return Math.random().toString(36).substring(2, 2 + bytes);
-			}
-			
-			// Simplified template code
-			${simplifiedCode}
-			
-			// Execute the template
-			const result = generate(${JSON.stringify(schema)});
-			console.log(JSON.stringify(result));
-		`;
-
-		// Write the wrapper code to a file
-		const wrapperPath = join(tempDir, "wrapper.js");
-		await writeFile(wrapperPath, wrapperCode, "utf8");
-
-		// Execute the code using Node.js
-		const output = execSync(`node ${wrapperPath}`, {
-			encoding: "utf8",
-			stdio: ["ignore", "pipe", "pipe"],
-		});
-
-		// Parse the output as JSON
-		return JSON.parse(output);
-	} catch (error) {
-		console.error("Error in fallback template execution:", error);
-		throw new Error(
-			`Failed to execute template: ${error instanceof Error ? error.message : String(error)}`,
-		);
-	}
+export async function loadTemplateModule(
+	id: string,
+): Promise<(schema: Schema) => Promise<Template>> {
+	const { config } = await fetchTemplateFiles(id);
+	return async (schema: Schema) => processTemplate(config, schema);
 }

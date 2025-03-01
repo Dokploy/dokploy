@@ -28,7 +28,10 @@ export interface Template {
 export const generateRandomDomain = ({
 	serverIp,
 	projectName,
-}: Schema): string => {
+}: {
+	serverIp: string;
+	projectName: string;
+}): string => {
 	const hash = randomBytes(3).toString("hex");
 	const slugIp = serverIp.replaceAll(".", "-");
 
@@ -41,9 +44,15 @@ export const generateHash = (projectName: string, quantity = 3): string => {
 };
 
 export const generatePassword = (quantity = 16): string => {
-	return randomBytes(Math.ceil(quantity / 2))
-		.toString("hex")
-		.slice(0, quantity);
+	const characters =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	let password = "";
+	for (let i = 0; i < quantity; i++) {
+		password += characters.charAt(
+			Math.floor(Math.random() * characters.length),
+		);
+	}
+	return password.toLowerCase();
 };
 
 export const generateBase64 = (bytes = 32): string => {

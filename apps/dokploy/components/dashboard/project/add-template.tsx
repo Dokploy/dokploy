@@ -70,6 +70,38 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
+interface TemplateData {
+	metadata: {
+		id: string;
+		name: string;
+		description: string;
+		version: string;
+		logo: string;
+		links: {
+			github: string;
+			website?: string;
+			docs?: string;
+		};
+		tags: string[];
+	};
+	variables: {
+		[key: string]: string;
+	};
+	config: {
+		domains: Array<{
+			serviceName: string;
+			port: number;
+			path?: string;
+			host?: string;
+		}>;
+		env: Record<string, string>;
+		mounts?: Array<{
+			filePath: string;
+			content: string;
+		}>;
+	};
+}
+
 interface Props {
 	projectId: string;
 }
@@ -94,11 +126,13 @@ export const AddTemplate = ({ projectId }: Props) => {
 		data?.filter((template) => {
 			const matchesTags =
 				selectedTags.length === 0 ||
-				template.tags.some((tag) => selectedTags.includes(tag));
+				template.metadata.tags.some((tag) => selectedTags.includes(tag));
 			const matchesQuery =
 				query === "" ||
-				template.name.toLowerCase().includes(query.toLowerCase()) ||
-				template.description.toLowerCase().includes(query.toLowerCase());
+				template.metadata.name.toLowerCase().includes(query.toLowerCase()) ||
+				template.metadata.description
+					.toLowerCase()
+					.includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
 		}) || [];
 
@@ -249,9 +283,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 								)}
 							>
-								{templates?.map((template, index) => (
+								{templates?.map((template) => (
 									<div
-										key={`template-${index}`}
+										key={template.metadata.id}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -259,7 +293,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										)}
 									>
 										<Badge className="absolute top-2 right-2" variant="blue">
-											{template.version}
+											{template.metadata.version}
 										</Badge>
 										{/* Template Header */}
 										<div
@@ -269,21 +303,21 @@ export const AddTemplate = ({ projectId }: Props) => {
 											)}
 										>
 											<img
-												src={`/templates/${template.logo}`}
+												src={`/templates/${template.metadata.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
 												)}
-												alt={template.name}
+												alt={template.metadata.name}
 											/>
 											<div className="flex flex-col items-center gap-2">
 												<span className="text-sm font-medium line-clamp-1">
-													{template.name}
+													{template.metadata.name}
 												</span>
 												{viewMode === "detailed" &&
-													template.tags.length > 0 && (
+													template.metadata.tags.length > 0 && (
 														<div className="flex flex-wrap justify-center gap-1.5">
-															{template.tags.map((tag) => (
+															{template.metadata.tags.map((tag) => (
 																<Badge
 																	key={tag}
 																	variant="green"
@@ -301,7 +335,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										{viewMode === "detailed" && (
 											<ScrollArea className="flex-1 p-6">
 												<div className="text-sm text-muted-foreground">
-													{template.description}
+													{template.metadata.description}
 												</div>
 											</ScrollArea>
 										)}
@@ -318,24 +352,24 @@ export const AddTemplate = ({ projectId }: Props) => {
 											{viewMode === "detailed" && (
 												<div className="flex gap-2">
 													<Link
-														href={template.links.github}
+														href={template.metadata.links.github}
 														target="_blank"
 														className="text-muted-foreground hover:text-foreground transition-colors"
 													>
 														<Github className="size-5" />
 													</Link>
-													{template.links.website && (
+													{template.metadata.links.website && (
 														<Link
-															href={template.links.website}
+															href={template.metadata.links.website}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
 															<Globe className="size-5" />
 														</Link>
 													)}
-													{template.links.docs && (
+													{template.metadata.links.docs && (
 														<Link
-															href={template.links.docs}
+															href={template.metadata.links.docs}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
@@ -364,8 +398,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 														</AlertDialogTitle>
 														<AlertDialogDescription>
 															This will create an application from the{" "}
-															{template.name} template and add it to your
-															project.
+															{template.metadata.name} template and add it to
+															your project.
 														</AlertDialogDescription>
 
 														<div>
@@ -431,7 +465,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																const promise = mutateAsync({
 																	projectId,
 																	serverId: serverId || undefined,
-																	id: template.id,
+																	id: template.metadata.id,
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
@@ -440,10 +474,10 @@ export const AddTemplate = ({ projectId }: Props) => {
 																			projectId,
 																		});
 																		setOpen(false);
-																		return `${template.name} template created successfully`;
+																		return `${template.metadata.name} template created successfully`;
 																	},
 																	error: (err) => {
-																		return `An error ocurred deploying ${template.name} template`;
+																		return `An error occurred deploying ${template.metadata.name} template`;
 																	},
 																});
 															}}

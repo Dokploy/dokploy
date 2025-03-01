@@ -5,22 +5,24 @@ import { join } from "node:path";
 import type { Domain } from "@dokploy/server/services/domain";
 import { TRPCError } from "@trpc/server";
 import { templateConfig } from "../config";
-import { executeTemplateCode, fetchTemplateFiles } from "./github";
+import { fetchTemplateFiles } from "./github";
 
 export interface Schema {
 	serverIp: string;
 	projectName: string;
 }
 
-export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
+export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName"> & {
+	path?: string;
+};
 
 export interface Template {
-	envs?: string[];
-	mounts?: {
+	envs: string[];
+	mounts: Array<{
 		filePath: string;
-		content?: string;
-	}[];
-	domains?: DomainSchema[];
+		content: string;
+	}>;
+	domains: DomainSchema[];
 }
 
 export const generateRandomDomain = ({
@@ -33,9 +35,10 @@ export const generateRandomDomain = ({
 	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 
-export const generateHash = (projectName: string, quantity = 3): string => {
-	const hash = randomBytes(quantity).toString("hex");
-	return `${projectName}-${hash}`;
+export const generateHash = (length = 8): string => {
+	return randomBytes(Math.ceil(length / 2))
+		.toString("hex")
+		.substring(0, length);
 };
 
 export const generatePassword = (quantity = 16): string => {
@@ -74,21 +77,17 @@ async function isCacheValid(filePath: string): Promise<boolean> {
 
 /**
  * Reads a template's docker-compose.yml file
- * First tries to read from the local cache, if not found or expired, fetches from GitHub
+ * First tries to fetch from GitHub, falls back to local cache if fetch fails
  */
 export const readTemplateComposeFile = async (id: string) => {
-	const cwd = process.cwd();
-	const templatePath = join(cwd, ".next", "templates", id);
-	const composeFilePath = join(templatePath, "docker-compose.yml");
-
-	// Check if the file exists in the local cache and is still valid
-	if (await isCacheValid(composeFilePath)) {
-		return await readFile(composeFilePath, "utf8");
-	}
-
-	// If not in cache or expired, fetch from GitHub and cache it
+	// First try to fetch from GitHub
 	try {
 		const { dockerCompose } = await fetchTemplateFiles(id);
+
+		// Cache the file for future use
+		const cwd = process.cwd();
+		const templatePath = join(cwd, ".next", "templates", id);
+		const composeFilePath = join(templatePath, "docker-compose.yml");
 
 		// Ensure the template directory exists
 		if (!existsSync(templatePath)) {
@@ -100,16 +99,24 @@ export const readTemplateComposeFile = async (id: string) => {
 
 		return dockerCompose;
 	} catch (error) {
-		// If fetch fails but we have a cached version, use it as fallback
+		console.warn(`Failed to fetch template ${id} from GitHub:`, error);
+
+		// Try to use cached version as fallback
+		const cwd = process.cwd();
+		const composeFilePath = join(
+			cwd,
+			".next",
+			"templates",
+			id,
+			"docker-compose.yml",
+		);
+
 		if (existsSync(composeFilePath)) {
-			console.warn(
-				`Using cached version of template ${id} due to fetch error:`,
-				error,
-			);
+			console.warn(`Using cached version of template ${id}`);
 			return await readFile(composeFilePath, "utf8");
 		}
 
-		console.error(`Error fetching template ${id}:`, error);
+		console.error(`Error: Template ${id} not found in GitHub or cache`);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: `Template ${id} not found or could not be fetched`,
@@ -118,49 +125,6 @@ export const readTemplateComposeFile = async (id: string) => {
 };
 
 /**
- * Loads a template module and returns its generate function
- * First tries to execute from local cache, if not found or expired, fetches from GitHub
+ * Loads a template module from GitHub or local cache
+ * First tries to fetch from GitHub, falls back to local cache if fetch fails
  */
-export const loadTemplateModule = async (id: string) => {
-	const cwd = process.cwd();
-	const templatePath = join(cwd, ".next", "templates", id);
-	const indexFilePath = join(templatePath, "index.ts");
-
-	// Check if we have the template cached locally and it's still valid
-	if (await isCacheValid(indexFilePath)) {
-		const indexTs = await readFile(indexFilePath, "utf8");
-		return (schema: Schema) => executeTemplateCode(indexTs, schema);
-	}
-
-	// If not in cache or expired, fetch from GitHub and cache it
-	try {
-		const { indexTs } = await fetchTemplateFiles(id);
-
-		// Ensure the template directory exists
-		if (!existsSync(templatePath)) {
-			await mkdir(templatePath, { recursive: true });
-		}
-
-		// Cache the file for future use
-		await writeFile(indexFilePath, indexTs, "utf8");
-
-		// Return a function that will execute the template code
-		return (schema: Schema) => executeTemplateCode(indexTs, schema);
-	} catch (error) {
-		// If fetch fails but we have a cached version, use it as fallback
-		if (existsSync(indexFilePath)) {
-			console.warn(
-				`Using cached version of template ${id} due to fetch error:`,
-				error,
-			);
-			const indexTs = await readFile(indexFilePath, "utf8");
-			return (schema: Schema) => executeTemplateCode(indexTs, schema);
-		}
-
-		console.error(`Error loading template module ${id}:`, error);
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: `Template ${id} not found or could not be loaded`,
-		});
-	}
-};

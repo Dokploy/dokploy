@@ -48,21 +48,6 @@ export const templates: TemplateData[] = [
 		tags: ["database", "firebase", "postgres"],
 	},
 	{
-		id: "pocketbase",
-		name: "Pocketbase",
-		version: "v0.22.12",
-		description:
-			"Pocketbase is a self-hosted alternative to Firebase that allows you to build and host your own backend services.",
-		links: {
-			github: "https://github.com/pocketbase/pocketbase",
-			website: "https://pocketbase.io/",
-			docs: "https://pocketbase.io/docs/",
-		},
-		logo: "pocketbase.svg",
-		load: () => import("./pocketbase/index").then((m) => m.generate),
-		tags: ["database", "cms", "headless"],
-	},
-	{
 		id: "plausible",
 		name: "Plausible",
 		version: "v2.1.5",

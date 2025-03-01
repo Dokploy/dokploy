@@ -13,12 +13,13 @@ import {
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { templates } from "@/templates/templates";
 import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+import { generatePassword } from "@/templates/utils";
 import {
-	generatePassword,
-	loadTemplateModule,
-	readTemplateComposeFile,
-} from "@/templates/utils";
-import { fetchTemplatesList } from "@dokploy/server/templates/utils/github";
+	fetchTemplateFiles,
+	fetchTemplatesList,
+	processTemplate,
+} from "@dokploy/server/templates/utils/github";
+import { readTemplateComposeFile } from "@dokploy/server/templates/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
@@ -55,6 +56,29 @@ import {
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
+
+import { z } from "zod";
+import type { TemplateConfig } from "@dokploy/server/types/template";
+
+// Add the template config schema
+const templateConfigSchema = z.object({
+	variables: z.record(z.string()),
+	domains: z.array(
+		z.object({
+			serviceName: z.string(),
+			port: z.number(),
+			path: z.string().optional(),
+			host: z.string().optional(),
+		}),
+	),
+	env: z.record(z.string()),
+	mounts: z.array(
+		z.object({
+			filePath: z.string(),
+			content: z.string(),
+		}),
+	),
+}) satisfies z.ZodType<TemplateConfig>;
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -374,7 +398,13 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	deployTemplate: protectedProcedure
-		.input(apiCreateComposeByTemplate)
+		.input(
+			z.object({
+				projectId: z.string(),
+				serverId: z.string().optional(),
+				id: z.string(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.rol === "user") {
 				await checkServiceAccess(ctx.user.authId, input.projectId, "create");
@@ -387,9 +417,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const composeFile = await readTemplateComposeFile(input.id);
-
-			const generate = await loadTemplateModule(input.id);
+			const template = await fetchTemplateFiles(input.id);
 
 			const admin = await findAdminById(ctx.user.adminId);
 			let serverIp = admin.serverIp || "127.0.0.1";
@@ -402,50 +430,60 @@ export const composeRouter = createTRPCRouter({
 			} else if (process.env.NODE_ENV === "development") {
 				serverIp = "127.0.0.1";
 			}
-			const projectName = slugify(`${project.name} ${input.id}`);
-			const { envs, mounts, domains } = await generate({
-				serverIp: serverIp || "",
-				projectName: projectName,
+
+			const generate = processTemplate(template.config, {
+				serverIp: serverIp,
+				projectName: project.name,
 			});
 
-			const compose = await createComposeByTemplate({
-				...input,
-				composeFile: composeFile,
-				env: envs?.join("\n"),
-				serverId: input.serverId,
-				name: input.id,
-				sourceType: "raw",
-				appName: `${projectName}-${generatePassword(6)}`,
-				isolatedDeployment: true,
-			});
+			console.log(generate.domains);
+			console.log(generate.envs);
+			console.log(generate.mounts);
 
-			if (ctx.user.rol === "user") {
-				await addNewService(ctx.user.authId, compose.composeId);
-			}
+			// const projectName = slugify(`${project.name} ${input.id}`);
+			// const { envs, mounts, domains } = await generate({
+			// 	serverIp: serverIp || "",
+			// 	projectName: projectName,
+			// });
 
-			if (mounts && mounts?.length > 0) {
-				for (const mount of mounts) {
-					await createMount({
-						filePath: mount.filePath,
-						mountPath: "",
-						content: mount.content,
-						serviceId: compose.composeId,
-						serviceType: "compose",
-						type: "file",
-					});
-				}
-			}
+			// const compose = await createComposeByTemplate({
+			// 	...input,
+			// 	composeFile: composeFile,
+			// 	env: envs?.join("\n"),
+			// 	serverId: input.serverId,
+			// 	name: input.id,
+			// 	sourceType: "raw",
+			// 	appName: `${projectName}-${generatePassword(6)}`,
+			// 	isolatedDeployment: true,
+			// });
 
-			if (domains && domains?.length > 0) {
-				for (const domain of domains) {
-					await createDomain({
-						...domain,
-						domainType: "compose",
-						certificateType: "none",
-						composeId: compose.composeId,
-					});
-				}
-			}
+			// if (ctx.user.rol === "user") {
+			// 	await addNewService(ctx.user.authId, compose.composeId);
+			// }
+
+			// if (mounts && mounts?.length > 0) {
+			// 	for (const mount of mounts) {
+			// 		await createMount({
+			// 			filePath: mount.filePath,
+			// 			mountPath: "",
+			// 			content: mount.content,
+			// 			serviceId: compose.composeId,
+			// 			serviceType: "compose",
+			// 			type: "file",
+			// 		});
+			// 	}
+			// }
+
+			// if (domains && domains?.length > 0) {
+			// 	for (const domain of domains) {
+			// 		await createDomain({
+			// 			...domain,
+			// 			domainType: "compose",
+			// 			certificateType: "none",
+			// 			composeId: compose.composeId,
+			// 		});
+			// 	}
+			// }
 
 			return null;
 		}),
@@ -465,7 +503,7 @@ export const composeRouter = createTRPCRouter({
 		}
 
 		// Fall back to local templates if GitHub fetch fails
-		return templates;
+		return [];
 	}),
 
 	getTags: protectedProcedure.query(async ({ input }) => {

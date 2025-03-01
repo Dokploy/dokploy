@@ -1,0 +1,44 @@
+metadata:
+    id: plausible
+    name: Plausible Analytics
+    description: Privacy-focused Google Analytics alternative
+    tags:
+      - analytics
+      - privacy
+      - statistics
+  
+  variables:
+    db_password: ${password:32}
+    admin_password: ${password:16}
+    secret_key: ${base64:64}
+    main_domain: ${randomDomain}
+  
+  config:
+    domains:
+      - serviceName: plausible
+        port: 8000
+        path: /
+        host: plausible-${main_domain}
+      - serviceName: admin
+        port: 8001
+        path: /admin
+        host: admin-${main_domain}
+  
+    env:
+      ADMIN_USER_EMAIL: admin@example.com
+      ADMIN_USER_NAME: admin
+      ADMIN_USER_PWD: ${admin_password}
+      SECRET_KEY_BASE: ${secret_key}
+      DB: plausible
+      DB_USER: plausible
+      DB_PASSWORD: ${db_password}
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${password:32}
+      DOMAIN: ${domain:plausible}
+      ADMIN_DOMAIN: ${domain:admin}
+  
+    mounts:
+      - filePath: nginx.conf
+        content: |
+          server_name ${domain:plausible};
+          # resto de la configuración...
