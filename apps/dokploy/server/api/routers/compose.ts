@@ -18,12 +18,13 @@ import {
 	loadTemplateModule,
 	readTemplateComposeFile,
 } from "@/templates/utils";
+import { fetchTemplatesList } from "@dokploy/server/templates/utils/github";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
@@ -388,7 +389,7 @@ export const composeRouter = createTRPCRouter({
 
 			const composeFile = await readTemplateComposeFile(input.id);
 
-			const generate = await loadTemplateModule(input.id as TemplatesKeys);
+			const generate = await loadTemplateModule(input.id);
 
 			const admin = await findAdminById(ctx.user.adminId);
 			let serverIp = admin.serverIp || "127.0.0.1";
@@ -402,7 +403,7 @@ export const composeRouter = createTRPCRouter({
 				serverIp = "127.0.0.1";
 			}
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const { envs, mounts, domains } = generate({
+			const { envs, mounts, domains } = await generate({
 				serverIp: serverIp || "",
 				projectName: projectName,
 			});
@@ -449,18 +450,22 @@ export const composeRouter = createTRPCRouter({
 			return null;
 		}),
 
-	templates: protectedProcedure.query(async () => {
-		const templatesData = templates.map((t) => ({
-			name: t.name,
-			description: t.description,
-			id: t.id,
-			links: t.links,
-			tags: t.tags,
-			logo: t.logo,
-			version: t.version,
-		}));
+	templates: publicProcedure.query(async () => {
+		// First try to fetch templates from GitHub
+		try {
+			const githubTemplates = await fetchTemplatesList();
+			if (githubTemplates.length > 0) {
+				return githubTemplates;
+			}
+		} catch (error) {
+			console.warn(
+				"Failed to fetch templates from GitHub, falling back to local templates:",
+				error,
+			);
+		}
 
-		return templatesData;
+		// Fall back to local templates if GitHub fetch fails
+		return templates;
 	}),
 
 	getTags: protectedProcedure.query(async ({ input }) => {
