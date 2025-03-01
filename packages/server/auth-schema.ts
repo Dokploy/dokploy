@@ -1,3 +1,11 @@
+// import {
+// 	pgTable,
+// 	text,
+// 	integer,
+// 	timestamp,
+// 	boolean,
+// } from "drizzle-orm/pg-core";
+
 // export const users_temp = pgTable("users_temp", {
 // 	id: text("id").primaryKey(),
 // 	name: text("name").notNull(),
@@ -52,6 +60,32 @@
 // 	updatedAt: timestamp("updated_at"),
 // });
 
+// export const apikey = pgTable("apikey", {
+// 	id: text("id").primaryKey(),
+// 	name: text("name"),
+// 	start: text("start"),
+// 	prefix: text("prefix"),
+// 	key: text("key").notNull(),
+// 	userId: text("user_id")
+// 		.notNull()
+// 		.references(() => user.id, { onDelete: "cascade" }),
+// 	refillInterval: integer("refill_interval"),
+// 	refillAmount: integer("refill_amount"),
+// 	lastRefillAt: timestamp("last_refill_at"),
+// 	enabled: boolean("enabled"),
+// 	rateLimitEnabled: boolean("rate_limit_enabled"),
+// 	rateLimitTimeWindow: integer("rate_limit_time_window"),
+// 	rateLimitMax: integer("rate_limit_max"),
+// 	requestCount: integer("request_count"),
+// 	remaining: integer("remaining"),
+// 	lastRequest: timestamp("last_request"),
+// 	expiresAt: timestamp("expires_at"),
+// 	createdAt: timestamp("created_at").notNull(),
+// 	updatedAt: timestamp("updated_at").notNull(),
+// 	permissions: text("permissions"),
+// 	metadata: text("metadata"),
+// });
+
 // export const twoFactor = pgTable("two_factor", {
 // 	id: text("id").primaryKey(),
 // 	secret: text("secret").notNull(),
@@ -79,6 +113,7 @@
 // 		.notNull()
 // 		.references(() => user.id, { onDelete: "cascade" }),
 // 	role: text("role").notNull(),
+// 	teamId: text("team_id"),
 // 	createdAt: timestamp("created_at").notNull(),
 // });
 
@@ -89,6 +124,7 @@
 // 		.references(() => organization.id, { onDelete: "cascade" }),
 // 	email: text("email").notNull(),
 // 	role: text("role"),
+// 	teamId: text("team_id"),
 // 	status: text("status").notNull(),
 // 	expiresAt: timestamp("expires_at").notNull(),
 // 	inviterId: text("inviter_id")

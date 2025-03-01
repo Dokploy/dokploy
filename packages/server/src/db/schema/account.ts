@@ -1,5 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
@@ -87,7 +93,7 @@ export const member = pgTable("member", {
 		.references(() => users_temp.id, { onDelete: "cascade" }),
 	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
 	createdAt: timestamp("created_at").notNull(),
-
+	teamId: text("team_id"),
 	// Permissions
 	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
 	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
@@ -135,6 +141,7 @@ export const invitation = pgTable("invitation", {
 	inviterId: text("inviter_id")
 		.notNull()
 		.references(() => users_temp.id, { onDelete: "cascade" }),
+	teamId: text("team_id"),
 });
 
 export const invitationRelations = relations(invitation, ({ one }) => ({
@@ -151,4 +158,30 @@ export const twoFactor = pgTable("two_factor", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users_temp.id, { onDelete: "cascade" }),
+});
+
+export const apikey = pgTable("apikey", {
+	id: text("id").primaryKey(),
+	name: text("name"),
+	start: text("start"),
+	prefix: text("prefix"),
+	key: text("key").notNull(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => users_temp.id, { onDelete: "cascade" }),
+	refillInterval: integer("refill_interval"),
+	refillAmount: integer("refill_amount"),
+	lastRefillAt: timestamp("last_refill_at"),
+	enabled: boolean("enabled"),
+	rateLimitEnabled: boolean("rate_limit_enabled"),
+	rateLimitTimeWindow: integer("rate_limit_time_window"),
+	rateLimitMax: integer("rate_limit_max"),
+	requestCount: integer("request_count"),
+	remaining: integer("remaining"),
+	lastRequest: timestamp("last_request"),
+	expiresAt: timestamp("expires_at"),
+	createdAt: timestamp("created_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+	permissions: text("permissions"),
+	metadata: text("metadata"),
 });

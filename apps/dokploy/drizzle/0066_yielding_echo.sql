@@ -72,7 +72,8 @@ CREATE TABLE "invitation" (
 	"role" text,
 	"status" text NOT NULL,
 	"expires_at" timestamp NOT NULL,
-	"inviter_id" text NOT NULL
+	"inviter_id" text NOT NULL,
+	"team_id" text
 );
 --> statement-breakpoint
 CREATE TABLE "member" (
@@ -81,7 +82,6 @@ CREATE TABLE "member" (
 	"user_id" text NOT NULL,
 	"role" text NOT NULL,
 	"created_at" timestamp NOT NULL,
-    "token" text NOT NULL,
 	"canCreateProjects" boolean DEFAULT false NOT NULL,
 	"canAccessToSSHKeys" boolean DEFAULT false NOT NULL,
 	"canCreateServices" boolean DEFAULT false NOT NULL,
@@ -92,7 +92,8 @@ CREATE TABLE "member" (
 	"canAccessToGitProviders" boolean DEFAULT false NOT NULL,
 	"canAccessToTraefikFiles" boolean DEFAULT false NOT NULL,
 	"accesedProjects" text[] DEFAULT ARRAY[]::text[] NOT NULL,
-	"accesedServices" text[] DEFAULT ARRAY[]::text[] NOT NULL
+	"accesedServices" text[] DEFAULT ARRAY[]::text[] NOT NULL,
+	"team_id" text
 );
 --> statement-breakpoint
 CREATE TABLE "organization" (
@@ -121,6 +122,30 @@ CREATE TABLE "two_factor" (
 	"backup_codes" text NOT NULL,
 	"user_id" text NOT NULL
 );
+
+CREATE TABLE "apikey" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text,
+	"start" text,
+	"prefix" text,
+	"key" text NOT NULL,
+	"user_id" text NOT NULL,
+	"refill_interval" integer,
+	"refill_amount" integer,
+	"last_refill_at" timestamp,
+	"enabled" boolean,
+	"rate_limit_enabled" boolean,
+	"rate_limit_time_window" integer,
+	"rate_limit_max" integer,
+	"request_count" integer,
+	"remaining" integer,
+	"last_request" timestamp,
+	"expires_at" timestamp,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL,
+	"permissions" text,
+	"metadata" text
+);
 --> statement-breakpoint
 ALTER TABLE "certificate" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "notification" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
@@ -134,9 +159,7 @@ ALTER TABLE "member" ADD CONSTRAINT "member_organization_id_organization_id_fk" 
 ALTER TABLE "member" ADD CONSTRAINT "member_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization" ADD CONSTRAINT "organization_owner_id_user_temp_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-
-
-
+ALTER TABLE "apikey" ADD CONSTRAINT "apikey_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 
 
 -- Data Migration

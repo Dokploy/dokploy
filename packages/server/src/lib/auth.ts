@@ -2,14 +2,14 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, twoFactor } from "better-auth/plugins";
+import { organization, twoFactor, apiKey } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { sendEmail } from "../verification/send-verification-email";
 import { IS_CLOUD } from "../constants";
 
-const { handler, api } = betterAuth({
+export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -126,6 +126,7 @@ const { handler, api } = betterAuth({
 	},
 
 	plugins: [
+		apiKey(),
 		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, _request) {
@@ -144,9 +145,9 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth = {
-	handler,
-};
+// export const auth = {
+// 	handler,
+// };
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const session = await api.getSession({
