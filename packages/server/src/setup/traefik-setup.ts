@@ -12,6 +12,8 @@ export const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
 export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
+export const TRAEFIK_HTTP3_PORT =
+	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
 export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.1.2";
 
 interface TraefikOptions {
@@ -40,11 +42,15 @@ export const initializeTraefik = async ({
 	const exposedPorts: Record<string, {}> = {
 		[`${TRAEFIK_PORT}/tcp`]: {},
 		[`${TRAEFIK_SSL_PORT}/tcp`]: {},
+		[`${TRAEFIK_HTTP3_PORT}/udp`]: {},
 	};
 
 	const portBindings: Record<string, Array<{ HostPort: string }>> = {
 		[`${TRAEFIK_PORT}/tcp`]: [{ HostPort: TRAEFIK_PORT.toString() }],
 		[`${TRAEFIK_SSL_PORT}/tcp`]: [{ HostPort: TRAEFIK_SSL_PORT.toString() }],
+		[`${TRAEFIK_HTTP3_PORT}/udp`]: [
+			{ HostPort: TRAEFIK_HTTP3_PORT.toString() },
+		],
 	};
 
 	if (enableDashboard) {
@@ -187,6 +193,9 @@ export const getDefaultTraefikConfig = () => {
 			},
 			websecure: {
 				address: `:${TRAEFIK_SSL_PORT}`,
+				http3: {
+					advertisedPort: TRAEFIK_HTTP3_PORT,
+				},
 				...(process.env.NODE_ENV === "production" && {
 					http: {
 						tls: {
