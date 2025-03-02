@@ -68,15 +68,6 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	// Get from the request
 	const { session, user } = await validateRequest(req);
 
-	// if (!session) {
-	// 	const cookieResult = await validateRequest(req);
-	// 	session = cookieResult.session;
-	// 	user = cookieResult.user;
-	// }
-
-	// console.log("session", session);
-	// console.log("user", user);
-
 	return createInnerTRPCContext({
 		req,
 		res,
