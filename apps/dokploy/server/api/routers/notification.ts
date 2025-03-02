@@ -51,7 +51,6 @@ import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
-// TODO: Uncomment the validations when is cloud ready
 export const notificationRouter = createTRPCRouter({
 	createSlack: adminProcedure
 		.input(apiCreateSlack)
@@ -75,7 +74,6 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				const notification = await findNotificationById(input.notificationId);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -129,7 +127,6 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				const notification = await findNotificationById(input.notificationId);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -184,7 +181,6 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				const notification = await findNotificationById(input.notificationId);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -247,7 +243,6 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				const notification = await findNotificationById(input.notificationId);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -289,7 +284,6 @@ export const notificationRouter = createTRPCRouter({
 			try {
 				const notification = await findNotificationById(input.notificationId);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this notification",
@@ -312,7 +306,6 @@ export const notificationRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const notification = await findNotificationById(input.notificationId);
 			if (notification.organizationId !== ctx.session.activeOrganizationId) {
-				// TODO: Remove isCloud in the next versions of dokploy
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this notification",

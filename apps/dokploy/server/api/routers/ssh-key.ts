@@ -41,7 +41,6 @@ export const sshRouter = createTRPCRouter({
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
 				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
-					// TODO: Remove isCloud in the next versions of dokploy
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this SSH key",

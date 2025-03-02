@@ -126,7 +126,6 @@ export const updateDomainById = async (
 
 export const removeDomainById = async (domainId: string) => {
 	await findDomainById(domainId);
-	// TODO: fix order
 	const result = await db
 		.delete(domains)
 		.where(eq(domains.domainId, domainId))
