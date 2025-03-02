@@ -106,7 +106,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
 											<div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4 md:gap-10 border rounded-lg p-4">
-												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 flex-col gap-8">
+												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 flex-col gap-8">
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Destination</span>
 														<span className="text-sm text-muted-foreground">
@@ -135,6 +135,12 @@ export const ShowBackups = ({ id, type }: Props) => {
 														<span className="font-medium">Enabled</span>
 														<span className="text-sm text-muted-foreground">
 															{backup.enabled ? "Yes" : "No"}
+														</span>
+													</div>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">Keep Latest</span>
+														<span className="text-sm text-muted-foreground">
+															{backup.keepLatestCount || 'All'}
 														</span>
 													</div>
 												</div>
