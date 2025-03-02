@@ -47,6 +47,7 @@ const UpdateBackupSchema = z.object({
 	prefix: z.string().min(1, "Prefix required"),
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
+	keepLatestCount: z.number(),
 });
 
 type UpdateBackup = z.infer<typeof UpdateBackupSchema>;
@@ -78,6 +79,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			enabled: true,
 			prefix: "/",
 			schedule: "",
+			keepLatestCount: undefined,
 		},
 		resolver: zodResolver(UpdateBackupSchema),
 	});
@@ -253,7 +255,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 												<Input placeholder={"dokploy/"} {...field} />
 											</FormControl>
 											<FormDescription>
-												Use if you want to storage in a specific path of your
+												Use if you want to back up in a specific path of your
 												destination/bucket
 											</FormDescription>
 
@@ -262,6 +264,24 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 									);
 								}}
 							/>
+							<FormField
+								control={form.control}
+								name="keepLatestCount"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Keep the latest</FormLabel>
+											<FormControl>
+												<Input type="number" placeholder={"20"} {...field} />
+											</FormControl>
+											<FormDescription>
+												Optional. If provided, only keeps the latest N backups in the cloud.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>							
 							<FormField
 								control={form.control}
 								name="enabled"
