@@ -7,7 +7,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import React from "react";
 import { ComposeActions } from "./actions";
 import { ShowProviderFormCompose } from "./generic/show";
 interface Props {

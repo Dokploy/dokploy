@@ -9,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { FancyAnsi } from "fancy-ansi";
 import { escapeRegExp } from "lodash";
-import React from "react";
 import { type LogLine, getLogType } from "./utils";
 
 interface LogLineProps {

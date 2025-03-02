@@ -25,7 +25,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">

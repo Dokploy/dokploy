@@ -78,6 +78,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 	const onSubmit = async (data: SSHKey) => {
 		await mutateAsync({
 			...data,
+			organizationId: "",
 			sshKeyId: sshKeyId || "",
 		})
 			.then(async () => {

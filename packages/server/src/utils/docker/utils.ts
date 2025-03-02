@@ -100,7 +100,7 @@ export const containerExists = async (containerName: string) => {
 	try {
 		await container.inspect();
 		return true;
-	} catch (error) {
+	} catch (_error) {
 		return false;
 	}
 };
@@ -240,7 +240,7 @@ export const startServiceRemote = async (serverId: string, appName: string) => {
 export const removeService = async (
 	appName: string,
 	serverId?: string | null,
-	deleteVolumes = false,
+	_deleteVolumes = false,
 ) => {
 	try {
 		const command = `docker service rm ${appName}`;

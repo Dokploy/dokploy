@@ -279,7 +279,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								<FormField
 									control={form.control}
 									name="env"
-									render={({ field }) => (
+									render={() => (
 										<FormItem>
 											<FormControl>
 												<Secrets
