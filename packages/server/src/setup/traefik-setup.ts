@@ -7,6 +7,7 @@ import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
+import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 
 export const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
@@ -95,6 +96,14 @@ export const initializeTraefik = async ({
 			await pullImage(imageName);
 		}
 
+		// remove dokploy-service if it exists
+		const command = "docker service rm dokploy-service > /dev/null 2>&1";
+		if (serverId) {
+			await execAsyncRemote(command, serverId);
+		} else {
+			await execAsync(command);
+		}
+
 		const container = docker.getContainer(containerName);
 		try {
 			const inspect = await container.inspect();
@@ -104,19 +113,14 @@ export const initializeTraefik = async ({
 			}
 
 			await container.remove({ force: true });
-			console.log("Removed existing container");
 		} catch (error) {
-			console.log("Traefik Not Found: Starting1 ✅");
 			console.log(error);
 		}
 
 		await docker.createContainer(settings);
 		const newContainer = docker.getContainer(containerName);
 		await newContainer.start();
-
-		console.log("Traefik Started ✅");
 	} catch (error) {
-		console.log("Traefik Not Found: Starting2 ✅", error);
 		throw error;
 	}
 };
