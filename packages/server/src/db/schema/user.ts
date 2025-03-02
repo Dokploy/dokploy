@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { account, organization } from "./account";
+import { account, organization, apikey } from "./account";
 import { projects } from "./project";
 import { certificateType } from "./shared";
 /**
@@ -123,6 +123,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	}),
 	organizations: many(organization),
 	projects: many(projects),
+	apiKeys: many(apikey),
 }));
 
 const createSchema = createInsertSchema(users_temp, {

@@ -321,7 +321,6 @@ inserted_admin_members AS (
         "user_id",
         role,
         "created_at",
-        "token",
         "canAccessToAPI",
         "canAccessToDocker",
         "canAccessToGitProviders",
@@ -340,7 +339,6 @@ inserted_admin_members AS (
         a."adminId",
         'owner',
         NOW(),
-        COALESCE(auth.token, ''),
         true, -- Los admins tienen todos los permisos por defecto
         true,
         true,
@@ -364,7 +362,6 @@ INSERT INTO member (
     "user_id",
     role,
     "created_at",
-    "token",
     "canAccessToAPI",
     "canAccessToDocker",
     "canAccessToGitProviders",
@@ -383,7 +380,6 @@ SELECT
     u."userId",
     'member',
     NOW(),
-    COALESCE(auth.token, ''),
     COALESCE(u."canAccessToAPI", false),
     COALESCE(u."canAccessToDocker", false),
     COALESCE(u."canAccessToGitProviders", false),
@@ -399,6 +395,29 @@ FROM "user" u
 JOIN admin a ON u."adminId" = a."adminId"
 JOIN inserted_orgs o ON o."owner_id" = a."adminId"
 JOIN auth ON auth.id = u."authId";
+
+-- Migrar tokens de auth a apikey
+INSERT INTO apikey (
+    id,
+    name,
+    key,
+    user_id,
+    enabled,
+    created_at,
+    updated_at
+)
+SELECT 
+    gen_random_uuid(),
+    'Legacy Token',
+    auth.token,
+user_temp.id,
+    true,
+    NOW(),
+    NOW()
+FROM auth
+JOIN admin ON auth.id = admin."authId"
+JOIN user_temp ON user_temp.id = admin."adminId"
+WHERE auth.token IS NOT NULL AND auth.token != '';
 
 -- Migration tables foreign keys 
 
@@ -436,7 +455,6 @@ ALTER TABLE "git_provider" ADD CONSTRAINT "git_provider_userId_user_temp_id_fk" 
 ALTER TABLE "server" ADD CONSTRAINT "server_userId_user_temp_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user_temp"("id") ON DELETE cascade ON UPDATE no action;
 
 
-ALTER TABLE "member" ALTER COLUMN "token" SET DEFAULT '';--> statement-breakpoint
 ALTER TABLE "user_temp" ADD COLUMN "created_at" timestamp DEFAULT now();
 
 
@@ -635,7 +653,6 @@ ALTER TABLE "git_provider" DROP COLUMN "userId";--> statement-breakpoint
 ALTER TABLE "server" DROP COLUMN "userId";
 
 -- Drop tables
---> statement-breakpoint
 DROP TABLE "user" CASCADE;--> statement-breakpoint
 DROP TABLE "admin" CASCADE;--> statement-breakpoint
 DROP TABLE "auth" CASCADE;--> statement-breakpoint

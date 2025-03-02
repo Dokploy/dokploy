@@ -470,13 +470,6 @@
       "when": 1739426913392,
       "tag": "0066_yielding_echo",
       "breakpoints": true
-    },
-    {
-      "idx": 67,
-      "version": "7",
-      "when": 1740860314823,
-      "tag": "0067_goofy_red_skull",
-      "breakpoints": true
     }
   ]
 }

@@ -185,3 +185,10 @@ export const apikey = pgTable("apikey", {
 	permissions: text("permissions"),
 	metadata: text("metadata"),
 });
+
+export const apikeyRelations = relations(apikey, ({ one }) => ({
+	user: one(users_temp, {
+		fields: [apikey.userId],
+		references: [users_temp.id],
+	}),
+}));

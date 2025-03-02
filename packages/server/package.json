@@ -32,7 +32,7 @@
     "@oslojs/encoding":"1.1.0",
     "@oslojs/crypto":"1.0.1",
     "drizzle-dbml-generator":"0.10.0",
-    "better-auth":"beta",
+    "better-auth":"1.2.0",
     "rotating-file-stream": "3.2.3",
     "@faker-js/faker": "^8.4.1",
     "@lucia-auth/adapter-drizzle": "1.0.7",

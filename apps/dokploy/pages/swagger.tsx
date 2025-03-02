@@ -30,7 +30,41 @@ const Home: NextPage = () => {
 
 	return (
 		<div className="h-screen bg-white">
-			<SwaggerUI spec={spec} />
+			<SwaggerUI
+				spec={spec}
+				persistAuthorization={true}
+				plugins={[
+					{
+						statePlugins: {
+							auth: {
+								wrapActions: {
+									authorize: (ori: any) => (args: any) => {
+										const result = ori(args);
+										const apiKey = args?.apiKey?.value;
+										if (apiKey) {
+											localStorage.setItem("swagger_api_key", apiKey);
+										}
+										return result;
+									},
+									logout: (ori: any) => (args: any) => {
+										const result = ori(args);
+										localStorage.removeItem("swagger_api_key");
+										return result;
+									},
+								},
+							},
+						},
+					},
+				]}
+				requestInterceptor={(request: any) => {
+					const apiKey = localStorage.getItem("swagger_api_key");
+					if (apiKey) {
+						request.headers = request.headers || {};
+						request.headers["x-api-key"] = apiKey;
+					}
+					return request;
+				}}
+			/>
 		</div>
 	);
 };

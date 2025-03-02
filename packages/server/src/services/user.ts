@@ -1,7 +1,8 @@
 import { db } from "@dokploy/server/db";
-import { member, users_temp } from "@dokploy/server/db/schema";
+import { apikey, member, users_temp } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { auth } from "../lib/auth";
 
 export type User = typeof users_temp.$inferSelect;
 
@@ -247,4 +248,47 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		.then((res) => res[0]);
 
 	return user;
+};
+
+export const createApiKey = async (
+	userId: string,
+	input: {
+		name: string;
+		prefix?: string;
+		expiresIn?: number;
+		metadata: {
+			organizationId: string;
+		};
+		rateLimitEnabled?: boolean;
+		rateLimitTimeWindow?: number;
+		rateLimitMax?: number;
+		remaining?: number;
+		refillAmount?: number;
+		refillInterval?: number;
+	},
+) => {
+	const apiKey = await auth.api.createApiKey({
+		body: {
+			name: input.name,
+			expiresIn: input.expiresIn,
+			prefix: input.prefix,
+			rateLimitEnabled: input.rateLimitEnabled,
+			rateLimitTimeWindow: input.rateLimitTimeWindow,
+			rateLimitMax: input.rateLimitMax,
+			remaining: input.remaining,
+			refillAmount: input.refillAmount,
+			refillInterval: input.refillInterval,
+			userId,
+		},
+	});
+
+	if (input.metadata) {
+		await db
+			.update(apikey)
+			.set({
+				metadata: JSON.stringify(input.metadata),
+			})
+			.where(eq(apikey.id, apiKey.id));
+	}
+	return apiKey;
 };

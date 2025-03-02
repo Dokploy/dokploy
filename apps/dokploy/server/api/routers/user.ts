@@ -5,6 +5,7 @@ import {
 	getUserByToken,
 	removeUserById,
 	updateUser,
+	createApiKey,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -14,6 +15,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	apikey,
 } from "@dokploy/server/db/schema";
 import * as bcrypt from "bcrypt";
 import { TRPCError } from "@trpc/server";
@@ -25,6 +27,24 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+
+const apiCreateApiKey = z.object({
+	name: z.string().min(1),
+	prefix: z.string().optional(),
+	expiresIn: z.number().optional(),
+	metadata: z.object({
+		organizationId: z.string(),
+	}),
+	// Rate limiting
+	rateLimitEnabled: z.boolean().optional(),
+	rateLimitTimeWindow: z.number().optional(),
+	rateLimitMax: z.number().optional(),
+	// Request limiting
+	remaining: z.number().optional(),
+	refillAmount: z.number().optional(),
+	refillInterval: z.number().optional(),
+});
+
 export const userRouter = createTRPCRouter({
 	all: adminProcedure.query(async ({ ctx }) => {
 		return await db.query.member.findMany({
@@ -61,7 +81,11 @@ export const userRouter = createTRPCRouter({
 				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
 			),
 			with: {
-				user: true,
+				user: {
+					with: {
+						apiKeys: true,
+					},
+				},
 			},
 		});
 
@@ -249,4 +273,44 @@ export const userRouter = createTRPCRouter({
 	generateToken: protectedProcedure.mutation(async () => {
 		return "token";
 	}),
+
+	deleteApiKey: protectedProcedure
+		.input(
+			z.object({
+				apiKeyId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const apiKeyToDelete = await db.query.apikey.findFirst({
+					where: eq(apikey.id, input.apiKeyId),
+				});
+
+				if (!apiKeyToDelete) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "API key not found",
+					});
+				}
+
+				if (apiKeyToDelete.userId !== ctx.user.id) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to delete this API key",
+					});
+				}
+
+				await db.delete(apikey).where(eq(apikey.id, input.apiKeyId));
+				return true;
+			} catch (error) {
+				throw error;
+			}
+		}),
+
+	createApiKey: protectedProcedure
+		.input(apiCreateApiKey)
+		.mutation(async ({ input, ctx }) => {
+			const apiKey = await createApiKey(ctx.user.id, input);
+			return apiKey;
+		}),
 });

@@ -9,7 +9,7 @@ import * as schema from "../db/schema";
 import { sendEmail } from "../verification/send-verification-email";
 import { IS_CLOUD } from "../constants";
 
-export const auth = betterAuth({
+const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -126,7 +126,9 @@ export const auth = betterAuth({
 	},
 
 	plugins: [
-		apiKey(),
+		apiKey({
+			enableMetadata: true,
+		}),
 		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, _request) {
@@ -145,11 +147,111 @@ export const auth = betterAuth({
 	],
 });
 
-// export const auth = {
-// 	handler,
-// };
+export const auth = {
+	handler,
+	api,
+};
 
 export const validateRequest = async (request: IncomingMessage) => {
+	const apiKey = request.headers["x-api-key"] as string;
+	if (apiKey) {
+		try {
+			const { valid, key, error } = await api.verifyApiKey({
+				body: {
+					key: apiKey,
+				},
+			});
+
+			if (error) {
+				throw new Error(error.message || "Error verifying API key");
+			}
+			if (!valid || !key) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			const apiKeyRecord = await db.query.apikey.findFirst({
+				where: eq(schema.apikey.id, key.id),
+				with: {
+					user: true,
+				},
+			});
+
+			if (!apiKeyRecord) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			const organizationId = JSON.parse(
+				apiKeyRecord.metadata || "{}",
+			).organizationId;
+
+			if (!organizationId) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
+
+			const member = await db.query.member.findFirst({
+				where: and(
+					eq(schema.member.userId, apiKeyRecord.user.id),
+					eq(schema.member.organizationId, organizationId),
+				),
+				with: {
+					organization: true,
+				},
+			});
+
+			const {
+				id,
+				name,
+				email,
+				emailVerified,
+				image,
+				createdAt,
+				updatedAt,
+				twoFactorEnabled,
+			} = apiKeyRecord.user;
+
+			const mockSession = {
+				session: {
+					user: {
+						id: apiKeyRecord.user.id,
+						email: apiKeyRecord.user.email,
+						name: apiKeyRecord.user.name,
+					},
+					activeOrganizationId: organizationId || "",
+				},
+				user: {
+					id,
+					name,
+					email,
+					emailVerified,
+					image,
+					createdAt,
+					updatedAt,
+					twoFactorEnabled,
+					role: member?.role || "member",
+					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
+				},
+			};
+
+			return mockSession;
+		} catch (error) {
+			console.error("Error verifying API key", error);
+			return {
+				session: null,
+				user: null,
+			};
+		}
+	}
+
+	// If no API key, proceed with normal session validation
 	const session = await api.getSession({
 		headers: new Headers({
 			cookie: request.headers.cookie || "",

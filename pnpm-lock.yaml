@@ -239,8 +239,8 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(encoding@0.1.13)
       better-auth:
-        specifier: beta
-        version: 1.2.0-beta.18(typescript@5.5.3)
+        specifier: 1.2.0
+        version: 1.2.0(typescript@5.5.3)
       bl:
         specifier: 6.0.11
         version: 6.0.11
@@ -580,8 +580,8 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(encoding@0.1.13)
       better-auth:
-        specifier: beta
-        version: 1.2.0-beta.18(typescript@5.5.3)
+        specifier: 1.2.0
+        version: 1.2.0(typescript@5.5.3)
       bl:
         specifier: 6.0.11
         version: 6.0.11
@@ -3879,8 +3879,8 @@ packages:
   before-after-hook@2.2.3:
     resolution: {integrity: sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==}
 
-  better-auth@1.2.0-beta.18:
-    resolution: {integrity: sha512-gEjNxmrkFiATTSTcE47rkyTT9vMFMLTjtLNun4W0IWmeqfi4pIbbWpo97foY1DNXXRDkDuajquoD58dzAatQxQ==}
+  better-auth@1.2.0:
+    resolution: {integrity: sha512-eIRGOXfix25bh4fgs8jslZAZssufpIkxfEeEokQu5G4wICoDee1wPctkFb8v80PvhtI4dPm28SuAoZaAdRc6Wg==}
 
   better-call@1.0.3:
     resolution: {integrity: sha512-DUKImKoDIy5UtCvQbHTg0wuBRse6gu1Yvznn7+1B3I5TeY8sclRPFce0HI+4WF2bcb+9PqmkET8nXZubrHQh9A==}
@@ -10554,7 +10554,7 @@ snapshots:
 
   before-after-hook@2.2.3: {}
 
-  better-auth@1.2.0-beta.18(typescript@5.5.3):
+  better-auth@1.2.0(typescript@5.5.3):
     dependencies:
       '@better-auth/utils': 0.2.3
       '@better-fetch/fetch': 1.1.15

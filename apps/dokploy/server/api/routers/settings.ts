@@ -482,10 +482,28 @@ export const settingsRouter = createTRPCRouter({
 			openApiDocument.info = {
 				title: "Dokploy API",
 				description: "Endpoints for dokploy",
-				// TODO: get version from package.json
 				version: "1.0.0",
 			};
 
+			// Add security schemes configuration
+			openApiDocument.components = {
+				...openApiDocument.components,
+				securitySchemes: {
+					apiKey: {
+						type: "apiKey",
+						in: "header",
+						name: "x-api-key",
+						description: "API key authentication",
+					},
+				},
+			};
+
+			// Apply security globally to all endpoints
+			openApiDocument.security = [
+				{
+					apiKey: [],
+				},
+			];
 			return openApiDocument;
 		},
 	),

@@ -36,7 +36,7 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
-		"better-auth": "beta",
+		"better-auth": "1.2.0",
 		"bl": "6.0.11",
 		"rotating-file-stream": "3.2.3",
 		"qrcode": "^1.5.3",
