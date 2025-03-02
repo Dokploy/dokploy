@@ -24,11 +24,7 @@ export interface StepProps {
 	setTemplateInfo: React.Dispatch<React.SetStateAction<TemplateInfo>>;
 }
 
-export const StepTwo = ({
-	stepper,
-	templateInfo,
-	setTemplateInfo,
-}: StepProps) => {
+export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 	const suggestions = templateInfo.suggestions || [];
 	const selectedVariant = templateInfo.details;
 	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
@@ -52,7 +48,9 @@ export const StepTwo = ({
 				});
 			})
 			.catch((error) => {
-				toast.error("Error generating suggestions");
+				toast.error("Error generating suggestions", {
+					description: error.message,
+				});
 			});
 	}, [templateInfo.userInput]);
 
@@ -430,6 +428,78 @@ export const StepTwo = ({
 														<PlusCircle className="h-4 w-4 mr-2" />
 														Add Domain
 													</Button>
+												</div>
+											</ScrollArea>
+										</AccordionContent>
+									</AccordionItem>
+									<AccordionItem value="mounts">
+										<AccordionTrigger>Configuration Files</AccordionTrigger>
+										<AccordionContent>
+											<ScrollArea className="w-full rounded-md border">
+												<div className="p-4 space-y-4">
+													{selectedVariant?.configFiles?.length > 0 ? (
+														<>
+															<div className="text-sm text-muted-foreground mb-4">
+																This template requires the following
+																configuration files to be mounted:
+															</div>
+															{selectedVariant.configFiles.map(
+																(config, index) => (
+																	<div
+																		key={index}
+																		className="space-y-2 border rounded-lg p-4"
+																	>
+																		<div className="flex items-center justify-between">
+																			<div className="space-y-1">
+																				<Label className="text-primary">
+																					{config.filePath}
+																				</Label>
+																				<p className="text-xs text-muted-foreground">
+																					Will be mounted as: ../files
+																					{config.filePath}
+																				</p>
+																			</div>
+																		</div>
+																		<CodeEditor
+																			value={config.content}
+																			className="font-mono"
+																			onChange={(value) => {
+																				if (!selectedVariant?.configFiles)
+																					return;
+																				const updatedConfigFiles = [
+																					...selectedVariant.configFiles,
+																				];
+																				updatedConfigFiles[index] = {
+																					filePath: config.filePath,
+																					content: value,
+																				};
+																				setTemplateInfo({
+																					...templateInfo,
+																					...(templateInfo.details && {
+																						details: {
+																							...templateInfo.details,
+																							configFiles: updatedConfigFiles,
+																						},
+																					}),
+																				});
+																			}}
+																		/>
+																	</div>
+																),
+															)}
+														</>
+													) : (
+														<div className="text-center text-muted-foreground py-8">
+															<p>
+																This template doesn't require any configuration
+																files.
+															</p>
+															<p className="text-sm mt-2">
+																All necessary configurations are handled through
+																environment variables.
+															</p>
+														</div>
+													)}
 												</div>
 											</ScrollArea>
 										</AccordionContent>

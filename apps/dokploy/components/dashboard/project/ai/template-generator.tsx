@@ -47,7 +47,14 @@ interface Details {
 	envVariables: EnvVariable[];
 	shortDescription: string;
 	domains: Domain[];
+	configFiles: Mount[];
 }
+
+interface Mount {
+	filePath: string;
+	content: string;
+}
+
 export interface TemplateInfo {
 	userInput: string;
 	details?: Details | null;
@@ -126,6 +133,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 			...(templateInfo.server?.serverId && {
 				serverId: templateInfo.server?.serverId || "",
 			}),
+			configFiles: templateInfo?.details?.configFiles || [],
 		})
 			.then(async () => {
 				toast.success("Compose Created");

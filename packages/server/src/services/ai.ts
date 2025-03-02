@@ -153,25 +153,21 @@ export const suggestVariants = async ({
               3. Don't set container_name field in services
               4. Don't set version field in the docker compose
               5. Don't set ports like 'ports: 3000:3000', use 'ports: "3000"' instead
-              6. Use dokploy-network in all services
-              7. Add dokploy-network at the end and mark it as external: true
-              8. If a service depends on a database or other service, INCLUDE that service in the docker-compose
-              9. Make sure all required services are defined in the docker-compose
+              6. If a service depends on a database or other service, INCLUDE that service in the docker-compose
+              7. Make sure all required services are defined in the docker-compose
 
-			  Volume Mounting Rules:
-              1. All file mounts in volumes section MUST use "../files/" prefix
-              2. NEVER use absolute paths or direct host paths
-              3. Format should be: "../files/folder:/container/path"
-              4. If a service needs configuration files, they should be defined in configFiles array and referenced in volumes
-              5. Example: if you define a config file with filePath: "/nginx/nginx.conf", reference it in volumes as "../files/nginx/nginx.conf:/etc/nginx/nginx.conf"
-
-
-			 Configuration Files Rules:
-              1. If a service needs configuration files, include them in the configFiles array
-              2. Each config file should have:
-                 - content: The actual content of the configuration file
-                 - filePath: The relative path where the file should be stored (e.g., "/nginx/nginx.conf")
-              3. Make sure to reference these files correctly in the docker-compose volumes section
+			  Volume Mounting and Configuration Rules:
+              1. DO NOT create configuration files unless the service CANNOT work without them
+              2. Most services can work with just environment variables - USE THEM FIRST
+              3. Ask yourself: "Can this be configured with an environment variable instead?"
+              4. If and ONLY IF a config file is absolutely required:
+                 - Keep it minimal with only critical settings
+                 - Use "../files/" prefix for all mounts
+                 - Format: "../files/folder:/container/path"
+              5. DO NOT add configuration files for:
+                 - Default configurations that work out of the box
+                 - Settings that can be handled by environment variables
+                 - Proxy or routing configurations (these are handled elsewhere)
 
 			  Environment Variables Rules:
               1. For the envVariables array, provide ACTUAL example values, not placeholders
@@ -186,7 +182,7 @@ export const suggestVariants = async ({
                 - host: the domain name for the service in format: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.traefik.me
                 - port: the internal port the service runs on
                 - serviceName: the name of the service in the docker-compose
-              2. Make sure the service is properly configured in the docker-compose to work with the specified port
+              2. Make sure the service is properly configured to work with the specified port
               
               Project details:
               ${suggestion?.description}

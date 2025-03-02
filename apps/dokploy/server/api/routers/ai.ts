@@ -11,7 +11,7 @@ import {
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
-import { createDomain } from "@dokploy/server/index";
+import { createDomain, createMount } from "@dokploy/server/index";
 import {
 	deleteAiSettings,
 	getAiSettingById,
@@ -126,8 +126,6 @@ export const aiRouter = createTRPCRouter({
 
 			const projectName = slugify(`${project.name} ${input.id}`);
 
-			console.log(input);
-
 			const compose = await createComposeByTemplate({
 				...input,
 				composeFile: input.dockerCompose,
@@ -136,6 +134,7 @@ export const aiRouter = createTRPCRouter({
 				name: input.name,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
+				isolatedDeployment: true,
 			});
 
 			if (input.domains && input.domains?.length > 0) {
@@ -145,6 +144,18 @@ export const aiRouter = createTRPCRouter({
 						domainType: "compose",
 						certificateType: "none",
 						composeId: compose.composeId,
+					});
+				}
+			}
+			if (input.configFiles && input.configFiles?.length > 0) {
+				for (const mount of input.configFiles) {
+					await createMount({
+						filePath: mount.filePath,
+						mountPath: "",
+						content: mount.content,
+						serviceId: compose.composeId,
+						serviceType: "compose",
+						type: "file",
 					});
 				}
 			}

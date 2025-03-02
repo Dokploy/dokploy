@@ -71,4 +71,12 @@ export const deploySuggestionSchema = z.object({
 			}),
 		)
 		.optional(),
+	configFiles: z
+		.array(
+			z.object({
+				filePath: z.string().min(1),
+				content: z.string().min(1),
+			}),
+		)
+		.optional(),
 });

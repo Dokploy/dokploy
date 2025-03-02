@@ -85,6 +85,22 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 								)}
 							</ul>
 						</div>
+						<div>
+							<h3 className="text-sm font-semibold">Configuration Files</h3>
+							<ul className="list-disc pl-5">
+								{templateInfo?.details?.configFiles.map((file, index) => (
+									<li key={index}>
+										<strong className="text-sm font-semibold">
+											{file.filePath}
+										</strong>
+										:
+										<span className="text-sm ml-2 text-muted-foreground">
+											{file.content}
+										</span>
+									</li>
+								))}
+							</ul>
+						</div>
 					</div>
 				</div>
 			</div>
