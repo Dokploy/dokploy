@@ -539,22 +539,21 @@ export const installRClone = () => `
 export const createTraefikInstance = () => {
 	const command = `
 	    # Check if dokpyloy-traefik exists
-		if docker service ls | grep -q 'dokploy-traefik'; then
+		if docker ps -a --format '{{.Names}}' | grep -q '^dokploy-traefik$'; then
 			echo "Traefik already exists ✅"
 		else
-			# Create the dokploy-traefik service
+			# Create the dokploy-traefik container
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
-			docker service create \
+			docker run -d \
 				--name dokploy-traefik \
-				--replicas 1 \
-				--constraint 'node.role==manager' \
 				--network dokploy-network \
-				--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
-				--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
-				--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+				--restart unless-stopped \
+				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
+				-v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
+				-v /var/run/docker.sock:/var/run/docker.sock \
 				--label traefik.enable=true \
-				--publish mode=host,target=${TRAEFIK_SSL_PORT},published=${TRAEFIK_SSL_PORT} \
-				--publish mode=host,target=${TRAEFIK_PORT},published=${TRAEFIK_PORT} \
+				-p ${TRAEFIK_SSL_PORT}:${TRAEFIK_SSL_PORT} \
+				-p ${TRAEFIK_PORT}:${TRAEFIK_PORT} \
 				traefik:v$TRAEFIK_VERSION
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi

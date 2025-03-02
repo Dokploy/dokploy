@@ -23,6 +23,7 @@ interface TraefikOptions {
 		publishedPort: number;
 		publishMode?: "ingress" | "host";
 	}[];
+	force?: boolean;
 }
 
 export const initializeTraefik = async ({
@@ -30,10 +31,33 @@ export const initializeTraefik = async ({
 	env,
 	serverId,
 	additionalPorts = [],
+	force = false,
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
+
+	const exposedPorts: Record<string, {}> = {
+		[`${TRAEFIK_PORT}/tcp`]: {},
+		[`${TRAEFIK_SSL_PORT}/tcp`]: {},
+	};
+
+	const portBindings: Record<string, Array<{ HostPort: string }>> = {
+		[`${TRAEFIK_PORT}/tcp`]: [{ HostPort: TRAEFIK_PORT.toString() }],
+		[`${TRAEFIK_SSL_PORT}/tcp`]: [{ HostPort: TRAEFIK_SSL_PORT.toString() }],
+	};
+
+	if (enableDashboard) {
+		exposedPorts["8080/tcp"] = {};
+		portBindings["8080/tcp"] = [{ HostPort: "8080" }];
+	}
+
+	for (const port of additionalPorts) {
+		const portKey = `${port.targetPort}/tcp`;
+		exposedPorts[portKey] = {};
+		portBindings[portKey] = [{ HostPort: port.publishedPort.toString() }];
+	}
+
 	const settings: ContainerCreateOptions = {
 		name: containerName,
 		Image: imageName,
@@ -42,6 +66,7 @@ export const initializeTraefik = async ({
 				"dokploy-network": {},
 			},
 		},
+		ExposedPorts: exposedPorts,
 		HostConfig: {
 			RestartPolicy: {
 				Name: "always",
@@ -51,37 +76,11 @@ export const initializeTraefik = async ({
 				`${DYNAMIC_TRAEFIK_PATH}:/etc/dokploy/traefik/dynamic`,
 				"/var/run/docker.sock:/var/run/docker.sock",
 			],
-			PortBindings: {
-				[`${TRAEFIK_SSL_PORT}/tcp`]: [
-					{
-						HostPort: TRAEFIK_SSL_PORT.toString(),
-					},
-				],
-				[`${TRAEFIK_PORT}/tcp`]: [
-					{
-						HostPort: TRAEFIK_PORT.toString(),
-					},
-				],
-				...(enableDashboard && {
-					[`${8080}/tcp`]: [
-						{
-							HostPort: "8080",
-						},
-					],
-				}),
-				...additionalPorts.map((port) => {
-					return {
-						[`${port.targetPort}/tcp`]: [
-							{
-								HostPort: port.publishedPort.toString(),
-							},
-						],
-					};
-				}),
-			},
+			PortBindings: portBindings,
 		},
 		Env: env,
 	};
+
 	const docker = await getRemoteDocker(serverId);
 	try {
 		if (serverId) {
@@ -93,7 +92,7 @@ export const initializeTraefik = async ({
 		const container = docker.getContainer(containerName);
 		try {
 			const inspect = await container.inspect();
-			if (inspect.State.Status === "running") {
+			if (inspect.State.Status === "running" && !force) {
 				console.log("Traefik already running");
 				return;
 			}
@@ -112,6 +111,7 @@ export const initializeTraefik = async ({
 		console.log("Traefik Started ✅");
 	} catch (error) {
 		console.log("Traefik Not Found: Starting2 ✅", error);
+		throw error;
 	}
 };
 

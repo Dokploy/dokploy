@@ -112,15 +112,6 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
 						</span>
 					</DropdownMenuItem>
-					{/* 
-								<DockerTerminalModal appName="dokploy-traefik">
-									<DropdownMenuItem
-										className="w-full cursor-pointer space-x-3"
-										onSelect={(e) => e.preventDefault()}
-									>
-										<span>Enter the terminal</span>
-									</DropdownMenuItem>
-								</DockerTerminalModal> */}
 					<ManageTraefikPorts serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
