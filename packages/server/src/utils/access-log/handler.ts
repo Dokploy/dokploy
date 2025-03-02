@@ -1,6 +1,8 @@
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { type RotatingFileStream, createStream } from "rotating-file-stream";
 import { execAsync } from "../process/execAsync";
+import { findAdmin } from "@dokploy/server/services/admin";
+import { updateUser } from "@dokploy/server/services/user";
 
 class LogRotationManager {
 	private static instance: LogRotationManager;
@@ -28,19 +30,18 @@ class LogRotationManager {
 	}
 
 	private async getStateFromDB(): Promise<boolean> {
-		// const setting = await db.query.admins.findFirst({});
-		// return setting?.enableLogRotation ?? false;
-		return false;
+		const admin = await findAdmin();
+		return admin?.user.enableLogRotation ?? false;
 	}
 
-	private async setStateInDB(_active: boolean): Promise<void> {
-		// const admin = await db.query.admins.findFirst({});
-		// if (!admin) {
-		// 	return;
-		// }
-		// await updateAdmin(admin?.authId, {
-		// 	enableLogRotation: active,
-		// });
+	private async setStateInDB(active: boolean): Promise<void> {
+		const admin = await findAdmin();
+		if (!admin) {
+			return;
+		}
+		await updateUser(admin.user.id, {
+			enableLogRotation: active,
+		});
 	}
 
 	private async activateStream(): Promise<void> {
@@ -74,26 +75,26 @@ class LogRotationManager {
 	}
 
 	public async activate(): Promise<boolean> {
-		// const currentState = await this.getStateFromDB();
-		// if (currentState) {
-		// 	return true;
-		// }
+		const currentState = await this.getStateFromDB();
+		if (currentState) {
+			return true;
+		}
 
-		// await this.setStateInDB(true);
-		// await this.activateStream();
+		await this.setStateInDB(true);
+		await this.activateStream();
 		return true;
 	}
 
 	public async deactivate(): Promise<boolean> {
 		console.log("Deactivating log rotation...");
-		// const currentState = await this.getStateFromDB();
-		// if (!currentState) {
-		// 	console.log("Log rotation is already inactive in DB");
-		// 	return true;
-		// }
+		const currentState = await this.getStateFromDB();
+		if (!currentState) {
+			console.log("Log rotation is already inactive in DB");
+			return true;
+		}
 
-		// await this.setStateInDB(false);
-		// await this.deactivateStream();
+		await this.setStateInDB(false);
+		await this.deactivateStream();
 		console.log("Log rotation deactivated successfully");
 		return true;
 	}
@@ -113,9 +114,8 @@ class LogRotationManager {
 		}
 	}
 	public async getStatus(): Promise<boolean> {
-		// const dbState = await this.getStateFromDB();
-		// return dbState;
-		return false;
+		const dbState = await this.getStateFromDB();
+		return dbState;
 	}
 }
 export const logRotationManager = LogRotationManager.getInstance();
