@@ -29,14 +29,15 @@ const { handler, api } = betterAuth({
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
-			console.log("Sending verification email to", user.email);
-			await sendEmail({
-				email: user.email,
-				subject: "Verify your email",
-				text: `
+			if (IS_CLOUD) {
+				await sendEmail({
+					email: user.email,
+					subject: "Verify your email",
+					text: `
 				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
 				`,
-			});
+				});
+			}
 		},
 	},
 	emailAndPassword: {
@@ -137,9 +138,11 @@ const { handler, api } = betterAuth({
 		organization({
 			async sendInvitationEmail(data, _request) {
 				if (IS_CLOUD) {
-					const inviteLink = `http://localhost:3000/invitation?token=${data.id}`;
-
-					console.log("Invitation link", inviteLink);
+					const host =
+						process.env.NODE_ENV === "development"
+							? "http://localhost:3000"
+							: "https://dokploy.com";
+					const inviteLink = `${host}/invitation?token=${data.id}`;
 
 					await sendEmail({
 						email: data.email,
