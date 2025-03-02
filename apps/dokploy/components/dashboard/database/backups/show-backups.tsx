@@ -20,12 +20,14 @@ import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
 import { UpdateBackup } from "./update-backup";
+import { useState } from "react";
 
 interface Props {
 	id: string;
 	type: Exclude<ServiceType, "application" | "redis">;
 }
 export const ShowBackups = ({ id, type }: Props) => {
+	const [activeManualBackup, setActiveManualBackup] = useState<string | undefined>();
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -151,8 +153,9 @@ export const ShowBackups = ({ id, type }: Props) => {
 																<Button
 																	type="button"
 																	variant="ghost"
-																	isLoading={isManualBackup}
+																	isLoading={isManualBackup && activeManualBackup === backup.backupId}
 																	onClick={async () => {
+																		setActiveManualBackup(backup.backupId);
 																		await manualBackup({
 																			backupId: backup.backupId as string,
 																		})
@@ -166,6 +169,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 																					"Error creating the manual backup",
 																				);
 																			});
+																		setActiveManualBackup(undefined);
 																	}}
 																>
 																	<Play className="size-5  text-muted-foreground" />
