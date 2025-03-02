@@ -306,7 +306,7 @@ const removeLastTenDeployments = async (
 	});
 
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
+		const deploymentsToDelete = deploymentList.slice(9);
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
@@ -342,7 +342,7 @@ const removeLastTenComposeDeployments = async (
 	if (deploymentList.length > 10) {
 		if (serverId) {
 			let command = "";
-			const deploymentsToDelete = deploymentList.slice(10);
+			const deploymentsToDelete = deploymentList.slice(9);
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
 
@@ -354,7 +354,7 @@ const removeLastTenComposeDeployments = async (
 
 			await execAsyncRemote(serverId, command);
 		} else {
-			const deploymentsToDelete = deploymentList.slice(10);
+			const deploymentsToDelete = deploymentList.slice(9);
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
 				if (existsSync(logPath)) {
@@ -376,7 +376,7 @@ export const removeLastTenPreviewDeploymenById = async (
 	});
 
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
+		const deploymentsToDelete = deploymentList.slice(9);
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
