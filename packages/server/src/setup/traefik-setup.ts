@@ -251,6 +251,9 @@ export const getDefaultServerTraefikConfig = () => {
 			},
 			websecure: {
 				address: `:${TRAEFIK_SSL_PORT}`,
+				http3: {
+					advertisedPort: TRAEFIK_HTTP3_PORT,
+				},
 				http: {
 					tls: {
 						certResolver: "letsencrypt",

@@ -9,6 +9,7 @@ import {
 	TRAEFIK_PORT,
 	TRAEFIK_SSL_PORT,
 	TRAEFIK_VERSION,
+	TRAEFIK_HTTP3_PORT,
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";
@@ -551,9 +552,9 @@ export const createTraefikInstance = () => {
 				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
 				-v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
 				-v /var/run/docker.sock:/var/run/docker.sock \
-				--label traefik.enable=true \
 				-p ${TRAEFIK_SSL_PORT}:${TRAEFIK_SSL_PORT} \
 				-p ${TRAEFIK_PORT}:${TRAEFIK_PORT} \
+				-p ${TRAEFIK_HTTP3_PORT}:${TRAEFIK_HTTP3_PORT}/udp \
 				traefik:v$TRAEFIK_VERSION
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
