@@ -78,10 +78,10 @@ const Register = ({ isCloud }: Props) => {
 
 	const form = useForm<Register>({
 		defaultValues: {
-			name: "Mauricio Siu",
-			email: "user5@yopmail.com",
-			password: "Password123",
-			confirmPassword: "Password123",
+			name: "",
+			email: "",
+			password: "",
+			confirmPassword: "",
 		},
 		resolver: zodResolver(registerSchema),
 	});

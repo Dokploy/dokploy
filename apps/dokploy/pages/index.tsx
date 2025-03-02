@@ -67,8 +67,8 @@ export default function Home({ IS_CLOUD }: Props) {
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
-			email: "siumauricio@hotmail.com",
-			password: "Password123",
+			email: "",
+			password: "",
 		},
 	});
 
