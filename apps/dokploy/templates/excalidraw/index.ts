@@ -2,6 +2,7 @@ import {
 	type DomainSchema,
 	type Schema,
 	type Template,
+	generateHash,
 	generateRandomDomain,
 } from "../utils";
 

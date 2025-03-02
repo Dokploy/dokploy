@@ -27,7 +27,7 @@ export const execAsyncRemote = async (
 						throw err;
 					}
 					stream
-						.on("close", (code: number, _signal: string) => {
+						.on("close", (code: number, signal: string) => {
 							conn.end();
 							if (code === 0) {
 								resolve({ stdout, stderr });

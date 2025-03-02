@@ -12,9 +12,7 @@ export interface Schema {
 	projectName: string;
 }
 
-export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName"> & {
-	path?: string;
-};
+export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName">;
 
 export interface Template {
 	envs?: string[];

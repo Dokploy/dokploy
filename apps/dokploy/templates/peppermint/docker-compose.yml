@@ -4,7 +4,8 @@ services:
   peppermint-postgres:
     image: postgres:latest
     restart: always
-
+    networks:
+      - dokploy-network
     volumes:
       - peppermint-postgres-data:/var/lib/postgresql/data
     environment:
@@ -20,7 +21,8 @@ services:
   peppermint-app:
     image: pepperlabs/peppermint:latest
     restart: always
-
+    networks:
+      - dokploy-network
     depends_on:
       peppermint-postgres:
         condition: service_healthy

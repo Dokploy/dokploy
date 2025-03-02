@@ -4,7 +4,7 @@ import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
-import { findUserById } from "./admin";
+import { findAdmin, findAdminById } from "./admin";
 import { findApplicationById } from "./application";
 import { findServerById } from "./server";
 
@@ -40,7 +40,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 export const generateTraefikMeDomain = async (
 	appName: string,
-	userId: string,
+	adminId: string,
 	serverId?: string,
 ) => {
 	if (serverId) {
@@ -57,7 +57,7 @@ export const generateTraefikMeDomain = async (
 			projectName: appName,
 		});
 	}
-	const admin = await findUserById(userId);
+	const admin = await findAdminById(adminId);
 	return generateRandomDomain({
 		serverIp: admin?.serverIp || "",
 		projectName: appName,
@@ -126,6 +126,7 @@ export const updateDomainById = async (
 
 export const removeDomainById = async (domainId: string) => {
 	await findDomainById(domainId);
+	// TODO: fix order
 	const result = await db
 		.delete(domains)
 		.where(eq(domains.domainId, domainId))

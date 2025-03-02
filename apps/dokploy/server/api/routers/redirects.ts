@@ -18,9 +18,7 @@ export const redirectsRouter = createTRPCRouter({
 		.input(apiCreateRedirect)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (application.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -33,9 +31,7 @@ export const redirectsRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (application.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -48,9 +44,7 @@ export const redirectsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (application.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",
@@ -63,9 +57,7 @@ export const redirectsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);
-			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
-			) {
+			if (application.project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this application",

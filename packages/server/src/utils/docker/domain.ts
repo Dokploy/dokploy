@@ -26,7 +26,6 @@ import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
-import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
@@ -109,7 +108,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = load(stdout) as ComposeSpecification;
 		return parsedConfig;
-	} catch (_err) {
+	} catch (err) {
 		return null;
 	}
 };
@@ -191,13 +190,7 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (compose.isolatedDeployment) {
-		const randomized = randomizeDeployableSpecificationFile(
-			result,
-			compose.suffix || compose.appName,
-		);
-		result = randomized;
-	} else if (compose.randomize) {
+	if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
@@ -210,6 +203,9 @@ export const addDomainToCompose = async (
 		if (!result?.services?.[serviceName]) {
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
+		if (!result.services[serviceName].labels) {
+			result.services[serviceName].labels = [];
+		}
 
 		const httpLabels = await createDomainLabels(appName, domain, "web");
 		if (https) {
@@ -221,24 +217,7 @@ export const addDomainToCompose = async (
 			httpLabels.push(...httpsLabels);
 		}
 
-		let labels: DefinitionsService["labels"] = [];
-		if (compose.composeType === "docker-compose") {
-			if (!result.services[serviceName].labels) {
-				result.services[serviceName].labels = [];
-			}
-
-			labels = result.services[serviceName].labels;
-		} else {
-			// Stack Case
-			if (!result.services[serviceName].deploy) {
-				result.services[serviceName].deploy = {};
-			}
-			if (!result.services[serviceName].deploy.labels) {
-				result.services[serviceName].deploy.labels = [];
-			}
-
-			labels = result.services[serviceName].deploy.labels;
-		}
+		const labels = result.services[serviceName].labels;
 
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {
@@ -247,18 +226,14 @@ export const addDomainToCompose = async (
 			labels.push(...httpLabels);
 		}
 
-		if (!compose.isolatedDeployment) {
-			// Add the dokploy-network to the service
-			result.services[serviceName].networks = addDokployNetworkToService(
-				result.services[serviceName].networks,
-			);
-		}
+		// Add the dokploy-network to the service
+		result.services[serviceName].networks = addDokployNetworkToService(
+			result.services[serviceName].networks,
+		);
 	}
 
 	// Add dokploy-network to the root of the compose file
-	if (!compose.isolatedDeployment) {
-		result.networks = addDokployNetworkToRoot(result.networks);
-	}
+	result.networks = addDokployNetworkToRoot(result.networks);
 
 	return result;
 };

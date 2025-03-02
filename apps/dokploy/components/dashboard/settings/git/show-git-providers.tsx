@@ -102,7 +102,7 @@ export const ShowGitProviders = () => {
 										</div>
 
 										<div className="flex flex-col gap-4 rounded-lg ">
-											{data?.map((gitProvider, _index) => {
+											{data?.map((gitProvider, index) => {
 												const isGithub = gitProvider.providerType === "github";
 												const isGitlab = gitProvider.providerType === "gitlab";
 												const isBitbucket =

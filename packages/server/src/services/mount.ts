@@ -64,7 +64,7 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 		console.log(error);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Error ${error instanceof Error ? error.message : error}`,
+			message: "Error creating the mount",
 			cause: error,
 		});
 	}
@@ -91,7 +91,7 @@ export const createFileMount = async (mountId: string) => {
 		console.log(`Error creating the file mount: ${error}`);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Error creating the mount ${error instanceof Error ? error.message : error}`,
+			message: "Error creating the mount",
 			cause: error,
 		});
 	}
@@ -123,8 +123,8 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	return await db.transaction(async (tx) => {
-		const mount = await tx
+	return await db.transaction(async (transaction) => {
+		const mount = await db
 			.update(mounts)
 			.set({
 				...mountData,
@@ -211,7 +211,7 @@ export const deleteFileMount = async (mountId: string) => {
 		} else {
 			await removeFileOrDirectory(fullPath);
 		}
-	} catch (_error) {}
+	} catch (error) {}
 };
 
 export const getBaseFilesPath = async (mountId: string) => {

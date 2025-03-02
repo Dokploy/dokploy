@@ -1,24 +1,19 @@
 import { db } from "@dokploy/server/db";
-import {
-	type apiCreateServer,
-	organization,
-	server,
-} from "@dokploy/server/db/schema";
+import { type apiCreateServer, server } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export type Server = typeof server.$inferSelect;
 
 export const createServer = async (
 	input: typeof apiCreateServer._type,
-	organizationId: string,
+	adminId: string,
 ) => {
 	const newServer = await db
 		.insert(server)
 		.values({
 			...input,
-			organizationId: organizationId,
-			createdAt: new Date().toISOString(),
+			adminId: adminId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -50,15 +45,11 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
-export const findServersByUserId = async (userId: string) => {
-	const orgs = await db.query.organization.findMany({
-		where: eq(organization.ownerId, userId),
-		with: {
-			servers: true,
-		},
+export const findServersByAdminId = async (adminId: string) => {
+	const servers = await db.query.server.findMany({
+		where: eq(server.adminId, adminId),
+		orderBy: desc(server.createdAt),
 	});
-
-	const servers = orgs.flatMap((org) => org.servers);
 
 	return servers;
 };

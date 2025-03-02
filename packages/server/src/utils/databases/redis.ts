@@ -95,7 +95,7 @@ export const buildRedis = async (redis: RedisNested) => {
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (_error) {
+	} catch (error) {
 		await docker.createService(settings);
 	}
 };

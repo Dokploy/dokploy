@@ -1,9 +1,9 @@
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/lib/auth";
+import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import * as React from "react";
 
 export default function Requests() {
 	return <ShowRequests />;
@@ -22,7 +22,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user } = await validateRequest(ctx.req);
+	const { user } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {
 			redirect: {

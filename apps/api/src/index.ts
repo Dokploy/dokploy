@@ -28,7 +28,7 @@ app.use(async (c, next) => {
 
 app.post("/deploy", zValidator("json", deployJobSchema), (c) => {
 	const data = c.req.valid("json");
-	queue.add(data, { groupName: data.serverId });
+	const res = queue.add(data, { groupName: data.serverId });
 	return c.json(
 		{
 			message: "Deployment Added",

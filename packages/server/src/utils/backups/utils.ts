@@ -28,7 +28,7 @@ export const removeScheduleBackup = (backupId: string) => {
 };
 
 export const getS3Credentials = (destination: Destination) => {
-	const { accessKey, secretAccessKey, region, endpoint, provider } =
+	const { accessKey, secretAccessKey, bucket, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
 		`--s3-access-key-id=${accessKey}`,

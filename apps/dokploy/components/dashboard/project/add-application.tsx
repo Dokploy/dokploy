@@ -70,7 +70,7 @@ interface Props {
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
-	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -103,7 +103,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					projectId,
 				});
 			})
-			.catch((_e) => {
+			.catch((e) => {
 				toast.error("Error creating the service");
 			});
 	};
@@ -166,7 +166,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud ? "(Optional)" : ""}
+													Select a Server (Optional)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -197,12 +197,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 														key={server.serverId}
 														value={server.serverId}
 													>
-														<span className="flex items-center gap-2 justify-between w-full">
-															<span>{server.name}</span>
-															<span className="text-muted-foreground text-xs self-center">
-																{server.ipAddress}
-															</span>
-														</span>
+														{server.name}
 													</SelectItem>
 												))}
 												<SelectLabel>Servers ({servers?.length})</SelectLabel>

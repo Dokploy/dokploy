@@ -30,7 +30,7 @@ import { TRPCError } from "@trpc/server";
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const newBackup = await createBackup(input);
 
@@ -74,14 +74,16 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneBackup).query(async ({ input }) => {
-		const backup = await findBackupById(input.backupId);
+	one: protectedProcedure
+		.input(apiFindOneBackup)
+		.query(async ({ input, ctx }) => {
+			const backup = await findBackupById(input.backupId);
 
-		return backup;
-	}),
+			return backup;
+		}),
 	update: protectedProcedure
 		.input(apiUpdateBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
@@ -109,17 +111,15 @@ export const backupRouter = createTRPCRouter({
 					}
 				}
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Error updating this Backup";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message,
+					message: "Error updating this Backup",
 				});
 			}
 		}),
 	remove: protectedProcedure
 		.input(apiRemoveBackup)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
@@ -133,11 +133,10 @@ export const backupRouter = createTRPCRouter({
 				}
 				return value;
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Error deleting this Backup";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message,
+					message: "Error deleting this Backup",
+					cause: error,
 				});
 			}
 		}),
@@ -150,13 +149,11 @@ export const backupRouter = createTRPCRouter({
 				await runPostgresBackup(postgres, backup);
 				return true;
 			} catch (error) {
-				const message =
-					error instanceof Error
-						? error.message
-						: "Error running manual Postgres backup ";
+				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message,
+					message: "Error running manual Postgres backup ",
+					cause: error,
 				});
 			}
 		}),

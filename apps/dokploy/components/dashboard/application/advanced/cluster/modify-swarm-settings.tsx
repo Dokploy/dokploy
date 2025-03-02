@@ -130,7 +130,7 @@ const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 			}
 			try {
 				return JSON.parse(str);
-			} catch (_e) {
+			} catch (e) {
 				ctx.addIssue({ code: "custom", message: "Invalid JSON format" });
 				return z.NEVER;
 			}

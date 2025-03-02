@@ -15,7 +15,8 @@ services:
 
   db:
     image: postgres:13
-
+    networks:
+      - dokploy-network
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=odoo

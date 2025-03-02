@@ -1,6 +1,6 @@
 services:
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-v2.16.1
+    image: ghcr.io/umami-software/umami:postgresql-v2.14.0
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
@@ -22,7 +22,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
+    networks:
+      - dokploy-network
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:

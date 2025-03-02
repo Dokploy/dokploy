@@ -2,7 +2,7 @@ name: Build Docker images
 
 on:
   push:
-    branches: ["canary", "main", "feat/monitoring"]
+    branches: ["canary", "main"]
 
 jobs:
   build-and-push-cloud-image:
@@ -17,7 +17,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+      
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -53,7 +53,8 @@ jobs:
           push: true
           tags: |
             siumauricio/schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
-          platforms: linux/amd64
+          platforms: linux/amd64     
+
 
   build-and-push-server-image:
     runs-on: ubuntu-latest
@@ -76,4 +77,4 @@ jobs:
           push: true
           tags: |
             siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
-          platforms: linux/amd64
+          platforms: linux/amd64  

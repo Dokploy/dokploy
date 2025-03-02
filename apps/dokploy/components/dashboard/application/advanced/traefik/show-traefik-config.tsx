@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { File, Loader2 } from "lucide-react";
+import React from "react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
 interface Props {
 	applicationId: string;

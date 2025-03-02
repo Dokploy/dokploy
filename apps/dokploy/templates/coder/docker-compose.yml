@@ -1,7 +1,8 @@
 services:
   coder:
     image: ghcr.io/coder/coder:v2.15.3
-
+    networks:
+      - dokploy-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
@@ -16,7 +17,8 @@ services:
 
   db:
     image: postgres:17
-
+    networks:
+      - dokploy-network
     environment:
       - POSTGRES_PASSWORD
       - POSTGRES_USER

@@ -1,9 +1,3 @@
-import {
-	type BackupScheduleList,
-	IS_CLOUD,
-	removeScheduleBackup,
-} from "@dokploy/server/index";
-
 type QueueJob =
 	| {
 			type: "backup";
@@ -63,21 +57,5 @@ export const updateJob = async (job: QueueJob) => {
 		return data;
 	} catch (error) {
 		throw error;
-	}
-};
-
-export const cancelJobs = async (backups: BackupScheduleList) => {
-	for (const backup of backups) {
-		if (backup.enabled) {
-			if (IS_CLOUD) {
-				await removeJob({
-					cronSchedule: backup.schedule,
-					backupId: backup.backupId,
-					type: "backup",
-				});
-			} else {
-				removeScheduleBackup(backup.backupId);
-			}
-		}
 	}
 };

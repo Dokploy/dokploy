@@ -3,7 +3,8 @@ version: '3.7'
 services:
   ryot-app:
     image: ignisda/ryot:v7.10
-
+    networks:
+      - dokploy-network
     environment:
       - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD}@ryot-db:5432/postgres
       - SERVER_ADMIN_ACCESS_TOKEN=${ADMIN_ACCESS_TOKEN}
@@ -18,7 +19,8 @@ services:
 
   ryot-db:
     image: postgres:16-alpine
-
+    networks:
+      - dokploy-network
     volumes:
       - ryot-postgres-data:/var/lib/postgresql/data
     environment:

@@ -1,3 +1,4 @@
+import { error } from "node:console";
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
@@ -18,13 +19,13 @@ export const sendDatabaseBackupNotifications = async ({
 	databaseType,
 	type,
 	errorMessage,
-	organizationId,
+	adminId,
 }: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
 	type: "error" | "success";
-	organizationId: string;
+	adminId: string;
 	errorMessage?: string;
 }) => {
 	const date = new Date();
@@ -32,7 +33,7 @@ export const sendDatabaseBackupNotifications = async ({
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.databaseBackup, true),
-			eq(notifications.organizationId, organizationId),
+			eq(notifications.adminId, adminId),
 		),
 		with: {
 			email: true,

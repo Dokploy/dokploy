@@ -3,6 +3,7 @@ import {
 	type Schema,
 	type Template,
 	generateBase64,
+	generateHash,
 	generateRandomDomain,
 } from "../utils";
 

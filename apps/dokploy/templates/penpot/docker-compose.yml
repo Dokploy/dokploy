@@ -46,7 +46,8 @@ services:
       - penpot-backend
       - penpot-exporter
 
-
+    networks:
+      - dokploy-network
 
     environment:
       PENPOT_FLAGS: disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies
@@ -62,7 +63,8 @@ services:
       - penpot-postgres
       - penpot-redis
 
-
+    networks:
+      - dokploy-network
 
     ## Configuration envronment variables for the backend
     ## container.
@@ -141,7 +143,8 @@ services:
   penpot-exporter:
     image: "penpotapp/exporter:2.3.2"
     restart: always
-
+    networks:
+      - dokploy-network
 
     environment:
       # Don't touch it; this uses an internal docker network to
@@ -159,7 +162,8 @@ services:
     volumes:
       - penpot_postgres_v15:/var/lib/postgresql/data
 
-
+    networks:
+      - dokploy-network
 
     environment:
       - POSTGRES_INITDB_ARGS=--data-checksums
@@ -170,7 +174,8 @@ services:
   penpot-redis:
     image: redis:7.2
     restart: always
-
+    networks:
+      - dokploy-network
 
   ## A mailcatch service, used as temporal SMTP server. You can access via HTTP to the
   ## port 1080 for read all emails the penpot platform has sent. Should be only used as a
@@ -183,7 +188,8 @@ services:
       - '1025'
     ports:
       - 1080
-
+    networks:
+      - dokploy-network
 
   ## Example configuration of MiniIO (S3 compatible object storage service); If you don't
   ## have preference, then just use filesystem, this is here just for the completeness.

@@ -12,7 +12,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -98,17 +98,6 @@ export const createDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		await db
-			.insert(deployments)
-			.values({
-				applicationId: deployment.applicationId,
-				title: deployment.title || "Deployment",
-				status: "error",
-				logPath: "",
-				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
-			})
-			.returning();
 		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
 		throw new TRPCError({
@@ -175,17 +164,6 @@ export const createDeploymentPreview = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		await db
-			.insert(deployments)
-			.values({
-				previewDeploymentId: deployment.previewDeploymentId,
-				title: deployment.title || "Deployment",
-				status: "error",
-				logPath: "",
-				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
-			})
-			.returning();
 		await updatePreviewDeployment(deployment.previewDeploymentId, {
 			previewStatus: "error",
 		});
@@ -248,17 +226,6 @@ echo "Initializing deployment" >> ${logFilePath};
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		await db
-			.insert(deployments)
-			.values({
-				composeId: deployment.composeId,
-				title: deployment.title || "Deployment",
-				status: "error",
-				logPath: "",
-				description: deployment.description || "",
-				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
-			})
-			.returning();
 		await updateCompose(compose.composeId, {
 			composeStatus: "error",
 		});
@@ -278,11 +245,9 @@ export const removeDeployment = async (deploymentId: string) => {
 			.returning();
 		return deployment[0];
 	} catch (error) {
-		const message =
-			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message,
+			message: "Error deleting this deployment",
 		});
 	}
 };
@@ -537,11 +502,9 @@ export const createServerDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
-		const message =
-			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message,
+			message: "Error creating the deployment",
 		});
 	}
 };

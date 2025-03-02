@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,6 +14,7 @@ import {
 	Info,
 	RefreshCcw,
 	Server,
+	ServerCrash,
 	Sparkles,
 	Stars,
 } from "lucide-react";

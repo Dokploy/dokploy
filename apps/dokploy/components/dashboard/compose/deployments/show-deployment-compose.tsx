@@ -17,14 +17,12 @@ interface Props {
 	serverId?: string;
 	open: boolean;
 	onClose: () => void;
-	errorMessage?: string;
 }
 export const ShowDeploymentCompose = ({
 	logPath,
 	open,
 	onClose,
 	serverId,
-	errorMessage,
 }: Props) => {
 	const [data, setData] = useState("");
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -107,8 +105,6 @@ export const ShowDeploymentCompose = ({
 		}
 	}, [filteredLogs, autoScroll]);
 
-	const optionalErrors = parseLogs(errorMessage || "");
-
 	return (
 		<Dialog
 			open={open}
@@ -165,17 +161,9 @@ export const ShowDeploymentCompose = ({
 							<TerminalLine key={index} log={log} noTimestamp />
 						))
 					) : (
-						<>
-							{optionalErrors.length > 0 ? (
-								optionalErrors.map((log: LogLine, index: number) => (
-									<TerminalLine key={`extra-${index}`} log={log} noTimestamp />
-								))
-							) : (
-								<div className="flex justify-center items-center h-full text-muted-foreground">
-									<Loader2 className="h-6 w-6 animate-spin" />
-								</div>
-							)}
-						</>
+						<div className="flex justify-center items-center h-full text-muted-foreground">
+							<Loader2 className="h-6 w-6 animate-spin" />
+						</div>
 					)}
 				</div>
 			</DialogContent>

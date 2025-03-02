@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GlobeIcon } from "lucide-react";
+import { GlobeIcon, ServerIcon, User } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -52,7 +52,7 @@ type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
-	const { data, refetch } = api.user.get.useQuery();
+	const { data: user, refetch } = api.admin.one.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
 
@@ -65,14 +65,14 @@ export const WebDomain = () => {
 		resolver: zodResolver(addServerDomain),
 	});
 	useEffect(() => {
-		if (data) {
+		if (user) {
 			form.reset({
-				domain: data?.user?.host || "",
-				certificateType: data?.user?.certificateType,
-				letsEncryptEmail: data?.user?.letsEncryptEmail || "",
+				domain: user?.host || "",
+				certificateType: user?.certificateType,
+				letsEncryptEmail: user?.letsEncryptEmail || "",
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [form, form.reset, user]);
 
 	const onSubmit = async (data: AddServerDomain) => {
 		await mutateAsync({

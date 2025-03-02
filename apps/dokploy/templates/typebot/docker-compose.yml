@@ -13,7 +13,8 @@ services:
       POSTGRES_USER: typebot
       POSTGRES_DB: typebot
       POSTGRES_PASSWORD: typebot
-
+    networks:
+      - dokploy-network
 
   typebot-builder:
     image: baptistearno/typebot-builder:2.27

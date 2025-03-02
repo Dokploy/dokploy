@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Rss, Trash2 } from "lucide-react";
+import React from "react";
 import { toast } from "sonner";
 import { HandlePorts } from "./handle-ports";
 interface Props {

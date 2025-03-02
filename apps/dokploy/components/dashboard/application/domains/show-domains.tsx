@@ -7,6 +7,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { ExternalLink, GlobeIcon, PenBoxIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -73,66 +74,60 @@ export const ShowDomains = ({ applicationId }: Props) => {
 								return (
 									<div
 										key={item.domainId}
-										className="flex w-full items-center justify-between gap-4 border p-4 md:px-6 rounded-lg flex-wrap"
+										className="flex w-full items-center gap-4 max-sm:flex-wrap border p-4 rounded-lg"
 									>
 										<Link
-											className="md:basis-1/2 flex gap-2  items-center hover:underline transition-all w-full"
 											target="_blank"
 											href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
 										>
-											<span className="truncate max-w-full text-sm">
-												{item.host}
-											</span>
-											<ExternalLink className="size-4 min-w-4" />
+											<ExternalLink className="size-5" />
 										</Link>
 
-										<div className="flex gap-8">
-											<div className="flex gap-8 opacity-50 items-center h-10 text-center text-sm font-medium">
-												<span>{item.path}</span>
-												<span>{item.port}</span>
-												<span>{item.https ? "HTTPS" : "HTTP"}</span>
-											</div>
-
-											<div className="flex gap-2">
-												<AddDomain
-													applicationId={applicationId}
-													domainId={item.domainId}
-												>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="group hover:bg-blue-500/10 "
-													>
-														<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-													</Button>
-												</AddDomain>
-												<DialogAction
-													title="Delete Domain"
-													description="Are you sure you want to delete this domain?"
-													type="destructive"
-													onClick={async () => {
-														await deleteDomain({
-															domainId: item.domainId,
+										<Input disabled value={item.host} />
+										<Button variant="outline" disabled>
+											{item.path}
+										</Button>
+										<Button variant="outline" disabled>
+											{item.port}
+										</Button>
+										<Button variant="outline" disabled>
+											{item.https ? "HTTPS" : "HTTP"}
+										</Button>
+										<div className="flex flex-row gap-1">
+											<AddDomain
+												applicationId={applicationId}
+												domainId={item.domainId}
+											>
+												<Button variant="ghost">
+													<PenBoxIcon className="size-4 text-muted-foreground" />
+												</Button>
+											</AddDomain>
+											<DialogAction
+												title="Delete Domain"
+												description="Are you sure you want to delete this domain?"
+												type="destructive"
+												onClick={async () => {
+													await deleteDomain({
+														domainId: item.domainId,
+													})
+														.then((data) => {
+															refetch();
+															toast.success("Domain deleted successfully");
 														})
-															.then(() => {
-																refetch();
-																toast.success("Domain deleted successfully");
-															})
-															.catch(() => {
-																toast.error("Error deleting domain");
-															});
-													}}
+														.catch(() => {
+															toast.error("Error deleting domain");
+														});
+												}}
+											>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="group hover:bg-red-500/10"
+													isLoading={isRemoving}
 												>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="group hover:bg-red-500/10"
-														isLoading={isRemoving}
-													>
-														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-													</Button>
-												</DialogAction>
-											</div>
+													<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+												</Button>
+											</DialogAction>
 										</div>
 									</div>
 								);

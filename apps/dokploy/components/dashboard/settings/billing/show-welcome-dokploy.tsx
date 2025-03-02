@@ -6,15 +6,16 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import type React from "react";
 import { useEffect, useState } from "react";
 
 export const ShowWelcomeDokploy = () => {
-	const { data } = api.user.get.useQuery();
+	const { data } = api.auth.get.useQuery();
 	const [open, setOpen] = useState(false);
 
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 
-	if (!isCloud || data?.role !== "admin") {
+	if (!isCloud || data?.rol !== "admin") {
 		return null;
 	}
 
@@ -23,14 +24,14 @@ export const ShowWelcomeDokploy = () => {
 			!isLoading &&
 			isCloud &&
 			!localStorage.getItem("hasSeenCloudWelcomeModal") &&
-			data?.role === "owner"
+			data?.rol === "admin"
 		) {
 			setOpen(true);
 		}
 	}, [isCloud, isLoading]);
 
 	const handleClose = (isOpen: boolean) => {
-		if (data?.role === "owner") {
+		if (data?.rol === "admin") {
 			setOpen(isOpen);
 			if (!isOpen) {
 				localStorage.setItem("hasSeenCloudWelcomeModal", "true"); // Establece el flag al cerrar el modal

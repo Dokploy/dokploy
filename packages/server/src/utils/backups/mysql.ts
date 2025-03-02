@@ -1,3 +1,4 @@
+import { unlink } from "node:fs/promises";
 import path from "node:path";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { MySql } from "@dokploy/server/services/mysql";
@@ -45,7 +46,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "success",
-			organizationId: project.organizationId,
+			adminId: project.adminId,
 		});
 	} catch (error) {
 		console.log(error);
@@ -56,7 +57,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
-			organizationId: project.organizationId,
+			adminId: project.adminId,
 		});
 		throw error;
 	}

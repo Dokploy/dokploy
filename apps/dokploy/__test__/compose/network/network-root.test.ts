@@ -293,6 +293,29 @@ networks:
   dokploy-network:
 `;
 
+const expectedComposeFile7 = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1200
+
+  backend:
+    driver: bridge
+    attachable: true
+
+  external_network:
+    external: true
+    name: dokploy-network
+`;
 test("It shoudn't add suffix to dokploy-network", () => {
 	const composeData = load(composeFile7) as ComposeSpecification;
 

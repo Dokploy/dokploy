@@ -50,7 +50,7 @@ export const ShowCertificates = () => {
 								{data?.length === 0 ? (
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<ShieldCheck className="size-8 self-center text-muted-foreground" />
-										<span className="text-base text-muted-foreground text-center">
+										<span className="text-base text-muted-foreground">
 											You don't have any certificates created
 										</span>
 										<AddCertificate />

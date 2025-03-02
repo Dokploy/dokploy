@@ -74,8 +74,6 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
     <a href="https://lightnode.com/?ref=dokploy" target="_blank" style="display: inline-block;">
     <img src=".github/sponsors/light-node.webp" alt="Lightnode" height="70"/>
   </a>
-
-  
 </div>
 
 ### Premium Supporters 🥇
@@ -95,10 +93,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <a href="https://cloudblast.io/?ref=dokploy "><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
 <a href="https://startupfa.me/?ref=dokploy "><img src=".github/sponsors/startupfame.png" width="65px" alt="Startupfame"/></a>
 <a href="https://itsdb-center.com?ref=dokploy "><img src=".github/sponsors/its.png" width="65px" alt="Itsdb-center"/></a>
-<a href="https://openalternative.co/?ref=dokploy "><img src=".github/sponsors/openalternative.png" width="65px" alt="Openalternative"/></a>
-<a href="https://synexa.ai/?ref=dokploy"><img src=".github/sponsors/synexa.png" width="65px" alt="Synexa"/></a>
 </div>
-
 
 ### Community Backers 🤝
 

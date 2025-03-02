@@ -68,7 +68,6 @@ export const sendTelegramNotification = async (
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				chat_id: connection.chatId,
-				message_thread_id: connection.messageThreadId,
 				text: messageText,
 				parse_mode: "HTML",
 				disable_web_page_preview: true,

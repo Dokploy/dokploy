@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
-import { ShowUtilities } from "./show-utilities";
+import { RandomizeCompose } from "./randomize-compose";
 
 interface Props {
 	composeId: string;
@@ -35,7 +35,8 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
-	const { mutateAsync, isLoading } = api.compose.update.useMutation();
+	const { mutateAsync, isLoading, error, isError } =
+		api.compose.update.useMutation();
 
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
@@ -75,7 +76,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 					composeId,
 				});
 			})
-			.catch((_e) => {
+			.catch((e) => {
 				toast.error("Error updating the Compose config");
 			});
 	};
@@ -124,7 +125,7 @@ services:
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
 					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
-						<ShowUtilities composeId={composeId} />
+						<RandomizeCompose composeId={composeId} />
 					</div>
 					<Button
 						type="submit"

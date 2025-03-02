@@ -100,7 +100,7 @@ export const containerExists = async (containerName: string) => {
 	try {
 		await container.inspect();
 		return true;
-	} catch (_error) {
+	} catch (error) {
 		return false;
 	}
 };
@@ -144,11 +144,10 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 };
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
-		const command = "docker image prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, "docker image prune --all --force");
 		} else {
-			await execAsync(command);
+			await execAsync("docker image prune --all --force");
 		}
 	} catch (error) {
 		console.error(error);
@@ -158,11 +157,10 @@ export const cleanUpUnusedImages = async (serverId?: string) => {
 
 export const cleanStoppedContainers = async (serverId?: string) => {
 	try {
-		const command = "docker container prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, "docker container prune --force");
 		} else {
-			await execAsync(command);
+			await execAsync("docker container prune --force");
 		}
 	} catch (error) {
 		console.error(error);
@@ -172,11 +170,10 @@ export const cleanStoppedContainers = async (serverId?: string) => {
 
 export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
-		const command = "docker volume prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, "docker volume prune --all --force");
 		} else {
-			await execAsync(command);
+			await execAsync("docker volume prune --all --force");
 		}
 	} catch (error) {
 		console.error(error);
@@ -202,20 +199,21 @@ export const cleanUpInactiveContainers = async () => {
 };
 
 export const cleanUpDockerBuilder = async (serverId?: string) => {
-	const command = "docker builder prune --all --force";
 	if (serverId) {
-		await execAsyncRemote(serverId, command);
+		await execAsyncRemote(serverId, "docker builder prune --all --force");
 	} else {
-		await execAsync(command);
+		await execAsync("docker builder prune --all --force");
 	}
 };
 
 export const cleanUpSystemPrune = async (serverId?: string) => {
-	const command = "docker system prune --all --force --volumes";
 	if (serverId) {
-		await execAsyncRemote(serverId, command);
+		await execAsyncRemote(
+			serverId,
+			"docker system prune --all --force --volumes",
+		);
 	} else {
-		await execAsync(command);
+		await execAsync("docker system prune --all --force --volumes");
 	}
 };
 
@@ -240,7 +238,7 @@ export const startServiceRemote = async (serverId: string, appName: string) => {
 export const removeService = async (
 	appName: string,
 	serverId?: string | null,
-	_deleteVolumes = false,
+	deleteVolumes = false,
 ) => {
 	try {
 		const command = `docker service rm ${appName}`;
@@ -278,15 +276,12 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
-export const getEnviromentVariablesObject = (
-	input: string | null,
-	projectEnv?: string | null,
-) => {
-	const envs = prepareEnvironmentVariables(input, projectEnv);
+export const prepareBuildArgs = (input: string | null) => {
+	const pairs = (input ?? "").split("\n");
 
 	const jsonObject: Record<string, string> = {};
 
-	for (const pair of envs) {
+	for (const pair of pairs) {
 		const [key, value] = pair.split("=");
 		if (key && value) {
 			jsonObject[key] = value;

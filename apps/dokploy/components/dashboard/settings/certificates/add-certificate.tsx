@@ -61,7 +61,6 @@ export const AddCertificate = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { mutateAsync, isError, error, isLoading } =
 		api.certificates.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -86,7 +85,6 @@ export const AddCertificate = () => {
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
 			serverId: data.serverId,
-			organizationId: "",
 		})
 			.then(async () => {
 				toast.success("Certificate Created");
@@ -183,7 +181,7 @@ export const AddCertificate = () => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud && "(Optional)"}
+													Select a Server (Optional)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -204,12 +202,7 @@ export const AddCertificate = () => {
 														key={server.serverId}
 														value={server.serverId}
 													>
-														<span className="flex items-center gap-2 justify-between w-full">
-															<span>{server.name}</span>
-															<span className="text-muted-foreground text-xs self-center">
-																{server.ipAddress}
-															</span>
-														</span>
+														{server.name}
 													</SelectItem>
 												))}
 												<SelectLabel>Servers ({servers?.length})</SelectLabel>

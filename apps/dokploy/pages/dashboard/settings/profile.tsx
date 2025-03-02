@@ -1,5 +1,6 @@
-import { ShowApiKeys } from "@/components/dashboard/settings/api/show-api-keys";
+import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
+import { RemoveSelfAccount } from "@/components/dashboard/settings/profile/remove-self-account";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
@@ -8,20 +9,28 @@ import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
-	const { data } = api.user.get.useQuery();
+	const { data } = api.auth.get.useQuery();
+	const { data: user } = api.user.byAuthId.useQuery(
+		{
+			authId: data?.id || "",
+		},
+		{
+			enabled: !!data?.id && data?.rol === "user",
+		},
+	);
 
-	// const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(data?.canAccessToAPI || data?.role === "owner") && <ShowApiKeys />}
+				{(user?.canAccessToAPI || data?.rol === "admin") && <GenerateToken />}
 
-				{/* {isCloud && <RemoveSelfAccount />} */}
+				{isCloud && <RemoveSelfAccount />}
 			</div>
 		</div>
 	);
@@ -37,7 +46,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const locale = getLocale(req.cookies);
-	const { user, session } = await validateRequest(req);
+	const { user, session } = await validateRequest(req, res);
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -45,14 +54,19 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session as any,
-			user: user as any,
+			session: session,
+			user: user,
 		},
 		transformer: superjson,
 	});
 
 	await helpers.settings.isCloud.prefetch();
-	await helpers.user.get.prefetch();
+	await helpers.auth.get.prefetch();
+	if (user?.rol === "user") {
+		await helpers.user.byAuthId.prefetch({
+			authId: user.authId,
+		});
+	}
 
 	if (!user) {
 		return {

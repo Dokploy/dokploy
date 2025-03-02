@@ -69,7 +69,6 @@ export const compose = pgTable("compose", {
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
-	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()

@@ -176,6 +176,7 @@ export const getBitbucketCloneCommand = async (
 		bitbucketBranch,
 		bitbucketId,
 		serverId,
+		bitbucket,
 	} = entity;
 
 	if (!serverId) {

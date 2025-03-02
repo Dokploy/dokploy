@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,7 +53,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 		mongo: () => api.mongo.update.useMutation(),
 	};
 
-	const { mutateAsync } = mutationMap[type]
+	const { mutateAsync, isLoading } = mutationMap[type]
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 

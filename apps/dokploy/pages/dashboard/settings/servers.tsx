@@ -6,7 +6,7 @@ import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
@@ -27,7 +27,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const locale = await getLocale(req.cookies);
-	const { user, session } = await validateRequest(req);
+	const { user, session } = await validateRequest(req, res);
 	if (!user) {
 		return {
 			redirect: {
@@ -36,7 +36,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "member") {
+	if (user.rol === "user") {
 		return {
 			redirect: {
 				permanent: true,
@@ -51,12 +51,12 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session as any,
-			user: user as any,
+			session: session,
+			user: user,
 		},
 		transformer: superjson,
 	});
-	await helpers.user.get.prefetch();
+	await helpers.auth.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
 
 	return {

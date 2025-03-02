@@ -15,34 +15,32 @@ import {
 	redis,
 } from "@/server/db/schema";
 
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
 import {
 	IS_CLOUD,
 	addNewProject,
 	checkProjectAccess,
 	createProject,
 	deleteProject,
-	findMemberById,
+	findAdminById,
 	findProjectById,
-	findUserById,
+	findUserByAuthId,
 	updateProjectById,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
-					await checkProjectAccess(
-						ctx.user.id,
-						"create",
-						ctx.session.activeOrganizationId,
-					);
+				if (ctx.user.rol === "user") {
+					await checkProjectAccess(ctx.user.authId, "create");
 				}
 
-				const admin = await findUserById(ctx.user.ownerId);
+				const admin = await findAdminById(ctx.user.adminId);
 
 				if (admin.serversQuantity === 0 && IS_CLOUD) {
 					throw new TRPCError({
@@ -51,16 +49,9 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await createProject(
-					input,
-					ctx.session.activeOrganizationId,
-				);
-				if (ctx.user.rol === "member") {
-					await addNewProject(
-						ctx.user.id,
-						project.projectId,
-						ctx.session.activeOrganizationId,
-					);
+				const project = await createProject(input, ctx.user.adminId);
+				if (ctx.user.rol === "user") {
+					await addNewProject(ctx.user.authId, project.projectId);
 				}
 
 				return project;
@@ -76,23 +67,15 @@ export const projectRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
-				const { accessedServices } = await findMemberById(
-					ctx.user.id,
-					ctx.session.activeOrganizationId,
-				);
+			if (ctx.user.rol === "user") {
+				const { accessedServices } = await findUserByAuthId(ctx.user.authId);
 
-				await checkProjectAccess(
-					ctx.user.id,
-					"access",
-					ctx.session.activeOrganizationId,
-					input.projectId,
-				);
+				await checkProjectAccess(ctx.user.authId, "access", input.projectId);
 
 				const project = await db.query.projects.findFirst({
 					where: and(
 						eq(projects.projectId, input.projectId),
-						eq(projects.organizationId, ctx.session.activeOrganizationId),
+						eq(projects.adminId, ctx.user.adminId),
 					),
 					with: {
 						compose: {
@@ -132,7 +115,7 @@ export const projectRouter = createTRPCRouter({
 			}
 			const project = await findProjectById(input.projectId);
 
-			if (project.organizationId !== ctx.session.activeOrganizationId) {
+			if (project.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this project",
@@ -141,11 +124,9 @@ export const projectRouter = createTRPCRouter({
 			return project;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		// console.log(ctx.user);
-		if (ctx.user.rol === "member") {
-			const { accessedProjects, accessedServices } = await findMemberById(
-				ctx.user.id,
-				ctx.session.activeOrganizationId,
+		if (ctx.user.rol === "user") {
+			const { accessedProjects, accessedServices } = await findUserByAuthId(
+				ctx.user.authId,
 			);
 
 			if (accessedProjects.length === 0) {
@@ -158,7 +139,7 @@ export const projectRouter = createTRPCRouter({
 						accessedProjects.map((projectId) => sql`${projectId}`),
 						sql`, `,
 					)})`,
-					eq(projects.organizationId, ctx.session.activeOrganizationId),
+					eq(projects.adminId, ctx.user.adminId),
 				),
 				with: {
 					applications: {
@@ -212,26 +193,19 @@ export const projectRouter = createTRPCRouter({
 					},
 				},
 			},
-			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
+			where: eq(projects.adminId, ctx.user.adminId),
 			orderBy: desc(projects.createdAt),
 		});
 	}),
-
 	remove: protectedProcedure
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
-					await checkProjectAccess(
-						ctx.user.id,
-						"delete",
-						ctx.session.activeOrganizationId,
-					);
+				if (ctx.user.rol === "user") {
+					await checkProjectAccess(ctx.user.authId, "delete");
 				}
 				const currentProject = await findProjectById(input.projectId);
-				if (
-					currentProject.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (currentProject.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this project",
@@ -249,9 +223,7 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentProject = await findProjectById(input.projectId);
-				if (
-					currentProject.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (currentProject.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this project",

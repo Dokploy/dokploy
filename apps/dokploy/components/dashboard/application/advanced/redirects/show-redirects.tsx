@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Split, Trash2 } from "lucide-react";
+import React from "react";
 import { toast } from "sonner";
 import { HandleRedirect } from "./handle-redirect";
 

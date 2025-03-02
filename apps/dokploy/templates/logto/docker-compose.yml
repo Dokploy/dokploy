@@ -8,7 +8,8 @@ services:
     ports:
       - 3001
       - 3002
-
+    networks:
+      - dokploy-network
     environment:
       TRUST_PROXY_HEADER: 1
       DB_URL: postgres://logto:${LOGTO_POSTGRES_PASSWORD}@postgres:5432/logto
@@ -19,7 +20,8 @@ services:
   postgres:
     image: postgres:17-alpine
     user: postgres
-
+    networks:
+      - dokploy-network
     environment:
       POSTGRES_USER: logto
       POSTGRES_PASSWORD: ${LOGTO_POSTGRES_PASSWORD}

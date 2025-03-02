@@ -43,7 +43,7 @@ const LOG_STYLES: Record<LogType, LogStyle> = {
 
 export function parseLogs(logString: string): LogLine[] {
 	// Regex to match the log line format
-	// Example of return :
+	// Exemple of return :
 	// 1 2024-12-10T10:00:00.000Z The server is running on port 8080
 	// Should return :
 	// { timestamp: new Date("2024-12-10T10:00:00.000Z"),
@@ -63,10 +63,18 @@ export function parseLogs(logString: string): LogLine[] {
 
 			if (!message?.trim()) return null;
 
+			// Delete other timestamps and keep only the one from --timestamps
+			const cleanedMessage = message
+				?.replace(
+					/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC/g,
+					"",
+				)
+				.trim();
+
 			return {
 				rawTimestamp: timestamp ?? null,
 				timestamp: timestamp ? new Date(timestamp.replace(" UTC", "Z")) : null,
-				message: message.trim(),
+				message: cleanedMessage,
 			};
 		})
 		.filter((log) => log !== null);

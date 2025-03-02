@@ -1,5 +1,6 @@
 import {
 	Body,
+	Button,
 	Container,
 	Head,
 	Heading,
@@ -10,6 +11,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import * as React from "react";
 
 export type TemplateProps = {
 	message: string;

@@ -99,7 +99,8 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 					<DialogTitle>Project Environment</DialogTitle>
 					<DialogDescription>
 						Update the env Environment variables that are accessible to all
-						services of this project.
+						services of this project. Use this syntax to reference project-level
+						variables in your service environments:
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}

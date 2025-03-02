@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Package, Trash2 } from "lucide-react";
+import React from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
@@ -44,8 +45,8 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Volumes</CardTitle>
 					<CardDescription>
-						If you want to persist data in this service use the following config
-						to setup the volumes
+						If you want to persist data in this postgres database use the
+						following config to setup the volumes
 					</CardDescription>
 				</div>
 
@@ -99,7 +100,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">Content</span>
-													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
+													<span className="text-sm text-muted-foreground">
 														{mount.content}
 													</span>
 												</div>
@@ -112,21 +113,12 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													</span>
 												</div>
 											)}
-											{mount.type === "file" ? (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">File Path</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.filePath}
-													</span>
-												</div>
-											) : (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Mount Path</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.mountPath}
-													</span>
-												</div>
-											)}
+											<div className="flex flex-col gap-1">
+												<span className="font-medium">Mount Path</span>
+												<span className="text-sm text-muted-foreground">
+													{mount.mountPath}
+												</span>
+											</div>
 										</div>
 										<div className="flex flex-row gap-1">
 											<UpdateVolume

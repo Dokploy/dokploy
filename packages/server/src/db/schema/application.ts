@@ -44,6 +44,7 @@ export const buildType = pgEnum("buildType", [
 	"static",
 ]);
 
+// TODO: refactor this types
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;

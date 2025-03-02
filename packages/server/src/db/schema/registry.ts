@@ -3,7 +3,7 @@ import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { organization } from "./account";
+import { admins } from "./admin";
 import { applications } from "./application";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -27,12 +27,16 @@ export const registry = pgTable("registry", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	registryType: registryType("selfHosted").notNull().default("cloud"),
-	organizationId: text("organizationId")
+	adminId: text("adminId")
 		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
+		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
-export const registryRelations = relations(registry, ({ many }) => ({
+export const registryRelations = relations(registry, ({ one, many }) => ({
+	admin: one(admins, {
+		fields: [registry.adminId],
+		references: [admins.adminId],
+	}),
 	applications: many(applications),
 }));
 
@@ -41,7 +45,7 @@ const createSchema = createInsertSchema(registry, {
 	username: z.string().min(1),
 	password: z.string().min(1),
 	registryUrl: z.string(),
-	organizationId: z.string().min(1),
+	adminId: z.string().min(1),
 	registryId: z.string().min(1),
 	registryType: z.enum(["cloud"]),
 	imagePrefix: z.string().nullable().optional(),

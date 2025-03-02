@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMongo, backups, mongo } from "@dokploy/server/db/schema";
-import { buildAppName } from "@dokploy/server/db/schema";
+import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates/utils";
 import { buildMongo } from "@dokploy/server/utils/databases/mongo";
 import { pullImage } from "@dokploy/server/utils/docker/utils";

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import React from "react";
 
 import {
 	DropdownMenu,
@@ -26,7 +27,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 		isLoading: cleanDockerBuilderIsLoading,
 	} = api.settings.cleanDockerBuilder.useMutation();
 
-	const { mutateAsync: cleanMonitoring } =
+	const { mutateAsync: cleanMonitoring, isLoading: cleanMonitoringIsLoading } =
 		api.settings.cleanMonitoring.useMutation();
 	const {
 		mutateAsync: cleanUnusedImages,

@@ -1,21 +1,10 @@
-import { cn } from "@/lib/utils";
+import React from "react";
 
 interface Props {
 	className?: string;
-	logoUrl?: string;
 }
 
-export const Logo = ({ className = "size-14", logoUrl }: Props) => {
-	if (logoUrl) {
-		return (
-			<img
-				src={logoUrl}
-				alt="Organization Logo"
-				className={cn(className, "object-contain rounded-sm")}
-			/>
-		);
-	}
-
+export const Logo = ({ className = "size-14" }: Props) => {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

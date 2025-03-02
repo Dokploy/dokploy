@@ -22,8 +22,9 @@ import {
 	cleanUpUnusedVolumes,
 	execAsync,
 	execAsyncRemote,
+	findAdmin,
+	findAdminById,
 	findServerById,
-	findUserById,
 	getDokployImage,
 	getDokployImageTag,
 	getUpdateData,
@@ -46,10 +47,10 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
+	updateAdmin,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
-	updateUser,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
@@ -163,7 +164,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			await updateUser(ctx.user.id, {
+			await updateAdmin(ctx.user.authId, {
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
@@ -175,7 +176,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			const user = await updateUser(ctx.user.id, {
+			const admin = await updateAdmin(ctx.user.authId, {
 				host: input.host,
 				...(input.letsEncryptEmail && {
 					letsEncryptEmail: input.letsEncryptEmail,
@@ -183,25 +184,25 @@ export const settingsRouter = createTRPCRouter({
 				certificateType: input.certificateType,
 			});
 
-			if (!user) {
+			if (!admin) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "User not found",
+					message: "Admin not found",
 				});
 			}
 
-			updateServerTraefik(user, input.host);
+			updateServerTraefik(admin, input.host);
 			if (input.letsEncryptEmail) {
 				updateLetsEncryptEmail(input.letsEncryptEmail);
 			}
 
-			return user;
+			return admin;
 		}),
 	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		await updateUser(ctx.user.id, {
+		await updateAdmin(ctx.user.authId, {
 			sshPrivateKey: null,
 		});
 		return true;
@@ -216,7 +217,7 @@ export const settingsRouter = createTRPCRouter({
 
 				const server = await findServerById(input.serverId);
 
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+				if (server.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this server",
@@ -245,7 +246,7 @@ export const settingsRouter = createTRPCRouter({
 							await cleanUpUnusedImages(server.serverId);
 							await cleanUpDockerBuilder(server.serverId);
 							await cleanUpSystemPrune(server.serverId);
-							await sendDockerCleanupNotifications(server.organizationId);
+							await sendDockerCleanupNotifications(server.adminId);
 						});
 					}
 				} else {
@@ -261,11 +262,19 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 			} else if (!IS_CLOUD) {
-				const userUpdated = await updateUser(ctx.user.id, {
+				const admin = await findAdminById(ctx.user.adminId);
+
+				if (admin.adminId !== ctx.user.adminId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this admin",
+					});
+				}
+				const adminUpdated = await updateAdmin(ctx.user.authId, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
-				if (userUpdated?.enableDockerCleanup) {
+				if (adminUpdated?.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
@@ -273,9 +282,7 @@ export const settingsRouter = createTRPCRouter({
 						await cleanUpUnusedImages();
 						await cleanUpDockerBuilder();
 						await cleanUpSystemPrune();
-						await sendDockerCleanupNotifications(
-							ctx.session.activeOrganizationId,
-						);
+						await sendDockerCleanupNotifications(admin.adminId);
 					});
 				} else {
 					const currentJob = scheduledJobs["docker-cleanup"];
@@ -338,7 +345,7 @@ export const settingsRouter = createTRPCRouter({
 			writeConfig("middlewares", input.traefikConfig);
 			return true;
 		}),
-	getUpdateData: protectedProcedure.mutation(async () => {
+	getUpdateData: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return DEFAULT_UPDATE_DATA;
 		}
@@ -366,21 +373,18 @@ export const settingsRouter = createTRPCRouter({
 		return true;
 	}),
 
-	getDokployVersion: protectedProcedure.query(() => {
+	getDokployVersion: adminProcedure.query(() => {
 		return packageInfo.version;
 	}),
-	getReleaseTag: protectedProcedure.query(() => {
+	getReleaseTag: adminProcedure.query(() => {
 		return getDokployImageTag();
 	}),
 	readDirectories: protectedProcedure
 		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
-					const canAccess = await canAccessToTraefikFiles(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
+				if (ctx.user.rol === "user") {
+					const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 					if (!canAccess) {
 						throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -397,11 +401,8 @@ export const settingsRouter = createTRPCRouter({
 	updateTraefikFile: protectedProcedure
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
-				const canAccess = await canAccessToTraefikFiles(
-					ctx.user.id,
-					ctx.session.activeOrganizationId,
-				);
+			if (ctx.user.rol === "user") {
+				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 				if (!canAccess) {
 					throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -418,11 +419,8 @@ export const settingsRouter = createTRPCRouter({
 	readTraefikFile: protectedProcedure
 		.input(apiReadTraefikConfig)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
-				const canAccess = await canAccessToTraefikFiles(
-					ctx.user.id,
-					ctx.session.activeOrganizationId,
-				);
+			if (ctx.user.rol === "user") {
+				const canAccess = await canAccessToTraefikFiles(ctx.user.authId);
 
 				if (!canAccess) {
 					throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -430,12 +428,12 @@ export const settingsRouter = createTRPCRouter({
 			}
 			return readConfigInPath(input.path, input.serverId);
 		}),
-	getIp: protectedProcedure.query(async ({ ctx }) => {
+	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		const user = await findUserById(ctx.user.ownerId);
-		return user.serverIp;
+		const admin = await findAdmin();
+		return admin.serverIp;
 	}),
 
 	getOpenApiDocument: protectedProcedure.query(
@@ -482,28 +480,10 @@ export const settingsRouter = createTRPCRouter({
 			openApiDocument.info = {
 				title: "Dokploy API",
 				description: "Endpoints for dokploy",
+				// TODO: get version from package.json
 				version: "1.0.0",
 			};
 
-			// Add security schemes configuration
-			openApiDocument.components = {
-				...openApiDocument.components,
-				securitySchemes: {
-					apiKey: {
-						type: "apiKey",
-						in: "header",
-						name: "x-api-key",
-						description: "API key authentication",
-					},
-				},
-			};
-
-			// Apply security globally to all endpoints
-			openApiDocument.security = [
-				{
-					apiKey: [],
-				},
-			];
 			return openApiDocument;
 		},
 	),
@@ -675,7 +655,7 @@ export const settingsRouter = createTRPCRouter({
 
 			return true;
 		}),
-	isCloud: publicProcedure.query(async () => {
+	isCloud: protectedProcedure.query(async () => {
 		return IS_CLOUD;
 	}),
 	health: publicProcedure.query(async () => {
@@ -735,12 +715,7 @@ export const settingsRouter = createTRPCRouter({
 			try {
 				return await checkGPUStatus(input.serverId || "");
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Failed to check GPU status";
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message,
-				});
+				throw new Error("Failed to check GPU status");
 			}
 		}),
 	updateTraefikPorts: adminProcedure

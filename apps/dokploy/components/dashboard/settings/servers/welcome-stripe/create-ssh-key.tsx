@@ -35,7 +35,6 @@ export const CreateSSHKey = () => {
 					description: "Used on Dokploy Cloud",
 					privateKey: keys.privateKey,
 					publicKey: keys.publicKey,
-					organizationId: "",
 				});
 				await refetch();
 			} catch (error) {

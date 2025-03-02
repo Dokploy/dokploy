@@ -3,7 +3,7 @@ import { pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { organization } from "./account";
+import { admins } from "./admin";
 import { backups } from "./backups";
 
 export const destinations = pgTable("destination", {
@@ -17,19 +17,20 @@ export const destinations = pgTable("destination", {
 	secretAccessKey: text("secretAccessKey").notNull(),
 	bucket: text("bucket").notNull(),
 	region: text("region").notNull(),
+	//   maybe it can be null
 	endpoint: text("endpoint").notNull(),
-	organizationId: text("organizationId")
+	adminId: text("adminId")
 		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
+		.references(() => admins.adminId, { onDelete: "cascade" }),
 });
 
 export const destinationsRelations = relations(
 	destinations,
 	({ many, one }) => ({
 		backups: many(backups),
-		organization: one(organization, {
-			fields: [destinations.organizationId],
-			references: [organization.id],
+		admin: one(admins, {
+			fields: [destinations.adminId],
+			references: [admins.adminId],
 		}),
 	}),
 );

@@ -51,7 +51,8 @@ services:
     restart: always
     volumes:
       - chatwoot-postgres-data:/var/lib/postgresql/data
-
+    networks:
+      - dokploy-network
     environment:
       - POSTGRES_DB=${POSTGRES_DATABASE}
       - POSTGRES_USER=${POSTGRES_USERNAME}
@@ -62,7 +63,8 @@ services:
     restart: always
     volumes:
       - chatwoot-redis-data:/data
-
+    networks:
+      - dokploy-network
 
 networks:
   dokploy-network:

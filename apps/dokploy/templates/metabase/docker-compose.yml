@@ -22,4 +22,5 @@ services:
       POSTGRES_USER: metabase
       POSTGRES_DB: metabaseappdb
       POSTGRES_PASSWORD: mysecretpassword
-
+    networks:
+      - dokploy-network

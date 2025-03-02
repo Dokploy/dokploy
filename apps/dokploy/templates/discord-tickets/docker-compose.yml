@@ -4,7 +4,8 @@ services:
   tickets-postgres:
     image: mysql:8
     restart: unless-stopped
-
+    networks:
+      - dokploy-network
     volumes:
       - tickets-mysql-data:/var/lib/mysql
     environment:
@@ -24,7 +25,8 @@ services:
       tickets-postgres:
         condition: service_healthy
     restart: unless-stopped
-
+    networks:
+      - dokploy-network
     volumes:
       - tickets-app-data:/home/container/user
       - /etc/timezone:/etc/timezone:ro

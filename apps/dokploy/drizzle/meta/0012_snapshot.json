@@ -1,5 +1,7 @@
 {
-  "version": "7",
+  "id": "5e715d26-b9c1-4e9c-80b7-408d63832e85",
+  "prevId": "9c6bb052-9f90-46fd-9382-67984e03f5b1",
+  "version": "6",
   "dialect": "postgresql",
   "tables": {
     "public.application": {
@@ -266,43 +268,40 @@
         "application_registryId_registry_registryId_fk": {
           "name": "application_registryId_registry_registryId_fk",
           "tableFrom": "application",
+          "tableTo": "registry",
           "columnsFrom": [
             "registryId"
           ],
-          "tableTo": "registry",
           "columnsTo": [
             "registryId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "application_projectId_project_projectId_fk": {
           "name": "application_projectId_project_projectId_fk",
           "tableFrom": "application",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "application_appName_unique": {
           "name": "application_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.postgres": {
       "name": "postgres",
@@ -424,30 +423,27 @@
         "postgres_projectId_project_projectId_fk": {
           "name": "postgres_projectId_project_projectId_fk",
           "tableFrom": "postgres",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "postgres_appName_unique": {
           "name": "postgres_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.user": {
       "name": "user",
@@ -558,35 +554,32 @@
         "user_adminId_admin_adminId_fk": {
           "name": "user_adminId_admin_adminId_fk",
           "tableFrom": "user",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_authId_auth_id_fk": {
           "name": "user_authId_auth_id_fk",
           "tableFrom": "user",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.admin": {
       "name": "admin",
@@ -691,22 +684,19 @@
         "admin_authId_auth_id_fk": {
           "name": "admin_authId_auth_id_fk",
           "tableFrom": "admin",
+          "tableTo": "auth",
           "columnsFrom": [
             "authId"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.auth": {
       "name": "auth",
@@ -769,15 +759,12 @@
       "uniqueConstraints": {
         "auth_email_unique": {
           "name": "auth_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.project": {
       "name": "project",
@@ -819,22 +806,19 @@
         "project_adminId_admin_adminId_fk": {
           "name": "project_adminId_admin_adminId_fk",
           "tableFrom": "project",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.domain": {
       "name": "domain",
@@ -905,22 +889,19 @@
         "domain_applicationId_application_applicationId_fk": {
           "name": "domain_applicationId_application_applicationId_fk",
           "tableFrom": "domain",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.mariadb": {
       "name": "mariadb",
@@ -1048,30 +1029,27 @@
         "mariadb_projectId_project_projectId_fk": {
           "name": "mariadb_projectId_project_projectId_fk",
           "tableFrom": "mariadb",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mariadb_appName_unique": {
           "name": "mariadb_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.mongo": {
       "name": "mongo",
@@ -1187,30 +1165,27 @@
         "mongo_projectId_project_projectId_fk": {
           "name": "mongo_projectId_project_projectId_fk",
           "tableFrom": "mongo",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mongo_appName_unique": {
           "name": "mongo_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.mysql": {
       "name": "mysql",
@@ -1338,30 +1313,27 @@
         "mysql_projectId_project_projectId_fk": {
           "name": "mysql_projectId_project_projectId_fk",
           "tableFrom": "mysql",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mysql_appName_unique": {
           "name": "mysql_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.backup": {
       "name": "backup",
@@ -1440,74 +1412,71 @@
         "backup_destinationId_destination_destinationId_fk": {
           "name": "backup_destinationId_destination_destinationId_fk",
           "tableFrom": "backup",
+          "tableTo": "destination",
           "columnsFrom": [
             "destinationId"
           ],
-          "tableTo": "destination",
           "columnsTo": [
             "destinationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_postgresId_postgres_postgresId_fk": {
           "name": "backup_postgresId_postgres_postgresId_fk",
           "tableFrom": "backup",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mariadbId_mariadb_mariadbId_fk": {
           "name": "backup_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "backup",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mysqlId_mysql_mysqlId_fk": {
           "name": "backup_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "backup",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "backup_mongoId_mongo_mongoId_fk": {
           "name": "backup_mongoId_mongo_mongoId_fk",
           "tableFrom": "backup",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.destination": {
       "name": "destination",
@@ -1567,22 +1536,19 @@
         "destination_adminId_admin_adminId_fk": {
           "name": "destination_adminId_admin_adminId_fk",
           "tableFrom": "destination",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.deployment": {
       "name": "deployment",
@@ -1632,22 +1598,19 @@
         "deployment_applicationId_application_applicationId_fk": {
           "name": "deployment_applicationId_application_applicationId_fk",
           "tableFrom": "deployment",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.mount": {
       "name": "mount",
@@ -1740,87 +1703,84 @@
         "mount_applicationId_application_applicationId_fk": {
           "name": "mount_applicationId_application_applicationId_fk",
           "tableFrom": "mount",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_postgresId_postgres_postgresId_fk": {
           "name": "mount_postgresId_postgres_postgresId_fk",
           "tableFrom": "mount",
+          "tableTo": "postgres",
           "columnsFrom": [
             "postgresId"
           ],
-          "tableTo": "postgres",
           "columnsTo": [
             "postgresId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mariadbId_mariadb_mariadbId_fk": {
           "name": "mount_mariadbId_mariadb_mariadbId_fk",
           "tableFrom": "mount",
+          "tableTo": "mariadb",
           "columnsFrom": [
             "mariadbId"
           ],
-          "tableTo": "mariadb",
           "columnsTo": [
             "mariadbId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mongoId_mongo_mongoId_fk": {
           "name": "mount_mongoId_mongo_mongoId_fk",
           "tableFrom": "mount",
+          "tableTo": "mongo",
           "columnsFrom": [
             "mongoId"
           ],
-          "tableTo": "mongo",
           "columnsTo": [
             "mongoId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_mysqlId_mysql_mysqlId_fk": {
           "name": "mount_mysqlId_mysql_mysqlId_fk",
           "tableFrom": "mount",
+          "tableTo": "mysql",
           "columnsFrom": [
             "mysqlId"
           ],
-          "tableTo": "mysql",
           "columnsTo": [
             "mysqlId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "mount_redisId_redis_redisId_fk": {
           "name": "mount_redisId_redis_redisId_fk",
           "tableFrom": "mount",
+          "tableTo": "redis",
           "columnsFrom": [
             "redisId"
           ],
-          "tableTo": "redis",
           "columnsTo": [
             "redisId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.certificate": {
       "name": "certificate",
@@ -1869,15 +1829,12 @@
       "uniqueConstraints": {
         "certificate_certificatePath_unique": {
           "name": "certificate_certificatePath_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "certificatePath"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.session": {
       "name": "session",
@@ -1907,22 +1864,19 @@
         "session_user_id_auth_id_fk": {
           "name": "session_user_id_auth_id_fk",
           "tableFrom": "session",
+          "tableTo": "auth",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "auth",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.redirect": {
       "name": "redirect",
@@ -1977,22 +1931,19 @@
         "redirect_applicationId_application_applicationId_fk": {
           "name": "redirect_applicationId_application_applicationId_fk",
           "tableFrom": "redirect",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.security": {
       "name": "security",
@@ -2034,31 +1985,28 @@
         "security_applicationId_application_applicationId_fk": {
           "name": "security_applicationId_application_applicationId_fk",
           "tableFrom": "security",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "security_username_applicationId_unique": {
           "name": "security_username_applicationId_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "username",
             "applicationId"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.port": {
       "name": "port",
@@ -2101,22 +2049,19 @@
         "port_applicationId_application_applicationId_fk": {
           "name": "port_applicationId_application_applicationId_fk",
           "tableFrom": "port",
+          "tableTo": "application",
           "columnsFrom": [
             "applicationId"
           ],
-          "tableTo": "application",
           "columnsTo": [
             "applicationId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.redis": {
       "name": "redis",
@@ -2226,30 +2171,27 @@
         "redis_projectId_project_projectId_fk": {
           "name": "redis_projectId_project_projectId_fk",
           "tableFrom": "redis",
+          "tableTo": "project",
           "columnsFrom": [
             "projectId"
           ],
-          "tableTo": "project",
           "columnsTo": [
             "projectId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "redis_appName_unique": {
           "name": "redis_appName_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "appName"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.registry": {
       "name": "registry",
@@ -2317,22 +2259,19 @@
         "registry_adminId_admin_adminId_fk": {
           "name": "registry_adminId_admin_adminId_fk",
           "tableFrom": "registry",
+          "tableTo": "admin",
           "columnsFrom": [
             "adminId"
           ],
-          "tableTo": "admin",
           "columnsTo": [
             "adminId"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -2440,14 +2379,8 @@
   },
   "schemas": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "id": "5e715d26-b9c1-4e9c-80b7-408d63832e85",
-  "prevId": "9c6bb052-9f90-46fd-9382-67984e03f5b1",
-  "sequences": {},
-  "policies": {},
-  "views": {},
-  "roles": {}
+    "tables": {}
+  }
 }

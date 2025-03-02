@@ -28,10 +28,7 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createDestintation(
-					input,
-					ctx.session.activeOrganizationId,
-				);
+				return await createDestintation(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -87,7 +84,7 @@ export const destinationRouter = createTRPCRouter({
 		.input(apiFindOneDestination)
 		.query(async ({ input, ctx }) => {
 			const destination = await findDestinationById(input.destinationId);
-			if (destination.organizationId !== ctx.session.activeOrganizationId) {
+			if (destination.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this destination",
@@ -97,7 +94,7 @@ export const destinationRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.destinations.findMany({
-			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
+			where: eq(destinations.adminId, ctx.user.adminId),
 		});
 	}),
 	remove: adminProcedure
@@ -106,7 +103,7 @@ export const destinationRouter = createTRPCRouter({
 			try {
 				const destination = await findDestinationById(input.destinationId);
 
-				if (destination.organizationId !== ctx.session.activeOrganizationId) {
+				if (destination.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this destination",
@@ -114,7 +111,7 @@ export const destinationRouter = createTRPCRouter({
 				}
 				return await removeDestinationById(
 					input.destinationId,
-					ctx.session.activeOrganizationId,
+					ctx.user.adminId,
 				);
 			} catch (error) {
 				throw error;
@@ -125,7 +122,7 @@ export const destinationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
-				if (destination.organizationId !== ctx.session.activeOrganizationId) {
+				if (destination.adminId !== ctx.user.adminId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to update this destination",
@@ -133,7 +130,7 @@ export const destinationRouter = createTRPCRouter({
 				}
 				return await updateDestinationById(input.destinationId, {
 					...input,
-					organizationId: ctx.session.activeOrganizationId,
+					adminId: ctx.user.adminId,
 				});
 			} catch (error) {
 				throw error;

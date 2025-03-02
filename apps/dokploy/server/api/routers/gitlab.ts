@@ -9,6 +9,7 @@ import {
 
 import { db } from "@/server/db";
 import {
+	IS_CLOUD,
 	createGitlab,
 	findGitlabById,
 	getGitlabBranches,
@@ -25,7 +26,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiCreateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createGitlab(input, ctx.session.activeOrganizationId);
+				return await createGitlab(input, ctx.user.adminId);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -38,10 +39,8 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
+			if (IS_CLOUD && gitlabProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -56,11 +55,12 @@ export const gitlabRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-				ctx.session.activeOrganizationId,
-		);
+		if (IS_CLOUD) {
+			// TODO: mAyBe a rEfaCtoR 🤫
+			result = result.filter(
+				(provider) => provider.gitProvider.adminId === ctx.user.adminId,
+			);
+		}
 		const filtered = result
 			.filter((provider) => haveGitlabRequirements(provider))
 			.map((provider) => {
@@ -78,10 +78,8 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
+			if (IS_CLOUD && gitlabProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -94,10 +92,8 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindGitlabBranches)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId || "");
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
+			if (IS_CLOUD && gitlabProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -111,9 +107,10 @@ export const gitlabRouter = createTRPCRouter({
 			try {
 				const gitlabProvider = await findGitlabById(input.gitlabId || "");
 				if (
-					gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+					IS_CLOUD &&
+					gitlabProvider.gitProvider.adminId !== ctx.user.adminId
 				) {
+					//TODO: Remove this line when the cloud version is ready
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this Gitlab provider",
@@ -133,10 +130,8 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
+			if (IS_CLOUD && gitlabProvider.gitProvider.adminId !== ctx.user.adminId) {
+				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -145,7 +140,7 @@ export const gitlabRouter = createTRPCRouter({
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
-					organizationId: ctx.session.activeOrganizationId,
+					adminId: ctx.user.adminId,
 				});
 
 				await updateGitlab(input.gitlabId, {

@@ -98,7 +98,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (_error) {
+	} catch (error) {
 		await docker.createService(settings);
 	}
 };

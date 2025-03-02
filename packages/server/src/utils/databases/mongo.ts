@@ -152,7 +152,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (_error) {
+	} catch (error) {
 		await docker.createService(settings);
 	}
 };

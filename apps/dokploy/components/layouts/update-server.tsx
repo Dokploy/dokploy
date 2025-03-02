@@ -11,7 +11,7 @@ export const UpdateServerButton = () => {
 		latestVersion: null,
 		updateAvailable: false,
 	});
-	const _router = useRouter();
+	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { mutateAsync: getUpdateData } =
 		api.settings.getUpdateData.useMutation();

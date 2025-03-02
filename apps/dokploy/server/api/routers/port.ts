@@ -44,11 +44,9 @@ export const portRouter = createTRPCRouter({
 			try {
 				return removePortById(input.portId);
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Error input: Deleting port";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message,
+					message: "Error input: Deleting port",
 				});
 			}
 		}),
@@ -58,11 +56,9 @@ export const portRouter = createTRPCRouter({
 			try {
 				return updatePortById(input.portId, input);
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Error updating the port";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message,
+					message: "Error updating the port",
 				});
 			}
 		}),

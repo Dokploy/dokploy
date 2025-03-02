@@ -12,13 +12,17 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
+import { db } from "@/server/db";
+import { auth } from "@/server/db/schema";
+import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isBefore } from "date-fns";
+import { eq } from "drizzle-orm";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import { type ReactElement, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -50,12 +54,11 @@ const loginSchema = z
 type Login = z.infer<typeof loginSchema>;
 
 interface Props {
-	tokenResetPassword: string;
+	token: string;
 }
-export default function Home({ tokenResetPassword }: Props) {
-	const [token, setToken] = useState<string | null>(tokenResetPassword);
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+export default function Home({ token }: Props) {
+	const { mutateAsync, isLoading, isError, error } =
+		api.auth.resetPassword.useMutation();
 	const router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
@@ -66,31 +69,25 @@ export default function Home({ tokenResetPassword }: Props) {
 	});
 
 	useEffect(() => {
-		const token = new URLSearchParams(window.location.search).get("token");
-
-		if (token) {
-			setToken(token);
-		}
-	}, [token]);
-
-	useEffect(() => {
 		form.reset();
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Login) => {
-		setIsLoading(true);
-		const { error } = await authClient.resetPassword({
-			newPassword: values.password,
-			token: token || "",
-		});
-
-		if (error) {
-			setError(error.message || "An error occurred");
-		} else {
-			toast.success("Password reset successfully");
-			router.push("/");
-		}
-		setIsLoading(false);
+		await mutateAsync({
+			resetPasswordToken: token,
+			password: values.password,
+		})
+			.then((data) => {
+				toast.success("Password reset successfully", {
+					duration: 2000,
+				});
+				router.push("/");
+			})
+			.catch(() => {
+				toast.error("Error resetting password", {
+					duration: 2000,
+				});
+			});
 	};
 	return (
 		<div className="flex  h-screen w-full items-center justify-center ">
@@ -107,9 +104,9 @@ export default function Home({ tokenResetPassword }: Props) {
 
 				<div className="w-full">
 					<CardContent className="p-0">
-						{error && (
+						{isError && (
 							<AlertBlock type="error" className="my-2">
-								{error}
+								{error?.message}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -197,9 +194,35 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
+	const authR = await db.query.auth.findFirst({
+		where: eq(auth.resetPasswordToken, token),
+	});
+
+	if (!authR || authR?.resetPasswordExpiresAt === null) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
+	}
+	const isExpired = isBefore(
+		new Date(authR.resetPasswordExpiresAt),
+		new Date(),
+	);
+
+	if (isExpired) {
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/",
+			},
+		};
+	}
+
 	return {
 		props: {
-			tokenResetPassword: token,
+			token: authR.resetPasswordToken,
 		},
 	};
 }

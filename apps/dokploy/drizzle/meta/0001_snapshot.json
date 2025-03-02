@@ -1,5 +1,5 @@
 {
-  "version": "7",
+  "version": "6",
   "dialect": "postgresql",
   "tables": {
     "public.application": {
@@ -252,10 +252,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.postgres": {
       "name": "postgres",
@@ -396,10 +393,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.user": {
       "name": "user",
@@ -528,10 +522,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.admin": {
       "name": "admin",
@@ -647,10 +638,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.auth": {
       "name": "auth",
@@ -710,10 +698,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.project": {
       "name": "project",
@@ -767,10 +752,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.domain": {
       "name": "domain",
@@ -852,10 +834,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.mariadb": {
       "name": "mariadb",
@@ -1002,10 +981,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.mongo": {
       "name": "mongo",
@@ -1140,10 +1116,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.mysql": {
       "name": "mysql",
@@ -1290,10 +1263,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.backup": {
       "name": "backup",
@@ -1435,10 +1405,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.destination": {
       "name": "destination",
@@ -1510,10 +1477,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.deployment": {
       "name": "deployment",
@@ -1574,10 +1538,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.mount": {
       "name": "mount",
@@ -1745,10 +1706,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.certificate": {
       "name": "certificate",
@@ -1802,10 +1760,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.session": {
       "name": "session",
@@ -1847,10 +1802,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.redirect": {
       "name": "redirect",
@@ -1917,10 +1869,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.security": {
       "name": "security",
@@ -1983,10 +1932,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     },
     "public.port": {
       "name": "port",
@@ -2040,10 +1986,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      "uniqueConstraints": {}
     },
     "public.redis": {
       "name": "redis",
@@ -2172,10 +2115,7 @@
           ],
           "nullsNotDistinct": false
         }
-      },
-      "policies": {},
-      "isRLSEnabled": false,
-      "checkConstraints": {}
+      }
     }
   },
   "enums": {
@@ -2280,9 +2220,5 @@
     "columns": {}
   },
   "id": "3a4dfad7-ae33-4ae3-b60e-4f40f44f5652",
-  "prevId": "c6215051-7cd1-412d-b8df-b50d58acacff",
-  "sequences": {},
-  "policies": {},
-  "views": {},
-  "roles": {}
+  "prevId": "c6215051-7cd1-412d-b8df-b50d58acacff"
 }

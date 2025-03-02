@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
-import { CodeIcon, GitBranch } from "lucide-react";
+import { CodeIcon, GitBranch, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { ComposeFileEditor } from "../compose-file-editor";

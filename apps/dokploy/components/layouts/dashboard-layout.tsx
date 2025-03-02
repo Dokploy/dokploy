@@ -5,5 +5,9 @@ interface Props {
 }
 
 export const DashboardLayout = ({ children }: Props) => {
-	return <Page>{children}</Page>;
+	return (
+		<Page>
+			<div>{children}</div>
+		</Page>
+	);
 };

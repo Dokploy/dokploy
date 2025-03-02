@@ -131,7 +131,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			serverId: data.serverId,
 			registryId: registryId || "",
 		})
-			.then(async (_data) => {
+			.then(async (data) => {
 				await utils.registry.all.invalidate();
 				toast.success(registryId ? "Registry updated" : "Registry added");
 				setIsOpen(false);

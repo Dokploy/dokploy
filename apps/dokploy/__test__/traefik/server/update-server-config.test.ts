@@ -5,7 +5,7 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { FileConfig, User } from "@dokploy/server";
+import type { Admin, FileConfig } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
@@ -13,34 +13,10 @@ import {
 } from "@dokploy/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
-const baseAdmin: User = {
-	enablePaidFeatures: false,
-	metricsConfig: {
-		containers: {
-			refreshRate: 20,
-			services: {
-				include: [],
-				exclude: [],
-			},
-		},
-		server: {
-			type: "Dokploy",
-			cronJob: "",
-			port: 4500,
-			refreshRate: 20,
-			retentionDays: 2,
-			token: "",
-			thresholds: {
-				cpu: 0,
-				memory: 0,
-			},
-			urlCallback: "",
-		},
-	},
-	cleanupCacheApplications: false,
-	cleanupCacheOnCompose: false,
-	cleanupCacheOnPreviews: false,
-	createdAt: new Date(),
+const baseAdmin: Admin = {
+	createdAt: "",
+	authId: "",
+	adminId: "string",
 	serverIp: null,
 	certificateType: "none",
 	host: null,
@@ -51,19 +27,6 @@ const baseAdmin: User = {
 	serversQuantity: 0,
 	stripeCustomerId: "",
 	stripeSubscriptionId: "",
-	banExpires: new Date(),
-	banned: true,
-	banReason: "",
-	email: "",
-	expirationDate: "",
-	id: "",
-	isRegistered: false,
-	name: "",
-	createdAt2: new Date().toISOString(),
-	emailVerified: false,
-	image: "",
-	updatedAt: new Date(),
-	twoFactorEnabled: false,
 };
 
 beforeEach(() => {
@@ -114,6 +77,8 @@ test("Should not touch config without host", () => {
 });
 
 test("Should remove websecure if https rollback to http", () => {
+	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
+
 	updateServerTraefik(
 		{ ...baseAdmin, certificateType: "letsencrypt" },
 		"example.com",

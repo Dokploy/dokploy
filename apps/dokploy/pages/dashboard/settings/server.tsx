@@ -1,12 +1,13 @@
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
@@ -15,49 +16,6 @@ const Page = () => {
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				{/* <Card className="h-full bg-sidebar  p-2.5 rounded-xl ">
-					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="">
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<LayoutDashboardIcon className="size-6 text-muted-foreground self-center" />
-								Paid Features
-							</CardTitle>
-							<CardDescription>
-								Enable or disable paid features like monitoring
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="flex flex-row gap-2 items-center">
-								<span className="text-sm font-medium text-muted-foreground">
-									Enable Paid Features:
-								</span>
-
-								<Switch
-									checked={data?.enablePaidFeatures}
-									onCheckedChange={() => {
-										update({
-											enablePaidFeatures: !data?.enablePaidFeatures,
-										})
-											.then(() => {
-												toast.success(
-													`Paid features ${
-														data?.enablePaidFeatures ? "disabled" : "enabled"
-													} successfully`,
-												);
-												refetch();
-											})
-											.catch(() => {
-												toast.error("Error updating paid features");
-											});
-									}}
-								/>
-							</div>
-						</CardContent>
-						{data?.enablePaidFeatures && <SetupMonitoring />}
-					</div>
-				</Card> */}
-
-				{/* */}
 			</div>
 		</div>
 	);
@@ -81,7 +39,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user, session } = await validateRequest(ctx.req);
+	const { user, session } = await validateRequest(ctx.req, ctx.res);
 	if (!user) {
 		return {
 			redirect: {
@@ -90,7 +48,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "member") {
+	if (user.rol === "user") {
 		return {
 			redirect: {
 				permanent: true,
@@ -105,12 +63,12 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session as any,
-			user: user as any,
+			session: session,
+			user: user,
 		},
 		transformer: superjson,
 	});
-	await helpers.user.get.prefetch();
+	await helpers.auth.get.prefetch();
 
 	return {
 		props: {

@@ -4,14 +4,16 @@ services:
     image: plantuml/plantuml-server
     ports:
       - "8080"
-
+    networks:
+      - dokploy-network
     volumes:
       - fonts_volume:/usr/share/fonts/drawio
   image-export:
     image: jgraph/export-server
     ports:
       - "8000"
-
+    networks:
+      - dokploy-network
     volumes:
       - fonts_volume:/usr/share/fonts/drawio
     environment:
@@ -26,7 +28,8 @@ services:
     depends_on:
       - plantuml-server
       - image-export
-
+    networks:
+      - dokploy-network
     environment:
       RAWIO_SELF_CONTAINED: 1
       DRAWIO_USE_HTTP: 1

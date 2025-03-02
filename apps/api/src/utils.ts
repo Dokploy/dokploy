@@ -64,7 +64,7 @@ export const deploy = async (job: DeployJob) => {
 				}
 			}
 		}
-	} catch (_) {
+	} catch (error) {
 		if (job.applicationType === "application") {
 			await updateApplicationStatus(job.applicationId, "error");
 		} else if (job.applicationType === "compose") {

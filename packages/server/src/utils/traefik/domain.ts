@@ -122,25 +122,13 @@ export const createRouterConfig = async (
 	if ((entryPoint === "websecure" && https) || !https) {
 		// redirects
 		for (const redirect of redirects) {
-			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `redirect-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}-${redirect.uniqueConfigKey}`;
-			}
+			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
 			routerConfig.middlewares?.push(middlewareName);
 		}
 
 		// security
 		if (security.length > 0) {
-			let middlewareName = `auth-${appName}`;
-			if (domain.domainType === "preview") {
-				middlewareName = `auth-${appName.replace(
-					/^preview-(.+)-[^-]+$/,
-					"$1",
-				)}`;
-			}
+			const middlewareName = `auth-${appName}`;
 			routerConfig.middlewares?.push(middlewareName);
 		}
 	}

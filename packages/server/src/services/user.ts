@@ -1,53 +1,80 @@
 import { db } from "@dokploy/server/db";
-import { apikey, member, users_temp } from "@dokploy/server/db/schema";
+import { users } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
-import { auth } from "../lib/auth";
+import { eq } from "drizzle-orm";
 
-export type User = typeof users_temp.$inferSelect;
+export type User = typeof users.$inferSelect;
 
-export const addNewProject = async (
-	userId: string,
-	projectId: string,
-	organizationId: string,
-) => {
-	const userR = await findMemberById(userId, organizationId);
-
-	await db
-		.update(member)
-		.set({
-			accessedProjects: [...userR.accessedProjects, projectId],
-		})
-		.where(
-			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
-		);
+export const findUserById = async (userId: string) => {
+	const user = await db.query.users.findFirst({
+		where: eq(users.userId, userId),
+	});
+	if (!user) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "User not found",
+		});
+	}
+	return user;
 };
 
-export const addNewService = async (
-	userId: string,
-	serviceId: string,
-	organizationId: string,
-) => {
-	const userR = await findMemberById(userId, organizationId);
+export const findUserByAuthId = async (authId: string) => {
+	const user = await db.query.users.findFirst({
+		where: eq(users.authId, authId),
+		with: {
+			auth: true,
+		},
+	});
+	if (!user) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "User not found",
+		});
+	}
+	return user;
+};
+
+export const findUsers = async (adminId: string) => {
+	const currentUsers = await db.query.users.findMany({
+		where: eq(users.adminId, adminId),
+		with: {
+			auth: {
+				columns: {
+					secret: false,
+				},
+			},
+		},
+	});
+	return currentUsers;
+};
+
+export const addNewProject = async (authId: string, projectId: string) => {
+	const user = await findUserByAuthId(authId);
+
 	await db
-		.update(member)
+		.update(users)
 		.set({
-			accessedServices: [...userR.accessedServices, serviceId],
+			accessedProjects: [...user.accessedProjects, projectId],
 		})
-		.where(
-			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
-		);
+		.where(eq(users.authId, authId));
+};
+
+export const addNewService = async (authId: string, serviceId: string) => {
+	const user = await findUserByAuthId(authId);
+	await db
+		.update(users)
+		.set({
+			accessedServices: [...user.accessedServices, serviceId],
+		})
+		.where(eq(users.authId, authId));
 };
 
 export const canPerformCreationService = async (
 	userId: string,
 	projectId: string,
-	organizationId: string,
 ) => {
-	const { accessedProjects, canCreateServices } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const { accessedProjects, canCreateServices } =
+		await findUserByAuthId(userId);
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canCreateServices && haveAccessToProject) {
@@ -60,9 +87,8 @@ export const canPerformCreationService = async (
 export const canPerformAccessService = async (
 	userId: string,
 	serviceId: string,
-	organizationId: string,
 ) => {
-	const { accessedServices } = await findMemberById(userId, organizationId);
+	const { accessedServices } = await findUserByAuthId(userId);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (haveAccessToService) {
@@ -73,14 +99,11 @@ export const canPerformAccessService = async (
 };
 
 export const canPeformDeleteService = async (
-	userId: string,
+	authId: string,
 	serviceId: string,
-	organizationId: string,
 ) => {
-	const { accessedServices, canDeleteServices } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const { accessedServices, canDeleteServices } =
+		await findUserByAuthId(authId);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (canDeleteServices && haveAccessToService) {
@@ -90,11 +113,8 @@ export const canPeformDeleteService = async (
 	return false;
 };
 
-export const canPerformCreationProject = async (
-	userId: string,
-	organizationId: string,
-) => {
-	const { canCreateProjects } = await findMemberById(userId, organizationId);
+export const canPerformCreationProject = async (authId: string) => {
+	const { canCreateProjects } = await findUserByAuthId(authId);
 
 	if (canCreateProjects) {
 		return true;
@@ -103,11 +123,8 @@ export const canPerformCreationProject = async (
 	return false;
 };
 
-export const canPerformDeleteProject = async (
-	userId: string,
-	organizationId: string,
-) => {
-	const { canDeleteProjects } = await findMemberById(userId, organizationId);
+export const canPerformDeleteProject = async (authId: string) => {
+	const { canDeleteProjects } = await findUserByAuthId(authId);
 
 	if (canDeleteProjects) {
 		return true;
@@ -117,11 +134,10 @@ export const canPerformDeleteProject = async (
 };
 
 export const canPerformAccessProject = async (
-	userId: string,
+	authId: string,
 	projectId: string,
-	organizationId: string,
 ) => {
-	const { accessedProjects } = await findMemberById(userId, organizationId);
+	const { accessedProjects } = await findUserByAuthId(authId);
 
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
@@ -131,45 +147,26 @@ export const canPerformAccessProject = async (
 	return false;
 };
 
-export const canAccessToTraefikFiles = async (
-	userId: string,
-	organizationId: string,
-) => {
-	const { canAccessToTraefikFiles } = await findMemberById(
-		userId,
-		organizationId,
-	);
+export const canAccessToTraefikFiles = async (authId: string) => {
+	const { canAccessToTraefikFiles } = await findUserByAuthId(authId);
 	return canAccessToTraefikFiles;
 };
 
 export const checkServiceAccess = async (
-	userId: string,
+	authId: string,
 	serviceId: string,
-	organizationId: string,
 	action = "access" as "access" | "create" | "delete",
 ) => {
 	let hasPermission = false;
 	switch (action) {
 		case "create":
-			hasPermission = await canPerformCreationService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission = await canPerformCreationService(authId, serviceId);
 			break;
 		case "access":
-			hasPermission = await canPerformAccessService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission = await canPerformAccessService(authId, serviceId);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
-				userId,
-				serviceId,
-				organizationId,
-			);
+			hasPermission = await canPeformDeleteService(authId, serviceId);
 			break;
 		default:
 			hasPermission = false;
@@ -185,7 +182,6 @@ export const checkServiceAccess = async (
 export const checkProjectAccess = async (
 	authId: string,
 	action: "create" | "delete" | "access",
-	organizationId: string,
 	projectId?: string,
 ) => {
 	let hasPermission = false;
@@ -194,14 +190,13 @@ export const checkProjectAccess = async (
 			hasPermission = await canPerformAccessProject(
 				authId,
 				projectId as string,
-				organizationId,
 			);
 			break;
 		case "create":
-			hasPermission = await canPerformCreationProject(authId, organizationId);
+			hasPermission = await canPerformCreationProject(authId);
 			break;
 		case "delete":
-			hasPermission = await canPerformDeleteProject(authId, organizationId);
+			hasPermission = await canPerformDeleteProject(authId);
 			break;
 		default:
 			hasPermission = false;
@@ -212,83 +207,4 @@ export const checkProjectAccess = async (
 			message: "Permission denied",
 		});
 	}
-};
-
-export const findMemberById = async (
-	userId: string,
-	organizationId: string,
-) => {
-	const result = await db.query.member.findFirst({
-		where: and(
-			eq(member.userId, userId),
-			eq(member.organizationId, organizationId),
-		),
-		with: {
-			user: true,
-		},
-	});
-
-	if (!result) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Permission denied",
-		});
-	}
-	return result;
-};
-
-export const updateUser = async (userId: string, userData: Partial<User>) => {
-	const user = await db
-		.update(users_temp)
-		.set({
-			...userData,
-		})
-		.where(eq(users_temp.id, userId))
-		.returning()
-		.then((res) => res[0]);
-
-	return user;
-};
-
-export const createApiKey = async (
-	userId: string,
-	input: {
-		name: string;
-		prefix?: string;
-		expiresIn?: number;
-		metadata: {
-			organizationId: string;
-		};
-		rateLimitEnabled?: boolean;
-		rateLimitTimeWindow?: number;
-		rateLimitMax?: number;
-		remaining?: number;
-		refillAmount?: number;
-		refillInterval?: number;
-	},
-) => {
-	const apiKey = await auth.createApiKey({
-		body: {
-			name: input.name,
-			expiresIn: input.expiresIn,
-			prefix: input.prefix,
-			rateLimitEnabled: input.rateLimitEnabled,
-			rateLimitTimeWindow: input.rateLimitTimeWindow,
-			rateLimitMax: input.rateLimitMax,
-			remaining: input.remaining,
-			refillAmount: input.refillAmount,
-			refillInterval: input.refillInterval,
-			userId,
-		},
-	});
-
-	if (input.metadata) {
-		await db
-			.update(apikey)
-			.set({
-				metadata: JSON.stringify(input.metadata),
-			})
-			.where(eq(apikey.id, apiKey.id));
-	}
-	return apiKey;
 };

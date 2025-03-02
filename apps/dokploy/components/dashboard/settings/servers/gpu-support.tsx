@@ -9,6 +9,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -56,7 +57,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 		try {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 			await refetch();
-		} catch (_error) {
+		} catch (error) {
 			toast.error("Failed to refresh GPU status");
 		} finally {
 			setIsRefreshing(false);
@@ -74,7 +75,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 		try {
 			await setupGPU.mutateAsync({ serverId });
-		} catch (_error) {
+		} catch (error) {
 			// Error handling is done in mutation's onError
 		}
 	};

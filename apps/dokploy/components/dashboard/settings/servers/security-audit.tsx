@@ -25,7 +25,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
-	const _utils = api.useUtils();
+	const utils = api.useUtils();
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">
@@ -143,6 +143,15 @@ export const SecurityAudit = ({ serverId }: Props) => {
 												data?.ssh.passwordAuth === "no"
 													? "Disabled (Recommended)"
 													: "Enabled (Password Authentication should be disabled)"
+											}
+										/>
+										<StatusRow
+											label="Permit Root Login"
+											isEnabled={data?.ssh.permitRootLogin === "no"}
+											description={
+												data?.ssh.permitRootLogin === "no"
+													? "Disabled (Recommended)"
+													: `Enabled: ${data?.ssh.permitRootLogin} (Root Login should be disabled)`
 											}
 										/>
 										<StatusRow

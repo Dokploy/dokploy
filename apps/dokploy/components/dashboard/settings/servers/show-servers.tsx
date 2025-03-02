@@ -38,7 +38,6 @@ import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
-import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
@@ -315,16 +314,6 @@ export const ShowServers = () => {
 																						<ShowDockerContainersModal
 																							serverId={server.serverId}
 																						/>
-																						{isCloud && (
-																							<ShowMonitoringModal
-																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																								token={
-																									server?.metricsConfig?.server
-																										?.token
-																								}
-																							/>
-																						)}
-
 																						<ShowSwarmOverviewModal
 																							serverId={server.serverId}
 																						/>

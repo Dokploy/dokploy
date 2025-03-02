@@ -1,7 +1,7 @@
 import { generateRandomHash } from "@dokploy/server";
 import { addSuffixToSecretsRoot } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import { dump, load } from "js-yaml";
 import { expect, test } from "vitest";
 
 test("Generate random hash with 8 characters", () => {

@@ -2,37 +2,6 @@ import type { TemplateData } from "./types/templates-data.type";
 
 export const templates: TemplateData[] = [
 	{
-		id: "appwrite",
-		name: "Appwrite",
-		version: "1.6.0",
-		description:
-			"Appwrite is an end-to-end backend server for Web, Mobile, Native, or Backend apps. Appwrite abstracts the complexity and repetitiveness required to build a modern backend API from scratch and allows you to build secure apps faster.\n" +
-			"Using Appwrite, you can easily integrate your app with user authentication and multiple sign-in methods, a database for storing and querying users and team data, storage and file management, image manipulation, Cloud Functions, messaging, and more services.",
-		links: {
-			github: "https://github.com/appwrite/appwrite",
-			website: "https://appwrite.io/",
-			docs: "https://appwrite.io/docs",
-		},
-		logo: "appwrite.svg",
-		tags: ["database", "firebase", "postgres"],
-		load: () => import("./appwrite/index").then((m) => m.generate),
-	},
-	{
-		id: "outline",
-		name: "Outline",
-		version: "0.82.0",
-		description:
-			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
-		links: {
-			github: "https://github.com/outline/outline",
-			website: "https://getoutline.com/",
-			docs: "https://docs.getoutline.com/s/guide",
-		},
-		logo: "outline.png",
-		load: () => import("./outline/index").then((m) => m.generate),
-		tags: ["documentation", "knowledge-base", "self-hosted"],
-	},
-	{
 		id: "supabase",
 		name: "SupaBase",
 		version: "1.24.07",
@@ -65,7 +34,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.5",
+		version: "v2.1.4",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -201,7 +170,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "wordpress",
 		name: "Wordpress",
-		version: "6.7.1",
+		version: "5.8.3",
 		description:
 			"Wordpress is a free and open source content management system (CMS) for publishing and managing websites.",
 		logo: "wordpress.png",
@@ -394,21 +363,6 @@ export const templates: TemplateData[] = [
 		load: () => import("./open-webui/index").then((m) => m.generate),
 	},
 	{
-		id: "mailpit",
-		name: "Mailpit",
-		version: "v1.22.3",
-		description:
-			"Mailpit is a tiny, self-contained, and secure email & SMTP testing tool with API for developers.",
-		logo: "mailpit.svg",
-		links: {
-			github: "https://github.com/axllent/mailpit",
-			website: "https://mailpit.axllent.org/",
-			docs: "https://mailpit.axllent.org/docs/",
-		},
-		tags: ["email", "smtp"],
-		load: () => import("./mailpit/index").then((m) => m.generate),
-	},
-	{
 		id: "listmonk",
 		name: "Listmonk",
 		version: "v3.0.0",
@@ -441,7 +395,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.16.1",
+		version: "v2.14.0",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -584,7 +538,7 @@ export const templates: TemplateData[] = [
 			website: "https://filebrowser.org/",
 			docs: "https://filebrowser.org/",
 		},
-		tags: ["file-manager", "storage"],
+		tags: ["file", "manager"],
 		load: () => import("./filebrowser/index").then((m) => m.generate),
 	},
 	{
@@ -676,21 +630,6 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["open-source"],
 		load: () => import("./vaultwarden/index").then((m) => m.generate),
-	},
-	{
-		id: "linkwarden",
-		name: "Linkwarden",
-		version: "2.9.3",
-		description:
-			"Self-hosted, open-source collaborative bookmark manager to collect, organize and archive webpages.",
-		logo: "linkwarden.png",
-		links: {
-			github: "https://github.com/linkwarden/linkwarden",
-			website: "https://linkwarden.app/",
-			docs: "https://docs.linkwarden.app/",
-		},
-		tags: ["bookmarks", "link-sharing"],
-		load: () => import("./linkwarden/index").then((m) => m.generate),
 	},
 	{
 		id: "hi-events",
@@ -895,7 +834,7 @@ export const templates: TemplateData[] = [
 			website: "https://nextcloud.com/",
 			docs: "https://docs.nextcloud.com/",
 		},
-		tags: ["file-manager", "sync"],
+		tags: ["file", "sync"],
 		load: () => import("./nextcloud-aio/index").then((m) => m.generate),
 	},
 	{
@@ -1124,21 +1063,6 @@ export const templates: TemplateData[] = [
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
 	{
-		id: "pocket-id",
-		name: "Pocket ID",
-		version: "0.35.1",
-		description:
-			"A simple and easy-to-use OIDC provider that allows users to authenticate with their passkeys to your services.",
-		logo: "pocket-id.svg",
-		links: {
-			github: "https://github.com/pocket-id/pocket-id",
-			website: "https://pocket-id.org/",
-			docs: "https://pocket-id.org/docs",
-		},
-		tags: ["identity", "auth"],
-		load: () => import("./pocket-id/index").then((m) => m.generate),
-	},
-	{
 		id: "penpot",
 		name: "Penpot",
 		version: "2.3.2",
@@ -1150,7 +1074,7 @@ export const templates: TemplateData[] = [
 			website: "https://penpot.app/",
 			docs: "https://docs.penpot.app/",
 		},
-		tags: ["design", "collaboration"],
+		tags: ["desing", "collaboration"],
 		load: () => import("./penpot/index").then((m) => m.generate),
 	},
 	{
@@ -1171,9 +1095,9 @@ export const templates: TemplateData[] = [
 	{
 		id: "unsend",
 		name: "Unsend",
-		version: "v1.3.2",
+		version: "v1.2.4",
 		description: "Open source alternative to Resend,Sendgrid, Postmark etc. ",
-		logo: "unsend.png",
+		logo: "unsend.png", // we defined the name and the extension of the logo
 		links: {
 			github: "https://github.com/unsend-dev/unsend",
 			website: "https://unsend.dev/",
@@ -1316,21 +1240,6 @@ export const templates: TemplateData[] = [
 		load: () => import("./conduit/index").then((m) => m.generate),
 	},
 	{
-		id: "evolutionapi",
-		name: "Evolution API",
-		version: "v2.1.2",
-		description:
-			"Evolution API is a robust platform dedicated to empowering small businesses with limited resources, going beyond a simple messaging solution via WhatsApp.",
-		logo: "evolutionapi.png",
-		links: {
-			github: "https://github.com/EvolutionAPI/evolution-api",
-			docs: "https://doc.evolution-api.com/v2/en/get-started/introduction",
-			website: "https://evolution-api.com/opensource-whatsapp-api/",
-		},
-		tags: ["api", "whatsapp", "messaging"],
-		load: () => import("./evolutionapi/index").then((m) => m.generate),
-	},
-	{
 		id: "conduwuit",
 		name: "Conduwuit",
 		version: "latest",
@@ -1367,11 +1276,11 @@ export const templates: TemplateData[] = [
 		version: "latest",
 		description:
 			"CouchDB is a document-oriented NoSQL database that excels at replication and horizontal scaling.",
-		logo: "couchdb.png",
+		logo: "couchdb.png", // we defined the name and the extension of the logo
 		links: {
-			github: "https://github.com/apache/couchdb",
-			website: "https://couchdb.apache.org/",
-			docs: "https://docs.couchdb.org/en/stable/",
+			github: "lorem",
+			website: "lorem",
+			docs: "lorem",
 		},
 		tags: ["database", "storage"],
 		load: () => import("./couchdb/index").then((m) => m.generate),
@@ -1388,234 +1297,5 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["developer", "tools"],
 		load: () => import("./it-tools/index").then((m) => m.generate),
-	},
-	{
-		id: "superset",
-		name: "Superset (Unofficial)",
-		version: "latest",
-		description: "Data visualization and data exploration platform.",
-		logo: "superset.svg",
-		links: {
-			github: "https://github.com/amancevice/docker-superset",
-			website: "https://superset.apache.org",
-			docs: "https://superset.apache.org/docs/intro",
-		},
-		tags: ["analytics", "bi", "dashboard", "database", "sql"],
-		load: () => import("./superset/index").then((m) => m.generate),
-	},
-	{
-		id: "glance",
-		name: "Glance",
-		version: "latest",
-		description:
-			"A self-hosted dashboard that puts all your feeds in one place. Features RSS feeds, weather, bookmarks, site monitoring, and more in a minimal, fast interface.",
-		logo: "glance.png",
-		links: {
-			github: "https://github.com/glanceapp/glance",
-			docs: "https://github.com/glanceapp/glance/blob/main/docs/configuration.md",
-		},
-		tags: ["dashboard", "monitoring", "widgets", "rss"],
-		load: () => import("./glance/index").then((m) => m.generate),
-	},
-	{
-		id: "homarr",
-		name: "Homarr",
-		version: "latest",
-		description:
-			"A sleek, modern dashboard that puts all your apps and services in one place with Docker integration.",
-		logo: "homarr.png",
-		links: {
-			github: "https://github.com/homarr-labs/homarr",
-			docs: "https://homarr.dev/docs/getting-started/installation/docker",
-			website: "https://homarr.dev/",
-		},
-		tags: ["dashboard", "monitoring"],
-		load: () => import("./homarr/index").then((m) => m.generate),
-	},
-	{
-		id: "erpnext",
-		name: "ERPNext",
-		version: "version-15",
-		description: "100% Open Source and highly customizable ERP software.",
-		logo: "erpnext.svg",
-		links: {
-			github: "https://github.com/frappe/erpnext",
-			docs: "https://docs.frappe.io/erpnext",
-			website: "https://erpnext.com",
-		},
-		tags: [
-			"erp",
-			"accounts",
-			"manufacturing",
-			"retail",
-			"sales",
-			"pos",
-			"hrms",
-		],
-		load: () => import("./erpnext/index").then((m) => m.generate),
-	},
-	{
-		id: "maybe",
-		name: "Maybe",
-		version: "latest",
-		description:
-			"Maybe is a self-hosted finance tracking application designed to simplify budgeting and expenses.",
-		logo: "maybe.svg",
-		links: {
-			github: "https://github.com/maybe-finance/maybe",
-			website: "https://maybe.finance/",
-			docs: "https://docs.maybe.finance/",
-		},
-		tags: ["finance", "self-hosted"],
-		load: () => import("./maybe/index").then((m) => m.generate),
-	},
-	{
-		id: "spacedrive",
-		name: "Spacedrive",
-		version: "latest",
-		description:
-			"Spacedrive is a cross-platform file manager. It connects your devices together to help you organize files from anywhere. powered by a virtual distributed filesystem (VDFS) written in Rust. Organize files across many devices in one place.",
-		links: {
-			github: "https://github.com/spacedriveapp/spacedrive",
-			website: "https://spacedrive.com/",
-			docs: "https://www.spacedrive.com/docs/product/getting-started/introduction",
-		},
-		logo: "spacedrive.png",
-		tags: ["file-manager", "vdfs", "storage"],
-		load: () => import("./spacedrive/index").then((m) => m.generate),
-	},
-	{
-		id: "registry",
-		name: "Docker Registry",
-		version: "2",
-		description:
-			"Distribution implementation for storing and distributing of Docker container images and artifacts.",
-		links: {
-			github: "https://github.com/distribution/distribution",
-			website: "https://hub.docker.com/_/registry",
-			docs: "https://distribution.github.io/distribution/",
-		},
-		logo: "registry.png",
-		tags: ["registry", "docker", "self-hosted"],
-		load: () => import("./registry/index").then((m) => m.generate),
-	},
-	{
-		id: "alist",
-		name: "AList",
-		version: "v3.41.0",
-		description:
-			"🗂️A file list/WebDAV program that supports multiple storages, powered by Gin and Solidjs.",
-		logo: "alist.svg",
-		links: {
-			github: "https://github.com/AlistGo/alist",
-			website: "https://alist.nn.ci",
-			docs: "https://alist.nn.ci/guide/install/docker.html",
-		},
-		tags: ["file", "webdav", "storage"],
-		load: () => import("./alist/index").then((m) => m.generate),
-	},
-	{
-		id: "answer",
-		name: "Answer",
-		version: "v1.4.1",
-		description:
-			"Answer is an open-source Q&A platform for building a self-hosted question-and-answer service.",
-		logo: "answer.png",
-		links: {
-			github: "https://github.com/apache/answer",
-			website: "https://answer.apache.org/",
-			docs: "https://answer.apache.org/docs",
-		},
-		tags: ["q&a", "self-hosted"],
-		load: () => import("./answer/index").then((m) => m.generate),
-	},
-	{
-		id: "shlink",
-		name: "Shlink",
-		version: "stable",
-		description:
-			"URL shortener that can be used to serve shortened URLs under your own domain.",
-		logo: "shlink.svg",
-		links: {
-			github: "https://github.com/shlinkio/shlink",
-			website: "https://shlink.io",
-			docs: "https://shlink.io/documentation",
-		},
-		tags: ["sharing", "shortener", "url"],
-		load: () => import("./shlink/index").then((m) => m.generate),
-	},
-	{
-		id: "frappe-hr",
-		name: "Frappe HR",
-		version: "version-15",
-		description:
-			"Feature rich HR & Payroll software. 100% FOSS and customizable.",
-		logo: "frappe-hr.svg",
-		links: {
-			github: "https://github.com/frappe/hrms",
-			docs: "https://docs.frappe.io/hr",
-			website: "https://frappe.io/hr",
-		},
-		tags: ["hrms", "payroll", "leaves", "expenses", "attendance", "performace"],
-		load: () => import("./frappe-hr/index").then((m) => m.generate),
-	},
-	{
-		id: "formbricks",
-		name: "Formbricks",
-		version: "v3.1.3",
-		description:
-			"Formbricks is an open-source survey and form platform for collecting user data.",
-		logo: "formbricks.png",
-		links: {
-			github: "https://github.com/formbricks/formbricks",
-			website: "https://formbricks.com/",
-			docs: "https://formbricks.com/docs",
-		},
-		tags: ["forms", "analytics"],
-		load: () => import("./formbricks/index").then((m) => m.generate),
-	},
-	{
-		id: "trilium",
-		name: "Trilium",
-		description:
-			"Trilium Notes is a hierarchical note taking application with focus on building large personal knowledge bases.",
-		logo: "trilium.png",
-		version: "latest",
-		links: {
-			github: "https://github.com/zadam/trilium",
-			website: "https://github.com/zadam/trilium",
-			docs: "https://github.com/zadam/trilium/wiki/",
-		},
-		tags: ["self-hosted", "productivity", "personal-use"],
-		load: () => import("./trilium/index").then((m) => m.generate),
-	},
-	{
-		id: "convex",
-		name: "Convex",
-		version: "latest",
-		description:
-			"Convex is an open-source reactive database designed to make life easy for web app developers.",
-		logo: "convex.svg",
-		links: {
-			github: "https://github.com/get-convex/convex",
-			website: "https://www.convex.dev/",
-			docs: "https://www.convex.dev/docs",
-		},
-		tags: ["backend", "database", "api"],
-		load: () => import("./convex/index").then((m) => m.generate),
-	},
-	{
-		id: "wikijs",
-		name: "Wiki.js",
-		version: "2.5",
-		description: "The most powerful and extensible open source Wiki software.",
-		logo: "wikijs.svg",
-		links: {
-			github: "https://github.com/requarks/wiki",
-			website: "https://js.wiki/",
-			docs: "https://docs.requarks.io/",
-		},
-		tags: ["knowledge-base", "self-hosted", "documentation"],
-		load: () => import("./wikijs/index").then((m) => m.generate),
 	},
 ];

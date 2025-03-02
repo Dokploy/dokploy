@@ -1,5 +1,5 @@
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, validateWebSocketRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -32,7 +32,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateRequest(req);
+		const { user, session } = await validateWebSocketRequest(req);
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");
@@ -50,8 +50,8 @@ export const setupDockerContainerTerminalWebSocketServer = (
 					throw new Error("No SSH key available for this server");
 
 				const conn = new Client();
-				let _stdout = "";
-				let _stderr = "";
+				let stdout = "";
+				let stderr = "";
 				conn
 					.once("ready", () => {
 						conn.exec(
@@ -61,16 +61,16 @@ export const setupDockerContainerTerminalWebSocketServer = (
 								if (err) throw err;
 
 								stream
-									.on("close", (code: number, _signal: string) => {
+									.on("close", (code: number, signal: string) => {
 										ws.send(`\nContainer closed with code: ${code}\n`);
 										conn.end();
 									})
 									.on("data", (data: string) => {
-										_stdout += data.toString();
+										stdout += data.toString();
 										ws.send(data.toString());
 									})
 									.stderr.on("data", (data) => {
-										_stderr += data.toString();
+										stderr += data.toString();
 										ws.send(data.toString());
 										console.error("Error: ", data.toString());
 									});

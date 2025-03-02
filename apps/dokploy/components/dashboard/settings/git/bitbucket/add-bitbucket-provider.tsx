@@ -1,4 +1,8 @@
-import { BitbucketIcon } from "@/components/icons/data-tools-icons";
+import {
+	BitbucketIcon,
+	GithubIcon,
+	GitlabIcon,
+} from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -47,10 +51,10 @@ type Schema = z.infer<typeof Schema>;
 export const AddBitbucketProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const _url = useUrl();
+	const url = useUrl();
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
-	const { data: auth } = api.user.get.useQuery();
-	const _router = useRouter();
+	const { data: auth } = api.auth.get.useQuery();
+	const router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {
 			username: "",

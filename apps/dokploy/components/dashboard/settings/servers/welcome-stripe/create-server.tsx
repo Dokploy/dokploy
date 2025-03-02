@@ -52,10 +52,10 @@ interface Props {
 
 export const CreateServer = ({ stepper }: Props) => {
 	const { data: sshKeys } = api.sshKey.all.useQuery();
-	const [isOpen, _setIsOpen] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
 		api.stripe.canCreateMoreServers.useQuery();
-	const { mutateAsync } = api.server.create.useMutation();
+	const { mutateAsync, error, isError } = api.server.create.useMutation();
 	const cloudSSHKey = sshKeys?.find(
 		(sshKey) => sshKey.name === "dokploy-cloud-ssh-key",
 	);
@@ -96,7 +96,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
 		})
-			.then(async (_data) => {
+			.then(async (data) => {
 				toast.success("Server Created");
 				stepper.next();
 			})

@@ -8,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { type RouterOutputs, api } from "@/utils/api";
+import { api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueuesCompose } from "./cancel-queues-compose";
@@ -19,9 +19,7 @@ interface Props {
 	composeId: string;
 }
 export const ShowDeploymentsCompose = ({ composeId }: Props) => {
-	const [activeLog, setActiveLog] = useState<
-		RouterOutputs["deployment"]["all"][number] | null
-	>(null);
+	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const { data } = api.compose.one.useQuery({ composeId });
 	const { data: deployments } = api.deployment.allByCompose.useQuery(
 		{ composeId },
@@ -102,7 +100,7 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 
 									<Button
 										onClick={() => {
-											setActiveLog(deployment);
+											setActiveLog(deployment.logPath);
 										}}
 									>
 										View
@@ -114,10 +112,9 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 				)}
 				<ShowDeploymentCompose
 					serverId={data?.serverId || ""}
-					open={Boolean(activeLog && activeLog.logPath !== null)}
+					open={activeLog !== null}
 					onClose={() => setActiveLog(null)}
-					logPath={activeLog?.logPath || ""}
-					errorMessage={activeLog?.errorMessage || ""}
+					logPath={activeLog}
 				/>
 			</CardContent>
 		</Card>

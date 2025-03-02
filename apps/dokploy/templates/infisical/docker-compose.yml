@@ -19,7 +19,8 @@ services:
       - SMTP_SECURE=true
     command: npm run migration:latest
     pull_policy: always
-
+    networks:
+      - dokploy-network
 
   backend:
     restart: unless-stopped
@@ -45,7 +46,8 @@ services:
       - SMTP_USERNAME
       - SMTP_PASSWORD
       - SMTP_SECURE=true
-
+    networks:
+      - dokploy-network
 
   redis:
     image: redis:7.4.1
@@ -53,7 +55,8 @@ services:
     restart: always
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
-
+    networks:
+      - dokploy-network
     volumes:
       - redis_infisical_data:/data
 
@@ -66,7 +69,8 @@ services:
       - POSTGRES_DB
     volumes:
       - pg_infisical_data:/var/lib/postgresql/data
-
+    networks:
+      - dokploy-network
     healthcheck:
       test: "pg_isready --username=${POSTGRES_USER} && psql --username=${POSTGRES_USER} --list"
       interval: 5s

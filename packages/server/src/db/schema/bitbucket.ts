@@ -61,5 +61,5 @@ export const apiUpdateBitbucket = createSchema.extend({
 	name: z.string().min(1),
 	bitbucketUsername: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),
-	organizationId: z.string().optional(),
+	adminId: z.string().optional(),
 });

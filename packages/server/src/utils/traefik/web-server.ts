@@ -1,14 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { User } from "@dokploy/server/services/user";
+import type { Admin } from "@dokploy/server/services/admin";
 import { dump, load } from "js-yaml";
 import { loadOrCreateConfig, writeTraefikConfig } from "./application";
 import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
 
 export const updateServerTraefik = (
-	user: User | null,
+	admin: Admin | null,
 	newHost: string | null,
 ) => {
 	const appName = "dokploy";
@@ -22,7 +22,7 @@ export const updateServerTraefik = (
 	if (currentRouterConfig && newHost) {
 		currentRouterConfig.rule = `Host(\`${newHost}\`)`;
 
-		if (user?.certificateType === "letsencrypt") {
+		if (admin?.certificateType === "letsencrypt") {
 			config.http.routers[`${appName}-router-app-secure`] = {
 				...currentRouterConfig,
 				entryPoints: ["websecure"],

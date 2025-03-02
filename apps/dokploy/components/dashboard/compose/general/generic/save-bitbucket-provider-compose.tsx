@@ -84,6 +84,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		data: repositories,
 		isLoading: isLoadingRepositories,
 		error,
+		isError,
 	} = api.bitbucket.getBitbucketRepositories.useQuery(
 		{
 			bitbucketId,
@@ -236,7 +237,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 													<CommandGroup>
 														{repositories?.map((repo) => (
 															<CommandItem
-																value={repo.name}
+																value={repo.url}
 																key={repo.url}
 																onSelect={() => {
 																	form.setValue("repository", {
@@ -246,12 +247,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 																	form.setValue("branch", "");
 																}}
 															>
-																<span className="flex items-center gap-2">
-																	<span>{repo.name}</span>
-																	<span className="text-muted-foreground text-xs">
-																		{repo.owner.username}
-																	</span>
-																</span>
+																{repo.name}
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",

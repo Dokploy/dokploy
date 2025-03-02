@@ -37,9 +37,9 @@
 commit-msg:
   commands:
     commitlint:
-      # run: "npx commitlint --edit $1"
+      run: "npx commitlint --edit $1"
 
 pre-commit:
   commands:
     check:
-      # run: "pnpm check"
+      run: "pnpm check"

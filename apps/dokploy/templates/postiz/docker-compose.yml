@@ -4,7 +4,8 @@ services:
   postiz-app:
     image: ghcr.io/gitroomhq/postiz-app:latest
     restart: always
-
+    networks:
+      - dokploy-network
     environment:
       MAIN_URL: "https://${POSTIZ_HOST}"
       FRONTEND_URL: "https://${POSTIZ_HOST}"
@@ -29,7 +30,8 @@ services:
   postiz-postgres:
     image: postgres:17-alpine
     restart: always
-
+    networks:
+      - dokploy-network
     environment:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_USER: ${DB_USER}
@@ -45,7 +47,8 @@ services:
   postiz-redis:
     image: redis:7.2
     restart: always
-
+    networks:
+      - dokploy-network
     healthcheck:
       test: redis-cli ping
       interval: 10s

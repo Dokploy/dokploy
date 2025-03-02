@@ -40,7 +40,7 @@ export const clusterRouter = createTRPCRouter({
 				});
 			}
 		}),
-	addWorker: protectedProcedure.query(async () => {
+	addWorker: protectedProcedure.query(async ({ input }) => {
 		if (IS_CLOUD) {
 			return {
 				command: "",
@@ -57,7 +57,7 @@ export const clusterRouter = createTRPCRouter({
 			version: docker_version.Version,
 		};
 	}),
-	addManager: protectedProcedure.query(async () => {
+	addManager: protectedProcedure.query(async ({ input }) => {
 		if (IS_CLOUD) {
 			return {
 				command: "",

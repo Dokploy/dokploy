@@ -16,6 +16,7 @@ import {
 import { api } from "@/utils/api";
 import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
+import React from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
@@ -74,7 +75,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 				{data?.length === 0 ? (
 					<div className="flex flex-col items-center gap-3">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground text-center">
+						<span className="text-base text-muted-foreground">
 							To create a backup it is required to set at least 1 provider.
 							Please, go to{" "}
 							<Link

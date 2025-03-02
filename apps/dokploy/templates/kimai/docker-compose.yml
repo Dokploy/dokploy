@@ -16,7 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+    networks:
+      - dokploy-network
   db:
     image: mariadb:10.11
     restart: unless-stopped
@@ -38,7 +39,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
+    networks:
+      - dokploy-network
 
 networks:
   dokploy-network:

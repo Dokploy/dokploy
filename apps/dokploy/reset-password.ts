@@ -1,8 +1,6 @@
 import { findAdmin } from "@dokploy/server";
+import { updateAuthById } from "@dokploy/server";
 import { generateRandomPassword } from "@dokploy/server";
-import { db } from "@dokploy/server/db";
-import { account } from "@dokploy/server/db/schema";
-import { eq } from "drizzle-orm";
 
 (async () => {
 	try {
@@ -10,12 +8,9 @@ import { eq } from "drizzle-orm";
 
 		const result = await findAdmin();
 
-		const update = await db
-			.update(account)
-			.set({
-				password: randomPassword.hashedPassword,
-			})
-			.where(eq(account.userId, result.userId));
+		const update = await updateAuthById(result.authId, {
+			password: randomPassword.hashedPassword,
+		});
 
 		if (update) {
 			console.log("Password reset successful");

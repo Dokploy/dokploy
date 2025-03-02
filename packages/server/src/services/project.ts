@@ -16,13 +16,13 @@ export type Project = typeof projects.$inferSelect;
 
 export const createProject = async (
 	input: typeof apiCreateProject._type,
-	organizationId: string,
+	adminId: string,
 ) => {
 	const newProject = await db
 		.insert(projects)
 		.values({
 			...input,
-			organizationId: organizationId,
+			adminId: adminId,
 		})
 		.returning()
 		.then((value) => value[0]);

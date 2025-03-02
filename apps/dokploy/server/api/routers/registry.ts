@@ -1,35 +1,34 @@
-import { db } from "@/server/db";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiUpdateRegistry,
-	registry,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
 	createRegistry,
 	execAsync,
 	execAsyncRemote,
+	findAllRegistryByAdminId,
 	findRegistryById,
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
-			return await createRegistry(input, ctx.session.activeOrganizationId);
+			return await createRegistry(input, ctx.user.adminId);
 		}),
 	remove: adminProcedure
 		.input(apiRemoveRegistry)
 		.mutation(async ({ ctx, input }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.organizationId !== ctx.session.activeOrganizationId) {
+			if (registry.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to delete this registry",
@@ -42,7 +41,7 @@ export const registryRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { registryId, ...rest } = input;
 			const registry = await findRegistryById(registryId);
-			if (registry.organizationId !== ctx.session.activeOrganizationId) {
+			if (registry.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to update this registry",
@@ -62,16 +61,13 @@ export const registryRouter = createTRPCRouter({
 			return true;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		const registryResponse = await db.query.registry.findMany({
-			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
-		});
-		return registryResponse;
+		return await findAllRegistryByAdminId(ctx.user.adminId);
 	}),
 	one: adminProcedure
 		.input(apiFindOneRegistry)
 		.query(async ({ input, ctx }) => {
 			const registry = await findRegistryById(input.registryId);
-			if (registry.organizationId !== ctx.session.activeOrganizationId) {
+			if (registry.adminId !== ctx.user.adminId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this registry",

@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
-import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
 import { getLocalServerData } from "./local-server-config";
 
@@ -38,7 +37,6 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 				foreground: "currentColor",
 			},
 		});
-
 		const addonFit = new FitAddon();
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -56,8 +54,6 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
-		const clipboardAddon = new ClipboardAddon();
-		term.loadAddon(clipboardAddon);
 
 		// @ts-ignore
 		term.open(termRef.current);
@@ -72,7 +68,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="w-full h-full bg-transparent border rounded-lg p-2">
+			<div className="w-full h-full bg-transparent border rounded-lg p-2 ">
 				<div id={id} ref={termRef} className="rounded-xl" />
 			</div>
 		</div>

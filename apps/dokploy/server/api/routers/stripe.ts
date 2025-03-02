@@ -1,9 +1,9 @@
 import { WEBSITE_URL, getStripeItems } from "@/server/utils/stripe";
 import {
 	IS_CLOUD,
-	findServersByUserId,
-	findUserById,
-	updateUser,
+	findAdminById,
+	findServersByAdminId,
+	updateAdmin,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
@@ -12,8 +12,8 @@ import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const stripeRouter = createTRPCRouter({
 	getProducts: adminProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const stripeCustomerId = user.stripeCustomerId;
+		const admin = await findAdminById(ctx.user.adminId);
+		const stripeCustomerId = admin.stripeCustomerId;
 
 		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 			apiVersion: "2024-09-30.acacia",
@@ -56,15 +56,15 @@ export const stripeRouter = createTRPCRouter({
 			});
 
 			const items = getStripeItems(input.serverQuantity, input.isAnnual);
-			const user = await findUserById(ctx.user.id);
+			const admin = await findAdminById(ctx.user.adminId);
 
-			let stripeCustomerId = user.stripeCustomerId;
+			let stripeCustomerId = admin.stripeCustomerId;
 
 			if (stripeCustomerId) {
 				const customer = await stripe.customers.retrieve(stripeCustomerId);
 
 				if (customer.deleted) {
-					await updateUser(user.id, {
+					await updateAdmin(admin.authId, {
 						stripeCustomerId: null,
 					});
 					stripeCustomerId = null;
@@ -78,7 +78,7 @@ export const stripeRouter = createTRPCRouter({
 					customer: stripeCustomerId,
 				}),
 				metadata: {
-					adminId: user.id,
+					adminId: admin.adminId,
 				},
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
@@ -87,43 +87,45 @@ export const stripeRouter = createTRPCRouter({
 
 			return { sessionId: session.id };
 		}),
-	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.id);
+	createCustomerPortalSession: adminProcedure.mutation(
+		async ({ ctx, input }) => {
+			const admin = await findAdminById(ctx.user.adminId);
 
-		if (!user.stripeCustomerId) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Stripe Customer ID not found",
-			});
-		}
-		const stripeCustomerId = user.stripeCustomerId;
+			if (!admin.stripeCustomerId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Stripe Customer ID not found",
+				});
+			}
+			const stripeCustomerId = admin.stripeCustomerId;
 
-		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-			apiVersion: "2024-09-30.acacia",
-		});
-
-		try {
-			const session = await stripe.billingPortal.sessions.create({
-				customer: stripeCustomerId,
-				return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+				apiVersion: "2024-09-30.acacia",
 			});
 
-			return { url: session.url };
-		} catch (_) {
-			return {
-				url: "",
-			};
-		}
-	}),
+			try {
+				const session = await stripe.billingPortal.sessions.create({
+					customer: stripeCustomerId,
+					return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				});
+
+				return { url: session.url };
+			} catch (error) {
+				return {
+					url: "",
+				};
+			}
+		},
+	),
 
 	canCreateMoreServers: adminProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		const servers = await findServersByUserId(user.id);
+		const admin = await findAdminById(ctx.user.adminId);
+		const servers = await findServersByAdminId(admin.adminId);
 
 		if (!IS_CLOUD) {
 			return true;
 		}
 
-		return servers.length < user.serversQuantity;
+		return servers.length < admin.serversQuantity;
 	}),
 });

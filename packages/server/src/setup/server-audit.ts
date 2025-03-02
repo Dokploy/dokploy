@@ -89,7 +89,7 @@ export const serverAudit = async (serverId: string) => {
 						.on("data", (data: string) => {
 							output += data;
 						})
-						.stderr.on("data", (_data) => {});
+						.stderr.on("data", (data) => {});
 				});
 			})
 			.on("error", (err) => {

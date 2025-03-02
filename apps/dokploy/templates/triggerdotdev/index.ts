@@ -1,3 +1,4 @@
+import { Secrets } from "@/components/ui/secrets";
 import {
 	type DomainSchema,
 	type Schema,

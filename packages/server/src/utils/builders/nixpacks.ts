@@ -91,7 +91,7 @@ export const getNixpacksCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { env, appName, publishDirectory } = application;
+	const { env, appName, publishDirectory, serverId } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;

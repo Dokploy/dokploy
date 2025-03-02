@@ -13,7 +13,7 @@ import {
 } from "./utils";
 
 export const sendDockerCleanupNotifications = async (
-	organizationId: string,
+	adminId: string,
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
@@ -21,7 +21,7 @@ export const sendDockerCleanupNotifications = async (
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.dockerCleanup, true),
-			eq(notifications.organizationId, organizationId),
+			eq(notifications.adminId, adminId),
 		),
 		with: {
 			email: true,

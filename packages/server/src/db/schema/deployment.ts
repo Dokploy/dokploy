@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { is, relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
@@ -47,7 +47,6 @@ export const deployments = pgTable("deployment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	errorMessage: text("errorMessage"),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({

@@ -4,7 +4,8 @@ services:
     restart: always
     volumes:
       - glpi-mysql-data:/var/lib/mysql
-
+    networks:
+      - dokploy-network
 
   glpi-web:
     image: elestio/glpi:10.0.16
@@ -15,7 +16,8 @@ services:
       - glpi-www-data:/var/www/html/glpi
     environment:
       - TIMEZONE=Europe/Brussels
-
+    networks:
+      - dokploy-network
 
 volumes:
   glpi-mysql-data:

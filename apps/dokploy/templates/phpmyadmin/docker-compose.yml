@@ -10,7 +10,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
-
+    networks:
+      - dokploy-network
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:5.2.1

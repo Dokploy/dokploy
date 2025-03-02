@@ -2,20 +2,23 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
 	deployments,
-	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { generatePassword } from "../templates/utils";
+import { slugify } from "../setup/server-setup";
+import { generatePassword, generateRandomDomain } from "../templates/utils";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findUserById } from "./admin";
+import { findAdminById } from "./admin";
 import { findApplicationById } from "./application";
-import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
+import {
+	removeDeployments,
+	removeDeploymentsByPreviewDeploymentId,
+} from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
 
@@ -103,17 +106,13 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch (_error) {}
+			} catch (error) {}
 		}
 		return deployment[0];
 	} catch (error) {
-		const message =
-			error instanceof Error
-				? error.message
-				: "Error deleting this preview deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message,
+			message: "Error deleting this preview deployment",
 		});
 	}
 };
@@ -155,14 +154,11 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.project.organizationId),
-	});
 	const generateDomain = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",
 		appName,
 		application.server?.ipAddress || "",
-		org?.ownerId || "",
+		application.project.adminId,
 	);
 
 	const octokit = authGithub(application?.github as Github);
@@ -254,7 +250,7 @@ const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
-	userId: string,
+	adminId: string,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
 		throw new Error('The base domain must start with "*."');
@@ -272,7 +268,7 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const admin = await findUserById(userId);
+			const admin = await findAdminById(adminId);
 			ip = admin?.serverIp || "";
 		}
 

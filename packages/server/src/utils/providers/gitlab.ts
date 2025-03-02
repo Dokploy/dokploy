@@ -162,6 +162,8 @@ export const getGitlabCloneCommand = async (
 ) => {
 	const {
 		appName,
+		gitlabRepository,
+		gitlabOwner,
 		gitlabPathNamespace,
 		gitlabBranch,
 		gitlabId,
@@ -266,7 +268,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		if (groupName) {
 			return full_path.toLowerCase().includes(groupName) && kind === "group";
 		}
-		return kind === "member";
+		return kind === "user";
 	});
 	const mappedRepositories = filteredRepos.map((repo: any) => {
 		return {
@@ -326,7 +328,14 @@ export const getGitlabBranches = async (input: {
 };
 
 export const cloneRawGitlabRepository = async (entity: Compose) => {
-	const { appName, gitlabBranch, gitlabId, gitlabPathNamespace } = entity;
+	const {
+		appName,
+		gitlabRepository,
+		gitlabOwner,
+		gitlabBranch,
+		gitlabId,
+		gitlabPathNamespace,
+	} = entity;
 
 	if (!gitlabId) {
 		throw new TRPCError({
@@ -433,7 +442,7 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return full_path.toLowerCase().includes(groupName) && kind === "group";
 		}
-		return kind === "member";
+		return kind === "user";
 	});
 
 	return filteredRepos.length;

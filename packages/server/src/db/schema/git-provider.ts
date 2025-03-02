@@ -3,7 +3,7 @@ import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { organization } from "./account";
+import { admins } from "./admin";
 import { bitbucket } from "./bitbucket";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
@@ -24,12 +24,12 @@ export const gitProvider = pgTable("git_provider", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	organizationId: text("organizationId")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
+	adminId: text("adminId").references(() => admins.adminId, {
+		onDelete: "cascade",
+	}),
 });
 
-export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
+export const gitProviderRelations = relations(gitProvider, ({ one, many }) => ({
 	github: one(github, {
 		fields: [gitProvider.gitProviderId],
 		references: [github.gitProviderId],
@@ -42,9 +42,9 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
-	organization: one(organization, {
-		fields: [gitProvider.organizationId],
-		references: [organization.id],
+	admin: one(admins, {
+		fields: [gitProvider.adminId],
+		references: [admins.adminId],
 	}),
 }));
 

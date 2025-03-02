@@ -11,6 +11,7 @@ import {
 	Section,
 	Text,
 } from "@react-email/components";
+import * as React from "react";
 
 const baseUrl = process.env.VERCEL_URL!;
 

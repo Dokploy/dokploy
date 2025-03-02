@@ -1,4 +1,3 @@
-import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
@@ -6,14 +5,13 @@ import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
-			<ShowInvitations />
 		</div>
 	);
 };
@@ -27,9 +25,8 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(req);
-
-	if (!user || user.role === "member") {
+	const { user, session } = await validateRequest(req, res);
+	if (!user || user.rol === "user") {
 		return {
 			redirect: {
 				permanent: true,
@@ -44,12 +41,12 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session as any,
-			user: user as any,
+			session: session,
+			user: user,
 		},
 		transformer: superjson,
 	});
-	await helpers.user.get.prefetch();
+	await helpers.auth.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
 
 	return {

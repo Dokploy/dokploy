@@ -11,7 +11,8 @@ services:
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=gitea
     restart: always
-
+    networks:
+      - dokploy-network
     volumes:
       - gitea_server:/data
       - /etc/timezone:/etc/timezone:ro
@@ -26,7 +27,8 @@ services:
       - POSTGRES_USER=gitea
       - POSTGRES_PASSWORD=gitea
       - POSTGRES_DB=gitea
-
+    networks:
+      - dokploy-network
     volumes:
       - gitea_db:/var/lib/postgresql/data
 

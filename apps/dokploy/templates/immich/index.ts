@@ -11,7 +11,7 @@ export function generate(schema: Schema): Template {
 	const mainDomain = generateRandomDomain(schema);
 	const dbPassword = generatePassword();
 	const dbUser = "immich";
-	const _appSecret = generateBase64(32);
+	const appSecret = generateBase64(32);
 
 	const domains: DomainSchema[] = [
 		{

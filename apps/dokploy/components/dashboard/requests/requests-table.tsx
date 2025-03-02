@@ -92,7 +92,7 @@ export const RequestsTable = () => {
 		pageSize: 10,
 	});
 
-	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
+	const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery(
 		{
 			sort: sorting[0],
 			page: pagination,
@@ -300,7 +300,7 @@ export const RequestsTable = () => {
 			</div>
 			<Sheet
 				open={!!selectedRow}
-				onOpenChange={(_open) => setSelectedRow(undefined)}
+				onOpenChange={(open) => setSelectedRow(undefined)}
 			>
 				<SheetContent className="sm:max-w-[740px]  flex flex-col">
 					<SheetHeader>
