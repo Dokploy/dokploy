@@ -310,6 +310,15 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 	const token = query.token;
 
+	// if (IS_CLOUD) {
+	// 	return {
+	// 		redirect: {
+	// 			permanent: true,
+	// 			destination: "/",
+	// 		},
+	// 	};
+	// }
+
 	if (typeof token !== "string") {
 		return {
 			redirect: {

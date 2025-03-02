@@ -29,7 +29,6 @@ export async function getServerSideProps(
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
 
-	console.log("user", user, session);
 	if (!user || user.role === "member") {
 		return {
 			redirect: {

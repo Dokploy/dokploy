@@ -33,7 +33,9 @@ const { handler, api } = betterAuth({
 			await sendEmail({
 				email: user.email,
 				subject: "Verify your email",
-				text: `Click the link to verify your email: ${url}`,
+				text: `
+				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
+				`,
 			});
 		},
 	},
@@ -53,7 +55,9 @@ const { handler, api } = betterAuth({
 			await sendEmail({
 				email: user.email,
 				subject: "Reset your password",
-				text: `Click the link to reset your password: ${url}`,
+				text: `
+				<p>Click the link to reset your password: <a href="${url}">Reset Password</a></p>
+				`,
 			});
 		},
 	},
@@ -132,16 +136,19 @@ const { handler, api } = betterAuth({
 		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, _request) {
-				const inviteLink = `https://example.com/accept-invitation/${data.id}`;
-				// https://example.com/accept-invitation/8jlBi9Tb9isDb8mc8Sb85u1BaJYklKB2
-				// sendOrganizationInvitation({
-				// 		email: data.email,
-				// 		invitedByUsername: data.inviter.user.name,
-				// 		invitedByEmail: data.inviter.user.email,
-				// 		teamName: data.organization.name,
-				// 		inviteLink
-				// 	})
-				console.log("Invitation link", inviteLink);
+				if (IS_CLOUD) {
+					const inviteLink = `http://localhost:3000/invitation?token=${data.id}`;
+
+					console.log("Invitation link", inviteLink);
+
+					await sendEmail({
+						email: data.email,
+						subject: "Invitation to join organization",
+						text: `
+					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
+					`,
+					});
+				}
 			},
 		}),
 	],
