@@ -1,0 +1,58 @@
+services:
+  evolution-api:
+    image: atendai/evolution-api:v2.1.2
+    restart: always
+    volumes:
+      - evolution-instances:/evolution/instances
+
+    environment:
+      - SERVER_URL=${SERVER_URL}
+      - AUTHENTICATION_TYPE=${AUTHENTICATION_TYPE}
+      - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=${AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES}
+      - LANGUAGE=${LANGUAGE}
+      - CONFIG_SESSION_PHONE_CLIENT=${CONFIG_SESSION_PHONE_CLIENT}
+      - CONFIG_SESSION_PHONE_NAME=${CONFIG_SESSION_PHONE_NAME}
+      - TELEMETRY=${TELEMETRY}
+      - TELEMETRY_URL=${TELEMETRY_URL}
+      - DATABASE_ENABLED=${DATABASE_ENABLED}
+      - DATABASE_PROVIDER=${DATABASE_PROVIDER}
+      - DATABASE_CONNECTION_URI=${DATABASE_CONNECTION_URI}
+      - DATABASE_SAVE_DATA_INSTANCE=${DATABASE_SAVE_DATA_INSTANCE}
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=${DATABASE_SAVE_DATA_NEW_MESSAGE}
+      - DATABASE_SAVE_MESSAGE_UPDATE=${DATABASE_SAVE_MESSAGE_UPDATE}
+      - DATABASE_SAVE_DATA_CONTACTS=${DATABASE_SAVE_DATA_CONTACTS}
+      - DATABASE_SAVE_DATA_CHATS=${DATABASE_SAVE_DATA_CHATS}
+      - DATABASE_SAVE_DATA_LABELS=${DATABASE_SAVE_DATA_LABELS}
+      - DATABASE_SAVE_DATA_HISTORIC=${DATABASE_SAVE_DATA_HISTORIC}
+      - CACHE_REDIS_ENABLED=${CACHE_REDIS_ENABLED}
+      - CACHE_REDIS_URI=${CACHE_REDIS_URI}
+      - CACHE_REDIS_PREFIX_KEY=${CACHE_REDIS_PREFIX_KEY}
+      - CACHE_REDIS_SAVE_INSTANCES=${CACHE_REDIS_SAVE_INSTANCES}
+
+  evolution-postgres:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - evolution-postgres-data:/var/lib/postgresql/data
+
+    environment:
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  evolution-redis:
+    image: redis:alpine
+    restart: always
+    volumes:
+      - evolution-redis-data:/data
+
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  evolution-instances:
+  evolution-postgres-data:
+  evolution-redis-data:

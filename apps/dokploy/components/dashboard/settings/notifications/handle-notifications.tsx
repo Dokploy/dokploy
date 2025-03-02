@@ -49,6 +49,7 @@ const notificationBaseSchema = z.object({
 	databaseBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -64,6 +65,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("telegram"),
 			botToken: z.string().min(1, { message: "Bot Token is required" }),
 			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			messageThreadId: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -135,7 +137,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { data: notification, refetch } = api.notification.one.useQuery(
+	const { data: notification } = api.notification.one.useQuery(
 		{
 			notificationId: notificationId || "",
 		},
@@ -204,6 +206,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					channel: notification.slack?.channel || "",
 					name: notification.name,
 					type: notification.notificationType,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -212,10 +215,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					botToken: notification.telegram?.botToken,
+					messageThreadId: notification.telegram?.messageThreadId || "",
 					chatId: notification.telegram?.chatId,
 					type: notification.notificationType,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -228,6 +233,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					decoration: notification.discord?.decoration || undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -244,6 +250,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
@@ -280,6 +287,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
+			serverThreshold,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -294,6 +302,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -302,11 +311,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				botToken: data.botToken,
+				messageThreadId: data.messageThreadId || "",
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -320,6 +331,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -337,6 +349,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
@@ -551,8 +564,26 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormControl>
 														<Input placeholder="431231869" {...field} />
 													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="messageThreadId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Message Thread ID</FormLabel>
+													<FormControl>
+														<Input placeholder="11" {...field} />
+													</FormControl>
 
 													<FormMessage />
+													<FormDescription>
+														Optional. Use it when you want to send notifications
+														to a specific topic in a group.
+													</FormDescription>
 												</FormItem>
 											)}
 										/>
@@ -955,6 +986,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										)}
 									/>
 								)}
+
+								{isCloud && (
+									<FormField
+										control={form.control}
+										name="serverThreshold"
+										render={({ field }) => (
+											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="space-y-0.5">
+													<FormLabel>Server Threshold</FormLabel>
+													<FormDescription>
+														Trigger the action when the server threshold is
+														reached.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						</div>
 					</form>
@@ -980,6 +1035,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testTelegramConnection({
 											botToken: form.getValues("botToken"),
 											chatId: form.getValues("chatId"),
+											messageThreadId: form.getValues("messageThreadId") || "",
 										});
 									} else if (type === "discord") {
 										await testDiscordConnection({
@@ -1004,7 +1060,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									}
 									toast.success("Connection Success");
-								} catch (err) {
+								} catch (_err) {
 									toast.error("Error testing the provider");
 								}
 							}}

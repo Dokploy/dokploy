@@ -20,13 +20,11 @@ services:
     restart: unless-stopped
     volumes:
       - pg-data:/var/lib/postgresql/data
-    networks:
-      - dokploy-network
+
   redis:
     image: redis
     restart: unless-stopped
-    networks:
-      - dokploy-network
+
   web:
     image: glitchtip/glitchtip:v4.0
     depends_on: *default-depends_on
@@ -44,15 +42,13 @@ services:
     restart: unless-stopped
     volumes:
       - uploads:/code/uploads
-    networks:
-      - dokploy-network
+
   migrate:
     image: glitchtip/glitchtip:v4.0
     depends_on: *default-depends_on
     command: "./manage.py migrate"
     environment: *default-environment
-    networks:
-      - dokploy-network
+
 
 volumes:
   pg-data:

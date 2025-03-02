@@ -2,6 +2,5 @@ version: "3.8"
 
 services:
   excalidraw:
-    networks:
-      - dokploy-network
+
     image: excalidraw/excalidraw:latest

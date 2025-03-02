@@ -9,7 +9,6 @@ import {
 	sshKeys,
 } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	createSshKey,
 	findSSHKeyById,
 	generateSSHKey,
@@ -26,7 +25,7 @@ export const sshRouter = createTRPCRouter({
 			try {
 				await createSshKey({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -41,8 +40,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to delete this SSH key",
@@ -59,8 +57,7 @@ export const sshRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
 
-			if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-				// TODO: Remove isCloud in the next versions of dokploy
+			if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this SSH key",
@@ -70,10 +67,9 @@ export const sshRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
-			...(IS_CLOUD && { where: eq(sshKeys.adminId, ctx.user.adminId) }),
+			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
-		// TODO: Remove this line when the cloud version is ready
 	}),
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)
@@ -85,8 +81,7 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to update this SSH key",

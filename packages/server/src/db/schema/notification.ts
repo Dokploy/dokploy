@@ -3,7 +3,7 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
+import { organization } from "./account";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -24,6 +24,7 @@ export const notifications = pgTable("notification", {
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -43,9 +44,9 @@ export const notifications = pgTable("notification", {
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
-	adminId: text("adminId").references(() => admins.adminId, {
-		onDelete: "cascade",
-	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const slack = pgTable("slack", {
@@ -64,6 +65,7 @@ export const telegram = pgTable("telegram", {
 		.$defaultFn(() => nanoid()),
 	botToken: text("botToken").notNull(),
 	chatId: text("chatId").notNull(),
+	messageThreadId: text("messageThreadId"),
 });
 
 export const discord = pgTable("discord", {
@@ -120,9 +122,9 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.gotifyId],
 		references: [gotify.gotifyId],
 	}),
-	admin: one(admins, {
-		fields: [notifications.adminId],
-		references: [admins.adminId],
+	organization: one(organization, {
+		fields: [notifications.organizationId],
+		references: [organization.id],
 	}),
 }));
 
@@ -136,6 +138,7 @@ export const apiCreateSlack = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -146,7 +149,7 @@ export const apiCreateSlack = notificationsSchema
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -162,22 +165,25 @@ export const apiCreateTelegram = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
+		messageThreadId: z.string(),
 	})
 	.required();
 
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
 	botToken: true,
 	chatId: true,
+	messageThreadId: true,
 });
 
 export const apiCreateDiscord = notificationsSchema
@@ -188,6 +194,7 @@ export const apiCreateDiscord = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -198,7 +205,7 @@ export const apiCreateDiscord = notificationsSchema
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord
@@ -217,6 +224,7 @@ export const apiCreateEmail = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		smtpServer: z.string().min(1),
@@ -231,7 +239,7 @@ export const apiCreateEmail = notificationsSchema
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({
@@ -263,7 +271,7 @@ export const apiCreateGotify = notificationsSchema
 export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
 	gotifyId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestGotifyConnection = apiCreateGotify

@@ -37,15 +37,6 @@ export const Verify = () => {
 		);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
-	const { data: server } = api.server.one.useQuery(
-		{
-			serverId,
-		},
-		{
-			enabled: !!serverId,
-		},
-	);
-
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">

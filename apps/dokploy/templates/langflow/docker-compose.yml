@@ -12,8 +12,7 @@ services:
       # This variable defines where the logs, file storage, monitor data and secret keys are stored.
     volumes:
       - langflow-data:/app/langflow
-    networks:
-      - dokploy-network
+
 
   postgres-langflow:
     image: postgres:16
@@ -25,8 +24,7 @@ services:
       - 5432
     volumes:
       - langflow-postgres:/var/lib/postgresql/data
-    networks:
-      - dokploy-network
+
 
 volumes:
   langflow-postgres:

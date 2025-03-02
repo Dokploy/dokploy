@@ -54,13 +54,14 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
-	const { data, refetch, isLoading } = api.auth.get.useQuery();
+	const _utils = api.useUtils();
+	const { data, refetch, isLoading } = api.user.get.useQuery();
 	const {
 		mutateAsync,
 		isLoading: isUpdating,
 		isError,
 		error,
-	} = api.auth.update.useMutation();
+	} = api.user.update.useMutation();
 	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 
@@ -73,9 +74,9 @@ export const ProfileForm = () => {
 
 	const form = useForm<Profile>({
 		defaultValues: {
-			email: data?.email || "",
+			email: data?.user?.email || "",
 			password: "",
-			image: data?.image || "",
+			image: data?.user?.image || "",
 			currentPassword: "",
 		},
 		resolver: zodResolver(profileSchema),
@@ -84,14 +85,14 @@ export const ProfileForm = () => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				email: data?.email || "",
+				email: data?.user?.email || "",
 				password: "",
-				image: data?.image || "",
+				image: data?.user?.image || "",
 				currentPassword: "",
 			});
 
-			if (data.email) {
-				generateSHA256Hash(data.email).then((hash) => {
+			if (data.user.email) {
+				generateSHA256Hash(data.user.email).then((hash) => {
 					setGravatarHash(hash);
 				});
 			}
@@ -102,9 +103,9 @@ export const ProfileForm = () => {
 	const onSubmit = async (values: Profile) => {
 		await mutateAsync({
 			email: values.email.toLowerCase(),
-			password: values.password,
+			password: values.password || undefined,
 			image: values.image,
-			currentPassword: values.currentPassword,
+			currentPassword: values.currentPassword || undefined,
 		})
 			.then(async () => {
 				await refetch();
@@ -130,7 +131,7 @@ export const ProfileForm = () => {
 								{t("settings.profile.description")}
 							</CardDescription>
 						</div>
-						{!data?.is2FAEnabled ? <Enable2FA /> : <Disable2FA />}
+						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Disable2FA />}
 					</CardHeader>
 
 					<CardContent className="space-y-2 py-8 border-t">

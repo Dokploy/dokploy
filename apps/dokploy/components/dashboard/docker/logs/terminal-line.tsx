@@ -9,7 +9,6 @@ import {
 import { cn } from "@/lib/utils";
 import { FancyAnsi } from "fancy-ansi";
 import { escapeRegExp } from "lodash";
-import React from "react";
 import { type LogLine, getLogType } from "./utils";
 
 interface LogLineProps {
@@ -48,23 +47,12 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		}
 
 		const htmlContent = fancyAnsi.toHtml(text);
+		const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+
 		const modifiedContent = htmlContent.replace(
-			/<span([^>]*)>([^<]*)<\/span>/g,
-			(match, attrs, content) => {
-				const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
-				if (!content.match(searchRegex)) return match;
-
-				const segments = content.split(searchRegex);
-				const wrappedSegments = segments
-					.map((segment: string) =>
-						segment.toLowerCase() === term.toLowerCase()
-							? `<span${attrs} class="bg-yellow-200/50 dark:bg-yellow-900/50">${segment}</span>`
-							: segment,
-					)
-					.join("");
-
-				return `<span${attrs}>${wrappedSegments}</span>`;
-			},
+			searchRegex,
+			(match) =>
+				`<span class="bg-orange-200/80 dark:bg-orange-900/80 font-bold">${match}</span>`,
 		);
 
 		return (

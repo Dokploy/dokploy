@@ -2,7 +2,9 @@ import { ShowResources } from "@/components/dashboard/application/advanced/show-
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { DockerMonitoring } from "@/components/dashboard/monitoring/docker/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
+import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
 import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
@@ -11,10 +13,8 @@ import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
 import { RedisIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -33,9 +33,9 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -43,8 +43,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
-import { toast } from "sonner";
+import { type ReactElement, useState } from "react";
 import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "advanced";
@@ -52,24 +51,17 @@ type TabState = "projects" | "monitoring" | "settings" | "advanced";
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { redisId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.redis.one.useQuery({ redisId });
 
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const { data: auth } = api.user.get.useQuery();
 
-	const { mutateAsync: remove, isLoading: isRemoving } =
-		api.redis.remove.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	return (
 		<div className="pb-10">
 			<BreadcrumbSidebar
@@ -152,33 +144,8 @@ const Redis = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
-									{(auth?.rol === "admin" || user?.canDeleteServices) && (
-										<DialogAction
-											title="Remove Redis"
-											description="Are you sure you want to delete this redis?"
-											type="destructive"
-											onClick={async () => {
-												await remove({ redisId })
-													.then(() => {
-														router.push(
-															`/dashboard/project/${data?.projectId}`,
-														);
-														toast.success("Redis deleted successfully");
-													})
-													.catch(() => {
-														toast.error("Error deleting the redis");
-													});
-											}}
-										>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isRemoving}
-											>
-												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-											</Button>
-										</DialogAction>
+									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										<DeleteService id={redisId} type="redis" />
 									)}
 								</div>
 							</div>
@@ -221,12 +188,16 @@ const Redis = (
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-												data?.serverId ? "md:grid-cols-4" : "md:grid-cols-5",
+												isCloud && data?.serverId
+													? "md:grid-cols-5"
+													: data?.serverId
+														? "md:grid-cols-4"
+														: "md:grid-cols-5",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
-											{!data?.serverId && (
+											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -246,13 +217,51 @@ const Redis = (
 											<ShowEnvironment id={redisId} type="redis" />
 										</div>
 									</TabsContent>
-									{!data?.serverId && (
-										<TabsContent value="monitoring">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<DockerMonitoring appName={data?.appName || ""} />
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId && isCloud ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+													/>
+												) : (
+													<>
+														{/* {monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={toggleMonitoring}
+																	onCheckedChange={setToggleMonitoring}
+																/>
+															</div>
+														)}
+
+														{toggleMonitoring ? (
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+															/>
+														) : (
+															<div> */}
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+														{/* </div> */}
+														{/* )} */}
+													</>
+												)}
 											</div>
-										</TabsContent>
-									)}
+										</div>
+									</TabsContent>
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">
 											<ShowDockerLogs
@@ -291,7 +300,7 @@ export async function getServerSideProps(
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
 
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -307,8 +316,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -317,7 +326,7 @@ export async function getServerSideProps(
 			await helpers.redis.one.fetch({
 				redisId: params?.redisId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
@@ -325,7 +334,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

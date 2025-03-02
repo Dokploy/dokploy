@@ -1,0 +1,1 @@
+ALTER TABLE "compose" ADD COLUMN "deployable" boolean DEFAULT false NOT NULL;

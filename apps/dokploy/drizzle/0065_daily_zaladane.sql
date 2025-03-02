@@ -1,0 +1,1 @@
+ALTER TABLE "compose" RENAME COLUMN "deployable" TO "isolatedDeployment";

@@ -58,7 +58,11 @@ export const getContainers = async (serverId?: string | null) => {
 					serverId,
 				};
 			})
-			.filter((container) => !container.name.includes("dokploy"));
+			.filter(
+				(container) =>
+					!container.name.includes("dokploy") ||
+					container.name.includes("dokploy-monitoring"),
+			);
 
 		return containers;
 	} catch (error) {
@@ -94,7 +98,7 @@ export const getConfig = async (
 		const config = JSON.parse(stdout);
 
 		return config;
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getContainersByAppNameMatch = async (
@@ -152,7 +156,7 @@ export const getContainersByAppNameMatch = async (
 		});
 
 		return containers || [];
-	} catch (error) {}
+	} catch (_error) {}
 
 	return [];
 };
@@ -210,7 +214,7 @@ export const getStackContainersByAppName = async (
 		});
 
 		return containers || [];
-	} catch (error) {}
+	} catch (_error) {}
 
 	return [];
 };
@@ -270,7 +274,7 @@ export const getServiceContainersByAppName = async (
 		});
 
 		return containers || [];
-	} catch (error) {}
+	} catch (_error) {}
 
 	return [];
 };
@@ -321,7 +325,7 @@ export const getContainersByAppLabel = async (
 		});
 
 		return containers || [];
-	} catch (error) {}
+	} catch (_error) {}
 
 	return [];
 };
@@ -340,7 +344,7 @@ export const containerRestart = async (containerId: string) => {
 		const config = JSON.parse(stdout);
 
 		return config;
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getSwarmNodes = async (serverId?: string) => {
@@ -369,7 +373,7 @@ export const getSwarmNodes = async (serverId?: string) => {
 			.split("\n")
 			.map((line) => JSON.parse(line));
 		return nodesArray;
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
@@ -395,7 +399,7 @@ export const getNodeInfo = async (nodeId: string, serverId?: string) => {
 		const nodeInfo = JSON.parse(stdout);
 
 		return nodeInfo;
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getNodeApplications = async (serverId?: string) => {
@@ -427,7 +431,7 @@ export const getNodeApplications = async (serverId?: string) => {
 			.filter((service) => !service.Name.startsWith("dokploy-"));
 
 		return appArray;
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const getApplicationInfo = async (
@@ -460,5 +464,5 @@ export const getApplicationInfo = async (
 			.map((line) => JSON.parse(line));
 
 		return appArray;
-	} catch (error) {}
+	} catch (_error) {}
 };

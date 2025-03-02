@@ -28,8 +28,7 @@ services:
   postgres:
     image: elestio/postgres:16
     restart: always
-    networks:
-      - dokploy-network
+
     environment:
       - POSTGRES_DB
       - POSTGRES_USER

@@ -17,8 +17,15 @@ interface Props {
 	open: boolean;
 	onClose: () => void;
 	serverId?: string;
+	errorMessage?: string;
 }
-export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
+export const ShowDeployment = ({
+	logPath,
+	open,
+	onClose,
+	serverId,
+	errorMessage,
+}: Props) => {
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -99,6 +106,8 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 		}
 	}, [filteredLogs, autoScroll]);
 
+	const optionalErrors = parseLogs(errorMessage || "");
+
 	return (
 		<Dialog
 			open={open}
@@ -157,9 +166,17 @@ export const ShowDeployment = ({ logPath, open, onClose, serverId }: Props) => {
 							<TerminalLine key={index} log={log} noTimestamp />
 						))
 					) : (
-						<div className="flex justify-center items-center h-full text-muted-foreground">
-							<Loader2 className="h-6 w-6 animate-spin" />
-						</div>
+						<>
+							{optionalErrors.length > 0 ? (
+								optionalErrors.map((log: LogLine, index: number) => (
+									<TerminalLine key={`extra-${index}`} log={log} noTimestamp />
+								))
+							) : (
+								<div className="flex justify-center items-center h-full text-muted-foreground">
+									<Loader2 className="h-6 w-6 animate-spin" />
+								</div>
+							)}
+						</>
 					)}
 				</div>
 			</DialogContent>

@@ -5,7 +5,6 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-// import packageInfo from "../../../package.json";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -170,7 +169,6 @@ echo "$json_output"
 		const result = JSON.parse(stdout);
 		return result;
 	}
-	const items = readdirSync(dirPath, { withFileTypes: true });
 
 	const stack = [dirPath];
 	const result: TreeDataItem[] = [];
@@ -212,4 +210,36 @@ echo "$json_output"
 		}
 	}
 	return result;
+};
+
+export const cleanupFullDocker = async (serverId?: string | null) => {
+	const cleanupImages = "docker image prune --force";
+	const cleanupVolumes = "docker volume prune --force";
+	const cleanupContainers = "docker container prune --force";
+	const cleanupSystem = "docker system prune  --force --volumes";
+	const cleanupBuilder = "docker builder prune  --force";
+
+	try {
+		if (serverId) {
+			await execAsyncRemote(
+				serverId,
+				`
+	${cleanupImages}
+	${cleanupVolumes}
+	${cleanupContainers}
+	${cleanupSystem}
+	${cleanupBuilder}
+			`,
+			);
+		}
+		await execAsync(`
+			${cleanupImages}
+			${cleanupVolumes}
+			${cleanupContainers}
+			${cleanupSystem}
+			${cleanupBuilder}
+					`);
+	} catch (error) {
+		console.log(error);
+	}
 };
