@@ -36,7 +36,15 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"ai": "^4.0.23",
+		"@ai-sdk/anthropic": "^1.0.6",
+		"@ai-sdk/azure": "^1.0.15",
+		"@ai-sdk/cohere": "^1.0.6",
+		"@ai-sdk/deepinfra": "^0.0.4",
+		"@ai-sdk/mistral": "^1.0.6",
 		"@ai-sdk/openai": "^1.0.12",
+		"@ai-sdk/openai-compatible": "^0.0.13",
+		"ollama-ai-provider": "^1.1.0",
 		"better-auth": "1.2.0",
 		"bl": "6.0.11",
 		"rotating-file-stream": "3.2.3",
@@ -92,7 +100,6 @@
 		"@xterm/xterm": "^5.4.0",
 		"@xterm/addon-clipboard": "0.1.0",
 		"adm-zip": "^0.5.14",
-		"ai": "^4.0.23",
 		"bcrypt": "5.1.1",
 		"bullmq": "5.4.2",
 		"class-variance-authority": "^0.7.0",

@@ -97,9 +97,27 @@ importers:
 
   apps/dokploy:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
+      '@ai-sdk/azure':
+        specifier: ^1.0.15
+        version: 1.0.18(zod@3.23.8)
+      '@ai-sdk/cohere':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
+      '@ai-sdk/deepinfra':
+        specifier: ^0.0.4
+        version: 0.0.4(zod@3.23.8)
+      '@ai-sdk/mistral':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
       '@ai-sdk/openai':
         specifier: ^1.0.12
         version: 1.0.16(zod@3.23.8)
+      '@ai-sdk/openai-compatible':
+        specifier: ^0.0.13
+        version: 0.0.13(zod@3.23.8)
       '@codemirror/lang-json':
         specifier: ^6.0.1
         version: 6.0.1
@@ -343,6 +361,9 @@ importers:
       octokit:
         specifier: 3.1.2
         version: 3.1.2
+      ollama-ai-provider:
+        specifier: ^1.1.0
+        version: 1.1.0(zod@3.23.8)
       otpauth:
         specifier: ^9.2.3
         version: 9.3.4
