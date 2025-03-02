@@ -267,7 +267,7 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
-	const apiKey = await auth.api.createApiKey({
+	const apiKey = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
