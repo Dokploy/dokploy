@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 import { Layers, Loader2 } from "lucide-react";
-import React from "react";
 import { type ApplicationList, columns } from "./columns";
 import { DataTable } from "./data-table";
 

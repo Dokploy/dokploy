@@ -1,9 +1,5 @@
 import type http from "node:http";
-import {
-	IS_CLOUD,
-	findServerById,
-	validateWebSocketRequest,
-} from "@dokploy/server";
+import { IS_CLOUD, findServerById, validateRequest } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
 import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -71,7 +67,7 @@ export const setupTerminalWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 		if (!user || !session || !serverId) {
 			ws.close();
 			return;
@@ -148,8 +144,8 @@ export const setupTerminalWebSocketServer = (
 		}
 
 		const conn = new Client();
-		let stdout = "";
-		let stderr = "";
+		let _stdout = "";
+		let _stderr = "";
 
 		ws.send("Connecting...\n");
 
@@ -162,16 +158,16 @@ export const setupTerminalWebSocketServer = (
 					if (err) throw err;
 
 					stream
-						.on("close", (code: number, signal: string) => {
+						.on("close", (code: number, _signal: string) => {
 							ws.send(`\nContainer closed with code: ${code}\n`);
 							conn.end();
 						})
 						.on("data", (data: string) => {
-							stdout += data.toString();
+							_stdout += data.toString();
 							ws.send(data.toString());
 						})
 						.stderr.on("data", (data) => {
-							stderr += data.toString();
+							_stderr += data.toString();
 							ws.send(data.toString());
 							console.error("Error: ", data.toString());
 						});

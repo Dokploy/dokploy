@@ -68,9 +68,6 @@ export const initializeTraefik = async ({
 				Replicas: 1,
 			},
 		},
-		Labels: {
-			"traefik.enable": "true",
-		},
 		EndpointSpec: {
 			Ports: [
 				{
@@ -130,8 +127,15 @@ export const initializeTraefik = async ({
 		});
 
 		console.log("Traefik Started ✅");
-	} catch (error) {
-		await docker.createService(settings);
+	} catch (_) {
+		try {
+			await docker.createService(settings);
+		} catch (error: any) {
+			if (error?.statusCode !== 409) {
+				throw error;
+			}
+			console.log("Traefik service already exists, continuing...");
+		}
 		console.log("Traefik Not Found: Starting ✅");
 	}
 };
@@ -189,10 +193,12 @@ export const getDefaultTraefikConfig = () => {
 				: {
 						swarm: {
 							exposedByDefault: false,
-							watch: false,
+							watch: true,
 						},
 						docker: {
 							exposedByDefault: false,
+							watch: true,
+							network: "dokploy-network",
 						},
 					}),
 			file: {
@@ -243,10 +249,12 @@ export const getDefaultServerTraefikConfig = () => {
 		providers: {
 			swarm: {
 				exposedByDefault: false,
-				watch: false,
+				watch: true,
 			},
 			docker: {
 				exposedByDefault: false,
+				watch: true,
+				network: "dokploy-network",
 			},
 			file: {
 				directory: "/etc/dokploy/traefik/dynamic",

@@ -2,12 +2,7 @@ import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -17,20 +12,23 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
+import { authClient } from "@/lib/auth-client";
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 const registerSchema = z
 	.object({
+		name: z.string().min(1, {
+			message: "Name is required",
+		}),
 		email: z
 			.string()
 			.min(1, {
@@ -74,11 +72,13 @@ interface Props {
 
 const Register = ({ isCloud }: Props) => {
 	const router = useRouter();
-	const { mutateAsync, error, isError, data } =
-		api.auth.createAdmin.useMutation();
+	const [isError, setIsError] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [data, setData] = useState<any>(null);
 
 	const form = useForm<Register>({
 		defaultValues: {
+			name: "",
 			email: "",
 			password: "",
 			confirmPassword: "",
@@ -91,19 +91,25 @@ const Register = ({ isCloud }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Register) => {
-		await mutateAsync({
-			email: values.email.toLowerCase(),
+		const { data, error } = await authClient.signUp.email({
+			email: values.email,
 			password: values.password,
-		})
-			.then(() => {
-				toast.success("User registered successfuly", {
-					duration: 2000,
-				});
-				if (!isCloud) {
-					router.push("/");
-				}
-			})
-			.catch((e) => e);
+			name: values.name,
+		});
+
+		if (error) {
+			setIsError(true);
+			setError(error.message || "An error occurred");
+		} else {
+			toast.success("User registered successfuly", {
+				duration: 2000,
+			});
+			if (!isCloud) {
+				router.push("/");
+			} else {
+				setData(data);
+			}
+		}
 	};
 	return (
 		<div className="">
@@ -125,15 +131,15 @@ const Register = ({ isCloud }: Props) => {
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
-							<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+							<div className=" my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
 								<span className="text-sm text-red-600 dark:text-red-400">
-									{error?.message}
+									{error}
 								</span>
 							</div>
 						)}
-						{data?.type === "cloud" && (
-							<AlertBlock type="success" className="mx-4 my-2">
+						{isCloud && data && (
+							<AlertBlock type="success" className="my-2">
 								<span>
 									Registered successfully, please check your inbox or spam
 									folder to confirm your account.
@@ -147,6 +153,19 @@ const Register = ({ isCloud }: Props) => {
 									className="grid gap-4"
 								>
 									<div className="space-y-4">
+										<FormField
+											control={form.control}
+											name="name"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Name</FormLabel>
+													<FormControl>
+														<Input placeholder="name" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 										<FormField
 											control={form.control}
 											name="email"
@@ -242,7 +261,7 @@ Register.getLayout = (page: ReactElement) => {
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
-		const { user } = await validateRequest(context.req, context.res);
+		const { user } = await validateRequest(context.req);
 
 		if (user) {
 			return {

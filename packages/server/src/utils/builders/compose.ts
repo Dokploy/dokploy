@@ -12,8 +12,12 @@ import {
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
-import { encodeBase64, prepareEnvironmentVariables } from "../docker/utils";
-import { execAsyncRemote } from "../process/execAsync";
+import {
+	encodeBase64,
+	getEnviromentVariablesObject,
+	prepareEnvironmentVariables,
+} from "../docker/utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -29,13 +33,19 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
 
+		if (compose.isolatedDeployment) {
+			await execAsync(
+				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}`,
+			);
+		}
+
 		const logContent = `
-App Name: ${appName}
-Build Compose 🐳
-Detected: ${mounts.length} mounts 📂
-Command: docker ${command}
-Source Type: docker ${sourceType} ✅
-Compose Type: ${composeType} ✅`;
+    App Name: ${appName}
+    Build Compose 🐳
+    Detected: ${mounts.length} mounts 📂
+    Command: docker ${command}
+    Source Type: docker ${sourceType} ✅
+    Compose Type: ${composeType} ✅`;
 		const logBox = boxen(logContent, {
 			padding: {
 				left: 1,
@@ -46,7 +56,6 @@ Compose Type: ${composeType} ✅`;
 			borderStyle: "double",
 		});
 		writeStream.write(`\n${logBox}\n`);
-
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 
 		await spawnAsync(
@@ -62,9 +71,18 @@ Compose Type: ${composeType} ✅`;
 				env: {
 					NODE_ENV: process.env.NODE_ENV,
 					PATH: process.env.PATH,
+					...(composeType === "stack" && {
+						...getEnviromentVariablesObject(compose.env, compose.project.env),
+					}),
 				},
 			},
 		);
+
+		if (compose.isolatedDeployment) {
+			await execAsync(
+				`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
+			).catch(() => {});
+		}
 
 		writeStream.write("Docker Compose Deployed: ✅");
 	} catch (error) {
@@ -80,11 +98,11 @@ export const getBuildComposeCommand = async (
 	logPath: string,
 ) => {
 	const { COMPOSE_PATH } = paths(true);
-	const { sourceType, appName, mounts, composeType, domains, composePath } =
-		compose;
+	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToComposeRemote(
 		compose,
@@ -120,7 +138,10 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
+        ${exportEnvCommand}
+		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
+		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
 		echo "Docker Compose Deployed: ✅" >> "${logPath}"
 	} || {
@@ -144,7 +165,6 @@ const sanitizeCommand = (command: string) => {
 
 export const createCommand = (compose: ComposeNested) => {
 	const { composeType, appName, sourceType } = compose;
-
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
@@ -218,4 +238,18 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 touch ${envFilePath};
 echo "${encodedContent}" | base64 -d > "${envFilePath}";
 	`;
+};
+
+const getExportEnvCommand = (compose: ComposeNested) => {
+	if (compose.composeType !== "stack") return "";
+
+	const envVars = getEnviromentVariablesObject(
+		compose.env,
+		compose.project.env,
+	);
+	const exports = Object.entries(envVars)
+		.map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
+		.join("\n");
+
+	return exports ? `\n# Export environment variables\n${exports}\n` : "";
 };

@@ -15,32 +15,24 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { authClient } from "@/lib/auth-client";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
 import { ChevronsUpDown } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
-const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
+const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UserNav = () => {
 	const router = useRouter();
-	const { data } = api.auth.get.useQuery();
+	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: data?.id || "",
-		},
-		{
-			enabled: !!data?.id && data?.rol === "user",
-		},
-	);
+
 	const { locale, setLocale } = useLocale();
-	const { mutateAsync } = api.auth.logout.useMutation();
+	// const { mutateAsync } = api.auth.logout.useMutation();
 
 	return (
 		<DropdownMenu>
@@ -50,12 +42,15 @@ export const UserNav = () => {
 					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage src={data?.image || ""} alt={data?.image || ""} />
+						<AvatarImage
+							src={data?.user?.image || ""}
+							alt={data?.user?.image || ""}
+						/>
 						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
 						<span className="truncate font-semibold">Account</span>
-						<span className="truncate text-xs">{data?.email}</span>
+						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
 				</SidebarMenuButton>
@@ -70,7 +65,7 @@ export const UserNav = () => {
 					<DropdownMenuLabel className="flex flex-col">
 						My Account
 						<span className="text-xs font-normal text-muted-foreground">
-							{data?.email}
+							{data?.user?.email}
 						</span>
 					</DropdownMenuLabel>
 					<ModeToggle />
@@ -95,7 +90,7 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.rol === "admin" || user?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -105,7 +100,7 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.rol === "admin" || user?.canAccessToDocker) && (
+							{(data?.role === "owner" || data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -118,14 +113,16 @@ export const UserNav = () => {
 								</DropdownMenuItem>
 							)}
 
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/settings/server");
-								}}
-							>
-								Settings
-							</DropdownMenuItem>
+							{data?.role === "owner" && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/settings");
+									}}
+								>
+									Settings
+								</DropdownMenuItem>
+							)}
 						</>
 					) : (
 						<>
@@ -137,7 +134,7 @@ export const UserNav = () => {
 							>
 								Profile
 							</DropdownMenuItem>
-							{data?.rol === "admin" && (
+							{data?.role === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -147,10 +144,21 @@ export const UserNav = () => {
 									Servers
 								</DropdownMenuItem>
 							)}
+
+							{data?.role === "owner" && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/settings");
+									}}
+								>
+									Settings
+								</DropdownMenuItem>
+							)}
 						</>
 					)}
 				</DropdownMenuGroup>
-				{isCloud && data?.rol === "admin" && (
+				{isCloud && data?.role === "owner" && (
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => {
@@ -165,9 +173,12 @@ export const UserNav = () => {
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={async () => {
-							await mutateAsync().then(() => {
+							await authClient.signOut().then(() => {
 								router.push("/");
 							});
+							// await mutateAsync().then(() => {
+							// 	router.push("/");
+							// });
 						}}
 					>
 						Log out

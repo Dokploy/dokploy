@@ -248,7 +248,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
-																	value={repo.url}
+																	value={repo.name}
 																	key={repo.url}
 																	onSelect={() => {
 																		form.setValue("repository", {
@@ -260,7 +260,12 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																		form.setValue("branch", "");
 																	}}
 																>
-																	{repo.name}
+																	<span className="flex items-center gap-2">
+																		<span>{repo.name}</span>
+																		<span className="text-muted-foreground text-xs">
+																			{repo.owner.username}
+																		</span>
+																	</span>
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",

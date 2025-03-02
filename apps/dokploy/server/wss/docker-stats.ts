@@ -1,9 +1,10 @@
 import type http from "node:http";
 import {
 	docker,
+	execAsync,
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
-	validateWebSocketRequest,
+	validateRequest,
 } from "@dokploy/server";
 import { WebSocketServer } from "ws";
 
@@ -35,7 +36,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "application"
 			| "stack"
 			| "docker-compose";
-		const { user, session } = await validateWebSocketRequest(req);
+		const { user, session } = await validateRequest(req);
 
 		if (!appName) {
 			ws.close(4000, "appName no provided");
@@ -70,12 +71,16 @@ export const setupDockerStatsMonitoringSocketServer = (
 					ws.close(4000, "Container not running");
 					return;
 				}
+				const { stdout, stderr } = await execAsync(
+					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+				);
+				if (stderr) {
+					console.error("Docker stats error:", stderr);
+					return;
+				}
+				const stat = JSON.parse(stdout);
 
-				const stats = await docker.getContainer(container.Id).stats({
-					stream: false,
-				});
-
-				await recordAdvancedStats(stats, appName);
+				await recordAdvancedStats(stat, appName);
 				const data = await getLastAdvancedStatsFile(appName);
 
 				ws.send(

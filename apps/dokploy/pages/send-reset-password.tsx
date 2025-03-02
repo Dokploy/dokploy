@@ -1,14 +1,8 @@
-import { Login2FA } from "@/components/auth/login-2fa";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardTitle,
-} from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -18,7 +12,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
+import { authClient } from "@/lib/auth-client";
 import { IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
@@ -48,13 +42,14 @@ type AuthResponse = {
 };
 
 export default function Home() {
-	const [temp, setTemp] = useState<AuthResponse>({
+	const [temp, _setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
 	});
-	const { mutateAsync, isLoading, isError, error } =
-		api.auth.sendResetPasswordEmail.useMutation();
-	const router = useRouter();
+
+	const [error, setError] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const _router = useRouter();
 	const form = useForm<Login>({
 		defaultValues: {
 			email: "",
@@ -67,19 +62,20 @@ export default function Home() {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Login) => {
-		await mutateAsync({
+		setIsLoading(true);
+		const { error } = await authClient.forgetPassword({
 			email: values.email,
-		})
-			.then((data) => {
-				toast.success("Email sent", {
-					duration: 2000,
-				});
-			})
-			.catch(() => {
-				toast.error("Error sending email", {
-					duration: 2000,
-				});
+			redirectTo: "/reset-password",
+		});
+		if (error) {
+			setError(error.message || "An error occurred");
+			setIsLoading(false);
+		} else {
+			toast.success("Email sent", {
+				duration: 2000,
 			});
+		}
+		setIsLoading(false);
 	};
 	return (
 		<div className="flex w-full items-center justify-center ">
@@ -95,9 +91,9 @@ export default function Home() {
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
 					<CardContent className="p-0">
-						{isError && (
+						{error && (
 							<AlertBlock type="error" className="my-2">
-								{error?.message}
+								{error}
 							</AlertBlock>
 						)}
 						{!temp.is2FAEnabled ? (
@@ -131,9 +127,7 @@ export default function Home() {
 									</div>
 								</form>
 							</Form>
-						) : (
-							<Login2FA authId={temp.authId} />
-						)}
+						) : null}
 
 						<div className="flex flex-row justify-between flex-wrap">
 							<div className="mt-4 text-center text-sm flex flex-row justify-center gap-2">
@@ -155,7 +149,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(context: GetServerSidePropsContext) {
+export async function getServerSideProps(_context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {

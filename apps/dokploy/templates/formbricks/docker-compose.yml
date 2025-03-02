@@ -1,0 +1,37 @@
+x-environment: &environment
+  environment:
+    WEBAPP_URL: ${WEBAPP_URL}
+    NEXTAUTH_URL: ${NEXTAUTH_URL}
+    DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/formbricks?schema=public"
+    NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    CRON_SECRET: ${CRON_SECRET}
+    EMAIL_VERIFICATION_DISABLED: 1
+    PASSWORD_RESET_DISABLED: 1
+    S3_FORCE_PATH_STYLE: 0
+
+services:
+  postgres:
+    restart: always
+    image: pgvector/pgvector:pg17
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+
+  formbricks:
+    restart: always
+    image: ghcr.io/formbricks/formbricks:v3.1.3
+    depends_on:
+      - postgres
+    ports:
+      - 3000
+    volumes:
+      - ../files/uploads:/home/nextjs/apps/web/uploads/
+    <<: *environment
+
+volumes:
+  postgres:
+    driver: local
+  uploads:

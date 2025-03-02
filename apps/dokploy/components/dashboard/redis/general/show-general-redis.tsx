@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Ban, CheckCircle2, RefreshCcw, Terminal } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
@@ -168,6 +168,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 						setIsDrawerOpen(false);
 						setFilteredLogs([]);
 						setIsDeploying(false);
+						refetch();
 					}}
 					filteredLogs={filteredLogs}
 				/>

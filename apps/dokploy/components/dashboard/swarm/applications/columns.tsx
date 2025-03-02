@@ -1,6 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -215,7 +214,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 	{
 		accessorKey: "Logs",
 		accessorFn: (row) => row.Error,
-		header: ({ column }) => {
+		header: () => {
 			return <span>Logs</span>;
 		},
 		cell: ({ row }) => {

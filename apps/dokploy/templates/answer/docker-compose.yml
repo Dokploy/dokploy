@@ -1,0 +1,30 @@
+services:
+  answer:
+    image: apache/answer:1.4.1
+    ports:
+      - '80'
+    restart: on-failure
+    volumes:
+      - answer-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: answer
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+volumes:
+  answer-data:
+  db-data:
