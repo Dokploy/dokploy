@@ -47,7 +47,7 @@ const UpdateBackupSchema = z.object({
 	prefix: z.string().min(1, "Prefix required"),
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
-	keepLatestCount: z.number(),
+	keepLatestCount: z.coerce.number(),
 });
 
 type UpdateBackup = z.infer<typeof UpdateBackupSchema>;
@@ -272,7 +272,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										<FormItem>
 											<FormLabel>Keep the latest</FormLabel>
 											<FormControl>
-												<Input type="number" placeholder={"20"} {...field} />
+												<Input type="number" placeholder={"keeps all the backups if left empty"} {...field} />
 											</FormControl>
 											<FormDescription>
 												Optional. If provided, only keeps the latest N backups in the cloud.
