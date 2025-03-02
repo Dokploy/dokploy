@@ -1,7 +1,7 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
 import { IS_CLOUD } from "../constants";
-import { findAdminById } from "../services/admin";
+import { findUserById } from "../services/admin";
 import { getDokployImageTag } from "../services/settings";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
@@ -66,7 +66,7 @@ export const setupMonitoring = async (serverId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (error) {
+		} catch (_error) {
 			// Container doesn't exist, continue
 		}
 
@@ -80,8 +80,8 @@ export const setupMonitoring = async (serverId: string) => {
 	}
 };
 
-export const setupWebMonitoring = async (adminId: string) => {
-	const admin = await findAdminById(adminId);
+export const setupWebMonitoring = async (userId: string) => {
+	const user = await findUserById(userId);
 
 	const containerName = "dokploy-monitoring";
 	let imageName = "dokploy/monitoring:latest";
@@ -96,7 +96,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
-		Env: [`METRICS_CONFIG=${JSON.stringify(admin?.metricsConfig)}`],
+		Env: [`METRICS_CONFIG=${JSON.stringify(user?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
 			// Memory: 100 * 1024 * 1024, // 100MB en bytes
@@ -104,9 +104,9 @@ export const setupWebMonitoring = async (adminId: string) => {
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
 			PortBindings: {
-				[`${admin.metricsConfig.server.port}/tcp`]: [
+				[`${user?.metricsConfig?.server?.port}/tcp`]: [
 					{
-						HostPort: admin.metricsConfig.server.port.toString(),
+						HostPort: user?.metricsConfig?.server?.port.toString(),
 					},
 				],
 			},
@@ -120,7 +120,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 			// NetworkMode: "host",
 		},
 		ExposedPorts: {
-			[`${admin.metricsConfig.server.port}/tcp`]: {},
+			[`${user?.metricsConfig?.server?.port}/tcp`]: {},
 		},
 	};
 	const docker = await getRemoteDocker();
@@ -135,7 +135,7 @@ export const setupWebMonitoring = async (adminId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (error) {}
+		} catch (_error) {}
 
 		await docker.createContainer(settings);
 		const newContainer = docker.getContainer(containerName);

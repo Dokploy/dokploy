@@ -2,6 +2,37 @@ import type { TemplateData } from "./types/templates-data.type";
 
 export const templates: TemplateData[] = [
 	{
+		id: "appwrite",
+		name: "Appwrite",
+		version: "1.6.0",
+		description:
+			"Appwrite is an end-to-end backend server for Web, Mobile, Native, or Backend apps. Appwrite abstracts the complexity and repetitiveness required to build a modern backend API from scratch and allows you to build secure apps faster.\n" +
+			"Using Appwrite, you can easily integrate your app with user authentication and multiple sign-in methods, a database for storing and querying users and team data, storage and file management, image manipulation, Cloud Functions, messaging, and more services.",
+		links: {
+			github: "https://github.com/appwrite/appwrite",
+			website: "https://appwrite.io/",
+			docs: "https://appwrite.io/docs",
+		},
+		logo: "appwrite.svg",
+		tags: ["database", "firebase", "postgres"],
+		load: () => import("./appwrite/index").then((m) => m.generate),
+	},
+	{
+		id: "outline",
+		name: "Outline",
+		version: "0.82.0",
+		description:
+			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
+		links: {
+			github: "https://github.com/outline/outline",
+			website: "https://getoutline.com/",
+			docs: "https://docs.getoutline.com/s/guide",
+		},
+		logo: "outline.png",
+		load: () => import("./outline/index").then((m) => m.generate),
+		tags: ["documentation", "knowledge-base", "self-hosted"],
+	},
+	{
 		id: "supabase",
 		name: "SupaBase",
 		version: "1.24.07",
@@ -34,7 +65,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "plausible",
 		name: "Plausible",
-		version: "v2.1.4",
+		version: "v2.1.5",
 		description:
 			"Plausible is a open source, self-hosted web analytics platform that lets you track website traffic and user behavior.",
 		logo: "plausible.svg",
@@ -363,6 +394,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./open-webui/index").then((m) => m.generate),
 	},
 	{
+		id: "mailpit",
+		name: "Mailpit",
+		version: "v1.22.3",
+		description:
+			"Mailpit is a tiny, self-contained, and secure email & SMTP testing tool with API for developers.",
+		logo: "mailpit.svg",
+		links: {
+			github: "https://github.com/axllent/mailpit",
+			website: "https://mailpit.axllent.org/",
+			docs: "https://mailpit.axllent.org/docs/",
+		},
+		tags: ["email", "smtp"],
+		load: () => import("./mailpit/index").then((m) => m.generate),
+	},
+	{
 		id: "listmonk",
 		name: "Listmonk",
 		version: "v3.0.0",
@@ -395,7 +441,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.14.0",
+		version: "v2.16.1",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -630,6 +676,21 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["open-source"],
 		load: () => import("./vaultwarden/index").then((m) => m.generate),
+	},
+	{
+		id: "linkwarden",
+		name: "Linkwarden",
+		version: "2.9.3",
+		description:
+			"Self-hosted, open-source collaborative bookmark manager to collect, organize and archive webpages.",
+		logo: "linkwarden.png",
+		links: {
+			github: "https://github.com/linkwarden/linkwarden",
+			website: "https://linkwarden.app/",
+			docs: "https://docs.linkwarden.app/",
+		},
+		tags: ["bookmarks", "link-sharing"],
+		load: () => import("./linkwarden/index").then((m) => m.generate),
 	},
 	{
 		id: "hi-events",
@@ -1063,6 +1124,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./logto/index").then((m) => m.generate),
 	},
 	{
+		id: "pocket-id",
+		name: "Pocket ID",
+		version: "0.35.1",
+		description:
+			"A simple and easy-to-use OIDC provider that allows users to authenticate with their passkeys to your services.",
+		logo: "pocket-id.svg",
+		links: {
+			github: "https://github.com/pocket-id/pocket-id",
+			website: "https://pocket-id.org/",
+			docs: "https://pocket-id.org/docs",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./pocket-id/index").then((m) => m.generate),
+	},
+	{
 		id: "penpot",
 		name: "Penpot",
 		version: "2.3.2",
@@ -1409,6 +1485,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./spacedrive/index").then((m) => m.generate),
 	},
 	{
+		id: "registry",
+		name: "Docker Registry",
+		version: "2",
+		description:
+			"Distribution implementation for storing and distributing of Docker container images and artifacts.",
+		links: {
+			github: "https://github.com/distribution/distribution",
+			website: "https://hub.docker.com/_/registry",
+			docs: "https://distribution.github.io/distribution/",
+		},
+		logo: "registry.png",
+		tags: ["registry", "docker", "self-hosted"],
+		load: () => import("./registry/index").then((m) => m.generate),
+	},
+	{
 		id: "alist",
 		name: "AList",
 		version: "v3.41.0",
@@ -1482,5 +1573,49 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["forms", "analytics"],
 		load: () => import("./formbricks/index").then((m) => m.generate),
+	},
+	{
+		id: "trilium",
+		name: "Trilium",
+		description:
+			"Trilium Notes is a hierarchical note taking application with focus on building large personal knowledge bases.",
+		logo: "trilium.png",
+		version: "latest",
+		links: {
+			github: "https://github.com/zadam/trilium",
+			website: "https://github.com/zadam/trilium",
+			docs: "https://github.com/zadam/trilium/wiki/",
+		},
+		tags: ["self-hosted", "productivity", "personal-use"],
+		load: () => import("./trilium/index").then((m) => m.generate),
+	},
+	{
+		id: "convex",
+		name: "Convex",
+		version: "latest",
+		description:
+			"Convex is an open-source reactive database designed to make life easy for web app developers.",
+		logo: "convex.svg",
+		links: {
+			github: "https://github.com/get-convex/convex",
+			website: "https://www.convex.dev/",
+			docs: "https://www.convex.dev/docs",
+		},
+		tags: ["backend", "database", "api"],
+		load: () => import("./convex/index").then((m) => m.generate),
+	},
+	{
+		id: "wikijs",
+		name: "Wiki.js",
+		version: "2.5",
+		description: "The most powerful and extensible open source Wiki software.",
+		logo: "wikijs.svg",
+		links: {
+			github: "https://github.com/requarks/wiki",
+			website: "https://js.wiki/",
+			docs: "https://docs.requarks.io/",
+		},
+		tags: ["knowledge-base", "self-hosted", "documentation"],
+		load: () => import("./wikijs/index").then((m) => m.generate),
 	},
 ];

@@ -1,7 +1,7 @@
 import { buffer } from "node:stream/consumers";
 import { db } from "@/server/db";
-import { admins, server } from "@/server/db/schema";
-import { findAdminById } from "@dokploy/server";
+import { organization, server, users_temp } from "@/server/db/schema";
+import { type Server, findUserById } from "@dokploy/server";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
@@ -64,33 +64,35 @@ export default async function handler(
 				session.subscription as string,
 			);
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					stripeCustomerId: session.customer as string,
 					stripeSubscriptionId: session.subscription as string,
 					serversQuantity: subscription?.items?.data?.[0]?.quantity ?? 0,
 				})
-				.where(eq(admins.adminId, adminId))
+				.where(eq(users_temp.id, adminId))
 				.returning();
 
-			const admin = await findAdminById(adminId);
+			const admin = await findUserById(adminId);
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.adminId, newServersQuantity);
+			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
 			break;
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					stripeSubscriptionId: newSubscription.id,
 					stripeCustomerId: newSubscription.customer as string,
 				})
-				.where(eq(admins.stripeCustomerId, newSubscription.customer as string))
+				.where(
+					eq(users_temp.stripeCustomerId, newSubscription.customer as string),
+				)
 				.returning();
 
 			break;
@@ -100,14 +102,16 @@ export default async function handler(
 			const newSubscription = event.data.object as Stripe.Subscription;
 
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					stripeSubscriptionId: null,
 					serversQuantity: 0,
 				})
-				.where(eq(admins.stripeCustomerId, newSubscription.customer as string));
+				.where(
+					eq(users_temp.stripeCustomerId, newSubscription.customer as string),
+				);
 
-			const admin = await findAdminByStripeCustomerId(
+			const admin = await findUserByStripeCustomerId(
 				newSubscription.customer as string,
 			);
 
@@ -115,13 +119,13 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
-			await disableServers(admin.adminId);
+			await disableServers(admin.id);
 			break;
 		}
 		case "customer.subscription.updated": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
-			const admin = await findAdminByStripeCustomerId(
+			const admin = await findUserByStripeCustomerId(
 				newSubscription.customer as string,
 			);
 
@@ -131,23 +135,23 @@ export default async function handler(
 
 			if (newSubscription.status === "active") {
 				await db
-					.update(admins)
+					.update(users_temp)
 					.set({
 						serversQuantity: newSubscription?.items?.data?.[0]?.quantity ?? 0,
 					})
 					.where(
-						eq(admins.stripeCustomerId, newSubscription.customer as string),
+						eq(users_temp.stripeCustomerId, newSubscription.customer as string),
 					);
 
 				const newServersQuantity = admin.serversQuantity;
-				await updateServersBasedOnQuantity(admin.adminId, newServersQuantity);
+				await updateServersBasedOnQuantity(admin.id, newServersQuantity);
 			} else {
-				await disableServers(admin.adminId);
+				await disableServers(admin.id);
 				await db
-					.update(admins)
+					.update(users_temp)
 					.set({ serversQuantity: 0 })
 					.where(
-						eq(admins.stripeCustomerId, newSubscription.customer as string),
+						eq(users_temp.stripeCustomerId, newSubscription.customer as string),
 					);
 			}
 
@@ -168,13 +172,13 @@ export default async function handler(
 			}
 
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					serversQuantity: suscription?.items?.data?.[0]?.quantity ?? 0,
 				})
-				.where(eq(admins.stripeCustomerId, suscription.customer as string));
+				.where(eq(users_temp.stripeCustomerId, suscription.customer as string));
 
-			const admin = await findAdminByStripeCustomerId(
+			const admin = await findUserByStripeCustomerId(
 				suscription.customer as string,
 			);
 
@@ -182,7 +186,7 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.adminId, newServersQuantity);
+			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
 			break;
 		}
 		case "invoice.payment_failed": {
@@ -193,7 +197,7 @@ export default async function handler(
 			);
 
 			if (subscription.status !== "active") {
-				const admin = await findAdminByStripeCustomerId(
+				const admin = await findUserByStripeCustomerId(
 					newInvoice.customer as string,
 				);
 
@@ -201,13 +205,15 @@ export default async function handler(
 					return res.status(400).send("Webhook Error: Admin not found");
 				}
 				await db
-					.update(admins)
+					.update(users_temp)
 					.set({
 						serversQuantity: 0,
 					})
-					.where(eq(admins.stripeCustomerId, newInvoice.customer as string));
+					.where(
+						eq(users_temp.stripeCustomerId, newInvoice.customer as string),
+					);
 
-				await disableServers(admin.adminId);
+				await disableServers(admin.id);
 			}
 
 			break;
@@ -216,20 +222,20 @@ export default async function handler(
 		case "customer.deleted": {
 			const customer = event.data.object as Stripe.Customer;
 
-			const admin = await findAdminByStripeCustomerId(customer.id);
+			const admin = await findUserByStripeCustomerId(customer.id);
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
-			await disableServers(admin.adminId);
+			await disableServers(admin.id);
 			await db
-				.update(admins)
+				.update(users_temp)
 				.set({
 					stripeCustomerId: null,
 					stripeSubscriptionId: null,
 					serversQuantity: 0,
 				})
-				.where(eq(admins.stripeCustomerId, customer.id));
+				.where(eq(users_temp.stripeCustomerId, customer.id));
 
 			break;
 		}
@@ -240,20 +246,26 @@ export default async function handler(
 	return res.status(200).json({ received: true });
 }
 
-const disableServers = async (adminId: string) => {
-	await db
-		.update(server)
-		.set({
-			serverStatus: "inactive",
-		})
-		.where(eq(server.adminId, adminId));
+const disableServers = async (userId: string) => {
+	const organizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+	});
+
+	for (const org of organizations) {
+		await db
+			.update(server)
+			.set({
+				serverStatus: "inactive",
+			})
+			.where(eq(server.organizationId, org.id));
+	}
 };
 
-const findAdminByStripeCustomerId = async (stripeCustomerId: string) => {
-	const admin = db.query.admins.findFirst({
-		where: eq(admins.stripeCustomerId, stripeCustomerId),
+const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
+	const user = db.query.users_temp.findFirst({
+		where: eq(users_temp.stripeCustomerId, stripeCustomerId),
 	});
-	return admin;
+	return user;
 };
 
 const activateServer = async (serverId: string) => {
@@ -270,19 +282,27 @@ const deactivateServer = async (serverId: string) => {
 		.where(eq(server.serverId, serverId));
 };
 
-export const findServersByAdminIdSorted = async (adminId: string) => {
-	const servers = await db.query.server.findMany({
-		where: eq(server.adminId, adminId),
-		orderBy: asc(server.createdAt),
+export const findServersByUserIdSorted = async (userId: string) => {
+	const organizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
 	});
+
+	const servers: Server[] = [];
+	for (const org of organizations) {
+		const serversByOrg = await db.query.server.findMany({
+			where: eq(server.organizationId, org.id),
+			orderBy: asc(server.createdAt),
+		});
+		servers.push(...serversByOrg);
+	}
 
 	return servers;
 };
 export const updateServersBasedOnQuantity = async (
-	adminId: string,
+	userId: string,
 	newServersQuantity: number,
 ) => {
-	const servers = await findServersByAdminIdSorted(adminId);
+	const servers = await findServersByUserIdSorted(userId);
 
 	if (servers.length > newServersQuantity) {
 		for (const [index, server] of servers.entries()) {

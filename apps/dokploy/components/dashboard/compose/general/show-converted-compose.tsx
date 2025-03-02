@@ -40,7 +40,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 				.then(() => {
 					refetch();
 				})
-				.catch((err) => {});
+				.catch((_err) => {});
 		}
 	}, [isOpen]);
 

@@ -2,8 +2,6 @@ import { db } from "@dokploy/server/db";
 import { type apiCreateBackup, backups } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
-import { removeScheduleBackup, scheduleBackup } from "../utils/backups/utils";
 
 export type Backup = typeof backups.$inferSelect;
 

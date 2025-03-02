@@ -5,8 +5,6 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { findAdminById } from "./admin";
-// import packageInfo from "../../../package.json";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -171,7 +169,6 @@ echo "$json_output"
 		const result = JSON.parse(stdout);
 		return result;
 	}
-	const items = readdirSync(dirPath, { withFileTypes: true });
 
 	const stack = [dirPath];
 	const result: TreeDataItem[] = [];

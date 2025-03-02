@@ -10,8 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-
-import { admins } from "./admin";
+import { organization } from "./account";
 import { applications } from "./application";
 import { certificates } from "./certificate";
 import { compose } from "./compose";
@@ -40,12 +39,10 @@ export const server = pgTable("server", {
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	createdAt: text("createdAt")
+	createdAt: text("createdAt").notNull(),
+	organizationId: text("organizationId")
 		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
-	adminId: text("adminId")
-		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
@@ -100,10 +97,6 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	admin: one(admins, {
-		fields: [server.adminId],
-		references: [admins.adminId],
-	}),
 	deployments: many(deployments),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],
@@ -117,6 +110,10 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mysql: many(mysql),
 	postgres: many(postgres),
 	certificates: many(certificates),
+	organization: one(organization, {
+		fields: [server.organizationId],
+		references: [organization.id],
+	}),
 }));
 
 const createSchema = createInsertSchema(server, {

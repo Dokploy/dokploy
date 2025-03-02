@@ -1,0 +1,57 @@
+services:
+  outline:
+    image: outlinewiki/outline:0.82.0
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+      - dex
+    ports:
+      - 3000
+    environment:
+      NODE_ENV: production
+      URL: ${URL}
+      FORCE_HTTPS: 'false'
+      SECRET_KEY: ${SECRET_KEY}
+      UTILS_SECRET: ${UTILS_SECRET}
+      DATABASE_URL: postgres://outline:${POSTGRES_PASSWORD}@postgres:5432/outline
+      PGSSLMODE: disable
+      REDIS_URL: redis://redis:6379
+      OIDC_CLIENT_ID: outline
+      OIDC_CLIENT_SECRET: ${CLIENT_SECRET}
+      OIDC_AUTH_URI: ${DEX_URL}/auth
+      OIDC_TOKEN_URI: ${DEX_URL}/token
+      OIDC_USERINFO_URI: ${DEX_URL}/userinfo
+
+  dex:
+    image: ghcr.io/dexidp/dex:v2.37.0
+    restart: always
+    volumes:
+      - ../files/etc/dex/config.yaml:/etc/dex/config.yaml
+    command:
+      - dex
+      - serve
+      - /etc/dex/config.yaml
+    ports:
+      - 5556
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: outline
+      POSTGRES_USER: outline
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data-test-outline-khufpx:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data-test-outline-khufpx:/data
+    
+volumes:
+  postgres_data-test-outline-khufpx:
+  redis_data-test-outline-khufpx:

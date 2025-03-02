@@ -1,17 +1,13 @@
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/index";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import type React from "react";
 import type { ReactElement } from "react";
 
 const BASE_URL = "http://localhost:3001/metrics";
@@ -19,13 +15,12 @@ const BASE_URL = "http://localhost:3001/metrics";
 const DEFAULT_TOKEN = "metrics";
 
 const Dashboard = () => {
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const [toggleMonitoring, setToggleMonitoring] = useLocalStorage(
+	const [toggleMonitoring, _setToggleMonitoring] = useLocalStorage(
 		"monitoring-enabled",
 		false,
 	);
 
-	const { data: monitoring, isLoading } = api.admin.getMetricsToken.useQuery();
+	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -104,7 +99,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user } = await validateRequest(ctx.req, ctx.res);
+	const { user } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
 			redirect: {

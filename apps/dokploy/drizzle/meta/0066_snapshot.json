@@ -1,6 +1,6 @@
 {
-  "id": "ddd0c05a-3bcb-41b8-8bf7-6b7647eaa09d",
-  "prevId": "1240ec96-1751-4de3-b64f-cef9cb716786",
+  "id": "c5e17a87-0aa3-4178-be24-cfa7cde0f75d",
+  "prevId": "9cb79f1e-14c2-4deb-b1ab-a1d038f72356",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -731,21 +731,22 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user": {
-      "name": "user",
+    "public.user_temp": {
+      "name": "user_temp",
       "schema": "",
       "columns": {
-        "userId": {
-          "name": "userId",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "token": {
-          "name": "token",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "''"
         },
         "isRegistered": {
           "name": "isRegistered",
@@ -756,7 +757,7 @@
         },
         "expirationDate": {
           "name": "expirationDate",
-          "type": "timestamp(3)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -766,139 +767,59 @@
           "primaryKey": false,
           "notNull": true
         },
-        "canCreateProjects": {
-          "name": "canCreateProjects",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "two_factor_enabled": {
+          "name": "two_factor_enabled",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
+          "notNull": false
         },
-        "canAccessToSSHKeys": {
-          "name": "canAccessToSSHKeys",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canCreateServices": {
-          "name": "canCreateServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteProjects": {
-          "name": "canDeleteProjects",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canDeleteServices": {
-          "name": "canDeleteServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToDocker": {
-          "name": "canAccessToDocker",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToAPI": {
-          "name": "canAccessToAPI",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToGitProviders": {
-          "name": "canAccessToGitProviders",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "canAccessToTraefikFiles": {
-          "name": "canAccessToTraefikFiles",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "accesedProjects": {
-          "name": "accesedProjects",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "accesedServices": {
-          "name": "accesedServices",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "adminId": {
-          "name": "adminId",
+        "email": {
+          "name": "email",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "authId": {
-          "name": "authId",
-          "type": "text",
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "user_adminId_admin_adminId_fk": {
-          "name": "user_adminId_admin_adminId_fk",
-          "tableFrom": "user",
-          "tableTo": "admin",
-          "columnsFrom": [
-            "adminId"
-          ],
-          "columnsTo": [
-            "adminId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         },
-        "user_authId_auth_id_fk": {
-          "name": "user_authId_auth_id_fk",
-          "tableFrom": "user",
-          "tableTo": "auth",
-          "columnsFrom": [
-            "authId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.admin": {
-      "name": "admin",
-      "schema": "",
-      "columns": {
-        "adminId": {
-          "name": "adminId",
+        "image": {
+          "name": "image",
           "type": "text",
-          "primaryKey": true,
+          "primaryKey": false,
+          "notNull": false
+        },
+        "banned": {
+          "name": "banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
           "notNull": true
         },
         "serverIp": {
@@ -947,37 +868,6 @@
           "notNull": true,
           "default": false
         },
-        "authId": {
-          "name": "authId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stripeCustomerId": {
-          "name": "stripeCustomerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stripeSubscriptionId": {
-          "name": "stripeSubscriptionId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "serversQuantity": {
-          "name": "serversQuantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
         "enablePaidFeatures": {
           "name": "enablePaidFeatures",
           "type": "boolean",
@@ -1012,121 +902,33 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "admin_authId_auth_id_fk": {
-          "name": "admin_authId_auth_id_fk",
-          "tableFrom": "admin",
-          "tableTo": "auth",
-          "columnsFrom": [
-            "authId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.auth": {
-      "name": "auth",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
         },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password": {
-          "name": "password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rol": {
-          "name": "rol",
-          "type": "Roles",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "image": {
-          "name": "image",
+        "stripeCustomerId": {
+          "name": "stripeCustomerId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "secret": {
-          "name": "secret",
+        "stripeSubscriptionId": {
+          "name": "stripeSubscriptionId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is2FAEnabled": {
-          "name": "is2FAEnabled",
-          "type": "boolean",
+        "serversQuantity": {
+          "name": "serversQuantity",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resetPasswordToken": {
-          "name": "resetPasswordToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "resetPasswordExpiresAt": {
-          "name": "resetPasswordExpiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confirmationToken": {
-          "name": "confirmationToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confirmationExpiresAt": {
-          "name": "confirmationExpiresAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "default": 0
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "auth_email_unique": {
-          "name": "auth_email_unique",
+        "user_temp_email_unique": {
+          "name": "user_temp_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"
@@ -1165,8 +967,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1181,15 +983,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_adminId_admin_adminId_fk": {
-          "name": "project_adminId_admin_adminId_fk",
+        "project_organizationId_organization_id_fk": {
+          "name": "project_organizationId_organization_id_fk",
           "tableFrom": "project",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2042,8 +1844,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2051,15 +1853,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "destination_adminId_admin_adminId_fk": {
-          "name": "destination_adminId_admin_adminId_fk",
+        "destination_organizationId_organization_id_fk": {
+          "name": "destination_organizationId_organization_id_fk",
           "tableFrom": "destination",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2450,11 +2252,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "serverId": {
           "name": "serverId",
@@ -2465,15 +2267,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "certificate_adminId_admin_adminId_fk": {
-          "name": "certificate_adminId_admin_adminId_fk",
+        "certificate_organizationId_organization_id_fk": {
+          "name": "certificate_organizationId_organization_id_fk",
           "tableFrom": "certificate",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2506,8 +2308,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.session": {
-      "name": "session",
+    "public.session_temp": {
+      "name": "session_temp",
       "schema": "",
       "columns": {
         "id": {
@@ -2516,25 +2318,67 @@
           "primaryKey": true,
           "notNull": true
         },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "user_id": {
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
+        "impersonated_by": {
+          "name": "impersonated_by",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "active_organization_id": {
+          "name": "active_organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "session_user_id_auth_id_fk": {
-          "name": "session_user_id_auth_id_fk",
-          "tableFrom": "session",
-          "tableTo": "auth",
+        "session_temp_user_id_user_temp_id_fk": {
+          "name": "session_temp_user_id_user_temp_id_fk",
+          "tableFrom": "session_temp",
+          "tableTo": "user_temp",
           "columnsFrom": [
             "user_id"
           ],
@@ -2546,7 +2390,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "session_temp_token_unique": {
+          "name": "session_temp_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3272,8 +3124,8 @@
           "notNull": true,
           "default": "'cloud'"
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3281,15 +3133,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "registry_adminId_admin_adminId_fk": {
-          "name": "registry_adminId_admin_adminId_fk",
+        "registry_organizationId_organization_id_fk": {
+          "name": "registry_organizationId_organization_id_fk",
           "tableFrom": "registry",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3532,11 +3384,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -3606,15 +3458,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "notification_adminId_admin_adminId_fk": {
-          "name": "notification_adminId_admin_adminId_fk",
+        "notification_organizationId_organization_id_fk": {
+          "name": "notification_organizationId_organization_id_fk",
           "tableFrom": "notification",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3678,12 +3530,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "messageThreadId": {
-          "name": "messageThreadId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -3741,24 +3587,24 @@
           "primaryKey": false,
           "notNull": false
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "ssh-key_adminId_admin_adminId_fk": {
-          "name": "ssh-key_adminId_admin_adminId_fk",
+        "ssh-key_organizationId_organization_id_fk": {
+          "name": "ssh-key_organizationId_organization_id_fk",
           "tableFrom": "ssh-key",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3800,24 +3646,24 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "git_provider_adminId_admin_adminId_fk": {
-          "name": "git_provider_adminId_admin_adminId_fk",
+        "git_provider_organizationId_organization_id_fk": {
+          "name": "git_provider_organizationId_organization_id_fk",
           "tableFrom": "git_provider",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4115,8 +3961,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "adminId": {
-          "name": "adminId",
+        "organizationId": {
+          "name": "organizationId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4152,15 +3998,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "server_adminId_admin_adminId_fk": {
-          "name": "server_adminId_admin_adminId_fk",
+        "server_organizationId_organization_id_fk": {
+          "name": "server_organizationId_organization_id_fk",
           "tableFrom": "server",
-          "tableTo": "admin",
+          "tableTo": "organization",
           "columnsFrom": [
-            "adminId"
+            "organizationId"
           ],
           "columnsTo": [
-            "adminId"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4312,6 +4158,714 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is2FAEnabled": {
+          "name": "is2FAEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resetPasswordToken": {
+          "name": "resetPasswordToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resetPasswordExpiresAt": {
+          "name": "resetPasswordExpiresAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmationToken": {
+          "name": "confirmationToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmationExpiresAt": {
+          "name": "confirmationExpiresAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_user_id_user_temp_id_fk": {
+          "name": "account_user_id_user_temp_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.apikey": {
+      "name": "apikey",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start": {
+          "name": "start",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refill_interval": {
+          "name": "refill_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refill_amount": {
+          "name": "refill_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_refill_at": {
+          "name": "last_refill_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_enabled": {
+          "name": "rate_limit_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_time_window": {
+          "name": "rate_limit_time_window",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_max": {
+          "name": "rate_limit_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_count": {
+          "name": "request_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remaining": {
+          "name": "remaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_request": {
+          "name": "last_request",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permissions": {
+          "name": "permissions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "apikey_user_id_user_temp_id_fk": {
+          "name": "apikey_user_id_user_temp_id_fk",
+          "tableFrom": "apikey",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.invitation": {
+      "name": "invitation",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inviter_id": {
+          "name": "inviter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invitation_organization_id_organization_id_fk": {
+          "name": "invitation_organization_id_organization_id_fk",
+          "tableFrom": "invitation",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "invitation_inviter_id_user_temp_id_fk": {
+          "name": "invitation_inviter_id_user_temp_id_fk",
+          "tableFrom": "invitation",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "inviter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.member": {
+      "name": "member",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "canCreateProjects": {
+          "name": "canCreateProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToSSHKeys": {
+          "name": "canAccessToSSHKeys",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canCreateServices": {
+          "name": "canCreateServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteProjects": {
+          "name": "canDeleteProjects",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteServices": {
+          "name": "canDeleteServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToDocker": {
+          "name": "canAccessToDocker",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToAPI": {
+          "name": "canAccessToAPI",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToGitProviders": {
+          "name": "canAccessToGitProviders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canAccessToTraefikFiles": {
+          "name": "canAccessToTraefikFiles",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "accesedProjects": {
+          "name": "accesedProjects",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "accesedServices": {
+          "name": "accesedServices",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "member_organization_id_organization_id_fk": {
+          "name": "member_organization_id_organization_id_fk",
+          "tableFrom": "member",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "member_user_id_user_temp_id_fk": {
+          "name": "member_user_id_user_temp_id_fk",
+          "tableFrom": "member",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.organization": {
+      "name": "organization",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logo": {
+          "name": "logo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "organization_owner_id_user_temp_id_fk": {
+          "name": "organization_owner_id_user_temp_id_fk",
+          "tableFrom": "organization",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "organization_slug_unique": {
+          "name": "organization_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.two_factor": {
+      "name": "two_factor",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "backup_codes": {
+          "name": "backup_codes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "two_factor_user_id_user_temp_id_fk": {
+          "name": "two_factor_user_id_user_temp_id_fk",
+          "tableFrom": "two_factor",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -4336,14 +4890,6 @@
         "gitlab",
         "bitbucket",
         "drop"
-      ]
-    },
-    "public.Roles": {
-      "name": "Roles",
-      "schema": "public",
-      "values": [
-        "admin",
-        "user"
       ]
     },
     "public.domainType": {
