@@ -80,12 +80,14 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	return createInnerTRPCContext({
 		req,
 		res,
+		// @ts-ignore
 		session: session
 			? {
 					...session,
 					activeOrganizationId: session.activeOrganizationId || "",
 				}
 			: null,
+		// @ts-ignore
 		user: user
 			? {
 					...user,
