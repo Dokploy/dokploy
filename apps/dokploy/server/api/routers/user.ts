@@ -313,4 +313,18 @@ export const userRouter = createTRPCRouter({
 			const apiKey = await createApiKey(ctx.user.id, input);
 			return apiKey;
 		}),
+
+	checkUserOrganizations: protectedProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+			}),
+		)
+		.query(async ({ input }) => {
+			const organizations = await db.query.member.findMany({
+				where: eq(member.userId, input.userId),
+			});
+
+			return organizations.length;
+		}),
 });

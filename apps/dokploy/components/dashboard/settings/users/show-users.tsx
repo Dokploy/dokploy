@@ -36,6 +36,7 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+	const utils = api.useUtils();
 
 	return (
 		<div className="w-full">
@@ -172,6 +173,35 @@ export const ShowUsers = () => {
 																					description="Are you sure you want to unlink this user?"
 																					type="destructive"
 																					onClick={async () => {
+																						if (!isCloud) {
+																							const orgCount =
+																								await utils.user.checkUserOrganizations.fetch(
+																									{
+																										userId: member.user.id,
+																									},
+																								);
+
+																							console.log(orgCount);
+
+																							if (orgCount === 1) {
+																								await mutateAsync({
+																									userId: member.user.id,
+																								})
+																									.then(() => {
+																										toast.success(
+																											"User deleted successfully",
+																										);
+																										refetch();
+																									})
+																									.catch(() => {
+																										toast.error(
+																											"Error deleting user",
+																										);
+																									});
+																								return;
+																							}
+																						}
+
 																						const { error } =
 																							await authClient.organization.removeMember(
 																								{
