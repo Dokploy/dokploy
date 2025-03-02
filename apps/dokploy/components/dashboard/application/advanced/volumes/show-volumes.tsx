@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Package, Trash2 } from "lucide-react";
-import React from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";

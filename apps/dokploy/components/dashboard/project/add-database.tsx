@@ -18,7 +18,6 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -49,7 +48,6 @@ import { z } from "zod";
 
 type DbType = typeof mySchema._type.type;
 
-// TODO: Change to a real docker images
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:6",
 	mariadb: "mariadb:11",

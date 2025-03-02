@@ -1,3 +1,4 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,22 +24,19 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
-import { AddUser } from "./add-user";
-
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Loader2 } from "lucide-react";
 
 export const ShowUsers = () => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
-	const { mutateAsync, isLoading: isRemoving } =
-		api.admin.removeUser.useMutation();
+	const { mutateAsync } = api.user.remove.useMutation();
+	const utils = api.useUtils();
 
 	return (
 		<div className="w-full">
@@ -67,7 +65,6 @@ export const ShowUsers = () => {
 										<span className="text-base text-muted-foreground">
 											Invite users to your Dokploy account
 										</span>
-										<AddUser />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -76,43 +73,41 @@ export const ShowUsers = () => {
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Status</TableHead>
+													<TableHead className="text-center">Role</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
+
 													<TableHead className="text-center">
-														Expiration
+														Created At
 													</TableHead>
 													<TableHead className="text-right">Actions</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
-												{data?.map((user) => {
+												{data?.map((member) => {
 													return (
-														<TableRow key={user.userId}>
+														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
-																{user.auth.email}
+																{member.user.email}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		user.isRegistered ? "default" : "secondary"
+																		member.role === "owner"
+																			? "default"
+																			: "secondary"
 																	}
 																>
-																	{user.isRegistered
-																		? "Registered"
-																		: "Not Registered"}
+																	{member.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{user.auth.is2FAEnabled
-																	? "2FA Enabled"
-																	: "2FA Not Enabled"}
+																{member.user.twoFactorEnabled
+																	? "Enabled"
+																	: "Disabled"}
 															</TableCell>
-															<TableCell className="text-right">
+															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
-																	{format(
-																		new Date(user.expirationDate),
-																		"PPpp",
-																	)}
+																	{format(new Date(member.createdAt), "PPpp")}
 																</span>
 															</TableCell>
 
@@ -131,56 +126,110 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
-																		{!user.isRegistered && (
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer"
-																				onSelect={(e) => {
-																					copy(
-																						`${origin}/invitation?token=${user.token}`,
-																					);
-																					toast.success(
-																						"Invitation Copied to clipboard",
-																					);
-																				}}
-																			>
-																				Copy Invitation
-																			</DropdownMenuItem>
-																		)}
 
-																		{user.isRegistered && (
+																		{member.role !== "owner" && (
 																			<AddUserPermissions
-																				userId={user.userId}
+																				userId={member.user.id}
 																			/>
 																		)}
 
-																		<DialogAction
-																			title="Delete User"
-																			description="Are you sure you want to delete this user?"
-																			type="destructive"
-																			onClick={async () => {
-																				await mutateAsync({
-																					authId: user.authId,
-																				})
-																					.then(() => {
-																						toast.success(
-																							"User deleted successfully",
-																						);
-																						refetch();
-																					})
-																					.catch(() => {
-																						toast.error(
-																							"Error deleting destination",
-																						);
-																					});
-																			}}
-																		>
-																			<DropdownMenuItem
-																				className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																				onSelect={(e) => e.preventDefault()}
-																			>
-																				Delete User
-																			</DropdownMenuItem>
-																		</DialogAction>
+																		{member.role !== "owner" && (
+																			<>
+																				{!isCloud && (
+																					<DialogAction
+																						title="Delete User"
+																						description="Are you sure you want to delete this user?"
+																						type="destructive"
+																						onClick={async () => {
+																							await mutateAsync({
+																								userId: member.user.id,
+																							})
+																								.then(() => {
+																									toast.success(
+																										"User deleted successfully",
+																									);
+																									refetch();
+																								})
+																								.catch(() => {
+																									toast.error(
+																										"Error deleting destination",
+																									);
+																								});
+																						}}
+																					>
+																						<DropdownMenuItem
+																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																							onSelect={(e) =>
+																								e.preventDefault()
+																							}
+																						>
+																							Delete User
+																						</DropdownMenuItem>
+																					</DialogAction>
+																				)}
+
+																				<DialogAction
+																					title="Unlink User"
+																					description="Are you sure you want to unlink this user?"
+																					type="destructive"
+																					onClick={async () => {
+																						if (!isCloud) {
+																							const orgCount =
+																								await utils.user.checkUserOrganizations.fetch(
+																									{
+																										userId: member.user.id,
+																									},
+																								);
+
+																							console.log(orgCount);
+
+																							if (orgCount === 1) {
+																								await mutateAsync({
+																									userId: member.user.id,
+																								})
+																									.then(() => {
+																										toast.success(
+																											"User deleted successfully",
+																										);
+																										refetch();
+																									})
+																									.catch(() => {
+																										toast.error(
+																											"Error deleting user",
+																										);
+																									});
+																								return;
+																							}
+																						}
+
+																						const { error } =
+																							await authClient.organization.removeMember(
+																								{
+																									memberIdOrEmail: member.id,
+																								},
+																							);
+
+																						if (!error) {
+																							toast.success(
+																								"User unlinked successfully",
+																							);
+																							refetch();
+																						} else {
+																							toast.error(
+																								"Error unlinking user",
+																							);
+																						}
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						Unlink User
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			</>
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>
@@ -189,10 +238,6 @@ export const ShowUsers = () => {
 												})}
 											</TableBody>
 										</Table>
-
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddUser />
-										</div>
 									</div>
 								)}
 							</>

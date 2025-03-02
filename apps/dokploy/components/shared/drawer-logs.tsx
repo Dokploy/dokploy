@@ -1,6 +1,3 @@
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Sheet,
 	SheetContent,
@@ -8,10 +5,8 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
-import { api } from "@/utils/api";
-import { Ban, CheckCircle2, Loader2, RefreshCcw, Terminal } from "lucide-react";
-import React, { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../dashboard/docker/logs/terminal-line";
 import type { LogLine } from "../dashboard/docker/logs/utils";
 
@@ -48,7 +43,7 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 	return (
 		<Sheet
 			open={!!isOpen}
-			onOpenChange={(open) => {
+			onOpenChange={(_open) => {
 				onClose();
 			}}
 		>

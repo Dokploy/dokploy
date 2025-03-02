@@ -16,6 +16,8 @@ import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
+
+import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import {
 	Card,
 	CardContent,
@@ -49,7 +51,7 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import type { findProjectById } from "@dokploy/server";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
 	Ban,
@@ -200,15 +202,8 @@ const Project = (
 ) => {
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const { data: auth } = api.user.get.useQuery();
+
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
 	const router = useRouter();
 
@@ -268,7 +263,7 @@ const Project = (
 			try {
 				await composeActions.start.mutateAsync({ composeId: serviceId });
 				success++;
-			} catch (error) {
+			} catch (_error) {
 				toast.error(`Error starting service ${serviceId}`);
 			}
 		}
@@ -288,7 +283,7 @@ const Project = (
 			try {
 				await composeActions.stop.mutateAsync({ composeId: serviceId });
 				success++;
-			} catch (error) {
+			} catch (_error) {
 				toast.error(`Error stopping service ${serviceId}`);
 			}
 		}
@@ -335,7 +330,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.rol === "admin" || user?.canCreateServices) && (
+							{(auth?.role === "owner" || auth?.canCreateServices) && (
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
@@ -368,6 +363,10 @@ const Project = (
 												projectName={data?.name}
 											/>
 											<AddTemplate projectId={projectId} />
+											<AddAiAssistant
+												projectId={projectId}
+												projectName={data?.name}
+											/>
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>
@@ -658,7 +657,7 @@ export async function getServerSideProps(
 	const { params } = ctx;
 
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -674,8 +673,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -692,7 +691,7 @@ export async function getServerSideProps(
 					projectId: params?.projectId,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

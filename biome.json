@@ -24,7 +24,10 @@
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off",
-				"noUnsafeOptionalChaining": "off"
+				"noUnsafeOptionalChaining": "off",
+				"noUnusedImports": "error",
+				"noUnusedFunctionParameters": "error",
+				"noUnusedVariables": "error"
 			},
 			"style": {
 				"noNonNullAssertion": "off"

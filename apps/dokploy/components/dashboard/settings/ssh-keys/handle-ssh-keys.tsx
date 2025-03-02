@@ -78,6 +78,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 	const onSubmit = async (data: SSHKey) => {
 		await mutateAsync({
 			...data,
+			organizationId: "",
 			sshKeyId: sshKeyId || "",
 		})
 			.then(async () => {
@@ -148,7 +149,6 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 						Add SSH Key
 					</Button>
 				)}
-				{/* {children} */}
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>

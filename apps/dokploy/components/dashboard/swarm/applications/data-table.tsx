@@ -48,7 +48,7 @@ export function DataTable<TData, TValue>({
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
-	const [pagination, setPagination] = React.useState({
+	const [_pagination, _setPagination] = React.useState({
 		pageIndex: 0, //initial page index
 		pageSize: 8, //default page size
 	});

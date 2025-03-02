@@ -1,6 +1,7 @@
 import { authRouter } from "@/server/api/routers/auth";
 import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
+import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
@@ -19,6 +20,7 @@ import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
 import { notificationRouter } from "./routers/notification";
+import { organizationRouter } from "./routers/organization";
 import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
@@ -33,7 +35,6 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
-
 /**
  * This is the primary router for your server.
  *
@@ -75,6 +76,8 @@ export const appRouter = createTRPCRouter({
 	server: serverRouter,
 	stripe: stripeRouter,
 	swarm: swarmRouter,
+	ai: aiRouter,
+	organization: organizationRouter,
 });
 
 // export type definition of API

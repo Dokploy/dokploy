@@ -29,14 +29,6 @@ interface Props {
 	data: ContainerMetric[];
 }
 
-interface FormattedMetric {
-	timestamp: string;
-	read: number;
-	write: number;
-	readUnit: string;
-	writeUnit: string;
-}
-
 const chartConfig = {
 	read: {
 		label: "Read",

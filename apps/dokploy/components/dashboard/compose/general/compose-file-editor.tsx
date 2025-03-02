@@ -35,8 +35,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.compose.update.useMutation();
+	const { mutateAsync, isLoading } = api.compose.update.useMutation();
 
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
@@ -76,7 +75,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 					composeId,
 				});
 			})
-			.catch((e) => {
+			.catch((_e) => {
 				toast.error("Error updating the Compose config");
 			});
 	};
