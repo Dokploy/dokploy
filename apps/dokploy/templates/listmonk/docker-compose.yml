@@ -41,9 +41,7 @@ services:
       - setup
     volumes:
       - ../files/config.toml:/listmonk/config.toml
-      - type: volume
-        source: listmonk-uploads
-        target: /listmonk/uploads
+      - listmonk-uploads:/listmonk/uploads
 
 volumes:
   listmonk-uploads:
