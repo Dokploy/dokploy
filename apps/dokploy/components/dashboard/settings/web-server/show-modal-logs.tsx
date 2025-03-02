@@ -36,7 +36,7 @@ interface Props {
 	appName: string;
 	children?: React.ReactNode;
 	serverId?: string;
-	type: "standalone" | "swarm";
+	type?: "standalone" | "swarm";
 }
 
 export const ShowModalLogs = ({
