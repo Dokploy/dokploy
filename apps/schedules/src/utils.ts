@@ -4,10 +4,11 @@ import {
 	cleanUpUnusedImages,
 	findBackupById,
 	findServerById,
+	keepLatestNBackups,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
-	runPostgresBackup,
+	runPostgresBackup
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
@@ -52,6 +53,8 @@ export const runJobs = async (job: QueueJob) => {
 				}
 				await runMariadbBackup(mariadb, backup);
 			}
+
+			await keepLatestNBackups(backup);
 		}
 		if (job.type === "server") {
 			const { serverId } = job;
