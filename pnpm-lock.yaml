@@ -361,6 +361,9 @@ importers:
       octokit:
         specifier: 3.1.2
         version: 3.1.2
+      ollama-ai-provider:
+        specifier: ^1.1.0
+        version: 1.1.0(zod@3.23.8)
       otpauth:
         specifier: ^9.2.3
         version: 9.3.4
