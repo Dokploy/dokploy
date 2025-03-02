@@ -47,7 +47,7 @@ const UpdateBackupSchema = z.object({
 	prefix: z.string().min(1, "Prefix required"),
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
-	keepLatestCount: z.coerce.number(),
+	keepLatestCount: z.coerce.number().optional(),
 });
 
 type UpdateBackup = z.infer<typeof UpdateBackupSchema>;
@@ -92,6 +92,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				enabled: backup.enabled || false,
 				prefix: backup.prefix,
 				schedule: backup.schedule,
+				keepLatestCount: backup.keepLatestCount ? Number(backup.keepLatestCount) : undefined,
 			});
 		}
 	}, [form, form.reset, backup]);
@@ -104,6 +105,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			schedule: data.schedule,
 			enabled: data.enabled,
 			database: data.database,
+			keepLatestCount: data.keepLatestCount as number | null,
 		})
 			.then(async () => {
 				toast.success("Backup Updated");
@@ -281,7 +283,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										</FormItem>
 									);
 								}}
-							/>							
+							/>
 							<FormField
 								control={form.control}
 								name="enabled"
