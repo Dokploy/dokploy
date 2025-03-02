@@ -28,6 +28,9 @@ export const findUserById = async (userId: string) => {
 export const findOrganizationById = async (organizationId: string) => {
 	const organizationResult = await db.query.organization.findFirst({
 		where: eq(organization.id, organizationId),
+		with: {
+			owner: true,
+		},
 	});
 	return organizationResult;
 };

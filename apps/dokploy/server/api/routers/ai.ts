@@ -15,7 +15,7 @@ import { createDomain } from "@dokploy/server/index";
 import {
 	deleteAiSettings,
 	getAiSettingById,
-	getAiSettingsByAdminId,
+	getAiSettingsByOrganizationId,
 	saveAiSettings,
 	suggestVariants,
 } from "@dokploy/server/services/ai";
@@ -33,7 +33,7 @@ export const aiRouter = createTRPCRouter({
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.adminId !== ctx.user.adminId) {
+			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this AI configuration",
@@ -42,24 +42,26 @@ export const aiRouter = createTRPCRouter({
 			return aiSetting;
 		}),
 	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.user.adminId, input);
+		return await saveAiSettings(ctx.session.activeOrganizationId, input);
 	}),
 
 	update: protectedProcedure
 		.input(apiUpdateAi)
 		.mutation(async ({ ctx, input }) => {
-			return await saveAiSettings(ctx.user.adminId, input);
+			return await saveAiSettings(ctx.session.activeOrganizationId, input);
 		}),
 
 	getAll: adminProcedure.query(async ({ ctx }) => {
-		return await getAiSettingsByAdminId(ctx.user.adminId);
+		return await getAiSettingsByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
 	}),
 
 	get: protectedProcedure
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.adminId !== ctx.user.authId) {
+			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this AI configuration",
@@ -72,7 +74,7 @@ export const aiRouter = createTRPCRouter({
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const aiSetting = await getAiSettingById(input.aiId);
-			if (aiSetting.adminId !== ctx.user.adminId) {
+			if (aiSetting.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this AI configuration",
@@ -93,7 +95,7 @@ export const aiRouter = createTRPCRouter({
 			try {
 				return await suggestVariants({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
@@ -105,8 +107,12 @@ export const aiRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.rol === "user") {
-				await checkServiceAccess(ctx.user.adminId, input.projectId, "create");
+			if (ctx.user.rol === "member") {
+				await checkServiceAccess(
+					ctx.session.activeOrganizationId,
+					input.projectId,
+					"create",
+				);
 			}
 
 			if (IS_CLOUD && !input.serverId) {
@@ -143,8 +149,12 @@ export const aiRouter = createTRPCRouter({
 				}
 			}
 
-			if (ctx.user.rol === "user") {
-				await addNewService(ctx.user.authId, compose.composeId);
+			if (ctx.user.rol === "member") {
+				await addNewService(
+					ctx.session.activeOrganizationId,
+					ctx.user.ownerId,
+					compose.composeId,
+				);
 			}
 
 			return null;

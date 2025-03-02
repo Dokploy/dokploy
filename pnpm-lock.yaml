@@ -202,6 +202,9 @@ importers:
       '@stripe/stripe-js':
         specifier: 4.8.0
         version: 4.8.0
+      '@tailwindcss/typography':
+        specifier: 0.5.16
+        version: 0.5.16(tailwindcss@3.4.7(ts-node@10.9.2(@types/node@18.19.42)(typescript@5.5.3)))
       '@tanstack/react-query':
         specifier: ^4.36.1
         version: 4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -282,10 +285,10 @@ importers:
         version: 16.4.5
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
         specifier: 0.5.1
-        version: 0.5.1(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       fancy-ansi:
         specifier: ^0.1.3
         version: 0.1.3
@@ -324,7 +327,7 @@ importers:
         version: 15.3.1(i18next@23.16.5)(next@15.0.1(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-i18next@15.1.1(i18next@23.16.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)
       next-themes:
         specifier: ^0.2.1
-        version: 0.2.1(next@15.0.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 0.2.1(next@15.0.1(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       node-os-utils:
         specifier: 1.3.7
         version: 1.3.7
@@ -422,9 +425,6 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2(zod@3.23.8)
     devDependencies:
-      '@tailwindcss/typography':
-        specifier: ^0.5.15
-        version: 0.5.16(tailwindcss@3.4.7)
       '@types/adm-zip':
         specifier: ^0.5.5
         version: 0.5.5
@@ -520,7 +520,7 @@ importers:
         version: 16.4.5
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       hono:
         specifier: ^4.5.8
         version: 4.5.8
@@ -561,6 +561,27 @@ importers:
 
   packages/server:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
+      '@ai-sdk/azure':
+        specifier: ^1.0.15
+        version: 1.0.18(zod@3.23.8)
+      '@ai-sdk/cohere':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
+      '@ai-sdk/deepinfra':
+        specifier: ^0.0.4
+        version: 0.0.4(zod@3.23.8)
+      '@ai-sdk/mistral':
+        specifier: ^1.0.6
+        version: 1.0.8(zod@3.23.8)
+      '@ai-sdk/openai':
+        specifier: ^1.0.12
+        version: 1.0.16(zod@3.23.8)
+      '@ai-sdk/openai-compatible':
+        specifier: ^0.0.13
+        version: 0.0.13(zod@3.23.8)
       '@better-auth/utils':
         specifier: 0.2.3
         version: 0.2.3
@@ -614,13 +635,13 @@ importers:
         version: 16.4.5
       drizzle-dbml-generator:
         specifier: 0.10.0
-        version: 0.10.0(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))
+        version: 0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
         specifier: 0.5.1
-        version: 0.5.1(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       hi-base32:
         specifier: ^0.5.1
         version: 0.5.1
@@ -2279,6 +2300,10 @@ packages:
 
   '@one-ini/wasm@0.1.1':
     resolution: {integrity: sha512-XuySG1E38YScSJoMlqovLru4KTUNSjgVTIjyh7qMX6aNN5HY5Ct5LhRJdxO79JtTzKfzV/bnWpz+zquYrISsvw==}
+
+  '@opentelemetry/api@1.9.0':
+    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
+    engines: {node: '>=8.0.0'}
 
   '@oslojs/asn1@1.0.0':
     resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}
@@ -4912,6 +4937,9 @@ packages:
     resolution: {integrity: sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==}
     engines: {node: '>=6'}
 
+  extend@3.0.2:
+    resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
+
   fancy-ansi@0.1.3:
     resolution: {integrity: sha512-tRQVTo5jjdSIiydqgzIIEZpKddzSsfGLsSVt6vWdjVm7fbvDTiQkyoPu6Z3dIPlAM4OZk0jP5jmTCX4G8WGgBw==}
 
@@ -5392,6 +5420,10 @@ packages:
   is-obj@2.0.0:
     resolution: {integrity: sha512-drqDG3cbczxxEJRoOXcOjtdp1J/lyp1mNn0xaznRs8+muBhgQcrnbspox5X5fOw0HnMnbfDzvnEMEtqDEJEo8w==}
     engines: {node: '>=8'}
+
+  is-plain-obj@4.1.0:
+    resolution: {integrity: sha512-+Pgi+vMuUNkJyExiMBt5IlFoMyKnr5zhJ4Uspz58WOhBF5QoIZkFyNHIbBAtHwzVAgk5RtndVNsDRN61/mmDqg==}
+    engines: {node: '>=12'}
 
   is-stream@3.0.0:
     resolution: {integrity: sha512-LnQR4bZ9IADDRSkvpqMGvt/tEJWclzklNgSw48V5EAaAeDd6qGvN8ei6k5p0tvxSR171VmGyHuTiAOfxAbr8kA==}
@@ -6012,6 +6044,11 @@ packages:
 
   nanoid@3.3.7:
     resolution: {integrity: sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==}
+    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  nanoid@3.3.8:
+    resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -7417,11 +7454,29 @@ packages:
     resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==}
     engines: {node: '>=18'}
 
+  unified@11.0.5:
+    resolution: {integrity: sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==}
+
   unique-filename@1.1.1:
     resolution: {integrity: sha512-Vmp0jIp2ln35UTXuryvjzkjGdRyf9b2lTXuSYUiPmzRcl3FDtYqAwOnTJkAngD9SWhnoJzDbTKwaOrZ+STtxNQ==}
 
   unique-slug@2.0.2:
     resolution: {integrity: sha512-zoWr9ObaxALD3DOPfjPSqxt4fnZiWblxHIgeWqW8x7UqDzEtHEQLzji2cuJYQFCU6KmoJikOYAZlrTHHebjx2w==}
+
+  unist-util-is@6.0.0:
+    resolution: {integrity: sha512-2qCTHimwdxLfz+YzdGfkqNlH0tLi9xjTnHddPmJwtIG9MGsdbutfTc4P+haPD7l7Cjxf/WZj+we5qfVPvvxfYw==}
+
+  unist-util-position@5.0.0:
+    resolution: {integrity: sha512-fucsC7HjXvkB5R3kTCO7kUjRdrS0BJt3M/FPxmHMBOm8JQi2BsHAHFsy27E0EolP8rp0NzXsJ+jNPyDWvOJZPA==}
+
+  unist-util-stringify-position@4.0.0:
+    resolution: {integrity: sha512-0ASV06AAoKCDkS2+xw5RXJywruurpbC4JZSm7nr7MOt1ojAzvyyaO+UxZf18j8FCF6kmzCZKcAgN/yu2gm2XgQ==}
+
+  unist-util-visit-parents@6.0.1:
+    resolution: {integrity: sha512-L/PqWzfTP9lzzEa6CKs0k2nARxTdZduw3zyh8d2NVBnsyvHjSX4TWse388YrrQKbvI8w20fGjGlhgT96WwKykw==}
+
+  unist-util-visit@5.0.0:
+    resolution: {integrity: sha512-MR04uvD+07cwl/yhVuVWAtw+3GOR/knlL55Nd/wAdblk27GCVt3lqpTivy/tkJcZoNPzTwS1Y+KMojlLDhoTzg==}
 
   universal-github-app-jwt@1.1.2:
     resolution: {integrity: sha512-t1iB2FmLFE+yyJY9+3wMx0ejB+MQpEVkH0gQv7dR6FZyltyq+ZZO0uDpbopxhrZ3SLEO4dCEkIujOMldEQ2iOA==}
@@ -7501,6 +7556,12 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vfile-message@4.0.2:
+    resolution: {integrity: sha512-jRDZ1IMLttGj41KcZvlrYAaI3CfqpLpfpf+Mfig13viT6NKvRzWZ+lXz0Y5D60w6uJIBAOGq9mSHf0gktF0duw==}
+
+  vfile@6.0.3:
+    resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
   victory-vendor@36.9.2:
     resolution: {integrity: sha512-PnpQQMuxlwYdocC8fIJqVXvkeViHYzotI+NJrCuav0ZYFoq912ZHBk3mCeuj+5/VpodOjPe1z0Fk2ihgzlXqjQ==}
@@ -7742,6 +7803,9 @@ packages:
 
   zod@3.24.1:
     resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
+
+  zwitch@2.0.4:
+    resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
 
@@ -8106,17 +8170,17 @@ snapshots:
 
   '@emnapi/core@0.45.0':
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.1
     optional: true
 
   '@emnapi/runtime@0.45.0':
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.1
     optional: true
 
   '@emnapi/runtime@1.3.1':
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.1
     optional: true
 
   '@emotion/is-prop-valid@0.7.3':
@@ -9008,6 +9072,8 @@ snapshots:
       '@octokit/webhooks-methods': 5.1.0
 
   '@one-ini/wasm@0.1.1': {}
+
+  '@opentelemetry/api@1.9.0': {}
 
   '@oslojs/asn1@1.0.0':
     dependencies:
@@ -10409,19 +10475,19 @@ snapshots:
 
   '@swc/helpers@0.5.13':
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.1
 
   '@szmarczak/http-timer@5.0.1':
     dependencies:
       defer-to-connect: 2.0.1
 
-  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.7)':
+  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.7(ts-node@10.9.2(@types/node@18.19.42)(typescript@5.5.3)))':
     dependencies:
       lodash.castarray: 4.4.0
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
-      tailwindcss: 3.4.7
+      tailwindcss: 3.4.7(ts-node@10.9.2(@types/node@18.19.42)(typescript@5.5.3))
 
   '@tanstack/query-core@4.36.1': {}
 
@@ -10482,7 +10548,7 @@ snapshots:
 
   '@tybys/wasm-util@0.8.3':
     dependencies:
-      tslib: 2.6.3
+      tslib: 2.8.1
     optional: true
 
   '@types/adm-zip@0.5.5':
@@ -11716,9 +11782,9 @@ snapshots:
 
   drange@1.1.1: {}
 
-  drizzle-dbml-generator@0.10.0(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)):
+  drizzle-dbml-generator@0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)):
     dependencies:
-      drizzle-orm: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
 
   drizzle-kit@0.30.4:
     dependencies:
@@ -11729,7 +11795,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7):
+  drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7):
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
       '@types/react': 18.3.5
@@ -11738,9 +11804,9 @@ snapshots:
       react: 18.2.0
       sqlite3: 5.1.7
 
-  drizzle-zod@0.5.1(drizzle-orm@0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
+  drizzle-zod@0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
     dependencies:
-      drizzle-orm: 0.39.1(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.5)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       zod: 3.23.8
 
   eastasianwidth@0.2.0: {}
@@ -11962,6 +12028,8 @@ snapshots:
 
   expand-template@2.0.3:
     optional: true
+
+  extend@3.0.2: {}
 
   fancy-ansi@0.1.3:
     dependencies:
@@ -12479,6 +12547,8 @@ snapshots:
 
   is-obj@2.0.0: {}
 
+  is-plain-obj@4.1.0: {}
+
   is-stream@3.0.0: {}
 
   is-text-path@2.0.0:
@@ -12497,7 +12567,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 18.19.42
+      '@types/node': 20.14.10
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -13270,6 +13340,8 @@ snapshots:
 
   nanoid@3.3.7: {}
 
+  nanoid@3.3.8: {}
+
   nanostores@0.11.3: {}
 
   napi-build-utils@1.0.2:
@@ -13299,7 +13371,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  next@15.0.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  next@15.0.1(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@next/env': 15.0.1
       '@swc/counter': 0.1.3
@@ -14822,6 +14894,16 @@ snapshots:
 
   unicorn-magic@0.1.0: {}
 
+  unified@11.0.5:
+    dependencies:
+      '@types/unist': 3.0.3
+      bail: 2.0.2
+      devlop: 1.1.0
+      extend: 3.0.2
+      is-plain-obj: 4.1.0
+      trough: 2.2.0
+      vfile: 6.0.3
+
   unique-filename@1.1.1:
     dependencies:
       unique-slug: 2.0.2
@@ -14831,6 +14913,29 @@ snapshots:
     dependencies:
       imurmurhash: 0.1.4
     optional: true
+
+  unist-util-is@6.0.0:
+    dependencies:
+      '@types/unist': 3.0.3
+
+  unist-util-position@5.0.0:
+    dependencies:
+      '@types/unist': 3.0.3
+
+  unist-util-stringify-position@4.0.0:
+    dependencies:
+      '@types/unist': 3.0.3
+
+  unist-util-visit-parents@6.0.1:
+    dependencies:
+      '@types/unist': 3.0.3
+      unist-util-is: 6.0.0
+
+  unist-util-visit@5.0.0:
+    dependencies:
+      '@types/unist': 3.0.3
+      unist-util-is: 6.0.0
+      unist-util-visit-parents: 6.0.1
 
   universal-github-app-jwt@1.1.2:
     dependencies:
@@ -14897,6 +15002,16 @@ snapshots:
   valibot@1.0.0-beta.15(typescript@5.5.3):
     optionalDependencies:
       typescript: 5.5.3
+
+  vfile-message@4.0.2:
+    dependencies:
+      '@types/unist': 3.0.3
+      unist-util-stringify-position: 4.0.0
+
+  vfile@6.0.3:
+    dependencies:
+      '@types/unist': 3.0.3
+      vfile-message: 4.0.2
 
   victory-vendor@36.9.2:
     dependencies:
@@ -15162,3 +15277,5 @@ snapshots:
   zod@3.23.8: {}
 
   zod@3.24.1: {}
+
+  zwitch@2.0.4: {}

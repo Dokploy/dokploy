@@ -3,8 +3,7 @@ import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
-
+import { organization } from "./account";
 export const ai = pgTable("ai", {
 	aiId: text("aiId")
 		.notNull()
@@ -15,18 +14,18 @@ export const ai = pgTable("ai", {
 	apiKey: text("apiKey").notNull(),
 	model: text("model").notNull(),
 	isEnabled: boolean("isEnabled").notNull().default(true),
-	adminId: text("adminId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => admins.adminId, { onDelete: "cascade" }), // Admin ID who created the AI settings
+		.references(() => organization.id, { onDelete: "cascade" }), // Admin ID who created the AI settings
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 });
 
 export const aiRelations = relations(ai, ({ one }) => ({
-	admin: one(admins, {
-		fields: [ai.adminId],
-		references: [admins.adminId],
+	organization: one(organization, {
+		fields: [ai.organizationId],
+		references: [organization.id],
 	}),
 }));
 
@@ -53,7 +52,7 @@ export const apiUpdateAi = createSchema
 	.extend({
 		aiId: z.string().min(1),
 	})
-	.omit({ adminId: true });
+	.omit({ organizationId: true });
 
 export const deploySuggestionSchema = z.object({
 	projectId: z.string().min(1),

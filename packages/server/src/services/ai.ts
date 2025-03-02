@@ -6,12 +6,12 @@ import { generateObject } from "ai";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
-import { findAdminById } from "./admin";
 import { findServerById } from "./server";
+import { findOrganizationById } from "./admin";
 
-export const getAiSettingsByAdminId = async (adminId: string) => {
+export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	const aiSettings = await db.query.ai.findMany({
-		where: eq(ai.adminId, adminId),
+		where: eq(ai.organizationId, organizationId),
 		orderBy: desc(ai.createdAt),
 	});
 	return aiSettings;
@@ -30,14 +30,14 @@ export const getAiSettingById = async (aiId: string) => {
 	return aiSetting;
 };
 
-export const saveAiSettings = async (adminId: string, settings: any) => {
+export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
 
 	return db
 		.insert(ai)
 		.values({
 			aiId,
-			adminId,
+			organizationId,
 			...settings,
 		})
 		.onConflictDoUpdate({
@@ -53,14 +53,14 @@ export const deleteAiSettings = async (aiId: string) => {
 };
 
 interface Props {
-	adminId: string;
+	organizationId: string;
 	aiId: string;
 	input: string;
 	serverId?: string | undefined;
 }
 
 export const suggestVariants = async ({
-	adminId,
+	organizationId,
 	aiId,
 	input,
 	serverId,
@@ -79,8 +79,8 @@ export const suggestVariants = async ({
 
 		let ip = "";
 		if (!IS_CLOUD) {
-			const admin = await findAdminById(adminId);
-			ip = admin?.serverIp || "";
+			const organization = await findOrganizationById(organizationId);
+			ip = organization?.owner.serverIp || "";
 		}
 
 		if (serverId) {

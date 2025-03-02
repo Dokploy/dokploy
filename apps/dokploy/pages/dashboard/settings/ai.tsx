@@ -25,7 +25,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	const locale = getLocale(req.cookies);
 
 	const helpers = createServerSideHelpers({
@@ -34,22 +34,17 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
 
 	await helpers.settings.isCloud.prefetch();
 
-	await helpers.auth.get.prefetch();
-	if (user?.rol === "user") {
-		await helpers.user.byAuthId.prefetch({
-			authId: user.authId,
-		});
-	}
+	await helpers.user.get.prefetch();
 
-	if (!user) {
+	if (!user || user.role === "member") {
 		return {
 			redirect: {
 				permanent: true,
