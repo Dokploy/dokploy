@@ -147,10 +147,15 @@ CREATE TABLE "apikey" (
 	"metadata" text
 );
 --> statement-breakpoint
-ALTER TABLE "certificate" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "notification" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "ssh-key" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "git_provider" ALTER COLUMN "adminId" SET NOT NULL;--> statement-breakpoint
+DELETE FROM "certificate" WHERE "adminId" IS NULL;
+DELETE FROM "notification" WHERE "adminId" IS NULL;
+DELETE FROM "ssh-key" WHERE "adminId" IS NULL;
+DELETE FROM "git_provider" WHERE "adminId" IS NULL;
+
+ALTER TABLE "certificate" ALTER COLUMN "adminId" SET NOT NULL ;--> statement-breakpoint
+ALTER TABLE "notification" ALTER COLUMN "adminId" SET NOT NULL ;--> statement-breakpoint
+ALTER TABLE "ssh-key" ALTER COLUMN "adminId" SET NOT NULL ;--> statement-breakpoint
+ALTER TABLE "git_provider" ALTER COLUMN "adminId" SET NOT NULL ;--> statement-breakpoint
 ALTER TABLE "session_temp" ADD CONSTRAINT "session_temp_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_temp_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organization_id_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organization"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
