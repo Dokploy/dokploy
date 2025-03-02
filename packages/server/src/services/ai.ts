@@ -101,7 +101,13 @@ export const suggestVariants = async ({
 			}),
 			prompt: `
         Act as advanced DevOps engineer and generate a list of open source projects what can cover users needs(up to 3 items), the suggestion 
-        should include id, name, shortDescription, and description. Use slug of title for id. The description should be in markdown format with full description of suggested stack. The shortDescription should be in plain text and have short information about used technologies.
+        should include id, name, shortDescription, and description. Use slug of title for id. 
+        
+        Important rules for the response:
+        1. The description field should ONLY contain a plain text description of the project, its features, and use cases
+        2. Do NOT include any code snippets, configuration examples, or installation instructions in the description
+        3. The shortDescription should be a single-line summary focusing on the main technologies
+        
         User wants to create a new project with the following details, it should be installable in docker and can be docker compose generated for it:
         
         ${input}
@@ -130,18 +136,51 @@ export const suggestVariants = async ({
 									serviceName: z.string(),
 								}),
 							),
+							configFiles: z.array(
+								z.object({
+									content: z.string(),
+									filePath: z.string(),
+								}),
+							),
 						}),
 						prompt: `
               Act as advanced DevOps engineer and generate docker compose with environment variables and domain configurations needed to install the following project.
-              Return the docker compose as a YAML string. Follow these rules:
-              1. Use placeholder like \${VARIABLE_NAME-default} for generated variables
+              Return the docker compose as a YAML string and environment variables configuration. Follow these rules:
+
+              Docker Compose Rules:
+              1. Use placeholder like \${VARIABLE_NAME-default} for generated variables in the docker-compose.yml
               2. Use complex values for passwords/secrets variables
               3. Don't set container_name field in services
               4. Don't set version field in the docker compose
               5. Don't set ports like 'ports: 3000:3000', use 'ports: "3000"' instead
               6. Use dokploy-network in all services
               7. Add dokploy-network at the end and mark it as external: true
-              
+              8. If a service depends on a database or other service, INCLUDE that service in the docker-compose
+              9. Make sure all required services are defined in the docker-compose
+
+			  Volume Mounting Rules:
+              1. All file mounts in volumes section MUST use "../files/" prefix
+              2. NEVER use absolute paths or direct host paths
+              3. Format should be: "../files/folder:/container/path"
+              4. If a service needs configuration files, they should be defined in configFiles array and referenced in volumes
+              5. Example: if you define a config file with filePath: "/nginx/nginx.conf", reference it in volumes as "../files/nginx/nginx.conf:/etc/nginx/nginx.conf"
+
+
+			 Configuration Files Rules:
+              1. If a service needs configuration files, include them in the configFiles array
+              2. Each config file should have:
+                 - content: The actual content of the configuration file
+                 - filePath: The relative path where the file should be stored (e.g., "/nginx/nginx.conf")
+              3. Make sure to reference these files correctly in the docker-compose volumes section
+
+			  Environment Variables Rules:
+              1. For the envVariables array, provide ACTUAL example values, not placeholders
+              2. Use realistic example values (e.g., "admin@example.com" for emails, "mypassword123" for passwords)
+			  3. DO NOT use \${VARIABLE_NAME-default} syntax in the envVariables values
+              4. ONLY include environment variables that are actually used in the docker-compose
+              5. Every environment variable referenced in the docker-compose MUST have a corresponding entry in envVariables
+              6. Do not include environment variables for services that don't exist in the docker-compose
+                     
               For each service that needs to be exposed to the internet:
               1. Define a domain configuration with:
                 - host: the domain name for the service in format: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.traefik.me
