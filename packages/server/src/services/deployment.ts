@@ -12,7 +12,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -278,9 +278,11 @@ export const removeDeployment = async (deploymentId: string) => {
 			.returning();
 		return deployment[0];
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error deleting this deployment",
+			message,
 		});
 	}
 };
@@ -304,7 +306,7 @@ const removeLastTenDeployments = async (
 	});
 
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
+		const deploymentsToDelete = deploymentList.slice(9);
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
@@ -340,7 +342,7 @@ const removeLastTenComposeDeployments = async (
 	if (deploymentList.length > 10) {
 		if (serverId) {
 			let command = "";
-			const deploymentsToDelete = deploymentList.slice(10);
+			const deploymentsToDelete = deploymentList.slice(9);
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
 
@@ -352,7 +354,7 @@ const removeLastTenComposeDeployments = async (
 
 			await execAsyncRemote(serverId, command);
 		} else {
-			const deploymentsToDelete = deploymentList.slice(10);
+			const deploymentsToDelete = deploymentList.slice(9);
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
 				if (existsSync(logPath)) {
@@ -374,7 +376,7 @@ export const removeLastTenPreviewDeploymenById = async (
 	});
 
 	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(10);
+		const deploymentsToDelete = deploymentList.slice(9);
 		if (serverId) {
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
@@ -535,9 +537,11 @@ export const createServerDeployment = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error creating the deployment";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
+			message,
 		});
 	}
 };

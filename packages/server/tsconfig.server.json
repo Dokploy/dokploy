@@ -1,6 +1,7 @@
 {
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
+		"disableSizeLimit": true,
 		"module": "ESNext",
 		"outDir": "dist/",
 		"target": "ESNext",

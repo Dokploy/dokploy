@@ -18,7 +18,7 @@ export const dockerSwarmInitialized = async () => {
 		await docker.swarmInspect();
 
 		return true;
-	} catch (e) {
+	} catch (_e) {
 		return false;
 	}
 };
@@ -41,7 +41,7 @@ export const dockerNetworkInitialized = async () => {
 	try {
 		await docker.getNetwork("dokploy-network").inspect();
 		return true;
-	} catch (e) {
+	} catch (_e) {
 		return false;
 	}
 };

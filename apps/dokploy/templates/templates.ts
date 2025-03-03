@@ -25,8 +25,8 @@ export const templates: TemplateData[] = [
 			"Outline is a self-hosted knowledge base and documentation platform that allows you to build and manage your own knowledge base applications.",
 		links: {
 			github: "https://github.com/outline/outline",
-			website: "https://outline.com/",
-			docs: "https://docs.outline.com/",
+			website: "https://getoutline.com/",
+			docs: "https://docs.getoutline.com/s/guide",
 		},
 		logo: "outline.png",
 		load: () => import("./outline/index").then((m) => m.generate),
@@ -394,6 +394,21 @@ export const templates: TemplateData[] = [
 		load: () => import("./open-webui/index").then((m) => m.generate),
 	},
 	{
+		id: "mailpit",
+		name: "Mailpit",
+		version: "v1.22.3",
+		description:
+			"Mailpit is a tiny, self-contained, and secure email & SMTP testing tool with API for developers.",
+		logo: "mailpit.svg",
+		links: {
+			github: "https://github.com/axllent/mailpit",
+			website: "https://mailpit.axllent.org/",
+			docs: "https://mailpit.axllent.org/docs/",
+		},
+		tags: ["email", "smtp"],
+		load: () => import("./mailpit/index").then((m) => m.generate),
+	},
+	{
 		id: "listmonk",
 		name: "Listmonk",
 		version: "v3.0.0",
@@ -426,7 +441,7 @@ export const templates: TemplateData[] = [
 	{
 		id: "umami",
 		name: "Umami",
-		version: "v2.14.0",
+		version: "v2.16.1",
 		description:
 			"Umami is a simple, fast, privacy-focused alternative to Google Analytics.",
 		logo: "umami.png",
@@ -661,6 +676,21 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["open-source"],
 		load: () => import("./vaultwarden/index").then((m) => m.generate),
+	},
+	{
+		id: "linkwarden",
+		name: "Linkwarden",
+		version: "2.9.3",
+		description:
+			"Self-hosted, open-source collaborative bookmark manager to collect, organize and archive webpages.",
+		logo: "linkwarden.png",
+		links: {
+			github: "https://github.com/linkwarden/linkwarden",
+			website: "https://linkwarden.app/",
+			docs: "https://docs.linkwarden.app/",
+		},
+		tags: ["bookmarks", "link-sharing"],
+		load: () => import("./linkwarden/index").then((m) => m.generate),
 	},
 	{
 		id: "hi-events",
@@ -1092,6 +1122,21 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["identity", "auth"],
 		load: () => import("./logto/index").then((m) => m.generate),
+	},
+	{
+		id: "pocket-id",
+		name: "Pocket ID",
+		version: "0.35.1",
+		description:
+			"A simple and easy-to-use OIDC provider that allows users to authenticate with their passkeys to your services.",
+		logo: "pocket-id.svg",
+		links: {
+			github: "https://github.com/pocket-id/pocket-id",
+			website: "https://pocket-id.org/",
+			docs: "https://pocket-id.org/docs",
+		},
+		tags: ["identity", "auth"],
+		load: () => import("./pocket-id/index").then((m) => m.generate),
 	},
 	{
 		id: "penpot",
@@ -1558,5 +1603,19 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["backend", "database", "api"],
 		load: () => import("./convex/index").then((m) => m.generate),
+	},
+	{
+		id: "wikijs",
+		name: "Wiki.js",
+		version: "2.5",
+		description: "The most powerful and extensible open source Wiki software.",
+		logo: "wikijs.svg",
+		links: {
+			github: "https://github.com/requarks/wiki",
+			website: "https://js.wiki/",
+			docs: "https://docs.requarks.io/",
+		},
+		tags: ["knowledge-base", "self-hosted", "documentation"],
+		load: () => import("./wikijs/index").then((m) => m.generate),
 	},
 ];

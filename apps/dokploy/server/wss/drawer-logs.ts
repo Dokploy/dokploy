@@ -1,4 +1,5 @@
 import type http from "node:http";
+import { validateRequest } from "@dokploy/server/index";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
@@ -31,6 +32,12 @@ export const setupDrawerLogsWebSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const _url = new URL(req.url || "", `http://${req.headers.host}`);
+		const { user, session } = await validateRequest(req);
+
+		if (!user || !session) {
+			ws.close();
+			return;
+		}
 	});
 };

@@ -84,7 +84,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 		data: repositories,
 		isLoading: isLoadingRepositories,
 		error,
-		isError,
 	} = api.bitbucket.getBitbucketRepositories.useQuery(
 		{
 			bitbucketId,

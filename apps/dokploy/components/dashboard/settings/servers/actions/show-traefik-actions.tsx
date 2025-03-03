@@ -1,14 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import React from "react";
 
 import {
 	DropdownMenu,
@@ -20,10 +10,8 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { toast } from "sonner";
-
-import { cn } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";

@@ -320,7 +320,7 @@ export const cloneGitRawRepository = async (entity: {
 				outputPath,
 				"--progress",
 			],
-			(data) => {},
+			(_data) => {},
 			{
 				env: {
 					...process.env,

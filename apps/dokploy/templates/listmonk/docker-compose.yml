@@ -41,7 +41,9 @@ services:
       - setup
     volumes:
       - ../files/config.toml:/listmonk/config.toml
+      - listmonk-uploads:/listmonk/uploads
 
 volumes:
+  listmonk-uploads:
   listmonk-data:
     driver: local
