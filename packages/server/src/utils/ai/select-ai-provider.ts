@@ -75,7 +75,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
 			)};
-		case default:
-			throw new Error(`Unsupported AI provider for URL: ${config.apiUrl}`);
+		default:
+			throw new Error(`Unsupported AI provider: ${providerName}`);
 	}
 }
