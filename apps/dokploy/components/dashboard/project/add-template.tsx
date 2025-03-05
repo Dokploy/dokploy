@@ -383,9 +383,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		side="top"
 																	>
 																		<span>
-																			If ot server is selected, the application
-																			will be deployed on the server where the
-																			user is logged in.
+																			If no server is selected, the application will be
+                                      deployed on the server where the user is logged in.
 																		</span>
 																	</TooltipContent>
 																</Tooltip>
