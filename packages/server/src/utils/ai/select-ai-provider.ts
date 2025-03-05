@@ -67,7 +67,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
 			});
-		default:
+		case "custom":
 			return createOpenAICompatible({
 				name: "custom",
 				baseURL: config.apiUrl,
@@ -75,5 +75,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
 			)};
+		case default:
+			throw new Error(`Unsupported AI provider for URL: ${config.apiUrl}`);
 	}
 }
