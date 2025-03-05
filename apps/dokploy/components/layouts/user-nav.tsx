@@ -75,6 +75,14 @@ export const UserNav = () => {
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => {
+							router.push("/dashboard/settings/profile");
+						}}
+					>
+						Profile
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={() => {
 							router.push("/dashboard/projects");
 						}}
 					>
@@ -126,14 +134,6 @@ export const UserNav = () => {
 						</>
 					) : (
 						<>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/settings/profile");
-								}}
-							>
-								Profile
-							</DropdownMenuItem>
 							{data?.role === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
