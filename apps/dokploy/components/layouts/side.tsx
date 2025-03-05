@@ -1055,10 +1055,6 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="block" />
-										<BreadcrumbItem>
-											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
-										</BreadcrumbItem>
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
