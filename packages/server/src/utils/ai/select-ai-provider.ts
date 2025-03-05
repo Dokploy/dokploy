@@ -17,7 +17,7 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
 		return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
-	throw new Error(`Unsupported AI provider for URL: ${apiUrl}`);
+	return "custom";
 }
 
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
@@ -68,6 +68,12 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				apiKey: config.apiKey,
 			});
 		default:
-			throw new Error(`Unsupported AI provider: ${providerName}`);
+			return createOpenAICompatible({
+				name: "custom",
+				baseURL: config.apiUrl,
+				headers: {
+					Authorization: `Bearer ${config.apiKey}`,
+				},
+			)};
 	}
 }
