@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -25,6 +26,7 @@ enum BuildType {
 	paketo_buildpacks = "paketo_buildpacks",
 	nixpacks = "nixpacks",
 	static = "static",
+	railpack = "railpack",
 }
 
 const mySchema = z.discriminatedUnion("buildType", [
@@ -52,6 +54,9 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal("static"),
+	}),
+	z.object({
+		buildType: z.literal("railpack"),
 	}),
 ]);
 
@@ -171,6 +176,15 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													</FormControl>
 													<FormLabel className="font-normal">
 														Dockerfile
+													</FormLabel>
+												</FormItem>
+												<FormItem className="flex items-center space-x-3 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="railpack" />
+													</FormControl>
+													<FormLabel className="font-normal">
+														Railpack{" "}
+														<Badge className="ml-1 text-xs px-1">New</Badge>
 													</FormLabel>
 												</FormItem>
 												<FormItem className="flex items-center space-x-3 space-y-0">

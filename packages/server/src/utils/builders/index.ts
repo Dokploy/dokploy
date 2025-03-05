@@ -16,6 +16,7 @@ import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
+import { buildRailpack, getRailpackCommand } from "./railpack";
 import { buildStatic, getStaticCommand } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
@@ -55,6 +56,8 @@ export const buildApplication = async (
 			await buildCustomDocker(application, writeStream);
 		} else if (buildType === "static") {
 			await buildStatic(application, writeStream);
+		} else if (buildType === "railpack") {
+			await buildRailpack(application, writeStream);
 		}
 
 		if (application.registryId) {
@@ -95,6 +98,9 @@ export const getBuildCommand = (
 			break;
 		case "dockerfile":
 			command = getDockerCommand(application, logPath);
+			break;
+		case "railpack":
+			command = getRailpackCommand(application, logPath);
 			break;
 	}
 	if (registry) {

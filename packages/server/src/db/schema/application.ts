@@ -42,6 +42,7 @@ export const buildType = pgEnum("buildType", [
 	"paketo_buildpacks",
 	"nixpacks",
 	"static",
+	"railpack",
 ]);
 
 export interface HealthCheckSwarm {
@@ -383,6 +384,7 @@ const createSchema = createInsertSchema(applications, {
 		"paketo_buildpacks",
 		"nixpacks",
 		"static",
+		"railpack",
 	]),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
