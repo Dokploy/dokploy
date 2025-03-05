@@ -206,6 +206,10 @@ export const serverRouter = createTRPCRouter({
 						enabled: boolean;
 						version: string;
 					};
+					railpack: {
+						enabled: boolean;
+						version: string;
+					};
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
