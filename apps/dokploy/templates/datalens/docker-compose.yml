@@ -44,18 +44,6 @@ services:
       - us
       - pg-compeng
 
-  pg-demo-connection:
-    container_name: datalens-pg-demo-connection
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: demo
-      POSTGRES_USER: demo
-      POSTGRES_PASSWORD: demo
-    volumes:
-      - ${VOLUME_DEMO:-./pg-demo-connection/data}:/var/lib/postgresql/data
-      - ./pg-demo-connection/init:/docker-entrypoint-initdb.d
-
   pg-us:
     container_name: datalens-pg-us
     image: postgres:16-alpine
@@ -79,7 +67,7 @@ services:
       MASTER_TOKEN: "fake-us-master-token"
       POSTGRES_DSN_LIST: ${METADATA_POSTGRES_DSN_LIST:-postgres://us:us@pg-us:5432/us-db-ci_purgeable}
       SKIP_INSTALL_DB_EXTENSIONS: ${METADATA_SKIP_INSTALL_DB_EXTENSIONS:-0}
-      USE_DEMO_DATA: ${USE_DEMO_DATA:-1}
+      USE_DEMO_DATA: ${USE_DEMO_DATA:-0}
       HC: ${HC:-0}
       NODE_EXTRA_CA_CERTS: /certs/root.crt
     extra_hosts:
@@ -97,7 +85,6 @@ services:
       - us
       - control-api
       - data-api
-      - pg-demo-connection
     environment:
       APP_MODE: "full"
       APP_ENV: "production"
