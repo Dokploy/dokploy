@@ -2,6 +2,7 @@ services:
   pg-compeng:
     container_name: datalens-pg-compeng
     image: postgres:16-alpine
+    restart: always
     environment:
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: postgres
@@ -10,6 +11,7 @@ services:
   control-api:
     container_name: datalens-control-api
     image: ghcr.io/datalens-tech/datalens-control-api:0.2192.0
+    restart: always
     environment:
       BI_API_UWSGI_WORKERS_COUNT: 4
       CONNECTOR_AVAILABILITY_VISIBLE: "clickhouse,postgres,chyt,ydb,mysql,greenplum,mssql,appmetrica_api,metrika_api"
@@ -25,6 +27,7 @@ services:
   data-api:
     container_name: datalens-data-api
     image: ghcr.io/datalens-tech/datalens-data-api:0.2192.0
+    restart: always
     environment:
       GUNICORN_WORKERS_COUNT: 5
       RQE_FORCE_OFF: 1
@@ -44,6 +47,7 @@ services:
   pg-demo-connection:
     container_name: datalens-pg-demo-connection
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: demo
       POSTGRES_USER: demo
@@ -55,6 +59,7 @@ services:
   pg-us:
     container_name: datalens-pg-us
     image: postgres:16-alpine
+    restart: always
     environment:
       POSTGRES_DB: us-db-ci_purgeable
       POSTGRES_USER: us
@@ -65,6 +70,7 @@ services:
   us:
     container_name: datalens-us
     image: ghcr.io/datalens-tech/datalens-us:0.310.0
+    restart: always
     depends_on:
       - pg-us
     environment:
@@ -84,6 +90,7 @@ services:
   datalens:
     container_name: datalens-ui
     image: ghcr.io/datalens-tech/datalens-ui:0.2601.0
+    restart: always
     ports:
       - ${UI_PORT:-8080}:8080
     depends_on:
