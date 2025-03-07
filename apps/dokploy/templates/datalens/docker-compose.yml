@@ -8,7 +8,6 @@ services:
       POSTGRES_USER: postgres
 
   control-api:
-    container_name: datalens-control-api
     image: ghcr.io/datalens-tech/datalens-control-api:0.2192.0
     restart: always
     environment:
