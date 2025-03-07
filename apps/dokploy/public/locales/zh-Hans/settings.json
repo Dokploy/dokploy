@@ -38,6 +38,8 @@
 	"settings.profile.title": "账户",
 	"settings.profile.description": "更改您的个人资料",
 	"settings.profile.email": "邮箱",
+	"settings.profile.oldPassword": "旧密码",
+	"settings.profile.newPassword": "新密码",
 	"settings.profile.password": "密码",
 	"settings.profile.avatar": "头像",
 

@@ -38,6 +38,8 @@
 	"settings.profile.title": "Account",
 	"settings.profile.description": "Change the details of your profile here.",
 	"settings.profile.email": "Email",
+	"settings.profile.oldPassword": "Current Password",
+	"settings.profile.newPassword": "New Password",
 	"settings.profile.password": "Password",
 	"settings.profile.avatar": "Avatar",
 
