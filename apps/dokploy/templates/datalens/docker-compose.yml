@@ -1,6 +1,5 @@
 services:
   pg-compeng:
-    container_name: datalens-pg-compeng
     image: postgres:16-alpine
     restart: always
     environment:
