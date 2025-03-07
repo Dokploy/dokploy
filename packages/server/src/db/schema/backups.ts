@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
+	integer,
 	pgEnum,
 	pgTable,
 	text,
@@ -35,6 +36,8 @@ export const backups = pgTable("backup", {
 	destinationId: text("destinationId")
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
+
+	keepLatestCount: integer("keepLatestCount"),
 
 	databaseType: databaseType("databaseType").notNull(),
 	postgresId: text("postgresId").references(
@@ -87,6 +90,7 @@ const createSchema = createInsertSchema(backups, {
 	prefix: z.string().min(1),
 	database: z.string().min(1),
 	schedule: z.string(),
+	keepLatestCount: z.number().optional(),
 	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo"]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
@@ -99,6 +103,7 @@ export const apiCreateBackup = createSchema.pick({
 	enabled: true,
 	prefix: true,
 	destinationId: true,
+	keepLatestCount: true,
 	database: true,
 	mariadbId: true,
 	mysqlId: true,
@@ -127,5 +132,6 @@ export const apiUpdateBackup = createSchema
 		backupId: true,
 		destinationId: true,
 		database: true,
+		keepLatestCount: true,
 	})
 	.required();
