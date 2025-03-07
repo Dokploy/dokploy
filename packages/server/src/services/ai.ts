@@ -201,6 +201,8 @@ export const suggestVariants = async ({
 			return result;
 		}
 
+		console.log(object);
+
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "No suggestions found",
