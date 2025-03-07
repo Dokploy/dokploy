@@ -67,7 +67,11 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					>
 						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
-					<ShowModalLogs appName="dokploy-traefik" serverId={serverId}>
+					<ShowModalLogs
+						appName="dokploy-traefik"
+						serverId={serverId}
+						type="standalone"
+					>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
@@ -108,15 +112,6 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
 						</span>
 					</DropdownMenuItem>
-					{/* 
-								<DockerTerminalModal appName="dokploy-traefik">
-									<DropdownMenuItem
-										className="w-full cursor-pointer space-x-3"
-										onSelect={(e) => e.preventDefault()}
-									>
-										<span>Enter the terminal</span>
-									</DropdownMenuItem>
-								</DockerTerminalModal> */}
 					<ManageTraefikPorts serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}

@@ -65,10 +65,15 @@ export const dockerRouter = createTRPCRouter({
 			z.object({
 				appName: z.string().min(1),
 				serverId: z.string().optional(),
+				type: z.enum(["standalone", "swarm"]),
 			}),
 		)
 		.query(async ({ input }) => {
-			return await getContainersByAppLabel(input.appName, input.serverId);
+			return await getContainersByAppLabel(
+				input.appName,
+				input.type,
+				input.serverId,
+			);
 		}),
 
 	getStackContainersByAppName: protectedProcedure
