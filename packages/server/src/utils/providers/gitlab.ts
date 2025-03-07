@@ -409,8 +409,6 @@ export const testGitlabConnection = async (
 
 	const gitlabProvider = await findGitlabById(gitlabId);
 
-	console.log(gitlabProvider);
-
 	const response = await fetch(
 		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
 		{
@@ -428,8 +426,6 @@ export const testGitlabConnection = async (
 	}
 
 	const repositories = await response.json();
-
-	console.log(repositories);
 
 	const filteredRepos = repositories.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
