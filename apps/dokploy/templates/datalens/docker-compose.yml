@@ -73,7 +73,6 @@ services:
       - ./certs:/certs
 
   datalens:
-    container_name: datalens-ui
     image: ghcr.io/datalens-tech/datalens-ui:0.2601.0
     restart: always
     ports:
