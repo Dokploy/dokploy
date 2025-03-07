@@ -56,9 +56,17 @@ export const ShowDestinations = () => {
 													className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 												>
 													<div className="flex items-center justify-between  p-3.5 rounded-lg bg-background border  w-full">
-														<span className="text-sm">
-															{index + 1}. {destination.name}
-														</span>
+														<div className="flex flex-col gap-1">
+															<span className="text-sm">
+																{index + 1}. {destination.name}
+															</span>
+															<span className="text-xs text-muted-foreground">
+																Created at:{" "}
+																{new Date(
+																	destination.createdAt,
+																).toLocaleDateString()}
+															</span>
+														</div>
 														<div className="flex flex-row gap-1">
 															<HandleDestinations
 																destinationId={destination.destinationId}
