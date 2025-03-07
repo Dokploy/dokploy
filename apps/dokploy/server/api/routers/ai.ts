@@ -91,7 +91,6 @@ export const aiRouter = createTRPCRouter({
 					owned_by: "provider",
 				})) as Model[];
 			} catch (error) {
-				console.log("Error fetching models:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: error instanceof Error ? error?.message : `Error: ${error}`,
