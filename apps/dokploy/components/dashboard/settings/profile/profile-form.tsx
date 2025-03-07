@@ -170,7 +170,9 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>
+															{t("settings.profile.oldPassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -189,7 +191,7 @@ export const ProfileForm = () => {
 												render={({ field }) => (
 													<FormItem>
 														<FormLabel>
-															{t("settings.profile.password")}
+															{t("settings.profile.newPassword")}
 														</FormLabel>
 														<FormControl>
 															<Input
