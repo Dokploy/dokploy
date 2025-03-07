@@ -54,7 +54,6 @@ services:
       - ${VOLUME_US:-./metadata}:/var/lib/postgresql/data
 
   us:
-    container_name: datalens-us
     image: ghcr.io/datalens-tech/datalens-us:0.310.0
     restart: always
     depends_on:
