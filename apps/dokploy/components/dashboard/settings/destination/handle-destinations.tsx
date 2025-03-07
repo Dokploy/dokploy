@@ -152,6 +152,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			return;
 		}
 
+		if (isCloud && !serverId) {
+			toast.error("Please select a server");
+			return;
+		}
+
 		const provider = form.getValues("provider");
 		const accessKey = form.getValues("accessKeyId");
 		const secretKey = form.getValues("secretAccessKey");
