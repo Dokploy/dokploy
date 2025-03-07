@@ -20,4 +20,5 @@ export const serverSideTranslations = (
 			locales: Object.values(Languages).map((language) => language.code),
 			localeDetection: false,
 		},
+		reloadOnPrerender: process.env.NODE_ENV === "development",
 	});
