@@ -1,6 +1,6 @@
 name: Bug Report
 description: Create a bug report
-labels: ["bug"]
+labels: ["needs-triage"]
 body:
   - type: markdown
     attributes:
@@ -62,6 +62,7 @@ body:
         - "Docker"
         - "Remote server"
         - "Local Development"
+        - "Cloud Version"
     validations:
       required: true
   - type: dropdown
