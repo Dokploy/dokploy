@@ -28,7 +28,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		mounts,
 	} = redis;
 
-	const defaultRedisEnv = `REDIS_PASSWORD=${databasePassword}${
+	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
 		env ? `\n${env}` : ""
 	}`;
 	const resources = calculateResources({
