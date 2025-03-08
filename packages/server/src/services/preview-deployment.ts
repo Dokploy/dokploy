@@ -151,6 +151,7 @@ export const findPreviewDeploymentsByApplicationId = async (
 
 export const createPreviewDeployment = async (
 	schema: typeof apiCreatePreviewDeployment._type,
+	isExternal = false,
 ) => {
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
@@ -165,27 +166,32 @@ export const createPreviewDeployment = async (
 		org?.ownerId || "",
 	);
 
-	const octokit = authGithub(application?.github as Github);
+	let issueId = "";
+	if (!isExternal) {
+		const octokit = authGithub(application?.github as Github);
 
-	const runningComment = getIssueComment(
-		application.name,
-		"initializing",
-		generateDomain,
-	);
+		const runningComment = getIssueComment(
+			application.name,
+			"initializing",
+			generateDomain,
+		);
 
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
-	});
+		const issue = await octokit.rest.issues.createComment({
+			owner: application?.owner || "",
+			repo: application?.repository || "",
+			issue_number: Number.parseInt(schema.pullRequestNumber),
+			body: `### Dokploy Preview Deployment\n\n${runningComment}`,
+		});
+
+		issueId = `${issue.data.id}`;
+	}
 
 	const previewDeployment = await db
 		.insert(previewDeployments)
 		.values({
 			...schema,
 			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
+			pullRequestCommentId: issueId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -231,6 +237,13 @@ export const findPreviewDeploymentsByPullRequestId = async (
 ) => {
 	const previewDeploymentResult = await db.query.previewDeployments.findMany({
 		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		with: {
+			application: {
+				with: {
+					project: true,
+				},
+			},
+		},
 	});
 
 	return previewDeploymentResult;

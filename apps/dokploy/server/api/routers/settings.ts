@@ -596,25 +596,17 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	readStats: adminProcedure
 		.input(
-			z
-				.object({
-					dateRange: z
-						.object({
-							start: z.string().optional(),
-							end: z.string().optional(),
-						})
-						.optional(),
-				})
-				.optional(),
+			z.object({
+				start: z.string().optional(),
+				end: z.string().optional(),
+			}),
 		)
 		.query(({ input }) => {
 			if (IS_CLOUD) {
 				return [];
 			}
-			const rawConfig = readMonitoringConfig(
-				!!input?.dateRange?.start || !!input?.dateRange?.end,
-			);
-			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
+			const rawConfig = readMonitoringConfig(!!input?.start || !!input?.end);
+			const processedLogs = processLogs(rawConfig as string, input);
 			return processedLogs || [];
 		}),
 	haveActivateRequests: adminProcedure.query(async () => {

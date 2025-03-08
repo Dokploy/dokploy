@@ -98,6 +98,7 @@ export const deploymentWorker = new Worker(
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
 							previewDeploymentId: job.data.previewDeploymentId,
+							isExternal: job.data.isExternal,
 						});
 					}
 				} else {
@@ -107,6 +108,7 @@ export const deploymentWorker = new Worker(
 							titleLog: job.data.titleLog,
 							descriptionLog: job.data.descriptionLog,
 							previewDeploymentId: job.data.previewDeploymentId,
+							isExternal: job.data.isExternal,
 						});
 					}
 				}

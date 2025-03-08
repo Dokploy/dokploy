@@ -26,6 +26,7 @@ type DeployJob =
 			applicationType: "application-preview";
 			previewDeploymentId: string;
 			serverId?: string;
+			isExternal?: boolean;
 	  };
 
 export type DeploymentJob = DeployJob;
