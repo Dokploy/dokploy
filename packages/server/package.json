@@ -36,6 +36,7 @@
     "@ai-sdk/openai": "^1.0.12",
     "@ai-sdk/openai-compatible": "^0.0.13",
     "@better-auth/utils":"0.2.3",
+    "@duckdb/node-api": "1.2.0-alpha.15",
     "@oslojs/encoding":"1.1.0",
     "@oslojs/crypto":"1.0.1",
     "drizzle-dbml-generator":"0.10.0",

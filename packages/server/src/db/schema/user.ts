@@ -240,6 +240,9 @@ export const apiServerSchema = z
 	})
 	.optional();
 
+export const RequestStatuses = z.enum(["info", "success", "redirect", "client", "server"]);
+export type RequestStatusEnum = z.infer<typeof RequestStatuses>;
+
 export const apiReadStatsLogs = z.object({
 	page: z
 		.object({
@@ -247,7 +250,7 @@ export const apiReadStatsLogs = z.object({
 			pageSize: z.number(),
 		})
 		.optional(),
-	status: z.string().array().optional(),
+	status: RequestStatuses.array().optional(),
 	search: z.string().optional(),
 	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
 });

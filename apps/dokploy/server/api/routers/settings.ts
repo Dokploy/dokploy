@@ -1,3 +1,4 @@
+import path from "node:path";
 import { db } from "@/server/db";
 import {
 	apiAssignDomain,
@@ -14,6 +15,7 @@ import { removeJob, schedule } from "@/server/utils/backup";
 import {
 	DEFAULT_UPDATE_DATA,
 	IS_CLOUD,
+	calculateRequestsStatistics,
 	canAccessToTraefikFiles,
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
@@ -29,16 +31,14 @@ import {
 	getUpdateData,
 	initializeTraefik,
 	logRotationManager,
-	parseRawConfig,
+	parseLogs,
 	paths,
 	prepareEnvironmentVariables,
-	processLogs,
 	pullLatestRelease,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
 	readMainConfig,
-	readMonitoringConfig,
 	recreateDirectory,
 	sendDockerCleanupNotifications,
 	spawnAsync,
@@ -570,31 +570,30 @@ export const settingsRouter = createTRPCRouter({
 			},
 		})
 		.input(apiReadStatsLogs)
-		.query(({ input }) => {
+		.query(async ({ input }) => {
 			if (IS_CLOUD) {
 				return {
 					data: [],
 					totalCount: 0,
 				};
 			}
-			const rawConfig = readMonitoringConfig();
-			const parsedConfig = parseRawConfig(
-				rawConfig as string,
+			const { DYNAMIC_TRAEFIK_PATH } = paths();
+			return await parseLogs(
+				path.join(DYNAMIC_TRAEFIK_PATH, "access.log"),
 				input.page,
 				input.sort,
 				input.search,
 				input.status,
 			);
-
-			return parsedConfig;
 		}),
 	readStats: adminProcedure.query(() => {
 		if (IS_CLOUD) {
 			return [];
 		}
-		const rawConfig = readMonitoringConfig();
-		const processedLogs = processLogs(rawConfig as string);
-		return processedLogs || [];
+		const { DYNAMIC_TRAEFIK_PATH } = paths();
+		return calculateRequestsStatistics(
+			path.join(DYNAMIC_TRAEFIK_PATH, "access.log"),
+		);
 	}),
 	getLogRotateStatus: adminProcedure.query(async () => {
 		if (IS_CLOUD) {

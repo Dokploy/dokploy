@@ -17,14 +17,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CheckIcon, PlusCircle } from "lucide-react";
+import {RequestStatusEnum} from "@dokploy/server/db/schema";
 
 interface DataTableFacetedFilterProps {
-	value?: string[];
-	setValue?: (value: string[]) => void;
+	value?: RequestStatusEnum[];
+	setValue?: (value: RequestStatusEnum[]) => void;
 	title?: string;
 	options: {
 		label: string;
-		value: string;
+		value: RequestStatusEnum;
 		icon?: React.ComponentType<{ className?: string }>;
 	}[];
 }
@@ -35,7 +36,7 @@ export function DataTableFacetedFilter({
 	title,
 	options,
 }: DataTableFacetedFilterProps) {
-	const selectedValues = new Set(value as string[]);
+	const selectedValues = new Set(value as RequestStatusEnum[]);
 
 	return (
 		<Popover>
