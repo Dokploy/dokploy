@@ -28,7 +28,6 @@ import {
 	getDokployImageTag,
 	getUpdateData,
 	initializeTraefik,
-	logRotationManager,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -53,6 +52,9 @@ import {
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
+	startLogCleanup,
+	stopLogCleanup,
+	getLogCleanupStatus,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
@@ -577,48 +579,43 @@ export const settingsRouter = createTRPCRouter({
 					totalCount: 0,
 				};
 			}
-			const rawConfig = readMonitoringConfig();
+			const rawConfig = readMonitoringConfig(
+				!!input.dateRange?.start && !!input.dateRange?.end,
+			);
+
 			const parsedConfig = parseRawConfig(
 				rawConfig as string,
 				input.page,
 				input.sort,
 				input.search,
 				input.status,
+				input.dateRange,
 			);
 
 			return parsedConfig;
 		}),
-	readStats: adminProcedure.query(() => {
-		if (IS_CLOUD) {
-			return [];
-		}
-		const rawConfig = readMonitoringConfig();
-		const processedLogs = processLogs(rawConfig as string);
-		return processedLogs || [];
-	}),
-	getLogRotateStatus: adminProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return true;
-		}
-		return await logRotationManager.getStatus();
-	}),
-	toggleLogRotate: adminProcedure
+	readStats: adminProcedure
 		.input(
-			z.object({
-				enable: z.boolean(),
-			}),
+			z
+				.object({
+					dateRange: z
+						.object({
+							start: z.string().optional(),
+							end: z.string().optional(),
+						})
+						.optional(),
+				})
+				.optional(),
 		)
-		.mutation(async ({ input }) => {
+		.query(({ input }) => {
 			if (IS_CLOUD) {
-				return true;
+				return [];
 			}
-			if (input.enable) {
-				await logRotationManager.activate();
-			} else {
-				await logRotationManager.deactivate();
-			}
-
-			return true;
+			const rawConfig = readMonitoringConfig(
+				!!input?.dateRange?.start || !!input?.dateRange?.end,
+			);
+			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
+			return processedLogs || [];
 		}),
 	haveActivateRequests: adminProcedure.query(async () => {
 		if (IS_CLOUD) {
@@ -820,10 +817,20 @@ export const settingsRouter = createTRPCRouter({
 				});
 			}
 		}),
+	updateLogCleanup: adminProcedure
+		.input(
+			z.object({
+				cronExpression: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (input.cronExpression) {
+				return startLogCleanup(input.cronExpression);
+			}
+			return stopLogCleanup();
+		}),
+
+	getLogCleanupStatus: adminProcedure.query(async () => {
+		return getLogCleanupStatus();
+	}),
 });
-// {
-// 	"Parallelism": 1,
-// 	"Delay": 10000000000,
-// 	"FailureAction": "rollback",
-// 	"Order": "start-first"
-//   }

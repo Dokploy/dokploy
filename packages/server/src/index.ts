@@ -116,3 +116,9 @@ export * from "./db/validations/index";
 export * from "./utils/gpu-setup";
 
 export * from "./lib/auth";
+
+export {
+	startLogCleanup,
+	stopLogCleanup,
+	getLogCleanupStatus,
+} from "./utils/access-log/handler";
