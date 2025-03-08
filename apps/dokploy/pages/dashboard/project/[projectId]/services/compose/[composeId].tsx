@@ -224,12 +224,12 @@ const Service = (
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="domains">Domains</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
-											<TabsTrigger value="logs">Logs</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
-											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
