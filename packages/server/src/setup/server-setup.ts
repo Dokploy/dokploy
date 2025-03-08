@@ -170,6 +170,9 @@ ${installNixpacks()}
 
 echo -e "12. Installing Buildpacks"
 ${installBuildpacks()}
+
+echo -e "13. Installing Railpack"
+${installRailpack()}
 				`;
 
 	return bashCommand;
@@ -570,6 +573,16 @@ const installNixpacks = () => `
 	    export NIXPACKS_VERSION=1.29.1
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
+	fi
+`;
+
+const installRailpack = () => `
+	if command_exists railpack; then
+		echo "Railpack already installed ✅"
+	else
+	    export RAILPACK_VERSION=0.0.37
+		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
 `;
 

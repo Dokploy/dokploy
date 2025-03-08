@@ -38,6 +38,18 @@ export const validateNixpacks = () => `
   fi
 `;
 
+export const validateRailpack = () => `
+  if command_exists railpack; then
+    version=$(railpack --version | awk '{print $3}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
+  else
+    echo "0.0.0 false"
+  fi
+`;
 export const validateBuildpacks = () => `
   if command_exists pack; then
     version=$(pack --version | awk '{print $1}')
@@ -86,7 +98,7 @@ export const serverValidate = async (serverId: string) => {
           rcloneVersionEnabled=$(${validateRClone()})
           nixpacksVersionEnabled=$(${validateNixpacks()})
           buildpacksVersionEnabled=$(${validateBuildpacks()})
-
+          railpackVersionEnabled=$(${validateRailpack()})
           dockerVersion=$(echo $dockerVersionEnabled | awk '{print $1}')
           dockerEnabled=$(echo $dockerVersionEnabled | awk '{print $2}')
 
@@ -96,6 +108,9 @@ export const serverValidate = async (serverId: string) => {
           nixpacksVersion=$(echo $nixpacksVersionEnabled | awk '{print $1}')
           nixpacksEnabled=$(echo $nixpacksVersionEnabled | awk '{print $2}')
 
+          railpackVersion=$(echo $railpackVersionEnabled | awk '{print $1}')
+          railpackEnabled=$(echo $railpackVersionEnabled | awk '{print $2}')
+
           buildpacksVersion=$(echo $buildpacksVersionEnabled | awk '{print $1}')
           buildpacksEnabled=$(echo $buildpacksVersionEnabled | awk '{print $2}')
 
@@ -103,7 +118,7 @@ export const serverValidate = async (serverId: string) => {
           isSwarmInstalled=$(${validateSwarm()})
           isMainDirectoryInstalled=$(${validateMainDirectory()})
 
-  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
+  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"railpack\\": {\\"version\\": \\"$railpackVersion\\", \\"enabled\\": $railpackEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
         `;
 				client.exec(bashCommand, (err, stream) => {
 					if (err) {

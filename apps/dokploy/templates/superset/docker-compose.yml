@@ -1,7 +1,7 @@
 # This is an UNOFFICIAL production docker image build for Superset:
 # - https://github.com/amancevice/docker-superset
 
- 
+
 # ## SETUP INSTRUCTIONS
 #
 # After deploying this image, you will need to run one of the two
@@ -10,7 +10,7 @@
 #      $ superset-init     # Initialise database only
 #
 # You will be prompted to enter the credentials for the admin user.
- 
+
 
 # ## NETWORK INSTRUCTIONS
 #
@@ -66,7 +66,7 @@ services:
       timeout: 10s
       retries: 3
 
-superset_redis:
+  superset_redis:
     image: redis
     restart: always
     volumes:
