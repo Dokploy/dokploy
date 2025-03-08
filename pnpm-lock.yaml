@@ -6282,6 +6282,7 @@ packages:
 
   oslo@1.2.0:
     resolution: {integrity: sha512-OoFX6rDsNcOQVAD2gQD/z03u4vEjWZLzJtwkmgfRF+KpQUXwdgEXErD7zNhyowmHwHefP+PM9Pw13pgpHMRlzw==}
+    deprecated: Package is no longer supported. Please see https://oslojs.dev for the successor project.
 
   otpauth@9.3.4:
     resolution: {integrity: sha512-qXv+lpsCUO9ewitLYfeDKbLYt7UUCivnU/fwGK2OqhgrCBsRkTUNKWsgKAhkXG3aistOY+jEeuL90JEBu6W3mQ==}

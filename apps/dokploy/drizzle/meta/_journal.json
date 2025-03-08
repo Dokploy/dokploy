@@ -498,6 +498,13 @@
       "when": 1741322697251,
       "tag": "0070_useful_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1741460060541,
+      "tag": "0071_flaky_black_queen",
+      "breakpoints": true
     }
   ]
 }
