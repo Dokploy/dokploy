@@ -37,8 +37,6 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
 	Collapsible,
@@ -1017,18 +1015,16 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && auth?.role === "owner" && (
-								<SidebarMenuItem>
-									<SidebarMenuButton asChild>
-										<UpdateServerButton />
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
 				<SidebarFooter>
-					<SidebarMenu>
+					<SidebarMenu className="flex flex-col gap-2">
+						{!isCloud && auth?.role === "owner" && (
+							<SidebarMenuItem>
+								<UpdateServerButton />
+							</SidebarMenuItem>
+						)}
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
