@@ -14,6 +14,9 @@ const { handler, api } = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
+	...(!IS_CLOUD && {
+		baseURL: "http://localhost:3000",
+	}),
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},

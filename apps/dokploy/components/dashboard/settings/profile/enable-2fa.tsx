@@ -64,12 +64,12 @@ export const Enable2FA = () => {
 	const handlePasswordSubmit = async (formData: PasswordForm) => {
 		setIsPasswordLoading(true);
 		try {
-			const { data: enableData } = await authClient.twoFactor.enable({
+			const { data: enableData, error } = await authClient.twoFactor.enable({
 				password: formData.password,
 			});
 
 			if (!enableData) {
-				throw new Error("No data received from server");
+				throw new Error(error?.message || "Unknown error");
 			}
 
 			if (enableData.backupCodes) {
@@ -95,7 +95,7 @@ export const Enable2FA = () => {
 				error instanceof Error ? error.message : "Error setting up 2FA",
 			);
 			passwordForm.setError("password", {
-				message: "Error verifying password",
+				message: `Error verifying password: ${error instanceof Error ? error.message : "Unknown error"}`,
 			});
 		} finally {
 			setIsPasswordLoading(false);
