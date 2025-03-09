@@ -47,9 +47,11 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { useTranslation } from "next-i18next";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
+	const { t } = useTranslation("home");
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
@@ -76,10 +78,10 @@ export const ShowProjects = () => {
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									Projects
+									{t("home.projects.title")}
 								</CardTitle>
 								<CardDescription>
-									Create and manage your projects
+									{t("home.projects.description")}
 								</CardDescription>
 							</CardHeader>
 
