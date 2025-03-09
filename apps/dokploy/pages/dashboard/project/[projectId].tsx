@@ -668,20 +668,24 @@ const Project = (
 															Stop
 														</Button>
 													</DialogAction>
-													<DialogAction
-														title="Delete Services"
-														description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
-														type="destructive"
-														onClick={handleBulkDelete}
-													>
-														<Button
-															variant="ghost"
-															className="w-full justify-start text-destructive"
+													{(auth?.role === "owner" ||
+														auth?.canDeleteServices) && (
+														<DialogAction
+															title="Delete Services"
+															description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+															type="destructive"
+															onClick={handleBulkDelete}
 														>
-															<Trash2 className="mr-2 h-4 w-4" />
-															Delete
-														</Button>
-													</DialogAction>
+															<Button
+																variant="ghost"
+																className="w-full justify-start text-destructive"
+															>
+																<Trash2 className="mr-2 h-4 w-4" />
+																Delete
+															</Button>
+														</DialogAction>
+													)}
+
 													<Dialog
 														open={isMoveDialogOpen}
 														onOpenChange={setIsMoveDialogOpen}
