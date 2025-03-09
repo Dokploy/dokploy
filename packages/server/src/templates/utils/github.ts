@@ -54,7 +54,7 @@ interface TemplateMetadata {
  */
 export async function fetchTemplatesList(
 	baseUrl = "https://dokploy.github.io/templates",
-): Promise<CompleteTemplate[]> {
+): Promise<TemplateMetadata[]> {
 	try {
 		const response = await fetch(`${baseUrl}/meta.json`);
 		if (!response.ok) {
@@ -62,22 +62,13 @@ export async function fetchTemplatesList(
 		}
 		const templates = (await response.json()) as TemplateMetadata[];
 		return templates.map((template) => ({
-			metadata: {
-				id: template.id,
-				name: template.name,
-				description: template.description,
-				version: template.version,
-				logo: template.logo,
-				links: template.links,
-				tags: template.tags,
-			},
-			// These will be populated when fetching individual templates
-			variables: {},
-			config: {
-				domains: [],
-				env: {},
-				mounts: [],
-			},
+			id: template.id,
+			name: template.name,
+			description: template.description,
+			version: template.version,
+			logo: template.logo,
+			links: template.links,
+			tags: template.tags,
 		}));
 	} catch (error) {
 		console.error("Error fetching templates list:", error);

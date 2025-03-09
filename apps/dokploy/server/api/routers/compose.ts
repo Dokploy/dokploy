@@ -10,7 +10,6 @@ import {
 	compose as composeTable,
 } from "@/server/db/schema";
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
-import { templates } from "@/templates/templates";
 import { generatePassword } from "@/templates/utils";
 import {
 	fetchTemplateFiles,
@@ -401,6 +400,7 @@ export const composeRouter = createTRPCRouter({
 				projectId: z.string(),
 				serverId: z.string().optional(),
 				id: z.string(),
+				baseUrl: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -420,7 +420,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const template = await fetchTemplateFiles(input.id);
+			const template = await fetchTemplateFiles(input.id, input.baseUrl);
 
 			const admin = await findUserById(ctx.user.ownerId);
 			let serverIp = admin.serverIp || "127.0.0.1";
@@ -488,27 +488,33 @@ export const composeRouter = createTRPCRouter({
 			return null;
 		}),
 
-	templates: publicProcedure.query(async () => {
-		try {
-			const githubTemplates = await fetchTemplatesList();
+	templates: publicProcedure
+		.input(z.object({ baseUrl: z.string().optional() }))
+		.query(async ({ input }) => {
+			try {
+				const githubTemplates = await fetchTemplatesList(input.baseUrl);
 
-			if (githubTemplates.length > 0) {
-				return githubTemplates;
+				if (githubTemplates.length > 0) {
+					return githubTemplates;
+				}
+			} catch (error) {
+				console.warn(
+					"Failed to fetch templates from GitHub, falling back to local templates:",
+					error,
+				);
 			}
-		} catch (error) {
-			console.warn(
-				"Failed to fetch templates from GitHub, falling back to local templates:",
-				error,
-			);
-		}
-		return [];
-	}),
+			return [];
+		}),
 
-	getTags: protectedProcedure.query(async () => {
-		const allTags = templates.flatMap((template) => template.tags);
-		const uniqueTags = _.uniq(allTags);
-		return uniqueTags;
-	}),
+	getTags: protectedProcedure
+		.input(z.object({ baseUrl: z.string().optional() }))
+		.query(async ({ input }) => {
+			const githubTemplates = await fetchTemplatesList(input.baseUrl);
+
+			const allTags = githubTemplates.flatMap((template) => template.tags);
+			const uniqueTags = _.uniq(allTags);
+			return uniqueTags;
+		}),
 
 	move: protectedProcedure
 		.input(

@@ -66,55 +66,53 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-interface TemplateData {
-	metadata: {
-		id: string;
-		name: string;
-		description: string;
-		version: string;
-		logo: string;
-		links: {
-			github: string;
-			website?: string;
-			docs?: string;
-		};
-		tags: string[];
-	};
-	variables: {
-		[key: string]: string;
-	};
-	config: {
-		domains: Array<{
-			serviceName: string;
-			port: number;
-			path?: string;
-			host?: string;
-		}>;
-		env: Record<string, string>;
-		mounts?: Array<{
-			filePath: string;
-			content: string;
-		}>;
-	};
-}
+const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
 interface Props {
 	projectId: string;
+	baseUrl?: string;
 }
 
-export const AddTemplate = ({ projectId }: Props) => {
+export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
-	const { data } = api.compose.templates.useQuery();
+	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
+		// Try to get from props first, then localStorage
+		if (baseUrl) return baseUrl;
+		if (typeof window !== "undefined") {
+			return localStorage.getItem(TEMPLATE_BASE_URL_KEY) || undefined;
+		}
+		return undefined;
+	});
+
+	// Save to localStorage when customBaseUrl changes
+	useEffect(() => {
+		if (customBaseUrl) {
+			localStorage.setItem(TEMPLATE_BASE_URL_KEY, customBaseUrl);
+		} else {
+			localStorage.removeItem(TEMPLATE_BASE_URL_KEY);
+		}
+	}, [customBaseUrl]);
+
+	const { data } = api.compose.templates.useQuery(
+		{ baseUrl: customBaseUrl },
+		{
+			enabled: open,
+		},
+	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { data: tags, isLoading: isLoadingTags } =
-		api.compose.getTags.useQuery();
+	const { data: tags, isLoading: isLoadingTags } = api.compose.getTags.useQuery(
+		{ baseUrl: customBaseUrl },
+		{
+			enabled: open,
+		},
+	);
 	const utils = api.useUtils();
 
 	const [serverId, setServerId] = useState<string | undefined>(undefined);
@@ -125,13 +123,11 @@ export const AddTemplate = ({ projectId }: Props) => {
 		data?.filter((template) => {
 			const matchesTags =
 				selectedTags.length === 0 ||
-				template.metadata.tags.some((tag) => selectedTags.includes(tag));
+				template.tags.some((tag) => selectedTags.includes(tag));
 			const matchesQuery =
 				query === "" ||
-				template.metadata.name.toLowerCase().includes(query.toLowerCase()) ||
-				template.metadata.description
-					.toLowerCase()
-					.includes(query.toLowerCase());
+				template.name.toLowerCase().includes(query.toLowerCase()) ||
+				template.description.toLowerCase().includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
 		}) || [];
 
@@ -162,6 +158,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 									onChange={(e) => setQuery(e.target.value)}
 									className="w-full sm:w-[200px]"
 									value={query}
+								/>
+								<Input
+									placeholder="Base URL (optional)"
+									onChange={(e) =>
+										setCustomBaseUrl(e.target.value || undefined)
+									}
+									className="w-full sm:w-[300px]"
+									value={customBaseUrl || ""}
 								/>
 								<Popover modal={true}>
 									<PopoverTrigger asChild>
@@ -284,7 +288,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 							>
 								{templates?.map((template) => (
 									<div
-										key={template.metadata.id}
+										key={template.id}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -292,9 +296,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 										)}
 									>
 										<Badge className="absolute top-2 right-2" variant="blue">
-											{template.metadata.version}
+											{template.version}
 										</Badge>
-										{/* Template Header */}
 										<div
 											className={cn(
 												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
@@ -302,21 +305,21 @@ export const AddTemplate = ({ projectId }: Props) => {
 											)}
 										>
 											<img
-												src={`/templates/${template.metadata.logo}`}
+												src={`${customBaseUrl || ""}/templates/${template.id}/${template.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
 												)}
-												alt={template.metadata.name}
+												alt={template.name}
 											/>
 											<div className="flex flex-col items-center gap-2">
 												<span className="text-sm font-medium line-clamp-1">
-													{template.metadata.name}
+													{template.name}
 												</span>
 												{viewMode === "detailed" &&
-													template.metadata.tags.length > 0 && (
+													template.tags.length > 0 && (
 														<div className="flex flex-wrap justify-center gap-1.5">
-															{template.metadata.tags.map((tag) => (
+															{template.tags.map((tag) => (
 																<Badge
 																	key={tag}
 																	variant="green"
@@ -334,7 +337,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 										{viewMode === "detailed" && (
 											<ScrollArea className="flex-1 p-6">
 												<div className="text-sm text-muted-foreground">
-													{template.metadata.description}
+													{template.description}
 												</div>
 											</ScrollArea>
 										)}
@@ -351,24 +354,24 @@ export const AddTemplate = ({ projectId }: Props) => {
 											{viewMode === "detailed" && (
 												<div className="flex gap-2">
 													<Link
-														href={template.metadata.links.github}
+														href={template.links.github}
 														target="_blank"
 														className="text-muted-foreground hover:text-foreground transition-colors"
 													>
 														<Github className="size-5" />
 													</Link>
-													{template.metadata.links.website && (
+													{template.links.website && (
 														<Link
-															href={template.metadata.links.website}
+															href={template.links.website}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
 															<Globe className="size-5" />
 														</Link>
 													)}
-													{template.metadata.links.docs && (
+													{template.links.docs && (
 														<Link
-															href={template.metadata.links.docs}
+															href={template.links.docs}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
@@ -397,8 +400,8 @@ export const AddTemplate = ({ projectId }: Props) => {
 														</AlertDialogTitle>
 														<AlertDialogDescription>
 															This will create an application from the{" "}
-															{template.metadata.name} template and add it to
-															your project.
+															{template.name} template and add it to your
+															project.
 														</AlertDialogDescription>
 
 														<div>
@@ -464,19 +467,20 @@ export const AddTemplate = ({ projectId }: Props) => {
 																const promise = mutateAsync({
 																	projectId,
 																	serverId: serverId || undefined,
-																	id: template.metadata.id,
+																	id: template.id,
+																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
-																	success: (_data) => {
+																	success: () => {
 																		utils.project.one.invalidate({
 																			projectId,
 																		});
 																		setOpen(false);
-																		return `${template.metadata.name} template created successfully`;
+																		return `${template.name} template created successfully`;
 																	},
-																	error: (err) => {
-																		return `An error occurred deploying ${template.metadata.name} template`;
+																	error: () => {
+																		return `An error occurred deploying ${template.name} template`;
 																	},
 																});
 															}}
