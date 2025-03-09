@@ -91,7 +91,6 @@ export default async function handler(
 
 	if (req.headers["x-github-event"] === "push") {
 		try {
-			console.log("githubBody", githubBody.commits);
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
 			const repository = githubBody?.repository?.name;
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
