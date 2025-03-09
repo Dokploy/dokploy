@@ -124,6 +124,7 @@ export const applications = pgTable("application", {
 	previewCertificateType: certificateType("certificateType")
 		.notNull()
 		.default("none"),
+	previewCustomCertResolver: text("previewCustomCertResolver"),
 	previewLimit: integer("previewLimit").default(3),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
@@ -404,7 +405,7 @@ const createSchema = createInsertSchema(applications, {
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
 	previewPath: z.string().optional(),
-	previewCertificateType: z.enum(["letsencrypt", "none"]).optional(),
+	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
