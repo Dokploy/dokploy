@@ -494,7 +494,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
-													autoComplete="off"
+													autoComplete="one-time-code"
 													{...field}
 												/>
 											</FormControl>
