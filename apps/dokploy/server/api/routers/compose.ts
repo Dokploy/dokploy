@@ -2,7 +2,6 @@ import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
 import {
 	apiCreateCompose,
-	apiCreateComposeByTemplate,
 	apiDeleteCompose,
 	apiFetchServices,
 	apiFindCompose,
@@ -12,14 +11,12 @@ import {
 } from "@/server/db/schema";
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { templates } from "@/templates/templates";
-import type { TemplatesKeys } from "@/templates/types/templates-data.type";
 import { generatePassword } from "@/templates/utils";
 import {
 	fetchTemplateFiles,
 	fetchTemplatesList,
-	processTemplate,
 } from "@dokploy/server/templates/utils/github";
-import { readTemplateComposeFile } from "@dokploy/server/templates/utils";
+import { processTemplate } from "@dokploy/server/templates/utils/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
@@ -27,7 +24,6 @@ import _ from "lodash";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
-
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
 import {
@@ -57,29 +53,6 @@ import {
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
-
-import { z } from "zod";
-import type { TemplateConfig } from "@dokploy/server/types/template";
-
-// Add the template config schema
-const templateConfigSchema = z.object({
-	variables: z.record(z.string()),
-	domains: z.array(
-		z.object({
-			serviceName: z.string(),
-			port: z.number(),
-			path: z.string().optional(),
-			host: z.string().optional(),
-		}),
-	),
-	env: z.record(z.string()),
-	mounts: z.array(
-		z.object({
-			filePath: z.string(),
-			content: z.string(),
-		}),
-	),
-}) satisfies z.ZodType<TemplateConfig>;
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -466,62 +439,59 @@ export const composeRouter = createTRPCRouter({
 				projectName: project.name,
 			});
 
-			console.log(generate.domains);
-			console.log(generate.envs);
-			console.log(generate.mounts);
+			const projectName = slugify(`${project.name} ${input.id}`);
 
-			// const projectName = slugify(`${project.name} ${input.id}`);
-			// const { envs, mounts, domains } = await generate({
-			// 	serverIp: serverIp || "",
-			// 	projectName: projectName,
-			// });
+			const compose = await createComposeByTemplate({
+				...input,
+				composeFile: template.dockerCompose,
+				env: generate.envs?.join("\n"),
+				serverId: input.serverId,
+				name: input.id,
+				sourceType: "raw",
+				appName: `${projectName}-${generatePassword(6)}`,
+				isolatedDeployment: true,
+			});
 
-			// const compose = await createComposeByTemplate({
-			// 	...input,
-			// 	composeFile: composeFile,
-			// 	env: envs?.join("\n"),
-			// 	serverId: input.serverId,
-			// 	name: input.id,
-			// 	sourceType: "raw",
-			// 	appName: `${projectName}-${generatePassword(6)}`,
-			// 	isolatedDeployment: true,
-			// });
+			if (ctx.user.rol === "member") {
+				await addNewService(
+					ctx.user.id,
+					compose.composeId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 
-			// if (ctx.user.rol === "user") {
-			// 	await addNewService(ctx.user.authId, compose.composeId);
-			// }
+			if (generate.mounts && generate.mounts?.length > 0) {
+				for (const mount of generate.mounts) {
+					await createMount({
+						filePath: mount.filePath,
+						mountPath: "",
+						content: mount.content,
+						serviceId: compose.composeId,
+						serviceType: "compose",
+						type: "file",
+					});
+				}
+			}
 
-			// if (mounts && mounts?.length > 0) {
-			// 	for (const mount of mounts) {
-			// 		await createMount({
-			// 			filePath: mount.filePath,
-			// 			mountPath: "",
-			// 			content: mount.content,
-			// 			serviceId: compose.composeId,
-			// 			serviceType: "compose",
-			// 			type: "file",
-			// 		});
-			// 	}
-			// }
-
-			// if (domains && domains?.length > 0) {
-			// 	for (const domain of domains) {
-			// 		await createDomain({
-			// 			...domain,
-			// 			domainType: "compose",
-			// 			certificateType: "none",
-			// 			composeId: compose.composeId,
-			// 		});
-			// 	}
-			// }
+			if (generate.domains && generate.domains?.length > 0) {
+				for (const domain of generate.domains) {
+					await createDomain({
+						...domain,
+						domainType: "compose",
+						certificateType: "none",
+						composeId: compose.composeId,
+						host: domain.host || "",
+					});
+				}
+			}
 
 			return null;
 		}),
 
 	templates: publicProcedure.query(async () => {
-		// First try to fetch templates from GitHub
 		try {
 			const githubTemplates = await fetchTemplatesList();
+
 			if (githubTemplates.length > 0) {
 				return githubTemplates;
 			}
@@ -531,8 +501,6 @@ export const composeRouter = createTRPCRouter({
 				error,
 			);
 		}
-
-		// Fall back to local templates if GitHub fetch fails
 		return [];
 	}),
 

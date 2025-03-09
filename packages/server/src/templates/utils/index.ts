@@ -1,10 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Domain } from "@dokploy/server/services/domain";
 import { TRPCError } from "@trpc/server";
-import { templateConfig } from "../config";
 import { fetchTemplateFiles } from "./github";
 
 export interface Schema {
@@ -53,26 +52,15 @@ export const generatePassword = (quantity = 16): string => {
 	return password.toLowerCase();
 };
 
-export const generateBase64 = (bytes = 32): string => {
-	return randomBytes(bytes).toString("base64");
-};
-
 /**
- * Checks if a cached file is still valid based on its modification time
+ * Generate a random base64 string of specified length
  */
-async function isCacheValid(filePath: string): Promise<boolean> {
-	try {
-		if (!existsSync(filePath)) return false;
-
-		const fileStats = await stat(filePath);
-		const modifiedTime = fileStats.mtime.getTime();
-		const currentTime = Date.now();
-
-		// Check if the file is older than the cache duration
-		return currentTime - modifiedTime < templateConfig.cacheDuration;
-	} catch (error) {
-		return false;
-	}
+export function generateBase64(length: number): string {
+	// To get N characters in base64, we need to generate N * 3/4 bytes
+	const bytesNeeded = Math.ceil((length * 3) / 4);
+	return Buffer.from(randomBytes(bytesNeeded))
+		.toString("base64")
+		.substring(0, length);
 }
 
 /**

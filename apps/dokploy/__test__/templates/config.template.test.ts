@@ -1,0 +1,341 @@
+import { describe, expect, it } from "vitest";
+import type { CompleteTemplate } from "@dokploy/server/templates/utils/processors";
+import { processTemplate } from "@dokploy/server/templates/utils/processors";
+import type { Schema } from "@dokploy/server/templates/utils";
+
+describe("processTemplate", () => {
+	// Mock schema for testing
+	const mockSchema: Schema = {
+		projectName: "test",
+		serverIp: "127.0.0.1",
+	};
+
+	describe("variables processing", () => {
+		it("should process basic variables with utility functions", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					main_domain: "${randomDomain}",
+					secret_base: "${base64:64}",
+					totp_key: "${base64:32}",
+					password: "${password:32}",
+					hash: "${hash:16}",
+				},
+				config: {
+					domains: [],
+					env: {},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(0);
+			expect(result.domains).toHaveLength(0);
+			expect(result.mounts).toHaveLength(0);
+		});
+
+		it("should allow referencing variables in other variables", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					main_domain: "${randomDomain}",
+					api_domain: "api.${main_domain}",
+				},
+				config: {
+					domains: [],
+					env: {},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(0);
+			expect(result.domains).toHaveLength(0);
+			expect(result.mounts).toHaveLength(0);
+		});
+	});
+
+	describe("domains processing", () => {
+		it("should process domains with explicit host", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					main_domain: "${randomDomain}",
+				},
+				config: {
+					domains: [
+						{
+							serviceName: "plausible",
+							port: 8000,
+							host: "${main_domain}",
+						},
+					],
+					env: {},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.domains).toHaveLength(1);
+			const domain = result.domains[0];
+			expect(domain).toBeDefined();
+			if (!domain) return;
+			expect(domain).toMatchObject({
+				serviceName: "plausible",
+				port: 8000,
+			});
+			expect(domain.host).toBeDefined();
+			expect(domain.host).toContain(mockSchema.projectName);
+		});
+
+		it("should generate random domain if host is not specified", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [
+						{
+							serviceName: "plausible",
+							port: 8000,
+						},
+					],
+					env: {},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.domains).toHaveLength(1);
+			const domain = result.domains[0];
+			expect(domain).toBeDefined();
+			if (!domain || !domain.host) return;
+			expect(domain.host).toBeDefined();
+			expect(domain.host).toContain(mockSchema.projectName);
+		});
+
+		it("should allow using ${randomDomain} directly in host", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [
+						{
+							serviceName: "plausible",
+							port: 8000,
+							host: "${randomDomain}",
+						},
+					],
+					env: {},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.domains).toHaveLength(1);
+			const domain = result.domains[0];
+			expect(domain).toBeDefined();
+			if (!domain || !domain.host) return;
+			expect(domain.host).toBeDefined();
+			expect(domain.host).toContain(mockSchema.projectName);
+		});
+	});
+
+	describe("environment variables processing", () => {
+		it("should process env vars with variable references", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					main_domain: "${randomDomain}",
+					secret_base: "${base64:64}",
+				},
+				config: {
+					domains: [],
+					env: {
+						BASE_URL: "http://${main_domain}",
+						SECRET_KEY_BASE: "${secret_base}",
+					},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(2);
+			const baseUrl = result.envs.find((env: string) =>
+				env.startsWith("BASE_URL="),
+			);
+			const secretKey = result.envs.find((env: string) =>
+				env.startsWith("SECRET_KEY_BASE="),
+			);
+
+			expect(baseUrl).toBeDefined();
+			expect(secretKey).toBeDefined();
+			if (!baseUrl || !secretKey) return;
+
+			expect(baseUrl).toContain(mockSchema.projectName);
+			expect(secretKey.split("=")[1]).toHaveLength(64);
+		});
+
+		it("should allow using utility functions directly in env vars", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: {
+						RANDOM_DOMAIN: "${randomDomain}",
+						SECRET_KEY: "${base64:32}",
+					},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(2);
+			const randomDomainEnv = result.envs.find((env: string) =>
+				env.startsWith("RANDOM_DOMAIN="),
+			);
+			const secretKeyEnv = result.envs.find((env: string) =>
+				env.startsWith("SECRET_KEY="),
+			);
+			expect(randomDomainEnv).toBeDefined();
+			expect(secretKeyEnv).toBeDefined();
+			if (!randomDomainEnv || !secretKeyEnv) return;
+
+			expect(randomDomainEnv).toContain(mockSchema.projectName);
+			expect(secretKeyEnv.split("=")[1]).toHaveLength(32);
+		});
+	});
+
+	describe("mounts processing", () => {
+		it("should process mounts with variable references", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					config_path: "/etc/config",
+					secret_key: "${base64:32}",
+				},
+				config: {
+					domains: [],
+					env: {},
+					mounts: [
+						{
+							filePath: "${config_path}/config.xml",
+							content: "secret_key=${secret_key}",
+						},
+					],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.mounts).toHaveLength(1);
+			const mount = result.mounts[0];
+			expect(mount).toBeDefined();
+			if (!mount) return;
+			expect(mount.filePath).toContain("/etc/config");
+			expect(mount.content).toMatch(/secret_key=[A-Za-z0-9+/]{32}/);
+		});
+
+		it("should allow using utility functions directly in mount content", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: {},
+					mounts: [
+						{
+							filePath: "/config/secrets.txt",
+							content: "random_domain=${randomDomain}\nsecret=${base64:32}",
+						},
+					],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.mounts).toHaveLength(1);
+			const mount = result.mounts[0];
+			expect(mount).toBeDefined();
+			if (!mount) return;
+			expect(mount.content).toContain(mockSchema.projectName);
+			expect(mount.content).toMatch(/secret=[A-Za-z0-9+/]{32}/);
+		});
+	});
+
+	describe("complex template processing", () => {
+		it("should process a complete template with all features", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					main_domain: "${randomDomain}",
+					secret_base: "${base64:64}",
+					totp_key: "${base64:32}",
+				},
+				config: {
+					domains: [
+						{
+							serviceName: "plausible",
+							port: 8000,
+							host: "${main_domain}",
+						},
+						{
+							serviceName: "api",
+							port: 3000,
+							host: "api.${main_domain}",
+						},
+					],
+					env: {
+						BASE_URL: "http://${main_domain}",
+						SECRET_KEY_BASE: "${secret_base}",
+						TOTP_VAULT_KEY: "${totp_key}",
+					},
+					mounts: [
+						{
+							filePath: "/config/app.conf",
+							content: `
+                domain=\${main_domain}
+                secret=\${secret_base}
+                totp=\${totp_key}
+              `,
+						},
+					],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+
+			// Check domains
+			expect(result.domains).toHaveLength(2);
+			const [domain1, domain2] = result.domains;
+			expect(domain1).toBeDefined();
+			expect(domain2).toBeDefined();
+			if (!domain1 || !domain2) return;
+			expect(domain1.host).toBeDefined();
+			expect(domain1.host).toContain(mockSchema.projectName);
+			expect(domain2.host).toContain("api.");
+			expect(domain2.host).toContain(mockSchema.projectName);
+
+			// Check env vars
+			expect(result.envs).toHaveLength(3);
+			const baseUrl = result.envs.find((env: string) =>
+				env.startsWith("BASE_URL="),
+			);
+			const secretKey = result.envs.find((env: string) =>
+				env.startsWith("SECRET_KEY_BASE="),
+			);
+			const totpKey = result.envs.find((env: string) =>
+				env.startsWith("TOTP_VAULT_KEY="),
+			);
+
+			expect(baseUrl).toBeDefined();
+			expect(secretKey).toBeDefined();
+			expect(totpKey).toBeDefined();
+			if (!baseUrl || !secretKey || !totpKey) return;
+
+			expect(baseUrl).toContain(mockSchema.projectName);
+			expect(secretKey.split("=")[1]).toHaveLength(64);
+			expect(totpKey.split("=")[1]).toHaveLength(32);
+
+			// Check mounts
+			expect(result.mounts).toHaveLength(1);
+			const mount = result.mounts[0];
+			expect(mount).toBeDefined();
+			if (!mount) return;
+			expect(mount.content).toContain(mockSchema.projectName);
+			expect(mount.content).toMatch(/secret=[A-Za-z0-9+/]{64}/);
+			expect(mount.content).toMatch(/totp=[A-Za-z0-9+/]{32}/);
+		});
+	});
+});
