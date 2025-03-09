@@ -4,6 +4,7 @@ import {
 	apiCreateMongo,
 	apiDeployMongo,
 	apiFindOneMongo,
+	apiRebuildMongo,
 	apiResetMongo,
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
@@ -34,7 +35,7 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
-
+import { rebuildDatabase } from "@dokploy/server";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMongo)
@@ -382,5 +383,20 @@ export const mongoRouter = createTRPCRouter({
 			}
 
 			return updatedMongo;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMongo)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MongoDB database",
+				});
+			}
+
+			await rebuildDatabase(mongo.mongoId, "mongo");
+
+			return true;
 		}),
 });

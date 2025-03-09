@@ -9,6 +9,7 @@ import {
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
 	redis as redisTable,
+	apiRebuildRedis,
 } from "@/server/db/schema";
 
 import { TRPCError } from "@trpc/server";
@@ -34,7 +35,7 @@ import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import { z } from "zod";
-
+import { rebuildDatabase } from "@dokploy/server";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
@@ -362,5 +363,19 @@ export const redisRouter = createTRPCRouter({
 			}
 
 			return updatedRedis;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildRedis)
+		.mutation(async ({ input, ctx }) => {
+			const redis = await findRedisById(input.redisId);
+			if (redis.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this Redis database",
+				});
+			}
+
+			await rebuildDatabase(redis.redisId, "redis");
+			return true;
 		}),
 });
