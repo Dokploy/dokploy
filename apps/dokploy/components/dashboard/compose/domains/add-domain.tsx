@@ -104,6 +104,15 @@ export const AddDomainCompose = ({
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domainCompose),
+		defaultValues: {
+			host: "",
+			path: undefined,
+			port: undefined,
+			https: false,
+			certificateType: undefined,
+			customCertResolver: undefined,
+			serviceName: "",
+		},
 	});
 
 	const https = form.watch("https");
@@ -116,11 +125,21 @@ export const AddDomainCompose = ({
 				path: data?.path || undefined,
 				port: data?.port || undefined,
 				serviceName: data?.serviceName || undefined,
+				certificateType: data?.certificateType || undefined,
+				customCertResolver: data?.customCertResolver || undefined,
 			});
 		}
 
 		if (!domainId) {
-			form.reset({});
+			form.reset({
+				host: "",
+				path: undefined,
+				port: undefined,
+				https: false,
+				certificateType: undefined,
+				customCertResolver: undefined,
+				serviceName: "",
+			});
 		}
 	}, [form, form.reset, data, isLoading]);
 
@@ -393,33 +412,55 @@ export const AddDomainCompose = ({
 								/>
 
 								{https && (
-									<FormField
-										control={form.control}
-										name="certificateType"
-										render={({ field }) => (
-											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
-														</SelectTrigger>
-													</FormControl>
+									<>
+										<FormField
+											control={form.control}
+											name="certificateType"
+											render={({ field }) => (
+												<FormItem className="col-span-2">
+													<FormLabel>Certificate Provider</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value || ""}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a certificate provider" />
+															</SelectTrigger>
+														</FormControl>
 
-													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
-														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
-														</SelectItem>
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
+														<SelectContent>
+															<SelectItem value="none">None</SelectItem>
+															<SelectItem value={"letsencrypt"}>
+																Let's Encrypt
+															</SelectItem>
+															<SelectItem value={"custom"}>Custom</SelectItem>
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										{form.getValues().certificateType === "custom" && (
+											<FormField
+												control={form.control}
+												name="customCertResolver"
+												render={({ field }) => (
+													<FormItem className="col-span-2">
+														<FormLabel>Custom Certificate Resolver</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="Enter your custom certificate resolver"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 										)}
-									/>
+									</>
 								)}
 							</div>
 						</div>

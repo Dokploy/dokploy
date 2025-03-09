@@ -505,6 +505,13 @@
       "when": 1741460060541,
       "tag": "0071_flaky_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1741487009559,
+      "tag": "0072_green_susan_delgado",
+      "breakpoints": true
     }
   ]
 }
