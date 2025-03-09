@@ -244,7 +244,7 @@ const Project = (
 					break;
 				case "createdAt":
 					comparison =
-						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
 				default:
 					comparison = 0;
