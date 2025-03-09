@@ -86,6 +86,7 @@ import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
+import { useTranslation } from "next-i18next";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
@@ -93,6 +94,7 @@ type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
 type SingleNavItem = {
 	isSingle?: true;
 	title: string;
+	titleKey: string;
 	url: string;
 	icon?: LucideIcon;
 	isEnabled?: (opts: {
@@ -110,6 +112,7 @@ type NavItem =
 	| {
 			isSingle: false;
 			title: string;
+			titleKey: string;
 			icon: LucideIcon;
 			items: SingleNavItem[];
 			isEnabled?: (opts: {
@@ -122,6 +125,7 @@ type NavItem =
 // Represents an external link item (used for the help section)
 type ExternalLink = {
 	name: string;
+	nameKey: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
 	isEnabled?: (opts: {
@@ -147,12 +151,14 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Projects",
+			titleKey: "common.side.projects",
 			url: "/dashboard/projects",
 			icon: Folder,
 		},
 		{
 			isSingle: true,
 			title: "Monitoring",
+			titleKey: "common.side.monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
@@ -161,6 +167,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Traefik File System",
+			titleKey: "common.side.traefik",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
@@ -173,6 +180,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Docker",
+			titleKey: "common.side.docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
@@ -182,6 +190,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Swarm",
+			titleKey: "common.side.swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
@@ -191,6 +200,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Requests",
+			titleKey: "common.side.requests",
 			url: "/dashboard/requests",
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
@@ -259,6 +269,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Web Server",
+			titleKey: "common.side.web-server",
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
@@ -267,12 +278,14 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Profile",
+			titleKey: "common.side.profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 		},
 		{
 			isSingle: true,
 			title: "Remote Servers",
+			titleKey: "common.side.remote-servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
@@ -281,6 +294,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Users",
+			titleKey: "common.side.users",
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
@@ -289,6 +303,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "SSH Keys",
+			titleKey: "common.side.ssh-keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
@@ -297,6 +312,7 @@ const MENU: Menu = {
 		},
 		{
 			title: "AI",
+			titleKey: "common.side.ai",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
@@ -305,6 +321,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Git",
+			titleKey: "common.side.git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
@@ -314,6 +331,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Registry",
+			titleKey: "common.side.registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			// Only enabled for admins
@@ -322,6 +340,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "S3 Destinations",
+			titleKey: "common.side.s3-destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
@@ -331,6 +350,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Certificates",
+			titleKey: "common.side.certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			// Only enabled for admins
@@ -339,6 +359,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Cluster",
+			titleKey: "common.side.cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
@@ -347,6 +368,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Notifications",
+			titleKey: "common.side.notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for admins
@@ -355,6 +377,7 @@ const MENU: Menu = {
 		{
 			isSingle: true,
 			title: "Billing",
+			titleKey: "common.side.billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
@@ -365,16 +388,19 @@ const MENU: Menu = {
 	help: [
 		{
 			name: "Documentation",
+			nameKey: "common.side.documentation",
 			url: "https://docs.dokploy.com/docs/core",
 			icon: BookIcon,
 		},
 		{
 			name: "Support",
+			nameKey: "common.side.support",
 			url: "https://discord.gg/2tBnJ3jDJc",
 			icon: CircleHelp,
 		},
 		{
 			name: "Sponsor",
+			nameKey: "common.side.sponsor",
 			url: "https://opencollective.com/dokploy",
 			icon: ({ className }) => (
 				<HeartIcon
@@ -493,6 +519,7 @@ function LogoWrapper() {
 }
 
 function SidebarLogo() {
+	const { t } = useTranslation("common");
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
@@ -689,7 +716,9 @@ function SidebarLogo() {
 								side={"right"}
 								className="w-80"
 							>
-								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								<DropdownMenuLabel>
+									{t("common.side.invitations.pending-invitations")}
+								</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
@@ -702,16 +731,23 @@ function SidebarLogo() {
 														{invitation?.organization?.name}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Expires:{" "}
-														{new Date(invitation.expiresAt).toLocaleString()}
+														{t("common.side.invitations.expires", {
+															expireDate: new Date(
+																invitation.expiresAt,
+															).toLocaleString(),
+														})}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Role: {invitation.role}
+														{t("common.side.invitations.role", {
+															role: invitation.role,
+														})}
 													</div>
 												</DropdownMenuItem>
 												<DialogAction
-													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
+													title={t("common.side.invitations.accept-invitation")}
+													description={t(
+														"common.side.invitations.confirm-accept-invitation",
+													)}
 													type="default"
 													onClick={async () => {
 														const { error } =
@@ -721,24 +757,31 @@ function SidebarLogo() {
 
 														if (error) {
 															toast.error(
-																error.message || "Error accepting invitation",
+																error.message ||
+																	t(
+																		"common.side.invitations.error-accepting-invitation",
+																	),
 															);
 														} else {
-															toast.success("Invitation accepted successfully");
+															toast.success(
+																t(
+																	"common.side.invitations.invitation-accepted",
+																),
+															);
 															await refetchInvitations();
 															await refetch();
 														}
 													}}
 												>
 													<Button size="sm" variant="secondary">
-														Accept Invitation
+														{t("common.side.invitations.accept-invitation")}
 													</Button>
 												</DialogAction>
 											</div>
 										))
 									) : (
 										<DropdownMenuItem disabled>
-											No pending invitations
+											{t("common.side.invitations.no-pending-invitations")}
 										</DropdownMenuItem>
 									)}
 								</div>
@@ -752,6 +795,8 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
+	const { t } = useTranslation("common");
+
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
 	);
@@ -818,7 +863,7 @@ export default function Page({ children }: Props) {
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
-						<SidebarGroupLabel>Home</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("common.side.home")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{filteredHome.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -851,7 +896,7 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.titleKey)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
@@ -907,7 +952,7 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup>
-						<SidebarGroupLabel>Settings</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("common.side.settings")}</SidebarGroupLabel>
 						<SidebarMenu className="gap-2">
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -940,7 +985,7 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.titleKey)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
@@ -996,7 +1041,7 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Extra</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("common.side.extra")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
@@ -1010,7 +1055,7 @@ export default function Page({ children }: Props) {
 											<span className="mr-2">
 												<item.icon className="h-4 w-4" />
 											</span>
-											<span>{item.name}</span>
+											<span>{t(item.nameKey)}</span>
 										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>

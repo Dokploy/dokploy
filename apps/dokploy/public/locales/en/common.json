@@ -1,1 +1,37 @@
-{}
+{
+	"common.side.home": "Home",
+	"common.side.settings": "Settings",
+	"common.side.extra": "Extra",
+
+	"common.side.projects": "Projects",
+	"common.side.monitoring": "Monitoring",
+	"common.side.traefik": "Traefik File System",
+	"common.side.docker": "Docker",
+	"common.side.swarm": "Swarm",
+	"common.side.requests": "Requests",
+	"common.side.web-server": "Web Server",
+	"common.side.profile": "Profile",
+	"common.side.remote-servers": "Remote Servers",
+	"common.side.users": "Users",
+	"common.side.ssh-keys": "SSH Keys",
+	"common.side.ai": "AI",
+	"common.side.git": "Git",
+	"common.side.registry": "Registry",
+	"common.side.s3-destinations": "S3 Destinations",
+	"common.side.certificates": "Certificates",
+	"common.side.cluster": "Cluster",
+	"common.side.notifications": "Notifications",
+	"common.side.billing": "Billing",
+	"common.side.documentation": "Documentation",
+	"common.side.support": "Support",
+	"common.side.sponsor": "Sponsor",
+
+	"common.side.invitations.pending-invitations": "Pending Invitations",
+	"common.side.invitations.no-pending-invitations": "No pending invitations",
+	"common.side.invitations.accept-invitation": "Accept Invitation",
+	"common.side.invitations.confirm-accept-invitation": "Are you sure you want to accept this invitation?",
+	"common.side.invitations.error-accepting-invitation": "Error accepting invitation",
+	"common.side.invitations.invitation-accepted": "Invitation accepted successfully",
+	"common.side.invitations.expires": "Expires: {{expireDate}}",
+	"common.side.invitations.role": "Role: {{role}}"
+}
