@@ -884,7 +884,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.titleKey)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -903,7 +903,7 @@ export default function Page({ children }: Props) {
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.titleKey)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
@@ -973,7 +973,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.titleKey)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -992,12 +992,12 @@ export default function Page({ children }: Props) {
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.titleKey)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
 
-															<span>{item.title}</span>
+															<span>{t(item.titleKey)}</span>
 															{item.items?.length && (
 																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
 															)}

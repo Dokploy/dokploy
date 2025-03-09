@@ -9,7 +9,7 @@
 	"common.side.docker": "Docker",
 	"common.side.swarm": "Swarm",
 	"common.side.requests": "请求",
-	"common.side.web-server": "本地配置",
+	"common.side.web-server": "本地服务器",
 	"common.side.profile": "个人资料",
 	"common.side.remote-servers": "远程服务器",
 	"common.side.users": "用户",
