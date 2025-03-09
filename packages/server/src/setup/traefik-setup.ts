@@ -121,7 +121,7 @@ export const initializeTraefik = async ({
 		const newContainer = docker.getContainer(containerName);
 		await newContainer.start();
 	} catch (error) {
-		throw error;
+		console.log(error);
 	}
 };
 
