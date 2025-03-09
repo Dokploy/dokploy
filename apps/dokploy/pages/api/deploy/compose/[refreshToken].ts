@@ -3,11 +3,12 @@ import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD } from "@dokploy/server";
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
 	extractBranchName,
+	extractCommitedPaths,
 	extractCommitMessage,
 	extractHash,
 } from "../[refreshToken]";
@@ -26,6 +27,7 @@ export default async function handler(
 			where: eq(compose.refreshToken, refreshToken as string),
 			with: {
 				project: true,
+				bitbucket: true,
 			},
 		});
 
@@ -46,7 +48,46 @@ export default async function handler(
 
 		if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				composeResult.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
 			if (!branchName || branchName !== composeResult.branch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+		} else if (sourceType === "gitlab") {
+			const branchName = extractBranchName(req.headers, req.body);
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				composeResult.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+			if (!branchName || branchName !== composeResult.gitlabBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+		} else if (sourceType === "bitbucket") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== composeResult.bitbucketBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
@@ -54,6 +95,22 @@ export default async function handler(
 			const branchName = extractBranchName(req.headers, req.body);
 			if (!branchName || branchName !== composeResult.customGitBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+
+			const commitedPaths = await extractCommitedPaths(
+				req.body,
+				composeResult.bitbucketOwner,
+				composeResult.bitbucket?.appPassword || "",
+				composeResult.bitbucketRepository || "",
+			);
+			const shouldDeployPaths = shouldDeploy(
+				composeResult.watchPaths,
+				commitedPaths,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
 				return;
 			}
 		}

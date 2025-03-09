@@ -4,10 +4,12 @@ import {
 	apiCreateMySql,
 	apiDeployMySql,
 	apiFindOneMySql,
+	apiRebuildMysql,
 	apiResetMysql,
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	mysql as mysqlTable,
 } from "@/server/db/schema";
 
 import { TRPCError } from "@trpc/server";
@@ -23,6 +25,7 @@ import {
 	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
+	rebuildDatabase,
 	removeMySqlById,
 	removeService,
 	startService,
@@ -32,6 +35,9 @@ import {
 	updateMySqlById,
 } from "@dokploy/server";
 import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db";
+import { z } from "zod";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -329,6 +335,64 @@ export const mysqlRouter = createTRPCRouter({
 					message: "Update: Error updating MySQL",
 				});
 			}
+
+			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mysql",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mysql's projectId
+			const updatedMysql = await db
+				.update(mysqlTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mysqlTable.mysqlId, input.mysqlId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMysql) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mysql",
+				});
+			}
+
+			return updatedMysql;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMysql)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MySQL database",
+				});
+			}
+
+			await rebuildDatabase(mysql.mysqlId, "mysql");
 
 			return true;
 		}),

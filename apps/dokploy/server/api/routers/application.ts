@@ -344,6 +344,7 @@ export const applicationRouter = createTRPCRouter({
 				buildPath: input.buildPath,
 				applicationStatus: "idle",
 				githubId: input.githubId,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -370,6 +371,7 @@ export const applicationRouter = createTRPCRouter({
 				gitlabId: input.gitlabId,
 				gitlabProjectId: input.gitlabProjectId,
 				gitlabPathNamespace: input.gitlabPathNamespace,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -394,6 +396,7 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "bitbucket",
 				applicationStatus: "idle",
 				bitbucketId: input.bitbucketId,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -440,6 +443,7 @@ export const applicationRouter = createTRPCRouter({
 				customGitSSHKeyId: input.customGitSSHKeyId,
 				sourceType: "git",
 				applicationStatus: "idle",
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -667,5 +671,50 @@ export const applicationRouter = createTRPCRouter({
 			const stats = await getApplicationStats(input.appName);
 
 			return stats;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				applicationId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this application",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the application's projectId
+			const updatedApplication = await db
+				.update(applications)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(applications.applicationId, input.applicationId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedApplication) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move application",
+				});
+			}
+
+			return updatedApplication;
 		}),
 });

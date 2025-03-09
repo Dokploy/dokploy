@@ -47,7 +47,7 @@ const baseAdmin: User = {
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
-	enableLogRotation: false,
+	logCleanupCron: null,
 	serversQuantity: 0,
 	stripeCustomerId: "",
 	stripeSubscriptionId: "",

@@ -17,7 +17,7 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
 		return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
-	throw new Error(`Unsupported AI provider for URL: ${apiUrl}`);
+	return "custom";
 }
 
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
@@ -67,7 +67,46 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
 			});
+		case "custom":
+			return createOpenAICompatible({
+				name: "custom",
+				baseURL: config.apiUrl,
+				headers: {
+					Authorization: `Bearer ${config.apiKey}`,
+				},
+			});
 		default:
 			throw new Error(`Unsupported AI provider: ${providerName}`);
 	}
+}
+
+export const getProviderHeaders = (
+	apiUrl: string,
+	apiKey: string,
+): Record<string, string> => {
+	// Anthropic
+	if (apiUrl.includes("anthropic")) {
+		return {
+			"x-api-key": apiKey,
+			"anthropic-version": "2023-06-01",
+		};
+	}
+
+	// Mistral
+	if (apiUrl.includes("mistral")) {
+		return {
+			Authorization: apiKey,
+		};
+	}
+
+	// Default (OpenAI style)
+	return {
+		Authorization: `Bearer ${apiKey}`,
+	};
+};
+export interface Model {
+	id: string;
+	object: string;
+	created: number;
+	owned_by: string;
 }

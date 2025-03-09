@@ -12,6 +12,7 @@ import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { findAdmin } from "../../services/admin";
+import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -167,5 +168,9 @@ export const initCronJobs = async () => {
 				});
 			}
 		}
+	}
+
+	if (admin?.user.logCleanupCron) {
+		await startLogCleanup(admin.user.logCleanupCron);
 	}
 };

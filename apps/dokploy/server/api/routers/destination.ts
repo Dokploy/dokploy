@@ -21,7 +21,7 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export const destinationRouter = createTRPCRouter({
 	create: adminProcedure
@@ -98,6 +98,7 @@ export const destinationRouter = createTRPCRouter({
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.destinations.findMany({
 			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
+			orderBy: [desc(destinations.createdAt)],
 		});
 	}),
 	remove: adminProcedure

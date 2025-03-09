@@ -8,7 +8,7 @@ import {
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiUpdateCompose,
-	compose,
+	compose as composeTable,
 } from "@/server/db/schema";
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { templates } from "@/templates/templates";
@@ -24,6 +24,7 @@ import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { z } from "zod";
 
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
@@ -157,8 +158,8 @@ export const composeRouter = createTRPCRouter({
 			4;
 
 			const result = await db
-				.delete(compose)
-				.where(eq(compose.composeId, input.composeId))
+				.delete(composeTable)
+				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
 
 			const cleanupOperations = [
@@ -501,4 +502,48 @@ export const composeRouter = createTRPCRouter({
 		const uniqueTags = _.uniq(allTags);
 		return uniqueTags;
 	}),
+
+	move: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this compose",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the compose's projectId
+			const updatedCompose = await db
+				.update(composeTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(composeTable.composeId, input.composeId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedCompose) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move compose",
+				});
+			}
+
+			return updatedCompose;
+		}),
 });

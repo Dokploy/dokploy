@@ -136,24 +136,26 @@ export const getContainersByAppNameMatch = async (
 			result = stdout.trim().split("\n");
 		}
 
-		const containers = result.map((line) => {
-			const parts = line.split(" | ");
-			const containerId = parts[0]
-				? parts[0].replace("CONTAINER ID : ", "").trim()
-				: "No container id";
-			const name = parts[1]
-				? parts[1].replace("Name: ", "").trim()
-				: "No container name";
+		const containers = result
+			.map((line) => {
+				const parts = line.split(" | ");
+				const containerId = parts[0]
+					? parts[0].replace("CONTAINER ID : ", "").trim()
+					: "No container id";
+				const name = parts[1]
+					? parts[1].replace("Name: ", "").trim()
+					: "No container name";
 
-			const state = parts[2]
-				? parts[2].replace("State: ", "").trim()
-				: "No state";
-			return {
-				containerId,
-				name,
-				state,
-			};
-		});
+				const state = parts[2]
+					? parts[2].replace("State: ", "").trim()
+					: "No state";
+				return {
+					containerId,
+					name,
+					state,
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return containers || [];
 	} catch (_error) {}
@@ -190,28 +192,30 @@ export const getStackContainersByAppName = async (
 			result = stdout.trim().split("\n");
 		}
 
-		const containers = result.map((line) => {
-			const parts = line.split(" | ");
-			const containerId = parts[0]
-				? parts[0].replace("CONTAINER ID : ", "").trim()
-				: "No container id";
-			const name = parts[1]
-				? parts[1].replace("Name: ", "").trim()
-				: "No container name";
+		const containers = result
+			.map((line) => {
+				const parts = line.split(" | ");
+				const containerId = parts[0]
+					? parts[0].replace("CONTAINER ID : ", "").trim()
+					: "No container id";
+				const name = parts[1]
+					? parts[1].replace("Name: ", "").trim()
+					: "No container name";
 
-			const state = parts[2]
-				? parts[2].replace("State: ", "").trim().toLowerCase()
-				: "No state";
-			const node = parts[3]
-				? parts[3].replace("Node: ", "").trim()
-				: "No specific node";
-			return {
-				containerId,
-				name,
-				state,
-				node,
-			};
-		});
+				const state = parts[2]
+					? parts[2].replace("State: ", "").trim().toLowerCase()
+					: "No state";
+				const node = parts[3]
+					? parts[3].replace("Node: ", "").trim()
+					: "No specific node";
+				return {
+					containerId,
+					name,
+					state,
+					node,
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return containers || [];
 	} catch (_error) {}
@@ -249,29 +253,31 @@ export const getServiceContainersByAppName = async (
 			result = stdout.trim().split("\n");
 		}
 
-		const containers = result.map((line) => {
-			const parts = line.split(" | ");
-			const containerId = parts[0]
-				? parts[0].replace("CONTAINER ID : ", "").trim()
-				: "No container id";
-			const name = parts[1]
-				? parts[1].replace("Name: ", "").trim()
-				: "No container name";
+		const containers = result
+			.map((line) => {
+				const parts = line.split(" | ");
+				const containerId = parts[0]
+					? parts[0].replace("CONTAINER ID : ", "").trim()
+					: "No container id";
+				const name = parts[1]
+					? parts[1].replace("Name: ", "").trim()
+					: "No container name";
 
-			const state = parts[2]
-				? parts[2].replace("State: ", "").trim().toLowerCase()
-				: "No state";
+				const state = parts[2]
+					? parts[2].replace("State: ", "").trim().toLowerCase()
+					: "No state";
 
-			const node = parts[3]
-				? parts[3].replace("Node: ", "").trim()
-				: "No specific node";
-			return {
-				containerId,
-				name,
-				state,
-				node,
-			};
-		});
+				const node = parts[3]
+					? parts[3].replace("Node: ", "").trim()
+					: "No specific node";
+				return {
+					containerId,
+					name,
+					state,
+					node,
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return containers || [];
 	} catch (_error) {}
@@ -312,23 +318,25 @@ export const getContainersByAppLabel = async (
 
 		const lines = stdout.trim().split("\n");
 
-		const containers = lines.map((line) => {
-			const parts = line.split(" | ");
-			const containerId = parts[0]
-				? parts[0].replace("CONTAINER ID : ", "").trim()
-				: "No container id";
-			const name = parts[1]
-				? parts[1].replace("Name: ", "").trim()
-				: "No container name";
-			const state = parts[2]
-				? parts[2].replace("State: ", "").trim()
-				: "No state";
-			return {
-				containerId,
-				name,
-				state,
-			};
-		});
+		const containers = lines
+			.map((line) => {
+				const parts = line.split(" | ");
+				const containerId = parts[0]
+					? parts[0].replace("CONTAINER ID : ", "").trim()
+					: "No container id";
+				const name = parts[1]
+					? parts[1].replace("Name: ", "").trim()
+					: "No container name";
+				const state = parts[2]
+					? parts[2].replace("State: ", "").trim()
+					: "No state";
+				return {
+					containerId,
+					name,
+					state,
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
 
 		return containers || [];
 	} catch (_error) {}

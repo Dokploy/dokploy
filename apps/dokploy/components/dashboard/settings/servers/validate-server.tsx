@@ -139,6 +139,15 @@ export const ValidateServer = ({ serverId }: Props) => {
 													: "Not Created"
 											}
 										/>
+										<StatusRow
+											label="Railpack Installed"
+											isEnabled={data?.railpack?.enabled}
+											description={
+												data?.railpack?.enabled
+													? `Installed: ${data?.railpack?.version}`
+													: undefined
+											}
+										/>
 									</div>
 								</div>
 							</div>

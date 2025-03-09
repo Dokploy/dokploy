@@ -25,6 +25,10 @@ import {
 	addNewService,
 	checkServiceAccess,
 } from "@dokploy/server/services/user";
+import {
+	getProviderHeaders,
+	type Model,
+} from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -40,6 +44,58 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 			return aiSetting;
+		}),
+
+	getModels: protectedProcedure
+		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string().min(1) }))
+		.query(async ({ input }) => {
+			try {
+				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const response = await fetch(`${input.apiUrl}/models`, { headers });
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`Failed to fetch models: ${errorText}`);
+				}
+
+				const res = await response.json();
+
+				if (Array.isArray(res)) {
+					return res.map((model) => ({
+						id: model.id || model.name,
+						object: "model",
+						created: Date.now(),
+						owned_by: "provider",
+					}));
+				}
+
+				if (res.models) {
+					return res.models.map((model: any) => ({
+						id: model.id || model.name,
+						object: "model",
+						created: Date.now(),
+						owned_by: "provider",
+					})) as Model[];
+				}
+
+				if (res.data) {
+					return res.data as Model[];
+				}
+
+				const possibleModels =
+					(Object.values(res).find(Array.isArray) as any[]) || [];
+				return possibleModels.map((model) => ({
+					id: model.id || model.name,
+					object: "model",
+					created: Date.now(),
+					owned_by: "provider",
+				})) as Model[];
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error instanceof Error ? error?.message : `Error: ${error}`,
+				});
+			}
 		}),
 	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
 		return await saveAiSettings(ctx.session.activeOrganizationId, input);

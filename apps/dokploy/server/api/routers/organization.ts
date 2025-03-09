@@ -133,6 +133,18 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			const ownerOrgs = await db.query.organization.findMany({
+				where: eq(organization.ownerId, ctx.user.id),
+			});
+
+			if (ownerOrgs.length <= 1) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"You must maintain at least one organization where you are the owner",
+				});
+			}
+
 			const result = await db
 				.delete(organization)
 				.where(eq(organization.id, input.organizationId));
