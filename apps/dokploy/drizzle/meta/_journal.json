@@ -526,6 +526,20 @@
       "when": 1741490064139,
       "tag": "0074_black_quasar",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1741491527516,
+      "tag": "0075_young_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1741493754270,
+      "tag": "0076_young_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }

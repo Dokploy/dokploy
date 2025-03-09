@@ -36,6 +36,7 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"micromatch": "4.0.8",
 		"ai": "^4.0.23",
 		"@ai-sdk/anthropic": "^1.0.6",
 		"@ai-sdk/azure": "^1.0.15",
@@ -154,6 +155,7 @@
 		"@tailwindcss/typography": "0.5.16"
 	},
 	"devDependencies": {
+		"@types/micromatch": "4.0.9",
 		"@types/qrcode": "^1.5.5",
 		"@types/nodemailer": "^6.4.15",
 		"@types/node-os-utils": "1.3.4",
