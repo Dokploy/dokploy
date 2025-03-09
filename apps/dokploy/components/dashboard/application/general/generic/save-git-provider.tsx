@@ -27,12 +27,14 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRoundIcon, LockIcon, X } from "lucide-react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { GitIcon } from "@/components/icons/data-tools-icons";
 
 const GitProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -113,11 +115,22 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 								name="repositoryURL"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel className="flex flex-row justify-between">
-											Repository URL
-										</FormLabel>
+										<div className="flex items-center justify-between">
+											<FormLabel>Repository URL</FormLabel>
+											{field.value?.startsWith("https://") && (
+												<Link
+													href={field.value}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+												>
+													<GitIcon className="h-4 w-4" />
+													<span>View Repository</span>
+												</Link>
+											)}
+										</div>
 										<FormControl>
-											<Input placeholder="git@bitbucket.org" {...field} />
+											<Input placeholder="Repository URL" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>

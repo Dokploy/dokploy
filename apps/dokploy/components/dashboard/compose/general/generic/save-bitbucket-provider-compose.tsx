@@ -44,6 +44,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { BitbucketIcon } from "@/components/icons/data-tools-icons";
+import Link from "next/link";
 
 const BitbucketProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -208,7 +210,20 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 							name="repository"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Repository</FormLabel>
+									<div className="flex items-center justify-between">
+										<FormLabel>Repository</FormLabel>
+										{field.value.owner && field.value.repo && (
+											<Link
+												href={`https://bitbucket.org/${field.value.owner}/${field.value.repo}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+											>
+												<BitbucketIcon className="h-4 w-4" />
+												<span>View Repository</span>
+											</Link>
+										)}
+									</div>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>

@@ -32,6 +32,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { GitIcon } from "@/components/icons/data-tools-icons";
+import Link from "next/link";
 
 const GitProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -113,11 +115,22 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 								name="repositoryURL"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel className="flex flex-row justify-between">
-											Repository URL
-										</FormLabel>
+										<div className="flex items-center justify-between">
+											<FormLabel>Repository URL</FormLabel>
+											{field.value?.startsWith("https://") && (
+												<Link
+													href={field.value}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+												>
+													<GitIcon className="h-4 w-4" />
+													<span>View Repository</span>
+												</Link>
+											)}
+										</div>
 										<FormControl>
-											<Input placeholder="git@bitbucket.org" {...field} />
+											<Input placeholder="Repository URL" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
