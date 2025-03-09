@@ -1,5 +1,5 @@
 {
-  "id": "26bce5f4-37c0-4658-b560-9aa64272b820",
+  "id": "53fc370e-731b-4bfe-874f-9ce725650082",
   "prevId": "6247f9c0-261c-497e-97f4-c02a80687211",
   "version": "7",
   "dialect": "postgresql",
@@ -1686,12 +1686,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "keepLatestCount": {
-          "name": "keepLatestCount",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "databaseType": {
           "name": "databaseType",
           "type": "databaseType",
@@ -1855,6 +1849,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},

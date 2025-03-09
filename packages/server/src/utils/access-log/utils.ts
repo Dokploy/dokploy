@@ -6,14 +6,21 @@ interface HourlyData {
 	count: number;
 }
 
-export function processLogs(logString: string): HourlyData[] {
+export function processLogs(
+	logString: string,
+	dateRange?: { start?: string; end?: string },
+): HourlyData[] {
 	if (_.isEmpty(logString)) {
 		return [];
 	}
 
 	const hourlyData = _(logString)
 		.split("\n")
-		.compact()
+		.filter((line) => {
+			const trimmed = line.trim();
+			// Check if the line starts with { and ends with } to ensure it's a potential JSON object
+			return trimmed !== "" && trimmed.startsWith("{") && trimmed.endsWith("}");
+		})
 		.map((entry) => {
 			try {
 				const log: LogEntry = JSON.parse(entry);
@@ -21,6 +28,20 @@ export function processLogs(logString: string): HourlyData[] {
 					return null;
 				}
 				const date = new Date(log.StartUTC);
+
+				if (dateRange?.start || dateRange?.end) {
+					const logDate = date.getTime();
+					const start = dateRange?.start
+						? new Date(dateRange.start).getTime()
+						: 0;
+					const end = dateRange?.end
+						? new Date(dateRange.end).getTime()
+						: Number.POSITIVE_INFINITY;
+					if (logDate < start || logDate > end) {
+						return null;
+					}
+				}
+
 				return `${date.toISOString().slice(0, 13)}:00:00Z`;
 			} catch (error) {
 				console.error("Error parsing log entry:", error);
@@ -51,21 +72,46 @@ export function parseRawConfig(
 	sort?: SortInfo,
 	search?: string,
 	status?: string[],
+	dateRange?: { start?: string; end?: string },
 ): { data: LogEntry[]; totalCount: number } {
 	try {
 		if (_.isEmpty(rawConfig)) {
 			return { data: [], totalCount: 0 };
 		}
 
+		// Split logs into chunks to avoid memory issues
 		let parsedLogs = _(rawConfig)
 			.split("\n")
+			.filter((line) => {
+				const trimmed = line.trim();
+				return (
+					trimmed !== "" && trimmed.startsWith("{") && trimmed.endsWith("}")
+				);
+			})
+			.map((line) => {
+				try {
+					return JSON.parse(line) as LogEntry;
+				} catch (error) {
+					console.error("Error parsing log line:", error);
+					return null;
+				}
+			})
 			.compact()
-			.map((line) => JSON.parse(line) as LogEntry)
 			.value();
 
-		parsedLogs = parsedLogs.filter(
-			(log) => log.ServiceName !== "dokploy-service-app@file",
-		);
+		// Apply date range filter if provided
+		if (dateRange?.start || dateRange?.end) {
+			parsedLogs = parsedLogs.filter((log) => {
+				const logDate = new Date(log.StartUTC).getTime();
+				const start = dateRange?.start
+					? new Date(dateRange.start).getTime()
+					: 0;
+				const end = dateRange?.end
+					? new Date(dateRange.end).getTime()
+					: Number.POSITIVE_INFINITY;
+				return logDate >= start && logDate <= end;
+			});
+		}
 
 		if (search) {
 			parsedLogs = parsedLogs.filter((log) =>
@@ -78,6 +124,7 @@ export function parseRawConfig(
 				status.some((range) => isStatusInRange(log.DownstreamStatus, range)),
 			);
 		}
+
 		const totalCount = parsedLogs.length;
 
 		if (sort) {
@@ -101,6 +148,7 @@ export function parseRawConfig(
 		throw new Error("Failed to parse rawConfig");
 	}
 }
+
 const isStatusInRange = (status: number, range: string) => {
 	switch (range) {
 		case "info":

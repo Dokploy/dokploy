@@ -200,7 +200,7 @@ export const ContainerFreeMonitoring = ({
 	}, [appName]);
 
 	return (
-		<div className="rounded-xl bg-background shadow-md flex flex-col gap-4">
+		<div className="rounded-xl bg-background flex flex-col gap-4">
 			<header className="flex items-center justify-between">
 				<div className="space-y-1">
 					<h1 className="text-2xl font-semibold tracking-tight">Monitoring</h1>

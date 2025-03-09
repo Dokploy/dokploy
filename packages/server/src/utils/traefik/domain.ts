@@ -148,6 +148,8 @@ export const createRouterConfig = async (
 	if (entryPoint === "websecure") {
 		if (certificateType === "letsencrypt") {
 			routerConfig.tls = { certResolver: "letsencrypt" };
+		} else if (certificateType === "custom" && domain.customCertResolver) {
+			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {
 			routerConfig.tls = undefined;
 		}

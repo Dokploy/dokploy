@@ -17,6 +17,7 @@ import { getS3Credentials } from "./utils";
 import { execAsync } from "../process/execAsync";
 
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -173,6 +174,10 @@ export const initCronJobs = async () => {
 			}
 		}
 	}
+
+	if (admin?.user.logCleanupCron) {
+		await startLogCleanup(admin.user.logCleanupCron);
+	}
 };
 
 export const keepLatestNBackups = async (backup: BackupSchedule) => {
@@ -182,7 +187,10 @@ export const keepLatestNBackups = async (backup: BackupSchedule) => {
 
 	try {
 		const rcloneFlags = getS3Credentials(backup.destination);
-		const backupFilesPath = path.join(`:s3:${backup.destination.bucket}`, backup.prefix);
+		const backupFilesPath = path.join(
+			`:s3:${backup.destination.bucket}`,
+			backup.prefix,
+		);
 
 		// --include "*.sql.gz" ensures nothing else other than the db backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*.sql.gz" ${backupFilesPath}`;

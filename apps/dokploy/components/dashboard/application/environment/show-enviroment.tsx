@@ -71,15 +71,19 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		resolver: zodResolver(addEnvironmentSchema),
 	});
 
+	// Watch form value
+	const currentEnvironment = form.watch("environment");
+	const hasChanges = currentEnvironment !== (data?.env || "");
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
 				environment: data.env || "",
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [data, form]);
 
-	const onSubmit = async (data: EnvironmentSchema) => {
+	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
 			mongoId: id || "",
 			postgresId: id || "",
@@ -87,7 +91,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			mysqlId: id || "",
 			mariadbId: id || "",
 			composeId: id || "",
-			env: data.environment,
+			env: formData.environment,
 		})
 			.then(async () => {
 				toast.success("Environments Added");
@@ -98,6 +102,12 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			});
 	};
 
+	const handleCancel = () => {
+		form.reset({
+			environment: data?.env || "",
+		});
+	};
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
@@ -106,6 +116,11 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 						<CardTitle className="text-xl">Environment Settings</CardTitle>
 						<CardDescription>
 							You can add environment variables to your resource.
+							{hasChanges && (
+								<span className="text-yellow-500 ml-2">
+									(You have unsaved changes)
+								</span>
+							)}
 						</CardDescription>
 					</div>
 
@@ -132,8 +147,8 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 								control={form.control}
 								name="environment"
 								render={({ field }) => (
-									<FormItem className="w-full">
-										<FormControl>
+									<FormItem>
+										<FormControl className="">
 											<CodeEditor
 												style={
 													{
@@ -142,21 +157,35 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 												}
 												language="properties"
 												disabled={isEnvVisible}
+												className="font-mono"
+												wrapperClassName="compose-file-editor"
 												placeholder={`NODE_ENV=production
 PORT=3000
-`}
-												className="h-96 font-mono"
+														`}
 												{...field}
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
 
-							<div className="flex flex-row justify-end">
-								<Button isLoading={isLoading} className="w-fit" type="submit">
+							<div className="flex flex-row justify-end gap-2">
+								{hasChanges && (
+									<Button
+										type="button"
+										variant="outline"
+										onClick={handleCancel}
+									>
+										Cancel
+									</Button>
+								)}
+								<Button
+									isLoading={isLoading}
+									className="w-fit"
+									type="submit"
+									disabled={!hasChanges}
+								>
 									Save
 								</Button>
 							</div>

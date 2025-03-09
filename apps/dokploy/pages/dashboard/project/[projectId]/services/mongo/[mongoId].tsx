@@ -1,5 +1,3 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -10,7 +8,7 @@ import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/gener
 import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -198,11 +196,11 @@ const Mongo = (
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
@@ -279,11 +277,7 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex w-full flex-col gap-5 ">
-												<ShowCustomCommand id={mongoId} type="mongo" />
-												<ShowVolumes id={mongoId} type="mongo" />
-												<ShowResources id={mongoId} type="mongo" />
-											</div>
+											<ShowDatabaseAdvancedSettings id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 								</Tabs>
