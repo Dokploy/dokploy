@@ -94,6 +94,7 @@ export const AddPreviewDomain = ({
 				/* Convert null to undefined */
 				path: data?.path || undefined,
 				port: data?.port || undefined,
+				customCertResolver: data?.customCertResolver || undefined,
 			});
 		}
 

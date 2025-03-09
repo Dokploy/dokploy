@@ -103,6 +103,7 @@ const baseDomain: Domain = {
 	port: null,
 	serviceName: "",
 	composeId: "",
+	customCertResolver: null,
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
