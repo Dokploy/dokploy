@@ -75,7 +75,7 @@ const dockerComposeServiceOptions = [
 ].map((opt) => ({
 	...opt,
 	apply: (view: EditorView, completion: Completion) => {
-		const insert = `${completion.label}:`;
+		const insert = `${completion.label}: `;
 		view.dispatch({
 			changes: {
 				from: view.state.selection.main.from,
@@ -99,7 +99,6 @@ function dockerComposeComplete(
 	const line = context.state.doc.lineAt(context.pos);
 	const indentation = /^\s*/.exec(line.text)?.[0].length || 0;
 
-	console.log(indentation);
 	if (indentation === 0) {
 		return {
 			from: word.from,
