@@ -603,7 +603,7 @@ const Project = (
 								</div>
 							) : (
 								<>
-									<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 										<div className="flex items-center gap-4">
 											<div className="flex items-center gap-2">
 												<Checkbox
@@ -764,7 +764,7 @@ const Project = (
 											</DropdownMenu>
 										</div>
 
-										<div className="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center">
+										<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 											<div className="w-full relative">
 												<Input
 													placeholder="Filter services..."
