@@ -77,7 +77,7 @@ export const compose = pgTable("compose", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-
+	watchPaths: text("watchPaths").array(),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -132,6 +132,7 @@ const createSchema = createInsertSchema(compose, {
 	command: z.string().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({

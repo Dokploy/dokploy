@@ -9,6 +9,7 @@ import {
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
 	removePreviewDeployment,
+	shouldDeploy,
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
@@ -90,11 +91,15 @@ export default async function handler(
 
 	if (req.headers["x-github-event"] === "push") {
 		try {
+			console.log("githubBody", githubBody.commits);
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
 			const repository = githubBody?.repository?.name;
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
 			const owner = githubBody?.repository?.owner?.name;
+			const normalizedCommits = githubBody?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
 
 			const apps = await db.query.applications.findMany({
 				where: and(
@@ -115,6 +120,15 @@ export default async function handler(
 					applicationType: "application",
 					server: !!app.serverId,
 				};
+
+				const shouldDeployPaths = shouldDeploy(
+					app.watchPaths,
+					normalizedCommits,
+				);
+
+				if (!shouldDeployPaths) {
+					continue;
+				}
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
@@ -151,6 +165,14 @@ export default async function handler(
 					server: !!composeApp.serverId,
 				};
 
+				const shouldDeployPaths = shouldDeploy(
+					composeApp.watchPaths,
+					normalizedCommits,
+				);
+
+				if (!shouldDeployPaths) {
+					continue;
+				}
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					await deploy(jobData);

@@ -344,6 +344,7 @@ export const applicationRouter = createTRPCRouter({
 				buildPath: input.buildPath,
 				applicationStatus: "idle",
 				githubId: input.githubId,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -370,6 +371,7 @@ export const applicationRouter = createTRPCRouter({
 				gitlabId: input.gitlabId,
 				gitlabProjectId: input.gitlabProjectId,
 				gitlabPathNamespace: input.gitlabPathNamespace,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -394,6 +396,7 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "bitbucket",
 				applicationStatus: "idle",
 				bitbucketId: input.bitbucketId,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;
@@ -440,6 +443,7 @@ export const applicationRouter = createTRPCRouter({
 				customGitSSHKeyId: input.customGitSSHKeyId,
 				sourceType: "git",
 				applicationStatus: "idle",
+				watchPaths: input.watchPaths,
 			});
 
 			return true;

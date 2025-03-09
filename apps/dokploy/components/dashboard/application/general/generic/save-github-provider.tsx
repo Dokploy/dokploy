@@ -28,14 +28,22 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import Link from "next/link";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -47,6 +55,7 @@ const GithubProviderSchema = z.object({
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
 	githubId: z.string().min(1, "Github Provider is required"),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -113,6 +122,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				},
 				buildPath: data.buildPath || "/",
 				githubId: data.githubId || "",
+				watchPaths: data.watchPaths || [],
 			});
 		}
 	}, [form.reset, data, form]);
@@ -125,6 +135,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			owner: data.repository.owner,
 			buildPath: data.buildPath,
 			githubId: data.githubId,
+			watchPaths: data.watchPaths || [],
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -350,7 +361,85 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									<FormControl>
 										<Input placeholder="/" {...field} />
 									</FormControl>
-
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="watchPaths"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Watch Paths</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Add paths to watch for changes. When files in these
+														paths change, a new deployment will be triggered.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value?.map((path, index) => (
+											<Badge
+												key={index}
+												variant="secondary"
+												className="flex items-center gap-1"
+											>
+												{path}
+												<X
+													className="size-3 cursor-pointer hover:text-destructive"
+													onClick={() => {
+														const newPaths = [...(field.value || [])];
+														newPaths.splice(index, 1);
+														field.onChange(newPaths);
+													}}
+												/>
+											</Badge>
+										))}
+									</div>
+									<div className="flex gap-2">
+										<FormControl>
+											<Input
+												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const path = input.value.trim();
+														if (path) {
+															field.onChange([...(field.value || []), path]);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const input = document.querySelector(
+													'input[placeholder*="Enter a path"]',
+												) as HTMLInputElement;
+												const path = input.value.trim();
+												if (path) {
+													field.onChange([...(field.value || []), path]);
+													input.value = "";
+												}
+											}}
+										>
+											<Plus className="size-4" />
+										</Button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -364,6 +453,16 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 						>
 							Save
 						</Button>
+					</div>
+					{/* create github link */}
+					<div className="flex w-full justify-end">
+						<Link
+							href={`https://github.com/${repository?.owner}/${repository?.repo}`}
+							target="_blank"
+							className="w-fit"
+						>
+							Repository
+						</Link>
 					</div>
 				</form>
 			</Form>

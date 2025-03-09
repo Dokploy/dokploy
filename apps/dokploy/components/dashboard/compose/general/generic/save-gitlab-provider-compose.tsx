@@ -29,14 +29,21 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
 
 const GitlabProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -50,6 +57,7 @@ const GitlabProviderSchema = z.object({
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -76,6 +84,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			},
 			gitlabId: "",
 			branch: "",
+			watchPaths: [],
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
@@ -124,6 +133,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 				},
 				composePath: data.composePath,
 				gitlabId: data.gitlabId || "",
+				watchPaths: data.watchPaths || [],
 			});
 		}
 	}, [form.reset, data, form]);
@@ -140,6 +150,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 			sourceType: "gitlab",
 			composeStatus: "idle",
+			watchPaths: data.watchPaths,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -199,7 +210,6 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
-
 						<FormField
 							control={form.control}
 							name="repository"
@@ -378,6 +388,84 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										<Input placeholder="docker-compose.yml" {...field} />
 									</FormControl>
 
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="watchPaths"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Watch Paths</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger>
+													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+														?
+													</div>
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Add paths to watch for changes. When files in these
+														paths change, a new deployment will be triggered.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value?.map((path, index) => (
+											<Badge key={index} variant="secondary">
+												{path}
+												<X
+													className="ml-1 size-3 cursor-pointer"
+													onClick={() => {
+														const newPaths = [...(field.value || [])];
+														newPaths.splice(index, 1);
+														form.setValue("watchPaths", newPaths);
+													}}
+												/>
+											</Badge>
+										))}
+									</div>
+									<FormControl>
+										<div className="flex gap-2">
+											<Input
+												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const value = input.value.trim();
+														if (value) {
+															const newPaths = [...(field.value || []), value];
+															form.setValue("watchPaths", newPaths);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+											<Button
+												type="button"
+												variant="secondary"
+												onClick={() => {
+													const input = document.querySelector(
+														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+													) as HTMLInputElement;
+													const value = input.value.trim();
+													if (value) {
+														const newPaths = [...(field.value || []), value];
+														form.setValue("watchPaths", newPaths);
+														input.value = "";
+													}
+												}}
+											>
+												Add
+											</Button>
+										</div>
+									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
