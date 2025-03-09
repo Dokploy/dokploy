@@ -132,8 +132,8 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 								control={form.control}
 								name="environment"
 								render={({ field }) => (
-									<FormItem className="w-full">
-										<FormControl>
+									<FormItem>
+										<FormControl className="">
 											<CodeEditor
 												style={
 													{
@@ -142,14 +142,14 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 												}
 												language="properties"
 												disabled={isEnvVisible}
+												className="font-mono"
+												wrapperClassName="compose-file-editor"
 												placeholder={`NODE_ENV=production
 PORT=3000
-`}
-												className="h-96 font-mono"
+														`}
 												{...field}
 											/>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
