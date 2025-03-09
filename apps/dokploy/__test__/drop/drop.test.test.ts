@@ -27,6 +27,7 @@ if (typeof window === "undefined") {
 const baseApp: ApplicationNested = {
 	applicationId: "",
 	herokuVersion: "",
+	watchPaths: [],
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
