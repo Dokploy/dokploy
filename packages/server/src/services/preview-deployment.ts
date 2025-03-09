@@ -203,6 +203,7 @@ export const createPreviewDeployment = async (
 		port: application.previewPort,
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
+		customCertResolver: application.previewCustomCertResolver,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
 	});
