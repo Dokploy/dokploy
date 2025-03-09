@@ -496,7 +496,6 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
-	// const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: session } = authClient.useSession();
 
 	const {
@@ -772,6 +771,7 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const _currentPath = router.pathname;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -1028,6 +1028,16 @@ export default function Page({ children }: Props) {
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{dokployVersion && (
+							<>
+								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+									Version {dokployVersion}
+								</div>
+								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
+									{dokployVersion}
+								</div>
+							</>
+						)}
 					</SidebarMenu>
 				</SidebarFooter>
 				<SidebarRail />
