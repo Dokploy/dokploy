@@ -33,5 +33,23 @@
 	"common.side.invitations.error-accepting-invitation": "接受邀请时出错",
 	"common.side.invitations.invitation-accepted": "邀请已成功接受",
 	"common.side.invitations.expires": "有效期：{{expireDate}}",
-	"common.side.invitations.role": "角色：{{role}}"
+	"common.side.invitations.role": "角色：{{role}}",
+
+	"common.side.organizations": "组织",
+	"common.side.organizations.select-organization": "选择组织",
+	"common.side.organizations.delete-organization": "删除组织",
+	"common.side.organizations.confirm-delete-organization": "您确定要删除此组织吗？",
+	"common.side.organizations.organization-deleted": "组织已成功删除",
+	"common.side.organizations.error-deleting-organization": "删除组织时出错",
+	"common.side.organizations.createOrganization": "创建组织",
+	"common.side.organizations.updateOrganization": "更新组织",
+	"common.side.organizations.createOrganizationDescription": "创建一个新组织来管理您的项目。",
+	"common.side.organizations.updateOrganizationDescription": "更新组织名称和标志",
+	"common.side.organizations.name": "名称",
+	"common.side.organizations.name.placeHolder": "请输入组织名称",
+	"common.side.organizations.logoURL": "Logo 图片地址",
+	"common.side.organizations.createSuccess": "组织创建成功",
+	"common.side.organizations.updateSuccess": "组织更新成功",
+	"common.side.organizations.createFailed": "创建组织失败",
+	"common.side.organizations.updateFailed": "更新组织失败"
 }

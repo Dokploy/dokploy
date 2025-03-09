@@ -33,5 +33,23 @@
 	"common.side.invitations.error-accepting-invitation": "Error accepting invitation",
 	"common.side.invitations.invitation-accepted": "Invitation accepted successfully",
 	"common.side.invitations.expires": "Expires: {{expireDate}}",
-	"common.side.invitations.role": "Role: {{role}}"
+	"common.side.invitations.role": "Role: {{role}}",
+
+	"common.side.organizations": "Organizations",
+	"common.side.organizations.select-organization": "Select Organization",
+	"common.side.organizations.delete-organization": "Delete Organization",
+	"common.side.organizations.confirm-delete-organization": "Are you sure you want to delete this organization?",
+	"common.side.organizations.organization-deleted": "Organization deleted successfully",
+	"common.side.organizations.error-deleting-organization": "Error deleting organization",
+	"common.side.organizations.createOrganization": "Create organization",
+	"common.side.organizations.updateOrganization": "Update organization",
+	"common.side.organizations.createOrganizationDescription": "Create a new organization to manage your projects.",
+	"common.side.organizations.updateOrganizationDescription": "Update the organization name and logo",
+	"common.side.organizations.name": "Name",
+	"common.side.organizations.name.placeHolder": "Organization name",
+	"common.side.organizations.logoURL": "Logo URL",
+	"common.side.organizations.createSuccess": "Organization created successfully",
+	"common.side.organizations.updateSuccess": "Organization updated successfully",
+	"common.side.organizations.createFailed": "Failed to create organization",
+	"common.side.organizations.updateFailed": "Failed to update organization"
 }

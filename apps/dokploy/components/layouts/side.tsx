@@ -603,7 +603,8 @@ function SidebarLogo() {
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
+												{activeOrganization?.name ??
+													t("common.side.organizations.select-organization")}
 											</p>
 										</div>
 									</div>
@@ -619,7 +620,7 @@ function SidebarLogo() {
 								sideOffset={4}
 							>
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
-									Organizations
+									{t("common.side.organizations")}
 								</DropdownMenuLabel>
 								{organizations?.map((org) => (
 									<div className="flex flex-row justify-between" key={org.name}>
@@ -647,8 +648,12 @@ function SidebarLogo() {
 											<div className="flex items-center gap-2">
 												<AddOrganization organizationId={org.id} />
 												<DialogAction
-													title="Delete Organization"
-													description="Are you sure you want to delete this organization?"
+													title={t(
+														"common.side.organizations.delete-organization",
+													)}
+													description={t(
+														"common.side.organizations.confirm-delete-organization",
+													)}
 													type="destructive"
 													onClick={async () => {
 														await deleteOrganization({
@@ -657,13 +662,17 @@ function SidebarLogo() {
 															.then(() => {
 																refetch();
 																toast.success(
-																	"Organization deleted successfully",
+																	t(
+																		"common.side.organizations.organization-deleted",
+																	),
 																);
 															})
 															.catch((error) => {
 																toast.error(
 																	error?.message ||
-																		"Error deleting organization",
+																		t(
+																			"common.side.organizations.error-deleting-organization",
+																		),
 																);
 															});
 													}}
