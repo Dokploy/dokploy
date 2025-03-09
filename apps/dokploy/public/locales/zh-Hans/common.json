@@ -1,1 +1,37 @@
-{}
+{
+	"common.side.home": "主页",
+	"common.side.settings": "设置",
+	"common.side.extra": "其他",
+
+	"common.side.projects": "项目",
+	"common.side.monitoring": "监控",
+	"common.side.traefik": "Traefik",
+	"common.side.docker": "Docker",
+	"common.side.swarm": "Swarm",
+	"common.side.requests": "请求",
+	"common.side.web-server": "本地配置",
+	"common.side.profile": "个人资料",
+	"common.side.remote-servers": "远程服务器",
+	"common.side.users": "用户",
+	"common.side.ssh-keys": "SSH 密钥",
+	"common.side.ai": "AI",
+	"common.side.git": "Git 集成",
+	"common.side.registry": "注册表",
+	"common.side.s3-destinations": "S3 存储",
+	"common.side.certificates": "证书",
+	"common.side.cluster": "集群",
+	"common.side.notifications": "通知",
+	"common.side.billing": "账单",
+	"common.side.documentation": "文档",
+	"common.side.support": "支持",
+	"common.side.sponsor": "赞助",
+
+	"common.side.invitations.pending-invitations": "待处理邀请",
+	"common.side.invitations.no-pending-invitations": "没有待处理的邀请",
+	"common.side.invitations.accept-invitation": "接受邀请",
+	"common.side.invitations.confirm-accept-invitation": "您确定要接受此邀请吗？",
+	"common.side.invitations.error-accepting-invitation": "接受邀请时出错",
+	"common.side.invitations.invitation-accepted": "邀请已成功接受",
+	"common.side.invitations.expires": "有效期：{{expireDate}}",
+	"common.side.invitations.role": "角色：{{role}}"
+}

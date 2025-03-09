@@ -21,6 +21,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -180,6 +181,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
+	const locale = await getLocale(req.cookies);
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
@@ -214,6 +216,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["common", "settings"])),
 		},
 	};
 }
