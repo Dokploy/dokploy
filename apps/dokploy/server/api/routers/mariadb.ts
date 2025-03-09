@@ -8,6 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
+	apiRebuildMariadb,
 	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
@@ -34,7 +35,7 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
-
+import { rebuildDatabase } from "@dokploy/server";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)
@@ -368,5 +369,19 @@ export const mariadbRouter = createTRPCRouter({
 			}
 
 			return updatedMariadb;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMariadb)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MariaDB database",
+				});
+			}
+
+			await rebuildDatabase(mariadb.mariadbId, "mariadb");
+			return true;
 		}),
 });

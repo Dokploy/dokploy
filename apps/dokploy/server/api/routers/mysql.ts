@@ -4,6 +4,7 @@ import {
 	apiCreateMySql,
 	apiDeployMySql,
 	apiFindOneMySql,
+	apiRebuildMysql,
 	apiResetMysql,
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
@@ -24,6 +25,7 @@ import {
 	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
+	rebuildDatabase,
 	removeMySqlById,
 	removeService,
 	startService,
@@ -378,5 +380,20 @@ export const mysqlRouter = createTRPCRouter({
 			}
 
 			return updatedMysql;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMysql)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MySQL database",
+				});
+			}
+
+			await rebuildDatabase(mysql.mysqlId, "mysql");
+
+			return true;
 		}),
 });

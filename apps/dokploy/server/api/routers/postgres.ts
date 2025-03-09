@@ -4,6 +4,7 @@ import {
 	apiCreatePostgres,
 	apiDeployPostgres,
 	apiFindOnePostgres,
+	apiRebuildPostgres,
 	apiResetPostgres,
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
@@ -21,6 +22,7 @@ import {
 	findBackupsByDbId,
 	findPostgresById,
 	findProjectById,
+	rebuildDatabase,
 	removePostgresById,
 	removeService,
 	startService,
@@ -34,7 +36,6 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
-
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePostgres)
@@ -400,5 +401,22 @@ export const postgresRouter = createTRPCRouter({
 			}
 
 			return updatedPostgres;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildPostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this Postgres database",
+				});
+			}
+
+			await rebuildDatabase(postgres.postgresId, "postgres");
+
+			return true;
 		}),
 });

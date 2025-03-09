@@ -133,3 +133,9 @@ export const apiUpdateRedis = createSchema
 		redisId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiRebuildRedis = createSchema
+	.pick({
+		redisId: true,
+	})
+	.required();

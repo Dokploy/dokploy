@@ -140,3 +140,9 @@ export const apiUpdatePostgres = createSchema
 		postgresId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiRebuildPostgres = createSchema
+	.pick({
+		postgresId: true,
+	})
+	.required();
