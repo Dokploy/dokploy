@@ -12,8 +12,14 @@ export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
-		application;
+	const {
+		appName,
+		env,
+		publishDirectory,
+		buildArgs,
+		buildSecrets,
+		dockerBuildStage,
+	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -24,6 +30,10 @@ export const buildCustomDocker = async (
 			buildArgs,
 			application.project.env,
 		);
+
+		const secrets = buildSecrets
+			? Object.entries(buildSecrets).map(([key, value]) => `${key}=${value}`)
+			: [];
 
 		const dockerContextPath = getDockerContextPath(application);
 
@@ -36,6 +46,12 @@ export const buildCustomDocker = async (
 		for (const arg of args) {
 			commandArgs.push("--build-arg", arg);
 		}
+
+		for (const secret of secrets) {
+			const [key] = secret.split("=");
+			commandArgs.push("--secret", `id=${key},env=${key}`);
+		}
+
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
@@ -54,6 +70,10 @@ export const buildCustomDocker = async (
 			},
 			{
 				cwd: dockerContextPath || defaultContextPath,
+				env: {
+					...process.env,
+					...Object.fromEntries(secrets.map((s) => s.split("="))),
+				},
 			},
 		);
 	} catch (error) {
@@ -65,8 +85,14 @@ export const getDockerCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
-		application;
+	const {
+		appName,
+		env,
+		publishDirectory,
+		buildArgs,
+		buildSecrets,
+		dockerBuildStage,
+	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
 	try {
@@ -78,6 +104,10 @@ export const getDockerCommand = (
 			buildArgs,
 			application.project.env,
 		);
+
+		const secrets = buildSecrets
+			? Object.entries(buildSecrets).map(([key, value]) => `${key}=${value}`)
+			: [];
 
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
@@ -92,6 +122,11 @@ export const getDockerCommand = (
 			commandArgs.push("--build-arg", arg);
 		}
 
+		for (const secret of secrets) {
+			const [key] = secret.split("=");
+			commandArgs.push("--secret", `id=${key},env=${key}`);
+		}
+
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
@@ -103,6 +138,14 @@ export const getDockerCommand = (
 				env,
 				application.project.env,
 			);
+		}
+
+		// Export secrets as environment variables
+		if (secrets.length > 0) {
+			command += "\n# Export build secrets\n";
+			for (const secret of secrets) {
+				command += `export ${secret}\n`;
+			}
 		}
 
 		command += `

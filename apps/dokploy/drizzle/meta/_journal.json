@@ -505,6 +505,13 @@
       "when": 1741460060541,
       "tag": "0071_flaky_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1741481694393,
+      "tag": "0072_milky_lyja",
+      "breakpoints": true
     }
   ]
 }

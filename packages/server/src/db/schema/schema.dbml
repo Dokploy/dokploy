@@ -149,6 +149,7 @@ table application {
   previewLimit integer [default: 3]
   isPreviewDeploymentsActive boolean [default: false]
   buildArgs text
+  buildSecrets json
   memoryReservation text
   memoryLimit text
   cpuReservation text

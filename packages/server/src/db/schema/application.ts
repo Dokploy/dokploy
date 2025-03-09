@@ -129,6 +129,7 @@ export const applications = pgTable("application", {
 		false,
 	),
 	buildArgs: text("buildArgs"),
+	buildSecrets: json("buildSecrets").$type<Record<string, string>>(),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -353,6 +354,7 @@ const createSchema = createInsertSchema(applications, {
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
 	buildArgs: z.string().optional(),
+	buildSecrets: z.record(z.string(), z.string()).optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.string().optional(),
@@ -499,11 +501,12 @@ export const apiSaveGitProvider = createSchema
 		}),
 	);
 
-export const apiSaveEnvironmentVariables = createSchema
-	.pick({
-		applicationId: true,
-		env: true,
-		buildArgs: true,
+export const apiSaveEnvironmentVariables = z
+	.object({
+		applicationId: z.string(),
+		env: z.string().optional(),
+		buildArgs: z.string().optional(),
+		buildSecrets: z.record(z.string(), z.string()).optional(),
 	})
 	.required();
 
