@@ -71,6 +71,7 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
 							<Button
+								isLoading={isLoading}
 								variant="outline"
 								className="w-full border-destructive/50 hover:bg-destructive/10 hover:text-destructive text-destructive"
 							>
@@ -102,9 +103,11 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 								<AlertDialogAction
 									onClick={handleRebuild}
 									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-									disabled={isLoading}
+									asChild
 								>
-									{isLoading ? "Rebuilding..." : "Yes, rebuild database"}
+									<Button isLoading={isLoading} type="submit">
+										Yes, rebuild database
+									</Button>
 								</AlertDialogAction>
 							</AlertDialogFooter>
 						</AlertDialogContent>
