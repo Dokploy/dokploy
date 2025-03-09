@@ -65,6 +65,7 @@ import {
 	PlusIcon,
 	Search,
 	X,
+	Trash2,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -276,30 +277,37 @@ const Project = (
 		start: api.compose.start.useMutation(),
 		stop: api.compose.stop.useMutation(),
 		move: api.compose.move.useMutation(),
+		delete: api.compose.delete.useMutation(),
 	};
 
 	const applicationActions = {
 		move: api.application.move.useMutation(),
+		delete: api.application.delete.useMutation(),
 	};
 
 	const postgresActions = {
 		move: api.postgres.move.useMutation(),
+		delete: api.postgres.remove.useMutation(),
 	};
 
 	const mysqlActions = {
 		move: api.mysql.move.useMutation(),
+		delete: api.mysql.remove.useMutation(),
 	};
 
 	const mariadbActions = {
 		move: api.mariadb.move.useMutation(),
+		delete: api.mariadb.remove.useMutation(),
 	};
 
 	const redisActions = {
 		move: api.redis.move.useMutation(),
+		delete: api.redis.remove.useMutation(),
 	};
 
 	const mongoActions = {
 		move: api.mongo.move.useMutation(),
+		delete: api.mongo.remove.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -413,6 +421,68 @@ const Project = (
 		setSelectedServices([]);
 		setIsDropdownOpen(false);
 		setIsMoveDialogOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
+	const handleBulkDelete = async () => {
+		let success = 0;
+		setIsBulkActionLoading(true);
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.delete.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.delete.mutateAsync({
+							composeId: serviceId,
+							deleteVolumes: false,
+						});
+						break;
+					case "postgres":
+						await postgresActions.delete.mutateAsync({
+							postgresId: serviceId,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.delete.mutateAsync({
+							mysqlId: serviceId,
+						});
+						break;
+					case "mariadb":
+						await mariadbActions.delete.mutateAsync({
+							mariadbId: serviceId,
+						});
+						break;
+					case "redis":
+						await redisActions.delete.mutateAsync({
+							redisId: serviceId,
+						});
+						break;
+					case "mongo":
+						await mongoActions.delete.mutateAsync({
+							mongoId: serviceId,
+						});
+						break;
+				}
+				success++;
+			} catch (error) {
+				toast.error(
+					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services deleted successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
 		setIsBulkActionLoading(false);
 	};
 
@@ -563,6 +633,20 @@ const Project = (
 														>
 															<Ban className="mr-2 h-4 w-4" />
 															Stop
+														</Button>
+													</DialogAction>
+													<DialogAction
+														title="Delete Services"
+														description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+														type="destructive"
+														onClick={handleBulkDelete}
+													>
+														<Button
+															variant="ghost"
+															className="w-full justify-start text-destructive"
+														>
+															<Trash2 className="mr-2 h-4 w-4" />
+															Delete
 														</Button>
 													</DialogAction>
 													<Dialog
