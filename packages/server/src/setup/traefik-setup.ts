@@ -3,11 +3,9 @@ import path from "node:path";
 import type { ContainerCreateOptions } from "dockerode";
 import { dump } from "js-yaml";
 import { paths } from "../constants";
-import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
-import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 
 export const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
@@ -90,19 +88,11 @@ export const initializeTraefik = async ({
 
 	const docker = await getRemoteDocker(serverId);
 	try {
-		if (serverId) {
-			await pullRemoteImage(imageName, serverId);
-		} else {
-			await pullImage(imageName);
-		}
-
-		// remove dokploy-service if it exists
-		const command = "docker service rm dokploy-service > /dev/null 2>&1";
-		if (serverId) {
-			await execAsyncRemote(command, serverId);
-		} else {
-			await execAsync(command);
-		}
+		try {
+			const service = docker.getService("dokploy-traefik");
+			await service?.remove({ force: true });
+			await new Promise((resolve) => setTimeout(resolve, 5000));
+		} catch (_) {}
 
 		const container = docker.getContainer(containerName);
 		try {

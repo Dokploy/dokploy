@@ -543,7 +543,14 @@ export const installRClone = () => `
 export const createTraefikInstance = () => {
 	const command = `
 	    # Check if dokpyloy-traefik exists
-		if docker ps -a --format '{{.Names}}' | grep -q '^dokploy-traefik$'; then
+		if docker service inspect dokploy-traefik > /dev/null 2>&1; then
+			echo "Migrating Traefik to Standalone..."
+			docker service rm dokploy-traefik
+			sleep 7
+			echo "Traefik migrated to Standalone ✅"
+		fi
+			
+		if docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
 			# Create the dokploy-traefik container
