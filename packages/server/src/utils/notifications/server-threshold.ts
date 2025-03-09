@@ -18,7 +18,7 @@ interface ServerThresholdPayload {
 }
 
 export const sendServerThresholdNotifications = async (
-	adminId: string,
+	organizationId: string,
 	payload: ServerThresholdPayload,
 ) => {
 	const date = new Date(payload.Timestamp);
@@ -27,7 +27,7 @@ export const sendServerThresholdNotifications = async (
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.serverThreshold, true),
-			eq(notifications.adminId, adminId),
+			eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,

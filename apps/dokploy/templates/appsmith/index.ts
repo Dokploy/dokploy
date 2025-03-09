@@ -7,7 +7,7 @@ import {
 } from "../utils";
 
 export function generate(schema: Schema): Template {
-	const mainServiceHash = generateHash(schema.projectName);
+	const _mainServiceHash = generateHash(schema.projectName);
 
 	const domains: DomainSchema[] = [
 		{

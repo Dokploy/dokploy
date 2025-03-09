@@ -26,7 +26,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<Breadcrumb>
 						<BreadcrumbList>
-							{list.map((item, index) => (
+							{list.map((item, _index) => (
 								<Fragment key={item.name}>
 									<BreadcrumbItem className="block">
 										<BreadcrumbLink href={item.href} asChild={!!item.href}>
@@ -37,7 +37,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 											)}
 										</BreadcrumbLink>
 									</BreadcrumbItem>
-									<BreadcrumbSeparator className="block" />
+									{_index + 1 < list.length && <BreadcrumbSeparator className="block" />}
 								</Fragment>
 							))}
 						</BreadcrumbList>

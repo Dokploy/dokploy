@@ -144,3 +144,9 @@ export const apiUpdateMySql = createSchema
 		mysqlId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiRebuildMysql = createSchema
+	.pick({
+		mysqlId: true,
+	})
+	.required();

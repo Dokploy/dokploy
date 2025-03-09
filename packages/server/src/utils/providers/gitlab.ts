@@ -162,8 +162,6 @@ export const getGitlabCloneCommand = async (
 ) => {
 	const {
 		appName,
-		gitlabRepository,
-		gitlabOwner,
 		gitlabPathNamespace,
 		gitlabBranch,
 		gitlabId,
@@ -328,14 +326,7 @@ export const getGitlabBranches = async (input: {
 };
 
 export const cloneRawGitlabRepository = async (entity: Compose) => {
-	const {
-		appName,
-		gitlabRepository,
-		gitlabOwner,
-		gitlabBranch,
-		gitlabId,
-		gitlabPathNamespace,
-	} = entity;
+	const { appName, gitlabBranch, gitlabId, gitlabPathNamespace } = entity;
 
 	if (!gitlabId) {
 		throw new TRPCError({

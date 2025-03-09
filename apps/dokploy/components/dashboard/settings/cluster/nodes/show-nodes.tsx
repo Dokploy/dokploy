@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { Boxes, HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
-import React from "react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";
@@ -42,8 +41,7 @@ export const ShowNodes = () => {
 	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery();
 	const { data: registry } = api.registry.all.useQuery();
 
-	const { mutateAsync: deleteNode, isLoading: isRemoving } =
-		api.cluster.removeWorker.useMutation();
+	const { mutateAsync: deleteNode } = api.cluster.removeWorker.useMutation();
 
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (

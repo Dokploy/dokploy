@@ -2,7 +2,7 @@ name: Dokploy Docker Build
 
 on:
   push:
-    branches: [main, canary, "feat/monitoring"]
+    branches: [main, canary, "feat/better-auth-2"]
 
 env:
   IMAGE_NAME: dokploy/dokploy

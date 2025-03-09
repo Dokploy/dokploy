@@ -55,6 +55,10 @@ RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && ./install.sh \
     && pnpm install -g tsx
 
+# Install Railpack
+ARG RAILPACK_VERSION=0.0.37
+RUN curl -sSL https://railpack.com/install.sh | bash
+
 # Install buildpacks
 COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
 

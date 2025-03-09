@@ -70,7 +70,7 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 			composeId,
 			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
-			.then(async (data) => {
+			.then(async (_data) => {
 				randomizeCompose();
 				refetch();
 				toast.success("Compose updated");
@@ -147,9 +147,9 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Enable Randomize ({data?.appName})</FormLabel>
+											<FormLabel>Enable Isolated Deployment ({data?.appName})</FormLabel>
 											<FormDescription>
-												Enable randomize to the compose file.
+												Enable isolated deployment to the compose file.
 											</FormDescription>
 										</div>
 										<FormControl>

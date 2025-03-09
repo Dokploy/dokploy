@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GlobeIcon, ServerIcon, User } from "lucide-react";
+import { GlobeIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -35,7 +35,7 @@ const addServerDomain = z
 	.object({
 		domain: z.string().min(1, { message: "URL is required" }),
 		letsEncryptEmail: z.string(),
-		certificateType: z.enum(["letsencrypt", "none"]),
+		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 	})
 	.superRefine((data, ctx) => {
 		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
@@ -52,7 +52,7 @@ type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
-	const { data: user, refetch } = api.admin.one.useQuery();
+	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
 
@@ -65,14 +65,14 @@ export const WebDomain = () => {
 		resolver: zodResolver(addServerDomain),
 	});
 	useEffect(() => {
-		if (user) {
+		if (data) {
 			form.reset({
-				domain: user?.host || "",
-				certificateType: user?.certificateType,
-				letsEncryptEmail: user?.letsEncryptEmail || "",
+				domain: data?.user?.host || "",
+				certificateType: data?.user?.certificateType,
+				letsEncryptEmail: data?.user?.letsEncryptEmail || "",
 			});
 		}
-	}, [form, form.reset, user]);
+	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: AddServerDomain) => {
 		await mutateAsync({
@@ -193,6 +193,7 @@ export const WebDomain = () => {
 										);
 									}}
 								/>
+
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isLoading} type="submit">
 										{t("settings.common.save")}

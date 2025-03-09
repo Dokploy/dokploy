@@ -9,6 +9,7 @@ import {
 	TRAEFIK_PORT,
 	TRAEFIK_SSL_PORT,
 	TRAEFIK_VERSION,
+	TRAEFIK_HTTP3_PORT,
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";
@@ -170,6 +171,9 @@ ${installNixpacks()}
 
 echo -e "12. Installing Buildpacks"
 ${installBuildpacks()}
+
+echo -e "13. Installing Railpack"
+${installRailpack()}
 				`;
 
 	return bashCommand;
@@ -539,22 +543,28 @@ export const installRClone = () => `
 export const createTraefikInstance = () => {
 	const command = `
 	    # Check if dokpyloy-traefik exists
-		if docker service ls | grep -q 'dokploy-traefik'; then
+		if docker service inspect dokploy-traefik > /dev/null 2>&1; then
+			echo "Migrating Traefik to Standalone..."
+			docker service rm dokploy-traefik
+			sleep 7
+			echo "Traefik migrated to Standalone ✅"
+		fi
+			
+		if docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
-			# Create the dokploy-traefik service
+			# Create the dokploy-traefik container
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
-			docker service create \
+			docker run -d \
 				--name dokploy-traefik \
-				--replicas 1 \
-				--constraint 'node.role==manager' \
 				--network dokploy-network \
-				--mount type=bind,src=/etc/dokploy/traefik/traefik.yml,dst=/etc/traefik/traefik.yml \
-				--mount type=bind,src=/etc/dokploy/traefik/dynamic,dst=/etc/dokploy/traefik/dynamic \
-				--mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-				--label traefik.enable=true \
-				--publish mode=host,target=${TRAEFIK_SSL_PORT},published=${TRAEFIK_SSL_PORT} \
-				--publish mode=host,target=${TRAEFIK_PORT},published=${TRAEFIK_PORT} \
+				--restart unless-stopped \
+				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
+				-v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
+				-v /var/run/docker.sock:/var/run/docker.sock \
+				-p ${TRAEFIK_SSL_PORT}:${TRAEFIK_SSL_PORT} \
+				-p ${TRAEFIK_PORT}:${TRAEFIK_PORT} \
+				-p ${TRAEFIK_HTTP3_PORT}:${TRAEFIK_HTTP3_PORT}/udp \
 				traefik:v$TRAEFIK_VERSION
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
@@ -570,6 +580,16 @@ const installNixpacks = () => `
 	    export NIXPACKS_VERSION=1.29.1
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
+	fi
+`;
+
+const installRailpack = () => `
+	if command_exists railpack; then
+		echo "Railpack already installed ✅"
+	else
+	    export RAILPACK_VERSION=0.0.37
+		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
 `;
 

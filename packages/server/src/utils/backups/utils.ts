@@ -5,6 +5,7 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { keepLatestNBackups } from ".";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
@@ -12,12 +13,16 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 	scheduleJob(backupId, schedule, async () => {
 		if (databaseType === "postgres" && postgres) {
 			await runPostgresBackup(postgres, backup);
+			await keepLatestNBackups(backup, postgres.serverId);
 		} else if (databaseType === "mysql" && mysql) {
 			await runMySqlBackup(mysql, backup);
+			await keepLatestNBackups(backup, mysql.serverId);
 		} else if (databaseType === "mongo" && mongo) {
 			await runMongoBackup(mongo, backup);
+			await keepLatestNBackups(backup, mongo.serverId);
 		} else if (databaseType === "mariadb" && mariadb) {
 			await runMariadbBackup(mariadb, backup);
+			await keepLatestNBackups(backup, mariadb.serverId);
 		}
 	});
 };
@@ -28,7 +33,7 @@ export const removeScheduleBackup = (backupId: string) => {
 };
 
 export const getS3Credentials = (destination: Destination) => {
-	const { accessKey, secretAccessKey, bucket, region, endpoint, provider } =
+	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
 		`--s3-access-key-id=${accessKey}`,

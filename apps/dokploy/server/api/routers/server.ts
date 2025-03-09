@@ -12,6 +12,7 @@ import {
 	mariadb,
 	mongo,
 	mysql,
+	organization,
 	postgres,
 	redis,
 	server,
@@ -21,9 +22,9 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
-	findAdminById,
 	findServerById,
-	findServersByAdminId,
+	findServersByUserId,
+	findUserById,
 	getPublicIpWithFallback,
 	haveActiveServices,
 	removeDeploymentsByServerId,
@@ -36,21 +37,25 @@ import {
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const admin = await findAdminById(ctx.user.adminId);
-				const servers = await findServersByAdminId(admin.adminId);
-				if (IS_CLOUD && servers.length >= admin.serversQuantity) {
+				const user = await findUserById(ctx.user.ownerId);
+				const servers = await findServersByUserId(user.id);
+				if (IS_CLOUD && servers.length >= user.serversQuantity) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "You cannot create more servers",
 					});
 				}
-				const project = await createServer(input, ctx.user.adminId);
+				const project = await createServer(
+					input,
+					ctx.session.activeOrganizationId,
+				);
 				return project;
 			} catch (error) {
 				throw new TRPCError({
@@ -65,7 +70,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
-			if (server.adminId !== ctx.user.adminId) {
+			if (server.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this server",
@@ -76,7 +81,7 @@ export const serverRouter = createTRPCRouter({
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindOneServer)
-		.query(async ({ input, ctx }) => {
+		.query(async () => {
 			return defaultCommand();
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
@@ -93,11 +98,23 @@ export const serverRouter = createTRPCRouter({
 			.leftJoin(mongo, eq(mongo.serverId, server.serverId))
 			.leftJoin(mysql, eq(mysql.serverId, server.serverId))
 			.leftJoin(postgres, eq(postgres.serverId, server.serverId))
-			.where(eq(server.adminId, ctx.user.adminId))
+			.where(eq(server.organizationId, ctx.session.activeOrganizationId))
 			.orderBy(desc(server.createdAt))
 			.groupBy(server.serverId);
 
 		return result;
+	}),
+	count: protectedProcedure.query(async ({ ctx }) => {
+		const organizations = await db.query.organization.findMany({
+			where: eq(organization.ownerId, ctx.user.id),
+			with: {
+				servers: true,
+			},
+		});
+
+		const servers = organizations.flatMap((org) => org.servers);
+
+		return servers.length ?? 0;
 	}),
 	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db.query.server.findMany({
@@ -105,10 +122,13 @@ export const serverRouter = createTRPCRouter({
 			where: IS_CLOUD
 				? and(
 						isNotNull(server.sshKeyId),
-						eq(server.adminId, ctx.user.adminId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
 						eq(server.serverStatus, "active"),
 					)
-				: and(isNotNull(server.sshKeyId), eq(server.adminId, ctx.user.adminId)),
+				: and(
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+					),
 		});
 		return result;
 	}),
@@ -117,7 +137,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -142,7 +162,7 @@ export const serverRouter = createTRPCRouter({
 		.subscription(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -162,7 +182,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -186,6 +206,10 @@ export const serverRouter = createTRPCRouter({
 						enabled: boolean;
 						version: string;
 					};
+					railpack: {
+						enabled: boolean;
+						version: string;
+					};
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
@@ -204,7 +228,7 @@ export const serverRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to validate this server",
@@ -254,7 +278,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to setup this server",
@@ -296,7 +320,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this server",
@@ -315,12 +339,9 @@ export const serverRouter = createTRPCRouter({
 				await deleteServer(input.serverId);
 
 				if (IS_CLOUD) {
-					const admin = await findAdminById(ctx.user.adminId);
+					const admin = await findUserById(ctx.user.ownerId);
 
-					await updateServersBasedOnQuantity(
-						admin.adminId,
-						admin.serversQuantity,
-					);
+					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
 				return currentServer;
@@ -333,7 +354,7 @@ export const serverRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const server = await findServerById(input.serverId);
-				if (server.adminId !== ctx.user.adminId) {
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this server",
@@ -355,11 +376,69 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	publicIp: protectedProcedure.query(async ({ ctx }) => {
+	publicIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return "";
 		}
 		const ip = await getPublicIpWithFallback();
 		return ip;
 	}),
+	getServerMetrics: protectedProcedure
+		.input(
+			z.object({
+				url: z.string(),
+				token: z.string(),
+				dataPoints: z.string(),
+			}),
+		)
+		.query(async ({ input }) => {
+			try {
+				const url = new URL(input.url);
+				url.searchParams.append("limit", input.dataPoints);
+				const response = await fetch(url.toString(), {
+					headers: {
+						Authorization: `Bearer ${input.token}`,
+					},
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Error ${response.status}: ${response.statusText}. Ensure the container is running and this service is included in the monitoring configuration.`,
+					);
+				}
+
+				const data = await response.json();
+				if (!Array.isArray(data) || data.length === 0) {
+					throw new Error(
+						[
+							"No monitoring data available. This could be because:",
+							"",
+							"1. You don't have setup the monitoring service, you can do in web server section.",
+							"2. If you already have setup the monitoring service, wait a few minutes and refresh the page.",
+						].join("\n"),
+					);
+				}
+				return data as {
+					cpu: string;
+					cpuModel: string;
+					cpuCores: number;
+					cpuPhysicalCores: number;
+					cpuSpeed: number;
+					os: string;
+					distro: string;
+					kernel: string;
+					arch: string;
+					memUsed: string;
+					memUsedGB: string;
+					memTotal: string;
+					uptime: number;
+					diskUsed: string;
+					totalDisk: string;
+					networkIn: string;
+					networkOut: string;
+					timestamp: string;
+				}[];
+			} catch (error) {
+				throw error;
+			}
+		}),
 });

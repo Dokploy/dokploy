@@ -85,7 +85,19 @@ export const AddDomain = ({
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
+		defaultValues: {
+			host: "",
+			path: undefined,
+			port: undefined,
+			https: false,
+			certificateType: undefined,
+			customCertResolver: undefined,
+		},
+		mode: "onChange",
 	});
+
+	const certificateType = form.watch("certificateType");
+	const https = form.watch("https");
 
 	useEffect(() => {
 		if (data) {
@@ -94,13 +106,29 @@ export const AddDomain = ({
 				/* Convert null to undefined */
 				path: data?.path || undefined,
 				port: data?.port || undefined,
+				certificateType: data?.certificateType || undefined,
+				customCertResolver: data?.customCertResolver || undefined,
 			});
 		}
 
 		if (!domainId) {
-			form.reset({});
+			form.reset({
+				host: "",
+				path: undefined,
+				port: undefined,
+				https: false,
+				certificateType: undefined,
+				customCertResolver: undefined,
+			});
 		}
-	}, [form, form.reset, data, isLoading]);
+	}, [form, data, isLoading, domainId]);
+
+	// Separate effect for handling custom cert resolver validation
+	useEffect(() => {
+		if (certificateType === "custom") {
+			form.trigger("customCertResolver");
+		}
+	}, [certificateType, form]);
 
 	const dictionary = {
 		success: domainId ? "Domain Updated" : "Domain Created",
@@ -256,34 +284,73 @@ export const AddDomain = ({
 									)}
 								/>
 
-								{form.getValues().https && (
-									<FormField
-										control={form.control}
-										name="certificateType"
-										render={({ field }) => (
-											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
-														</SelectTrigger>
-													</FormControl>
+								{https && (
+									<>
+										<FormField
+											control={form.control}
+											name="certificateType"
+											render={({ field }) => {
+												return (
+													<FormItem>
+														<FormLabel>Certificate Provider</FormLabel>
+														<Select
+															onValueChange={(value) => {
+																field.onChange(value);
+																if (value !== "custom") {
+																	form.setValue(
+																		"customCertResolver",
+																		undefined,
+																	);
+																}
+															}}
+															value={field.value}
+														>
+															<FormControl>
+																<SelectTrigger>
+																	<SelectValue placeholder="Select a certificate provider" />
+																</SelectTrigger>
+															</FormControl>
+															<SelectContent>
+																<SelectItem value={"none"}>None</SelectItem>
+																<SelectItem value={"letsencrypt"}>
+																	Let's Encrypt
+																</SelectItem>
+																<SelectItem value={"custom"}>Custom</SelectItem>
+															</SelectContent>
+														</Select>
+														<FormMessage />
+													</FormItem>
+												);
+											}}
+										/>
 
-													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
-														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
-														</SelectItem>
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
+										{certificateType === "custom" && (
+											<FormField
+												control={form.control}
+												name="customCertResolver"
+												render={({ field }) => {
+													return (
+														<FormItem>
+															<FormLabel>Custom Certificate Resolver</FormLabel>
+															<FormControl>
+																<Input
+																	className="w-full"
+																	placeholder="Enter your custom certificate resolver"
+																	{...field}
+																	value={field.value || ""}
+																	onChange={(e) => {
+																		field.onChange(e);
+																		form.trigger("customCertResolver");
+																	}}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													);
+												}}
+											/>
 										)}
-									/>
+									</>
 								)}
 							</div>
 						</div>

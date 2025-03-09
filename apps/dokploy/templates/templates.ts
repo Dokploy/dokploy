@@ -94,6 +94,20 @@ export const templates: TemplateData[] = [
 		load: () => import("./grafana/index").then((m) => m.generate),
 	},
 	{
+		id: "datalens",
+		name: "DataLens",
+		version: "1.23.0",
+		description: "A modern, scalable business intelligence and data visualization system.",
+		logo: "datalens.svg",
+		links: {
+			github: "https://github.com/datalens-tech/datalens",
+			website: "https://datalens.tech/",
+			docs: "https://datalens.tech/docs/",
+		},
+		tags: ["analytics", "self-hosted", "bi", "monitoring"],
+		load: () => import("./datalens/index").then((m) => m.generate),
+	},
+	{
 		id: "directus",
 		name: "Directus",
 		version: "11.0.2",
@@ -691,6 +705,21 @@ export const templates: TemplateData[] = [
 		},
 		tags: ["self-hosted", "open-source", "manager"],
 		load: () => import("./hi-events/index").then((m) => m.generate),
+	},
+	{
+		id: "hoarder",
+		name: "Hoarder",
+		version: "0.22.0",
+		description:
+			'Hoarder is an open source "Bookmark Everything" app that uses AI for automatically tagging the content you throw at it.',
+		logo: "hoarder.svg",
+		links: {
+			github: "https://github.com/hoarder/hoarder",
+			website: "https://hoarder.app/",
+			docs: "https://docs.hoarder.app/",
+		},
+		tags: ["self-hosted", "bookmarks", "link-sharing"],
+		load: () => import("./hoarder/index").then((m) => m.generate),
 	},
 	{
 		id: "windows",

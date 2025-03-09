@@ -1,5 +1,3 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -10,7 +8,7 @@ import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/g
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { ProjectLayout } from "@/components/layouts/project-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -24,7 +22,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -35,9 +32,9 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff, Trash2 } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -45,8 +42,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
-import { toast } from "sonner";
+import { type ReactElement, useState } from "react";
 import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
@@ -54,23 +50,15 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const Mariadb = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [toggleMonitoring, setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 
 	const { mariadbId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: monitoring } = api.admin.getMetricsToken.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const { data: auth } = api.user.get.useQuery();
+
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
@@ -154,7 +142,7 @@ const Mariadb = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.rol === "admin" || user?.canDeleteServices) && (
+									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>
@@ -207,11 +195,11 @@ const Mariadb = (
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
@@ -288,11 +276,10 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex w-full flex-col gap-5">
-												<ShowCustomCommand id={mariadbId} type="mariadb" />
-												<ShowVolumes id={mariadbId} type="mariadb" />
-												<ShowResources id={mariadbId} type="mariadb" />
-											</div>
+											<ShowDatabaseAdvancedSettings
+												id={mariadbId}
+												type="mariadb"
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -316,7 +303,7 @@ export async function getServerSideProps(
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
 
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -332,8 +319,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -351,7 +338,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch (_error) {
 			return {
 				redirect: {
 					permanent: false,

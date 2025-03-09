@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { api } from "@/utils/api";
@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useEffect } from "react";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
@@ -34,16 +35,32 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
-			env: data?.env || "",
-			buildArgs: data?.buildArgs || "",
+			env: "",
+			buildArgs: "",
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
 
-	const onSubmit = async (data: EnvironmentSchema) => {
+	// Watch form values
+	const currentEnv = form.watch("env");
+	const currentBuildArgs = form.watch("buildArgs");
+	const hasChanges =
+		currentEnv !== (data?.env || "") ||
+		currentBuildArgs !== (data?.buildArgs || "");
+
+	useEffect(() => {
+		if (data) {
+			form.reset({
+				env: data.env || "",
+				buildArgs: data.buildArgs || "",
+			});
+		}
+	}, [data, form]);
+
+	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
-			env: data.env,
-			buildArgs: data.buildArgs,
+			env: formData.env,
+			buildArgs: formData.buildArgs,
 			applicationId,
 		})
 			.then(async () => {
@@ -53,6 +70,13 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			.catch(() => {
 				toast.error("Error adding environment");
 			});
+	};
+
+	const handleCancel = () => {
+		form.reset({
+			env: data?.env || "",
+			buildArgs: data?.buildArgs || "",
+		});
 	};
 
 	return (
@@ -65,7 +89,16 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					<Secrets
 						name="env"
 						title="Environment Settings"
-						description="You can add environment variables to your resource."
+						description={
+							<span>
+								You can add environment variables to your resource.
+								{hasChanges && (
+									<span className="text-yellow-500 ml-2">
+										(You have unsaved changes)
+									</span>
+								)}
+							</span>
+						}
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
 					/>
 					{data?.buildType === "dockerfile" && (
@@ -89,8 +122,18 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							placeholder="NPM_TOKEN=xyz"
 						/>
 					)}
-					<div className="flex flex-row justify-end">
-						<Button isLoading={isLoading} className="w-fit" type="submit">
+					<div className="flex flex-row justify-end gap-2">
+						{hasChanges && (
+							<Button type="button" variant="outline" onClick={handleCancel}>
+								Cancel
+							</Button>
+						)}
+						<Button
+							isLoading={isLoading}
+							className="w-fit"
+							type="submit"
+							disabled={!hasChanges}
+						>
 							Save
 						</Button>
 					</div>

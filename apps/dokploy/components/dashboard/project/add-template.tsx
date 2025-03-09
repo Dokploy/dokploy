@@ -57,7 +57,6 @@ import {
 	BookText,
 	CheckIcon,
 	ChevronsUpDown,
-	Code,
 	Github,
 	Globe,
 	HelpCircle,
@@ -418,7 +417,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		side="top"
 																	>
 																		<span>
-																			If ot server is selected, the application
+																			If no server is selected, the application
 																			will be deployed on the server where the
 																			user is logged in.
 																		</span>
@@ -469,7 +468,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
-																	success: (data) => {
+																	success: (_data) => {
 																		utils.project.one.invalidate({
 																			projectId,
 																		});

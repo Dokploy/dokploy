@@ -1,4 +1,4 @@
-import { findAdmin } from "@dokploy/server/services/admin";
+import path from "node:path";
 import { getAllServers } from "@dokploy/server/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -12,13 +12,19 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { findAdmin } from "../../services/admin";
+import { getS3Credentials } from "./utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
 	const admin = await findAdmin();
 
-	if (admin?.enableDockerCleanup) {
+	if (admin?.user.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
@@ -26,7 +32,7 @@ export const initCronJobs = async () => {
 			await cleanUpUnusedImages();
 			await cleanUpDockerBuilder();
 			await cleanUpSystemPrune();
-			await sendDockerCleanupNotifications(admin.adminId);
+			await sendDockerCleanupNotifications(admin.user.id);
 		});
 	}
 
@@ -43,7 +49,7 @@ export const initCronJobs = async () => {
 				await cleanUpDockerBuilder(serverId);
 				await cleanUpSystemPrune(serverId);
 				await sendDockerCleanupNotifications(
-					admin.adminId,
+					admin.user.id,
 					`Docker cleanup for Server ${name} (${serverId})`,
 				);
 			});
@@ -167,5 +173,45 @@ export const initCronJobs = async () => {
 				});
 			}
 		}
+	}
+
+	if (admin?.user.logCleanupCron) {
+		await startLogCleanup(admin.user.logCleanupCron);
+	}
+};
+
+export const keepLatestNBackups = async (
+	backup: BackupSchedule,
+	serverId?: string | null,
+) => {
+	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
+	// is saved as 0 in the database
+	if (!backup.keepLatestCount) return;
+
+	try {
+		const rcloneFlags = getS3Credentials(backup.destination);
+		const backupFilesPath = path.join(
+			`:s3:${backup.destination.bucket}`,
+			backup.prefix,
+		);
+
+		// --include "*.sql.gz" ensures nothing else other than the db backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*.sql.gz" ${backupFilesPath}`;
+		// when we pipe the above command with this one, we only get the list of files we want to delete
+		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+		// this command deletes the files
+		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}/{}
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}/{}`;
+
+		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+
+		if (serverId) {
+			await execAsyncRemote(serverId, rcloneCommand);
+		} else {
+			await execAsync(rcloneCommand);
+		}
+	} catch (error) {
+		console.error(error);
+		throw error;
 	}
 };

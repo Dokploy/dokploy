@@ -1,8 +1,6 @@
 export * from "./application";
 export * from "./postgres";
 export * from "./user";
-export * from "./admin";
-export * from "./auth";
 export * from "./project";
 export * from "./domain";
 export * from "./mariadb";
@@ -30,3 +28,5 @@ export * from "./gitlab";
 export * from "./server";
 export * from "./utils";
 export * from "./preview-deployments";
+export * from "./ai";
+export * from "./account";

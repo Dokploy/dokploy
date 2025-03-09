@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -37,13 +36,20 @@ interface Props {
 	appName: string;
 	children?: React.ReactNode;
 	serverId?: string;
+	type?: "standalone" | "swarm";
 }
 
-export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
+export const ShowModalLogs = ({
+	appName,
+	children,
+	serverId,
+	type = "swarm",
+}: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppLabel.useQuery(
 		{
 			appName,
 			serverId,
+			type,
 		},
 		{
 			enabled: !!appName,

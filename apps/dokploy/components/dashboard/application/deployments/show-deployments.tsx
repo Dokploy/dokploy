@@ -73,15 +73,14 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 					</div>
 				) : (
 					<div className="flex flex-col gap-4">
-						{deployments?.map((deployment) => (
+						{deployments?.map((deployment, index) => (
 							<div
 								key={deployment.deploymentId}
 								className="flex items-center justify-between rounded-lg border p-4 gap-2"
 							>
 								<div className="flex flex-col">
 									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-										{deployment.status}
-
+										{index + 1}. {deployment.status}
 										<StatusTooltip
 											status={deployment?.status}
 											className="size-2.5"

@@ -79,7 +79,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		data,
 		isLoading,
 		error: queryError,
-	} = api.admin.getContainerMetrics.useQuery(
+	} = api.user.getContainerMetrics.useQuery(
 		{
 			url: baseUrl,
 			token,
