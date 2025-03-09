@@ -587,26 +587,40 @@ const Project = (
 																</DialogDescription>
 															</DialogHeader>
 															<div className="flex flex-col gap-4">
-																<Select
-																	value={selectedTargetProject}
-																	onValueChange={setSelectedTargetProject}
-																>
-																	<SelectTrigger>
-																		<SelectValue placeholder="Select target project" />
-																	</SelectTrigger>
-																	<SelectContent>
-																		{allProjects
-																			?.filter((p) => p.projectId !== projectId)
-																			.map((project) => (
-																				<SelectItem
-																					key={project.projectId}
-																					value={project.projectId}
-																				>
-																					{project.name}
-																				</SelectItem>
-																			))}
-																	</SelectContent>
-																</Select>
+																{allProjects?.filter(
+																	(p) => p.projectId !== projectId,
+																).length === 0 ? (
+																	<div className="flex flex-col items-center justify-center gap-2 py-4">
+																		<FolderInput className="h-8 w-8 text-muted-foreground" />
+																		<p className="text-sm text-muted-foreground text-center">
+																			No other projects available. Create a new
+																			project first to move services.
+																		</p>
+																	</div>
+																) : (
+																	<Select
+																		value={selectedTargetProject}
+																		onValueChange={setSelectedTargetProject}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select target project" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			{allProjects
+																				?.filter(
+																					(p) => p.projectId !== projectId,
+																				)
+																				.map((project) => (
+																					<SelectItem
+																						key={project.projectId}
+																						value={project.projectId}
+																					>
+																						{project.name}
+																					</SelectItem>
+																				))}
+																		</SelectContent>
+																	</Select>
+																)}
 															</div>
 															<DialogFooter>
 																<Button
@@ -618,6 +632,11 @@ const Project = (
 																<Button
 																	onClick={handleBulkMove}
 																	isLoading={isBulkActionLoading}
+																	disabled={
+																		allProjects?.filter(
+																			(p) => p.projectId !== projectId,
+																		).length === 0
+																	}
 																>
 																	Move Services
 																</Button>
