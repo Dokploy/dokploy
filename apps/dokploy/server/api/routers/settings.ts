@@ -595,6 +595,14 @@ export const settingsRouter = createTRPCRouter({
 			return parsedConfig;
 		}),
 	readStats: adminProcedure
+		.meta({
+			openapi: {
+				path: "/read-stats",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(
 			z
 				.object({
