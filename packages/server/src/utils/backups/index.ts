@@ -14,7 +14,7 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { findAdmin } from "../../services/admin";
 import { getS3Credentials } from "./utils";
-import { execAsync } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { startLogCleanup } from "../access-log/handler";
@@ -180,7 +180,10 @@ export const initCronJobs = async () => {
 	}
 };
 
-export const keepLatestNBackups = async (backup: BackupSchedule) => {
+export const keepLatestNBackups = async (
+	backup: BackupSchedule,
+	serverId?: string | null,
+) => {
 	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
 	// is saved as 0 in the database
 	if (!backup.keepLatestCount) return;
@@ -202,8 +205,11 @@ export const keepLatestNBackups = async (backup: BackupSchedule) => {
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
-		// we can execute this command on any server it doesn't matter
-		await execAsync(rcloneCommand);
+		if (serverId) {
+			await execAsyncRemote(serverId, rcloneCommand);
+		} else {
+			await execAsync(rcloneCommand);
+		}
 	} catch (error) {
 		console.error(error);
 		throw error;

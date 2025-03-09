@@ -8,7 +8,7 @@ import {
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
-	runPostgresBackup
+	runPostgresBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
@@ -31,6 +31,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runPostgresBackup(postgres, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mysql" && mysql) {
 				const server = await findServerById(mysql.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -38,6 +39,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMySqlBackup(mysql, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mongo" && mongo) {
 				const server = await findServerById(mongo.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -45,6 +47,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMongoBackup(mongo, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mariadb" && mariadb) {
 				const server = await findServerById(mariadb.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -52,9 +55,8 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMariadbBackup(mariadb, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			}
-
-			await keepLatestNBackups(backup);
 		}
 		if (job.type === "server") {
 			const { serverId } = job;
