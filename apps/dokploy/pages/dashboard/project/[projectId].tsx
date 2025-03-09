@@ -73,7 +73,7 @@ import type {
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { type ReactElement, useMemo, useState } from "react";
+import { type ReactElement, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
 import {
@@ -220,6 +220,38 @@ const Project = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
 	const { data: auth } = api.user.get.useQuery();
+	const [sortBy, setSortBy] = useState<string>(() => {
+		if (typeof window !== "undefined") {
+			return localStorage.getItem("servicesSort") || "createdAt-desc";
+		}
+		return "createdAt-desc";
+	});
+
+	useEffect(() => {
+		localStorage.setItem("servicesSort", sortBy);
+	}, [sortBy]);
+
+	const sortServices = (services: Services[]) => {
+		const [field, direction] = sortBy.split("-");
+		return [...services].sort((a, b) => {
+			let comparison = 0;
+			switch (field) {
+				case "name":
+					comparison = a.name.localeCompare(b.name);
+					break;
+				case "type":
+					comparison = a.type.localeCompare(b.type);
+					break;
+				case "createdAt":
+					comparison =
+						new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+					break;
+				default:
+					comparison = 0;
+			}
+			return direction === "asc" ? comparison : -comparison;
+		});
+	};
 
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
 	const { data: allProjects } = api.project.all.useQuery();
@@ -488,7 +520,7 @@ const Project = (
 
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
-		return applications.filter(
+		const filtered = applications.filter(
 			(service) =>
 				(service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 					service.description
@@ -496,7 +528,8 @@ const Project = (
 						.includes(searchQuery.toLowerCase())) &&
 				(selectedTypes.length === 0 || selectedTypes.includes(service.type)),
 		);
-	}, [applications, searchQuery, selectedTypes]);
+		return sortServices(filtered);
+	}, [applications, searchQuery, selectedTypes, sortBy]);
 
 	return (
 		<div>
@@ -741,6 +774,23 @@ const Project = (
 												/>
 												<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 											</div>
+											<Select value={sortBy} onValueChange={setSortBy}>
+												<SelectTrigger className="lg:w-[280px]">
+													<SelectValue placeholder="Sort by..." />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="createdAt-desc">
+														Newest first
+													</SelectItem>
+													<SelectItem value="createdAt-asc">
+														Oldest first
+													</SelectItem>
+													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
+													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
+													<SelectItem value="type-asc">Type (A-Z)</SelectItem>
+													<SelectItem value="type-desc">Type (Z-A)</SelectItem>
+												</SelectContent>
+											</Select>
 											<Popover
 												open={openCombobox}
 												onOpenChange={setOpenCombobox}
