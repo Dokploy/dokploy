@@ -75,6 +75,22 @@ import { useRouter } from "next/router";
 import { type ReactElement, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 export type Services = {
 	appName: string;
@@ -205,7 +221,12 @@ const Project = (
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
+	const { data: allProjects } = api.project.all.useQuery();
 	const router = useRouter();
+
+	const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+	const [selectedTargetProject, setSelectedTargetProject] =
+		useState<string>("");
 
 	const emptyServices =
 		data?.mariadb?.length === 0 &&
@@ -254,6 +275,31 @@ const Project = (
 	const composeActions = {
 		start: api.compose.start.useMutation(),
 		stop: api.compose.stop.useMutation(),
+		move: api.compose.move.useMutation(),
+	};
+
+	const applicationActions = {
+		move: api.application.move.useMutation(),
+	};
+
+	const postgresActions = {
+		move: api.postgres.move.useMutation(),
+	};
+
+	const mysqlActions = {
+		move: api.mysql.move.useMutation(),
+	};
+
+	const mariadbActions = {
+		move: api.mariadb.move.useMutation(),
+	};
+
+	const redisActions = {
+		move: api.redis.move.useMutation(),
+	};
+
+	const mongoActions = {
+		move: api.mongo.move.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -293,6 +339,80 @@ const Project = (
 		}
 		setSelectedServices([]);
 		setIsDropdownOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
+	const handleBulkMove = async () => {
+		if (!selectedTargetProject) {
+			toast.error("Please select a target project");
+			return;
+		}
+
+		let success = 0;
+		setIsBulkActionLoading(true);
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.move.mutateAsync({
+							applicationId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "compose":
+						await composeActions.move.mutateAsync({
+							composeId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "postgres":
+						await postgresActions.move.mutateAsync({
+							postgresId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.move.mutateAsync({
+							mysqlId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mariadb":
+						await mariadbActions.move.mutateAsync({
+							mariadbId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "redis":
+						await redisActions.move.mutateAsync({
+							redisId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mongo":
+						await mongoActions.move.mutateAsync({
+							mongoId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+				}
+				success++;
+			} catch (error) {
+				toast.error(
+					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services moved successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+		setIsMoveDialogOpen(false);
 		setIsBulkActionLoading(false);
 	};
 
@@ -445,6 +565,84 @@ const Project = (
 															Stop
 														</Button>
 													</DialogAction>
+													<Dialog
+														open={isMoveDialogOpen}
+														onOpenChange={setIsMoveDialogOpen}
+													>
+														<DialogTrigger asChild>
+															<Button
+																variant="ghost"
+																className="w-full justify-start"
+															>
+																<FolderInput className="mr-2 h-4 w-4" />
+																Move
+															</Button>
+														</DialogTrigger>
+														<DialogContent>
+															<DialogHeader>
+																<DialogTitle>Move Services</DialogTitle>
+																<DialogDescription>
+																	Select the target project to move{" "}
+																	{selectedServices.length} services
+																</DialogDescription>
+															</DialogHeader>
+															<div className="flex flex-col gap-4">
+																{allProjects?.filter(
+																	(p) => p.projectId !== projectId,
+																).length === 0 ? (
+																	<div className="flex flex-col items-center justify-center gap-2 py-4">
+																		<FolderInput className="h-8 w-8 text-muted-foreground" />
+																		<p className="text-sm text-muted-foreground text-center">
+																			No other projects available. Create a new
+																			project first to move services.
+																		</p>
+																	</div>
+																) : (
+																	<Select
+																		value={selectedTargetProject}
+																		onValueChange={setSelectedTargetProject}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select target project" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			{allProjects
+																				?.filter(
+																					(p) => p.projectId !== projectId,
+																				)
+																				.map((project) => (
+																					<SelectItem
+																						key={project.projectId}
+																						value={project.projectId}
+																					>
+																						{project.name}
+																					</SelectItem>
+																				))}
+																		</SelectContent>
+																	</Select>
+																)}
+															</div>
+															<DialogFooter>
+																<Button
+																	variant="outline"
+																	onClick={() => setIsMoveDialogOpen(false)}
+																>
+																	Cancel
+																</Button>
+																<Button
+																	onClick={handleBulkMove}
+																	isLoading={isBulkActionLoading}
+																	disabled={
+																		allProjects?.filter(
+																			(p) => p.projectId !== projectId,
+																		).length === 0
+																	}
+																>
+																	Move Services
+																</Button>
+															</DialogFooter>
+														</DialogContent>
+													</Dialog>
 												</DropdownMenuContent>
 											</DropdownMenu>
 										</div>
