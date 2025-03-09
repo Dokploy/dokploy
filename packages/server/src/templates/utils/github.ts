@@ -86,8 +86,8 @@ export async function fetchTemplateFiles(
 	try {
 		// Fetch both files in parallel
 		const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
-			fetch(`${baseUrl}/templates/${templateId}/template.yml`),
-			fetch(`${baseUrl}/templates/${templateId}/docker-compose.yml`),
+			fetch(`${baseUrl}/blueprints/${templateId}/template.yml`),
+			fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`),
 		]);
 
 		if (!templateYmlResponse.ok || !dockerComposeResponse.ok) {
