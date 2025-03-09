@@ -8,6 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
+	mongo as mongoTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 import {
@@ -30,6 +31,9 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db";
 
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -335,5 +339,48 @@ export const mongoRouter = createTRPCRouter({
 			}
 
 			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mongoId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mongo",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mongo's projectId
+			const updatedMongo = await db
+				.update(mongoTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mongoTable.mongoId, input.mongoId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMongo) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mongo",
+				});
+			}
+
+			return updatedMongo;
 		}),
 });

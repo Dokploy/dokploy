@@ -8,6 +8,7 @@ import {
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
+	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 import {
@@ -30,6 +31,9 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db";
 
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -321,5 +325,48 @@ export const mariadbRouter = createTRPCRouter({
 			}
 
 			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mariadb",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mariadb's projectId
+			const updatedMariadb = await db
+				.update(mariadbTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mariadbTable.mariadbId, input.mariadbId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMariadb) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mariadb",
+				});
+			}
+
+			return updatedMariadb;
 		}),
 });

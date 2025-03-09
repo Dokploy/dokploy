@@ -8,6 +8,7 @@ import {
 	apiSaveEnvironmentVariablesRedis,
 	apiSaveExternalPortRedis,
 	apiUpdateRedis,
+	redis as redisTable,
 } from "@/server/db/schema";
 
 import { TRPCError } from "@trpc/server";
@@ -30,6 +31,9 @@ import {
 	updateRedisById,
 } from "@dokploy/server";
 import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { db } from "@/server/db";
+import { z } from "zod";
 
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -315,5 +319,48 @@ export const redisRouter = createTRPCRouter({
 			}
 
 			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				redisId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const redis = await findRedisById(input.redisId);
+			if (redis.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this redis",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the redis's projectId
+			const updatedRedis = await db
+				.update(redisTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(redisTable.redisId, input.redisId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedRedis) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move redis",
+				});
+			}
+
+			return updatedRedis;
 		}),
 });
