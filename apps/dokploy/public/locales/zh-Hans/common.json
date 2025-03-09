@@ -46,10 +46,15 @@
 	"common.side.organizations.createOrganizationDescription": "创建一个新组织来管理您的项目。",
 	"common.side.organizations.updateOrganizationDescription": "更新组织名称和标志",
 	"common.side.organizations.name": "名称",
-	"common.side.organizations.name.placeHolder": "请输入组织名称",
+	"common.side.organizations.name.placeholder": "请输入组织名称",
 	"common.side.organizations.logoURL": "Logo 图片地址",
 	"common.side.organizations.createSuccess": "组织创建成功",
 	"common.side.organizations.updateSuccess": "组织更新成功",
 	"common.side.organizations.createFailed": "创建组织失败",
-	"common.side.organizations.updateFailed": "更新组织失败"
+	"common.side.organizations.updateFailed": "更新组织失败",
+
+    "common.account": "账户",
+	"common.account.mine": "我的账户",
+	"common.account.logout": "注销",
+	"common.account.selectLanguage": "选择语言"
 }

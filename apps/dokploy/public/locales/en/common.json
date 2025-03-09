@@ -46,10 +46,15 @@
 	"common.side.organizations.createOrganizationDescription": "Create a new organization to manage your projects.",
 	"common.side.organizations.updateOrganizationDescription": "Update the organization name and logo",
 	"common.side.organizations.name": "Name",
-	"common.side.organizations.name.placeHolder": "Organization name",
+	"common.side.organizations.name.placeholder": "Organization name",
 	"common.side.organizations.logoURL": "Logo URL",
 	"common.side.organizations.createSuccess": "Organization created successfully",
 	"common.side.organizations.updateSuccess": "Organization updated successfully",
 	"common.side.organizations.createFailed": "Failed to create organization",
-	"common.side.organizations.updateFailed": "Failed to update organization"
+	"common.side.organizations.updateFailed": "Failed to update organization",
+
+	"common.account": "Account",
+	"common.account.mine": "My Account",
+	"common.account.logout": "Logout",
+	"common.account.selectLanguage": "Select Language"
 }

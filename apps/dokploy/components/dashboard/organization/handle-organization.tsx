@@ -153,7 +153,7 @@ export function AddOrganization({ organizationId }: Props) {
 									<FormControl>
 										<Input
 											placeholder={t(
-												"common.side.organizations.name.placeHolder",
+												"common.side.organizations.name.placeholder",
 											)}
 											{...field}
 											className="col-span-3"

@@ -32,6 +32,7 @@ export async function getServerSideProps(
 	}
 	const { req, res } = ctx;
 	const locale = getLocale(req.cookies);
+
 	const { user, session } = await validateRequest(req);
 	if (!user || user.role === "member") {
 		return {
