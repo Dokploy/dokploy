@@ -62,6 +62,7 @@ import {
 	HelpCircle,
 	LayoutGrid,
 	List,
+	Loader2,
 	PuzzleIcon,
 	SearchIcon,
 } from "lucide-react";
@@ -99,7 +100,12 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}
 	}, [customBaseUrl]);
 
-	const { data } = api.compose.templates.useQuery(
+	const {
+		data,
+		isLoading: isLoadingTemplates,
+		error: errorTemplates,
+		isError: isErrorTemplates,
+	} = api.compose.templates.useQuery(
 		{ baseUrl: customBaseUrl },
 		{
 			enabled: open,
@@ -270,7 +276,20 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 							</AlertBlock>
 						)}
 
-						{templates.length === 0 ? (
+						{isErrorTemplates && (
+							<AlertBlock type="error" className="mb-4">
+								{errorTemplates?.message}
+							</AlertBlock>
+						)}
+
+						{isLoadingTemplates ? (
+							<div className="flex justify-center items-center w-full h-full flex-row gap-4">
+								<Loader2 className="size-8 text-muted-foreground animate-spin min-h-[60vh]" />
+								<div className="text-lg font-medium text-muted-foreground">
+									Loading templates...
+								</div>
+							</div>
+						) : templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
