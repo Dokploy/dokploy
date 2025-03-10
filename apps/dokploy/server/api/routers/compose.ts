@@ -12,13 +12,14 @@ import {
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { generatePassword } from "@/templates/utils";
 import {
+	type CompleteTemplate,
 	fetchTemplateFiles,
 	fetchTemplatesList,
 } from "@dokploy/server/templates/utils/github";
 import { processTemplate } from "@dokploy/server/templates/utils/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { dump } from "js-yaml";
+import { dump, load } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -540,7 +541,6 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			// Update the compose's projectId
 			const updatedCompose = await db
 				.update(composeTable)
 				.set({
@@ -558,5 +558,59 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			return updatedCompose;
+		}),
+
+	processTemplate: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				composeId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			console.log(input);
+			try {
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+				const compose = await findComposeById(input.composeId);
+
+				console.log(compose);
+
+				const admin = await findUserById(ctx.user.ownerId);
+				let serverIp = admin.serverIp || "127.0.0.1";
+
+				if (compose.serverId) {
+					const server = await findServerById(compose.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV === "development") {
+					serverIp = "127.0.0.1";
+				}
+				const templateData = JSON.parse(decodedData);
+				const config = load(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const processedTemplate = processTemplate(config, {
+					serverIp: serverIp,
+					projectName: compose.project.name,
+				});
+
+				return {
+					compose: templateData.compose,
+					template: processedTemplate,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error processing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
 		}),
 });
