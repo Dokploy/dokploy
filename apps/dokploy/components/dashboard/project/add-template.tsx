@@ -1,3 +1,4 @@
+import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	AlertDialog,
@@ -57,7 +58,6 @@ import {
 	BookText,
 	CheckIcon,
 	ChevronsUpDown,
-	Github,
 	Globe,
 	HelpCircle,
 	LayoutGrid,
@@ -377,7 +377,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 														target="_blank"
 														className="text-muted-foreground hover:text-foreground transition-colors"
 													>
-														<Github className="size-5" />
+														<GithubIcon className="size-5" />
 													</Link>
 													{template.links.website && (
 														<Link
