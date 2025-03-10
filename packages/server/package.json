@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "micromatch":"4.0.8",
     "@ai-sdk/anthropic": "^1.0.6",
     "@ai-sdk/azure": "^1.0.15",
     "@ai-sdk/cohere": "^1.0.6",
@@ -74,11 +75,13 @@
     "react-dom": "18.2.0",
     "rotating-file-stream": "3.2.3",
     "slugify": "^1.6.6",
-    "ssh2": "1.15.0",
     "ws": "8.16.0",
-    "zod": "^3.23.4"
+    "zod": "^3.23.4",
+    "ssh2": "1.15.0",
+    "@octokit/rest": "^20.0.2"
   },
   "devDependencies": {
+    "@types/micromatch": "4.0.9",
     "@types/adm-zip": "^0.5.5",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",

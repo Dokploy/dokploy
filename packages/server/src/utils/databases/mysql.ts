@@ -34,10 +34,10 @@ export const buildMysql = async (mysql: MysqlNested) => {
 
 	const defaultMysqlEnv =
 		databaseUser !== "root"
-			? `MYSQL_USER=${databaseUser}\nMYSQL_DATABASE=${databaseName}\nMYSQL_PASSWORD=${databasePassword}\nMYSQL_ROOT_PASSWORD=${databaseRootPassword}${
+			? `MYSQL_USER="${databaseUser}"\nMYSQL_DATABASE="${databaseName}"\nMYSQL_PASSWORD="${databasePassword}"\nMYSQL_ROOT_PASSWORD="${databaseRootPassword}"${
 					env ? `\n${env}` : ""
 				}`
-			: `MYSQL_DATABASE=${databaseName}\nMYSQL_ROOT_PASSWORD=${databaseRootPassword}${
+			: `MYSQL_DATABASE="${databaseName}"\nMYSQL_ROOT_PASSWORD="${databaseRootPassword}"${
 					env ? `\n${env}` : ""
 				}`;
 	const resources = calculateResources({

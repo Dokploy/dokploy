@@ -39,12 +39,12 @@ import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
-	provider: z.string().optional(),
-	accessKeyId: z.string(),
-	secretAccessKey: z.string(),
-	bucket: z.string(),
+	provider: z.string().min(1, "Provider is required"),
+	accessKeyId: z.string().min(1, "Access Key Id is required"),
+	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
+	bucket: z.string().min(1, "Bucket is required"),
 	region: z.string(),
-	endpoint: z.string(),
+	endpoint: z.string().min(1, "Endpoint is required"),
 	serverId: z.string().optional(),
 });
 
@@ -129,6 +129,63 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				);
 			});
 	};
+
+	const handleTestConnection = async (serverId?: string) => {
+		const result = await form.trigger([
+			"provider",
+			"accessKeyId",
+			"secretAccessKey",
+			"bucket",
+			"endpoint",
+		]);
+
+		if (!result) {
+			const errors = form.formState.errors;
+			const errorFields = Object.entries(errors)
+				.map(([field, error]) => `${field}: ${error?.message}`)
+				.filter(Boolean)
+				.join("\n");
+
+			toast.error("Please fill all required fields", {
+				description: errorFields,
+			});
+			return;
+		}
+
+		if (isCloud && !serverId) {
+			toast.error("Please select a server");
+			return;
+		}
+
+		const provider = form.getValues("provider");
+		const accessKey = form.getValues("accessKeyId");
+		const secretKey = form.getValues("secretAccessKey");
+		const bucket = form.getValues("bucket");
+		const endpoint = form.getValues("endpoint");
+		const region = form.getValues("region");
+
+		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+
+		await testConnection({
+			provider,
+			accessKey,
+			bucket,
+			endpoint,
+			name: "Test",
+			region,
+			secretAccessKey: secretKey,
+			serverId,
+		})
+			.then(() => {
+				toast.success("Connection Success");
+			})
+			.catch((e) => {
+				toast.error("Error connecting to provider", {
+					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+				});
+			});
+	};
+
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
@@ -349,26 +406,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								<Button
 									type="button"
 									variant={"secondary"}
-									isLoading={isLoading}
+									isLoading={isLoadingConnection}
 									onClick={async () => {
-										await testConnection({
-											provider: form.getValues("provider") || "",
-											accessKey: form.getValues("accessKeyId"),
-											bucket: form.getValues("bucket"),
-											endpoint: form.getValues("endpoint"),
-											name: "Test",
-											region: form.getValues("region"),
-											secretAccessKey: form.getValues("secretAccessKey"),
-											serverId: form.getValues("serverId"),
-										})
-											.then(async () => {
-												toast.success("Connection Success");
-											})
-											.catch((e) => {
-												toast.error("Error connecting the provider", {
-													description: e.message,
-												});
-											});
+										await handleTestConnection(form.getValues("serverId"));
 									}}
 								>
 									Test Connection
@@ -380,21 +420,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								type="button"
 								variant="secondary"
 								onClick={async () => {
-									await testConnection({
-										provider: form.getValues("provider") || "",
-										accessKey: form.getValues("accessKeyId"),
-										bucket: form.getValues("bucket"),
-										endpoint: form.getValues("endpoint"),
-										name: "Test",
-										region: form.getValues("region"),
-										secretAccessKey: form.getValues("secretAccessKey"),
-									})
-										.then(async () => {
-											toast.success("Connection Success");
-										})
-										.catch(() => {
-											toast.error("Error connecting the provider");
-										});
+									await handleTestConnection();
 								}}
 							>
 								Test connection

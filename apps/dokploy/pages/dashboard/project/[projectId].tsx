@@ -65,6 +65,7 @@ import {
 	PlusIcon,
 	Search,
 	X,
+	Trash2,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -72,9 +73,25 @@ import type {
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { type ReactElement, useMemo, useState } from "react";
+import { type ReactElement, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 export type Services = {
 	appName: string;
@@ -203,9 +220,46 @@ const Project = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
 	const { data: auth } = api.user.get.useQuery();
+	const [sortBy, setSortBy] = useState<string>(() => {
+		if (typeof window !== "undefined") {
+			return localStorage.getItem("servicesSort") || "createdAt-desc";
+		}
+		return "createdAt-desc";
+	});
+
+	useEffect(() => {
+		localStorage.setItem("servicesSort", sortBy);
+	}, [sortBy]);
+
+	const sortServices = (services: Services[]) => {
+		const [field, direction] = sortBy.split("-");
+		return [...services].sort((a, b) => {
+			let comparison = 0;
+			switch (field) {
+				case "name":
+					comparison = a.name.localeCompare(b.name);
+					break;
+				case "type":
+					comparison = a.type.localeCompare(b.type);
+					break;
+				case "createdAt":
+					comparison =
+						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+					break;
+				default:
+					comparison = 0;
+			}
+			return direction === "asc" ? comparison : -comparison;
+		});
+	};
 
 	const { data, isLoading, refetch } = api.project.one.useQuery({ projectId });
+	const { data: allProjects } = api.project.all.useQuery();
 	const router = useRouter();
+
+	const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+	const [selectedTargetProject, setSelectedTargetProject] =
+		useState<string>("");
 
 	const emptyServices =
 		data?.mariadb?.length === 0 &&
@@ -254,6 +308,38 @@ const Project = (
 	const composeActions = {
 		start: api.compose.start.useMutation(),
 		stop: api.compose.stop.useMutation(),
+		move: api.compose.move.useMutation(),
+		delete: api.compose.delete.useMutation(),
+	};
+
+	const applicationActions = {
+		move: api.application.move.useMutation(),
+		delete: api.application.delete.useMutation(),
+	};
+
+	const postgresActions = {
+		move: api.postgres.move.useMutation(),
+		delete: api.postgres.remove.useMutation(),
+	};
+
+	const mysqlActions = {
+		move: api.mysql.move.useMutation(),
+		delete: api.mysql.remove.useMutation(),
+	};
+
+	const mariadbActions = {
+		move: api.mariadb.move.useMutation(),
+		delete: api.mariadb.remove.useMutation(),
+	};
+
+	const redisActions = {
+		move: api.redis.move.useMutation(),
+		delete: api.redis.remove.useMutation(),
+	};
+
+	const mongoActions = {
+		move: api.mongo.move.useMutation(),
+		delete: api.mongo.remove.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -296,9 +382,145 @@ const Project = (
 		setIsBulkActionLoading(false);
 	};
 
+	const handleBulkMove = async () => {
+		if (!selectedTargetProject) {
+			toast.error("Please select a target project");
+			return;
+		}
+
+		let success = 0;
+		setIsBulkActionLoading(true);
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.move.mutateAsync({
+							applicationId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "compose":
+						await composeActions.move.mutateAsync({
+							composeId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "postgres":
+						await postgresActions.move.mutateAsync({
+							postgresId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.move.mutateAsync({
+							mysqlId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mariadb":
+						await mariadbActions.move.mutateAsync({
+							mariadbId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "redis":
+						await redisActions.move.mutateAsync({
+							redisId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+					case "mongo":
+						await mongoActions.move.mutateAsync({
+							mongoId: serviceId,
+							targetProjectId: selectedTargetProject,
+						});
+						break;
+				}
+				success++;
+			} catch (error) {
+				toast.error(
+					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services moved successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+		setIsMoveDialogOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
+	const handleBulkDelete = async () => {
+		let success = 0;
+		setIsBulkActionLoading(true);
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.delete.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.delete.mutateAsync({
+							composeId: serviceId,
+							deleteVolumes: false,
+						});
+						break;
+					case "postgres":
+						await postgresActions.delete.mutateAsync({
+							postgresId: serviceId,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.delete.mutateAsync({
+							mysqlId: serviceId,
+						});
+						break;
+					case "mariadb":
+						await mariadbActions.delete.mutateAsync({
+							mariadbId: serviceId,
+						});
+						break;
+					case "redis":
+						await redisActions.delete.mutateAsync({
+							redisId: serviceId,
+						});
+						break;
+					case "mongo":
+						await mongoActions.delete.mutateAsync({
+							mongoId: serviceId,
+						});
+						break;
+				}
+				success++;
+			} catch (error) {
+				toast.error(
+					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(`${success} services deleted successfully`);
+			refetch();
+		}
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
-		return applications.filter(
+		const filtered = applications.filter(
 			(service) =>
 				(service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 					service.description
@@ -306,7 +528,8 @@ const Project = (
 						.includes(searchQuery.toLowerCase())) &&
 				(selectedTypes.length === 0 || selectedTypes.includes(service.type)),
 		);
-	}, [applications, searchQuery, selectedTypes]);
+		return sortServices(filtered);
+	}, [applications, searchQuery, selectedTypes, sortBy]);
 
 	return (
 		<div>
@@ -380,7 +603,7 @@ const Project = (
 								</div>
 							) : (
 								<>
-									<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 										<div className="flex items-center gap-4">
 											<div className="flex items-center gap-2">
 												<Checkbox
@@ -445,11 +668,107 @@ const Project = (
 															Stop
 														</Button>
 													</DialogAction>
+													{(auth?.role === "owner" ||
+														auth?.canDeleteServices) && (
+														<DialogAction
+															title="Delete Services"
+															description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+															type="destructive"
+															onClick={handleBulkDelete}
+														>
+															<Button
+																variant="ghost"
+																className="w-full justify-start text-destructive"
+															>
+																<Trash2 className="mr-2 h-4 w-4" />
+																Delete
+															</Button>
+														</DialogAction>
+													)}
+
+													<Dialog
+														open={isMoveDialogOpen}
+														onOpenChange={setIsMoveDialogOpen}
+													>
+														<DialogTrigger asChild>
+															<Button
+																variant="ghost"
+																className="w-full justify-start"
+															>
+																<FolderInput className="mr-2 h-4 w-4" />
+																Move
+															</Button>
+														</DialogTrigger>
+														<DialogContent>
+															<DialogHeader>
+																<DialogTitle>Move Services</DialogTitle>
+																<DialogDescription>
+																	Select the target project to move{" "}
+																	{selectedServices.length} services
+																</DialogDescription>
+															</DialogHeader>
+															<div className="flex flex-col gap-4">
+																{allProjects?.filter(
+																	(p) => p.projectId !== projectId,
+																).length === 0 ? (
+																	<div className="flex flex-col items-center justify-center gap-2 py-4">
+																		<FolderInput className="h-8 w-8 text-muted-foreground" />
+																		<p className="text-sm text-muted-foreground text-center">
+																			No other projects available. Create a new
+																			project first to move services.
+																		</p>
+																	</div>
+																) : (
+																	<Select
+																		value={selectedTargetProject}
+																		onValueChange={setSelectedTargetProject}
+																	>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select target project" />
+																		</SelectTrigger>
+																		<SelectContent>
+																			{allProjects
+																				?.filter(
+																					(p) => p.projectId !== projectId,
+																				)
+																				.map((project) => (
+																					<SelectItem
+																						key={project.projectId}
+																						value={project.projectId}
+																					>
+																						{project.name}
+																					</SelectItem>
+																				))}
+																		</SelectContent>
+																	</Select>
+																)}
+															</div>
+															<DialogFooter>
+																<Button
+																	variant="outline"
+																	onClick={() => setIsMoveDialogOpen(false)}
+																>
+																	Cancel
+																</Button>
+																<Button
+																	onClick={handleBulkMove}
+																	isLoading={isBulkActionLoading}
+																	disabled={
+																		allProjects?.filter(
+																			(p) => p.projectId !== projectId,
+																		).length === 0
+																	}
+																>
+																	Move Services
+																</Button>
+															</DialogFooter>
+														</DialogContent>
+													</Dialog>
 												</DropdownMenuContent>
 											</DropdownMenu>
 										</div>
 
-										<div className="flex flex-col gap-2 sm:flex-row sm:gap-4 sm:items-center">
+										<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 											<div className="w-full relative">
 												<Input
 													placeholder="Filter services..."
@@ -459,6 +778,23 @@ const Project = (
 												/>
 												<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 											</div>
+											<Select value={sortBy} onValueChange={setSortBy}>
+												<SelectTrigger className="lg:w-[280px]">
+													<SelectValue placeholder="Sort by..." />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="createdAt-desc">
+														Newest first
+													</SelectItem>
+													<SelectItem value="createdAt-asc">
+														Oldest first
+													</SelectItem>
+													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
+													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
+													<SelectItem value="type-asc">Type (A-Z)</SelectItem>
+													<SelectItem value="type-desc">Type (Z-A)</SelectItem>
+												</SelectContent>
+											</Select>
 											<Popover
 												open={openCombobox}
 												onOpenChange={setOpenCombobox}

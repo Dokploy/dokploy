@@ -207,7 +207,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Username"
-												autoComplete="off"
+												autoComplete="username"
 												{...field}
 											/>
 										</FormControl>
@@ -227,7 +227,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Password"
-												autoComplete="off"
+												autoComplete="one-time-code"
 												{...field}
 												type="password"
 											/>

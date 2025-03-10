@@ -37,7 +37,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 											)}
 										</BreadcrumbLink>
 									</BreadcrumbItem>
-									<BreadcrumbSeparator className="block" />
+									{_index + 1 < list.length && <BreadcrumbSeparator className="block" />}
 								</Fragment>
 							))}
 						</BreadcrumbList>

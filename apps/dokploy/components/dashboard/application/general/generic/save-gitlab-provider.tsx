@@ -29,14 +29,23 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import Link from "next/link";
+import { GitlabIcon } from "@/components/icons/data-tools-icons";
 
 const GitlabProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -50,6 +59,7 @@ const GitlabProviderSchema = z.object({
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -124,6 +134,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				},
 				buildPath: data.gitlabBuildPath || "/",
 				gitlabId: data.gitlabId || "",
+				watchPaths: data.watchPaths || [],
 			});
 		}
 	}, [form.reset, data, form]);
@@ -138,6 +149,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			applicationId,
 			gitlabProjectId: data.repository.id,
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
+			watchPaths: data.watchPaths || [],
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -203,7 +215,20 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="repository"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Repository</FormLabel>
+									<div className="flex items-center justify-between">
+										<FormLabel>Repository</FormLabel>
+										{field.value.owner && field.value.repo && (
+											<Link
+												href={`https://gitlab.com/${field.value.owner}/${field.value.repo}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+											>
+												<GitlabIcon className="h-4 w-4" />
+												<span>View Repository</span>
+											</Link>
+										)}
+									</div>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -375,7 +400,85 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<FormControl>
 										<Input placeholder="/" {...field} />
 									</FormControl>
-
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="watchPaths"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Watch Paths</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Add paths to watch for changes. When files in these
+														paths change, a new deployment will be triggered.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value?.map((path, index) => (
+											<Badge
+												key={index}
+												variant="secondary"
+												className="flex items-center gap-1"
+											>
+												{path}
+												<X
+													className="size-3 cursor-pointer hover:text-destructive"
+													onClick={() => {
+														const newPaths = [...(field.value || [])];
+														newPaths.splice(index, 1);
+														field.onChange(newPaths);
+													}}
+												/>
+											</Badge>
+										))}
+									</div>
+									<div className="flex gap-2">
+										<FormControl>
+											<Input
+												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const path = input.value.trim();
+														if (path) {
+															field.onChange([...(field.value || []), path]);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const input = document.querySelector(
+													'input[placeholder*="Enter a path"]',
+												) as HTMLInputElement;
+												const path = input.value.trim();
+												if (path) {
+													field.onChange([...(field.value || []), path]);
+													input.value = "";
+												}
+											}}
+										>
+											<Plus className="size-4" />
+										</Button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}

@@ -37,8 +37,6 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
 	Collapsible,
@@ -498,7 +496,6 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
-	// const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: session } = authClient.useSession();
 
 	const {
@@ -774,6 +771,7 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const _currentPath = router.pathname;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -910,7 +908,7 @@ export default function Page({ children }: Props) {
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
-						<SidebarMenu>
+						<SidebarMenu className="gap-2">
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
 								const isActive = isSingle
@@ -1017,21 +1015,29 @@ export default function Page({ children }: Props) {
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && auth?.role === "owner" && (
-								<SidebarMenuItem>
-									<SidebarMenuButton asChild>
-										<UpdateServerButton />
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
-				<SidebarFooter className="gap-1">
-					<SidebarMenu>
+				<SidebarFooter>
+					<SidebarMenu className="flex flex-col gap-2">
+						{!isCloud && auth?.role === "owner" && (
+							<SidebarMenuItem>
+								<UpdateServerButton />
+							</SidebarMenuItem>
+						)}
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{dokployVersion && (
+							<>
+								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+									Version {dokployVersion}
+								</div>
+								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
+									{dokployVersion}
+								</div>
+							</>
+						)}
 					</SidebarMenu>
 				</SidebarFooter>
 				<SidebarRail />
@@ -1054,10 +1060,6 @@ export default function Page({ children }: Props) {
 													{activeItem?.title}
 												</Link>
 											</BreadcrumbLink>
-										</BreadcrumbItem>
-										<BreadcrumbSeparator className="block" />
-										<BreadcrumbItem>
-											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
 										</BreadcrumbItem>
 									</BreadcrumbList>
 								</Breadcrumb>

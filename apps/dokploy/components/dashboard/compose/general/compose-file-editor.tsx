@@ -97,6 +97,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
 											<CodeEditor
 												// disabled
+												language="yaml"
 												value={field.value}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"

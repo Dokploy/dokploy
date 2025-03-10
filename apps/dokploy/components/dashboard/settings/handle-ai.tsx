@@ -45,21 +45,12 @@ const Schema = z.object({
 
 type Schema = z.infer<typeof Schema>;
 
-interface Model {
-	id: string;
-	object: string;
-	created: number;
-	owned_by: string;
-}
-
 interface Props {
 	aiId?: string;
 }
 
 export const HandleAi = ({ aiId }: Props) => {
-	const [models, setModels] = useState<Model[]>([]);
 	const utils = api.useUtils();
-	const [isLoadingModels, setIsLoadingModels] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const { data, refetch } = api.ai.one.useQuery(
@@ -73,6 +64,7 @@ export const HandleAi = ({ aiId }: Props) => {
 	const { mutateAsync, isLoading } = aiId
 		? api.ai.update.useMutation()
 		: api.ai.create.useMutation();
+
 	const form = useForm<Schema>({
 		resolver: zodResolver(Schema),
 		defaultValues: {
@@ -94,50 +86,33 @@ export const HandleAi = ({ aiId }: Props) => {
 		});
 	}, [aiId, form, data]);
 
-	const fetchModels = async (apiUrl: string, apiKey: string) => {
-		setIsLoadingModels(true);
-		setError(null);
-		try {
-			const response = await fetch(`${apiUrl}/models`, {
-				headers: {
-					Authorization: `Bearer ${apiKey}`,
-				},
-			});
-			if (!response.ok) {
-				throw new Error("Failed to fetch models");
-			}
-			const res = await response.json();
-			setModels(res.data);
+	const apiUrl = form.watch("apiUrl");
+	const apiKey = form.watch("apiKey");
 
-			// Set default model to gpt-4 if present
-			const defaultModel = res.data.find(
-				(model: Model) => model.id === "gpt-4",
-			);
-			if (defaultModel) {
-				form.setValue("model", defaultModel.id);
-				return defaultModel.id;
-			}
-		} catch (error) {
-			setError("Failed to fetch models. Please check your API URL and Key.");
-			setModels([]);
-		} finally {
-			setIsLoadingModels(false);
-		}
-	};
+	const { data: models, isLoading: isLoadingServerModels } =
+		api.ai.getModels.useQuery(
+			{
+				apiUrl: apiUrl ?? "",
+				apiKey: apiKey ?? "",
+			},
+			{
+				enabled: !!apiUrl && !!apiKey,
+				onError: (error) => {
+					setError(`Failed to fetch models: ${error.message}`);
+				},
+			},
+		);
 
 	useEffect(() => {
 		const apiUrl = form.watch("apiUrl");
 		const apiKey = form.watch("apiKey");
 		if (apiUrl && apiKey) {
 			form.setValue("model", "");
-			fetchModels(apiUrl, apiKey);
 		}
 	}, [form.watch("apiUrl"), form.watch("apiKey")]);
 
 	const onSubmit = async (data: Schema) => {
 		try {
-			console.log("Form data:", data);
-			console.log("Current model value:", form.getValues("model"));
 			await mutateAsync({
 				...data,
 				aiId: aiId || "",
@@ -148,8 +123,9 @@ export const HandleAi = ({ aiId }: Props) => {
 			refetch();
 			setOpen(false);
 		} catch (error) {
-			console.error("Submit error:", error);
-			toast.error("Failed to save AI settings");
+			toast.error("Failed to save AI settings", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
 		}
 	};
 
@@ -232,13 +208,13 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						{isLoadingModels && (
+						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
 								Loading models...
 							</span>
 						)}
 
-						{!isLoadingModels && models.length > 0 && (
+						{!isLoadingServerModels && models && models.length > 0 && (
 							<FormField
 								control={form.control}
 								name="model"

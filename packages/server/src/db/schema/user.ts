@@ -53,7 +53,7 @@ export const users_temp = pgTable("user_temp", {
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	enableLogRotation: boolean("enableLogRotation").notNull().default(false),
+	logCleanupCron: text("logCleanupCron"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	metricsConfig: jsonb("metricsConfig")
@@ -250,6 +250,12 @@ export const apiReadStatsLogs = z.object({
 	status: z.string().array().optional(),
 	search: z.string().optional(),
 	sort: z.object({ id: z.string(), desc: z.boolean() }).optional(),
+	dateRange: z
+		.object({
+			start: z.string().optional(),
+			end: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const apiUpdateWebServerMonitoring = z.object({
@@ -305,4 +311,5 @@ export const apiUpdateUser = createSchema.partial().extend({
 			}),
 		})
 		.optional(),
+	logCleanupCron: z.string().optional().nullable(),
 });

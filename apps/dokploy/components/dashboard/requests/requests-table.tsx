@@ -79,7 +79,15 @@ export const priorities = [
 		icon: Server,
 	},
 ];
-export const RequestsTable = () => {
+
+export interface RequestsTableProps {
+	dateRange?: {
+		from: Date | undefined;
+		to: Date | undefined;
+	};
+}
+
+export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -98,6 +106,12 @@ export const RequestsTable = () => {
 			page: pagination,
 			search,
 			status: statusFilter,
+			dateRange: dateRange
+				? {
+						start: dateRange.from?.toISOString(),
+						end: dateRange.to?.toISOString(),
+					}
+				: undefined,
 		},
 		{
 			refetchInterval: 1333,

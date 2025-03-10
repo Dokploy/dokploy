@@ -146,3 +146,9 @@ export const apiUpdateMariaDB = createSchema
 		mariadbId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiRebuildMariadb = createSchema
+	.pick({
+		mariadbId: true,
+	})
+	.required();

@@ -491,6 +491,62 @@
       "when": 1741152916611,
       "tag": "0069_legal_bill_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1741322697251,
+      "tag": "0070_useful_serpent_society",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1741460060541,
+      "tag": "0071_flaky_black_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1741487009559,
+      "tag": "0072_green_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1741489681190,
+      "tag": "0073_hot_domino",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1741490064139,
+      "tag": "0074_black_quasar",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1741491527516,
+      "tag": "0075_young_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1741493754270,
+      "tag": "0076_young_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1741510086231,
+      "tag": "0077_chemical_dreadnoughts",
+      "breakpoints": true
     }
   ]
 }

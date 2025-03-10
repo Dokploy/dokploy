@@ -41,6 +41,7 @@ export const domains = pgTable("domain", {
 	composeId: text("composeId").references(() => compose.composeId, {
 		onDelete: "cascade",
 	}),
+	customCertResolver: text("customCertResolver"),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
@@ -76,6 +77,7 @@ export const apiCreateDomain = createSchema.pick({
 	https: true,
 	applicationId: true,
 	certificateType: true,
+	customCertResolver: true,
 	composeId: true,
 	serviceName: true,
 	domainType: true,
@@ -107,6 +109,7 @@ export const apiUpdateDomain = createSchema
 		port: true,
 		https: true,
 		certificateType: true,
+		customCertResolver: true,
 		serviceName: true,
 		domainType: true,
 	})

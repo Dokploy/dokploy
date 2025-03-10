@@ -30,7 +30,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		mounts,
 	} = postgres;
 
-	const defaultPostgresEnv = `POSTGRES_DB=${databaseName}\nPOSTGRES_USER=${databaseUser}\nPOSTGRES_PASSWORD=${databasePassword}${
+	const defaultPostgresEnv = `POSTGRES_DB="${databaseName}"\nPOSTGRES_USER="${databaseUser}"\nPOSTGRES_PASSWORD="${databasePassword}"${
 		env ? `\n${env}` : ""
 	}`;
 	const resources = calculateResources({
