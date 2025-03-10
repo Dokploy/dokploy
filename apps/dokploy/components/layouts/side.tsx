@@ -908,7 +908,7 @@ export default function Page({ children }: Props) {
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
-						<SidebarMenu className="gap-2">
+						<SidebarMenu>
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
 								const isActive = isSingle
