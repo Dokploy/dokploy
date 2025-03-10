@@ -2,6 +2,7 @@ import type { Schema } from "./index";
 import {
 	generateBase64,
 	generateHash,
+	generateJwt,
 	generatePassword,
 	generateRandomDomain,
 } from "./index";
@@ -72,6 +73,10 @@ function processValue(
 		if (varName === "randomDomain") {
 			return generateRandomDomain(schema);
 		}
+
+		if (varName === "base64") {
+			return generateBase64(32);
+		}
 		if (varName.startsWith("base64:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 32;
 			return generateBase64(length);
@@ -80,6 +85,11 @@ function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 16;
 			return generatePassword(length);
 		}
+
+		if (varName === "password") {
+			return generatePassword(16);
+		}
+
 		if (varName.startsWith("hash:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 8;
 			return generateHash(length);
@@ -94,6 +104,15 @@ function processValue(
 
 		if (varName === "randomPort") {
 			return Math.floor(Math.random() * 65535).toString();
+		}
+
+		if (varName === "jwt") {
+			return generateJwt();
+		}
+
+		if (varName.startsWith("jwt:")) {
+			const length = Number.parseInt(varName.split(":")[1], 10) || 256;
+			return generateJwt(length);
 		}
 
 		// If not a utility function, try to get from variables

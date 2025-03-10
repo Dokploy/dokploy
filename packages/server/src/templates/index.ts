@@ -63,6 +63,10 @@ export function generateBase64(length: number): string {
 		.substring(0, length);
 }
 
+export function generateJwt(length = 256): string {
+	return randomBytes(length).toString("hex");
+}
+
 /**
  * Reads a template's docker-compose.yml file
  * First tries to fetch from GitHub, falls back to local cache if fetch fails

@@ -349,7 +349,7 @@ describe("processTemplate", () => {
 						{
 							serviceName: "plausible",
 							port: 8000,
-							host: "${randomDomain}",
+							host: "${hash}",
 						},
 					],
 					env: {
@@ -367,6 +367,7 @@ describe("processTemplate", () => {
 			};
 
 			const result = processTemplate(template, mockSchema);
+			console.log(result);
 			expect(result.envs).toHaveLength(3);
 			expect(result.domains).toHaveLength(1);
 			expect(result.mounts).toHaveLength(1);
