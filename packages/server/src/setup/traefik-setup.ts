@@ -91,9 +91,26 @@ export const initializeTraefik = async ({
 		try {
 			const service = docker.getService("dokploy-traefik");
 			await service?.remove({ force: true });
-			await new Promise((resolve) => setTimeout(resolve, 9000));
-		} catch (_) {}
 
+			let attempts = 0;
+			const maxAttempts = 5;
+			while (attempts < maxAttempts) {
+				try {
+					await docker.listServices({
+						filters: { name: ["dokploy-traefik"] },
+					});
+					console.log("Waiting for service cleanup...");
+					await new Promise((resolve) => setTimeout(resolve, 5000));
+					attempts++;
+				} catch (e) {
+					break;
+				}
+			}
+		} catch (err) {
+			console.log("No existing service to remove");
+		}
+
+		// Then try to remove any existing container
 		const container = docker.getContainer(containerName);
 		try {
 			const inspect = await container.inspect();
@@ -103,15 +120,31 @@ export const initializeTraefik = async ({
 			}
 
 			await container.remove({ force: true });
+			await new Promise((resolve) => setTimeout(resolve, 5000));
 		} catch (error) {
-			console.log(error);
+			console.log("No existing container to remove");
 		}
 
-		await docker.createContainer(settings);
-		const newContainer = docker.getContainer(containerName);
-		await newContainer.start();
+		// Create and start the new container
+		try {
+			await docker.createContainer(settings);
+			const newContainer = docker.getContainer(containerName);
+			await newContainer.start();
+			console.log("Traefik container started successfully");
+		} catch (error: any) {
+			if (error?.json?.message?.includes("port is already allocated")) {
+				console.log("Ports still in use, waiting longer for cleanup...");
+				await new Promise((resolve) => setTimeout(resolve, 10000));
+				// Try one more time
+				await docker.createContainer(settings);
+				const newContainer = docker.getContainer(containerName);
+				await newContainer.start();
+				console.log("Traefik container started successfully after retry");
+			}
+		}
 	} catch (error) {
-		console.log(error);
+		console.error("Failed to initialize Traefik:", error);
+		throw error;
 	}
 };
 
