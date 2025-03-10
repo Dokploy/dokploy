@@ -546,7 +546,7 @@ export const createTraefikInstance = () => {
 		if docker service inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Migrating Traefik to Standalone..."
 			docker service rm dokploy-traefik
-			sleep 7
+			sleep 8
 			echo "Traefik migrated to Standalone ✅"
 		fi
 			

@@ -91,7 +91,7 @@ export const initializeTraefik = async ({
 		try {
 			const service = docker.getService("dokploy-traefik");
 			await service?.remove({ force: true });
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 9000));
 		} catch (_) {}
 
 		const container = docker.getContainer(containerName);
