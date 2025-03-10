@@ -338,4 +338,38 @@ describe("processTemplate", () => {
 			expect(mount.content).toMatch(/totp=[A-Za-z0-9+/]{32}/);
 		});
 	});
+
+	describe("Should populate envs, domains and mounts in the case we didn't used any variable", () => {
+		it("should populate envs, domains and mounts in the case we didn't used any variable", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [
+						{
+							serviceName: "plausible",
+							port: 8000,
+							host: "${randomDomain}",
+						},
+					],
+					env: {
+						BASE_URL: "http://${randomDomain}",
+						SECRET_KEY_BASE: "${password:32}",
+						TOTP_VAULT_KEY: "${base64:128}",
+					},
+					mounts: [
+						{
+							filePath: "/config/secrets.txt",
+							content: "random_domain=${randomDomain}\nsecret=${password:32}",
+						},
+					],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+			expect(result.domains).toHaveLength(1);
+			expect(result.mounts).toHaveLength(1);
+		});
+	});
 });
