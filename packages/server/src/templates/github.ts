@@ -53,7 +53,7 @@ interface TemplateMetadata {
  * Fetches the list of available templates from meta.json
  */
 export async function fetchTemplatesList(
-	baseUrl = "https://dokploy.github.io/templates",
+	baseUrl = "https://templates.dokploy.com",
 ): Promise<TemplateMetadata[]> {
 	try {
 		const response = await fetch(`${baseUrl}/meta.json`);
@@ -81,7 +81,7 @@ export async function fetchTemplatesList(
  */
 export async function fetchTemplateFiles(
 	templateId: string,
-	baseUrl = "https://dokploy.github.io/templates",
+	baseUrl = "https://templates.dokploy.com",
 ): Promise<{ config: CompleteTemplate; dockerCompose: string }> {
 	try {
 		// Fetch both files in parallel
