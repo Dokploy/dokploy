@@ -101,7 +101,6 @@
 		"clsx": "^2.1.0",
 		"cmdk": "^0.2.0",
 		"copy-to-clipboard": "^3.3.3",
-		"copy-webpack-plugin": "^12.0.2",
 		"date-fns": "3.6.0",
 		"dockerode": "4.0.2",
 		"dotenv": "16.4.5",
@@ -197,8 +196,6 @@
 		]
 	},
 	"commitlint": {
-		"extends": [
-			"@commitlint/config-conventional"
-		]
+		"extends": ["@commitlint/config-conventional"]
 	}
 }
