@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { CompleteTemplate } from "@dokploy/server/templates/utils/processors";
-import { processTemplate } from "@dokploy/server/templates/utils/processors";
-import type { Schema } from "@dokploy/server/templates/utils";
+import type { CompleteTemplate } from "@dokploy/server/templates/processors";
+import { processTemplate } from "@dokploy/server/templates/processors";
+import type { Schema } from "@dokploy/server/templates";
 
 describe("processTemplate", () => {
 	// Mock schema for testing
