@@ -70,7 +70,7 @@ function processValue(
 	// First replace utility functions
 	let processedValue = value.replace(/\${([^}]+)}/g, (match, varName) => {
 		// Handle utility functions
-		if (varName === "randomDomain") {
+		if (varName === "domain") {
 			return generateRandomDomain(schema);
 		}
 
@@ -140,7 +140,7 @@ export function processVariables(
 	for (const [key, value] of Object.entries(template.variables)) {
 		if (typeof value !== "string") continue;
 
-		if (value === "${randomDomain}") {
+		if (value === "${domain}") {
 			variables[key] = generateRandomDomain(schema);
 		} else if (value.startsWith("${base64:")) {
 			const match = value.match(/\${base64:(\d+)}/);

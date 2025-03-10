@@ -15,7 +15,7 @@ describe("processTemplate", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {
-					main_domain: "${randomDomain}",
+					main_domain: "${domain}",
 					secret_base: "${base64:64}",
 					totp_key: "${base64:32}",
 					password: "${password:32}",
@@ -37,7 +37,7 @@ describe("processTemplate", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {
-					main_domain: "${randomDomain}",
+					main_domain: "${domain}",
 					api_domain: "api.${main_domain}",
 				},
 				config: {
@@ -58,7 +58,7 @@ describe("processTemplate", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {
-					main_domain: "${randomDomain}",
+					main_domain: "${domain}",
 				},
 				config: {
 					domains: [
@@ -109,7 +109,7 @@ describe("processTemplate", () => {
 			expect(domain.host).toContain(mockSchema.projectName);
 		});
 
-		it("should allow using ${randomDomain} directly in host", () => {
+		it("should allow using ${domain} directly in host", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {},
@@ -118,7 +118,7 @@ describe("processTemplate", () => {
 						{
 							serviceName: "plausible",
 							port: 8000,
-							host: "${randomDomain}",
+							host: "${domain}",
 						},
 					],
 					env: {},
@@ -140,7 +140,7 @@ describe("processTemplate", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {
-					main_domain: "${randomDomain}",
+					main_domain: "${domain}",
 					secret_base: "${base64:64}",
 				},
 				config: {
@@ -176,7 +176,7 @@ describe("processTemplate", () => {
 				config: {
 					domains: [],
 					env: {
-						RANDOM_DOMAIN: "${randomDomain}",
+						RANDOM_DOMAIN: "${domain}",
 						SECRET_KEY: "${base64:32}",
 					},
 				},
@@ -238,7 +238,7 @@ describe("processTemplate", () => {
 					mounts: [
 						{
 							filePath: "/config/secrets.txt",
-							content: "random_domain=${randomDomain}\nsecret=${base64:32}",
+							content: "random_domain=${domain}\nsecret=${base64:32}",
 						},
 					],
 				},
@@ -259,7 +259,7 @@ describe("processTemplate", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,
 				variables: {
-					main_domain: "${randomDomain}",
+					main_domain: "${domain}",
 					secret_base: "${base64:64}",
 					totp_key: "${base64:32}",
 				},
@@ -353,14 +353,14 @@ describe("processTemplate", () => {
 						},
 					],
 					env: {
-						BASE_URL: "http://${randomDomain}",
+						BASE_URL: "http://${domain}",
 						SECRET_KEY_BASE: "${password:32}",
 						TOTP_VAULT_KEY: "${base64:128}",
 					},
 					mounts: [
 						{
 							filePath: "/config/secrets.txt",
-							content: "random_domain=${randomDomain}\nsecret=${password:32}",
+							content: "random_domain=${domain}\nsecret=${password:32}",
 						},
 					],
 				},
