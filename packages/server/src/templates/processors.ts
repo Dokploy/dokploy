@@ -84,6 +84,18 @@ function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 8;
 			return generateHash(length);
 		}
+		if (varName === "uuid") {
+			return crypto.randomUUID();
+		}
+
+		if (varName === "timestamp") {
+			return Date.now().toString();
+		}
+
+		if (varName === "randomPort") {
+			return Math.floor(Math.random() * 65535).toString();
+		}
+
 		// If not a utility function, try to get from variables
 		return variables[varName] || match;
 	});
