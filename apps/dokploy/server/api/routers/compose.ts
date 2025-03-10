@@ -38,6 +38,7 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
+	deleteMount,
 	findComposeById,
 	findDomainsByComposeId,
 	findProjectById,
@@ -49,6 +50,7 @@ import {
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
+	removeDomainById,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -568,15 +570,21 @@ export const composeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			console.log(input);
 			try {
+				const compose = await findComposeById(input.composeId);
+
+				if (
+					compose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this compose",
+					});
+				}
+
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
 				);
-				const compose = await findComposeById(input.composeId);
-
-				console.log(compose);
-
 				const admin = await findUserById(ctx.user.ownerId);
 				let serverIp = admin.serverIp || "127.0.0.1";
 
@@ -610,6 +618,110 @@ export const composeRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error processing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
+		}),
+
+	import: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				composeId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const compose = await findComposeById(input.composeId);
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+
+				if (
+					compose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this compose",
+					});
+				}
+
+				for (const mount of compose.mounts) {
+					await deleteMount(mount.mountId);
+				}
+
+				for (const domain of compose.domains) {
+					await removeDomainById(domain.domainId);
+				}
+
+				const admin = await findUserById(ctx.user.ownerId);
+				let serverIp = admin.serverIp || "127.0.0.1";
+
+				if (compose.serverId) {
+					const server = await findServerById(compose.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV === "development") {
+					serverIp = "127.0.0.1";
+				}
+
+				const templateData = JSON.parse(decodedData);
+				const config = load(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const processedTemplate = processTemplate(config, {
+					serverIp: serverIp,
+					projectName: compose.project.name,
+				});
+
+				// Update compose file
+				await updateCompose(input.composeId, {
+					composeFile: templateData.compose,
+					sourceType: "raw",
+					env: processedTemplate.envs?.join("\n"),
+					isolatedDeployment: true,
+				});
+
+				// Create mounts
+				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {
+					for (const mount of processedTemplate.mounts) {
+						await createMount({
+							filePath: mount.filePath,
+							mountPath: "",
+							content: mount.content,
+							serviceId: compose.composeId,
+							serviceType: "compose",
+							type: "file",
+						});
+					}
+				}
+
+				// Create domains
+				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
+					for (const domain of processedTemplate.domains) {
+						await createDomain({
+							...domain,
+							domainType: "compose",
+							certificateType: "none",
+							composeId: compose.composeId,
+							host: domain.host || "",
+						});
+					}
+				}
+
+				return {
+					success: true,
+					message: "Template imported successfully",
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
 				});
 			}
 		}),

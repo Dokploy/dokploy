@@ -28,10 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Code2, Globe2, HardDrive } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 const ImportSchema = z.object({
 	base64: z.string(),
@@ -68,10 +69,13 @@ export const ShowImport = ({ composeId }: Props) => {
 	} | null>(null);
 
 	const utils = api.useUtils();
-	const { mutateAsync: processTemplate } =
+	const { mutateAsync: processTemplate, isLoading: isLoadingTemplate } =
 		api.compose.processTemplate.useMutation();
-	const { mutateAsync: updateCompose, isLoading } =
-		api.compose.update.useMutation();
+	const {
+		mutateAsync: importTemplate,
+		isLoading: isImporting,
+		isSuccess: isImportSuccess,
+	} = api.compose.import.useMutation();
 
 	const form = useForm<ImportType>({
 		defaultValues: {
@@ -80,21 +84,32 @@ export const ShowImport = ({ composeId }: Props) => {
 		resolver: zodResolver(ImportSchema),
 	});
 
+	useEffect(() => {
+		form.reset({
+			base64: "",
+		});
+	}, [isImportSuccess]);
+
 	const onSubmit = async () => {
-		await updateCompose({
-			composeId,
-			composeFile: templateInfo?.compose || "",
-		})
-			.then(async () => {
-				toast.success("Import configuration updated");
-				await utils.compose.one.invalidate({
-					composeId,
-				});
-				setShowModal(false);
-			})
-			.catch(() => {
-				toast.error("Error updating the import configuration");
+		const base64 = form.getValues("base64");
+		if (!base64) {
+			toast.error("Please enter a base64 template");
+			return;
+		}
+
+		try {
+			await importTemplate({
+				composeId,
+				base64,
 			});
+			toast.success("Template imported successfully");
+			await utils.compose.one.invalidate({
+				composeId,
+			});
+			setShowModal(false);
+		} catch (_error) {
+			toast.error("Error importing template");
+		}
 	};
 
 	const handleLoadTemplate = async () => {
@@ -129,11 +144,13 @@ export const ShowImport = ({ composeId }: Props) => {
 			<Card className="bg-background">
 				<CardHeader>
 					<CardTitle className="text-xl">Import</CardTitle>
-					<CardDescription>
-						Import your Docker Compose configuration
-					</CardDescription>
+					<CardDescription>Import your Template configuration</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
+					<AlertBlock type="warning">
+						Warning: Importing a template will remove all existing environment
+						variables, mounts, and domains from this service.
+					</AlertBlock>
 					<Form {...form}>
 						<form
 							onSubmit={form.handleSubmit(onSubmit)}
@@ -144,10 +161,10 @@ export const ShowImport = ({ composeId }: Props) => {
 								name="base64"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Docker Compose (Base64)</FormLabel>
+										<FormLabel>Configuration (Base64)</FormLabel>
 										<FormControl>
 											<Textarea
-												placeholder="Enter your Docker Compose configuration here..."
+												placeholder="Enter your Base64 configuration here..."
 												className="font-mono min-h-[200px]"
 												{...field}
 											/>
@@ -161,130 +178,149 @@ export const ShowImport = ({ composeId }: Props) => {
 									type="button"
 									className="w-fit"
 									variant="outline"
+									isLoading={isLoadingTemplate}
 									onClick={handleLoadTemplate}
 								>
 									Load
 								</Button>
-								<Button isLoading={isLoading} type="submit" className="w-fit">
-									Import
-								</Button>
 							</div>
+							<Dialog open={showModal} onOpenChange={setShowModal}>
+								<DialogContent className="max-h-[80vh] max-w-[50vw] overflow-y-auto">
+									<DialogHeader>
+										<DialogTitle className="text-2xl font-bold">
+											Template Information
+										</DialogTitle>
+										<DialogDescription className="space-y-2">
+											<p>Review the template information before importing</p>
+											<AlertBlock type="warning">
+												Warning: This will remove all existing environment
+												variables, mounts, and domains from this service.
+											</AlertBlock>
+										</DialogDescription>
+									</DialogHeader>
+
+									<div className="flex flex-col gap-6">
+										<div className="space-y-4">
+											<div className="flex items-center gap-2">
+												<Code2 className="h-5 w-5 text-primary" />
+												<h3 className="text-lg font-semibold">
+													Docker Compose
+												</h3>
+											</div>
+											<CodeEditor
+												language="yaml"
+												value={templateInfo?.compose || ""}
+												className="font-mono"
+												readOnly
+											/>
+										</div>
+
+										<Separator />
+
+										{templateInfo?.template.domains &&
+											templateInfo.template.domains.length > 0 && (
+												<div className="space-y-4">
+													<div className="flex items-center gap-2">
+														<Globe2 className="h-5 w-5 text-primary" />
+														<h3 className="text-lg font-semibold">Domains</h3>
+													</div>
+													<div className="grid grid-cols-1 gap-3">
+														{templateInfo.template.domains.map(
+															(domain, index) => (
+																<div
+																	key={index}
+																	className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
+																>
+																	<div className="font-medium">
+																		{domain.serviceName}
+																	</div>
+																	<div className="text-sm text-muted-foreground space-y-1">
+																		<div>Port: {domain.port}</div>
+																		{domain.host && (
+																			<div>Host: {domain.host}</div>
+																		)}
+																		{domain.path && (
+																			<div>Path: {domain.path}</div>
+																		)}
+																	</div>
+																</div>
+															),
+														)}
+													</div>
+												</div>
+											)}
+
+										{templateInfo?.template.envs &&
+											templateInfo.template.envs.length > 0 && (
+												<div className="space-y-4">
+													<div className="flex items-center gap-2">
+														<Code2 className="h-5 w-5 text-primary" />
+														<h3 className="text-lg font-semibold">
+															Environment Variables
+														</h3>
+													</div>
+													<div className="grid grid-cols-1 gap-2">
+														{templateInfo.template.envs.map((env, index) => (
+															<div
+																key={index}
+																className="rounded-lg border bg-card p-2 font-mono text-sm"
+															>
+																{env}
+															</div>
+														))}
+													</div>
+												</div>
+											)}
+
+										{templateInfo?.template.mounts &&
+											templateInfo.template.mounts.length > 0 && (
+												<div className="space-y-4">
+													<div className="flex items-center gap-2">
+														<HardDrive className="h-5 w-5 text-primary" />
+														<h3 className="text-lg font-semibold">Mounts</h3>
+													</div>
+													<div className="grid grid-cols-1 gap-2">
+														{templateInfo.template.mounts.map(
+															(mount, index) => (
+																<div
+																	key={index}
+																	className="rounded-lg border bg-card p-2 font-mono text-sm hover:bg-accent cursor-pointer transition-colors"
+																	onClick={() => handleShowMountContent(mount)}
+																>
+																	{mount.filePath}
+																</div>
+															),
+														)}
+													</div>
+												</div>
+											)}
+									</div>
+
+									<div className="flex justify-end gap-2 pt-4">
+										<Button
+											variant="outline"
+											onClick={() => setShowModal(false)}
+										>
+											Cancel
+										</Button>
+										<Button
+											isLoading={isImporting}
+											type="submit"
+											onClick={form.handleSubmit(onSubmit)}
+											className="w-fit"
+										>
+											Import
+										</Button>
+									</div>
+								</DialogContent>
+							</Dialog>
 						</form>
 					</Form>
 				</CardContent>
 			</Card>
 
-			<Dialog open={showModal} onOpenChange={setShowModal}>
-				<DialogContent className="max-h-[80vh] max-w-[50vw]">
-					<DialogHeader>
-						<DialogTitle className="text-2xl font-bold">
-							Template Information
-						</DialogTitle>
-						<DialogDescription>
-							Review the template information before importing
-						</DialogDescription>
-					</DialogHeader>
-
-					<ScrollArea className="h-[60vh] pr-4">
-						<div className="flex flex-col gap-6">
-							<div className="space-y-4">
-								<div className="flex items-center gap-2">
-									<Code2 className="h-5 w-5 text-primary" />
-									<h3 className="text-lg font-semibold">Docker Compose</h3>
-								</div>
-								<CodeEditor
-									language="yaml"
-									value={templateInfo?.compose || ""}
-									className="font-mono"
-									readOnly
-								/>
-							</div>
-
-							<Separator />
-
-							{templateInfo?.template.domains &&
-								templateInfo.template.domains.length > 0 && (
-									<div className="space-y-4">
-										<div className="flex items-center gap-2">
-											<Globe2 className="h-5 w-5 text-primary" />
-											<h3 className="text-lg font-semibold">Domains</h3>
-										</div>
-										<div className="grid grid-cols-1 gap-3">
-											{templateInfo.template.domains.map((domain, index) => (
-												<div
-													key={index}
-													className="rounded-lg border bg-card p-3 text-card-foreground shadow-sm"
-												>
-													<div className="font-medium">
-														{domain.serviceName}
-													</div>
-													<div className="text-sm text-muted-foreground space-y-1">
-														<div>Port: {domain.port}</div>
-														{domain.host && <div>Host: {domain.host}</div>}
-														{domain.path && <div>Path: {domain.path}</div>}
-													</div>
-												</div>
-											))}
-										</div>
-									</div>
-								)}
-
-							{templateInfo?.template.envs &&
-								templateInfo.template.envs.length > 0 && (
-									<div className="space-y-4">
-										<div className="flex items-center gap-2">
-											<Code2 className="h-5 w-5 text-primary" />
-											<h3 className="text-lg font-semibold">
-												Environment Variables
-											</h3>
-										</div>
-										<div className="grid grid-cols-1 gap-2">
-											{templateInfo.template.envs.map((env, index) => (
-												<div
-													key={index}
-													className="rounded-lg border bg-card p-2 font-mono text-sm"
-												>
-													{env}
-												</div>
-											))}
-										</div>
-									</div>
-								)}
-
-							{templateInfo?.template.mounts &&
-								templateInfo.template.mounts.length > 0 && (
-									<div className="space-y-4">
-										<div className="flex items-center gap-2">
-											<HardDrive className="h-5 w-5 text-primary" />
-											<h3 className="text-lg font-semibold">Mounts</h3>
-										</div>
-										<div className="grid grid-cols-1 gap-2">
-											{templateInfo.template.mounts.map((mount, index) => (
-												<div
-													key={index}
-													className="rounded-lg border bg-card p-2 font-mono text-sm hover:bg-accent cursor-pointer transition-colors"
-													onClick={() => handleShowMountContent(mount)}
-												>
-													{mount.filePath}
-												</div>
-											))}
-										</div>
-									</div>
-								)}
-						</div>
-					</ScrollArea>
-
-					<div className="flex justify-end gap-2 pt-4">
-						<Button variant="outline" onClick={() => setShowModal(false)}>
-							Cancel
-						</Button>
-						<Button onClick={form.handleSubmit(onSubmit)}>Import</Button>
-					</div>
-				</DialogContent>
-			</Dialog>
-
 			<Dialog open={showMountContent} onOpenChange={setShowMountContent}>
-				<DialogContent className=" max-w-[50vw]">
+				<DialogContent className="max-w-[50vw]">
 					<DialogHeader>
 						<DialogTitle className="text-xl font-bold">
 							{selectedMount?.filePath}
