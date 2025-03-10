@@ -1,11 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { Domain } from "@dokploy/server";
-// import { IS_CLOUD } from "@/server/constants";
-import { TRPCError } from "@trpc/server";
-import { templates } from "../templates";
-import type { TemplatesKeys } from "../types/templates-data.type";
 
 export interface Schema {
 	serverIp: string;
@@ -57,29 +51,4 @@ export const generatePassword = (quantity = 16): string => {
 
 export const generateBase64 = (bytes = 32): string => {
 	return randomBytes(bytes).toString("base64");
-};
-
-export const loadTemplateModule = async (
-	id: TemplatesKeys,
-): Promise<(schema: Schema) => Template> => {
-	const templateLoader = templates.find((t) => t.id === id);
-	if (!templateLoader) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Template ${id} not found or not implemented yet`,
-		});
-	}
-
-	const generate = await templateLoader.load();
-	return generate;
-};
-
-export const readTemplateComposeFile = async (id: string) => {
-	const cwd = process.cwd();
-	const composeFile = await readFile(
-		join(cwd, ".next", "templates", id, "docker-compose.yml"),
-		"utf8",
-	);
-
-	return composeFile;
 };

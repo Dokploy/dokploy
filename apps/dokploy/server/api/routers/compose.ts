@@ -15,8 +15,8 @@ import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
 	fetchTemplatesList,
-} from "@dokploy/server/templates/utils/github";
-import { processTemplate } from "@dokploy/server/templates/utils/processors";
+} from "@dokploy/server/templates/github";
+import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump, load } from "js-yaml";
