@@ -13,7 +13,7 @@ export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
-export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.1.2";
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3";
 
 interface TraefikOptions {
 	enableDashboard?: boolean;
@@ -34,7 +34,7 @@ export const initializeTraefik = async ({
 	force = false,
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
-	const imageName = `traefik:v${TRAEFIK_VERSION}`;
+	const imageName = `traefik:${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
 
 	const exposedPorts: Record<string, {}> = {
