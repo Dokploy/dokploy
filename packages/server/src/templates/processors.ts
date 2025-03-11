@@ -45,7 +45,7 @@ export interface CompleteTemplate {
 	variables: Record<string, string>;
 	config: {
 		domains: DomainConfig[];
-		env: Record<string, string>;
+		env: Record<string, string> | string[];
 		mounts?: MountConfig[];
 	};
 }
@@ -176,7 +176,6 @@ export function processDomains(
 	schema: Schema,
 ): Template["domains"] {
 	if (!template?.config?.domains) return [];
-
 	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
 		host: domain.host
@@ -195,7 +194,18 @@ export function processEnvVars(
 ): Template["envs"] {
 	if (!template?.config?.env) return [];
 
-	return Object.entries(template?.config?.env).map(
+	// Handle array of env vars
+	if (Array.isArray(template.config.env)) {
+		return template.config.env.map((env) => {
+			if (typeof env === "string") {
+				return processValue(env, variables, schema);
+			}
+			return env;
+		});
+	}
+
+	// Handle object of env vars
+	return Object.entries(template.config.env).map(
 		([key, value]: [string, string]) => {
 			const processedValue = processValue(value, variables, schema);
 			return `${key}=${processedValue}`;
