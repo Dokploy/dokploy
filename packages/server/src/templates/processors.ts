@@ -175,7 +175,9 @@ export function processDomains(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["domains"] {
-	return template.config.domains.map((domain: DomainConfig) => ({
+	if (!template?.config?.domains) return [];
+
+	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
 		host: domain.host
 			? processValue(domain.host, variables, schema)
@@ -191,7 +193,9 @@ export function processEnvVars(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["envs"] {
-	return Object.entries(template.config.env).map(
+	if (!template?.config?.env) return [];
+
+	return Object.entries(template?.config?.env).map(
 		([key, value]: [string, string]) => {
 			const processedValue = processValue(value, variables, schema);
 			return `${key}=${processedValue}`;
@@ -207,9 +211,9 @@ export function processMounts(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["mounts"] {
-	if (!template.config.mounts) return [];
+	if (!template?.config?.mounts) return [];
 
-	return template.config.mounts.map((mount: MountConfig) => ({
+	return template?.config?.mounts?.map((mount: MountConfig) => ({
 		filePath: processValue(mount.filePath, variables, schema),
 		content: processValue(mount.content, variables, schema),
 	}));
