@@ -61,9 +61,10 @@ pnpm install
 cp apps/dokploy/.env.example apps/dokploy/.env
 ```
 
-## Development
+## Requirements
 
-Is required to have **Docker** installed on your machine.
+- [Docker](/GUIDES.md#docker)
+- [Radis](/GUIDES.md#redis)
 
 ### Setup
 
