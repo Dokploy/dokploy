@@ -223,7 +223,7 @@ export function processMounts(
 ): Template["mounts"] {
 	if (!template?.config?.mounts) return [];
 
-	return template.config.mounts.map((mount: MountConfig) => ({
+	return template?.config?.mounts?.map((mount: MountConfig) => ({
 		filePath: processValue(mount.filePath, variables, schema),
 		content: processValue(mount.content, variables, schema),
 	}));
