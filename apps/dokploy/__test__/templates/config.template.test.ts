@@ -169,6 +169,32 @@ describe("processTemplate", () => {
 			expect(secretKey.split("=")[1]).toHaveLength(64);
 		});
 
+		it("should process env vars when provided as an array", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: [
+						'CLOUDFLARE_TUNNEL_TOKEN="<INSERT TOKEN>"',
+						'ANOTHER_VAR="some value"',
+						"DOMAIN=${domain}",
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+
+			// Should preserve exact format for static values
+			expect(result.envs[0]).toBe('CLOUDFLARE_TUNNEL_TOKEN="<INSERT TOKEN>"');
+			expect(result.envs[1]).toBe('ANOTHER_VAR="some value"');
+
+			// Should process variables in array items
+			expect(result.envs[2]).toContain(mockSchema.projectName);
+		});
+
 		it("should allow using utility functions directly in env vars", () => {
 			const template: CompleteTemplate = {
 				metadata: {} as any,

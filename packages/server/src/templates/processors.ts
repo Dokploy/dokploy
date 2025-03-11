@@ -45,7 +45,7 @@ export interface CompleteTemplate {
 	variables: Record<string, string>;
 	config: {
 		domains: DomainConfig[];
-		env: Record<string, string>;
+		env: Record<string, string> | string[];
 		mounts?: MountConfig[];
 	};
 }
@@ -175,7 +175,8 @@ export function processDomains(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["domains"] {
-	return template.config.domains.map((domain: DomainConfig) => ({
+	if (!template?.config?.domains) return [];
+	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
 		host: domain.host
 			? processValue(domain.host, variables, schema)
@@ -191,6 +192,19 @@ export function processEnvVars(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["envs"] {
+	if (!template?.config?.env) return [];
+
+	// Handle array of env vars
+	if (Array.isArray(template.config.env)) {
+		return template.config.env.map((env) => {
+			if (typeof env === "string") {
+				return processValue(env, variables, schema);
+			}
+			return env;
+		});
+	}
+
+	// Handle object of env vars
 	return Object.entries(template.config.env).map(
 		([key, value]: [string, string]) => {
 			const processedValue = processValue(value, variables, schema);
@@ -207,7 +221,7 @@ export function processMounts(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["mounts"] {
-	if (!template.config.mounts) return [];
+	if (!template?.config?.mounts) return [];
 
 	return template.config.mounts.map((mount: MountConfig) => ({
 		filePath: processValue(mount.filePath, variables, schema),
