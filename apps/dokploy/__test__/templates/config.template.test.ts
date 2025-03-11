@@ -166,7 +166,12 @@ describe("processTemplate", () => {
 			if (!baseUrl || !secretKey) return;
 
 			expect(baseUrl).toContain(mockSchema.projectName);
-			expect(secretKey.split("=")[1]).toHaveLength(64);
+			const base64Value = secretKey.split("=")[1];
+			expect(base64Value).toBeDefined();
+			if (!base64Value) return;
+			expect(base64Value).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+			expect(base64Value.length).toBeGreaterThanOrEqual(86);
+			expect(base64Value.length).toBeLessThanOrEqual(88);
 		});
 
 		it("should process env vars when provided as an array", () => {
@@ -221,7 +226,12 @@ describe("processTemplate", () => {
 			if (!randomDomainEnv || !secretKeyEnv) return;
 
 			expect(randomDomainEnv).toContain(mockSchema.projectName);
-			expect(secretKeyEnv.split("=")[1]).toHaveLength(32);
+			const base64Value = secretKeyEnv.split("=")[1];
+			expect(base64Value).toBeDefined();
+			if (!base64Value) return;
+			expect(base64Value).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+			expect(base64Value.length).toBeGreaterThanOrEqual(42);
+			expect(base64Value.length).toBeLessThanOrEqual(44);
 		});
 	});
 
@@ -351,8 +361,22 @@ describe("processTemplate", () => {
 			if (!baseUrl || !secretKey || !totpKey) return;
 
 			expect(baseUrl).toContain(mockSchema.projectName);
-			expect(secretKey.split("=")[1]).toHaveLength(64);
-			expect(totpKey.split("=")[1]).toHaveLength(32);
+
+			// Check base64 lengths and format
+			const secretKeyValue = secretKey.split("=")[1];
+			const totpKeyValue = totpKey.split("=")[1];
+
+			expect(secretKeyValue).toBeDefined();
+			expect(totpKeyValue).toBeDefined();
+			if (!secretKeyValue || !totpKeyValue) return;
+
+			expect(secretKeyValue).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+			expect(secretKeyValue.length).toBeGreaterThanOrEqual(86);
+			expect(secretKeyValue.length).toBeLessThanOrEqual(88);
+
+			expect(totpKeyValue).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
+			expect(totpKeyValue.length).toBeGreaterThanOrEqual(42);
+			expect(totpKeyValue.length).toBeLessThanOrEqual(44);
 
 			// Check mounts
 			expect(result.mounts).toHaveLength(1);
@@ -360,8 +384,8 @@ describe("processTemplate", () => {
 			expect(mount).toBeDefined();
 			if (!mount) return;
 			expect(mount.content).toContain(mockSchema.projectName);
-			expect(mount.content).toMatch(/secret=[A-Za-z0-9+/]{64}/);
-			expect(mount.content).toMatch(/totp=[A-Za-z0-9+/]{32}/);
+			expect(mount.content).toMatch(/secret=[A-Za-z0-9+/]{86,88}/);
+			expect(mount.content).toMatch(/totp=[A-Za-z0-9+/]{42,44}/);
 		});
 	});
 
