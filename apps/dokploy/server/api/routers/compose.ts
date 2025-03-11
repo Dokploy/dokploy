@@ -607,7 +607,7 @@ export const composeRouter = createTRPCRouter({
 
 				const processedTemplate = processTemplate(config, {
 					serverIp: serverIp,
-					projectName: compose.project.name,
+					projectName: compose.appName,
 				});
 
 				return {
@@ -676,7 +676,7 @@ export const composeRouter = createTRPCRouter({
 
 				const processedTemplate = processTemplate(config, {
 					serverIp: serverIp,
-					projectName: compose.project.name,
+					projectName: compose.appName,
 				});
 
 				// Update compose file
