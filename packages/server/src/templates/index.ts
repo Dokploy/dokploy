@@ -53,14 +53,12 @@ export const generatePassword = (quantity = 16): string => {
 };
 
 /**
- * Generate a random base64 string of specified length
+ * Generate a random base64 string from N random bytes
+ * @param bytes Number of random bytes to generate before base64 encoding (default: 32)
+ * @returns base64 encoded string of the random bytes
  */
-export function generateBase64(length: number): string {
-	// To get N characters in base64, we need to generate N * 3/4 bytes
-	const bytesNeeded = Math.ceil((length * 3) / 4);
-	return Buffer.from(randomBytes(bytesNeeded))
-		.toString("base64")
-		.substring(0, length);
+export function generateBase64(bytes = 32): string {
+	return randomBytes(bytes).toString("base64");
 }
 
 export function generateJwt(length = 256): string {
