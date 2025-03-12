@@ -361,6 +361,9 @@ importers:
       nodemailer:
         specifier: 6.9.14
         version: 6.9.14
+      nprogress:
+        specifier: ^0.2.0
+        version: 0.2.0
       octokit:
         specifier: 3.1.2
         version: 3.1.2
@@ -479,6 +482,9 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.15
         version: 6.4.16
+      '@types/nprogress':
+        specifier: ^0.2.3
+        version: 0.2.3
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.5
@@ -3727,6 +3733,9 @@ packages:
   '@types/nodemailer@6.4.16':
     resolution: {integrity: sha512-uz6hN6Pp0upXMcilM61CoKyjT7sskBoOWpptkjjJp8jIMlTdc3xG01U7proKkXzruMS4hS0zqtHNkNPFB20rKQ==}
 
+  '@types/nprogress@0.2.3':
+    resolution: {integrity: sha512-k7kRA033QNtC+gLc4VPlfnue58CM1iQLgn1IMAU8VPHGOj7oIHPp9UlhedEnD/Gl8evoCjwkZjlBORtZ3JByUA==}
+
   '@types/prop-types@15.7.12':
     resolution: {integrity: sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==}
 
@@ -6122,6 +6131,9 @@ packages:
     resolution: {integrity: sha512-/vBvz5Jfr9dT/aFWd0FIRf+T/Q2WBsLENygUaFUqstqsycmZAP/t5BvFJTK0viFmSUxiUKTUplWy5vt+rvKIxg==}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
     deprecated: This package is no longer supported.
+
+  nprogress@0.2.0:
+    resolution: {integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==}
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -10570,6 +10582,8 @@ snapshots:
     dependencies:
       '@types/node': 20.14.10
 
+  '@types/nprogress@0.2.3': {}
+
   '@types/prop-types@15.7.12': {}
 
   '@types/qrcode@1.5.5':
@@ -13220,6 +13234,8 @@ snapshots:
       gauge: 4.0.4
       set-blocking: 2.0.0
     optional: true
+
+  nprogress@0.2.0: {}
 
   object-assign@4.1.1: {}
 
