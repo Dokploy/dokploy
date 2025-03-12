@@ -437,12 +437,11 @@ export const composeRouter = createTRPCRouter({
 				serverIp = "127.0.0.1";
 			}
 
+			const projectName = slugify(`${project.name} ${input.id}`);
 			const generate = processTemplate(template.config, {
 				serverIp: serverIp,
-				projectName: project.name,
+				projectName: projectName,
 			});
-
-			const projectName = slugify(`${project.name} ${input.id}`);
 
 			const compose = await createComposeByTemplate({
 				...input,
