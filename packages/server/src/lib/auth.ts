@@ -28,6 +28,26 @@ const { handler, api } = betterAuth({
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
 		},
 	},
+	...(!IS_CLOUD && {
+		async trustedOrigins() {
+			const admin = await db.query.member.findFirst({
+				where: eq(schema.member.role, "owner"),
+				with: {
+					user: true,
+				},
+			});
+
+			if (admin) {
+				return [
+					...(admin.user.serverIp
+						? [`http://${admin.user.serverIp}:3000`]
+						: []),
+					...(admin.user.host ? [`https://${admin.user.host}`] : []),
+				];
+			}
+			return [];
+		},
+	}),
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
