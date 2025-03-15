@@ -3,7 +3,6 @@ import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
-import { execAsync } from "../process/execAsync";
 
 export const buildRailpack = async (
 	application: ApplicationNested,
@@ -17,32 +16,62 @@ export const buildRailpack = async (
 	);
 
 	try {
-		// Ensure buildkit container is running, create if it doesn't exist
-		await execAsync(
-			"docker container inspect buildkit >/dev/null 2>&1 || docker run --rm --privileged -d --name buildkit moby/buildkit",
-		);
+		// First prepare the build plan and info
+		const prepareArgs = [
+			"prepare",
+			buildAppDirectory,
+			"--plan-out",
+			`${buildAppDirectory}/railpack-plan.json`,
+			"--info-out",
+			`${buildAppDirectory}/railpack-info.json`,
+		];
 
-		// Build the application using railpack
-		const args = ["build", buildAppDirectory, "--name", appName];
-
-		// Add environment variables
+		// Add environment variables to prepare command
 		for (const env of envVariables) {
-			args.push("--env", env);
+			prepareArgs.push("--env", env);
 		}
 
+		// Run prepare command
+		await spawnAsync("railpack", prepareArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
+
+		// Build with BuildKit using the Railpack frontend
+		const buildArgs = [
+			"buildx",
+			"build",
+			"--build-arg",
+			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
+			"-f",
+			`${buildAppDirectory}/railpack-plan.json`,
+			"--output",
+			`type=docker,name=${appName}`,
+		];
+
+		// Add secrets properly formatted
+		const env: { [key: string]: string } = {};
+		for (const envVar of envVariables) {
+			const [key, value] = envVar.split("=");
+			if (key && value) {
+				buildArgs.push("--secret", `id=${key},env=${key}`);
+				env[key] = value;
+			}
+		}
+
+		buildArgs.push(buildAppDirectory);
+
 		await spawnAsync(
-			"railpack",
-			args,
+			"docker",
+			buildArgs,
 			(data) => {
 				if (writeStream.writable) {
 					writeStream.write(data);
 				}
 			},
 			{
-				env: {
-					...process.env,
-					BUILDKIT_HOST: "docker-container://buildkit",
-				},
+				env: { ...process.env, ...env },
 			},
 		);
 
@@ -63,25 +92,62 @@ export const getRailpackCommand = (
 		application.project.env,
 	);
 
-	// Build the application using railpack
-	const args = ["build", buildAppDirectory, "--name", appName];
+	// Prepare command
+	const prepareArgs = [
+		"prepare",
+		buildAppDirectory,
+		"--plan-out",
+		`${buildAppDirectory}/railpack-plan.json`,
+		"--info-out",
+		`${buildAppDirectory}/railpack-info.json`,
+	];
 
-	// Add environment variables
 	for (const env of envVariables) {
-		args.push("--env", env);
+		prepareArgs.push("--env", env);
 	}
 
-	const command = `railpack ${args.join(" ")}`;
+	// Build command
+	const buildArgs = [
+		"buildx",
+		"build",
+		"--build-arg",
+		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
+		"-f",
+		`${buildAppDirectory}/railpack-plan.json`,
+		"--output",
+		`type=docker,name=${appName}`,
+	];
+
+	// Add secrets properly formatted
+	const exportEnvs = [];
+	for (const envVar of envVariables) {
+		const [key, value] = envVar.split("=");
+		if (key && value) {
+			buildArgs.push("--secret", `id=${key},env=${key}`);
+			exportEnvs.push(`export ${key}=${value}`);
+		}
+	}
+
+	buildArgs.push(buildAppDirectory);
+
 	const bashCommand = `
-	echo "Building with Railpack..." >> "${logPath}";
-	docker container inspect buildkit >/dev/null 2>&1 || docker run --rm --privileged -d --name buildkit moby/buildkit;
-	export BUILDKIT_HOST=docker-container://buildkit;
-	${command} >> ${logPath} 2>> ${logPath} || { 
-		echo "❌ Railpack build failed" >> ${logPath};
-		exit 1;
-	  }
-	echo "✅ Railpack build completed." >> ${logPath};
-	`;
+echo "Preparing Railpack build plan..." >> "${logPath}";
+railpack ${prepareArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
+	echo "❌ Railpack prepare failed" >> ${logPath};
+	exit 1;
+}
+echo "✅ Railpack prepare completed." >> ${logPath};
+
+echo "Building with Railpack frontend..." >> "${logPath}";
+# Export environment variables for secrets
+${exportEnvs.join("\n")}
+docker ${buildArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
+	echo "❌ Railpack build failed" >> ${logPath};
+	exit 1;
+}
+echo "✅ Railpack build completed." >> ${logPath};
+`;
 
 	return bashCommand;
 };
+// docker buildx build --build-arg BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55 -f /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications/dsfgsdfg-sdfgdsfg-fyk3r9/code/astro/railpack-plan.json /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications/dsfgsdfg-sdfgdsfg-fyk3r9/code/astro
