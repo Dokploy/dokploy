@@ -21,6 +21,8 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { badgeStateColor } from "../../application/logs/show";
+import { Badge } from "@/components/ui/badge";
 
 export const DockerLogsId = dynamic(
 	() =>
@@ -90,7 +92,10 @@ export const ShowModalLogs = ({
 										key={container.containerId}
 										value={container.containerId}
 									>
-										{container.name} ({container.containerId}) {container.state}
+										{container.name} ({container.containerId}){" "}
+										<Badge variant={badgeStateColor(container.state)}>
+											{container.state}
+										</Badge>
 									</SelectItem>
 								))}
 								<SelectLabel>Containers ({data?.length})</SelectLabel>
