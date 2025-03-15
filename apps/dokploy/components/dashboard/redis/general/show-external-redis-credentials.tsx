@@ -1,5 +1,6 @@
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
+import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	Card,
 	CardContent,
@@ -23,6 +24,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import Link from "next/link";
 
 const DockerProviderSchema = z.object({
 	externalPort: z.preprocess((a) => {
@@ -100,6 +102,17 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
+						{!getIp && (
+							<AlertBlock type="warning">
+								You need to set an IP address in your{" "}
+								<Link href="/dashboard/settings" className="text-primary">
+									{data?.serverId
+										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+										: "Web Server -> Server -> Update Server IP"}
+								</Link>{" "}
+								to fix the database url connection.
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
