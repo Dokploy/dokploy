@@ -324,7 +324,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 											)}
 										>
 											<img
-												src={`${customBaseUrl || "https://dokploy.github.io/templates"}/blueprints/${template.id}/${template.logo}`}
+												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template.id}/${template.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
