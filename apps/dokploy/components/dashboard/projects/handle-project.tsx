@@ -148,7 +148,7 @@ export const HandleProject = ({ projectId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder="Tesla" {...field} />
+											<Input placeholder="Vandelay Industries" {...field} />
 										</FormControl>
 
 										<FormMessage />

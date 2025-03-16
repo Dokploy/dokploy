@@ -47,6 +47,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 
 type TabState =
 	| "projects"
@@ -224,12 +225,12 @@ const Service = (
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="domains">Domains</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
-											<TabsTrigger value="logs">Logs</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
-											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
@@ -330,6 +331,7 @@ const Service = (
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommandCompose composeId={composeId} />
 											<ShowVolumes id={composeId} type="compose" />
+											<ShowImport composeId={composeId} />
 										</div>
 									</TabsContent>
 								</Tabs>

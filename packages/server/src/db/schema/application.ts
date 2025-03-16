@@ -118,6 +118,7 @@ export const applications = pgTable("application", {
 	description: text("description"),
 	env: text("env"),
 	previewEnv: text("previewEnv"),
+	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -126,6 +127,7 @@ export const applications = pgTable("application", {
 	previewCertificateType: certificateType("certificateType")
 		.notNull()
 		.default("none"),
+	previewCustomCertResolver: text("previewCustomCertResolver"),
 	previewLimit: integer("previewLimit").default(3),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
@@ -420,7 +422,8 @@ const createSchema = createInsertSchema(applications, {
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
 	previewPath: z.string().optional(),
-	previewCertificateType: z.enum(["letsencrypt", "none"]).optional(),
+	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -464,6 +467,7 @@ export const apiSaveGithubProvider = createSchema
 		owner: true,
 		buildPath: true,
 		githubId: true,
+		watchPaths: true,
 	})
 	.required();
 
@@ -477,6 +481,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabId: true,
 		gitlabProjectId: true,
 		gitlabPathNamespace: true,
+		watchPaths: true,
 	})
 	.required();
 
@@ -488,6 +493,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketRepository: true,
 		bitbucketId: true,
 		applicationId: true,
+		watchPaths: true,
 	})
 	.required();
 
@@ -520,6 +526,7 @@ export const apiSaveGitProvider = createSchema
 		applicationId: true,
 		customGitBuildPath: true,
 		customGitUrl: true,
+		watchPaths: true,
 	})
 	.required()
 	.merge(

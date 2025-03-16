@@ -31,7 +31,7 @@ export * from "./services/gitlab";
 export * from "./services/gitea";
 export * from "./services/server";
 export * from "./services/application";
-
+export * from "./utils/databases/rebuild";
 export * from "./setup/config-paths";
 export * from "./setup/postgres-setup";
 export * from "./setup/redis-setup";
@@ -41,13 +41,14 @@ export * from "./setup/setup";
 export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";
 export * from "./setup/server-audit";
-
+export * from "./utils/watch-paths/should-deploy";
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
 export * from "./utils/backups/mongo";
 export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
+export * from "./templates/processors";
 
 export * from "./utils/notifications/build-error";
 export * from "./utils/notifications/build-success";
@@ -118,3 +119,9 @@ export * from "./db/validations/index";
 export * from "./utils/gpu-setup";
 
 export * from "./lib/auth";
+
+export {
+	startLogCleanup,
+	stopLogCleanup,
+	getLogCleanupStatus,
+} from "./utils/access-log/handler";

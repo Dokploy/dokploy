@@ -219,13 +219,9 @@ export const addDomainToCompose = async (
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
 
-		const httpLabels = await createDomainLabels(appName, domain, "web");
+		const httpLabels = createDomainLabels(appName, domain, "web");
 		if (https) {
-			const httpsLabels = await createDomainLabels(
-				appName,
-				domain,
-				"websecure",
-			);
+			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
 		}
 
@@ -250,9 +246,9 @@ export const addDomainToCompose = async (
 
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {
-				labels.push("traefik.enable=true");
+				labels.unshift("traefik.enable=true");
 			}
-			labels.push(...httpLabels);
+			labels.unshift(...httpLabels);
 		}
 
 		if (!compose.isolatedDeployment) {
@@ -287,12 +283,20 @@ export const writeComposeFile = async (
 	}
 };
 
-export const createDomainLabels = async (
+export const createDomainLabels = (
 	appName: string,
 	domain: Domain,
 	entrypoint: "web" | "websecure",
 ) => {
-	const { host, port, https, uniqueConfigKey, certificateType, path } = domain;
+	const {
+		host,
+		port,
+		https,
+		uniqueConfigKey,
+		certificateType,
+		path,
+		customCertResolver,
+	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
 		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -311,6 +315,10 @@ export const createDomainLabels = async (
 		if (certificateType === "letsencrypt") {
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
+			);
+		} else if (certificateType === "custom" && customCertResolver) {
+			labels.push(
+				`traefik.http.routers.${routerName}.tls.certresolver=${customCertResolver}`,
 			);
 		}
 	}

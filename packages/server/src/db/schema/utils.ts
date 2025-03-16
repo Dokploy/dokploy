@@ -1,4 +1,4 @@
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { generatePassword } from "@dokploy/server/templates";
 import { faker } from "@faker-js/faker";
 import { customAlphabet } from "nanoid";
 

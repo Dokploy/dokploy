@@ -4,6 +4,7 @@ import {
 	cleanUpUnusedImages,
 	findBackupById,
 	findServerById,
+	keepLatestNBackups,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
@@ -30,6 +31,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runPostgresBackup(postgres, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mysql" && mysql) {
 				const server = await findServerById(mysql.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -37,6 +39,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMySqlBackup(mysql, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mongo" && mongo) {
 				const server = await findServerById(mongo.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -44,6 +47,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMongoBackup(mongo, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			} else if (databaseType === "mariadb" && mariadb) {
 				const server = await findServerById(mariadb.serverId as string);
 				if (server.serverStatus === "inactive") {
@@ -51,6 +55,7 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMariadbBackup(mariadb, backup);
+				await keepLatestNBackups(backup, server.serverId);
 			}
 		}
 		if (job.type === "server") {

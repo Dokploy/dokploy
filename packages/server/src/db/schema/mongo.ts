@@ -141,3 +141,9 @@ export const apiResetMongo = createSchema
 		appName: true,
 	})
 	.required();
+
+export const apiRebuildMongo = createSchema
+	.pick({
+		mongoId: true,
+	})
+	.required();

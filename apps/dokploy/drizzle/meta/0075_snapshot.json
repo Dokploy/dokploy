@@ -44,6 +44,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "watchPaths": {
+          "name": "watchPaths",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewBuildArgs": {
           "name": "previewBuildArgs",
           "type": "text",
@@ -84,6 +90,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
+        },
+        "previewCustomCertResolver": {
+          "name": "previewCustomCertResolver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "previewLimit": {
           "name": "previewLimit",
@@ -924,6 +936,12 @@
           "notNull": true,
           "default": false
         },
+        "logCleanupCron": {
+          "name": "logCleanupCron",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "enablePaidFeatures": {
           "name": "enablePaidFeatures",
           "type": "boolean",
@@ -1124,6 +1142,12 @@
         },
         "composeId": {
           "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customCertResolver": {
+          "name": "customCertResolver",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5254,7 +5278,8 @@
       "schema": "public",
       "values": [
         "letsencrypt",
-        "none"
+        "none",
+        "custom"
       ]
     },
     "public.composeType": {

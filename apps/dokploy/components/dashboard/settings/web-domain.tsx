@@ -35,7 +35,7 @@ const addServerDomain = z
 	.object({
 		domain: z.string().min(1, { message: "URL is required" }),
 		letsEncryptEmail: z.string(),
-		certificateType: z.enum(["letsencrypt", "none"]),
+		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 	})
 	.superRefine((data, ctx) => {
 		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
@@ -193,6 +193,7 @@ export const WebDomain = () => {
 										);
 									}}
 								/>
+
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isLoading} type="submit">
 										{t("settings.common.save")}

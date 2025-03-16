@@ -9,6 +9,7 @@ describe("createDomainLabels", () => {
 		port: 8080,
 		https: false,
 		uniqueConfigKey: 1,
+		customCertResolver: null,
 		certificateType: "none",
 		applicationId: "",
 		composeId: "",

@@ -137,12 +137,44 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
-export const readMonitoringConfig = () => {
+export const readMonitoringConfig = (readAll = false) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
-		const yamlStr = fs.readFileSync(configPath, "utf8");
-		return yamlStr;
+		if (!readAll) {
+			// Read first 500 lines
+			let content = "";
+			let chunk = "";
+			let validCount = 0;
+
+			for (const char of fs.readFileSync(configPath, "utf8")) {
+				chunk += char;
+				if (char === "\n") {
+					try {
+						const trimmed = chunk.trim();
+						if (
+							trimmed !== "" &&
+							trimmed.startsWith("{") &&
+							trimmed.endsWith("}")
+						) {
+							const log = JSON.parse(trimmed);
+							if (log.ServiceName !== "dokploy-service-app@file") {
+								content += chunk;
+								validCount++;
+								if (validCount >= 500) {
+									break;
+								}
+							}
+						}
+					} catch {
+						// Ignore invalid JSON
+					}
+					chunk = "";
+				}
+			}
+			return content;
+		}
+		return fs.readFileSync(configPath, "utf8");
 	}
 	return null;
 };

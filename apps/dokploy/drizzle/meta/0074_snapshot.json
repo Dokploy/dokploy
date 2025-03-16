@@ -85,6 +85,12 @@
           "notNull": true,
           "default": "'none'"
         },
+        "previewCustomCertResolver": {
+          "name": "previewCustomCertResolver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewLimit": {
           "name": "previewLimit",
           "type": "integer",
@@ -924,6 +930,12 @@
           "notNull": true,
           "default": false
         },
+        "logCleanupCron": {
+          "name": "logCleanupCron",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "enablePaidFeatures": {
           "name": "enablePaidFeatures",
           "type": "boolean",
@@ -1124,6 +1136,12 @@
         },
         "composeId": {
           "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customCertResolver": {
+          "name": "customCertResolver",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5217,7 +5235,8 @@
       "schema": "public",
       "values": [
         "letsencrypt",
-        "none"
+        "none",
+        "custom"
       ]
     },
     "public.composeType": {

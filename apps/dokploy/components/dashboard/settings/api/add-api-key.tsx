@@ -31,6 +31,8 @@ import {
 	FormDescription,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import copy from "copy-to-clipboard";
+import { CodeEditor } from "@/components/shared/code-editor";
 
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -441,13 +443,16 @@ export const AddApiKey = () => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="mt-4 space-y-4">
-						<div className="rounded-md bg-muted p-4 font-mono text-sm break-all">
-							{newApiKey}
-						</div>
+						<CodeEditor
+							className="font-mono text-sm break-all"
+							language="properties"
+							value={newApiKey}
+							readOnly
+						/>
 						<div className="flex justify-end gap-3">
 							<Button
 								onClick={() => {
-									navigator.clipboard.writeText(newApiKey);
+									copy(newApiKey);
 									toast.success("API key copied to clipboard");
 								}}
 							>

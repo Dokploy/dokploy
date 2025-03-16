@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "micromatch":"4.0.8",
     "@ai-sdk/anthropic": "^1.0.6",
     "@ai-sdk/azure": "^1.0.15",
     "@ai-sdk/cohere": "^1.0.6",
@@ -35,11 +36,11 @@
     "@ai-sdk/mistral": "^1.0.6",
     "@ai-sdk/openai": "^1.0.12",
     "@ai-sdk/openai-compatible": "^0.0.13",
-    "@better-auth/utils": "0.2.3",
-    "@oslojs/encoding": "1.1.0",
-    "@oslojs/crypto": "1.0.1",
-    "drizzle-dbml-generator": "0.10.0",
-    "better-auth": "1.2.0",
+    "@better-auth/utils":"0.2.3",
+    "@oslojs/encoding":"1.1.0",
+    "@oslojs/crypto":"1.0.1",
+    "drizzle-dbml-generator":"0.10.0",
+    "better-auth":"1.2.4",
     "@faker-js/faker": "^8.4.1",
     "@lucia-auth/adapter-drizzle": "1.0.7",
     "@octokit/auth-app": "^6.0.4",
@@ -74,11 +75,13 @@
     "react-dom": "18.2.0",
     "rotating-file-stream": "3.2.3",
     "slugify": "^1.6.6",
-    "ssh2": "1.15.0",
     "ws": "8.16.0",
-    "zod": "^3.23.4"
+    "zod": "^3.23.4",
+    "ssh2": "1.15.0",
+    "@octokit/rest": "^20.0.2"
   },
   "devDependencies": {
+    "@types/micromatch": "4.0.9",
     "@types/adm-zip": "^0.5.5",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",

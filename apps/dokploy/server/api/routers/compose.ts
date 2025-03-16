@@ -2,29 +2,28 @@ import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
 import {
 	apiCreateCompose,
-	apiCreateComposeByTemplate,
 	apiDeleteCompose,
 	apiFetchServices,
 	apiFindCompose,
 	apiRandomizeCompose,
 	apiUpdateCompose,
-	compose,
+	compose as composeTable,
 } from "@/server/db/schema";
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
-import { templates } from "@/templates/templates";
-import type { TemplatesKeys } from "@/templates/types/templates-data.type";
+import { generatePassword } from "@/templates/utils";
 import {
-	generatePassword,
-	loadTemplateModule,
-	readTemplateComposeFile,
-} from "@/templates/utils";
+	type CompleteTemplate,
+	fetchTemplateFiles,
+	fetchTemplatesList,
+} from "@dokploy/server/templates/github";
+import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { dump } from "js-yaml";
+import { dump, load } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { z } from "zod";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { deploy } from "@/server/utils/deploy";
 import {
@@ -39,6 +38,7 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
+	deleteMount,
 	findComposeById,
 	findDomainsByComposeId,
 	findProjectById,
@@ -50,6 +50,7 @@ import {
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
+	removeDomainById,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -157,8 +158,8 @@ export const composeRouter = createTRPCRouter({
 			4;
 
 			const result = await db
-				.delete(compose)
-				.where(eq(compose.composeId, input.composeId))
+				.delete(composeTable)
+				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
 
 			const cleanupOperations = [
@@ -397,7 +398,14 @@ export const composeRouter = createTRPCRouter({
 			return true;
 		}),
 	deployTemplate: protectedProcedure
-		.input(apiCreateComposeByTemplate)
+		.input(
+			z.object({
+				projectId: z.string(),
+				serverId: z.string().optional(),
+				id: z.string(),
+				baseUrl: z.string().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.rol === "member") {
 				await checkServiceAccess(
@@ -415,9 +423,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const composeFile = await readTemplateComposeFile(input.id);
-
-			const generate = await loadTemplateModule(input.id as TemplatesKeys);
+			const template = await fetchTemplateFiles(input.id, input.baseUrl);
 
 			const admin = await findUserById(ctx.user.ownerId);
 			let serverIp = admin.serverIp || "127.0.0.1";
@@ -430,16 +436,17 @@ export const composeRouter = createTRPCRouter({
 			} else if (process.env.NODE_ENV === "development") {
 				serverIp = "127.0.0.1";
 			}
+
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const { envs, mounts, domains } = generate({
-				serverIp: serverIp || "",
+			const generate = processTemplate(template.config, {
+				serverIp: serverIp,
 				projectName: projectName,
 			});
 
 			const compose = await createComposeByTemplate({
 				...input,
-				composeFile: composeFile,
-				env: envs?.join("\n"),
+				composeFile: template.dockerCompose,
+				env: generate.envs?.join("\n"),
 				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
@@ -451,12 +458,12 @@ export const composeRouter = createTRPCRouter({
 				await addNewService(
 					ctx.user.id,
 					compose.composeId,
-					project.organizationId,
+					ctx.session.activeOrganizationId,
 				);
 			}
 
-			if (mounts && mounts?.length > 0) {
-				for (const mount of mounts) {
+			if (generate.mounts && generate.mounts?.length > 0) {
+				for (const mount of generate.mounts) {
 					await createMount({
 						filePath: mount.filePath,
 						mountPath: "",
@@ -468,13 +475,14 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			if (domains && domains?.length > 0) {
-				for (const domain of domains) {
+			if (generate.domains && generate.domains?.length > 0) {
+				for (const domain of generate.domains) {
 					await createDomain({
 						...domain,
 						domainType: "compose",
 						certificateType: "none",
 						composeId: compose.composeId,
+						host: domain.host || "",
 					});
 				}
 			}
@@ -482,23 +490,238 @@ export const composeRouter = createTRPCRouter({
 			return null;
 		}),
 
-	templates: protectedProcedure.query(async () => {
-		const templatesData = templates.map((t) => ({
-			name: t.name,
-			description: t.description,
-			id: t.id,
-			links: t.links,
-			tags: t.tags,
-			logo: t.logo,
-			version: t.version,
-		}));
+	templates: publicProcedure
+		.input(z.object({ baseUrl: z.string().optional() }))
+		.query(async ({ input }) => {
+			try {
+				const githubTemplates = await fetchTemplatesList(input.baseUrl);
 
-		return templatesData;
-	}),
+				if (githubTemplates.length > 0) {
+					return githubTemplates;
+				}
+			} catch (error) {
+				console.warn(
+					"Failed to fetch templates from GitHub, falling back to local templates:",
+					error,
+				);
+			}
+			return [];
+		}),
 
-	getTags: protectedProcedure.query(async () => {
-		const allTags = templates.flatMap((template) => template.tags);
-		const uniqueTags = _.uniq(allTags);
-		return uniqueTags;
-	}),
+	getTags: protectedProcedure
+		.input(z.object({ baseUrl: z.string().optional() }))
+		.query(async ({ input }) => {
+			const githubTemplates = await fetchTemplatesList(input.baseUrl);
+
+			const allTags = githubTemplates.flatMap((template) => template.tags);
+			const uniqueTags = _.uniq(allTags);
+			return uniqueTags;
+		}),
+
+	move: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this compose",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			const updatedCompose = await db
+				.update(composeTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(composeTable.composeId, input.composeId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedCompose) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move compose",
+				});
+			}
+
+			return updatedCompose;
+		}),
+
+	processTemplate: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				composeId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const compose = await findComposeById(input.composeId);
+
+				if (
+					compose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this compose",
+					});
+				}
+
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+				const admin = await findUserById(ctx.user.ownerId);
+				let serverIp = admin.serverIp || "127.0.0.1";
+
+				if (compose.serverId) {
+					const server = await findServerById(compose.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV === "development") {
+					serverIp = "127.0.0.1";
+				}
+				const templateData = JSON.parse(decodedData);
+				const config = load(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const processedTemplate = processTemplate(config, {
+					serverIp: serverIp,
+					projectName: compose.appName,
+				});
+
+				return {
+					compose: templateData.compose,
+					template: processedTemplate,
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error processing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
+		}),
+
+	import: protectedProcedure
+		.input(
+			z.object({
+				base64: z.string(),
+				composeId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const compose = await findComposeById(input.composeId);
+				const decodedData = Buffer.from(input.base64, "base64").toString(
+					"utf-8",
+				);
+
+				if (
+					compose.project.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this compose",
+					});
+				}
+
+				for (const mount of compose.mounts) {
+					await deleteMount(mount.mountId);
+				}
+
+				for (const domain of compose.domains) {
+					await removeDomainById(domain.domainId);
+				}
+
+				const admin = await findUserById(ctx.user.ownerId);
+				let serverIp = admin.serverIp || "127.0.0.1";
+
+				if (compose.serverId) {
+					const server = await findServerById(compose.serverId);
+					serverIp = server.ipAddress;
+				} else if (process.env.NODE_ENV === "development") {
+					serverIp = "127.0.0.1";
+				}
+
+				const templateData = JSON.parse(decodedData);
+				const config = load(templateData.config) as CompleteTemplate;
+
+				if (!templateData.compose || !config) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid template format. Must contain compose and config fields",
+					});
+				}
+
+				const processedTemplate = processTemplate(config, {
+					serverIp: serverIp,
+					projectName: compose.appName,
+				});
+
+				// Update compose file
+				await updateCompose(input.composeId, {
+					composeFile: templateData.compose,
+					sourceType: "raw",
+					env: processedTemplate.envs?.join("\n"),
+					isolatedDeployment: true,
+				});
+
+				// Create mounts
+				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {
+					for (const mount of processedTemplate.mounts) {
+						await createMount({
+							filePath: mount.filePath,
+							mountPath: "",
+							content: mount.content,
+							serviceId: compose.composeId,
+							serviceType: "compose",
+							type: "file",
+						});
+					}
+				}
+
+				// Create domains
+				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
+					for (const domain of processedTemplate.domains) {
+						await createDomain({
+							...domain,
+							domainType: "compose",
+							certificateType: "none",
+							composeId: compose.composeId,
+							host: domain.host || "",
+						});
+					}
+				}
+
+				return {
+					success: true,
+					message: "Template imported successfully",
+				};
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
+				});
+			}
+		}),
 });

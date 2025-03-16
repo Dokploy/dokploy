@@ -924,6 +924,12 @@
           "notNull": true,
           "default": false
         },
+        "logCleanupCron": {
+          "name": "logCleanupCron",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "enablePaidFeatures": {
           "name": "enablePaidFeatures",
           "type": "boolean",
@@ -5205,7 +5211,8 @@
       "schema": "public",
       "values": [
         "letsencrypt",
-        "none"
+        "none",
+        "custom"
       ]
     },
     "public.composeType": {
