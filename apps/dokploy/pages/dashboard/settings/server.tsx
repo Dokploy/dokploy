@@ -115,7 +115,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale)),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

@@ -62,7 +62,7 @@ export const ProfileForm = () => {
 		isError,
 		error,
 	} = api.user.update.useMutation();
-	const { t } = useTranslation();
+	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 
 	const availableAvatars = useMemo(() => {
@@ -170,9 +170,7 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>
-															{t("settings.profile.oldPassword")}
-														</FormLabel>
+														<FormLabel>Current Password</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -191,7 +189,7 @@ export const ProfileForm = () => {
 												render={({ field }) => (
 													<FormItem>
 														<FormLabel>
-															{t("settings.profile.newPassword")}
+															{t("settings.profile.password")}
 														</FormLabel>
 														<FormControl>
 															<Input

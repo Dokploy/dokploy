@@ -14,11 +14,8 @@ import { formatDistanceToNow } from "date-fns";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { AddApiKey } from "./add-api-key";
 import { Badge } from "@/components/ui/badge";
-import { useTranslation } from "next-i18next";
-import { getDateFnsLocaleByCode } from "@/lib/languages";
 
 export const ShowApiKeys = () => {
-	const { t, i18n } = useTranslation();
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isLoading: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
@@ -31,24 +28,22 @@ export const ShowApiKeys = () => {
 						<div>
 							<CardTitle className="text-xl flex items-center gap-2">
 								<KeyIcon className="size-5" />
-								{t("settings.api.apiCliKeys")}
+								API/CLI Keys
 							</CardTitle>
 							<CardDescription>
-								{t("settings.api.generateAndManageKeys")}
+								Generate and manage API keys to access the API/CLI
 							</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
 							<span className="text-sm font-medium text-muted-foreground">
-								{t("settings.api.swaggerApi")}
+								Swagger API:
 							</span>
 							<Link
 								href="/swagger"
 								target="_blank"
 								className="flex flex-row gap-2 items-center"
 							>
-								<span className="text-sm font-medium">
-									{t("settings.api.view")}
-								</span>
+								<span className="text-sm font-medium">View</span>
 								<ExternalLinkIcon className="size-4" />
 							</Link>
 						</div>
@@ -67,11 +62,9 @@ export const ShowApiKeys = () => {
 												<div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
 													<span className="flex items-center gap-1">
 														<Clock className="size-3.5" />
-														{t("settings.api.created")}{" "}
-														{formatDistanceToNow(new Date(apiKey.createdAt), {
-															locale: getDateFnsLocaleByCode(i18n.language),
-														})}{" "}
-														{t("settings.api.ago")}
+														Created{" "}
+														{formatDistanceToNow(new Date(apiKey.createdAt))}{" "}
+														ago
 													</span>
 													{apiKey.prefix && (
 														<Badge
@@ -88,17 +81,17 @@ export const ShowApiKeys = () => {
 															className="flex items-center gap-1"
 														>
 															<Clock className="size-3.5" />
-															{t("settings.api.expiresIn")}{" "}
-															{formatDistanceToNow(new Date(apiKey.expiresAt), {
-																locale: getDateFnsLocaleByCode(i18n.language),
-															})}{" "}
+															Expires in{" "}
+															{formatDistanceToNow(
+																new Date(apiKey.expiresAt),
+															)}{" "}
 														</Badge>
 													)}
 												</div>
 											</div>
 											<DialogAction
-												title={t("settings.api.deleteApiKey")}
-												description={t("settings.api.deleteApiKeyDescription")}
+												title="Delete API Key"
+												description="Are you sure you want to delete this API key? This action cannot be undone."
 												type="destructive"
 												onClick={async () => {
 													try {
@@ -106,12 +99,12 @@ export const ShowApiKeys = () => {
 															apiKeyId: apiKey.id,
 														});
 														await refetch();
-														toast.success(t("settings.api.apiKeyDeleted"));
+														toast.success("API key deleted successfully");
 													} catch (error) {
 														toast.error(
 															error instanceof Error
 																? error.message
-																: t("settings.api.errorDeletingApiKey"),
+																: "Error deleting API key",
 														);
 													}
 												}}
@@ -131,7 +124,7 @@ export const ShowApiKeys = () => {
 								<div className="flex flex-col items-center gap-3 py-6">
 									<KeyIcon className="size-8 text-muted-foreground" />
 									<span className="text-base text-muted-foreground">
-										{t("settings.api.noApiKeysFound")}
+										No API keys found
 									</span>
 								</div>
 							)}

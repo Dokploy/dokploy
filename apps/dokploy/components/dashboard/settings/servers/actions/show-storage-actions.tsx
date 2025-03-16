@@ -17,7 +17,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { t } = useTranslation();
+	const { t } = useTranslation("settings");
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 

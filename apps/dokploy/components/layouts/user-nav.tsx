@@ -23,13 +23,11 @@ import { ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/router";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
-import { useTranslation } from "next-i18next";
 
 const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UserNav = () => {
 	const router = useRouter();
-	const { t } = useTranslation();
 	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -51,9 +49,7 @@ export const UserNav = () => {
 						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">
-							{t("common.account")}
-						</span>
+						<span className="truncate font-semibold">Account</span>
 						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
@@ -67,7 +63,7 @@ export const UserNav = () => {
 			>
 				<div className="flex items-center justify-between px-2 py-1.5">
 					<DropdownMenuLabel className="flex flex-col">
-						{t("common.account.mine")}
+						My Account
 						<span className="text-xs font-normal text-muted-foreground">
 							{data?.user?.email}
 						</span>
@@ -82,7 +78,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/profile");
 						}}
 					>
-						{t("common.side.profile")}
+						Profile
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="cursor-pointer"
@@ -90,7 +86,7 @@ export const UserNav = () => {
 							router.push("/dashboard/projects");
 						}}
 					>
-						{t("common.side.projects")}
+						Projects
 					</DropdownMenuItem>
 					{!isCloud ? (
 						<>
@@ -100,7 +96,7 @@ export const UserNav = () => {
 									router.push("/dashboard/monitoring");
 								}}
 							>
-								{t("common.side.monitoring")}
+								Monitoring
 							</DropdownMenuItem>
 							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
@@ -109,7 +105,7 @@ export const UserNav = () => {
 										router.push("/dashboard/traefik");
 									}}
 								>
-									{t("common.side.traefik")}
+									Traefik
 								</DropdownMenuItem>
 							)}
 							{(data?.role === "owner" || data?.canAccessToDocker) && (
@@ -121,7 +117,7 @@ export const UserNav = () => {
 										});
 									}}
 								>
-									{t("common.side.docker")}
+									Docker
 								</DropdownMenuItem>
 							)}
 
@@ -132,7 +128,7 @@ export const UserNav = () => {
 										router.push("/dashboard/settings");
 									}}
 								>
-									{t("common.side.settings")}
+									Settings
 								</DropdownMenuItem>
 							)}
 						</>
@@ -145,7 +141,7 @@ export const UserNav = () => {
 										router.push("/dashboard/settings/servers");
 									}}
 								>
-									{t("common.side.remote-servers")}
+									Servers
 								</DropdownMenuItem>
 							)}
 
@@ -156,7 +152,7 @@ export const UserNav = () => {
 										router.push("/dashboard/settings");
 									}}
 								>
-									{t("common.side.settings")}
+									Settings
 								</DropdownMenuItem>
 							)}
 						</>
@@ -169,7 +165,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/billing");
 						}}
 					>
-						{t("common.side.billing")}
+						Billing
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
@@ -185,7 +181,7 @@ export const UserNav = () => {
 							// });
 						}}
 					>
-						{t("common.account.logout")}
+						Log out
 					</DropdownMenuItem>
 					<div className="w-32">
 						<Select
@@ -194,7 +190,7 @@ export const UserNav = () => {
 							value={locale}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder={t("common.account.selectLanguage")} />
+								<SelectValue placeholder="Select Language" />
 							</SelectTrigger>
 							<SelectContent>
 								{Object.values(Languages).map((language) => (
