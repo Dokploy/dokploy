@@ -1,22 +1,35 @@
 import { getPublicIpWithFallback } from "@/server/wss/terminal";
-import { type DockerNode, IS_CLOUD, docker, execAsync } from "@dokploy/server";
+import {
+	type DockerNode,
+	IS_CLOUD,
+	execAsync,
+	getRemoteDocker,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-
 export const clusterRouter = createTRPCRouter({
-	getNodes: protectedProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return [];
-		}
-		const workers: DockerNode[] = await docker.listNodes();
+	getNodes: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return [];
+			}
 
-		return workers;
-	}),
+			const docker = await getRemoteDocker(input.serverId);
+			const workers: DockerNode[] = await docker.listNodes();
+
+			return workers;
+		}),
 	removeWorker: protectedProcedure
 		.input(
 			z.object({
 				nodeId: z.string(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -40,37 +53,51 @@ export const clusterRouter = createTRPCRouter({
 				});
 			}
 		}),
-	addWorker: protectedProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return {
-				command: "",
-				version: "",
-			};
-		}
-		const result = await docker.swarmInspect();
-		const docker_version = await docker.version();
+	addWorker: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return {
+					command: "",
+					version: "",
+				};
+			}
+			const docker = await getRemoteDocker(input.serverId);
+			const result = await docker.swarmInspect();
+			const docker_version = await docker.version();
 
-		return {
-			command: `docker swarm join --token ${
-				result.JoinTokens.Worker
-			} ${await getPublicIpWithFallback()}:2377`,
-			version: docker_version.Version,
-		};
-	}),
-	addManager: protectedProcedure.query(async () => {
-		if (IS_CLOUD) {
 			return {
-				command: "",
-				version: "",
+				command: `docker swarm join --token ${
+					result.JoinTokens.Worker
+				} ${await getPublicIpWithFallback()}:2377`,
+				version: docker_version.Version,
 			};
-		}
-		const result = await docker.swarmInspect();
-		const docker_version = await docker.version();
-		return {
-			command: `docker swarm join --token ${
-				result.JoinTokens.Manager
-			} ${await getPublicIpWithFallback()}:2377`,
-			version: docker_version.Version,
-		};
-	}),
+		}),
+	addManager: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return {
+					command: "",
+					version: "",
+				};
+			}
+			const docker = await getRemoteDocker(input.serverId);
+			const result = await docker.swarmInspect();
+			const docker_version = await docker.version();
+			return {
+				command: `docker swarm join --token ${
+					result.JoinTokens.Manager
+				} ${await getPublicIpWithFallback()}:2377`,
+				version: docker_version.Version,
+			};
+		}),
 });
