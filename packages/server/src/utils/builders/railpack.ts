@@ -3,6 +3,7 @@ import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import { execAsync } from "../process/execAsync";
 
 export const buildRailpack = async (
 	application: ApplicationNested,
@@ -16,6 +17,12 @@ export const buildRailpack = async (
 	);
 
 	try {
+		await execAsync(
+			"docker buildx create --use --name builder-containerd --driver docker-container || true",
+		);
+
+		await execAsync("docker buildx use builder-containerd");
+
 		// First prepare the build plan and info
 		const prepareArgs = [
 			"prepare",
