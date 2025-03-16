@@ -42,6 +42,7 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");
@@ -326,6 +327,9 @@ export const ShowServers = () => {
 																						)}
 
 																						<ShowSwarmOverviewModal
+																							serverId={server.serverId}
+																						/>
+																						<ShowNodesModal
 																							serverId={server.serverId}
 																						/>
 																					</>

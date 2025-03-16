@@ -13,7 +13,11 @@ import Link from "next/link";
 import { AddManager } from "./manager/add-manager";
 import { AddWorker } from "./workers/add-worker";
 
-export const AddNode = () => {
+interface Props {
+	serverId?: string;
+}
+
+export const AddNode = ({ serverId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -53,10 +57,10 @@ export const AddNode = () => {
 							<TabsTrigger value="manager">Manager</TabsTrigger>
 						</TabsList>
 						<TabsContent value="worker" className="pt-4">
-							<AddWorker />
+							<AddWorker serverId={serverId} />
 						</TabsContent>
 						<TabsContent value="manager" className="pt-4">
-							<AddManager />
+							<AddManager serverId={serverId} />
 						</TabsContent>
 					</Tabs>
 				</div>
