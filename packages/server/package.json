@@ -40,7 +40,7 @@
     "@oslojs/encoding":"1.1.0",
     "@oslojs/crypto":"1.0.1",
     "drizzle-dbml-generator":"0.10.0",
-    "better-auth":"1.2.0",
+    "better-auth":"1.2.4",
     "@faker-js/faker": "^8.4.1",
     "@lucia-auth/adapter-drizzle": "1.0.7",
     "@octokit/auth-app": "^6.0.4",

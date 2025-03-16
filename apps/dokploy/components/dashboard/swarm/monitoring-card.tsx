@@ -176,7 +176,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					</Card>
 				</div>
 
-				<div className="flex flex-row gap-4">
+				<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
 					{nodes.map((node) => (
 						<NodeCard key={node.ID} node={node} serverId={serverId} />
 					))}
