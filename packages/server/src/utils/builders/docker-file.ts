@@ -12,8 +12,14 @@ export const buildCustomDocker = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
-		application;
+	const {
+		appName,
+		env,
+		publishDirectory,
+		buildArgs,
+		dockerBuildStage,
+		cleanCache,
+	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 	try {
 		const image = `${appName}`;
@@ -28,6 +34,10 @@ export const buildCustomDocker = async (
 		const dockerContextPath = getDockerContextPath(application);
 
 		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
+
+		if (cleanCache) {
+			commandArgs.push("--no-cache");
+		}
 
 		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);
@@ -65,8 +75,14 @@ export const getDockerCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { appName, env, publishDirectory, buildArgs, dockerBuildStage } =
-		application;
+	const {
+		appName,
+		env,
+		publishDirectory,
+		buildArgs,
+		dockerBuildStage,
+		cleanCache,
+	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
 	try {
@@ -86,6 +102,10 @@ export const getDockerCommand = (
 
 		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);
+		}
+
+		if (cleanCache) {
+			commandArgs.push("--no-cache");
 		}
 
 		for (const arg of args) {

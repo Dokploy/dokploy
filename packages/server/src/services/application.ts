@@ -182,12 +182,6 @@ export const deployApplication = async ({
 	});
 
 	try {
-		// const admin = await findUserById(application.project.userId);
-
-		// if (admin.cleanupCacheApplications) {
-		// 	await cleanupFullDocker(application?.serverId);
-		// }
-
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
 				...application,
@@ -257,11 +251,6 @@ export const rebuildApplication = async ({
 	});
 
 	try {
-		// const admin = await findUserById(application.project.userId);
-
-		// if (admin.cleanupCacheApplications) {
-		// 	await cleanupFullDocker(application?.serverId);
-		// }
 		if (application.sourceType === "github") {
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
@@ -306,11 +295,6 @@ export const deployRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheApplications) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -451,12 +435,6 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
-		// const admin = await findUserById(application.project.userId);
-
-		// if (admin.cleanupCacheOnPreviews) {
-		// 	await cleanupFullDocker(application?.serverId);
-		// }
-
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
 				...application,
@@ -565,11 +543,6 @@ export const deployRemotePreviewApplication = async ({
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheOnPreviews) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -634,11 +607,6 @@ export const rebuildRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheApplications) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			if (application.sourceType !== "docker") {
 				let command = "set -e;";
 				command += getBuildCommand(application, deployment.logPath);
