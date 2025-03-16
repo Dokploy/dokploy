@@ -177,11 +177,9 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 				</div>
 
 				<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
-					{[...nodes, ...nodes, ...nodes, ...nodes, ...nodes, ...nodes].map(
-						(node) => (
-							<NodeCard key={node.ID} node={node} serverId={serverId} />
-						),
-					)}
+					{nodes.map((node) => (
+						<NodeCard key={node.ID} node={node} serverId={serverId} />
+					))}
 				</div>
 			</div>
 		</Card>
