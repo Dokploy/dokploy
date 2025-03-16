@@ -39,7 +39,7 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 				className={cn("text-left", className)}
 				ref={ref}
 				{...props}
-				value={props.value === undefined ? undefined : String(props.value)}
+				value={props.value === undefined || props.value === "" ? "" : String(props.value)}
 				onChange={(e) => {
 					const value = e.target.value;
 					if (value === "") {
@@ -58,6 +58,21 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 								syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>,
 							);
 						}
+					}
+				}}
+				onBlur={(e) => {
+					// If input is empty, make 0 when focus is lost
+					if (e.target.value === "") {
+						const syntheticEvent = {
+							...e,
+							target: {
+								...e.target,
+								value: "0",
+							},
+						};
+						props.onChange?.(
+							syntheticEvent as unknown as React.ChangeEvent<HTMLInputElement>,
+						);
 					}
 				}}
 			/>
