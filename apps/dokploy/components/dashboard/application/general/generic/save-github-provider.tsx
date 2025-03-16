@@ -468,16 +468,6 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							Save
 						</Button>
 					</div>
-					{/* create github link */}
-					<div className="flex w-full justify-end">
-						<Link
-							href={`https://github.com/${repository?.owner}/${repository?.repo}`}
-							target="_blank"
-							className="w-fit"
-						>
-							Repository
-						</Link>
-					</div>
 				</form>
 			</Form>
 		</div>
