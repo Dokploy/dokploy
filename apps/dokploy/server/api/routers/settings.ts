@@ -41,10 +41,6 @@ import {
 	recreateDirectory,
 	sendDockerCleanupNotifications,
 	spawnAsync,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -88,11 +84,9 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			try {
 				if (input?.serverId) {
-					await stopServiceRemote(input.serverId, "dokploy-traefik");
-					await startServiceRemote(input.serverId, "dokploy-traefik");
+					await execAsync("docker restart dokploy-traefik");
 				} else if (!IS_CLOUD) {
-					await stopService("dokploy-traefik");
-					await startService("dokploy-traefik");
+					await execAsync("docker restart dokploy-traefik");
 				}
 			} catch (err) {
 				console.error(err);
@@ -106,6 +100,7 @@ export const settingsRouter = createTRPCRouter({
 			await initializeTraefik({
 				enableDashboard: input.enableDashboard,
 				serverId: input.serverId,
+				force: true,
 			});
 			return true;
 		}),
@@ -513,16 +508,18 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.query(async ({ input }) => {
 			const command =
-				"docker service inspect --format='{{range .Spec.TaskTemplate.ContainerSpec.Env}}{{println .}}{{end}}' dokploy-traefik";
+				"docker container inspect dokploy-traefik --format '{{json .Config.Env}}'";
 
+			let result = "";
 			if (input?.serverId) {
-				const result = await execAsyncRemote(input.serverId, command);
-				return result.stdout.trim();
+				const execResult = await execAsyncRemote(input.serverId, command);
+				result = execResult.stdout;
+			} else {
+				const execResult = await execAsync(command);
+				result = execResult.stdout;
 			}
-			if (!IS_CLOUD) {
-				const result = await execAsync(command);
-				return result.stdout.trim();
-			}
+			const envVars = JSON.parse(result.trim());
+			return envVars.join("\n");
 		}),
 
 	writeTraefikEnv: adminProcedure
@@ -532,6 +529,7 @@ export const settingsRouter = createTRPCRouter({
 			await initializeTraefik({
 				env: envs,
 				serverId: input.serverId,
+				force: true,
 			});
 
 			return true;
@@ -539,27 +537,22 @@ export const settingsRouter = createTRPCRouter({
 	haveTraefikDashboardPortEnabled: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input }) => {
-			const command = `docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik`;
+			const command = `docker container inspect --format='{{json .NetworkSettings.Ports}}' dokploy-traefik`;
 
 			let stdout = "";
 			if (input?.serverId) {
 				const result = await execAsyncRemote(input.serverId, command);
 				stdout = result.stdout;
 			} else if (!IS_CLOUD) {
-				const result = await execAsync(
-					"docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik",
-				);
+				const result = await execAsync(command);
 				stdout = result.stdout;
 			}
 
-			const parsed: any[] = JSON.parse(stdout.trim());
-			for (const port of parsed) {
-				if (port.PublishedPort === 8080) {
-					return true;
-				}
-			}
-
-			return false;
+			const ports = JSON.parse(stdout.trim());
+			return Object.entries(ports).some(([containerPort, bindings]) => {
+				const [port] = containerPort.split("/");
+				return port === "8080" && bindings && (bindings as any[]).length > 0;
+			});
 		}),
 
 	readStatsLogs: adminProcedure
@@ -772,6 +765,7 @@ export const settingsRouter = createTRPCRouter({
 				await initializeTraefik({
 					serverId: input.serverId,
 					additionalPorts: input.additionalPorts,
+					force: true,
 				});
 				return true;
 			} catch (error) {
@@ -788,7 +782,7 @@ export const settingsRouter = createTRPCRouter({
 	getTraefikPorts: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input }) => {
-			const command = `docker service inspect --format='{{json .Endpoint.Ports}}' dokploy-traefik`;
+			const command = `docker container inspect --format='{{json .NetworkSettings.Ports}}' dokploy-traefik`;
 
 			try {
 				let stdout = "";
@@ -800,21 +794,38 @@ export const settingsRouter = createTRPCRouter({
 					stdout = result.stdout;
 				}
 
-				const ports: {
-					Protocol: string;
-					TargetPort: number;
-					PublishedPort: number;
-					PublishMode: string;
-				}[] = JSON.parse(stdout.trim());
+				const portsMap = JSON.parse(stdout.trim());
+				const additionalPorts: Array<{
+					targetPort: number;
+					publishedPort: number;
+					publishMode: "host" | "ingress";
+				}> = [];
 
-				// Filter out the default ports (80, 443, and optionally 8080)
-				const additionalPorts = ports
-					.filter((port) => ![80, 443, 8080].includes(port.PublishedPort))
-					.map((port) => ({
-						targetPort: port.TargetPort,
-						publishedPort: port.PublishedPort,
-						publishMode: port.PublishMode.toLowerCase() as "host" | "ingress",
-					}));
+				// Convert the Docker container port format to our expected format
+				for (const [containerPort, bindings] of Object.entries(portsMap)) {
+					if (!bindings) continue;
+
+					const [port = ""] = containerPort.split("/");
+					if (!port) continue;
+
+					const targetPortNum = Number.parseInt(port, 10);
+					if (Number.isNaN(targetPortNum)) continue;
+
+					// Skip default ports
+					if ([80, 443, 8080].includes(targetPortNum)) continue;
+
+					for (const binding of bindings as Array<{ HostPort: string }>) {
+						if (!binding.HostPort) continue;
+						const publishedPort = Number.parseInt(binding.HostPort, 10);
+						if (Number.isNaN(publishedPort)) continue;
+
+						additionalPorts.push({
+							targetPort: targetPortNum,
+							publishedPort,
+							publishMode: "host", // Docker standalone uses host mode by default
+						});
+					}
+				}
 
 				return additionalPorts;
 			} catch (error) {

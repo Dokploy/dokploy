@@ -289,11 +289,11 @@ export const rebuildCompose = async ({
 		// if (admin.cleanupCacheOnCompose) {
 		// 	await cleanupFullDocker(compose?.serverId);
 		// }
-		if (compose.serverId) {
-			await getBuildComposeCommand(compose, deployment.logPath);
-		} else {
-			await buildCompose(compose, deployment.logPath);
+
+		if (compose.sourceType === "raw") {
+			await createComposeFile(compose, deployment.logPath);
 		}
+		await buildCompose(compose, deployment.logPath);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -433,6 +433,10 @@ export const rebuildRemoteCompose = async ({
 		// if (admin.cleanupCacheOnCompose) {
 		// 	await cleanupFullDocker(compose?.serverId);
 		// }
+		if (compose.sourceType === "raw") {
+			const command = getCreateComposeFileCommand(compose, deployment.logPath);
+			await execAsyncRemote(compose.serverId, command);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}

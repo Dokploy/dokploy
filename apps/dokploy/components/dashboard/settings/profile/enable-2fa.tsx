@@ -66,12 +66,12 @@ export const Enable2FA = () => {
 	const handlePasswordSubmit = async (formData: PasswordForm) => {
 		setIsPasswordLoading(true);
 		try {
-			const { data: enableData } = await authClient.twoFactor.enable({
+			const { data: enableData, error } = await authClient.twoFactor.enable({
 				password: formData.password,
 			});
 
 			if (!enableData) {
-				throw new Error("No data received from server");
+				throw new Error(error?.message || "Error enabling 2FA");
 			}
 
 			if (enableData.backupCodes) {
@@ -96,10 +96,11 @@ export const Enable2FA = () => {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: t("settings.2fa.errorSettingUp")
+					: t("settings.2fa.errorSettingUp"),
 			);
 			passwordForm.setError("password", {
-				message: t("settings.2fa.errorVerifyingPassword"),
+				message:
+					error instanceof Error ? error.message : "Error setting up 2FA",
 			});
 		} finally {
 			setIsPasswordLoading(false);
@@ -205,9 +206,7 @@ export const Enable2FA = () => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											{t("settings.2fa.password")}
-										</FormLabel>
+										<FormLabel>{t("settings.2fa.password")}</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
@@ -294,9 +293,7 @@ export const Enable2FA = () => {
 								name="pin"
 								render={({ field }) => (
 									<FormItem className="flex flex-col justify-center items-center">
-										<FormLabel>
-											{t("settings.2fa.verificationCode")}
-										</FormLabel>
+										<FormLabel>{t("settings.2fa.verificationCode")}</FormLabel>
 										<FormControl>
 											<InputOTP maxLength={6} {...field}>
 												<InputOTPGroup>

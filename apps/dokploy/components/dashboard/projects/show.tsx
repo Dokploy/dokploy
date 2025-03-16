@@ -117,7 +117,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 flex-wrap gap-5">
+									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices =
 												project?.mariadb.length === 0 &&
@@ -188,7 +188,7 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span>{domain.host}</span>
+																										<span className="truncate">{domain.host}</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>
@@ -224,7 +224,7 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span>{domain.host}</span>
+																										<span className="truncate">{domain.host}</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>

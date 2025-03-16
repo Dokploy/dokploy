@@ -9,6 +9,116 @@ import { EditorView } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
+import {
+	autocompletion,
+	type CompletionContext,
+	type CompletionResult,
+	type Completion,
+} from "@codemirror/autocomplete";
+
+// Docker Compose completion options
+const dockerComposeServices = [
+	{ label: "services", type: "keyword", info: "Define services" },
+	{ label: "version", type: "keyword", info: "Specify compose file version" },
+	{ label: "volumes", type: "keyword", info: "Define volumes" },
+	{ label: "networks", type: "keyword", info: "Define networks" },
+	{ label: "configs", type: "keyword", info: "Define configuration files" },
+	{ label: "secrets", type: "keyword", info: "Define secrets" },
+].map((opt) => ({
+	...opt,
+	apply: (view: EditorView, completion: Completion) => {
+		const insert = `${completion.label}:`;
+		view.dispatch({
+			changes: {
+				from: view.state.selection.main.from,
+				to: view.state.selection.main.to,
+				insert,
+			},
+			selection: { anchor: view.state.selection.main.from + insert.length },
+		});
+	},
+}));
+
+const dockerComposeServiceOptions = [
+	{
+		label: "image",
+		type: "keyword",
+		info: "Specify the image to start the container from",
+	},
+	{ label: "build", type: "keyword", info: "Build configuration" },
+	{ label: "command", type: "keyword", info: "Override the default command" },
+	{ label: "container_name", type: "keyword", info: "Custom container name" },
+	{
+		label: "depends_on",
+		type: "keyword",
+		info: "Express dependency between services",
+	},
+	{ label: "environment", type: "keyword", info: "Add environment variables" },
+	{
+		label: "env_file",
+		type: "keyword",
+		info: "Add environment variables from a file",
+	},
+	{
+		label: "expose",
+		type: "keyword",
+		info: "Expose ports without publishing them",
+	},
+	{ label: "ports", type: "keyword", info: "Expose ports" },
+	{
+		label: "volumes",
+		type: "keyword",
+		info: "Mount host paths or named volumes",
+	},
+	{ label: "restart", type: "keyword", info: "Restart policy" },
+	{ label: "networks", type: "keyword", info: "Networks to join" },
+].map((opt) => ({
+	...opt,
+	apply: (view: EditorView, completion: Completion) => {
+		const insert = `${completion.label}: `;
+		view.dispatch({
+			changes: {
+				from: view.state.selection.main.from,
+				to: view.state.selection.main.to,
+				insert,
+			},
+			selection: { anchor: view.state.selection.main.from + insert.length },
+		});
+	},
+}));
+
+function dockerComposeComplete(
+	context: CompletionContext,
+): CompletionResult | null {
+	const word = context.matchBefore(/\w*/);
+	if (!word) return null;
+
+	if (!word.text && !context.explicit) return null;
+
+	// Check if we're at the root level
+	const line = context.state.doc.lineAt(context.pos);
+	const indentation = /^\s*/.exec(line.text)?.[0].length || 0;
+
+	if (indentation === 0) {
+		return {
+			from: word.from,
+			options: dockerComposeServices,
+			validFor: /^\w*$/,
+		};
+	}
+
+	// If we're inside a service definition
+	if (indentation === 4) {
+		return {
+			from: word.from,
+			options: dockerComposeServiceOptions,
+			validFor: /^\w*$/,
+		};
+	}
+
+	return null;
+}
+
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
@@ -45,6 +155,11 @@ export const CodeEditor = ({
 								? StreamLanguage.define(shell)
 								: StreamLanguage.define(properties),
 					props.lineWrapping ? EditorView.lineWrapping : [],
+					language === "yaml"
+						? autocompletion({
+								override: [dockerComposeComplete],
+							})
+						: [],
 				]}
 				{...props}
 				editable={!props.disabled}

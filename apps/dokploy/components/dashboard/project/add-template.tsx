@@ -1,3 +1,4 @@
+import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
 	AlertDialog,
@@ -57,32 +58,67 @@ import {
 	BookText,
 	CheckIcon,
 	ChevronsUpDown,
-	Github,
 	Globe,
 	HelpCircle,
 	LayoutGrid,
 	List,
+	Loader2,
 	PuzzleIcon,
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
 interface Props {
 	projectId: string;
+	baseUrl?: string;
 }
 
-export const AddTemplate = ({ projectId }: Props) => {
+export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
-	const { data } = api.compose.templates.useQuery();
+	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
+		// Try to get from props first, then localStorage
+		if (baseUrl) return baseUrl;
+		if (typeof window !== "undefined") {
+			return localStorage.getItem(TEMPLATE_BASE_URL_KEY) || undefined;
+		}
+		return undefined;
+	});
+
+	// Save to localStorage when customBaseUrl changes
+	useEffect(() => {
+		if (customBaseUrl) {
+			localStorage.setItem(TEMPLATE_BASE_URL_KEY, customBaseUrl);
+		} else {
+			localStorage.removeItem(TEMPLATE_BASE_URL_KEY);
+		}
+	}, [customBaseUrl]);
+
+	const {
+		data,
+		isLoading: isLoadingTemplates,
+		error: errorTemplates,
+		isError: isErrorTemplates,
+	} = api.compose.templates.useQuery(
+		{ baseUrl: customBaseUrl },
+		{
+			enabled: open,
+		},
+	);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const { data: tags, isLoading: isLoadingTags } =
-		api.compose.getTags.useQuery();
+	const { data: tags, isLoading: isLoadingTags } = api.compose.getTags.useQuery(
+		{ baseUrl: customBaseUrl },
+		{
+			enabled: open,
+		},
+	);
 	const utils = api.useUtils();
 
 	const [serverId, setServerId] = useState<string | undefined>(undefined);
@@ -128,6 +164,14 @@ export const AddTemplate = ({ projectId }: Props) => {
 									onChange={(e) => setQuery(e.target.value)}
 									className="w-full sm:w-[200px]"
 									value={query}
+								/>
+								<Input
+									placeholder="Base URL (optional)"
+									onChange={(e) =>
+										setCustomBaseUrl(e.target.value || undefined)
+									}
+									className="w-full sm:w-[300px]"
+									value={customBaseUrl || ""}
 								/>
 								<Popover modal={true}>
 									<PopoverTrigger asChild>
@@ -232,7 +276,20 @@ export const AddTemplate = ({ projectId }: Props) => {
 							</AlertBlock>
 						)}
 
-						{templates.length === 0 ? (
+						{isErrorTemplates && (
+							<AlertBlock type="error" className="mb-4">
+								{errorTemplates?.message}
+							</AlertBlock>
+						)}
+
+						{isLoadingTemplates ? (
+							<div className="flex justify-center items-center w-full h-full flex-row gap-4">
+								<Loader2 className="size-8 text-muted-foreground animate-spin min-h-[60vh]" />
+								<div className="text-lg font-medium text-muted-foreground">
+									Loading templates...
+								</div>
+							</div>
+						) : templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
@@ -248,9 +305,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 								)}
 							>
-								{templates?.map((template, index) => (
+								{templates?.map((template) => (
 									<div
-										key={`template-${index}`}
+										key={template.id}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -260,7 +317,6 @@ export const AddTemplate = ({ projectId }: Props) => {
 										<Badge className="absolute top-2 right-2" variant="blue">
 											{template.version}
 										</Badge>
-										{/* Template Header */}
 										<div
 											className={cn(
 												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
@@ -268,7 +324,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 											)}
 										>
 											<img
-												src={`/templates/${template.logo}`}
+												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template.id}/${template.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
@@ -321,7 +377,7 @@ export const AddTemplate = ({ projectId }: Props) => {
 														target="_blank"
 														className="text-muted-foreground hover:text-foreground transition-colors"
 													>
-														<Github className="size-5" />
+														<GithubIcon className="size-5" />
 													</Link>
 													{template.links.website && (
 														<Link
@@ -383,8 +439,9 @@ export const AddTemplate = ({ projectId }: Props) => {
 																		side="top"
 																	>
 																		<span>
-																			If no server is selected, the application will be
-																			deployed on the server where the user is logged in.
+																			If no server is selected, the application
+																			will be deployed on the server where the
+																			user is logged in.
 																		</span>
 																	</TooltipContent>
 																</Tooltip>
@@ -430,18 +487,19 @@ export const AddTemplate = ({ projectId }: Props) => {
 																	projectId,
 																	serverId: serverId || undefined,
 																	id: template.id,
+																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
-																	success: (_data) => {
+																	success: () => {
 																		utils.project.one.invalidate({
 																			projectId,
 																		});
 																		setOpen(false);
 																		return `${template.name} template created successfully`;
 																	},
-																	error: (_err) => {
-																		return `An error ocurred deploying ${template.name} template`;
+																	error: () => {
+																		return `An error occurred deploying ${template.name} template`;
 																	},
 																});
 															}}
