@@ -14,7 +14,7 @@ export const buildNixpacks = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName, publishDirectory } = application;
+	const { env, appName, publishDirectory, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
@@ -31,6 +31,10 @@ export const buildNixpacks = async (
 
 	try {
 		const args = ["build", buildAppDirectory, "--name", appName];
+
+		if (cleanCache) {
+			args.push("--no-cache");
+		}
 
 		for (const env of envVariables) {
 			args.push("--env", env);
@@ -102,7 +106,7 @@ export const getNixpacksCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { env, appName, publishDirectory } = application;
+	const { env, appName, publishDirectory, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
@@ -112,6 +116,10 @@ export const getNixpacksCommand = (
 	);
 
 	const args = ["build", buildAppDirectory, "--name", appName];
+
+	if (cleanCache) {
+		args.push("--no-cache");
+	}
 
 	for (const env of envVariables) {
 		args.push("--env", `'${env}'`);

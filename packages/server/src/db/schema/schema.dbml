@@ -162,6 +162,7 @@ table application {
   command text
   refreshToken text
   sourceType sourceType [not null, default: 'github']
+  cleanCache boolean [default: false]
   repository text
   owner text
   branch text

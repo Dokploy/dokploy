@@ -143,6 +143,7 @@ export const applications = pgTable("application", {
 	command: text("command"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
+	cleanCache: boolean("cleanCache").default(false),
 	// Github
 	repository: text("repository"),
 	owner: text("owner"),
@@ -424,6 +425,7 @@ const createSchema = createInsertSchema(applications, {
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
+	cleanCache: z.boolean().optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
