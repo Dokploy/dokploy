@@ -9,8 +9,12 @@ import copy from "copy-to-clipboard";
 import { CopyIcon } from "lucide-react";
 import { toast } from "sonner";
 
-export const AddManager = () => {
-	const { data } = api.cluster.addManager.useQuery();
+interface Props {
+	serverId?: string;
+}
+
+export const AddManager = ({ serverId }: Props) => {
+	const { data } = api.cluster.addManager.useQuery({ serverId });
 
 	return (
 		<>

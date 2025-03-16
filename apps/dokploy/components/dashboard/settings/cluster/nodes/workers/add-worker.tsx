@@ -9,8 +9,12 @@ import copy from "copy-to-clipboard";
 import { CopyIcon } from "lucide-react";
 import { toast } from "sonner";
 
-export const AddWorker = () => {
-	const { data } = api.cluster.addWorker.useQuery();
+interface Props {
+	serverId?: string;
+}
+
+export const AddWorker = ({ serverId }: Props) => {
+	const { data } = api.cluster.addWorker.useQuery({ serverId });
 
 	return (
 		<div>

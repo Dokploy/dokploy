@@ -32,13 +32,25 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Boxes, HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
+import {
+	Boxes,
+	HelpCircle,
+	LockIcon,
+	MoreHorizontal,
+	Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";
 
-export const ShowNodes = () => {
-	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery();
+interface Props {
+	serverId?: string;
+}
+
+export const ShowNodes = ({ serverId }: Props) => {
+	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery({
+		serverId,
+	});
 	const { data: registry } = api.registry.all.useQuery();
 
 	const { mutateAsync: deleteNode } = api.cluster.removeWorker.useMutation();
@@ -58,14 +70,17 @@ export const ShowNodes = () => {
 						</div>
 						{haveAtLeastOneRegistry && (
 							<div className="flex flex-row gap-2">
-								<AddNode />
+								<AddNode serverId={serverId} />
 							</div>
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t min-h-[35vh]">
-						{haveAtLeastOneRegistry ? (
+						{isLoading ? (
+							<div className="flex items-center justify-center w-full h-[40vh]">
+								<Loader2 className="size-8 animate-spin text-muted-foreground" />
+							</div>
+						) : haveAtLeastOneRegistry ? (
 							<div className="grid md:grid-cols-1 gap-4">
-								{isLoading && <div>Loading...</div>}
 								<Table>
 									<TableCaption>
 										A list of your managers / workers.
@@ -137,6 +152,7 @@ export const ShowNodes = () => {
 																		onClick={async () => {
 																			await deleteNode({
 																				nodeId: node.ID,
+																				serverId,
 																			})
 																				.then(() => {
 																					refetch();
