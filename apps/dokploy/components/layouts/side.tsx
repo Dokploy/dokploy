@@ -519,7 +519,7 @@ function LogoWrapper() {
 }
 
 function SidebarLogo() {
-	const { t } = useTranslation("common");
+	const { t } = useTranslation();
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
@@ -804,7 +804,7 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
-	const { t } = useTranslation("common");
+	const { t } = useTranslation();
 
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,

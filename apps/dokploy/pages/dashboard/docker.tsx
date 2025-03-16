@@ -72,13 +72,13 @@ export async function getServerSideProps(
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
-				...(await serverSideTranslations(locale, ["common", "home"])),
+				...(await serverSideTranslations(locale)),
 			},
 		};
 	} catch (_error) {
 		return {
 			props: {
-				...(await serverSideTranslations(locale, ["common", "home"])),
+				...(await serverSideTranslations(locale)),
 			},
 		};
 	}

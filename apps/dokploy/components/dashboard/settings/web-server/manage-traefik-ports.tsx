@@ -46,7 +46,7 @@ const TraefikPortsSchema = z.object({
 type TraefikPortsForm = z.infer<typeof TraefikPortsSchema>;
 
 export const ManageTraefikPorts = ({ children, serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<TraefikPortsForm>({

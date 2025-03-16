@@ -45,7 +45,7 @@ import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
 import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 
 export const ShowServers = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isLoading } = api.server.all.useQuery();
@@ -236,9 +236,7 @@ export const ShowServers = () => {
 																								serverId={server.serverId}
 																							>
 																								<span>
-																									{t(
-																										"settings.common.enterTerminal",
-																									)}
+																									{t("common.enterTerminal")}
 																								</span>
 																							</TerminalModal>
 																						)}

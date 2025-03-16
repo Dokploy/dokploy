@@ -29,7 +29,7 @@ const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UserNav = () => {
 	const router = useRouter();
-	const { t } = useTranslation("common");
+	const { t } = useTranslation();
 	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 

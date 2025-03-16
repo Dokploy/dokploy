@@ -51,7 +51,7 @@ import { useTranslation } from "next-i18next";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
-	const { t } = useTranslation("home");
+	const { t } = useTranslation();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
@@ -188,7 +188,9 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span className="truncate">{domain.host}</span>
+																										<span className="truncate">
+																											{domain.host}
+																										</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>
@@ -224,7 +226,9 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span className="truncate">{domain.host}</span>
+																										<span className="truncate">
+																											{domain.host}
+																										</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>

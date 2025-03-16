@@ -18,7 +18,7 @@ import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const { mutateAsync: reloadServer, isLoading } =
 		api.settings.reloadServer.useMutation();
 

@@ -62,7 +62,7 @@ export const ProfileForm = () => {
 		isError,
 		error,
 	} = api.user.update.useMutation();
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 
 	const availableAvatars = useMemo(() => {

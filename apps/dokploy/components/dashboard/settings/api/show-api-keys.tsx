@@ -18,7 +18,7 @@ import { useTranslation } from "next-i18next";
 import { getDateFnsLocaleByCode } from "@/lib/languages";
 
 export const ShowApiKeys = () => {
-	const { t, i18n } = useTranslation("settings");
+	const { t, i18n } = useTranslation();
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isLoading: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();

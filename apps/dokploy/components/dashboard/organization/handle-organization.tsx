@@ -42,7 +42,7 @@ interface Props {
 }
 
 export function AddOrganization({ organizationId }: Props) {
-	const { t } = useTranslation("common");
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(

@@ -56,7 +56,7 @@ type PinForm = z.infer<typeof PinSchema>;
 
 export const Enable2FA = () => {
 	const utils = api.useUtils();
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
