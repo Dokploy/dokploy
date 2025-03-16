@@ -238,9 +238,9 @@ export const addDomainToCompose = async (
 
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {
-				labels.push("traefik.enable=true");
+				labels.unshift("traefik.enable=true");
 			}
-			labels.push(...httpLabels);
+			labels.unshift(...httpLabels);
 		}
 
 		if (!compose.isolatedDeployment) {
