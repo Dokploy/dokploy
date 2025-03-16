@@ -97,14 +97,20 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input }) => {
+			const ports = (await getTraefikPorts(input.serverId)).filter(
+				(port) =>
+					port.targetPort !== 80 &&
+					port.targetPort !== 443 &&
+					port.targetPort !== 8080,
+			);
 			await initializeTraefik({
+				additionalPorts: ports,
 				enableDashboard: input.enableDashboard,
 				serverId: input.serverId,
 				force: true,
 			});
 			return true;
 		}),
-
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
@@ -749,7 +755,6 @@ export const settingsRouter = createTRPCRouter({
 					z.object({
 						targetPort: z.number(),
 						publishedPort: z.number(),
-						publishMode: z.enum(["ingress", "host"]).default("host"),
 					}),
 				),
 			}),
@@ -782,59 +787,7 @@ export const settingsRouter = createTRPCRouter({
 	getTraefikPorts: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input }) => {
-			const command = `docker container inspect --format='{{json .NetworkSettings.Ports}}' dokploy-traefik`;
-
-			try {
-				let stdout = "";
-				if (input?.serverId) {
-					const result = await execAsyncRemote(input.serverId, command);
-					stdout = result.stdout;
-				} else if (!IS_CLOUD) {
-					const result = await execAsync(command);
-					stdout = result.stdout;
-				}
-
-				const portsMap = JSON.parse(stdout.trim());
-				const additionalPorts: Array<{
-					targetPort: number;
-					publishedPort: number;
-					publishMode: "host" | "ingress";
-				}> = [];
-
-				// Convert the Docker container port format to our expected format
-				for (const [containerPort, bindings] of Object.entries(portsMap)) {
-					if (!bindings) continue;
-
-					const [port = ""] = containerPort.split("/");
-					if (!port) continue;
-
-					const targetPortNum = Number.parseInt(port, 10);
-					if (Number.isNaN(targetPortNum)) continue;
-
-					// Skip default ports
-					if ([80, 443, 8080].includes(targetPortNum)) continue;
-
-					for (const binding of bindings as Array<{ HostPort: string }>) {
-						if (!binding.HostPort) continue;
-						const publishedPort = Number.parseInt(binding.HostPort, 10);
-						if (Number.isNaN(publishedPort)) continue;
-
-						additionalPorts.push({
-							targetPort: targetPortNum,
-							publishedPort,
-							publishMode: "host", // Docker standalone uses host mode by default
-						});
-					}
-				}
-
-				return additionalPorts;
-			} catch (error) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to get Traefik ports",
-					cause: error,
-				});
-			}
+			return await getTraefikPorts(input?.serverId);
 		}),
 	updateLogCleanup: adminProcedure
 		.input(
@@ -853,3 +806,56 @@ export const settingsRouter = createTRPCRouter({
 		return getLogCleanupStatus();
 	}),
 });
+
+export const getTraefikPorts = async (serverId?: string) => {
+	const command = `docker container inspect --format='{{json .NetworkSettings.Ports}}' dokploy-traefik`;
+	try {
+		let stdout = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+		} else if (!IS_CLOUD) {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+		}
+
+		const portsMap = JSON.parse(stdout.trim());
+		const additionalPorts: Array<{
+			targetPort: number;
+			publishedPort: number;
+		}> = [];
+
+		// Convert the Docker container port format to our expected format
+		for (const [containerPort, bindings] of Object.entries(portsMap)) {
+			if (!bindings) continue;
+
+			const [port = ""] = containerPort.split("/");
+			if (!port) continue;
+
+			const targetPortNum = Number.parseInt(port, 10);
+			if (Number.isNaN(targetPortNum)) continue;
+
+			// Skip default ports
+			if ([80, 443].includes(targetPortNum)) continue;
+
+			for (const binding of bindings as Array<{ HostPort: string }>) {
+				if (!binding.HostPort) continue;
+				const publishedPort = Number.parseInt(binding.HostPort, 10);
+				if (Number.isNaN(publishedPort)) continue;
+
+				additionalPorts.push({
+					targetPort: targetPortNum,
+					publishedPort,
+				});
+			}
+		}
+
+		return additionalPorts;
+	} catch (error) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to get Traefik ports",
+			cause: error,
+		});
+	}
+};

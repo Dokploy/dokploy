@@ -22,7 +22,6 @@ interface TraefikOptions {
 	additionalPorts?: {
 		targetPort: number;
 		publishedPort: number;
-		publishMode?: "ingress" | "host";
 	}[];
 	force?: boolean;
 }
