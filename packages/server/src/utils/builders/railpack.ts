@@ -154,4 +154,3 @@ echo "✅ Railpack build completed." >> ${logPath};
 
 	return bashCommand;
 };
-// docker buildx build --build-arg BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55 -f /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications/dsfgsdfg-sdfgdsfg-fyk3r9/code/astro/railpack-plan.json /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/applications/dsfgsdfg-sdfgdsfg-fyk3r9/code/astro
