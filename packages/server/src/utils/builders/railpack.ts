@@ -4,12 +4,22 @@ import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
 import { execAsync } from "../process/execAsync";
+import { nanoid } from "nanoid";
+import { createHash } from "node:crypto";
+
+const calculateSecretsHash = (envVariables: string[]): string => {
+	const hash = createHash("sha256");
+	for (const env of envVariables.sort()) {
+		hash.update(env);
+	}
+	return hash.digest("hex");
+};
 
 export const buildRailpack = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
@@ -45,10 +55,22 @@ export const buildRailpack = async (
 			}
 		});
 
+		// Calculate secrets hash for layer invalidation
+		const secretsHash = calculateSecretsHash(envVariables);
+
 		// Build with BuildKit using the Railpack frontend
+		const cacheKey = cleanCache ? nanoid(10) : undefined;
 		const buildArgs = [
 			"buildx",
 			"build",
+			...(cacheKey
+				? [
+						"--build-arg",
+						`secrets-hash=${secretsHash}`,
+						"--build-arg",
+						`cache-key=${cacheKey}`,
+					]
+				: []),
 			"--build-arg",
 			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
 			"-f",
@@ -92,7 +114,7 @@ export const getRailpackCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
@@ -113,10 +135,22 @@ export const getRailpackCommand = (
 		prepareArgs.push("--env", env);
 	}
 
+	// Calculate secrets hash for layer invalidation
+	const secretsHash = calculateSecretsHash(envVariables);
+
+	const cacheKey = cleanCache ? nanoid(10) : undefined;
 	// Build command
 	const buildArgs = [
 		"buildx",
 		"build",
+		...(cacheKey
+			? [
+					"--build-arg",
+					`secrets-hash=${secretsHash}`,
+					"--build-arg",
+					`cache-key=${cacheKey}`,
+				]
+			: []),
 		"--build-arg",
 		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
 		"-f",

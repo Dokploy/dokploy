@@ -216,10 +216,6 @@ export const deployCompose = async ({
 	});
 
 	try {
-		// const admin = await findUserById(compose.project.userId);
-		// if (admin.cleanupCacheOnCompose) {
-		// 	await cleanupFullDocker(compose?.serverId);
-		// }
 		if (compose.sourceType === "github") {
 			await cloneGithubRepository({
 				...compose,
@@ -285,11 +281,6 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		// const admin = await findUserById(compose.project.userId);
-		// if (admin.cleanupCacheOnCompose) {
-		// 	await cleanupFullDocker(compose?.serverId);
-		// }
-
 		if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
 		}
@@ -331,10 +322,6 @@ export const deployRemoteCompose = async ({
 	});
 	try {
 		if (compose.serverId) {
-			// const admin = await findUserById(compose.project.userId);
-			// if (admin.cleanupCacheOnCompose) {
-			// 	await cleanupFullDocker(compose?.serverId);
-			// }
 			let command = "set -e;";
 
 			if (compose.sourceType === "github") {
@@ -429,10 +416,6 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
-		// const admin = await findUserById(compose.project.userId);
-		// if (admin.cleanupCacheOnCompose) {
-		// 	await cleanupFullDocker(compose?.serverId);
-		// }
 		if (compose.sourceType === "raw") {
 			const command = getCreateComposeFileCommand(compose, deployment.logPath);
 			await execAsyncRemote(compose.serverId, command);

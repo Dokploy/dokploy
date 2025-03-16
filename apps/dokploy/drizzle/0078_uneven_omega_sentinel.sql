@@ -1,0 +1,1 @@
+ALTER TABLE "application" ADD COLUMN "cleanCache" boolean DEFAULT false;

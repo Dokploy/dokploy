@@ -267,6 +267,28 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							className="flex flex-row gap-2 items-center"
 						/>
 					</div>
+
+					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<span className="text-sm font-medium">Clean Cache</span>
+						<Switch
+							aria-label="Toggle italic"
+							checked={data?.cleanCache || false}
+							onCheckedChange={async (enabled) => {
+								await update({
+									applicationId,
+									cleanCache: enabled,
+								})
+									.then(async () => {
+										toast.success("Clean Cache Updated");
+										await refetch();
+									})
+									.catch(() => {
+										toast.error("Error updating Clean Cache");
+									});
+							}}
+							className="flex flex-row gap-2 items-center"
+						/>
+					</div>
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />
