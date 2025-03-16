@@ -4,7 +4,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
@@ -92,8 +91,6 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	const { req } = ctx;
-	const locale = getLocale(req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -113,8 +110,6 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {
-			...(await serverSideTranslations(locale)),
-		},
+		props: {},
 	};
 }

@@ -51,7 +51,7 @@ const addServerDomain = z
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
-	const { t } = useTranslation();
+	const { t } = useTranslation("settings");
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();

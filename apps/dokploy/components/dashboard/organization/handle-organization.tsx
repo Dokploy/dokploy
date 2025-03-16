@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, Plus } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -42,7 +41,6 @@ interface Props {
 }
 
 export function AddOrganization({ organizationId }: Props) {
-	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
@@ -83,9 +81,7 @@ export function AddOrganization({ organizationId }: Props) {
 			.then(() => {
 				form.reset();
 				toast.success(
-					organizationId
-						? t("common.side.organizations.updateSuccess")
-						: t("common.side.organizations.createSuccess"),
+					`Organization ${organizationId ? "updated" : "created"} successfully`,
 				);
 				utils.organization.all.invalidate();
 				setOpen(false);
@@ -93,9 +89,7 @@ export function AddOrganization({ organizationId }: Props) {
 			.catch((error) => {
 				console.error(error);
 				toast.error(
-					organizationId
-						? t("common.side.organizations.updateFailed")
-						: t("common.side.organizations.createFailed"),
+					`Failed to ${organizationId ? "update" : "create"} organization`,
 				);
 			});
 	};
@@ -119,7 +113,7 @@ export function AddOrganization({ organizationId }: Props) {
 							<Plus className="size-4" />
 						</div>
 						<div className="font-medium text-muted-foreground">
-							{t("common.side.organizations.createOrganization")}
+							Add organization
 						</div>
 					</DropdownMenuItem>
 				)}
@@ -127,14 +121,12 @@ export function AddOrganization({ organizationId }: Props) {
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>
-						{organizationId
-							? t("common.side.organizations.updateOrganization")
-							: t("common.side.organizations.createOrganization")}
+						{organizationId ? "Update organization" : "Add organization"}
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? t("common.side.organizations.updateOrganizationDescription")
-							: t("common.side.organizations.createOrganizationDescription")}
+							? "Update the organization name and logo"
+							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -147,14 +139,10 @@ export function AddOrganization({ organizationId }: Props) {
 							name="name"
 							render={({ field }) => (
 								<FormItem className="tems-center gap-4">
-									<FormLabel className="text-right">
-										{t("common.side.organizations.name")}
-									</FormLabel>
+									<FormLabel className="text-right">Name</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={t(
-												"common.side.organizations.name.placeholder",
-											)}
+											placeholder="Organization name"
 											{...field}
 											className="col-span-3"
 										/>
@@ -168,9 +156,7 @@ export function AddOrganization({ organizationId }: Props) {
 							name="logo"
 							render={({ field }) => (
 								<FormItem className=" gap-4">
-									<FormLabel className="text-right">
-										{t("common.side.organizations.logoURL")}
-									</FormLabel>
+									<FormLabel className="text-right">Logo URL</FormLabel>
 									<FormControl>
 										<Input
 											placeholder="https://example.com/logo.png"
@@ -185,9 +171,7 @@ export function AddOrganization({ organizationId }: Props) {
 						/>
 						<DialogFooter className="mt-4">
 							<Button type="submit" isLoading={isLoading}>
-								{organizationId
-									? t("common.side.organizations.updateOrganization")
-									: t("common.side.organizations.createOrganization")}
+								{organizationId ? "Update organization" : "Create organization"}
 							</Button>
 						</DialogFooter>
 					</form>

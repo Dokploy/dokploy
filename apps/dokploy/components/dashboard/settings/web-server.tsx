@@ -15,7 +15,7 @@ import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
-	const { t } = useTranslation();
+	const { t } = useTranslation("settings");
 	const { data } = api.user.get.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
