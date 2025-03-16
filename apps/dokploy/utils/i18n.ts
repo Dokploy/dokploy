@@ -8,11 +8,8 @@ export function getLocale(cookies: NextApiRequestCookies) {
 import { Languages } from "@/lib/languages";
 import { serverSideTranslations as originalServerSideTranslations } from "next-i18next/serverSideTranslations";
 
-export const serverSideTranslations = (
-	locale: string,
-	namespaces = ["common"],
-) =>
-	originalServerSideTranslations(locale, namespaces, {
+export const serverSideTranslations = (locale: string) =>
+	originalServerSideTranslations(locale, ["common"], {
 		fallbackLng: "en",
 		keySeparator: false,
 		i18n: {

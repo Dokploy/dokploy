@@ -80,7 +80,7 @@ const REFILL_INTERVAL_OPTIONS = [
 ];
 
 export const AddApiKey = () => {
-	const { t } = useTranslation('settings');
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
 	const [newApiKey, setNewApiKey] = useState("");
@@ -142,7 +142,7 @@ export const AddApiKey = () => {
 		<>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogTrigger asChild>
-						<Button>{t("settings.api.generateNewKey")}</Button>
+					<Button>{t("settings.api.generateNewKey")}</Button>
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
@@ -160,7 +160,10 @@ export const AddApiKey = () => {
 									<FormItem>
 										<FormLabel>{t("settings.api.name")}</FormLabel>
 										<FormControl>
-											<Input placeholder={t("settings.api.namePlaceholder")} {...field} />
+											<Input
+												placeholder={t("settings.api.namePlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -173,7 +176,10 @@ export const AddApiKey = () => {
 									<FormItem>
 										<FormLabel>{t("settings.api.prefix")}</FormLabel>
 										<FormControl>
-											<Input placeholder={t("settings.api.prefixPlaceholder")} {...field} />
+											<Input
+												placeholder={t("settings.api.prefixPlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -193,13 +199,17 @@ export const AddApiKey = () => {
 										>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder={t("settings.api.selectExpirationTime")} />
+													<SelectValue
+														placeholder={t("settings.api.selectExpirationTime")}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
 												{EXPIRATION_OPTIONS.map((option) => (
 													<SelectItem key={option.value} value={option.value}>
-														{t(`settings.api.expirationOptions.${option.label}`)}
+														{t(
+															`settings.api.expirationOptions.${option.label}`,
+														)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -217,7 +227,9 @@ export const AddApiKey = () => {
 										<Select value={field.value} onValueChange={field.onChange}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder={t("settings.api.selectOrganization")} />
+													<SelectValue
+														placeholder={t("settings.api.selectOrganization")}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
@@ -235,14 +247,18 @@ export const AddApiKey = () => {
 
 							{/* Rate Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
-								<h3 className="text-lg font-medium">{t("settings.api.rateLimiting")}</h3>
+								<h3 className="text-lg font-medium">
+									{t("settings.api.rateLimiting")}
+								</h3>
 								<FormField
 									control={form.control}
 									name="rateLimitEnabled"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
 											<div className="space-y-0.5">
-												<FormLabel>{t("settings.api.enableRateLimiting")}</FormLabel>
+												<FormLabel>
+													{t("settings.api.enableRateLimiting")}
+												</FormLabel>
 												<FormDescription>
 													{t("settings.api.limitRequestsDescription")}
 												</FormDescription>
@@ -273,7 +289,11 @@ export const AddApiKey = () => {
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder={t("settings.api.selectTimeWindow")} />
+																<SelectValue
+																	placeholder={t(
+																		"settings.api.selectTimeWindow",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
@@ -282,7 +302,9 @@ export const AddApiKey = () => {
 																	key={option.value}
 																	value={option.value}
 																>
-																	{t(`settings.api.timeWindowOptions.${option.label}`)}
+																	{t(
+																		`settings.api.timeWindowOptions.${option.label}`,
+																	)}
 																</SelectItem>
 															))}
 														</SelectContent>
@@ -303,7 +325,9 @@ export const AddApiKey = () => {
 													<FormControl>
 														<Input
 															type="number"
-															placeholder={t("settings.api.maxRequestsPlaceholder")}
+															placeholder={t(
+																"settings.api.maxRequestsPlaceholder",
+															)}
 															value={field.value?.toString() ?? ""}
 															onChange={(e) =>
 																field.onChange(
@@ -327,17 +351,23 @@ export const AddApiKey = () => {
 
 							{/* Request Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
-								<h3 className="text-lg font-medium">{t("settings.api.requestLimiting")}</h3>
+								<h3 className="text-lg font-medium">
+									{t("settings.api.requestLimiting")}
+								</h3>
 								<FormField
 									control={form.control}
 									name="remaining"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>{t("settings.api.totalRequestLimit")}</FormLabel>
+											<FormLabel>
+												{t("settings.api.totalRequestLimit")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder={t("settings.api.totalRequestLimitPlaceholder")}
+													placeholder={t(
+														"settings.api.totalRequestLimitPlaceholder",
+													)}
 													value={field.value?.toString() ?? ""}
 													onChange={(e) =>
 														field.onChange(
@@ -365,7 +395,9 @@ export const AddApiKey = () => {
 											<FormControl>
 												<Input
 													type="number"
-													placeholder={t("settings.api.refillAmountPlaceholder")}
+													placeholder={t(
+														"settings.api.refillAmountPlaceholder",
+													)}
 													value={field.value?.toString() ?? ""}
 													onChange={(e) =>
 														field.onChange(
@@ -398,13 +430,19 @@ export const AddApiKey = () => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder={t("settings.api.selectRefillInterval")} />
+														<SelectValue
+															placeholder={t(
+																"settings.api.selectRefillInterval",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
 													{REFILL_INTERVAL_OPTIONS.map((option) => (
 														<SelectItem key={option.value} value={option.value}>
-															{t(`settings.api.refillIntervalOptions.${option.label}`)}
+															{t(
+																`settings.api.refillIntervalOptions.${option.label}`,
+															)}
 														</SelectItem>
 													))}
 												</SelectContent>
@@ -436,7 +474,9 @@ export const AddApiKey = () => {
 			<Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>{t("settings.api.apiKeyGeneratedSuccessfully")}</DialogTitle>
+						<DialogTitle>
+							{t("settings.api.apiKeyGeneratedSuccessfully")}
+						</DialogTitle>
 						<DialogDescription>
 							{t("settings.api.copyApiKeyNow")}
 						</DialogDescription>

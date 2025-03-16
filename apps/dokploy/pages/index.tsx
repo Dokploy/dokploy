@@ -56,7 +56,7 @@ interface Props {
 }
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
-	const { t } = useTranslation("auth");
+	const { t } = useTranslation();
 
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
@@ -150,9 +150,7 @@ export default function Home({ IS_CLOUD }: Props) {
 
 			if (error) {
 				toast.error(error.message);
-				setError(
-					error.message || t("auth.backupCodeVerificationError"),
-				);
+				setError(error.message || t("auth.backupCodeVerificationError"));
 				return;
 			}
 
@@ -178,7 +176,8 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 		} catch (error) {
 			toast.error(t("auth.githubSignInError"), {
-				description: error instanceof Error ? error.message : t("auth.unknownError"),
+				description:
+					error instanceof Error ? error.message : t("auth.unknownError"),
 			});
 		} finally {
 			setIsGithubLoading(false);
@@ -198,7 +197,8 @@ export default function Home({ IS_CLOUD }: Props) {
 			}
 		} catch (error) {
 			toast.error(t("auth.googleSignInError"), {
-				description: error instanceof Error ? error.message : t("auth.unknownError"),
+				description:
+					error instanceof Error ? error.message : t("auth.unknownError"),
 			});
 		} finally {
 			setIsGoogleLoading(false);
@@ -517,7 +517,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	return {
 		props: {
 			hasAdmin,
-			...(await serverSideTranslations(locale, ["auth"])),
+			...(await serverSideTranslations(locale)),
 		},
 	};
 }
