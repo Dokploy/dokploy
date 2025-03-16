@@ -131,6 +131,10 @@ export const getRailpackCommand = (
 	buildArgs.push(buildAppDirectory);
 
 	const bashCommand = `
+# Ensure we have a builder with containerd
+docker buildx create --use --name builder-containerd --driver docker-container || true
+docker buildx use builder-containerd
+
 echo "Preparing Railpack build plan..." >> "${logPath}";
 railpack ${prepareArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
 	echo "❌ Railpack prepare failed" >> ${logPath};
