@@ -15,6 +15,7 @@ import { domainRouter } from "./routers/domain";
 import { gitProviderRouter } from "./routers/git-provider";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
+import { giteaRouter } from "./routers/gitea";
 import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
@@ -70,6 +71,7 @@ export const appRouter = createTRPCRouter({
 	notification: notificationRouter,
 	sshKey: sshRouter,
 	gitProvider: gitProviderRouter,
+	gitea: giteaRouter,
 	bitbucket: bitbucketRouter,
 	gitlab: gitlabRouter,
 	github: githubRouter,

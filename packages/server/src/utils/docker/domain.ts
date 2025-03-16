@@ -23,6 +23,10 @@ import {
 	cloneRawGitlabRepositoryRemote,
 } from "../providers/gitlab";
 import {
+	cloneRawGiteaRepository,
+	cloneRawGiteaRepositoryRemote,
+} from "../providers/gitea";
+import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
@@ -44,6 +48,8 @@ export const cloneCompose = async (compose: Compose) => {
 		await cloneRawBitbucketRepository(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneGitRawRepository(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepository(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRaw(compose);
 	}
@@ -58,6 +64,8 @@ export const cloneComposeRemote = async (compose: Compose) => {
 		await cloneRawBitbucketRepositoryRemote(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneRawGitRepositoryRemote(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepository(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRawRemote(compose);
 	}

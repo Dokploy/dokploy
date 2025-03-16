@@ -38,6 +38,10 @@ import {
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
 import {
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
+import {
 	createComposeFile,
 	getCreateComposeFileCommand,
 } from "@dokploy/server/utils/providers/raw";
@@ -125,6 +129,7 @@ export const findComposeById = async (composeId: string) => {
 			github: true,
 			gitlab: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 		},
 	});
@@ -232,9 +237,11 @@ export const deployCompose = async ({
 			await cloneBitbucketRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
+		} else if (compose.sourceType === "gitea") {
+			await cloneGiteaRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
-		}
+		} 
 		await buildCompose(compose, deployment.logPath);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -364,6 +371,12 @@ export const deployRemoteCompose = async ({
 				);
 			} else if (compose.sourceType === "raw") {
 				command += getCreateComposeFileCommand(compose, deployment.logPath);
+			} else if (compose.sourceType === "gitea") {
+				command += await getGiteaCloneCommand(
+				  compose,
+				  deployment.logPath,
+				  true
+				);
 			}
 
 			await execAsyncRemote(compose.serverId, command);

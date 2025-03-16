@@ -112,99 +112,118 @@ export const getBuildCommand = (
 
 export const mechanizeDockerContainer = async (
 	application: ApplicationNested,
-) => {
+  ) => {
+	console.log(`Starting to mechanize Docker container for ${application.appName}`);
+	
 	const {
-		appName,
-		env,
-		mounts,
-		cpuLimit,
-		memoryLimit,
-		memoryReservation,
-		cpuReservation,
-		command,
-		ports,
+	  appName,
+	  env,
+	  mounts,
+	  cpuLimit,
+	  memoryLimit,
+	  memoryReservation,
+	  cpuReservation,
+	  command,
+	  ports,
 	} = application;
-
+  
 	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
+	  memoryLimit,
+	  memoryReservation,
+	  cpuLimit,
+	  cpuReservation,
 	});
-
+  
 	const volumesMount = generateVolumeMounts(mounts);
-
+  
 	const {
-		HealthCheck,
-		RestartPolicy,
-		Placement,
-		Labels,
-		Mode,
-		RollbackConfig,
-		UpdateConfig,
-		Networks,
+	  HealthCheck,
+	  RestartPolicy,
+	  Placement,
+	  Labels,
+	  Mode,
+	  RollbackConfig,
+	  UpdateConfig,
+	  Networks,
 	} = generateConfigContainer(application);
-
+  
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(
-		env,
-		application.project.env,
+	  env,
+	  application.project.env,
 	);
-
+  
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);
 	const docker = await getRemoteDocker(application.serverId);
-
+  
 	const settings: CreateServiceOptions = {
-		authconfig: authConfig,
-		Name: appName,
-		TaskTemplate: {
-			ContainerSpec: {
-				HealthCheck,
-				Image: image,
-				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
-				Labels,
-			},
-			Networks,
-			RestartPolicy,
-			Placement,
-			Resources: {
-				...resources,
-			},
+	  authconfig: authConfig,
+	  Name: appName,
+	  TaskTemplate: {
+		ContainerSpec: {
+		  HealthCheck,
+		  Image: image,
+		  Env: envVariables,
+		  Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+		  ...(command
+			? {
+				Command: ["/bin/sh"],
+				Args: ["-c", command],
+			  }
+			: {}),
+		  Labels,
 		},
-		Mode,
-		RollbackConfig,
-		EndpointSpec: {
-			Ports: ports.map((port) => ({
-				Protocol: port.protocol,
-				TargetPort: port.targetPort,
-				PublishedPort: port.publishedPort,
-			})),
+		Networks,
+		RestartPolicy,
+		Placement,
+		Resources: {
+		  ...resources,
 		},
-		UpdateConfig,
+	  },
+	  Mode,
+	  RollbackConfig,
+	  EndpointSpec: {
+		Ports: ports.map((port) => ({
+		  Protocol: port.protocol,
+		  TargetPort: port.targetPort,
+		  PublishedPort: port.publishedPort,
+		})),
+	  },
+	  UpdateConfig,
 	};
-
+  
 	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
-			},
-		});
-	} catch (_error) {
+	  console.log(`Attempting to find existing service: ${appName}`);
+	  const service = docker.getService(appName);
+	  const inspect = await service.inspect();
+	  console.log(`Found existing service, updating: ${appName}`);
+	  
+	  await service.update({
+		version: Number.parseInt(inspect.Version.Index),
+		...settings,
+		TaskTemplate: {
+		  ...settings.TaskTemplate,
+		  ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+		},
+	  });
+	  console.log(`Service updated successfully: ${appName}`);
+	} catch (error: unknown) {
+	  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+	  console.log(`Service not found or error: ${errorMessage}`);
+	  console.log(`Creating new service: ${appName}`);
+	  
+	  try {
 		await docker.createService(settings);
+		console.log(`Service created successfully: ${appName}`);
+	  } catch (createError: unknown) {
+		const createErrorMessage = createError instanceof Error 
+		  ? createError.message 
+		  : 'Unknown error';
+		console.error(`Failed to create service: ${createErrorMessage}`);
+		throw createError;
+	  }
 	}
 };
 

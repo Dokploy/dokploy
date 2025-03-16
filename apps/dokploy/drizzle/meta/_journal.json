@@ -498,6 +498,41 @@
       "when": 1741322697251,
       "tag": "0070_useful_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1741559743256,
+      "tag": "0071_flimsy_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1741593124105,
+      "tag": "0072_low_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1741645208694,
+      "tag": "0073_dark_tigra",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1741673569715,
+      "tag": "0074_military_miss_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1742018928109,
+      "tag": "0075_wild_xorn",
+      "breakpoints": true
     }
   ]
 }

@@ -28,6 +28,7 @@ export * from "./services/git-provider";
 export * from "./services/bitbucket";
 export * from "./services/github";
 export * from "./services/gitlab";
+export * from "./services/gitea";
 export * from "./services/server";
 export * from "./services/application";
 
@@ -89,6 +90,7 @@ export * from "./utils/providers/docker";
 export * from "./utils/providers/git";
 export * from "./utils/providers/github";
 export * from "./utils/providers/gitlab";
+export * from "./utils/providers/gitea";
 export * from "./utils/providers/raw";
 
 export * from "./utils/servers/remote-docker";

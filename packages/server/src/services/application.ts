@@ -34,6 +34,10 @@ import {
 	cloneGitlabRepository,
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
+import {
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -111,6 +115,7 @@ export const findApplicationById = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 			previewDeployments: true,
 		},
@@ -196,6 +201,9 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
 			await cloneGitlabRepository(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitea") {
+			await cloneGiteaRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(application, deployment.logPath);
@@ -322,6 +330,11 @@ export const deployRemoteApplication = async ({
 				command += await getGitlabCloneCommand(application, deployment.logPath);
 			} else if (application.sourceType === "bitbucket") {
 				command += await getBitbucketCloneCommand(
+					application,
+					deployment.logPath,
+				);
+			} else if (application.sourceType === "gitea") {
+				command += await getGiteaCloneCommand(
 					application,
 					deployment.logPath,
 				);

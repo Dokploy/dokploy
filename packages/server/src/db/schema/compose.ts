@@ -14,12 +14,14 @@ import { server } from "./server";
 import { applicationStatus } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+import { gitea } from "./gitea";
 
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
 	"gitlab",
 	"bitbucket",
+	"gitea",
 	"raw",
 ]);
 
@@ -55,6 +57,10 @@ export const compose = pgTable("compose", {
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
+	// Gitea
+    giteaRepository: text("giteaRepository"),
+    giteaOwner: text("giteaOwner"),
+    giteaBranch: text("giteaBranch"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -87,6 +93,9 @@ export const compose = pgTable("compose", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	giteaId: text("giteaId").references(() => gitea.giteaId, {
+        onDelete: "set null",
+    }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -116,6 +125,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	gitea: one(gitea, {
+        fields: [compose.giteaId],
+        references: [gitea.giteaId],
+    }),
 	server: one(server, {
 		fields: [compose.serverId],
 		references: [server.serverId],
