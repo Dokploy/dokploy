@@ -123,29 +123,27 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	return await db.transaction(async (tx) => {
-		const mount = await tx
-			.update(mounts)
-			.set({
-				...mountData,
-			})
-			.where(eq(mounts.mountId, mountId))
-			.returning()
-			.then((value) => value[0]);
+    const mount = await db
+        .update(mounts)
+        .set({
+            ...mountData,
+        })
+        .where(eq(mounts.mountId, mountId))
+        .returning()
+        .then((value) => value[0]);
 
-		if (!mount) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Mount not found",
-			});
-		}
+    if (!mount) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Mount not found",
+        });
+    }
 
-		if (mount.type === "file") {
-			await deleteFileMount(mountId);
-			await createFileMount(mountId);
-		}
-		return mount;
-	});
+    if (mount.type === "file") {
+        await deleteFileMount(mountId);
+        await createFileMount(mountId);
+    }
+    return mount;
 };
 
 export const findMountsByApplicationId = async (
